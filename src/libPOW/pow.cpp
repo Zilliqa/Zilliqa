@@ -253,41 +253,46 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
                                         uint8_t difficulty)
 {
     std::vector<std::unique_ptr<std::thread>> vecThread;
-    std::vector<ethash_mining_result_t> vecMiningResult(NUM_DEVICE_TO_USE);
     uint64_t nonce = std::time(0);
+    m_minerIndex = 0;
+    // Clear old result
+    for (auto& mining_result : m_vecMiningResult)
+    {
+        mining_result = ethash_mining_result_t{"", "", 0, false};
+    }
     for (size_t i = 0; i < NUM_DEVICE_TO_USE; ++i)
     {
-        int index
-            = i; // To avoid lambda capture by reference, but i changed already.
         vecThread.push_back(std::make_unique<std::thread>([&] {
-            MineFullGPUThread(blockNum, header_hash, difficulty, index, nonce,
-                              vecMiningResult[index]);
+            MineFullGPUThread(blockNum, header_hash, difficulty, nonce);
         }));
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
     std::unique_lock<std::mutex> lk(m_mutexMineResult);
     m_cvMineResult.wait(lk);
+    m_shouldMine = false;
     for (auto& ptrThead : vecThread)
     {
         ptrThead->join();
     }
 
-    for (const auto& miningResult : vecMiningResult)
+    for (const auto& mining_result : m_vecMiningResult)
     {
-        if (miningResult.success)
+        if (mining_result.success)
         {
-            return miningResult;
+            return mining_result;
         }
     }
-    return vecMiningResult[0];
+
+    return ethash_mining_result_t{"", "", 0, false};
 }
 
 void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
-                            uint8_t difficulty, size_t index, uint64_t nonce,
-                            ethash_mining_result_t& mining_result)
+                            uint8_t difficulty, uint64_t nonce)
 {
     LOG_MARKER();
+    auto index = m_minerIndex.load(std::memory_order_relaxed);
+    ++m_minerIndex;
     LOG_GENERAL(INFO,
                 "difficulty : " << std::to_string(difficulty) << ", index "
                                 << index);
@@ -310,7 +315,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
             LOG_GENERAL(WARNING,
                         "GPU failed to do mine, GPU miner log: "
                             << m_miners[index]->getLog());
-            mining_result = ethash_mining_result_t{"", "", 0, false};
+            m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
             m_cvMineResult.notify_one();
             return;
         }
@@ -318,7 +323,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
         ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
         if (ethash_check_difficulty(&hashResult.result, &diffForPoW))
         {
-            mining_result = ethash_mining_result_t{
+            m_vecMiningResult[index] = ethash_mining_result_t{
                 BlockhashToHexString(&hashResult.result),
                 solution.mixHash.hex(), solution.nonce, true};
             m_cvMineResult.notify_one();
@@ -326,7 +331,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
         }
         wp.startNonce = solution.nonce;
     }
-    mining_result = ethash_mining_result_t{"", "", 0, false};
+    m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
     m_cvMineResult.notify_one();
     return;
 }
@@ -509,7 +514,7 @@ void POW::InitOpenCL()
                     "NUM_DEVICE_TO_USE "
                         << NUM_DEVICE_TO_USE
                         << " is more than the physical OpenCL GPU number "
-                        << CUDAMiner::getNumDevices());
+                        << CLMiner::getNumDevices());
     }
 
     CLMiner::setCLKernel(CLKernelName::Stable);
@@ -526,6 +531,7 @@ void POW::InitOpenCL()
     for (uint32_t i = 0; i < NUM_DEVICE_TO_USE; ++i)
     {
         m_miners.push_back(std::make_unique<CLMiner>(i));
+        m_vecMiningResult.push_back(ethash_mining_result_t{"", "", 0, false});
     }
     LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
 #else
@@ -562,6 +568,7 @@ void POW::InitCUDA()
     for (uint32_t i = 0; i < NUM_DEVICE_TO_USE; ++i)
     {
         m_miners.push_back(std::make_unique<CUDAMiner>(i));
+        m_vecMiningResult.push_back(ethash_mining_result_t{"", "", 0, false});
     }
     LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
 #else
