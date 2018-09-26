@@ -233,20 +233,22 @@ bool Node::LoadShardingStructure(const vector<unsigned char>& message,
         return true;
     }
 
-    vector<map<PubKey, Peer>> shards;
-    cur_offset = ShardingStructure::Deserialize(message, cur_offset, shards);
-    m_numShards = shards.size();
+    m_mediator.m_ds->m_shards.clear();
+    cur_offset = ShardingStructure::Deserialize(message, cur_offset,
+                                                m_mediator.m_ds->m_shards);
+    m_numShards = m_mediator.m_ds->m_shards.size();
 
     // Check the shard ID against the deserialized structure
-    if (m_myShardID >= shards.size())
+    if (m_myShardID >= m_mediator.m_ds->m_shards.size())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Shard ID " << m_myShardID << " >= num shards "
-                              << shards.size());
+                              << m_mediator.m_ds->m_shards.size());
         return false;
     }
 
-    const map<PubKey, Peer>& my_shard = shards.at(m_myShardID);
+    const map<PubKey, Peer>& my_shard
+        = m_mediator.m_ds->m_shards.at(m_myShardID);
 
     // m_myShardMembers->clear();
     m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);
@@ -515,6 +517,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
     m_mediator.UpdateDSBlockRand(); // Update the rand1 value for next PoW
     UpdateDSCommiteeComposition(newleaderIP);
+
+    ScheduleFallbackTimeout();
 
     if (!LOOKUP_NODE_MODE)
     {

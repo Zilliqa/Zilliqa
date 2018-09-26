@@ -593,12 +593,6 @@ void Node::UpdateStateForNextConsensusRound()
                   "The new shard leader is m_consensusMyID "
                       << m_consensusLeaderID);
     }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: Next non-ds epoch begins");
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "[No PoW needed] MS: Start submit txn stage again.");
 }
 
 void Node::ScheduleMicroBlockConsensus()
@@ -851,7 +845,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             }
         }
 
-        if (m_state == MICROBLOCK_CONSENSUS)
+        if (m_state == MICROBLOCK_CONSENSUS
+            || m_state == MICROBLOCK_CONSENSUS_PREP)
         {
             LOG_EPOCH(
                 INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -980,6 +975,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
         }
     }
+
+    ScheduleFallbackTimeout();
 
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
