@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libUtils/DataConversion.h"
@@ -598,6 +599,7 @@ bool Node::ProcessTxnPacketFromLookup(
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -606,16 +608,6 @@ bool Node::ProcessTxnPacketFromLookup(
         return true;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint64_t)))
-    {
-        return false;
-    }
-
-    unsigned int curr_offset = offset;
-    uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
-                                                          sizeof(uint64_t));
-    curr_offset += sizeof(uint64_t);
-
     // check it's at inappropriate timing
     // vacuous epoch -> reject
     // new ds epoch but didn't received ds block yet -> buffer
@@ -623,12 +615,26 @@ bool Node::ProcessTxnPacketFromLookup(
 
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+
     if (isVacuousEpoch)
     {
         return false;
     }
-    else if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
-             || m_mediator.m_currentEpochNum == 1)
+
+    uint64_t epochNumber = 0;
+    uint32_t shardID = 0;
+    vector<Transaction> transactions;
+
+    if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
+                                           shardID, transactions))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeForwardTxnBlock failed.");
+        return false;
+    }
+
+    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
+        || m_mediator.m_currentEpochNum == 1)
 
     {
         // check for recieval of new ds block
@@ -638,36 +644,41 @@ bool Node::ProcessTxnPacketFromLookup(
             < (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) + 1)
         {
             lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-            m_txnPacketBuffer.emplace(epochNum, message);
+            m_txnPacketBuffer.emplace(epochNumber, message);
         }
         else
         {
-            return ProcessTxnPacketFromLookupCore(message, curr_offset);
+            return ProcessTxnPacketFromLookupCore(message, shardID,
+                                                  transactions);
         }
     }
     else
     {
-        if (epochNum < m_mediator.m_currentEpochNum)
+        if (epochNumber < m_mediator.m_currentEpochNum)
         {
             LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
             return false;
         }
-        else if (epochNum == m_mediator.m_currentEpochNum)
+        else if (epochNumber == m_mediator.m_currentEpochNum)
         {
-            return ProcessTxnPacketFromLookupCore(message, curr_offset);
+            return ProcessTxnPacketFromLookupCore(message, shardID,
+                                                  transactions);
         }
         else
         {
             lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-            m_txnPacketBuffer.emplace(epochNum, message);
+            m_txnPacketBuffer.emplace(epochNumber, message);
         }
     }
     return true;
 }
 
-bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
-                                          unsigned int offset)
+bool Node::ProcessTxnPacketFromLookupCore(
+    const vector<unsigned char>& message, const uint32_t shardID,
+    const vector<Transaction>& transactions)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -676,8 +687,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return true;
     }
 
-    LOG_MARKER();
-
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
     {
         LOG_GENERAL(WARNING,
@@ -685,49 +694,19 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return false;
     }
 
-    // core part:
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   2 * sizeof(uint32_t)))
-    {
-        return false;
-    }
-    unsigned int curr_offset = offset;
-    // uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
-    //                                                       sizeof(uint64_t));
-
-    // if (epochNum > m_mediator.m_currentEpochNum)
-    // {
-    //     LOG_GENERAL(WARNING, "Recvd txns for larger epoch");
-    // }
-
-    uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                         sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    if (shardId != m_myShardID)
+    if (shardID != m_myShardID)
     {
         LOG_GENERAL(WARNING,
-                    "Wrong Shard (" << shardId << "), m_myShardID ("
+                    "Wrong Shard (" << shardID << "), m_myShardID ("
                                     << m_myShardID << ")");
-        return false;
-    }
-
-    uint32_t num = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                     sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    if (IsMessageSizeInappropriate(message.size(), curr_offset,
-                                   Transaction::GetMinSerializedSize() * num))
-    {
         return false;
     }
 
     // Broadcast to other shard node
     vector<Peer> toSend;
-    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-         it++)
+    for (auto& it : *m_myShardMembers)
     {
-        toSend.push_back(it->second);
+        toSend.push_back(it.second);
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
@@ -739,15 +718,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
             = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-        for (unsigned int i = 0; i < num; i++)
-        {
-            Transaction tx;
-            if (tx.Deserialize(message, curr_offset) != 0)
-            {
-                LOG_GENERAL(WARNING, "Failed to deserialize");
-                return false;
-            }
 
+        unsigned int processed_count = 0;
+
+        for (const auto& tx : transactions)
+        {
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
                 auto it = compIdx.find(
@@ -762,29 +737,32 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                 else
                 {
                     compIdx.insert(tx);
-                    txn_sent_count++;
                 }
+                txn_sent_count++;
             }
             else
             {
                 LOG_GENERAL(WARNING, "Txn is not valid.");
             }
 
-            if (i % 100 == 0)
-            {
-                LOG_GENERAL(INFO, i << " txns from packet processed");
-            }
+            processed_count++;
 
-            curr_offset += tx.GetSerializedSize();
+            if (processed_count % 100 == 0)
+            {
+                LOG_GENERAL(INFO,
+                            processed_count << " txns from packet processed");
+            }
         }
     }
-    LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
+    LOG_GENERAL(INFO, "INSERTED TXN COUNT" << txn_sent_count);
 
     return true;
 }
 
 void Node::CommitTxnPacketBuffer()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -793,15 +771,25 @@ void Node::CommitTxnPacketBuffer()
         return;
     }
 
-    LOG_MARKER();
-
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     auto it = m_txnPacketBuffer.find(m_mediator.m_currentEpochNum);
 
     if (it != m_txnPacketBuffer.end())
     {
-        ProcessTxnPacketFromLookupCore(it->second,
-                                       MessageOffset::BODY + sizeof(uint64_t));
+        uint64_t epochNumber = 0;
+        uint32_t shardID = 0;
+        vector<Transaction> transactions;
+
+        if (!Messenger::GetNodeForwardTxnBlock(it->second, MessageOffset::BODY,
+                                               epochNumber, shardID,
+                                               transactions))
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::GetNodeForwardTxnBlock failed.");
+            return;
+        }
+
+        ProcessTxnPacketFromLookupCore(it->second, shardID, transactions);
     }
 }
 
@@ -1085,7 +1073,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }

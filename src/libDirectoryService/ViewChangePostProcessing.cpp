@@ -28,12 +28,15 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+
+using namespace std;
 
 void DirectoryService::ProcessViewChangeConsensusWhenDone()
 {
@@ -56,7 +59,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     vector<PubKey> keys;
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (m_pendingVCBlock->GetB2().at(index) == true)
+        if (m_pendingVCBlock->GetB2().at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -203,9 +206,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         }
 
         LOG_GENERAL(INFO, "New view of ds committee: ");
-        for (unsigned i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+        for (auto& i : *m_mediator.m_DSCommittee)
         {
-            LOG_GENERAL(INFO, m_mediator.m_DSCommittee->at(i).second);
+            LOG_GENERAL(INFO, i.second);
         }
 
         auto func = [this, viewChangeState]() -> void {
@@ -226,10 +229,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     vector<unsigned char> vcblock_message
         = {MessageType::NODE, NodeInstructionType::VCBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    m_pendingVCBlock->Serialize(vcblock_message, MessageOffset::BODY);
-    curr_offset += m_pendingVCBlock->GetSerializedSize();
+    if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
+                                   *m_pendingVCBlock))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetNodeVCBlock failed.");
+        return;
+    }
 
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
     unsigned int nodeToSendToLookUpHi
@@ -337,33 +344,30 @@ bool DirectoryService::ProcessViewChangeConsensus(
     {
         lock_guard<mutex> g(m_mutexConsensus);
 
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
-        if (cv_ViewChangeConsensusObj.wait_for(
-                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                [this] { return (m_state == VIEWCHANGE_CONSENSUS); }))
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Successfully transit to viewchange consensus or I am in the "
-                "correct state.");
-        }
-        else
-        {
-            LOG_EPOCH(
-                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Time out while waiting for state transition to view change "
-                "consensus and "
-                "consensus object creation. Most likely view change didn't "
-                "occur. A malicious node may be trying to initate view "
-                "change.");
-        }
-
         if (!CheckState(PROCESS_VIEWCHANGECONSENSUS))
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Ignoring consensus message. Not at viewchange consensus "
-                      "state.");
-            return false;
+            std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
+            if (cv_ViewChangeConsensusObj.wait_for(
+                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+                    [this] { return CheckState(PROCESS_VIEWCHANGECONSENSUS); }))
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Successfully transit to viewchange consensus or I "
+                          "am in the "
+                          "correct state.");
+            }
+            else
+            {
+                LOG_EPOCH(
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Time out while waiting for state transition to view "
+                    "change "
+                    "consensus and "
+                    "consensus object creation. Most likely view change didn't "
+                    "occur. A malicious node may be trying to initate view "
+                    "change.");
+                return false;
+            }
         }
     }
 

@@ -67,18 +67,29 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
     }
 
     unsigned int i = 0;
+    constexpr uint16_t MAX_REPUTATION
+        = 4096; // This means the max priority is 12. A node need to continually run for 5 days to achieve this reputation.
 
     for (const auto& kv : shard)
     {
+        const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(kv);
         if (b1.at(i))
         {
             m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
-                .push_back(Account::GetAddressFromPublicKey(kv.first));
+                .push_back(Account::GetAddressFromPublicKey(pubKey));
+            if (m_mapNodeReputation[pubKey] < MAX_REPUTATION)
+            {
+                ++m_mapNodeReputation[pubKey];
+            }
         }
         if (b2.at(i))
         {
             m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
-                .push_back(Account::GetAddressFromPublicKey(kv.first));
+                .push_back(Account::GetAddressFromPublicKey(pubKey));
+            if (m_mapNodeReputation[pubKey] < MAX_REPUTATION)
+            {
+                ++m_mapNodeReputation[pubKey];
+            }
         }
         i++;
     }

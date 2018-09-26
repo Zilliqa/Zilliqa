@@ -30,6 +30,13 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
+typedef std::function<bool(
+    const std::vector<unsigned char>& input, unsigned int offset,
+    std::vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, std::vector<unsigned char>& messageToCosign)>
+    MsgContentValidatorFunc;
+
 /// Implements the functionality for the consensus committee backup.
 class ConsensusBackup : public ConsensusCommon
 {
@@ -70,7 +77,7 @@ private:
                                  unsigned int offset,
                                  const std::vector<unsigned char>& errorMsg);
     bool ProcessMessageConsensusFailure(
-        [[gnu::unused]] const std::vector<unsigned char>& consensusFailure,
+        [[gnu::unused]] const std::vector<unsigned char>& announcement,
         [[gnu::unused]] unsigned int offset);
     bool GenerateCommitMessage(std::vector<unsigned char>& commit,
                                unsigned int offset);

@@ -19,14 +19,21 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 
-bool Node::FallbackValidator(
-    const vector<unsigned char>& fallbackBlock,
-    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
+using namespace std;
+
+bool Node::FallbackValidator(const vector<unsigned char>& message,
+                             unsigned int offset,
+                             [[gnu::unused]] vector<unsigned char>& errorMsg,
+                             const uint32_t consensusID,
+                             const vector<unsigned char>& blockHash,
+                             const uint16_t leaderID, const PubKey& leaderKey,
+                             vector<unsigned char>& messageToCosign)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -37,9 +44,19 @@ bool Node::FallbackValidator(
     }
 
     LOG_MARKER();
+
     lock_guard<mutex> g(m_mutexPendingFallbackBlock);
 
-    m_pendingFallbackBlock.reset(new FallbackBlock(fallbackBlock, 0));
+    m_pendingFallbackBlock.reset(new FallbackBlock);
+
+    if (!Messenger::GetNodeFallbackBlockAnnouncement(
+            message, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_pendingFallbackBlock, messageToCosign))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeFallbackBlockAnnouncement failed.");
+        return false;
+    }
 
     // ds epoch No
     if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
@@ -376,9 +393,7 @@ bool Node::RunConsensusOnFallbackWhenLeader()
         m_mediator.m_selfKey.first, *m_myShardMembers,
         static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(FALLBACKCONSENSUS),
-        std::function<bool(const vector<unsigned char>&, unsigned int,
-                           const Peer&)>(),
-        std::function<bool(map<unsigned int, vector<unsigned char>>)>()));
+        NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
 
     if (m_consensusObject == nullptr)
     {
@@ -397,7 +412,20 @@ bool Node::RunConsensusOnFallbackWhenLeader()
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(FALLBACK_EXTRA_TIME));
-    cl->StartConsensus(m, FallbackBlockHeader::SIZE);
+
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        lock_guard<mutex> g(m_mutexPendingFallbackBlock);
+        return Messenger::SetNodeFallbackBlockAnnouncement(
+            dst, offset, consensusID, blockHash, leaderID, leaderKey,
+            *m_pendingFallbackBlock, messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc);
 
     return true;
 }
@@ -421,9 +449,15 @@ bool Node::RunConsensusOnFallbackWhenBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return FallbackValidator(message, errorMsg);
+    auto func
+        = [this](const vector<unsigned char>& input, unsigned int offset,
+                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
+                 const vector<unsigned char>& blockHash,
+                 const uint16_t leaderID, const PubKey& leaderKey,
+                 vector<unsigned char>& messageToCosign) mutable -> bool {
+        return FallbackValidator(input, offset, errorMsg, consensusID,
+                                 blockHash, leaderID, leaderKey,
+                                 messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(

@@ -25,7 +25,7 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
-#include "libUtils/UpgradeManager.h"
+#include "libUtils/SWInfo.h"
 
 /// Stores information on the header part of the DS block.
 class DSBlockHeader : public BlockHeaderBase
@@ -91,6 +91,9 @@ public:
 
     /// Returns the Unix time at the time of creation of this block.
     const boost::multiprecision::uint256_t& GetTimestamp() const;
+
+    /// Returns the software version information used during creation of this block.
+    const SWInfo& GetSWInfo() const;
 
     /// Equality operator.
     bool operator==(const DSBlockHeader& header) const;

@@ -24,11 +24,14 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+
+using namespace std;
 
 void Node::ProcessFallbackConsensusWhenDone()
 {
@@ -176,11 +179,15 @@ void Node::ProcessFallbackConsensusWhenDone()
     // Broadcasting fallback block to lookup nodes
     vector<unsigned char> fallbackblock_message
         = {MessageType::NODE, NodeInstructionType::FALLBACKBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    m_pendingFallbackBlock->Serialize(fallbackblock_message,
-                                      MessageOffset::BODY);
-    curr_offset += m_pendingFallbackBlock->GetSerializedSize();
+    if (!Messenger::SetNodeFallbackBlock(fallbackblock_message,
+                                         MessageOffset::BODY,
+                                         *m_pendingFallbackBlock))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetNodeFallbackBlock failed.");
+        return;
+    }
 
     unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
     unsigned int nodeToSendToLookUpHi
@@ -223,32 +230,29 @@ bool Node::ProcessFallbackConsensus(const vector<unsigned char>& message,
     {
         lock_guard<mutex> g(m_mutexConsensus);
 
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVFallbackConsensusObj);
-        if (cv_fallbackConsensusObj.wait_for(
-                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                [this] { return m_state == FALLBACK_CONSENSUS; }))
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Successfully transit to fallback consensus or I am in the "
-                "correct state.");
-        }
-        else
-        {
-            LOG_EPOCH(
-                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Time out while waiting for state transition to fallback "
-                "consensus and "
-                "consensus object creation. Most likely fallback didn't "
-                "occur. A malicious node may be trying to initate fallback.");
-        }
-
         if (!CheckState(PROCESS_FALLBACKCONSENSUS))
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Ignoring consensus message. Not at fallback consensus "
-                      "state.");
-            return false;
+            std::unique_lock<std::mutex> cv_lk(m_MutexCVFallbackConsensusObj);
+            if (cv_fallbackConsensusObj.wait_for(
+                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+                    [this] { return CheckState(PROCESS_FALLBACKCONSENSUS); }))
+            {
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Successfully transit to fallback consensus or I am in the "
+                    "correct state.");
+            }
+            else
+            {
+                LOG_EPOCH(
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Time out while waiting for state transition to fallback "
+                    "consensus and "
+                    "consensus object creation. Most likely fallback didn't "
+                    "occur. A malicious node may be trying to initate "
+                    "fallback.");
+                return false;
+            }
         }
     }
 

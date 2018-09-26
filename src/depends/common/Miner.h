@@ -37,8 +37,6 @@
 #define DAG_LOAD_MODE_SEQUENTIAL 1
 #define DAG_LOAD_MODE_SINGLE	 2
 
-using namespace std;
-
 namespace dev
 {
 
@@ -85,7 +83,7 @@ inline std::ostream& operator<<(std::ostream& os, HwMonitor _hw)
 {
 	os << _hw.tempC << "C " << _hw.fanP << "%";
 	if(_hw.powerW)
-		os << ' ' << fixed << setprecision(0) << _hw.powerW << "W";
+		os << ' ' << std::fixed << std::setprecision(0) << _hw.powerW << "W";
 	return os;
 }
 
