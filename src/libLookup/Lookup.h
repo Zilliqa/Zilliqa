@@ -30,6 +30,7 @@
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
@@ -54,8 +55,6 @@ class Lookup : public Executable, public Broadcastable
     bool m_fetchedDSInfo = false;
     std::mutex m_mutexDSInfoUpdation;
     std::condition_variable cv_dsInfoUpdate;
-
-    bool CheckStateRoot();
 
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
@@ -126,6 +125,8 @@ public:
     // Hardcoded for now -- to be called by constructor
     void SetLookupNodes();
 
+    bool CheckStateRoot();
+
     // Getter for m_lookupNodes
     std::vector<Peer> GetLookupNodes();
 
@@ -161,12 +162,18 @@ public:
     bool GetTxBodyFromSeedNodes(std::string txHashStr);
     bool GetStateFromLookupNodes();
 
+    bool ProcessGetShardFromSeed(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+
+    bool ProcessSetShardFromSeed(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
+    bool GetShardFromLookup();
     // Get the offline lookup nodes from lookup nodes
     bool GetOfflineLookupNodes();
 
     bool SetDSCommitteInfo();
 
-    std::deque<std::map<PubKey, Peer>> GetShardPeers();
+    DequeOfShard GetShardPeers();
     std::vector<Peer> GetNodePeers();
 
     // Start synchronization with other lookup nodes as a lookup node
@@ -181,7 +188,7 @@ public:
     // Rejoin the network as a lookup node in case of failure happens in protocol
     void RejoinAsLookup();
 
-    bool AddToTxnShardMap(const Transaction& tx, uint32_t shardID);
+    bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
     bool DeleteTxnShardMap(uint32_t shardId);
 
@@ -193,13 +200,7 @@ public:
 
     void SendTxnPacketToNodes(uint32_t);
 
-    bool CreateTxnPacket(std::vector<unsigned char>& msg, uint32_t shardId,
-                         unsigned int offset,
-                         const std::map<uint32_t, std::vector<unsigned char>>&);
-
-    bool
-    ProcessEntireShardingStructure(const std::vector<unsigned char>& message,
-                                   unsigned int offset, const Peer& from);
+    bool ProcessEntireShardingStructure();
     bool
     ProcessGetSeedPeersFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);

@@ -29,10 +29,11 @@
 
 unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
 
-bool getTransactionsFromFile(fstream& f, unsigned int startNum,
-                             unsigned int totalNum, vector<unsigned char>& vec)
+bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
+                             unsigned int totalNum,
+                             std::vector<unsigned char>& vec)
 {
-    f.seekg(startNum * TXN_SIZE, ios::beg);
+    f.seekg(startNum * TXN_SIZE, std::ios::beg);
     //vec.resize(TXN_SIZE * totalNum);
     for (unsigned int i = 0; i < TXN_SIZE * totalNum; i++)
     {
@@ -51,7 +52,8 @@ class GetTxnFromFile
 public:
     //clears vec
     static bool GetFromFile(Address addr, unsigned int startNum,
-                            unsigned int totalNum, vector<unsigned char>& vec)
+                            unsigned int totalNum,
+                            std::vector<unsigned char>& vec)
     {
         if (NUM_TXN_TO_SEND_PER_ACCOUNT == 0)
         {
@@ -59,7 +61,7 @@ public:
         }
 
         const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
-        fstream file;
+        std::fstream file;
         vec.clear();
 
         if (totalNum > num_txn)
@@ -70,12 +72,12 @@ public:
             return false;
         }
 
-        auto getFile = [&addr](const unsigned int& num, fstream& file,
+        auto getFile = [&addr](const unsigned int& num, std::fstream& file,
                                const auto num_txn) {
-            string fileString = TXN_PATH + "/" + addr.hex() + "_"
-                + to_string(num * num_txn) + ".zil";
+            std::string fileString = TXN_PATH + "/" + addr.hex() + "_"
+                + std::to_string(num * num_txn) + ".zil";
 
-            file.open(fileString, ios::binary | ios::in);
+            file.open(fileString, std::ios::binary | std::ios::in);
 
             if (!file.is_open())
             {
@@ -89,7 +91,7 @@ public:
         unsigned int fileNum = (startNum - 1) / num_txn;
         bool breakCall = false;
         bool b = false;
-        vector<unsigned char> remainTxn;
+        std::vector<unsigned char> remainTxn;
         unsigned int startNumInFile = (startNum - 1) % num_txn;
         if (startNumInFile + totalNum > num_txn)
         {

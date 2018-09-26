@@ -154,6 +154,8 @@ const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
+const SWInfo& DSBlockHeader::GetSWInfo() const { return m_swInfo; }
+
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 {
     return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_nonce, m_minerPubKey,

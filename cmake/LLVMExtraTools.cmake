@@ -117,6 +117,7 @@ if(CLANG_TIDY)
             clang-tidy
             COMMAND "${RUN_CLANG_TIDY}"
             -clang-tidy-binary ${CLANG_TIDY}
+            -quiet
             -config=''
             -header-filter ${HEADER_DIR_REGEX}
             -style='file'
@@ -129,6 +130,7 @@ if(CLANG_TIDY)
                 COMMAND "${RUN_CLANG_TIDY}"
                 -clang-tidy-binary ${CLANG_TIDY}
                 -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS}
+                -quiet
                 -fix
                 -format
                 -config=''

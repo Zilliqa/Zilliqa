@@ -34,6 +34,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -59,34 +60,27 @@ void Node::SubmitMicroblockToDSCommittee() const
         return;
     }
 
-    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         return;
     }
 
-    // Message = [8-byte Tx blocknum] [Tx microblock core] [State Delta]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    microblock.push_back(
-        m_mediator.m_ds->SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK);
-    cur_offset += MessageOffset::INST;
-
-    // 8-byte tx blocknum
-    uint64_t txBlockNum
+    const uint64_t& txBlockNum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    Serializable::SetNumber<uint64_t>(microblock, cur_offset, txBlockNum,
-                                      sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
+    vector<unsigned char> stateDelta;
+    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-    // Tx microblock
-    m_microblock->SerializeCore(microblock, cur_offset);
-    cur_offset += m_microblock->GetSerializedCoreSize();
-
-    // Append State Delta
-    AccountStore::GetInstance().GetSerializedDelta(microblock);
+    if (!Messenger::SetDSMicroBlockSubmission(
+            microblock, MessageOffset::BODY,
+            DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK, txBlockNum,
+            {*m_microblock}, stateDelta))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetDSMicroBlockSubmission failed.");
+        return;
+    }
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -104,6 +98,8 @@ void Node::SubmitMicroblockToDSCommittee() const
 bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -112,18 +108,14 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         return true;
     }
 
-    LOG_MARKER();
+    uint32_t consensus_id = 0;
 
-    // check size
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   sizeof(unsigned char) + sizeof(uint32_t)
-                                       + BLOCK_HASH_SIZE + sizeof(uint16_t)))
+    if (!m_consensusObject->GetConsensusID(message, offset, consensus_id))
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "GetConsensusID failed.");
         return false;
     }
-
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
-        message, offset + sizeof(unsigned char), sizeof(uint32_t));
 
     if (m_state != MICROBLOCK_CONSENSUS)
     {
@@ -247,7 +239,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         // Update the micro block with the co-signatures from the consensus
         m_microblock->SetCoSignatures(*m_consensusObject);
 
-        if (m_isPrimary == true)
+        if (m_isPrimary)
         {
             LOG_STATE("[MICON]["
                       << std::setw(15) << std::left
@@ -258,7 +250,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
             SubmitMicroblockToDSCommittee();
         }
 
-        if (m_isMBSender == true)
+        if (m_isMBSender)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Designated as Microblock sender");
@@ -283,20 +275,25 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         }
         else
         {
-            m_mediator.m_ds->m_stateDeltaFromShards.clear();
-            AccountStore::GetInstance().SerializeDelta();
-            AccountStore::GetInstance().GetSerializedDelta(
-                m_mediator.m_ds->m_stateDeltaFromShards);
-            m_mediator.m_ds->SaveCoinbase(
-                m_microblock->GetB1(), m_microblock->GetB2(),
-                m_microblock->GetHeader().GetShardID());
-            m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            lock_guard<mutex> g(
+                m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
+            if (!m_mediator.m_ds->m_startedRunFinalblockConsensus)
             {
-                lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
-                m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
-                    .emplace(*m_microblock);
+                m_mediator.m_ds->m_stateDeltaFromShards.clear();
+                AccountStore::GetInstance().SerializeDelta();
+                AccountStore::GetInstance().GetSerializedDelta(
+                    m_mediator.m_ds->m_stateDeltaFromShards);
+                m_mediator.m_ds->SaveCoinbase(
+                    m_microblock->GetB1(), m_microblock->GetB2(),
+                    m_microblock->GetHeader().GetShardID());
+                m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+                {
+                    lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
+                    m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
+                        .emplace(*m_microblock);
+                }
+                m_mediator.m_ds->m_toSendTxnToLookup = true;
             }
-            m_mediator.m_ds->m_toSendTxnToLookup = true;
             m_mediator.m_ds->RunConsensusOnFinalBlock();
         }
     }

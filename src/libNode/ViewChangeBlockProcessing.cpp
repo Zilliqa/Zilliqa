@@ -31,6 +31,7 @@
 #include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -117,7 +118,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
 
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -144,9 +145,8 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
     vcblock.GetCS1().Serialize(message, VCBlockHeader::SIZE);
     BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             vcblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      vcblock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       vcblock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
         for (auto& kv : keys)
@@ -193,24 +193,16 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
                           unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from)
 {
-    // Message = [VC block]
     LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   VCBlock::GetMinSize()))
-    {
-        LOG_GENERAL(WARNING, "Incoming vc block size too small");
-        return false;
-    }
-
     VCBlock vcblock;
-    if (vcblock.Deserialize(message, cur_offset) != 0)
+
+    if (!Messenger::GetNodeVCBlock(message, cur_offset, vcblock))
     {
-        LOG_GENERAL(WARNING, "We failed to deserialize vcblock.");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeVCBlock failed.");
         return false;
     }
-
-    cur_offset += vcblock.GetSerializedSize();
 
     if (vcblock.GetHeader().GetViewChangeEpochNo()
         != m_mediator.m_currentEpochNum)

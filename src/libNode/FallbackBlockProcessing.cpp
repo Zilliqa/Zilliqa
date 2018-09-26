@@ -26,6 +26,7 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -34,7 +35,6 @@
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 void Node::UpdateDSCommittee(const uint32_t& shard_id,
                              const PubKey& leaderPubKey,
@@ -44,9 +44,10 @@ void Node::UpdateDSCommittee(const uint32_t& shard_id,
 
     m_mediator.m_DSCommittee->clear();
 
-    for (auto const& kv : m_mediator.m_ds->m_shards[shard_id])
+    for (auto const& shardNode : m_mediator.m_ds->m_shards[shard_id])
     {
-        if (kv.first == leaderPubKey && kv.second == leaderNetworkInfo)
+        if (std::get<SHARD_NODE_PUBKEY>(shardNode) == leaderPubKey
+            && std::get<SHARD_NODE_PEER>(shardNode) == leaderNetworkInfo)
         {
             m_mediator.m_DSCommittee->push_front(
                 {leaderPubKey, leaderNetworkInfo});
@@ -82,11 +83,11 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock)
     // Generate the aggregated key
     vector<PubKey> keys;
 
-    for (auto const& kv : m_mediator.m_ds->m_shards[shard_id])
+    for (auto const& shardNode : m_mediator.m_ds->m_shards[shard_id])
     {
         if (B2.at(index) == true)
         {
-            keys.emplace_back(kv.first);
+            keys.emplace_back(std::get<SHARD_NODE_PUBKEY>(shardNode));
             count++;
         }
         index++;
@@ -133,13 +134,6 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     // Message = [Fallback block]
     LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   FallbackBlock::GetMinSize()))
-    {
-        LOG_GENERAL(WARNING, "Incoming fallback block size too small");
-        return false;
-    }
-
     // CheckState
     if (!CheckState(PROCESS_FALLBACKBLOCK))
     {
@@ -164,13 +158,13 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     }
 
     FallbackBlock fallbackblock;
-    if (fallbackblock.Deserialize(message, cur_offset) != 0)
+
+    if (!Messenger::GetNodeFallbackBlock(message, cur_offset, fallbackblock))
     {
-        LOG_GENERAL(WARNING, "We failed to deserialize fallbackblock");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeFallbackBlock failed.");
         return false;
     }
-
-    cur_offset += fallbackblock.GetSerializedSize();
 
     if (fallbackblock.GetHeader().GetFallbackEpochNo()
         != m_mediator.m_currentEpochNum)
@@ -206,26 +200,27 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     }
 
     const PubKey& leaderPubKey = fallbackblock.GetHeader().GetLeaderPubKey();
-    auto found = m_mediator.m_ds->m_shards[shard_id].find(leaderPubKey);
-    // if (leaderPubKey != m_mediator.m_ds->m_shards[shard_id][leaderConsensusId])
+    const Peer& leaderNetworkInfo
+        = fallbackblock.GetHeader().GetLeaderNetworkInfo();
+
+    auto leader = make_tuple(leaderPubKey, leaderNetworkInfo, 0);
+
+    auto found = std::find_if(m_mediator.m_ds->m_shards[shard_id].begin(),
+                              m_mediator.m_ds->m_shards[shard_id].end(),
+                              [&leader](const auto& item) {
+                                  return (std::get<SHARD_NODE_PUBKEY>(leader)
+                                          == std::get<SHARD_NODE_PUBKEY>(item))
+                                      && (std::get<SHARD_NODE_PEER>(leader)
+                                          == std::get<SHARD_NODE_PEER>(item));
+                              });
     if (found == m_mediator.m_ds->m_shards[shard_id].end())
     {
         LOG_GENERAL(
             WARNING,
-            "The consensus leader pubkey not found in sharding structure"
+            "The expected consensus leader not found in sharding structure"
                 << endl
-                << "expected: " << leaderPubKey);
-        return false;
-    }
-
-    const Peer& leaderNetworkInfo
-        = fallbackblock.GetHeader().GetLeaderNetworkInfo();
-    if (found->second != leaderNetworkInfo)
-    {
-        LOG_GENERAL(WARNING,
-                    "The consensus leader networkinfo mismatched"
-                        << "expected: " << found->second << endl
-                        << "received: " << leaderNetworkInfo);
+                << "PubKey: " << leaderPubKey << endl
+                << "Peer: " << leaderNetworkInfo);
         return false;
     }
 
