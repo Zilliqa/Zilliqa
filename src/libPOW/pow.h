@@ -103,6 +103,8 @@ private:
     uint64_t currentBlockNum;
     std::atomic<bool> m_shouldMine;
     std::vector<dev::eth::MinerPtr> m_miners;
+    std::vector<ethash_mining_result_t> m_vecMiningResult;
+    std::atomic<int> m_minerIndex;
     std::condition_variable m_cvMineResult;
     std::mutex m_mutexMineResult;
 
@@ -129,8 +131,7 @@ private:
                                        ethash_h256_t const& header_hash,
                                        uint8_t difficulty);
     void MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
-                           uint8_t difficulty, size_t index, uint64_t nonce,
-                           ethash_mining_result_t& mining_result);
+                           uint8_t difficulty, uint64_t nonce);
     bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
                      ethash_h256_t& result, ethash_h256_t& mixhash);
