@@ -27,7 +27,7 @@ class AccountStoreTrie : public AccountStoreSC<MAP>
 protected:
     DB m_db;
     dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    dev::h256 prevRoot;
+    dev::h256 m_prevRoot;
 
     AccountStoreTrie();
 
