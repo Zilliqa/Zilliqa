@@ -225,7 +225,7 @@ void Lookup::SendMessageToLookupNodes(
     // LOG_GENERAL(INFO, "i am here " << to_string(m_mediator.m_currentEpochNum).c_str())
     vector<Peer> allLookupNodes;
 
-    for (auto node : m_lookupNodes)
+    for (const auto& node : m_lookupNodes)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Sending msg to lookup node " << node.GetPrintableIPAddress()
