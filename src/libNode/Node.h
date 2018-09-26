@@ -308,6 +308,7 @@ class Node : public Executable, public Broadcastable
     bool CheckMicroBlockStateDeltaHash();
     bool CheckMicroBlockTranReceiptHash();
 
+    void BroadcastMicroBlockToLookup();
     bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes,
                             std::list<Transaction>& curTxns);
 

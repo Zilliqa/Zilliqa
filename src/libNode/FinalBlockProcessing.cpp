@@ -677,11 +677,13 @@ void Node::CallActOnFinalblock()
                  && (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_ONLY, txns_to_send);
+        BroadcastMicroBlockToLookup();
     }
     else if ((m_txnSharingIAmSender) && (m_txnSharingIAmForwarder))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_AND_FORWARD,
                               txns_to_send);
+        BroadcastMicroBlockToLookup();
     }
     else
     {
@@ -689,6 +691,34 @@ void Node::CallActOnFinalblock()
     }
 
     BroadcastTransactionsToLookup(txns_to_send);
+}
+
+void Node::BroadcastMicroBlockToLookup()
+{
+    if (m_microblock != nullptr)
+    {
+        LOG_GENERAL(INFO,
+                    "[SendMB]"
+                        << " Sending lookup :"
+                        << m_microblock->GetHeader().GetShardID()
+                        << " Epoch:" << m_mediator.m_currentEpochNum);
+        vector<unsigned char> msg = {
+            MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMSEED};
+        unsigned int curr_offset = MessageOffset::BODY;
+        Serializable::SetNumber<uint64_t>(
+            msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
+        curr_offset += sizeof(uint64_t);
+        m_microblock->Serialize(msg, curr_offset);
+        m_mediator.m_lookup->SendMessageToLookupNodes(msg);
+    }
+    else if (m_microblock == nullptr)
+    {
+        LOG_GENERAL(WARNING, "MicroBlock is null");
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "MicroBlock empty");
+    }
 }
 
 void Node::LogReceivedFinalBlockDetails([[gnu::unused]] const TxBlock& txblock)
@@ -944,6 +974,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         // Now only forwarded txn are left, so only call in lookup
         CommitForwardedMsgBuffer();
+        m_mediator.m_lookup->CommitMicroBlockStorage();
 
         if (m_mediator.m_lookup->GetIsServer()
             && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0
