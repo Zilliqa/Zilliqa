@@ -62,6 +62,38 @@ message ProtoDSBlock
     required CoSignatures cosigs        = 2;
 }
 
+message ProtoMicroBlock
+{
+    message MicroBlockHeader
+    {
+        required uint32 type           = 1; // only LSB used
+        required uint32 version        = 2;
+        required uint32 shardid        = 3;
+        required ByteArray gaslimit    = 4;
+        required ByteArray gasused     = 5;
+        required bytes prevhash        = 6;
+        required uint64 blocknum       = 7;
+        required ByteArray timestamp   = 8;
+        required bytes txroothash      = 9;
+        required uint32 numtxs         = 10;
+        required ByteArray minerpubkey = 11;
+        required uint64 dsblocknum     = 12;
+        required bytes dsblockheader   = 13;
+        required bytes statedeltahash  = 14;
+        required bytes tranreceipthash = 15;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1         = 1;
+        repeated bool b1               = 2 [packed=true];
+        required ByteArray cs2         = 3;
+        repeated bool b2               = 4 [packed=true];
+    }
+    required MicroBlockHeader header   = 1;
+    repeated bytes tranhashes          = 2;
+    required CoSignatures cosigs       = 3;
+}
+
 message ProtoVCBlock
 {
     message VCBlockHeader
@@ -104,6 +136,14 @@ message DSPoWSubmission
     }
     required Data data                     = 1;
     required ByteArray signature           = 2;
+}
+
+message DSMicroBlockSubmission
+{
+    required uint32 microblocktype       = 1; // only LSB used
+    required uint64 blocknumber          = 2;
+    repeated ProtoMicroBlock microblocks = 3;
+    optional bytes statedelta            = 4;
 }
 
 message DSDSBlockAnnouncement
@@ -168,7 +208,7 @@ message NodeForwardTxnBlock
 
 message NodeMicroBlockAnnouncement
 {
-    required ByteArray microblock = 1;
+    required ProtoMicroBlock microblock = 1;
 }
 
 // ============================================================================

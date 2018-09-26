@@ -60,34 +60,27 @@ void Node::SubmitMicroblockToDSCommittee() const
         return;
     }
 
-    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         return;
     }
 
-    // Message = [8-byte Tx blocknum] [Tx microblock core] [State Delta]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    microblock.push_back(
-        m_mediator.m_ds->SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK);
-    cur_offset += MessageOffset::INST;
-
-    // 8-byte tx blocknum
-    uint64_t txBlockNum
+    const uint64_t& txBlockNum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    Serializable::SetNumber<uint64_t>(microblock, cur_offset, txBlockNum,
-                                      sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
+    vector<unsigned char> stateDelta;
+    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-    // Tx microblock
-    m_microblock->SerializeCore(microblock, cur_offset);
-    cur_offset += m_microblock->GetSerializedCoreSize();
-
-    // Append State Delta
-    AccountStore::GetInstance().GetSerializedDelta(microblock);
+    if (!Messenger::SetDSMicroBlockSubmission(
+            microblock, MessageOffset::BODY,
+            DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK, txBlockNum,
+            {*m_microblock}, stateDelta))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetDSMicroBlockSubmission failed.");
+        return;
+    }
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
