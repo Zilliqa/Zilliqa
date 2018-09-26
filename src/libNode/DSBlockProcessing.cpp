@@ -78,11 +78,6 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
         LATESTACTIVEDSBLOCKNUM,
         DataConversion::StringToCharArray(
             to_string(m_mediator.m_ds->m_latestActiveDSBlockNum)));
-    if (!LOOKUP_NODE_MODE)
-    {
-        BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-            dsblock.GetHeader().GetBlockNum());
-    }
 }
 
 void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
