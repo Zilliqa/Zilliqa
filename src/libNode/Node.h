@@ -54,6 +54,8 @@ class Node : public Executable, public Broadcastable
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
         PROCESS_TXNBODY,
+        PROCESS_FALLBACKCONSENSUS,
+        PROCESS_FALLBACKBLOCK,
         NUM_ACTIONS
     };
 
@@ -151,6 +153,14 @@ class Node : public Executable, public Broadcastable
         m_microBlockConsensusBuffer;
 
     atomic<bool> m_isVacuousEpoch;
+
+    // Fallback Consensus
+    std::mutex m_mutexPendingFallbackBlock;
+    std::shared_ptr<FallbackBlock> m_pendingFallbackBlock;
+    std::mutex m_MutexCVFallbackBlock;
+    std::condition_variable cv_fallbackBlock;
+    std::mutex m_MutexCVFallbackConsensusObj;
+    std::condition_variable cv_fallbackConsensusObj;
 
     bool CheckState(Action action);
 
@@ -311,6 +321,26 @@ class Node : public Executable, public Broadcastable
     bool ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
                                            vector<TxnHash>& missingtranHashes);
 
+    // Fallback Consensus
+    void ScheduleFallbackTimeout(bool started = false);
+    bool FallbackValidator(const vector<unsigned char>& fallbackBlock,
+                           std::vector<unsigned char>& errorMsg);
+    void UpdateFallbackConsensusLeader();
+    void SetLastKnownGoodState();
+    void ComposeFallbackBlock();
+    void RunConsensusOnFallback();
+    bool RunConsensusOnFallbackWhenLeader();
+    bool RunConsensusOnFallbackWhenBackup();
+    void ProcessFallbackConsensusWhenDone();
+    bool ProcessFallbackConsensus(const vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+    // Fallback block processing
+    void UpdateDSCommittee(const uint32_t& shard_id, const PubKey& leaderPubKey,
+                           const Peer& leaderNetworkInfo);
+    bool VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock);
+    bool ProcessFallbackBlock(const vector<unsigned char>& message,
+                              unsigned int cur_offset, const Peer& from);
+
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
@@ -328,8 +358,12 @@ public:
     {
         POW_SUBMISSION = 0x00,
         WAITING_DSBLOCK,
+        MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
+        FALLBACK_CONSENSUS_PREP,
+        FALLBACK_CONSENSUS,
+        WAITING_FALLBACKBLOCK,
         SYNC
     };
 
@@ -472,6 +506,9 @@ private:
     std::string GetStateString() const;
     static std::map<Action, std::string> ActionStrings;
     std::string GetActionString(Action action) const;
+    /// Fallback Consensus Related
+    std::atomic<NodeState> m_fallbackState;
+    bool ValidateFallbackState(NodeState nodeState, NodeState statePropose);
 };
 
 #endif // __NODE_H__
