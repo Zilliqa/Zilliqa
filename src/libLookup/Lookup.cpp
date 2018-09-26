@@ -139,7 +139,8 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     return txn;
 }
 
-bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
+bool Lookup::GenTxnToSend(size_t num_txn,
+                          map<uint32_t, vector<unsigned char>>& mp,
                           uint32_t nShard)
 {
     vector<unsigned char> txns;
@@ -150,7 +151,7 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         return false;
     }
 
-    unsigned int NUM_TXN_TO_DS = n / GENESIS_KEYS.size();
+    unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_KEYS.size();
 
     for (auto& privKeyHexStr : GENESIS_KEYS)
     {
@@ -170,7 +171,7 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
             = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
         if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
-                                         n, txns))
+                                         num_txn, txns))
         {
             LOG_GENERAL(WARNING, "Failed to get txns from file");
             return false;
@@ -192,13 +193,13 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
 
         LOG_GENERAL(INFO,
-                    "[Batching] Last Nonce sent " << nonce + n << " of Addr "
-                                                  << addr.hex());
+                    "[Batching] Last Nonce sent " << nonce + num_txn
+                                                  << " of Addr " << addr.hex());
         txns.clear();
 
-        if (!GetTxnFromFile::GetFromFile(addr,
-                                         static_cast<uint32_t>(nonce) + n + 1,
-                                         NUM_TXN_TO_DS, txns))
+        if (!GetTxnFromFile::GetFromFile(
+                addr, static_cast<uint32_t>(nonce) + num_txn + 1, NUM_TXN_TO_DS,
+                txns))
         {
             LOG_GENERAL(WARNING, "Failed to get txns for DS");
         }
@@ -512,18 +513,18 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-vector<map<PubKey, Peer>> Lookup::GetShardPeers()
+deque<map<PubKey, Peer>> Lookup::GetShardPeers()
 {
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
                     "Lookup::GetShardPeers not expected to be called from "
                     "other than the LookUp node.");
-        return vector<map<PubKey, Peer>>();
+        return deque<map<PubKey, Peer>>();
     }
 
-    lock_guard<mutex> g(m_mutexShards);
-    return m_shards;
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+    return m_mediator.m_ds->m_shards;
 }
 
 vector<Peer> Lookup::GetNodePeers()
@@ -556,21 +557,21 @@ bool Lookup::ProcessEntireShardingStructure(
 
     LOG_GENERAL(INFO, "[LOOKUP received sharding structure]");
 
-    lock(m_mutexShards, m_mutexNodesInNetwork);
-    lock_guard<mutex> g(m_mutexShards, adopt_lock);
+    lock(m_mediator.m_ds->m_mutexShards, m_mutexNodesInNetwork);
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
-    m_shards.clear();
+    m_mediator.m_ds->m_shards.clear();
 
-    ShardingStructure::Deserialize(message, offset, m_shards);
+    ShardingStructure::Deserialize(message, offset, m_mediator.m_ds->m_shards);
 
     m_nodesInNetwork.clear();
     unordered_set<Peer> t_nodesInNetwork;
 
-    for (unsigned int i = 0; i < m_shards.size(); i++)
+    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
-        for (auto& j : m_shards.at(i))
+        for (auto& j : m_mediator.m_ds->m_shards.at(i))
         {
             const PubKey& key = j.first;
             const Peer& peer = j.second;
@@ -2412,8 +2413,8 @@ bool Lookup::CleanVariables()
     m_currDSExpired = false;
     m_isFirstLoop = true;
     {
-        std::lock_guard<mutex> lock(m_mutexShards);
-        m_shards.clear();
+        std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);
+        m_mediator.m_ds->m_shards.clear();
     }
     {
         std::lock_guard<mutex> lock(m_mutexNodesInNetwork);
@@ -2619,8 +2620,8 @@ void Lookup::SenderTxnBatchThread()
                 != 0)
             {
                 {
-                    lock_guard<mutex> g(m_mutexShards);
-                    nShard = m_shards.size();
+                    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+                    nShard = m_mediator.m_ds->m_shards.size();
                 }
                 if (nShard == 0)
                 {
@@ -2715,7 +2716,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
     for (unsigned int i = 0; i < nShard + 1; i++)
     {
         vector<unsigned char> msg
-            = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
+            = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
         if (!CreateTxnPacket(msg, i, MessageOffset::BODY, mp))
         {
             LOG_GENERAL(WARNING, "Cannot create packet for " << i << " shard");
@@ -2724,13 +2725,12 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
         vector<Peer> toSend;
         if (i < nShard)
         {
-
             {
-                lock_guard<mutex> g(m_mutexShards);
-                auto it = m_shards.at(i).begin();
+                lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+                auto it = m_mediator.m_ds->m_shards.at(i).begin();
 
-                for (unsigned int j = 0;
-                     j < NUM_NODES_TO_SEND_LOOKUP && it != m_shards.at(i).end();
+                for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP
+                     && it != m_mediator.m_ds->m_shards.at(i).end();
                      j++, it++)
                 {
                     toSend.push_back(it->second);
