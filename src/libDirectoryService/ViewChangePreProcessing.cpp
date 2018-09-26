@@ -69,7 +69,6 @@ bool DirectoryService::ViewChangeValidator(
             m_viewChangestate,
             (DirState)m_pendingVCBlock->GetHeader().GetViewChangeState()))
     {
-
         LOG_GENERAL(WARNING,
                     "View change state mismatched. m_viewChangestate: "
                         << m_viewChangestate << " Proposed: "
