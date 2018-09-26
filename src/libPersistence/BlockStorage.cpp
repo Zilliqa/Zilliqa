@@ -29,6 +29,7 @@
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 
@@ -177,7 +178,15 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
 
 string MakeKey(const uint64_t& blockNum, const uint32_t& shardId)
 {
-    return (to_string(blockNum) + to_string(shardId));
+    unsigned int curr_offset = 0;
+    vector<unsigned char> vec;
+    Serializable::SetNumber<uint64_t>(vec, curr_offset, blockNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+    Serializable::SetNumber<uint32_t>(vec, curr_offset, shardId,
+                                      sizeof(uint32_t));
+
+    return DataConversion::Uint8VecToHexStr(vec);
 }
 
 bool BlockStorage::PutMicroBlock(const uint64_t& blockNum,
