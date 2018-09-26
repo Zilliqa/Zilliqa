@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
@@ -175,6 +176,16 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     // Message = [Primary node IP] [Primary node port]
     LOG_MARKER();
 
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        // TODO: Get the IP address of who send this message, and deduct its reputation.
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::ProcessSetPrimary is a bootstrap "
+                    "function, it shouldn't be called after blockchain "
+                    "started.");
+        return false;
+    }
+
     // Peer primary(message, offset);
     Peer primary;
     if (primary.Deserialize(message, offset) != 0)
@@ -215,7 +226,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     // TODO: Refactor this code
     if (primary == m_mediator.m_selfPeer)
     {
-
         PeerStore& dsstore = PeerStore::GetStore();
         dsstore.AddPeerPair(
             m_mediator.m_selfKey.second,
@@ -223,25 +233,19 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
         vector<pair<PubKey, Peer>> ds = dsstore.GetAllPeerPairs();
         m_mediator.m_DSCommittee->resize(ds.size());
         copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee->begin());
-        // Message = [numDSPeers][DSPeer][DSPeer]... numDSPeers times
+
         vector<unsigned char> setDSBootstrapNodeMessage
             = {MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
-        unsigned int curr_offset = MessageOffset::BODY;
 
-        Serializable::SetNumber<uint32_t>(setDSBootstrapNodeMessage,
-                                          curr_offset, ds.size(),
-                                          sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
-        for (auto& d : ds)
+        if (!Messenger::SetLookupSetDSInfoFromSeed(setDSBootstrapNodeMessage,
+                                                   MessageOffset::BODY,
+                                                   *m_mediator.m_DSCommittee))
         {
-            // PubKey
-            curr_offset
-                += d.first.Serialize(setDSBootstrapNodeMessage, curr_offset);
-            // Peer
-            curr_offset
-                += d.second.Serialize(setDSBootstrapNodeMessage, curr_offset);
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetLookupSetDSInfoFromSeed failed.");
+            return false;
         }
+
         m_mediator.m_lookup->SendMessageToLookupNodes(
             setDSBootstrapNodeMessage);
     }
