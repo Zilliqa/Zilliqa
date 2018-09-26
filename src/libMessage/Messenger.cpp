@@ -1685,7 +1685,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupSetDSInfoFromSeed(
     vector<unsigned char>& dst, const unsigned int offset,
-    const vector<pair<PubKey, Peer>>& dsNodes)
+    const deque<pair<PubKey, Peer>>& dsNodes)
 {
     LOG_MARKER();
 
@@ -1711,7 +1711,7 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
 
 bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
-                                           vector<pair<PubKey, Peer>>& dsNodes)
+                                           deque<pair<PubKey, Peer>>& dsNodes)
 {
     LOG_MARKER();
 
@@ -1974,7 +1974,7 @@ bool Messenger::SetLookupGetTxBodyFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
-                                           vector<unsigned char>& txHash,
+                                           TxnHash& txHash,
                                            uint32_t& listenPort)
 {
     LOG_MARKER();
@@ -1989,8 +1989,8 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
         return false;
     }
 
-    txHash.resize(result.txhash().size());
-    copy(result.txhash().begin(), result.txhash().end(), txHash.begin());
+    copy(result.txhash().begin(), result.txhash().end(),
+         txHash.asArray().begin());
     listenPort = result.listenport();
 
     return true;
@@ -1998,14 +1998,14 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupSetTxBodyFromSeed(vector<unsigned char>& dst,
                                            const unsigned int offset,
-                                           const vector<unsigned char>& txHash,
-                                           const Transaction& txBody)
+                                           const TxnHash& txHash,
+                                           const TransactionWithReceipt& txBody)
 {
     LOG_MARKER();
 
     LookupSetTxBodyFromSeed result;
 
-    result.set_txhash(txHash.data(), txHash.size());
+    result.set_txhash(txHash.data(), txHash.size);
     SerializableToProtobufByteArray(txBody, *result.mutable_txbody());
 
     if (!result.IsInitialized())
@@ -2019,8 +2019,8 @@ bool Messenger::SetLookupSetTxBodyFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
-                                           vector<unsigned char>& txHash,
-                                           Transaction& txBody)
+                                           TxnHash& txHash,
+                                           TransactionWithReceipt& txBody)
 {
     LOG_MARKER();
 
@@ -2034,8 +2034,8 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
         return false;
     }
 
-    txHash.resize(result.txhash().size());
-    copy(result.txhash().begin(), result.txhash().end(), txHash.begin());
+    copy(result.txhash().begin(), result.txhash().end(),
+         txHash.asArray().begin());
     ProtobufByteArrayToSerializable(result.txbody(), txBody);
 
     return true;
