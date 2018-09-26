@@ -40,7 +40,7 @@ class ShardingStructure
 
 public:
     static unsigned int
-    Serialize(const std::vector<std::map<PubKey, Peer>>& shards,
+    Serialize(const std::deque<std::map<PubKey, Peer>>& shards,
               std::vector<unsigned char>& output, unsigned int cur_offset)
     {
         LOG_MARKER();
@@ -91,7 +91,7 @@ public:
 
     static unsigned int Deserialize(const std::vector<unsigned char>& input,
                                     unsigned int cur_offset,
-                                    std::vector<std::map<PubKey, Peer>>& shards)
+                                    std::deque<std::map<PubKey, Peer>>& shards)
     {
         LOG_MARKER();
 

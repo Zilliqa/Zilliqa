@@ -60,10 +60,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     std::mutex m_mutexConsensus;
 
-    // Sharding committee members
-    std::vector<std::map<PubKey, Peer>> m_shards;
-    std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
-
     // Transaction sharing assignments
     std::vector<Peer> m_DSReceivers;
     std::vector<std::vector<Peer>> m_shardReceivers;
@@ -208,9 +204,6 @@ class DirectoryService : public Executable, public Broadcastable
     bool SendFinalBlockToLookupNodes();
     void ProcessFinalBlockConsensusWhenDone();
 
-    void DetermineShardsToSendFinalBlockTo(unsigned int& my_DS_cluster_num,
-                                           unsigned int& my_shards_lo,
-                                           unsigned int& my_shards_hi) const;
     void SendFinalBlockToShardNodes(unsigned int my_DS_cluster_num,
                                     unsigned int my_shards_lo,
                                     unsigned int my_shards_hi);
@@ -309,13 +302,6 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
     void ProcessViewChangeConsensusWhenDone();
     void ProcessNextConsensus(unsigned char viewChangeState);
-    void DetermineShardsToSendVCBlockTo(unsigned int& my_DS_cluster_num,
-                                        unsigned int& my_shards_lo,
-                                        unsigned int& my_shards_hi) const;
-    void SendVCBlockToShardNodes(unsigned int my_DS_cluster_num,
-                                 unsigned int my_shards_lo,
-                                 unsigned int my_shards_hi,
-                                 vector<unsigned char>& vcblock_message);
 
     // Rejoin the network as a DS node in case of failure happens in protocol
     void RejoinAsDS();
@@ -353,6 +339,11 @@ public:
         SHARDMICROBLOCK = 0x00,
         MISSINGMICROBLOCK = 0x01
     };
+
+    // Sharding committee members
+    std::mutex m_mutexShards;
+    std::deque<std::map<PubKey, Peer>> m_shards;
+    std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     /// Sharing assignment for state delta
     std::vector<Peer> m_sharingAssignment;
@@ -442,6 +433,17 @@ public:
 
     /// Used by PoW winner to finish setup as the next DS leader
     void StartFirstTxEpoch();
+
+    void DetermineShardsToSendBlockTo(unsigned int& my_DS_cluster_num,
+                                      unsigned int& my_shards_lo,
+                                      unsigned int& my_shards_hi);
+    void SendBlockToShardNodes(unsigned int my_DS_cluster_num,
+                               unsigned int my_shards_lo,
+                               unsigned int my_shards_hi,
+                               vector<unsigned char>& block_message);
+
+    /// Begin next round of DS consensus
+    void StartNewDSEpochConsensus(bool fromFallback = false);
 
 private:
     static std::map<DirState, std::string> DirStateStrings;
