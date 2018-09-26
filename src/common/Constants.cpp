@@ -149,6 +149,12 @@ const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
 const unsigned int NUM_NETWORK_NODE{ReadFromConstantsFile("NUM_NETWORK_NODE")};
+const unsigned int FALLBACK_INTERVAL_STARTED{
+    ReadFromConstantsFile("FALLBACK_INTERVAL_STARTED")};
+const unsigned int FALLBACK_INTERVAL_WAITING{
+    ReadFromConstantsFile("FALLBACK_INTERVAL_WAITING")};
+const unsigned int FALLBACK_EXTRA_TIME{
+    ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
 
 const bool EXCLUDE_PRIV_IP{
     ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true" ? true : false};
