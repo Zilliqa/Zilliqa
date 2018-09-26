@@ -40,6 +40,7 @@ class BlockStorage : public Singleton<BlockStorage>
     std::shared_ptr<LevelDB> m_txBlockchainDB;
     std::list<std::shared_ptr<LevelDB>> m_txBodyDBs;
     std::shared_ptr<LevelDB> m_txBodyDB;
+    std::shared_ptr<LevelDB> m_microBlockDB;
     std::shared_ptr<LevelDB> m_txBodyTmpDB;
 
     BlockStorage()
@@ -51,6 +52,7 @@ class BlockStorage : public Singleton<BlockStorage>
         {
             m_txBodyDB = std::make_shared<LevelDB>("txBodies");
             m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
+            m_microBlockDB = std::make_shared<LevelDB>("microBlocks");
         }
     };
     ~BlockStorage() = default;
@@ -67,6 +69,7 @@ public:
         TX_BODIES,
         TX_BODY,
         TX_BODY_TMP,
+        MICROBLOCK
     };
 
     /// Returns the singleton BlockStorage instance.
@@ -90,7 +93,8 @@ public:
                     const std::vector<unsigned char>& body);
 
     // /// Adds a micro block to storage.
-    // bool PutMicroBlock(const dev::h256 & key, const std::vector<unsigned char> & block);
+    bool PutMicroBlock(const uint64_t& blocknum, const uint32_t& shardId,
+                       const std::vector<unsigned char>& body);
 
     /// Adds a transaction body to storage.
     bool PutTxBody(const dev::h256& key,
@@ -103,7 +107,8 @@ public:
     bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
     // /// Retrieves the requested Micro block
-    // bool GetMicroBlock(const dev::h256 & key, MicroBlockSharedPtr & block);
+    bool GetMicroBlock(const uint64_t& blocknum, const uint32_t& shardId,
+                       MicroBlockSharedPtr& microblock);
 
     /// Retrieves the requested transaction body.
     bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);

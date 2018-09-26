@@ -89,6 +89,10 @@ enum LookupInstructionType : unsigned char
     SETSTARTPOWFROMSEED = 0x14,
     GETSHARDSFROMSEED = 0x15,
     SETSHARDSFROMSEED = 0x16,
+    SETMICROBLOCKFROMSEED = 0x17,
+    GETMICROBLOCKFROMLOOKUP = 0x18,
+    SETMICROBLOCKFROMLOOKUP = 0x19,
+
 };
 
 enum TxSharingMode : unsigned char

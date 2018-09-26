@@ -1291,6 +1291,205 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
     return true;
 }
 
+bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
+                                    const MicroBlock& microblock)
+{
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(INFO, "not expected to be called from non-lookup");
+        return false;
+    }
+    uint32_t id = microblock.GetHeader().GetShardID();
+
+    TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blocknum);
+    unsigned int i = 0;
+    if (!(txblk == TxBlock()))
+    {
+        for (i = 0; i < txblk.GetShardIDs().size(); i++)
+        {
+
+            if (txblk.GetShardIDs()[i] == id)
+            {
+                LOG_GENERAL(INFO, "[SendMB]" << i);
+                break;
+            }
+        }
+        if (i == txblk.GetShardIDs().size())
+        {
+            LOG_GENERAL(WARNING, "Failed to find id " << id);
+            return false;
+        }
+
+        if ((txblk.GetMicroBlockHashes()[i].m_txRootHash
+             == microblock.GetHeader().GetTxRootHash())
+            && (txblk.GetMicroBlockHashes()[i].m_stateDeltaHash
+                == microblock.GetHeader().GetStateDeltaHash()))
+        {
+            vector<unsigned char> body;
+            microblock.Serialize(body, 0);
+            if (!BlockStorage::GetBlockStorage().PutMicroBlock(blocknum, id,
+                                                               body))
+            {
+                LOG_GENERAL(WARNING, "Failed to put microblock in body");
+            }
+        }
+        else
+        {
+            LOG_GENERAL(WARNING, "MicroBlock not validated");
+            return false;
+        }
+    }
+    else
+    {
+        LOG_GENERAL(WARNING, "failed to fetch tx block " << blocknum);
+        return false;
+    }
+    return true;
+}
+
+bool Lookup::ProcessGetMicroBlockFromLookup(
+    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
+{
+    //[port][number of blocknums][[blocknum][numShards][shardId1][shardId2]..]..
+    unsigned int curr_offset = offset;
+
+    uint32_t portNo
+        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+
+    uint128_t ipAddr = from.m_ipAddress;
+    Peer requestingNode(ipAddr, portNo);
+
+    vector<unsigned char> serializedMBs;
+    unsigned int sendcurrOffset = 0;
+    uint32_t num = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                     sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    unsigned int numMBs = 0;
+    for (unsigned int i = 0; i < num; i++)
+    {
+        uint64_t blockNum = Serializable::GetNumber<uint64_t>(
+            message, curr_offset, sizeof(uint64_t));
+        curr_offset += sizeof(uint64_t);
+
+        uint32_t numShards = Serializable::GetNumber<uint32_t>(
+            message, curr_offset, sizeof(uint32_t));
+        curr_offset += sizeof(uint32_t);
+
+        for (unsigned int j = 0; j < numShards; j++)
+        {
+            shared_ptr<MicroBlock> mbptr;
+            uint32_t shard_id = Serializable::GetNumber<uint32_t>(
+                message, curr_offset, sizeof(uint32_t));
+
+            if (BlockStorage::GetBlockStorage().GetMicroBlock(blockNum,
+                                                              shard_id, mbptr))
+            {
+                numMBs++;
+                mbptr->Serialize(serializedMBs, sendcurrOffset);
+                sendcurrOffset += mbptr->GetSerializedCoreSize()
+                    + mbptr->GetSerializedTxnHashesSize();
+            }
+        }
+    }
+
+    vector<unsigned char> retMsg
+        = {MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMLOOKUP};
+    unsigned int returnOffset = MessageOffset::BODY;
+    retMsg.resize(returnOffset + serializedMBs.size() + sizeof(uint32_t));
+    Serializable::SetNumber<uint32_t>(retMsg, returnOffset, numMBs,
+                                      sizeof(uint32_t));
+    returnOffset += sizeof(uint32_t);
+    copy(retMsg.begin() + returnOffset, serializedMBs.begin(),
+         serializedMBs.end());
+
+    P2PComm::GetInstance().SendMessage(requestingNode, retMsg);
+
+    return true;
+}
+
+bool Lookup::ProcessSetMicroBlockFromLookup(
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from)
+{
+    //[numberOfMicroBlocks][microblock1][microblock2]...
+
+    unsigned int curr_offset = offset;
+    uint32_t numMB = Serializable::GetNumber<uint32_t>(message, curr_offset,
+                                                       sizeof(uint32_t));
+    curr_offset += sizeof(uint32_t);
+
+    for (unsigned int i = 0; i < numMB; i++)
+    {
+        MicroBlock mb(message, curr_offset);
+        curr_offset
+            += mb.GetSerializedCoreSize() + mb.GetSerializedTxnHashesSize();
+
+        //do something with mb
+    }
+
+    return true;
+}
+
+void Lookup::CommitMicroBlockStorage()
+{
+    lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
+    const uint64_t& currentEpoch = m_mediator.m_currentEpochNum;
+
+    for (auto& mb : m_microBlocksBuffer[currentEpoch])
+    {
+        AddMicroBlockToStorage(currentEpoch - 1, mb);
+    }
+    m_microBlocksBuffer[currentEpoch].clear();
+}
+
+bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
+                                          unsigned int offset, const Peer& from)
+{
+    //message = [blocknum][microblock]
+
+    unsigned int curr_offset = offset;
+
+    uint64_t blocknum = Serializable::GetNumber<uint64_t>(message, curr_offset,
+
+                                                          sizeof(uint64_t));
+
+    if (blocknum <= 1)
+    {
+        return false;
+    }
+    curr_offset += sizeof(uint64_t);
+
+    MicroBlock microblock(message, curr_offset);
+    curr_offset += microblock.GetSerializedCoreSize()
+        + microblock.GetSerializedTxnHashesSize();
+
+    uint32_t id = microblock.GetHeader().GetShardID();
+
+    LOG_GENERAL(INFO,
+                "[SendMB]"
+                    << "Recvd from " << from << " BlockNum:" << blocknum
+                    << " ShardID:" << id);
+
+    if (blocknum > m_mediator.m_currentEpochNum)
+    {
+        LOG_GENERAL(INFO,
+                    "[SendMB]"
+                        << "Save MicroBlock , epoch:" << blocknum
+                        << " id:" << id);
+        lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
+        m_microBlocksBuffer[blocknum].push_back(microblock);
+        return true;
+    }
+    else if (blocknum == m_mediator.m_currentEpochNum)
+    {
+        AddMicroBlockToStorage(blocknum - 1, microblock);
+    }
+
+    return true;
+}
+
 bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
@@ -2569,29 +2768,34 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
                                                unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {&Lookup::ProcessGetSeedPeersFromLookup,
-                                         &Lookup::ProcessSetSeedPeersFromLookup,
-                                         &Lookup::ProcessGetDSInfoFromSeed,
-                                         &Lookup::ProcessSetDSInfoFromSeed,
-                                         &Lookup::ProcessGetDSBlockFromSeed,
-                                         &Lookup::ProcessSetDSBlockFromSeed,
-                                         &Lookup::ProcessGetTxBlockFromSeed,
-                                         &Lookup::ProcessSetTxBlockFromSeed,
-                                         &Lookup::ProcessGetTxBodyFromSeed,
-                                         &Lookup::ProcessSetTxBodyFromSeed,
-                                         &Lookup::ProcessGetNetworkId,
-                                         &Lookup::ProcessGetNetworkId,
-                                         &Lookup::ProcessGetStateFromSeed,
-                                         &Lookup::ProcessSetStateFromSeed,
-                                         &Lookup::ProcessSetLookupOffline,
-                                         &Lookup::ProcessSetLookupOnline,
-                                         &Lookup::ProcessGetOfflineLookups,
-                                         &Lookup::ProcessSetOfflineLookups,
-                                         &Lookup::ProcessRaiseStartPoW,
-                                         &Lookup::ProcessGetStartPoWFromSeed,
-                                         &Lookup::ProcessSetStartPoWFromSeed,
-                                         &Lookup::ProcessGetShardFromSeed,
-                                         &Lookup::ProcessSetShardFromSeed};
+    InstructionHandler ins_handlers[] = {
+        &Lookup::ProcessGetSeedPeersFromLookup,
+        &Lookup::ProcessSetSeedPeersFromLookup,
+        &Lookup::ProcessGetDSInfoFromSeed,
+        &Lookup::ProcessSetDSInfoFromSeed,
+        &Lookup::ProcessGetDSBlockFromSeed,
+        &Lookup::ProcessSetDSBlockFromSeed,
+        &Lookup::ProcessGetTxBlockFromSeed,
+        &Lookup::ProcessSetTxBlockFromSeed,
+        &Lookup::ProcessGetTxBodyFromSeed,
+        &Lookup::ProcessSetTxBodyFromSeed,
+        &Lookup::ProcessGetNetworkId,
+        &Lookup::ProcessGetNetworkId,
+        &Lookup::ProcessGetStateFromSeed,
+        &Lookup::ProcessSetStateFromSeed,
+        &Lookup::ProcessSetLookupOffline,
+        &Lookup::ProcessSetLookupOnline,
+        &Lookup::ProcessGetOfflineLookups,
+        &Lookup::ProcessSetOfflineLookups,
+        &Lookup::ProcessRaiseStartPoW,
+        &Lookup::ProcessGetStartPoWFromSeed,
+        &Lookup::ProcessSetStartPoWFromSeed,
+        &Lookup::ProcessGetShardFromSeed,
+        &Lookup::ProcessSetShardFromSeed,
+        &Lookup::ProcessSetMicroBlockFromSeed,
+        &Lookup::ProcessGetMicroBlockFromLookup,
+        &Lookup::ProcessSetMicroBlockFromLookup,
+    };
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
