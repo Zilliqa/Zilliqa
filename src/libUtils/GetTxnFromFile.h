@@ -53,6 +53,11 @@ public:
     static bool GetFromFile(Address addr, unsigned int startNum,
                             unsigned int totalNum, vector<unsigned char>& vec)
     {
+        if (NUM_TXN_TO_SEND_PER_ACCOUNT == 0)
+        {
+            return true;
+        }
+
         const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
         fstream file;
         vec.clear();
