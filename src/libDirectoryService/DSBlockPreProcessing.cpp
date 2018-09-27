@@ -251,11 +251,9 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
     for (const auto& shard : shards)
     {
-
         for (const auto& shardNode : shard)
         {
             const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
-            ;
             auto it = m_allPoWs.find(toFind);
 
             if (it == m_allPoWs.end())
@@ -290,7 +288,6 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
             auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
             if (!r.second)
             {
-
                 LOG_GENERAL(WARNING,
                             "The key is not unique in the sharding structure "
                                 << std::get<SHARD_NODE_PUBKEY>(shardNode));
