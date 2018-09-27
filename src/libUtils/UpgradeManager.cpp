@@ -407,28 +407,21 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         return true;
     }
 
-    BlockStorage::GetBlockStorage().PutDSCommittee(
-        mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);
-
-    /// Deploy downloaded software
-    /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
-    if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr)
-        < 0)
-    {
-        LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
-        return false;
-    }
-
 #if 1 //clark
     if (DirectoryService::IDLE == mediator.m_ds->m_mode)
     {
-        LOG_GENERAL(INFO, "Shard node, upgrade after 20 seconds...");
-        this_thread::sleep_for(chrono::seconds(20));
+        LOG_GENERAL(INFO, "Shard node, upgrade after 5 seconds...");
+        this_thread::sleep_for(chrono::seconds(5));
     }
-    else
+    else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode)
     {
-        LOG_GENERAL(INFO, "DS node, upgrade after 15 seconds...");
-        this_thread::sleep_for(chrono::seconds(15));
+        LOG_GENERAL(INFO, "DS backup node, upgrade after 6 seconds...");
+        this_thread::sleep_for(chrono::seconds(6));
+    }
+    else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO, "DS leader node, upgrade after 7 seconds...");
+        this_thread::sleep_for(chrono::seconds(7));
     }
 #else
     if (DirectoryService::IDLE == mediator.m_ds->m_mode)
@@ -446,6 +439,18 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         LOG_GENERAL(INFO, "DS leader node, upgrade immediately...");
     }
 #endif
+
+    BlockStorage::GetBlockStorage().PutDSCommittee(
+        mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);
+
+    /// Deploy downloaded software
+    /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
+    if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr)
+        < 0)
+    {
+        LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
+        return false;
+    }
 
     /// Kill current node, then the recovery procedure will wake up node with stored data
     return raise(SIGKILL) == 0;
