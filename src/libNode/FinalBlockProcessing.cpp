@@ -764,6 +764,18 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 //     m_microblocks.clear();
 // }
 
+void Node::PrepareGoodStateForFinalBlock()
+{
+    if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I may have missed the micrblock consensus. However, if I "
+                  "recently received a valid finalblock, I will accept it");
+        // TODO: Optimize state transition.
+        SetState(WAITING_FINALBLOCK);
+    }
+}
+
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              unsigned int offset,
                              [[gnu::unused]] const Peer& from)
@@ -785,16 +797,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             }
         }
 
-        if (m_state == MICROBLOCK_CONSENSUS
-            || m_state == MICROBLOCK_CONSENSUS_PREP)
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I may have missed the micrblock consensus. However, if I "
-                "recently received a valid finalblock, I will accept it");
-            // TODO: Optimize state transition.
-            SetState(WAITING_FINALBLOCK);
-        }
+        PrepareGoodStateForFinalBlock();
 
         if (!CheckState(PROCESS_FINALBLOCK))
         {

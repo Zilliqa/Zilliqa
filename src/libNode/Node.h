@@ -513,6 +513,9 @@ public:
 
     void LoadTxnSharingInfo();
 
+    /// Force state changes from MBCON/MBCON_PREP -> WAITING_FINALBLOCK
+    void PrepareGoodStateForFinalBlock();
+
 private:
     static std::map<NodeState, std::string> NodeStateStrings;
     std::string GetStateString() const;
