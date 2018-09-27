@@ -966,22 +966,30 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     vector<TxBlock> txBlocks;
     uint64_t blockNum;
+    uint32_t consensusID;
 
-    for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
     {
-        try
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
+
+        for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
         {
-            txBlocks.emplace_back(m_mediator.m_txBlockChain.GetBlock(blockNum));
+            try
+            {
+                txBlocks.emplace_back(
+                    m_mediator.m_txBlockChain.GetBlock(blockNum));
+            }
+            catch (const char* e)
+            {
+                LOG_GENERAL(INFO,
+                            "Block Number " << blockNum
+                                            << " absent. Didn't include it in "
+                                               "response message. Reason: "
+                                            << e);
+                break;
+            }
         }
-        catch (const char* e)
-        {
-            LOG_GENERAL(INFO,
-                        "Block Number " << blockNum
-                                        << " absent. Didn't include it in "
-                                           "response message. Reason: "
-                                        << e);
-            break;
-        }
+
+        consensusID = m_mediator.m_node->m_consensusID;
     }
 
     // if serialization got interrupted in between, reset the highBlockNum value in msg
@@ -995,7 +1003,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     if (!Messenger::SetLookupSetTxBlockFromSeed(
             txBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
-            txBlocks))
+            txBlocks, consensusID))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::SetLookupSetTxBlockFromSeed failed.");
@@ -1402,8 +1410,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     uint64_t highBlockNum = 0;
     vector<TxBlock> txBlocks;
 
-    if (!Messenger::GetLookupSetTxBlockFromSeed(message, offset, lowBlockNum,
-                                                highBlockNum, txBlocks))
+    if (!Messenger::GetLookupSetTxBlockFromSeed(
+            message, offset, lowBlockNum, highBlockNum, txBlocks,
+            m_mediator.m_node->m_consensusID))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetLookupSetTxBlockFromSeed failed.");
@@ -1473,7 +1482,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-        if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0))
+        if (m_mediator.m_node->m_consensusID == 0)
         {
             GetStateFromLookupNodes();
         }
@@ -1685,10 +1694,10 @@ bool Lookup::InitMining()
     LOG_MARKER();
 
     // General check
-    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
+    if (m_mediator.m_node->m_consensusID != 0)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Epoch num check failed");
+                  "Vacuous check failed");
         return false;
     }
 

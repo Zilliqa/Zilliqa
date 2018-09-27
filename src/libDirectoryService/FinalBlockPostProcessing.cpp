@@ -319,10 +319,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     ClearDSPoWSolns();
     ResetPoWSubmissionCounter();
 
-    auto func = [this]() mutable -> void {
+    auto func = [this, &isVacuousEpoch]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "START OF a new EPOCH");
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if (isVacuousEpoch)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");

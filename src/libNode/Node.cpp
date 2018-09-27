@@ -633,7 +633,7 @@ bool Node::ProcessTxnPacketFromLookup(
         return false;
     }
 
-    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
+    if (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS)
         || m_mediator.m_currentEpochNum == 1)
 
     {
