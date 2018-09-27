@@ -76,8 +76,6 @@ void DirectoryService::StoreDSBlockToStorage()
     m_pendingDSBlock->Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(
         m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
-    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-        m_pendingDSBlock->GetHeader().GetBlockNum());
     m_latestActiveDSBlockNum = m_pendingDSBlock->GetHeader().GetBlockNum();
     BlockStorage::GetBlockStorage().PutMetadata(
         LATESTACTIVEDSBLOCKNUM,

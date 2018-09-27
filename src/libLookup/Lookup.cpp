@@ -1345,24 +1345,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             dsBlock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
                 dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
-            if (!LOOKUP_NODE_MODE
-                && !BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                       dsBlock.GetHeader().GetBlockNum()))
-            {
-                if (BlockStorage::GetBlockStorage().PopFrontTxBodyDB()
-                    && BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-                           dsBlock.GetHeader().GetBlockNum()))
-                {
-                    // Do nothing
-                }
-                else
-                {
-                    LOG_GENERAL(WARNING,
-                                "Cannot push txBodyDB even after pop, "
-                                "investigate why!");
-                    throw std::exception();
-                }
-            }
         }
 
         if (m_syncType == SyncType::DS_SYNC
@@ -1761,13 +1743,6 @@ bool Lookup::InitMining()
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I have successfully join the network");
-        LOG_GENERAL(INFO, "Clean TxBodyDB except the last one");
-        int size_txBodyDBs
-            = (int)BlockStorage::GetBlockStorage().GetTxBodyDBSize();
-        for (int i = 0; i < size_txBodyDBs - 1; i++)
-        {
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB(true);
-        }
     }
 
     return true;
