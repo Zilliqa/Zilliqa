@@ -767,7 +767,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a backup DS node. Waiting for DS block announcement. "
               "Leader is at index  "
-                  << m_consensusLeaderID << "IP: "
+                  << m_consensusLeaderID << " "
                   << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
     // Dummy values for now

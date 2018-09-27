@@ -389,7 +389,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
               "I am a backup DS node (after view change). Waiting for view "
               "change announcement. "
               "Leader is at index  "
-                  << m_consensusLeaderID << "IP: "
+                  << m_consensusLeaderID << " "
                   << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);

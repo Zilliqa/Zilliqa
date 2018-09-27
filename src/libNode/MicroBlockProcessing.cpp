@@ -1127,8 +1127,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Leader is at index  "
-                  << m_consensusLeaderID
-                  << "IP: " << peerList.at(m_consensusLeaderID).second);
+                  << m_consensusLeaderID << " "
+                  << peerList.at(m_consensusLeaderID).second);
 
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
