@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "libConsensus/ConsensusUser.h"
+#include "libDB/Archival.h"
 #include "libDB/ArchiveDB.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
@@ -42,6 +43,7 @@ class Zilliqa
     std::shared_ptr<ValidatorBase> m_validator;
     Node m_n;
     ArchiveDB m_db;
+    Archival m_arch;
     //ConsensusUser m_cu; // Note: This is just a test class to demo Consensus usage
     boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
         m_msgQueue;

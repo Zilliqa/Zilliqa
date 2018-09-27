@@ -34,19 +34,25 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
     m_currentEpochNum = 0;
     m_isRetrievedHistory = false;
     m_DSCommittee = make_shared<std::deque<pair<PubKey, Peer>>>();
+    m_archDB = nullptr;
+    m_archival = nullptr;
 }
 
 Mediator::~Mediator() {}
 
 void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
                                   Lookup* lookup, ValidatorBase* validator,
-                                  BaseDB* archDB)
+                                  BaseDB* archDB, Archival* arch)
 {
     m_ds = ds;
     m_node = node;
     m_lookup = lookup;
     m_validator = validator;
-    m_archDB = archDB;
+    if (ARCHIVAL_NODE)
+    {
+        m_archDB = archDB;
+        m_archival = arch;
+    }
 }
 
 void Mediator::UpdateDSBlockRand(bool isGenesis)

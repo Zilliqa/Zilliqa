@@ -20,7 +20,6 @@
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libLookup/Synchronizer.h"
-#include "libMediator/Mediator.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
@@ -32,6 +31,12 @@ class Archival : public Executable, public Broadcastable
     Mediator& m_mediator;
     Synchronizer m_synchronizer;
 
+    std::mutex m_mutexMicroBlockInfo;
+    std::map<uint64_t, std::vector<uint32_t>> m_fetchMicroBlockInfo;
+
+    std::mutex m_mutexUnfetchedTxns;
+    std::vector<TxnHash> m_unfetchedTxns;
+
 public:
     Archival(Mediator& mediator);
     ~Archival();
@@ -40,6 +45,12 @@ public:
     void InitSync();
     bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                  const Peer& from);
+
+    bool AddToFetchMicroBlockInfo(const uint64_t& blockNum,
+                                  const uint32_t shardId);
+    bool RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
+                                       const uint32_t shardId);
+    void SendFetchMicroBlockInfo();
 };
 
 #endif //__ARCHIVAL_H__

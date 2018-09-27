@@ -1358,7 +1358,17 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
                     "[SendMB]"
                         << " Recvd " << mb.GetHeader().GetBlockNum()
                         << " shard:" << mb.GetHeader().GetShardID());
-    } //do something with mb
+
+        if (ARCHIVAL_NODE)
+        {
+            if (!m_mediator.m_archival->RemoveFromFetchMicroBlockInfo(
+                    mb.GetHeader().GetBlockNum(), mb.GetHeader().GetShardID()))
+            {
+                LOG_GENERAL(WARNING, "Error in remove fetch micro block");
+                continue;
+            }
+        }
+    }
 
     return true;
 }
@@ -1701,6 +1711,16 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             }
             else
             {
+                for (unsigned int i = 0; i < txBlock.GetShardIDs().size(); i++)
+                {
+                    if (!txBlock.GetIsMicroBlockEmpty()[i])
+                    {
+                        m_mediator.m_archival->AddToFetchMicroBlockInfo(
+                            txBlock.GetHeader().GetBlockNum(),
+                            txBlock.GetShardIDs()[i]);
+                    }
+                }
+
                 m_mediator.m_archDB->InsertTxBlock(txBlock);
             }
         }
