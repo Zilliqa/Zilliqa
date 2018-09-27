@@ -414,6 +414,36 @@ public:
         std::vector<unsigned char>& dest, unsigned int offset,
         const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
         uint32_t portNo);
+
+    static bool GetLookupGetMicroBlockFromLookup(
+        const std::vector<unsigned char>& src, unsigned int offset,
+        std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+        uint32_t& portNo);
+
+    static bool
+    SetLookupSetMicroBlockFromLookup(std::vector<unsigned char>& dst,
+                                     unsigned int offset,
+                                     const std::vector<MicroBlock>& mbs);
+
+    static bool
+    GetLookupSetMicroBlockFromLookup(const std::vector<unsigned char>& src,
+                                     unsigned int offset,
+                                     std::vector<MicroBlock>& mbs);
+
+    static bool SetLookupGetTxnsFromLookup(
+        std::vector<unsigned char>& dst, unsigned int offset,
+        const std::vector<TxnHash>& txnhashes, uint32_t portNo);
+    static bool GetLookupGetTxnsFromLookup(
+        const std::vector<unsigned char>& src, unsigned int offset,
+        std::vector<TxnHash>& txnhashes, uint32_t& portNo);
+    static bool
+    SetLookupSetTxnsFromLookup(std::vector<unsigned char>& dst,
+                               unsigned int offset,
+                               const std::vector<TransactionWithReceipt>& txns);
+    static bool
+    GetLookupSetTxnsFromLookup(const std::vector<unsigned char>& src,
+                               unsigned int offset,
+                               std::vector<TransactionWithReceipt>& txns);
 };
 
 #endif // __MESSENGER_H__
