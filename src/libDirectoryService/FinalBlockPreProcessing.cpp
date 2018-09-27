@@ -1195,6 +1195,7 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 
         LOG_MARKER();
 
+        m_mediator.m_node->SetState(Node::WAITING_FINALBLOCK);
         SetState(FINALBLOCK_CONSENSUS_PREP);
 
         if (revertStateDelta)
