@@ -19,6 +19,8 @@
 
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
+#include "libDB/BaseDB.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
@@ -35,7 +37,7 @@ class Archival : public Executable, public Broadcastable
     std::map<uint64_t, std::vector<uint32_t>> m_fetchMicroBlockInfo;
 
     std::mutex m_mutexUnfetchedTxns;
-    std::vector<TxnHash> m_unfetchedTxns;
+    std::set<TxnHash> m_unfetchedTxns;
 
 public:
     Archival(Mediator& mediator);
@@ -51,6 +53,10 @@ public:
     bool RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
                                        const uint32_t shardId);
     void SendFetchMicroBlockInfo();
+    void AddToUnFetchedTxn(const std::vector<TxnHash>& txnhashes);
+    void AddTxnToDB(const std::vector<TransactionWithReceipt>& txns,
+                    BaseDB& db);
+    void SendFetchTxn();
 };
 
 #endif //__ARCHIVAL_H__

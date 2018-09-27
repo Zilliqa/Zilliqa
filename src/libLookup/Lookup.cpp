@@ -1367,6 +1367,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
                 LOG_GENERAL(WARNING, "Error in remove fetch micro block");
                 continue;
             }
+            m_mediator.m_archival->AddToUnFetchedTxn(mb.GetTranHashes());
         }
     }
 
@@ -1931,11 +1932,9 @@ bool Lookup::ProcessSetTxnsFromLookup(const vector<unsigned char>& message,
         LOG_GENERAL(WARNING, "Failed to Process");
         return false;
     }
-
-    for (const auto& txn : txns)
+    if (ARCHIVAL_NODE)
     {
-        LOG_GENERAL(INFO, "Recvd " << txn.GetTransaction().GetTranID());
-        //do something here
+        m_mediator.m_archival->AddTxnToDB(txns, *m_mediator.m_archDB);
     }
     return true;
 }
