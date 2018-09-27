@@ -469,7 +469,6 @@ void DirectoryService::StartFirstTxEpoch()
                         WARNING,
                         "Timeout: Didn't finish DS Microblock. Proceeds "
                         "without it");
-
                     RunConsensusOnFinalBlock(true);
                 }
             }

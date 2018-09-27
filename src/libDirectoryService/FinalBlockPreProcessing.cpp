@@ -1198,6 +1198,8 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 
         LOG_MARKER();
 
+        m_mediator.m_node->PrepareGoodStateForFinalBlock();
+
         SetState(FINALBLOCK_CONSENSUS_PREP);
 
         if (revertStateDelta)
