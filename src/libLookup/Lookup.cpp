@@ -1726,7 +1726,7 @@ bool Lookup::InitMining()
 
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     {
-        if (true /*CheckStateRoot()*/)
+        if (CheckStateRoot())
         {
             // Attempt PoW
             m_startedPoW = true;
