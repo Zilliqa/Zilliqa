@@ -1870,6 +1870,98 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     return ret;
 }
 
+bool Lookup::ProcessGetTxnsFromLookup(const vector<unsigned char>& message,
+                                      unsigned int offset, const Peer& from)
+{
+    vector<TxnHash> txnhashes;
+    txnhashes.clear();
+
+    uint32_t portNo = 0;
+    if (!Messenger::GetLookupGetTxnsFromLookup(message, offset, txnhashes,
+                                               portNo))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+
+    if (txnhashes.size() == 0)
+    {
+        LOG_GENERAL(INFO, "No txn requested");
+        return true;
+    }
+
+    vector<TransactionWithReceipt> txnvector;
+    for (const auto& txnhash : txnhashes)
+    {
+        shared_ptr<TransactionWithReceipt> txn;
+        if (!BlockStorage::GetBlockStorage().GetTxBody(txnhash, txn))
+        {
+            LOG_GENERAL(WARNING, "Could not find " << txnhash);
+            continue;
+        }
+        txnvector.emplace_back(*txn);
+    }
+    uint128_t ipAddr = from.m_ipAddress;
+    Peer requestingNode(ipAddr, portNo);
+
+    vector<unsigned char> setTxnMsg
+        = {MessageType::LOOKUP, LookupInstructionType::SETTXNFROMLOOKUP};
+
+    if (!Messenger::SetLookupSetTxnsFromLookup(setTxnMsg, MessageOffset::BODY,
+                                               txnvector))
+    {
+        LOG_GENERAL(WARNING, "Unable to Process");
+        return false;
+    }
+
+    P2PComm::GetInstance().SendMessage(requestingNode, setTxnMsg);
+
+    return true;
+}
+
+bool Lookup::ProcessSetTxnsFromLookup(const vector<unsigned char>& message,
+                                      unsigned int offset,
+                                      [[gnu::unused]] const Peer& from)
+{
+    vector<TransactionWithReceipt> txns;
+    txns.clear();
+
+    if (!Messenger::GetLookupSetTxnsFromLookup(message, offset, txns))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process");
+        return false;
+    }
+
+    for (const auto& txn : txns)
+    {
+        LOG_GENERAL(INFO, "Recvd " << txn.GetTransaction().GetTranID());
+        //do something here
+    }
+    return true;
+}
+
+void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes)
+{
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::GETTXNFROMLOOKUP};
+
+    if (txnhashes.size() == 0)
+    {
+        LOG_GENERAL(INFO, "No txn requested");
+        return;
+    }
+
+    if (!Messenger::SetLookupGetTxnsFromLookup(
+            msg, MessageOffset::BODY, txnhashes,
+            m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return;
+    }
+
+    SendMessageToRandomLookupNode(msg);
+}
+
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset,
                                       [[gnu::unused]] const Peer& from)
@@ -2707,34 +2799,35 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
                                                unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {
-        &Lookup::ProcessGetSeedPeersFromLookup,
-        &Lookup::ProcessSetSeedPeersFromLookup,
-        &Lookup::ProcessGetDSInfoFromSeed,
-        &Lookup::ProcessSetDSInfoFromSeed,
-        &Lookup::ProcessGetDSBlockFromSeed,
-        &Lookup::ProcessSetDSBlockFromSeed,
-        &Lookup::ProcessGetTxBlockFromSeed,
-        &Lookup::ProcessSetTxBlockFromSeed,
-        &Lookup::ProcessGetTxBodyFromSeed,
-        &Lookup::ProcessSetTxBodyFromSeed,
-        &Lookup::ProcessGetNetworkId,
-        &Lookup::ProcessGetNetworkId,
-        &Lookup::ProcessGetStateFromSeed,
-        &Lookup::ProcessSetStateFromSeed,
-        &Lookup::ProcessSetLookupOffline,
-        &Lookup::ProcessSetLookupOnline,
-        &Lookup::ProcessGetOfflineLookups,
-        &Lookup::ProcessSetOfflineLookups,
-        &Lookup::ProcessRaiseStartPoW,
-        &Lookup::ProcessGetStartPoWFromSeed,
-        &Lookup::ProcessSetStartPoWFromSeed,
-        &Lookup::ProcessGetShardFromSeed,
-        &Lookup::ProcessSetShardFromSeed,
-        &Lookup::ProcessSetMicroBlockFromSeed,
-        &Lookup::ProcessGetMicroBlockFromLookup,
-        &Lookup::ProcessSetMicroBlockFromLookup,
-    };
+    InstructionHandler ins_handlers[]
+        = {&Lookup::ProcessGetSeedPeersFromLookup,
+           &Lookup::ProcessSetSeedPeersFromLookup,
+           &Lookup::ProcessGetDSInfoFromSeed,
+           &Lookup::ProcessSetDSInfoFromSeed,
+           &Lookup::ProcessGetDSBlockFromSeed,
+           &Lookup::ProcessSetDSBlockFromSeed,
+           &Lookup::ProcessGetTxBlockFromSeed,
+           &Lookup::ProcessSetTxBlockFromSeed,
+           &Lookup::ProcessGetTxBodyFromSeed,
+           &Lookup::ProcessSetTxBodyFromSeed,
+           &Lookup::ProcessGetNetworkId,
+           &Lookup::ProcessGetNetworkId,
+           &Lookup::ProcessGetStateFromSeed,
+           &Lookup::ProcessSetStateFromSeed,
+           &Lookup::ProcessSetLookupOffline,
+           &Lookup::ProcessSetLookupOnline,
+           &Lookup::ProcessGetOfflineLookups,
+           &Lookup::ProcessSetOfflineLookups,
+           &Lookup::ProcessRaiseStartPoW,
+           &Lookup::ProcessGetStartPoWFromSeed,
+           &Lookup::ProcessSetStartPoWFromSeed,
+           &Lookup::ProcessGetShardFromSeed,
+           &Lookup::ProcessSetShardFromSeed,
+           &Lookup::ProcessSetMicroBlockFromSeed,
+           &Lookup::ProcessGetMicroBlockFromLookup,
+           &Lookup::ProcessSetMicroBlockFromLookup,
+           &Lookup::ProcessGetTxnsFromLookup,
+           &Lookup::ProcessSetTxnsFromLookup};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
