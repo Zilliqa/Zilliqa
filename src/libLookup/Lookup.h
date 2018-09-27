@@ -225,6 +225,13 @@ public:
     bool ProcessSetMicroBlockFromSeed(const std::vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from);
 
+    bool ProcessGetTxnsFromLookup(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+    bool ProcessSetTxnFromLookup(const std::vector<unsigned char>& message,
+                                 unsigned int offset,
+                                 [[gnu::unused]] const Peer& from);
+    void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
+
     void CommitMicroBlockStorage();
 
     void SendGetMicroBlockFromLookup(
