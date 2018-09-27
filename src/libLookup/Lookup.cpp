@@ -1277,62 +1277,64 @@ bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
 bool Lookup::ProcessGetMicroBlockFromLookup(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
-    //[port][number of blocknums][[blocknum][numShards][shardId1][shardId2]..]..
-    unsigned int curr_offset = offset;
+    map<uint64_t, vector<uint32_t>> microBlockIds;
+    microBlockIds.clear();
+    uint32_t portNo = 0;
+    if (!Messenger::GetLookupGetMicroBlockFromLookup(message, offset,
+                                                     microBlockIds, portNo))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return false;
+    }
 
-    uint32_t portNo
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
+    if (microBlockIds.size() == 0)
+    {
+        LOG_GENERAL(INFO, "No MicroBlock requested");
+        return true;
+    }
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
-
-    vector<unsigned char> serializedMBs;
-    unsigned int sendcurrOffset = 0;
-    uint32_t num = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                     sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    unsigned int numMBs = 0;
-    for (unsigned int i = 0; i < num; i++)
+    vector<MicroBlock> retMicroBlocks;
+    for (const auto& microBlockId : microBlockIds)
     {
-        uint64_t blockNum = Serializable::GetNumber<uint64_t>(
-            message, curr_offset, sizeof(uint64_t));
-        curr_offset += sizeof(uint64_t);
 
-        uint32_t numShards = Serializable::GetNumber<uint32_t>(
-            message, curr_offset, sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
-
-        for (unsigned int j = 0; j < numShards; j++)
+        const uint64_t& blocknum = microBlockId.first;
+        for (const auto& shard_id : microBlockId.second)
         {
             shared_ptr<MicroBlock> mbptr;
-            uint32_t shard_id = Serializable::GetNumber<uint32_t>(
-                message, curr_offset, sizeof(uint32_t));
-
-            if (BlockStorage::GetBlockStorage().GetMicroBlock(blockNum,
-                                                              shard_id, mbptr))
+            if (!BlockStorage::GetBlockStorage().GetMicroBlock(shard_id,
+                                                               blocknum, mbptr))
             {
-                numMBs++;
-                mbptr->Serialize(serializedMBs, sendcurrOffset);
-                sendcurrOffset += mbptr->GetSerializedCoreSize()
-                    + mbptr->GetSerializedTxnHashesSize();
+                LOG_GENERAL(WARNING,
+                            "Failed to fetch micro block blocknum: "
+                                << blocknum << "Shard ID" << shard_id);
+                continue;
+            }
+            else
+            {
+                retMicroBlocks.push_back(*mbptr);
             }
         }
     }
 
     vector<unsigned char> retMsg
         = {MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMLOOKUP};
-    unsigned int returnOffset = MessageOffset::BODY;
-    retMsg.resize(returnOffset + serializedMBs.size() + sizeof(uint32_t));
-    Serializable::SetNumber<uint32_t>(retMsg, returnOffset, numMBs,
-                                      sizeof(uint32_t));
-    returnOffset += sizeof(uint32_t);
-    copy(retMsg.begin() + returnOffset, serializedMBs.begin(),
-         serializedMBs.end());
+
+    if (retMicroBlocks.size() == 0)
+    {
+        LOG_GENERAL(WARNING, "return size 0 for microblocks");
+        return true;
+    }
+
+    if (!Messenger::SetLookupSetMicroBlockFromLookup(
+            retMsg, MessageOffset::BODY, retMicroBlocks))
+    {
+        LOG_GENERAL(WARNING, "Failed to Process ");
+        return false;
+    }
 
     P2PComm::GetInstance().SendMessage(requestingNode, retMsg);
-
     return true;
 }
 
@@ -1342,21 +1344,45 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
 {
     //[numberOfMicroBlocks][microblock1][microblock2]...
 
-    unsigned int curr_offset = offset;
-    uint32_t numMB = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                       sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    for (unsigned int i = 0; i < numMB; i++)
+    vector<MicroBlock> mbs;
+    mbs.clear();
+    if (!Messenger::GetLookupSetMicroBlockFromLookup(message, offset, mbs))
     {
-        MicroBlock mb(message, curr_offset);
-        curr_offset
-            += mb.GetSerializedCoreSize() + mb.GetSerializedTxnHashesSize();
-
-        //do something with mb
+        LOG_GENERAL(WARNING, "Failed to process");
     }
 
+    for (const auto& mb : mbs)
+    {
+        LOG_GENERAL(INFO,
+                    "[SendMB]"
+                        << " Recvd " << mb.GetHeader().GetBlockNum()
+                        << " shard:" << mb.GetHeader().GetShardID());
+    } //do something with mb
+
     return true;
+}
+
+void Lookup::SendGetMicroBlockFromLookup(
+    const map<uint64_t, vector<uint32_t>>& mbInfos)
+{
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::GETMICROBLOCKFROMLOOKUP};
+
+    if (mbInfos.size() == 0)
+    {
+        LOG_GENERAL(INFO, "No microBlock requested");
+        return;
+    }
+
+    if (!Messenger::SetLookupGetMicroBlockFromLookup(
+            msg, MessageOffset::BODY, mbInfos,
+            m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_GENERAL(WARNING, "Failed to process");
+        return;
+    }
+
+    SendMessageToRandomLookupNode(msg);
 }
 
 void Lookup::CommitMicroBlockStorage()

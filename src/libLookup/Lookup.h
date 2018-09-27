@@ -227,6 +227,9 @@ public:
 
     void CommitMicroBlockStorage();
 
+    void SendGetMicroBlockFromLookup(
+        const std::map<uint64_t, std::vector<uint32_t>>& mbInfos);
+
     bool
     ProcessGetMicroBlockFromLookup(const std::vector<unsigned char>& message,
                                    unsigned int offset, const Peer& from);

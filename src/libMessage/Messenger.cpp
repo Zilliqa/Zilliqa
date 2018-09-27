@@ -3244,7 +3244,9 @@ bool Messenger::SetLookupGetMicroBlockFromLookup(
     return SerializeToArray(result, dest, offset);
 }
 
-bool Messenger::GetLookupGetMicroBlockFromLookup(vector<unsigned char>& src, unsigned int offset, map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t portNo)
+bool Messenger::GetLookupGetMicroBlockFromLookup(
+    const vector<unsigned char>& src, unsigned int offset,
+    map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t& portNo)
 {
     LOG_MARKER();
 
@@ -3260,15 +3262,165 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(vector<unsigned char>& src, uns
 
     portNo = result.portno();
 
-    for(const auto& blocknum : result.blockums() )
+    for (const auto& blocknum : result.blocknums())
     {
         vector<uint32_t> tempVec;
-        for(const auto& id : blockums.shards())
+        for (const auto& id : blocknum.shards())
         {
             tempVec.emplace_back(id);
         }
-        microBlockInfo.insert(make_pair(blockum, tempVec));
-        
+        microBlockInfo.insert(make_pair(blocknum.blocknum(), tempVec));
     }
+    return true;
+}
+
+bool Messenger::SetLookupSetMicroBlockFromLookup(vector<unsigned char>& dst,
+                                                 unsigned int offset,
+                                                 const vector<MicroBlock>& mbs)
+{
+    LOG_MARKER();
+    LookupSetMicroBlockFromLookup result;
+
+    for (const auto& mb : mbs)
+    {
+        MicroBlockToProtobuf(mb, *result.add_microblocks());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "initialization failed");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetMicroBlockFromLookup(
+    const vector<unsigned char>& src, unsigned int offset,
+    vector<MicroBlock>& mbs)
+{
+    LOG_MARKER();
+    LookupSetMicroBlockFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "initialization failed");
+        return false;
+    }
+
+    for (const auto& res_mb : result.microblocks())
+    {
+        MicroBlock mb;
+
+        ProtobufToMicroBlock(res_mb, mb);
+
+        mbs.emplace_back(mb);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetTxnsFromLookup(vector<unsigned char>& dst,
+                                           unsigned int offset,
+                                           const vector<TxnHash>& txnhashes,
+                                           uint32_t portNo)
+{
+    LOG_MARKER();
+
+    LookupGetTxnsFromLookup result;
+
+    result.set_portno(portNo);
+
+    for (const auto& txhash : txnhashes)
+    {
+        copy(txhash.asArray().begin(), txhash.asArray().end(),
+             result.add_txnhashes()->begin());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "initialization failure");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetTxnsFromLookup(const vector<unsigned char>& src,
+                                           unsigned int offset,
+                                           vector<TxnHash>& txnhashes,
+                                           uint32_t& portNo)
+{
+    LOG_MARKER();
+
+    LookupGetTxnsFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    portNo = result.portno();
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "initialization failure");
+        return false;
+    }
+
+    for (const auto& txhashbyte : result.txnhashes())
+    {
+        TxnHash txhash;
+        copy(txhashbyte.begin(), txhashbyte.end(), txhash.asArray().begin());
+        txnhashes.emplace_back(txhash);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupSetTxnsFromLookup(
+    vector<unsigned char>& dst, unsigned int offset,
+    const vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    LookupSetTxnsFromLookup result;
+
+    for (auto const& txn : txns)
+    {
+        SerializableToProtobufByteArray(txn, *result.add_transactions());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "result not initialized");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetTxnsFromLookup(const vector<unsigned char>& src,
+                                           unsigned int offset,
+                                           vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    LookupSetTxnsFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "initialization failed");
+        return false;
+    }
+
+    for (auto const& protoTxn : result.transactions())
+    {
+        TransactionWithReceipt txn;
+        ProtobufByteArrayToSerializable(protoTxn, txn);
+        txns.emplace_back(txn);
+    }
+
     return true;
 }
