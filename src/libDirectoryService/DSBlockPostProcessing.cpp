@@ -439,6 +439,20 @@ void DirectoryService::StartFirstTxEpoch()
         SetState(MICROBLOCK_SUBMISSION);
         m_dsStartedMicroblockConsensus = false;
 
+        if (BROADCAST_GOSSIP_MODE)
+        {
+            std::vector<Peer> peers;
+            for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+            {
+                if (i.second.m_listenPortHost != 0)
+                {
+                    peers.push_back(i.second);
+                }
+            }
+            // ReInitialize RumorManager for this epoch.
+            P2PComm::GetInstance().InitializeRumorManager(peers);
+        }
+
         auto func = [this]() mutable -> void {
             // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
             std::unique_lock<std::mutex> cv_lk(
@@ -512,6 +526,22 @@ void DirectoryService::StartFirstTxEpoch()
 
         // Process txn sharing assignments as a shard node
         m_mediator.m_node->LoadTxnSharingInfo();
+
+        if (BROADCAST_GOSSIP_MODE)
+        {
+            std::vector<Peer> peers;
+            for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+            {
+                if (i.second.m_listenPortHost != 0)
+                {
+                    peers.push_back(i.second);
+                }
+            }
+
+            // Set the peerlist for RumorSpreading protocol since am no more DS member.
+            // I am now shard member.
+            P2PComm::GetInstance().InitializeRumorManager(peers);
+        }
 
         // Finally, start as a shard node
         m_mediator.m_node->StartFirstTxEpoch();
