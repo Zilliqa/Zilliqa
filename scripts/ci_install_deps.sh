@@ -53,8 +53,7 @@ apt-get install -y \
     libevent-dev \
     libprotobuf-dev \
     libcurl4-openssl-dev \
-    protobuf-compiler \
-    libsasl2-dev
+    protobuf-compiler
 
 # install development dependencies
 apt-get install -y \
@@ -113,8 +112,7 @@ case $os in
     'Linux')
         echo "Installing dependencies on Linux ..."
         on_sudoless_ubuntu
-        install_libmongoc
-        install_libongocxx
+        # mongodb drivers are already installed in the image used for Linux build
         ;;
     'Darwin')
         echo "Installing dependencies on OSX ..."
