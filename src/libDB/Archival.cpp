@@ -59,6 +59,7 @@ void Archival::InitSync()
             }
             m_mediator.m_lookup->GetShardFromLookup();
             SendFetchMicroBlockInfo();
+            SendFetchTxn();
             this_thread::sleep_for(chrono::seconds(REFRESH_DELAY));
         }
     };
@@ -132,8 +133,62 @@ bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
 void Archival::SendFetchMicroBlockInfo()
 {
     lock_guard<mutex> g(m_mutexMicroBlockInfo);
+    for (const auto& info : m_fetchMicroBlockInfo)
+    {
+        LOG_GENERAL(INFO,
+                    "Sending fetch txn "
+                        << "..." << info.first);
 
+        for (const auto& shard_id : info.second)
+        {
+            LOG_GENERAL(INFO, "Shard id " << shard_id);
+        }
+    }
     m_mediator.m_lookup->SendGetMicroBlockFromLookup(m_fetchMicroBlockInfo);
+}
+
+void Archival::AddToUnFetchedTxn(const vector<TxnHash>& txnhashes)
+{
+    lock_guard<mutex> g(m_mutexUnfetchedTxns);
+    for (const auto& txnhsh : txnhashes)
+    {
+        LOG_GENERAL(INFO, "Add " << txnhsh << " to microblock fetch");
+    }
+    copy(txnhashes.begin(), txnhashes.end(),
+         inserter(m_unfetchedTxns, m_unfetchedTxns.end()));
+}
+
+void Archival::AddTxnToDB(const vector<TransactionWithReceipt>& txns,
+                          BaseDB& db)
+{
+    lock_guard<mutex> g(m_mutexUnfetchedTxns);
+
+    for (const auto& txn : txns)
+    {
+        const TxnHash& txhash = txn.GetTransaction().GetTranID();
+        LOG_GENERAL(INFO, " Got " << txhash << " from lookup");
+        if (m_unfetchedTxns.find(txhash) != m_unfetchedTxns.end())
+        {
+            db.InsertTxn(txn);
+            m_unfetchedTxns.erase(txhash);
+        }
+        else
+        {
+            LOG_GENERAL(WARNING,
+                        "Hash " << txhash << " not in my unfetched txn list");
+        }
+    }
+}
+
+void Archival::SendFetchTxn()
+{
+    lock_guard<mutex> g(m_mutexUnfetchedTxns);
+    for (const auto& txnhsh : m_unfetchedTxns)
+    {
+        LOG_GENERAL(INFO, "Send for " << txnhsh << " to lookup");
+    }
+    vector<TxnHash> txnVec(m_unfetchedTxns.begin(), m_unfetchedTxns.end());
+    m_mediator.m_lookup->SendGetTxnFromLookup(txnVec);
 }
 
 Archival::Archival(Mediator& mediator)
