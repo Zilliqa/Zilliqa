@@ -26,8 +26,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     libcurl4-openssl-dev \
     python python-pip \
+    curl \
+    libsasl2-dev \
     && rm -rf /var/lib/apt/lists/* \
     && pip install netaddr
+
+ARG MONGOC_DIR=/mongo-c-driver
+ARG MONGOC_BUILD_DIR=${MONGOC_DIR}/build
+
+ARG MONGOCXX_DIR=/mongo-cxx-driver
+ARG MONGOCXX_BUILD_DIR=${MONGCXX_DIR}/build
+
+RUN curl -OL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/mongo-c-driver-1.13.0.tar.gz && \
+    mkdir -p ${MONGOC_DIR} && tar xzf mongo-c-driver-1.13.0.tar.gz -C ${MONGOC_DIR} && \
+    cmake -H${MONGOC_DIR} -B${MONGOC_BUILD_DIR} -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF && \
+    cmake --build ${MONGOC_BUILD_DIR} -- -j${JOBS} && \
+    cmake --build ${MONGOC_BUILD_DIR} --target install && \
+    curl -OL https://github.com/mongodb/mongo-cxx-driver/archive/r3.3.1.tar.gz && \
+    mkdir -p ${MONGCXX_DIR} && tar -xzf r3.3.1.tar.gz -C ${MONGCXX_DIR} && \
+    cmake -H${MONGCXX_DIR} -B${MONGOCXX_BUILD_DIR} -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local && \
+    cmake --build ${MONGOCXX_BUILD_DIR} --target EP_mnmlstc_core && \
+    cmake --build ${MONGOCXX_BUILD_DIR} --target -j ${JOBS} && \
+    cmake --build ${MONGOCXX_BUILD_DIR} --target install
 
 #--------------------------------------------------------------------
 # BUILDING
