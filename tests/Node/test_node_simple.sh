@@ -24,16 +24,6 @@ sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
 
-#setting the correct flag for normal node, if not already.
-if grep -q '<LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>' constants_local.xml ; then
-   echo "constants_local.xml was already good with LOOKUP_NODE_MODE being unset"
-else
-   grep -q '<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>' constants_local.xml && \
-   sed -i 's/<LOOKUP_NODE_MODE>true<\/LOOKUP_NODE_MODE>/<LOOKUP_NODE_MODE>false<\/LOOKUP_NODE_MODE>/g' constants_local.xml || \
-   sed -i '/<\/options>/i \\t<LOOKUP_NODE_MODE>false<\/LOOKUP_NODE_MODE>' constants_local.xml
-   echo "constants_local.xml is now good with LOOKUP_NODE_MODE being unset"
-fi
-
 python tests/Zilliqa/test_zilliqa_local.py stop
 python tests/Zilliqa/test_zilliqa_local.py setup 20
 python tests/Zilliqa/test_zilliqa_local.py start 10
