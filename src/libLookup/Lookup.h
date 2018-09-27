@@ -227,9 +227,9 @@ public:
 
     bool ProcessGetTxnsFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
-    bool ProcessSetTxnFromLookup(const std::vector<unsigned char>& message,
-                                 unsigned int offset,
-                                 [[gnu::unused]] const Peer& from);
+    bool ProcessSetTxnsFromLookup(const std::vector<unsigned char>& message,
+                                  unsigned int offset,
+                                  [[gnu::unused]] const Peer& from);
     void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
     void CommitMicroBlockStorage();

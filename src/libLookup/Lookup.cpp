@@ -1877,9 +1877,9 @@ bool Lookup::ProcessGetTxnsFromLookup(const vector<unsigned char>& message,
     return true;
 }
 
-bool Lookup::ProcessSetTxnFromLookup(const vector<unsigned char>& message,
-                                     unsigned int offset,
-                                     [[gnu::unused]] const Peer& from)
+bool Lookup::ProcessSetTxnsFromLookup(const vector<unsigned char>& message,
+                                      unsigned int offset,
+                                      [[gnu::unused]] const Peer& from)
 {
     vector<TransactionWithReceipt> txns;
     txns.clear();
@@ -2757,34 +2757,35 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
                                                unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[] = {
-        &Lookup::ProcessGetSeedPeersFromLookup,
-        &Lookup::ProcessSetSeedPeersFromLookup,
-        &Lookup::ProcessGetDSInfoFromSeed,
-        &Lookup::ProcessSetDSInfoFromSeed,
-        &Lookup::ProcessGetDSBlockFromSeed,
-        &Lookup::ProcessSetDSBlockFromSeed,
-        &Lookup::ProcessGetTxBlockFromSeed,
-        &Lookup::ProcessSetTxBlockFromSeed,
-        &Lookup::ProcessGetTxBodyFromSeed,
-        &Lookup::ProcessSetTxBodyFromSeed,
-        &Lookup::ProcessGetNetworkId,
-        &Lookup::ProcessGetNetworkId,
-        &Lookup::ProcessGetStateFromSeed,
-        &Lookup::ProcessSetStateFromSeed,
-        &Lookup::ProcessSetLookupOffline,
-        &Lookup::ProcessSetLookupOnline,
-        &Lookup::ProcessGetOfflineLookups,
-        &Lookup::ProcessSetOfflineLookups,
-        &Lookup::ProcessRaiseStartPoW,
-        &Lookup::ProcessGetStartPoWFromSeed,
-        &Lookup::ProcessSetStartPoWFromSeed,
-        &Lookup::ProcessGetShardFromSeed,
-        &Lookup::ProcessSetShardFromSeed,
-        &Lookup::ProcessSetMicroBlockFromSeed,
-        &Lookup::ProcessGetMicroBlockFromLookup,
-        &Lookup::ProcessSetMicroBlockFromLookup,
-    };
+    InstructionHandler ins_handlers[]
+        = {&Lookup::ProcessGetSeedPeersFromLookup,
+           &Lookup::ProcessSetSeedPeersFromLookup,
+           &Lookup::ProcessGetDSInfoFromSeed,
+           &Lookup::ProcessSetDSInfoFromSeed,
+           &Lookup::ProcessGetDSBlockFromSeed,
+           &Lookup::ProcessSetDSBlockFromSeed,
+           &Lookup::ProcessGetTxBlockFromSeed,
+           &Lookup::ProcessSetTxBlockFromSeed,
+           &Lookup::ProcessGetTxBodyFromSeed,
+           &Lookup::ProcessSetTxBodyFromSeed,
+           &Lookup::ProcessGetNetworkId,
+           &Lookup::ProcessGetNetworkId,
+           &Lookup::ProcessGetStateFromSeed,
+           &Lookup::ProcessSetStateFromSeed,
+           &Lookup::ProcessSetLookupOffline,
+           &Lookup::ProcessSetLookupOnline,
+           &Lookup::ProcessGetOfflineLookups,
+           &Lookup::ProcessSetOfflineLookups,
+           &Lookup::ProcessRaiseStartPoW,
+           &Lookup::ProcessGetStartPoWFromSeed,
+           &Lookup::ProcessSetStartPoWFromSeed,
+           &Lookup::ProcessGetShardFromSeed,
+           &Lookup::ProcessSetShardFromSeed,
+           &Lookup::ProcessSetMicroBlockFromSeed,
+           &Lookup::ProcessGetMicroBlockFromLookup,
+           &Lookup::ProcessSetMicroBlockFromLookup,
+           &Lookup::ProcessGetTxnsFromLookup,
+           &Lookup::ProcessSetTxnsFromLookup};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
