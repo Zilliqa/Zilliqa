@@ -194,6 +194,29 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
         return false;
     }
 
+    if (primary == m_mediator.m_selfPeer)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am the DS committee leader");
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_LEADER_MSG);
+        m_mode = PRIMARY_DS;
+    }
+    else
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I am a DS committee backup. "
+                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << ":"
+                      << m_mediator.m_selfPeer.m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Current DS committee leader is "
+                      << primary.GetPrintableIPAddress() << " at port "
+                      << primary.m_listenPortHost)
+        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
+                      DS_BACKUP_MSG);
+        m_mode = BACKUP_DS;
+    }
+
     // For now, we assume the following when ProcessSetPrimary() is called:
     //  1. All peers in the peer list are my fellow DS committee members for this first epoch
     //  2. The list of DS nodes is sorted by PubKey, including my own
@@ -203,6 +226,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     // TODO: Refactor this code
     if (primary == m_mediator.m_selfPeer)
     {
+
         PeerStore& dsstore = PeerStore::GetStore();
         dsstore.AddPeerPair(
             m_mediator.m_selfKey.second,
@@ -235,35 +259,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     m_mediator.m_DSCommittee->resize(tmp1.size());
     copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
     peerstore.RemovePeer(m_mediator.m_selfKey.second); // Remove myself
-    return SetDSNode(primary);
-}
-
-bool DirectoryService::SetDSNode(const Peer& primary)
-{
-    LOG_MARKER();
-
-    if (primary == m_mediator.m_selfPeer)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I am the DS committee leader");
-        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_LEADER_MSG);
-        m_mode = PRIMARY_DS;
-    }
-    else
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I am a DS committee backup. "
-                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << ":"
-                      << m_mediator.m_selfPeer.m_listenPortHost);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Current DS committee leader is "
-                      << primary.GetPrintableIPAddress() << " at port "
-                      << primary.m_listenPortHost)
-        LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                      DS_BACKUP_MSG);
-        m_mode = BACKUP_DS;
-    }
 
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
@@ -279,7 +274,6 @@ bool DirectoryService::SetDSNode(const Peer& primary)
         m_consensusMyID++;
     }
     m_consensusLeaderID = 0;
-
     if (m_mediator.m_currentEpochNum > 1)
     {
         LOG_GENERAL(WARNING,
