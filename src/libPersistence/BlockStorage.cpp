@@ -327,7 +327,7 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
 
 bool BlockStorage::PutDSCommittee(
     const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
-    const atomic<uint32_t>& consensusLeaderID)
+    const uint16_t& consensusLeaderID)
 {
     LOG_MARKER();
 
@@ -372,7 +372,7 @@ bool BlockStorage::PutDSCommittee(
 
 bool BlockStorage::GetDSCommittee(
     shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
-    atomic<uint32_t>& consensusLeaderID)
+    uint16_t& consensusLeaderID)
 {
     LOG_MARKER();
 

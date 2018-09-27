@@ -139,12 +139,12 @@ public:
     /// Save DS committee
     bool PutDSCommittee(
         const std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& dsCommittee,
-        const std::atomic<uint32_t>& consensusLeaderID);
+        const uint16_t& consensusLeaderID);
 
     /// Retrieve DS committee
     bool GetDSCommittee(
         std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& dsCommittee,
-        std::atomic<uint32_t>& consensusLeaderID);
+        uint16_t& consensusLeaderID);
 
     /// Clean a DB
     bool ResetDB(DBTYPE type);

@@ -95,7 +95,7 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
             runInitializeGenesisBlocks = false;
 
             BlockStorage::GetBlockStorage().GetDSCommittee(
-                m_mediator.m_DSCommittee, m_consensusLeaderID);
+                m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
             LOG_GENERAL(INFO,
                         "Current public key: " << m_mediator.m_selfKey.second);
 
@@ -107,54 +107,67 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                 if (ds.first == m_mediator.m_selfKey.second)
                 {
                     SetState(POW_SUBMISSION);
-                    if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
+#if 1 //clark
+                    m_mediator.m_ds->m_consensusMyID = 0;
+
+                    for (auto const& i : *m_mediator.m_DSCommittee)
+                    {
+                        if (i.first == m_mediator.m_selfKey.second)
+                        {
+                            LOG_EPOCH(
+                                INFO,
+                                to_string(m_mediator.m_currentEpochNum).c_str(),
+                                "My node ID for this PoW consensus is "
+                                    << m_mediator.m_ds->m_consensusMyID);
+                            break;
+                        }
+
+                        ++m_mediator.m_ds->m_consensusMyID;
+                    }
+#endif
+                    if (m_mediator.m_DSCommittee
+                            ->at(m_mediator.m_ds->m_consensusLeaderID)
+                            .first
                         == m_mediator.m_selfKey.second)
                     {
+                        m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
                         LOG_GENERAL(
                             INFO,
                             "Set as DS leader: "
                                 << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                 << ":"
                                 << m_mediator.m_selfPeer.m_listenPortHost);
-                        m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
-                        LOG_EPOCH(
-                            INFO,
-                            to_string(m_mediator.m_currentEpochNum).c_str(),
-                            "START OF EPOCH "
-                                << m_mediator.m_dsBlockChain.GetLastBlock()
-                                        .GetHeader()
-                                        .GetBlockNum()
-                                    + 1);
                         LOG_STATE(
                             "[IDENT]["
                             << std::setw(15) << std::left
                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << "][0     ] DSLD");
+                            << "][" << std::setw(6) << std::left
+                            << m_mediator.m_ds->m_consensusMyID << "] DSLD");
                     }
                     else
                     {
+                        m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
                         LOG_GENERAL(
                             INFO,
                             "Set as DS backup: "
                                 << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                 << ":"
                                 << m_mediator.m_selfPeer.m_listenPortHost);
-                        m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
-                        LOG_EPOCH(
-                            INFO,
-                            to_string(m_mediator.m_currentEpochNum).c_str(),
-                            "START OF EPOCH "
-                                << m_mediator.m_dsBlockChain.GetLastBlock()
-                                        .GetHeader()
-                                        .GetBlockNum()
-                                    + 1);
                         LOG_STATE(
                             "[IDENT]["
                             << std::setw(15) << std::left
                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
                             << "][" << std::setw(6) << std::left
-                            << m_consensusMyID << "] DSBK");
+                            << m_mediator.m_ds->m_consensusMyID << "] DSBK");
                     }
+
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "START OF EPOCH "
+                                  << m_mediator.m_dsBlockChain.GetLastBlock()
+                                          .GetHeader()
+                                          .GetBlockNum()
+                                      + 1);
 
                     auto func = [this]() mutable -> void {
                         LOG_EPOCH(
