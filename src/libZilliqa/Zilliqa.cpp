@@ -102,6 +102,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_lookup(m_mediator)
     , m_n(m_mediator, syncType, toRetrieveHistory)
     , m_db("archiveDB", "txn", "txBlock", "dsBlock", "accountState")
+    , m_arch(m_mediator)
     //    , m_cu(key, peer)
     , m_msgQueue(MSGQUEUE_SIZE)
     , m_httpserver(SERVER_PORT)
@@ -130,8 +131,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     if (ARCHIVAL_NODE)
     {
         m_db.Init();
+        m_arch.Init();
+        m_arch.InitSync();
         m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get(),
-                                      &m_db);
+                                      &m_db, &m_arch);
     }
     else
     {
@@ -143,14 +146,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     LogSelfNodeInfo(key, peer);
 
     P2PComm::GetInstance().SetSelfPeer(peer);
-
-    if (ARCHIVAL_NODE)
-    {
-        Archival arch(m_mediator);
-
-        arch.Init();
-        arch.InitSync();
-    }
 
     switch (syncType)
     {

@@ -15,7 +15,9 @@
 **/
 
 #include "Archival.h"
+#include "libMediator/Mediator.h"
 #include "libUtils/DetachedFunction.h"
+#include <algorithm>
 #include <chrono>
 #include <mutex>
 #include <thread>
@@ -56,6 +58,7 @@ void Archival::InitSync()
                 }
             }
             m_mediator.m_lookup->GetShardFromLookup();
+            SendFetchMicroBlockInfo();
             this_thread::sleep_for(chrono::seconds(REFRESH_DELAY));
         }
     };
@@ -83,6 +86,54 @@ void Archival::Init()
 
     m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                            m_mediator.m_txBlockChain);
+}
+
+bool Archival::AddToFetchMicroBlockInfo(const uint64_t& blockNum,
+                                        const uint32_t shardId)
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexMicroBlockInfo);
+    m_fetchMicroBlockInfo[blockNum].push_back(shardId);
+
+    return true;
+}
+
+bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
+                                             const uint32_t shardId)
+{
+    LOG_MARKER();
+
+    lock_guard<mutex> g(m_mutexMicroBlockInfo);
+
+    vector<uint32_t>& shard_ids = m_fetchMicroBlockInfo[blockNum];
+
+    if (shard_ids.size() == 0)
+    {
+        LOG_GENERAL(INFO,
+                    "Already empty " << blockNum << " shard id" << shardId);
+        return false;
+    }
+
+    auto position = find(shard_ids.begin(), shard_ids.end(), shardId);
+    if (position != shard_ids.end())
+    {
+        shard_ids.erase(position);
+        return true;
+    }
+    else
+    {
+        LOG_GENERAL(WARNING,
+                    "Could not find " << blockNum << " shard id " << shardId);
+        return false;
+    }
+}
+
+void Archival::SendFetchMicroBlockInfo()
+{
+    lock_guard<mutex> g(m_mutexMicroBlockInfo);
+
+    m_mediator.m_lookup->SendGetMicroBlockFromLookup(m_fetchMicroBlockInfo);
 }
 
 Archival::Archival(Mediator& mediator)
