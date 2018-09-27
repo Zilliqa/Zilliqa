@@ -255,12 +255,11 @@ public:
     static bool SetLookupSetTxBlockFromSeed(
         std::vector<unsigned char>& dst, const unsigned int offset,
         const uint64_t lowBlockNum, const uint64_t highBlockNum,
-        const std::vector<TxBlock>& txBlocks);
-    static bool
-    GetLookupSetTxBlockFromSeed(const std::vector<unsigned char>& src,
-                                const unsigned int offset,
-                                uint64_t& lowBlockNum, uint64_t& highBlockNum,
-                                std::vector<TxBlock>& txBlocks);
+        const std::vector<TxBlock>& txBlocks, const uint32_t consensusID);
+    static bool GetLookupSetTxBlockFromSeed(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        uint64_t& lowBlockNum, uint64_t& highBlockNum,
+        std::vector<TxBlock>& txBlocks, uint32_t& consensusID);
     static bool SetLookupGetTxBodyFromSeed(
         std::vector<unsigned char>& dst, const unsigned int offset,
         const std::vector<unsigned char>& txHash, const uint32_t listenPort);
