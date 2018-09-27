@@ -379,6 +379,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
 
+            m_consensusID = 0;
+            m_mediator.m_node->m_consensusID = 0;
+            m_mediator.m_node->m_consensusLeaderID = 0;
+
             CleanFinalblockConsensusBuffer();
 
             m_mediator.m_node->CleanCreatedTransaction();
@@ -393,9 +397,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
                     .GetHeader()
                     .GetBlockNum()
                 + 1);
-            m_consensusID = 0;
-            m_mediator.m_node->m_consensusID = 0;
-            m_mediator.m_node->m_consensusLeaderID = 0;
             if (m_mode == PRIMARY_DS)
             {
                 LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -534,6 +535,8 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Process final block arrived early, saved to buffer");
+
+        lock_guard<mutex> g(m_mutexConsensus);
 
         if (consensus_id == m_consensusID)
         {

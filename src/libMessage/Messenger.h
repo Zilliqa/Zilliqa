@@ -46,6 +46,17 @@ public:
                                    uint64_t& nonce, std::string& resultingHash,
                                    std::string& mixHash, Signature& signature);
 
+    static bool SetDSMicroBlockSubmission(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const unsigned char microBlockType, const uint64_t blockNumber,
+        const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
+    static bool GetDSMicroBlockSubmission(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        unsigned char& microBlockType, uint64_t& blockNumber,
+        std::vector<MicroBlock>& microBlocks,
+        std::vector<unsigned char>& stateDelta);
+
     static bool SetDSDSBlockAnnouncement(
         std::vector<unsigned char>& dst, const unsigned int offset,
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
@@ -190,11 +201,11 @@ public:
                                const unsigned int offset, uint32_t& listenPort);
     static bool SetLookupSetDSInfoFromSeed(
         std::vector<unsigned char>& dst, const unsigned int offset,
-        const std::vector<std::pair<PubKey, Peer>>& dsNodes);
+        const std::deque<std::pair<PubKey, Peer>>& dsNodes);
     static bool
     GetLookupSetDSInfoFromSeed(const std::vector<unsigned char>& src,
                                const unsigned int offset,
-                               std::vector<std::pair<PubKey, Peer>>& dsNodes);
+                               std::deque<std::pair<PubKey, Peer>>& dsNodes);
     static bool SetLookupGetDSBlockFromSeed(std::vector<unsigned char>& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
@@ -232,15 +243,18 @@ public:
     static bool SetLookupGetTxBodyFromSeed(
         std::vector<unsigned char>& dst, const unsigned int offset,
         const std::vector<unsigned char>& txHash, const uint32_t listenPort);
-    static bool GetLookupGetTxBodyFromSeed(
-        const std::vector<unsigned char>& src, const unsigned int offset,
-        std::vector<unsigned char>& txHash, uint32_t& listenPort);
-    static bool SetLookupSetTxBodyFromSeed(
-        std::vector<unsigned char>& dst, const unsigned int offset,
-        const std::vector<unsigned char>& txHash, const Transaction& txBody);
-    static bool GetLookupSetTxBodyFromSeed(
-        const std::vector<unsigned char>& src, const unsigned int offset,
-        std::vector<unsigned char>& txHash, Transaction& txBody);
+    static bool
+    GetLookupGetTxBodyFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset, TxnHash& txHash,
+                               uint32_t& listenPort);
+    static bool
+    SetLookupSetTxBodyFromSeed(std::vector<unsigned char>& dst,
+                               const unsigned int offset, const TxnHash& txHash,
+                               const TransactionWithReceipt& txBody);
+    static bool
+    GetLookupSetTxBodyFromSeed(const std::vector<unsigned char>& src,
+                               const unsigned int offset, TxnHash& txHash,
+                               TransactionWithReceipt& txBody);
     static bool SetLookupSetNetworkIDFromSeed(std::vector<unsigned char>& dst,
                                               const unsigned int offset,
                                               const std::string& networkID);
@@ -395,6 +409,41 @@ public:
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
         uint16_t& backupID, std::vector<unsigned char>& errorMsg,
         const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+
+    static bool SetLookupGetMicroBlockFromLookup(
+        std::vector<unsigned char>& dest, unsigned int offset,
+        const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+        uint32_t portNo);
+
+    static bool GetLookupGetMicroBlockFromLookup(
+        const std::vector<unsigned char>& src, unsigned int offset,
+        std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+        uint32_t& portNo);
+
+    static bool
+    SetLookupSetMicroBlockFromLookup(std::vector<unsigned char>& dst,
+                                     unsigned int offset,
+                                     const std::vector<MicroBlock>& mbs);
+
+    static bool
+    GetLookupSetMicroBlockFromLookup(const std::vector<unsigned char>& src,
+                                     unsigned int offset,
+                                     std::vector<MicroBlock>& mbs);
+
+    static bool SetLookupGetTxnsFromLookup(
+        std::vector<unsigned char>& dst, unsigned int offset,
+        const std::vector<TxnHash>& txnhashes, uint32_t portNo);
+    static bool GetLookupGetTxnsFromLookup(
+        const std::vector<unsigned char>& src, unsigned int offset,
+        std::vector<TxnHash>& txnhashes, uint32_t& portNo);
+    static bool
+    SetLookupSetTxnsFromLookup(std::vector<unsigned char>& dst,
+                               unsigned int offset,
+                               const std::vector<TransactionWithReceipt>& txns);
+    static bool
+    GetLookupSetTxnsFromLookup(const std::vector<unsigned char>& src,
+                               unsigned int offset,
+                               std::vector<TransactionWithReceipt>& txns);
 };
 
 #endif // __MESSENGER_H__

@@ -580,6 +580,8 @@ void Node::BeginNextConsensusRound()
 void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
                                  vector<TransactionWithReceipt>& txns_to_send)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -588,26 +590,28 @@ void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
         return;
     }
 
-    LOG_MARKER();
-
-    const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
-    for (const auto& tx_hash : tx_hashes)
+    if (m_microblock != nullptr)
     {
-        if (!FindTxnInProcessedTxnsList(blocknum, sharing_mode, txns_to_send,
-                                        tx_hash))
+        const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
+        for (const auto& tx_hash : tx_hashes)
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Failed trying to find txn in processed txn list");
+            if (!FindTxnInProcessedTxnsList(blocknum, sharing_mode,
+                                            txns_to_send, tx_hash))
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Failed trying to find txn in processed txn list");
+            }
         }
-    }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of transactions to broadcast for block "
-                  << blocknum << " = " << txns_to_send.size());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Number of transactions to broadcast for block "
+                      << blocknum << " = " << txns_to_send.size());
 
-    {
-        lock_guard<mutex> g(m_mutexProcessedTransactions);
-        m_processedTransactions.erase(blocknum);
+        {
+            lock_guard<mutex> g(m_mutexProcessedTransactions);
+            m_processedTransactions.erase(blocknum);
+        }
     }
 }
 
@@ -673,11 +677,13 @@ void Node::CallActOnFinalblock()
                  && (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_ONLY, txns_to_send);
+        BroadcastMicroBlockToLookup();
     }
     else if ((m_txnSharingIAmSender) && (m_txnSharingIAmForwarder))
     {
         GetMyShardsMicroBlock(blocknum, TxSharingMode::SEND_AND_FORWARD,
                               txns_to_send);
+        BroadcastMicroBlockToLookup();
     }
     else
     {
@@ -685,6 +691,34 @@ void Node::CallActOnFinalblock()
     }
 
     BroadcastTransactionsToLookup(txns_to_send);
+}
+
+void Node::BroadcastMicroBlockToLookup()
+{
+    if (m_microblock != nullptr)
+    {
+        LOG_GENERAL(INFO,
+                    "[SendMB]"
+                        << " Sending lookup :"
+                        << m_microblock->GetHeader().GetShardID()
+                        << " Epoch:" << m_mediator.m_currentEpochNum);
+        vector<unsigned char> msg = {
+            MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMSEED};
+        unsigned int curr_offset = MessageOffset::BODY;
+        Serializable::SetNumber<uint64_t>(
+            msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
+        curr_offset += sizeof(uint64_t);
+        m_microblock->Serialize(msg, curr_offset);
+        m_mediator.m_lookup->SendMessageToLookupNodes(msg);
+    }
+    else if (m_microblock == nullptr)
+    {
+        LOG_GENERAL(WARNING, "MicroBlock is null");
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "MicroBlock empty");
+    }
 }
 
 void Node::LogReceivedFinalBlockDetails([[gnu::unused]] const TxBlock& txblock)
@@ -940,6 +974,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     {
         // Now only forwarded txn are left, so only call in lookup
         CommitForwardedMsgBuffer();
+        m_mediator.m_lookup->CommitMicroBlockStorage();
 
         if (m_mediator.m_lookup->GetIsServer()
             && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0
