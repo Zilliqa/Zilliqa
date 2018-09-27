@@ -256,9 +256,9 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
     uint64_t nonce = std::time(0);
     m_minerIndex = 0;
     // Clear old result
-    for (auto& mining_result : m_vecMiningResult)
+    for (auto& miningResult : m_vecMiningResult)
     {
-        mining_result = ethash_mining_result_t{"", "", 0, false};
+        miningResult = ethash_mining_result_t{"", "", 0, false};
     }
     for (size_t i = 0; i < NUM_DEVICE_TO_USE; ++i)
     {
@@ -268,19 +268,19 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    std::unique_lock<std::mutex> lk(m_mutexMineResult);
-    m_cvMineResult.wait(lk);
+    std::unique_lock<std::mutex> lk(m_mutexMiningResult);
+    m_cvMiningResult.wait(lk);
     m_shouldMine = false;
     for (auto& ptrThead : vecThread)
     {
         ptrThead->join();
     }
 
-    for (const auto& mining_result : m_vecMiningResult)
+    for (const auto& miningResult : m_vecMiningResult)
     {
-        if (mining_result.success)
+        if (miningResult.success)
         {
-            return mining_result;
+            return miningResult;
         }
     }
 
@@ -294,8 +294,8 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
     auto index = m_minerIndex.load(std::memory_order_relaxed);
     ++m_minerIndex;
     LOG_GENERAL(INFO,
-                "difficulty : " << std::to_string(difficulty) << ", index "
-                                << index);
+                "Difficulty : " << std::to_string(difficulty)
+                                << ", miner index " << index);
     dev::eth::WorkPackage wp;
     wp.blockNumber = blockNum;
     wp.boundary = (dev::h256)(dev::u256)((dev::bigint(1) << 256)
@@ -304,8 +304,8 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
     wp.header = dev::h256{header_hash.b, dev::h256::ConstructFromPointer};
 
     constexpr uint32_t NONCE_SEGMENT_WIDTH = 40;
-    const uint64_t NONCE_SGEMENT = (uint64_t)pow(2, NONCE_SEGMENT_WIDTH);
-    wp.startNonce = nonce + index * NONCE_SGEMENT;
+    const uint64_t NONCE_SEGMENT = (uint64_t)pow(2, NONCE_SEGMENT_WIDTH);
+    wp.startNonce = nonce + index * NONCE_SEGMENT;
 
     dev::eth::Solution solution;
     while (m_shouldMine)
@@ -316,7 +316,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
                         "GPU failed to do mine, GPU miner log: "
                             << m_miners[index]->getLog());
             m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
-            m_cvMineResult.notify_one();
+            m_cvMiningResult.notify_one();
             return;
         }
         auto hashResult = LightHash(blockNum, header_hash, solution.nonce);
@@ -326,13 +326,13 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
             m_vecMiningResult[index] = ethash_mining_result_t{
                 BlockhashToHexString(&hashResult.result),
                 solution.mixHash.hex(), solution.nonce, true};
-            m_cvMineResult.notify_one();
+            m_cvMiningResult.notify_one();
             return;
         }
         wp.startNonce = solution.nonce;
     }
     m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
-    m_cvMineResult.notify_one();
+    m_cvMiningResult.notify_one();
     return;
 }
 

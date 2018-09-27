@@ -105,8 +105,8 @@ private:
     std::vector<dev::eth::MinerPtr> m_miners;
     std::vector<ethash_mining_result_t> m_vecMiningResult;
     std::atomic<int> m_minerIndex;
-    std::condition_variable m_cvMineResult;
-    std::mutex m_mutexMineResult;
+    std::condition_variable m_cvMiningResult;
+    std::mutex m_mutexMiningResult;
 
     ethash_light_t EthashLightNew(uint64_t block_number);
     ethash_light_t EthashLightReuse(ethash_light_t ethashLight,
