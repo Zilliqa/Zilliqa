@@ -99,6 +99,9 @@ def patch_constants_xml(filepath, read_txn=False):
         if read_txn:
             td.find('USE_REMOTE_TXN_CREATOR').text='true'
 
+        options = root.find('options')
+        options.find('LOOKUP_NODE_MODE').text = 'true'
+
         tree = ET.ElementTree(root)
         tree.write(filepath)
 

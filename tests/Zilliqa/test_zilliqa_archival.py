@@ -22,6 +22,7 @@ import stat
 import time 
 
 from subprocess import Popen, PIPE
+import xml.etree.cElementTree as ET
 
 NODE_LISTEN_PORT = 8001
 LOCAL_RUN_FOLDER = './archival_local_run/'
@@ -79,6 +80,15 @@ def run_setup(numnodes, printnodes):
 		for x in range(0, count):
 			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
 
+def patch_constants_xml(filepath):
+        root = ET.parse(filepath).getroot()
+
+        options = root.find('options')
+        options.find('ARCHIVAL_NODE').text = 'true'
+
+        tree = ET.ElementTree(root)
+        tree.write(filepath)
+
 def run_start():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
@@ -97,6 +107,7 @@ def run_start():
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+		patch_constants_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 	keys_file.close()
 
 	# Launch node zilliqa process
