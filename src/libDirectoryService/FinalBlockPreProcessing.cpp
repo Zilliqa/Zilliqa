@@ -1190,6 +1190,11 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         {
             return;
         }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "The above CheckState failed as expected, don't panic");
+        }
 
         LOG_MARKER();
 

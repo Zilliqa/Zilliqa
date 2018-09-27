@@ -863,6 +863,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
+    lock_guard<mutex> g(m_mutexFinalBlock);
+
     bool toSendTxnToLookup = false;
 
     bool isVacuousEpoch
@@ -937,19 +939,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              << "] LAST");
     }
 
-    if (LOOKUP_NODE_MODE)
-    {
-        // Now only forwarded txn are left, so only call in lookup
-        CommitForwardedMsgBuffer();
-
-        if (m_mediator.m_lookup->GetIsServer()
-            && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0
-            && USE_REMOTE_TXN_CREATOR)
-        {
-            m_mediator.m_lookup->SenderTxnBatchThread();
-        }
-    }
-
     // Assumption: New PoW done after every block committed
     // If I am not a DS committee member (and since I got this FinalBlock message,
     // then I know I'm not), I can start doing PoW again
@@ -963,7 +952,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             CallActOnFinalblock();
         }
 
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if (isVacuousEpoch)
         {
             InitiatePoW();
         }
@@ -977,7 +966,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if (isVacuousEpoch)
         {
             m_consensusID = 0;
             m_consensusLeaderID = 0;
@@ -987,6 +976,15 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             m_consensusID++;
             m_consensusLeaderID++;
             m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
+        }
+
+        // Now only forwarded txn are left, so only call in lookup
+        CommitForwardedMsgBuffer();
+
+        if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch
+            && USE_REMOTE_TXN_CREATOR)
+        {
+            m_mediator.m_lookup->SenderTxnBatchThread();
         }
     }
 

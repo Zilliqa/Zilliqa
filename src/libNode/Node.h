@@ -409,6 +409,9 @@ public:
     std::atomic<bool> m_isPrimary;
     std::atomic<uint32_t> m_consensusLeaderID;
 
+    // Finalblock Processing
+    std::mutex m_mutexFinalBlock;
+
     // DS block information
     std::mutex m_mutexDSBlock;
 
