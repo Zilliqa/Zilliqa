@@ -329,15 +329,17 @@ vector<unsigned char> Lookup::ComposeGetStateMessage()
 {
     LOG_MARKER();
 
-    // getStateMessage = [Port]
     vector<unsigned char> getStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETSTATEFROMSEED};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint32_t>(getStateMessage, curr_offset,
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+    if (!Messenger::SetLookupGetStateFromSeed(
+            getStateMessage, MessageOffset::BODY,
+            m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetLookupGetStateFromSeed failed.");
+        return {};
+    }
 
     return getStateMessage;
 }
@@ -885,13 +887,14 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     // transaction.Serialize(serializedTxBody, 0);
     // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
 
-    // 4-byte listening port
+    uint32_t portNo = 0;
 
-    // [Port number]
-
-    uint32_t portNo
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
+    if (!Messenger::GetLookupGetStateFromSeed(message, offset, portNo))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupGetStateFromSeed failed.");
+        return false;
+    }
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
@@ -908,10 +911,14 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
 
     vector<unsigned char> setStateMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
-    unsigned int curr_offset = MessageOffset::BODY;
-    curr_offset
-        += AccountStore::GetInstance().Serialize(setStateMessage, curr_offset);
-    // AccountStore::GetInstance().PrintAccountState();
+
+    if (!Messenger::SetLookupSetStateFromSeed(
+            setStateMessage, MessageOffset::BODY, AccountStore::GetInstance()))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetLookupSetStateFromSeed failed.");
+        return false;
+    }
 
     P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
     // #endif // IS_LOOKUP_NODE
@@ -1078,21 +1085,27 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
 bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from)
 {
-    //Message = [Port]
-    uint32_t port;
-    if (!Messenger::GetLookupGetShardsFromSeed(message, offset, port))
+    LOG_MARKER();
+
+    uint32_t portNo = 0;
+
+    if (!Messenger::GetLookupGetShardsFromSeed(message, offset, portNo))
     {
-        LOG_GENERAL(WARNING, "Failed to process");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupGetShardsFromSeed failed.");
         return false;
     }
-    Peer requestingNode(from.m_ipAddress, port);
+
+    Peer requestingNode(from.m_ipAddress, portNo);
     vector<unsigned char> msg
         = {MessageType::LOOKUP, LookupInstructionType::SETSHARDSFROMSEED};
     lock_guard<mutex> g(m_mutexShards);
+
     if (!Messenger::SetLookupSetShardsFromSeed(msg, MessageOffset::BODY,
                                                m_mediator.m_ds->m_shards))
     {
-        LOG_GENERAL(WARNING, "Failed to Process");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetLookupSetShardsFromSeed failed.");
         return false;
     }
 
@@ -1105,11 +1118,13 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
+
     VectorOfShard shards;
 
     if (!Messenger::GetLookupSetShardsFromSeed(message, offset, shards))
     {
-        LOG_GENERAL(WARNING, "Failed to Process");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupSetShardsFromSeed failed.");
         return false;
     }
     LOG_GENERAL(INFO, "Sharding Structure Recvd from " << from);
@@ -1130,13 +1145,15 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
 bool Lookup::GetShardFromLookup()
 {
     LOG_MARKER();
+
     vector<unsigned char> msg
         = {MessageType::LOOKUP, LookupInstructionType::GETSHARDSFROMSEED};
 
     if (!Messenger::SetLookupGetShardsFromSeed(
             msg, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost))
     {
-        LOG_GENERAL(WARNING, "Failed to process");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetLookupGetShardsFromSeed failed.");
         return false;
     }
 
@@ -1484,9 +1501,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset,
                                      [[gnu::unused]] const Peer& from)
 {
-    bool ret = true;
-    // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize() txbody]
-
     LOG_MARKER();
 
     // if (IsMessageSizeInappropriate(message.size(), offset,
@@ -1513,12 +1527,12 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
     unique_lock<mutex> lock(m_mutexSetState);
 
-    unsigned int curr_offset = offset;
-    // AccountStore::GetInstance().Deserialize(message, curr_offset);
-    if (AccountStore::GetInstance().Deserialize(message, curr_offset) != 0)
+    if (!Messenger::GetLookupSetStateFromSeed(message, offset,
+                                              AccountStore::GetInstance()))
     {
-        LOG_GENERAL(WARNING, "We failed to deserialize AccountStore.");
-        ret = false;
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupSetStateFromSeed failed.");
+        return false;
     }
 
     if (!LOOKUP_NODE_MODE)
@@ -1566,9 +1580,17 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
             vector<unsigned char> getpowsubmission_message
                 = {MessageType::LOOKUP,
                    LookupInstructionType::GETSTARTPOWFROMSEED};
-            Serializable::SetNumber<uint32_t>(
-                getpowsubmission_message, MessageOffset::BODY,
-                m_mediator.m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+
+            if (!Messenger::SetLookupGetStartPoWFromSeed(
+                    getpowsubmission_message, MessageOffset::BODY,
+                    m_mediator.m_selfPeer.m_listenPortHost))
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Messenger::SetLookupGetStartPoWFromSeed failed.");
+                return false;
+            }
+
             m_mediator.m_lookup->SendMessageToRandomLookupNode(
                 getpowsubmission_message);
         }
@@ -1600,7 +1622,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         m_currDSExpired = false;
     }
 
-    return ret;
+    return true;
 }
 
 bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
@@ -1704,7 +1726,7 @@ bool Lookup::InitMining()
 
     if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
     {
-        if (CheckStateRoot())
+        if (true /*CheckStateRoot()*/)
         {
             // Attempt PoW
             m_startedPoW = true;
@@ -1785,15 +1807,14 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
         return true;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
+    uint32_t portNo = 0;
+
+    if (!Messenger::GetLookupSetLookupOffline(message, offset, portNo))
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupSetLookupOffline failed.");
         return false;
     }
-
-    // 4-byte listening port
-    uint32_t portNo
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
@@ -1829,15 +1850,14 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
         return true;
     }
 
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
+    uint32_t portNo = 0;
+
+    if (!Messenger::GetLookupSetLookupOnline(message, offset, portNo))
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupSetLookupOnline failed.");
         return false;
     }
-
-    // 4-byte listening port
-    uint32_t portNo
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
@@ -1872,15 +1892,15 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
                     "called from other than the LookUp node.");
         return true;
     }
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
+
+    uint32_t portNo = 0;
+
+    if (!Messenger::GetLookupGetOfflineLookups(message, offset, portNo))
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupGetOfflineLookups failed.");
         return false;
     }
-
-    // 4-byte listening port
-    uint32_t portNo
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
 
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
@@ -1889,23 +1909,23 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
     // vector<Peer> node;
     // node.emplace_back(requestingNode);
 
-    // curLookupMessage = [num_offline_lookups][LookupPeer][LookupPeer]... num_offline_lookups times
     vector<unsigned char> offlineLookupsMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETOFFLINELOOKUPS};
-    unsigned int curr_offset = MessageOffset::BODY;
 
     {
         lock_guard<mutex> lock(m_mutexOfflineLookups);
-        Serializable::SetNumber<uint32_t>(offlineLookupsMessage, curr_offset,
-                                          m_lookupNodesOffline.size(),
-                                          sizeof(uint32_t));
-        curr_offset += sizeof(uint32_t);
 
-        for (auto& peer : m_lookupNodesOffline)
+        if (!Messenger::SetLookupSetOfflineLookups(offlineLookupsMessage,
+                                                   MessageOffset::BODY,
+                                                   m_lookupNodesOffline))
         {
-            peer.Serialize(offlineLookupsMessage, curr_offset);
-            curr_offset += (IP_SIZE + PORT_SIZE);
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::SetLookupSetOfflineLookups failed.");
+            return false;
+        }
 
+        for (const auto& peer : m_lookupNodesOffline)
+        {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "IP:" << peer.GetPrintableIPAddress());
         }
@@ -1918,8 +1938,8 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
 bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from)
 {
-    // Message = [num_offline_lookups][LookupPeer][LookupPeer]... num_offline_lookups times
     LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -1927,31 +1947,25 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
                     "called from the LookUp node.");
         return true;
     }
-    if (IsMessageSizeInappropriate(message.size(), offset, sizeof(uint32_t)))
+
+    vector<Peer> nodes;
+
+    if (!Messenger::GetLookupSetOfflineLookups(message, offset, nodes))
     {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupSetOfflineLookups failed.");
         return false;
     }
-
-    uint32_t numOfflineLookups
-        = Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "ProcessSetOfflineLookups sent by "
-                  << from << " for numOfflineLookups " << numOfflineLookups);
+                  << from << " for numOfflineLookups " << nodes.size());
 
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   (IP_SIZE + PORT_SIZE) * numOfflineLookups))
+    unsigned int i = 0;
+    for (const auto& peer : nodes)
     {
-        return false;
-    }
-
-    for (unsigned int i = 0; i < numOfflineLookups; i++)
-    {
-        Peer peer(message, offset);
-        offset += (IP_SIZE + PORT_SIZE);
-
         std::lock_guard<std::mutex> lock(m_mutexOfflineLookups);
+
         // Remove selfPeerInfo from m_lookupNodes
         auto iter = std::find(m_lookupNodes.begin(), m_lookupNodes.end(), peer);
         if (iter != m_lookupNodes.end())
@@ -1963,6 +1977,8 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
                       "ProcessSetOfflineLookups recvd offline lookup "
                           << i << ": " << peer);
         }
+
+        i++;
     }
 
     {
@@ -2014,8 +2030,6 @@ bool Lookup::ProcessRaiseStartPoW(
 bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
                                         unsigned int offset, const Peer& from)
 {
-    // Message = [Peer listen port]
-
     LOG_MARKER();
 
     if (!LOOKUP_NODE_MODE)
@@ -2024,6 +2038,15 @@ bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
                     "Lookup::ProcessGetStartPoWFromSeed not expected to be "
                     "called from other than the LookUp node.");
         return true;
+    }
+
+    uint32_t portNo = 0;
+
+    if (!Messenger::GetLookupGetStartPoWFromSeed(message, offset, portNo))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetLookupGetStartPoWFromSeed failed.");
+        return false;
     }
 
     // Normally I'll get this message from new nodes at the vacuous epoch
@@ -2053,11 +2076,8 @@ bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
     // Tell the new node that it's time to start PoW
     vector<unsigned char> setstartpow_message
         = {MessageType::LOOKUP, LookupInstructionType::SETSTARTPOWFROMSEED};
-    P2PComm::GetInstance().SendMessage(
-        Peer(from.m_ipAddress,
-             Serializable::GetNumber<uint32_t>(message, offset,
-                                               sizeof(uint32_t))),
-        setstartpow_message);
+    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
+                                       setstartpow_message);
 
     return true;
 }
@@ -2166,15 +2186,17 @@ std::vector<unsigned char> Lookup::ComposeGetLookupOfflineMessage()
 
     LOG_MARKER();
 
-    // getLookupOfflineMessage = [Port]
     vector<unsigned char> getLookupOfflineMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETLOOKUPOFFLINE};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint32_t>(getLookupOfflineMessage, curr_offset,
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+    if (!Messenger::SetLookupSetLookupOffline(
+            getLookupOfflineMessage, MessageOffset::BODY,
+            m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetLookupSetLookupOffline failed.");
+        return {};
+    }
 
     return getLookupOfflineMessage;
 }
@@ -2191,15 +2213,17 @@ std::vector<unsigned char> Lookup::ComposeGetLookupOnlineMessage()
 
     LOG_MARKER();
 
-    // getLookupOnlineMessage = [Port]
     vector<unsigned char> getLookupOnlineMessage
         = {MessageType::LOOKUP, LookupInstructionType::SETLOOKUPONLINE};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint32_t>(getLookupOnlineMessage, curr_offset,
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+    if (!Messenger::SetLookupSetLookupOnline(
+            getLookupOnlineMessage, MessageOffset::BODY,
+            m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetLookupSetLookupOnline failed.");
+        return {};
+    }
 
     return getLookupOnlineMessage;
 }
@@ -2400,15 +2424,17 @@ std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes()
 
     LOG_MARKER();
 
-    // getLookupNodesMessage
     vector<unsigned char> getCurrLookupsMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETOFFLINELOOKUPS};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint32_t>(getCurrLookupsMessage, curr_offset,
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+    if (!Messenger::SetLookupGetOfflineLookups(
+            getCurrLookupsMessage, MessageOffset::BODY,
+            m_mediator.m_selfPeer.m_listenPortHost))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetLookupGetOfflineLookups failed.");
+        return {};
+    }
 
     return getCurrLookupsMessage;
 }
