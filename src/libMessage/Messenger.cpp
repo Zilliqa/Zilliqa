@@ -2277,7 +2277,8 @@ bool Messenger::SetLookupSetTxBlockFromSeed(vector<unsigned char>& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
-                                            const vector<TxBlock>& txBlocks)
+                                            const vector<TxBlock>& txBlocks,
+                                            const uint32_t consensusID)
 {
     LOG_MARKER();
 
@@ -2292,6 +2293,8 @@ bool Messenger::SetLookupSetTxBlockFromSeed(vector<unsigned char>& dst,
             txblock, *result.add_txblocks()->mutable_txblock());
     }
 
+    result.set_consensusid(consensusID);
+
     if (!result.IsInitialized())
     {
         LOG_GENERAL(WARNING, "LookupSetTxBlockFromSeed initialization failed.");
@@ -2305,7 +2308,8 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
                                             const unsigned int offset,
                                             uint64_t& lowBlockNum,
                                             uint64_t& highBlockNum,
-                                            vector<TxBlock>& txBlocks)
+                                            vector<TxBlock>& txBlocks,
+                                            uint32_t& consensusID)
 {
     LOG_MARKER();
 
@@ -2328,6 +2332,8 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
         ProtobufByteArrayToSerializable(txblock.txblock(), block);
         txBlocks.emplace_back(block);
     }
+
+    consensusID = result.consensusid();
 
     return true;
 }
