@@ -96,18 +96,15 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
 
             BlockStorage::GetBlockStorage().GetDSCommittee(
                 m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
-            LOG_GENERAL(INFO,
-                        "Current public key: " << m_mediator.m_selfKey.second);
+            m_mediator.UpdateDSBlockRand();
+            m_mediator.UpdateTxBlockRand();
 
             /// If this node is inside ds committee, mark it as DS node
             for (const auto& ds : *m_mediator.m_DSCommittee)
             {
-                LOG_GENERAL(INFO, "DS public key: " << ds.first);
-
                 if (ds.first == m_mediator.m_selfKey.second)
                 {
                     SetState(POW_SUBMISSION);
-#if 1 //clark
                     m_mediator.m_ds->m_consensusMyID = 0;
 
                     for (auto const& i : *m_mediator.m_DSCommittee)
@@ -124,7 +121,7 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
 
                         ++m_mediator.m_ds->m_consensusMyID;
                     }
-#endif
+
                     if (m_mediator.m_DSCommittee
                             ->at(m_mediator.m_ds->m_consensusLeaderID)
                             .first
@@ -185,39 +182,33 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                         m_mediator.m_ds->RunConsensusOnDSBlock();
                     };
                     DetachedFunction(1, func);
-                    break;
+                    return;
                 }
             }
 
             /// If this node is shard node, start pow
-            if (DirectoryService::IDLE == m_mediator.m_ds->m_mode)
-            {
-                LOG_GENERAL(INFO,
-                            "Set as shard node: "
-                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                                << ":"
-                                << m_mediator.m_selfPeer.m_listenPortHost);
-                uint64_t block_num = m_mediator.m_dsBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetBlockNum()
-                    + 1;
-                uint8_t dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
-                                           .GetHeader()
-                                           .GetDSDifficulty();
-                uint8_t difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetDifficulty();
-                SetState(POW_SUBMISSION);
-                m_mediator.UpdateDSBlockRand();
-                m_mediator.UpdateTxBlockRand();
+            LOG_GENERAL(INFO,
+                        "Set as shard node: "
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
+            uint64_t block_num = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetBlockNum()
+                + 1;
+            uint8_t dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetDSDifficulty();
+            uint8_t difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDifficulty();
+            SetState(POW_SUBMISSION);
 #if 1 //clark
-                LOG_GENERAL(
-                    INFO, "Shard node, wait 5 seconds for DS nodes wakeup...");
-                this_thread::sleep_for(chrono::seconds(5));
+            LOG_GENERAL(INFO,
+                        "Shard node, wait 5 seconds for DS nodes wakeup...");
+            this_thread::sleep_for(chrono::seconds(5));
 #endif
-                StartPoW(block_num, dsDifficulty, difficulty,
-                         m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
-            }
+            StartPoW(block_num, dsDifficulty, difficulty,
+                     m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
         }
         else
         {

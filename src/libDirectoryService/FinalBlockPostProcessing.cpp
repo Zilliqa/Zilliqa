@@ -378,8 +378,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             + 1
         << "] AFTER SENDING FINAL BLOCK");
 
-    if (m_mediator.m_curSWInfo.GetUpgradeDS()
-        == ((m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) + 2))
+    if (0 == (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW)
+        && m_mediator.m_curSWInfo.GetUpgradeDS()
+            == ((m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) + 2))
     {
         auto func = [this]() mutable -> void {
             UpgradeManager::GetInstance().ReplaceNode(m_mediator);
