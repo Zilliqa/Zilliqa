@@ -53,7 +53,6 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
 {
     LOG_MARKER();
-    // TODO add this back
     unsigned int size_remaining = dst.size() - offset;
     if (size_remaining < GetSize())
     {
