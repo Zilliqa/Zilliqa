@@ -129,20 +129,20 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
     }
     else
     {
-        if (consensus_id < m_consensusID)
+        if (consensus_id < m_mediator.m_consensusID)
         {
             LOG_GENERAL(WARNING,
                         "Consensus ID in message ("
                             << consensus_id << ") is smaller than current ("
-                            << m_consensusID << ")");
+                            << m_mediator.m_consensusID << ")");
             return false;
         }
-        else if (consensus_id > m_consensusID)
+        else if (consensus_id > m_mediator.m_consensusID)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Buffer micro block with larger consensus ID ("
-                          << consensus_id << "), current (" << m_consensusID
-                          << ")");
+                      "Buffer microblock with larger consensus ID ("
+                          << consensus_id << "), current ("
+                          << m_mediator.m_consensusID << ")");
 
             lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
 
@@ -162,7 +162,7 @@ void Node::CommitMicroBlockConsensusBuffer()
 {
     lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
 
-    for (const auto& i : m_microBlockConsensusBuffer[m_consensusID])
+    for (const auto& i : m_microBlockConsensusBuffer[m_mediator.m_consensusID])
     {
         auto runconsensus = [this, i]() {
             ProcessMicroblockConsensusCore(i.second, MessageOffset::BODY,

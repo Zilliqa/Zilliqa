@@ -379,7 +379,6 @@ public:
     /// Sharing assignment for state delta
     std::vector<Peer> m_sharingAssignment;
 
-    uint32_t m_consensusID;
     uint16_t m_consensusLeaderID;
 
     std::mutex m_MutexScheduleDSMicroBlockConsensus;

@@ -133,7 +133,7 @@ public:
     //Gen n valid txns
     bool GenTxnToSend(size_t n,
                       std::map<uint32_t, std::vector<unsigned char>>& mp,
-                      uint32_t nShard);
+                      uint32_t numShards);
 
     // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
     void

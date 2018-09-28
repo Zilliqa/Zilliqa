@@ -135,33 +135,41 @@ void Node::ProcessFallbackConsensusWhenDone()
                       "After fallback, I am a ds backup");
             m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
 
-            unsigned int count = 0;
+            unsigned int count = 1;
             for (const auto& node : *m_myShardMembers)
             {
                 if (node.second != leaderNetworkInfo)
                 {
                     m_mediator.m_DSCommittee->push_back(node);
+                    if (node.second == Peer())
+                    {
+                        m_mediator.m_ds->m_consensusMyID = count;
+                    }
+                    count++;
                 }
                 else
                 {
                     m_mediator.m_DSCommittee->push_front(node);
-                    if (node.second == Peer())
-                    {
-                        m_mediator.m_ds->m_consensusMyID = count;
-                        LOG_GENERAL(INFO,
-                                    "My New DS consensusID is "
-                                        << m_consensusMyID);
-                    }
                 }
-                count++;
             }
         }
 
+        LOG_GENERAL(INFO,
+                    "My New DS consensusID is "
+                        << m_mediator.m_ds->m_consensusMyID);
         LOG_GENERAL(INFO, "New ds committee after fallback: ");
         for (const auto& node : *m_mediator.m_DSCommittee)
         {
             LOG_GENERAL(INFO, node.second);
         }
+
+        // Clean processedTxn may have been produced during last microblock consensus
+        {
+            lock_guard<mutex> g(m_mutexProcessedTransactions);
+            m_processedTransactions.erase(m_mediator.m_currentEpochNum);
+        }
+
+        AccountStore::GetInstance().InitTemp();
 
         // Detach a thread, Pending for POW Submission and RunDSBlockConsensus
         auto func = [this]() -> void {

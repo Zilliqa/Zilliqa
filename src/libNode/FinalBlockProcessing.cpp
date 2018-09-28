@@ -302,10 +302,8 @@ bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
 
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "Expected FinalBlock TxRoot hash : "
-            << DataConversion::charArrToHexStr(microBlocksHash.asArray()));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Expected FinalBlock TxRoot hash: " << microBlocksHash.hex());
 
     if (finalBlock.GetHeader().GetTxRootHash() != microBlocksHash)
     {
@@ -471,10 +469,6 @@ void Node::InitiatePoW()
         return;
     }
 
-    // reset consensusID and first consensusLeader is index 0
-    m_consensusID = 0;
-    m_consensusLeaderID = 0;
-
     SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
@@ -519,8 +513,8 @@ void Node::UpdateStateForNextConsensusRound()
         m_isPrimary = false;
     }
 
+    m_mediator.m_consensusID++;
     m_consensusLeaderID++;
-    m_consensusID++;
     m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
 
     if (m_consensusMyID == m_consensusLeaderID)
@@ -532,7 +526,7 @@ void Node::UpdateStateForNextConsensusRound()
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "The new shard leader is m_consensusMyID "
+                  "The new shard leader is m_consensusLeaderID "
                       << m_consensusLeaderID);
     }
 }
@@ -835,11 +829,12 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    if (consensusID != m_consensusID)
+    if (consensusID != m_mediator.m_consensusID)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Consensus ID is not correct. Expected ID: "
-                      << consensusID << " My Consensus ID: " << m_consensusID);
+                      << consensusID
+                      << " My Consensus ID: " << m_mediator.m_consensusID);
         return false;
     }
 
@@ -870,8 +865,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     bool toSendTxnToLookup = false;
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    bool isVacuousEpoch = (m_mediator.m_consensusID
+                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
         ProcessStateDeltaFromFinalBlock(
@@ -932,8 +927,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
     }
 
-    ScheduleFallbackTimeout();
-
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
         LOG_STATE("[TXBOD][" << std::setw(15) << std::left
@@ -969,14 +962,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
-        if (isVacuousEpoch)
+        if (!isVacuousEpoch)
         {
-            m_consensusID = 0;
-            m_consensusLeaderID = 0;
-        }
-        else
-        {
-            m_consensusID++;
+            m_mediator.m_consensusID++;
             m_consensusLeaderID++;
             m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
         }
@@ -990,6 +978,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             m_mediator.m_lookup->SenderTxnBatchThread();
         }
     }
+
+    auto func = [this]() mutable -> void { ScheduleFallbackTimeout(); };
+    DetachedFunction(1, func);
 
     return true;
 }
@@ -1025,7 +1016,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     sha2.Update(stateDeltaBytes);
     StateHash stateDeltaHash(sha2.Finalize());
 
-    LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
+    LOG_GENERAL(INFO, "Calculated StateDeltaHash: " << stateDeltaHash);
 
     if (stateDeltaHash != finalBlockStateDeltaHash)
     {

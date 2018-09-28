@@ -93,9 +93,9 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     vector<unsigned char> stateDelta;
     AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-    if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY,
-                                      0, dsBlockNumber, m_consensusID,
-                                      *m_finalBlock, stateDelta))
+    if (!Messenger::SetNodeFinalBlock(
+            finalblock_message, MessageOffset::BODY, 0, dsBlockNumber,
+            m_mediator.m_consensusID, *m_finalBlock, stateDelta))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::SetNodeFinalBlock failed.");
@@ -160,7 +160,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
         if (!Messenger::SetNodeFinalBlock(
                 finalblock_message, MessageOffset::BODY, shardID, dsBlockNumber,
-                m_consensusID, *m_finalBlock, stateDelta))
+                m_mediator.m_consensusID, *m_finalBlock, stateDelta))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Messenger::SetNodeFinalBlock failed.");
@@ -250,8 +250,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     AccountStore::GetInstance().CommitTemp();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    bool isVacuousEpoch = (m_mediator.m_consensusID
+                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
         AccountStore::GetInstance().MoveUpdatesToDisk();
@@ -319,7 +319,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     ClearDSPoWSolns();
     ResetPoWSubmissionCounter();
 
-    auto func = [this, &isVacuousEpoch]() mutable -> void {
+    auto func = [this, isVacuousEpoch]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "START OF a new EPOCH");
         if (isVacuousEpoch)
@@ -331,7 +331,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         }
         else
         {
-            m_consensusID++;
             m_mediator.m_node->UpdateStateForNextConsensusRound();
             SetState(MICROBLOCK_SUBMISSION);
             m_dsStartedMicroblockConsensus = false;
@@ -422,7 +421,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
         lock_guard<mutex> g(m_mutexConsensus);
 
-        if (consensus_id == m_consensusID)
+        if (consensus_id == m_mediator.m_consensusID)
         {
             lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
             cv_scheduleDSMicroBlockConsensus.notify_all();
@@ -436,20 +435,20 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     }
     else
     {
-        if (consensus_id < m_consensusID)
+        if (consensus_id < m_mediator.m_consensusID)
         {
             LOG_GENERAL(WARNING,
                         "Consensus ID in message ("
                             << consensus_id << ") is smaller than current ("
-                            << m_consensusID << ")");
+                            << m_mediator.m_consensusID << ")");
             return false;
         }
-        else if (consensus_id > m_consensusID)
+        else if (consensus_id > m_mediator.m_consensusID)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Buffer final block with larger consensus ID ("
-                          << consensus_id << "), current (" << m_consensusID
-                          << ")");
+                          << consensus_id << "), current ("
+                          << m_mediator.m_consensusID << ")");
 
             {
                 lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
@@ -470,7 +469,7 @@ void DirectoryService::CommitFinalBlockConsensusBuffer()
 {
     lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
 
-    for (const auto& i : m_finalBlockConsensusBuffer[m_consensusID])
+    for (const auto& i : m_finalBlockConsensusBuffer[m_mediator.m_consensusID])
     {
         auto runconsensus = [this, i]() {
             ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY,

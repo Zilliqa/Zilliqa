@@ -88,7 +88,7 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                       .GetHeader()
                       .GetBlockNum()
                 + 1;
-            m_consensusID = 0;
+            m_mediator.m_consensusID = 0;
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
         }
@@ -103,13 +103,13 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
         this->Init();
         if (syncType == SyncType::NO_SYNC)
         {
-            m_consensusID = 1;
+            m_mediator.m_consensusID = 1;
             m_consensusLeaderID = 1;
             addBalanceToGenesisAccount();
         }
         else
         {
-            m_consensusID = 0;
+            m_mediator.m_consensusID = 0;
             m_consensusLeaderID = 0;
         }
     }
@@ -190,7 +190,7 @@ bool Node::StartRetrieveHistory()
         {
             LOG_GENERAL(INFO, "RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
-            m_mediator.m_ds->m_consensusID
+            m_mediator.m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
             res = true;
         }
@@ -613,8 +613,8 @@ bool Node::ProcessTxnPacketFromLookup(
     // new ds epoch but didn't received ds block yet -> buffer
     // else -> process
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    bool isVacuousEpoch = (m_mediator.m_consensusID
+                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
     if (isVacuousEpoch)
     {
@@ -633,7 +633,8 @@ bool Node::ProcessTxnPacketFromLookup(
         return false;
     }
 
-    if (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS)
+    if (m_mediator.m_consensusID
+            >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS)
         || m_mediator.m_currentEpochNum == 1)
 
     {
@@ -1056,7 +1057,9 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
            &Node::ProcessCreateTransactionFromLookup,
            &Node::ProcessVCBlock,
            &Node::ProcessDoRejoin,
-           &Node::ProcessTxnPacketFromLookup};
+           &Node::ProcessTxnPacketFromLookup,
+           &Node::ProcessFallbackConsensus,
+           &Node::ProcessFallbackBlock};
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count

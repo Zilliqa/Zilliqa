@@ -55,7 +55,8 @@ void Node::UpdateDSCommittee(const uint32_t& shard_id,
         else
         {
             m_mediator.m_DSCommittee->push_back(
-                {leaderPubKey, leaderNetworkInfo});
+                {std::get<SHARD_NODE_PUBKEY>(shardNode),
+                 std::get<SHARD_NODE_PEER>(shardNode)});
         }
     }
 }
@@ -170,8 +171,11 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
         != m_mediator.m_currentEpochNum)
     {
         LOG_GENERAL(WARNING,
-                    "Received wrong fallbackblock. cur epoch: "
-                        << m_mediator.m_currentEpochNum << "vc epoch: "
+                    "Received wrong fallbackblock."
+                        << endl
+                        << "current epoch: " << m_mediator.m_currentEpochNum
+                        << endl
+                        << "fallback epoch: "
                         << fallbackblock.GetHeader().GetFallbackEpochNo());
         return false;
     }
@@ -229,8 +233,10 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     {
         LOG_GENERAL(WARNING,
                     "The state root hash mismatched"
+                        << endl
                         << "expected: "
                         << AccountStore::GetInstance().GetStateRootHash().hex()
+                        << endl
                         << "received: "
                         << fallbackblock.GetHeader().GetStateRootHash().hex());
         return false;
@@ -248,6 +254,12 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 
     if (!LOOKUP_NODE_MODE)
     {
+        // Clean processedTxn may have been produced during last microblock consensus
+        {
+            lock_guard<mutex> g(m_mutexProcessedTransactions);
+            m_processedTransactions.erase(m_mediator.m_currentEpochNum);
+        }
+
         CleanCreatedTransaction();
 
         CleanMicroblockConsensusBuffer();
@@ -256,11 +268,19 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 
         InitiatePoW();
     }
+    else
+    {
+        m_mediator.m_consensusID = 0;
+        m_consensusLeaderID = 0;
+    }
 
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am a node and my DS committee is successfully fallback to shard "
             << shard_id);
+
+    auto func = [this]() -> void { ScheduleFallbackTimeout(); };
+    DetachedFunction(1, func);
 
     return true;
 }

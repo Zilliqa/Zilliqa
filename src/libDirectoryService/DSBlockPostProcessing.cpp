@@ -283,7 +283,6 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][      ] IDLE");
     }
-
     else
     {
 
@@ -389,7 +388,7 @@ void DirectoryService::StartFirstTxEpoch()
         unsigned int index = 0;
         for (const auto& i : *m_mediator.m_node->m_myShardMembers)
         {
-            if (i.second.m_listenPortHost == 0)
+            if (i.second == Peer())
             {
                 LOG_GENERAL(INFO, "m_consensusMyID = " << index);
                 m_mediator.m_node->m_consensusMyID = index;

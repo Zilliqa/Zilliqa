@@ -51,7 +51,7 @@ DirectoryService::DirectoryService(Mediator& mediator)
     }
     m_mode = IDLE;
     m_consensusLeaderID = 0;
-    m_consensusID = 1;
+    m_mediator.m_consensusID = 1;
     m_viewChangeCounter = 0;
 }
 
@@ -414,7 +414,7 @@ bool DirectoryService::CleanVariables()
     m_viewChangeCounter = 0;
     m_mode = IDLE;
     m_consensusLeaderID = 0;
-    m_consensusID = 0;
+    m_mediator.m_consensusID = 0;
     return true;
 }
 
@@ -543,8 +543,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback)
 
     LOG_MARKER();
 
-    m_consensusID = 0;
-    m_mediator.m_node->m_consensusID = 0;
+    m_mediator.m_consensusID = 0;
     m_mediator.m_node->m_consensusLeaderID = 0;
 
     CleanFinalblockConsensusBuffer();
