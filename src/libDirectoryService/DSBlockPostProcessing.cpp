@@ -191,9 +191,11 @@ void DirectoryService::SetupMulticastConfigForDSBlock(
                                       << m_shards.size());
 }
 
-void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
-                                               unsigned int my_shards_hi)
+void DirectoryService::SendDSBlockToShardNodes(const unsigned int my_shards_lo,
+                                               const unsigned int my_shards_hi)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -201,14 +203,27 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
                     "be called from LookUp node.");
         return;
     }
-
+    LOG_GENERAL(WARNING, "gdb debug beforeq");
+    LOG_GENERAL(WARNING, m_shards.size());
+    LOG_GENERAL(WARNING, "my_shards_lo " << my_shards_lo);
+    LOG_GENERAL(WARNING, "my_shards_hi " << my_shards_hi);
     auto p = m_shards.begin();
     advance(p, my_shards_lo);
     for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
     {
         // Get the shard ID from the leader's info in m_publicKeyToShardIdMap
+        LOG_GENERAL(WARNING,
+                    "gdb debug my_shards_lo "
+                        << my_shards_lo << " my_shards_hi " << my_shards_hi);
+        LOG_GENERAL(WARNING,
+                    "gdb debug m_publicKeyToShardIdMap "
+                        << m_publicKeyToShardIdMap.size());
+
         uint32_t shardID = m_publicKeyToShardIdMap.at(
             std::get<SHARD_NODE_PUBKEY>(p->front()));
+        LOG_GENERAL(WARNING,
+                    "gdb debug my_shards_lo " << my_shards_lo << " shardID "
+                                              << shardID);
 
         // Generate the message
         vector<unsigned char> dsblock_message
@@ -257,6 +272,7 @@ void DirectoryService::SendDSBlockToShardNodes(unsigned int my_shards_lo,
 
 void DirectoryService::UpdateMyDSModeAndConsensusId()
 {
+    LOG_MARKER();
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -651,6 +667,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1
         << "] BEFORE SENDING DSBLOCK");
+
+    LOG_GENERAL(WARNING,
+                "my_shards_lo" << my_shards_lo << " my_shards_hi "
+                               << my_shards_hi);
 
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_shards.size())
