@@ -289,7 +289,7 @@ void Node::ScheduleFallbackTimeout(bool started)
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Initiated fallback" << (started ? " again" : ""));
 
-            if (m_mediator.m_ds->m_mode != IDLE)
+            if (m_mediator.m_ds->m_mode != DirectoryService::IDLE)
             {
                 return;
             }
@@ -310,7 +310,7 @@ void Node::ScheduleFallbackTimeout(bool started)
                 cv_lk, std::chrono::seconds(FALLBACK_INTERVAL_WAITING))
             == std::cv_status::timeout)
         {
-            if (m_mediator.m_ds->m_mode != IDLE)
+            if (m_mediator.m_ds->m_mode != DirectoryService::IDLE)
             {
                 return;
             }
