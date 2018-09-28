@@ -226,7 +226,6 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     // TODO: Refactor this code
     if (primary == m_mediator.m_selfPeer)
     {
-
         PeerStore& dsstore = PeerStore::GetStore();
         dsstore.AddPeerPair(
             m_mediator.m_selfKey.second,

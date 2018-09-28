@@ -300,31 +300,15 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 
+    AccountStore::GetInstance().CommitTemp();
+
     bool isVacuousEpoch
         = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
         AccountStore::GetInstance().MoveUpdatesToDisk();
-    }
-
-    AccountStore::GetInstance().CommitTemp();
-
-    if (isVacuousEpoch)
-    {
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
-
-        if (m_mediator.m_curSWInfo.GetUpgradeDS()
-            == (((m_mediator.m_currentEpochNum + 1) / NUM_FINAL_BLOCK_PER_POW)
-                + 2))
-        {
-            m_mediator.UpdateDSBlockRand();
-            m_mediator.UpdateTxBlockRand();
-            auto func = [this]() mutable -> void {
-                UpgradeManager::GetInstance().ReplaceNode(m_mediator);
-            };
-            DetachedFunction(1, func);
-        }
     }
 
     m_mediator.UpdateDSBlockRand();
