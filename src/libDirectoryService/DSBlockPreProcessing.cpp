@@ -159,16 +159,16 @@ void DirectoryService::ComputeSharding(
     m_shards.clear();
     m_publicKeyToShardIdMap.clear();
 
-    if (m_allPoWs.size() < COMM_SIZE)
+    if (sortedPoWSolns.size() < COMM_SIZE)
     {
         LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
     }
 
     std::set<PubKey> setTopPriorityNodes;
-    if (m_allPoWs.size() > MAX_SHARD_NODE_NUM)
+    if (sortedPoWSolns.size() > MAX_SHARD_NODE_NUM)
     {
         LOG_GENERAL(INFO,
-                    "PoWs recvd " << m_allPoWs.size()
+                    "PoWs recvd " << sortedPoWSolns.size()
                                   << " more than max node number "
                                   << MAX_SHARD_NODE_NUM);
         setTopPriorityNodes = FindTopPriorityNodes();

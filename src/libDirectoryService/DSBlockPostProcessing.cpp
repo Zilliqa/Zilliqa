@@ -209,6 +209,13 @@ void DirectoryService::SendDSBlockToShardNodes(const unsigned int my_shards_lo,
     LOG_GENERAL(WARNING, "my_shards_hi " << my_shards_hi);
     auto p = m_shards.begin();
     advance(p, my_shards_lo);
+
+    // Debug
+    for (const auto& x : m_publicKeyToShardIdMap)
+    {
+        LOG_GENERAL(WARNING, x.first);
+    }
+
     for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
     {
         // Get the shard ID from the leader's info in m_publicKeyToShardIdMap
