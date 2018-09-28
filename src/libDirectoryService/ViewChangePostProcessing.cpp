@@ -50,7 +50,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "View change consensus is DONE!!!");
-
     m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
 
     unsigned int index = 0;
@@ -204,7 +203,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
                 LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
             }
         }
-
+        m_consensusLeaderID
+            = 0; // Hotfix. https://github.com/Zilliqa/Issues/issues/212
+        LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
         LOG_GENERAL(INFO, "New view of ds committee: ");
         for (auto& i : *m_mediator.m_DSCommittee)
         {

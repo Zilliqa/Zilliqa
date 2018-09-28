@@ -385,8 +385,11 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am a backup DS node (after view change). Waiting for View "
-              "Change announcement.");
+              "I am a backup DS node (after view change). Waiting for view "
+              "change announcement. "
+              "Leader is at index  "
+                  << m_consensusLeaderID << " "
+                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
