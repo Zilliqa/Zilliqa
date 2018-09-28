@@ -131,7 +131,7 @@ public:
     std::vector<Peer> GetLookupNodes();
 
     //Gen n valid txns
-    bool GenTxnToSend(size_t n,
+    bool GenTxnToSend(size_t num_txn,
                       std::map<uint32_t, std::vector<unsigned char>>& mp,
                       uint32_t numShards);
 

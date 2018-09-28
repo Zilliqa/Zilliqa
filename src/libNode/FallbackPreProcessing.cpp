@@ -191,7 +191,7 @@ void Node::UpdateFallbackConsensusLeader()
     }
 
     // Set state to tx submission
-    if (m_isPrimary == true)
+    if (m_isPrimary)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I am no longer the shard leader ");

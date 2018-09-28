@@ -155,6 +155,13 @@ const unsigned int FALLBACK_INTERVAL_WAITING{
     ReadFromConstantsFile("FALLBACK_INTERVAL_WAITING")};
 const unsigned int FALLBACK_EXTRA_TIME{
     ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
+const unsigned int MAX_ROUNDS_IN_BSTATE{
+    ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
+const unsigned int MAX_ROUNDS_IN_CSTATE{
+    ReadFromConstantsFile("MAX_ROUNDS_IN_CSTATE")};
+const unsigned int MAX_TOTAL_ROUNDS{ReadFromConstantsFile("MAX_TOTAL_ROUNDS")};
+const unsigned int MAX_NEIGHBORS_PER_ROUND{
+    ReadFromConstantsFile("MAX_NEIGHBORS_PER_ROUND")};
 const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
