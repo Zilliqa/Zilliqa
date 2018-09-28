@@ -61,6 +61,7 @@ public:
 	static const CLKernelName c_defaultKernelName = CLKernelName::Stable;
 
     CLMiner() = default;
+	CLMiner(size_t _index) : Miner(_index) {}
 	~CLMiner() override;
 
 	static unsigned instances() { return s_numInstances > 0 ? s_numInstances : 1; }

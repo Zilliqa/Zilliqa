@@ -175,14 +175,8 @@ bool Node::StartRetrieveHistory()
     tDS.join();
     tTx.join();
 
-    bool tx_bodies_result = true;
-    if (!LOOKUP_NODE_MODE)
-    {
-        tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
-    }
-
     bool res = false;
-    if (st_result && ds_result && tx_result && tx_bodies_result)
+    if (st_result && ds_result && tx_result)
     {
         if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates())
             || (LOOKUP_NODE_MODE && m_retriever->ValidateStates()

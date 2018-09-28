@@ -38,7 +38,6 @@ class BlockStorage : public Singleton<BlockStorage>
     std::shared_ptr<LevelDB> m_metadataDB;
     std::shared_ptr<LevelDB> m_dsBlockchainDB;
     std::shared_ptr<LevelDB> m_txBlockchainDB;
-    std::list<std::shared_ptr<LevelDB>> m_txBodyDBs;
     std::shared_ptr<LevelDB> m_txBodyDB;
     std::shared_ptr<LevelDB> m_txBodyTmpDB;
 
@@ -64,19 +63,12 @@ public:
         META = 0x00,
         DS_BLOCK,
         TX_BLOCK,
-        TX_BODIES,
         TX_BODY,
         TX_BODY_TMP,
     };
 
     /// Returns the singleton BlockStorage instance.
     static BlockStorage& GetBlockStorage();
-
-    /// Adds a txBody database for a new DSEpoch.
-    bool PushBackTxBodyDB(const uint64_t& blockNum);
-
-    /// Pop the txBody database at front.
-    bool PopFrontTxBodyDB(bool mandatory = false);
 
     /// Get the size of current TxBodyDB
     unsigned int GetTxBodyDBSize();
