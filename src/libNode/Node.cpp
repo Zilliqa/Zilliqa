@@ -755,6 +755,20 @@ bool Node::ProcessTxnPacketFromLookupCore(
     return true;
 }
 
+#ifdef HEARTBEAT_TEST
+bool
+    Node::ProcessKillPulse([[gnu::unused]] const vector<unsigned char>& message,
+                           [[gnu::unused]] unsigned int offset,
+                           [[gnu::unused]] const Peer& from)
+{
+    LOG_MARKER();
+
+    m_mediator.m_killPulse = true;
+
+    return true;
+}
+#endif // HEARTBEAT_TEST
+
 void Node::CommitTxnPacketBuffer()
 {
     LOG_MARKER();
@@ -1042,17 +1056,21 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW,
-           &Node::ProcessDSBlock,
-           &Node::ProcessSubmitTransaction,
-           &Node::ProcessMicroblockConsensus,
-           &Node::ProcessFinalBlock,
-           &Node::ProcessForwardTransaction,
-           &Node::ProcessCreateTransactionFromLookup,
-           &Node::ProcessVCBlock,
-           &Node::ProcessDoRejoin,
-           &Node::ProcessTxnPacketFromLookup};
+    InstructionHandler ins_handlers[] = {
+        &Node::ProcessStartPoW,
+        &Node::ProcessDSBlock,
+        &Node::ProcessSubmitTransaction,
+        &Node::ProcessMicroblockConsensus,
+        &Node::ProcessFinalBlock,
+        &Node::ProcessForwardTransaction,
+        &Node::ProcessCreateTransactionFromLookup,
+        &Node::ProcessVCBlock,
+        &Node::ProcessDoRejoin,
+        &Node::ProcessTxnPacketFromLookup,
+#ifdef HEARTBEAT_TEST
+        &Node::ProcessKillPulse,
+#endif // HEARTBEAT_TEST
+    };
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
