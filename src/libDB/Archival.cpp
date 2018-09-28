@@ -132,7 +132,6 @@ bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
         return false;
     }
 
-
     auto position = find(shard_ids.begin(), shard_ids.end(), shardId);
     if (position != shard_ids.end())
     {
@@ -153,7 +152,7 @@ void Archival::SendFetchMicroBlockInfo()
     lock_guard<mutex> g(m_mutexMicroBlockInfo);
     for (const auto& info : m_fetchMicroBlockInfo)
     {
-        
+
         if (info.second.size() == 0)
         {
             m_fetchMicroBlockInfo.erase(info.first);
@@ -161,8 +160,8 @@ void Archival::SendFetchMicroBlockInfo()
         else
         {
             LOG_GENERAL(INFO,
-                    "Sending fetch microBlock "
-                        << "..." << info.first);
+                        "Sending fetch microBlock "
+                            << "..." << info.first);
             for (const auto& shard_id : info.second)
             {
                 LOG_GENERAL(INFO, "Shard id " << shard_id);
