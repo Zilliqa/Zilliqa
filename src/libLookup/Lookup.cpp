@@ -1277,6 +1277,7 @@ bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
 bool Lookup::ProcessGetMicroBlockFromLookup(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
+    LOG_MARKER();
     map<uint64_t, vector<uint32_t>> microBlockIds;
     microBlockIds.clear();
     uint32_t portNo = 0;
@@ -1293,6 +1294,8 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
         return true;
     }
 
+    LOG_GENERAL(INFO, "Reques for " << microBlockIds.size() << " blocks");
+
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
     vector<MicroBlock> retMicroBlocks;
@@ -1303,8 +1306,8 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
         for (const auto& shard_id : microBlockId.second)
         {
             shared_ptr<MicroBlock> mbptr;
-            if (!BlockStorage::GetBlockStorage().GetMicroBlock(shard_id,
-                                                               blocknum, mbptr))
+            if (!BlockStorage::GetBlockStorage().GetMicroBlock(blocknum,
+                                                               shard_id, mbptr))
             {
                 LOG_GENERAL(WARNING,
                             "Failed to fetch micro block blocknum: "
@@ -1390,25 +1393,28 @@ void Lookup::CommitMicroBlockStorage()
     lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
     const uint64_t& currentEpoch = m_mediator.m_currentEpochNum;
 
-    for (auto& mb : m_microBlocksBuffer[currentEpoch])
+    for (uint64_t i = 1; i <= currentEpoch; i++)
     {
-        AddMicroBlockToStorage(currentEpoch - 1, mb);
+        for (auto& mb : m_microBlocksBuffer[i])
+        {
+            AddMicroBlockToStorage(i - 1, mb);
+        }
+        m_microBlocksBuffer[i].clear();
     }
-    m_microBlocksBuffer[currentEpoch].clear();
 }
 
 bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
                                           unsigned int offset, const Peer& from)
 {
-    //message = [blocknum][microblock]
+    //message = [epochNum][microblock]
 
     unsigned int curr_offset = offset;
 
-    uint64_t blocknum = Serializable::GetNumber<uint64_t>(message, curr_offset,
+    uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
 
                                                           sizeof(uint64_t));
 
-    if (blocknum <= 1)
+    if (epochNum <= 1)
     {
         return false;
     }
@@ -1422,22 +1428,22 @@ bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
 
     LOG_GENERAL(INFO,
                 "[SendMB]"
-                    << "Recvd from " << from << " BlockNum:" << blocknum
+                    << "Recvd from " << from << " EpochNum:" << epochNum
                     << " ShardID:" << id);
 
-    if (blocknum > m_mediator.m_currentEpochNum)
+    if (epochNum > m_mediator.m_currentEpochNum)
     {
         LOG_GENERAL(INFO,
                     "[SendMB]"
-                        << "Save MicroBlock , epoch:" << blocknum
+                        << "Save MicroBlock , epoch:" << epochNum
                         << " id:" << id);
         lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
-        m_microBlocksBuffer[blocknum].push_back(microblock);
+        m_microBlocksBuffer[epochNum].push_back(microblock);
         return true;
     }
-    else if (blocknum == m_mediator.m_currentEpochNum)
+    else if (epochNum <= m_mediator.m_currentEpochNum)
     {
-        AddMicroBlockToStorage(blocknum - 1, microblock);
+        AddMicroBlockToStorage(epochNum - 1, microblock);
     }
 
     return true;

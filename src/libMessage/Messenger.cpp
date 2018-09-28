@@ -3335,8 +3335,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(vector<unsigned char>& dst,
 
     for (const auto& txhash : txnhashes)
     {
-        copy(txhash.asArray().begin(), txhash.asArray().end(),
-             result.add_txnhashes()->begin());
+        result.add_txnhashes(txhash.data(), txhash.size);
     }
 
     if (!result.IsInitialized())
@@ -3367,13 +3366,14 @@ bool Messenger::GetLookupGetTxnsFromLookup(const vector<unsigned char>& src,
         return false;
     }
 
-    for (const auto& txhashbyte : result.txnhashes())
+    for (const auto& hash : result.txnhashes())
     {
-        TxnHash txhash;
-        copy(txhashbyte.begin(), txhashbyte.end(), txhash.asArray().begin());
-        txnhashes.emplace_back(txhash);
+        txnhashes.emplace_back();
+        unsigned int size = min((unsigned int)hash.size(),
+                                (unsigned int)txnhashes.back().size);
+        copy(hash.begin(), hash.begin() + size,
+             txnhashes.back().asArray().begin());
     }
-
     return true;
 }
 
