@@ -35,4 +35,4 @@ namespace RRS
 
 } // project namespace
 
-#endif //RANDOMIZEDRUMORSPREADING_MEMBERID_H
+#endif //__MEMBERID_H__
