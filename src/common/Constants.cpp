@@ -57,6 +57,12 @@ std::string ReadDispatcherConstants(std::string propertyName)
     return pt.get<std::string>("node.dispatcher." + propertyName);
 }
 
+std::string ReadArchivalConstants(std::string propertyName)
+{
+    auto pt = PTree::GetInstance();
+    return pt.get<std::string>("node.archival." + propertyName);
+}
+
 const std::vector<std::string>
 ReadAccountsFromConstantsFile(std::string propName)
 {
@@ -188,6 +194,7 @@ const std::string INPUT_CODE{SCILLA_FILES + '/'
                              + ReadSmartContractConstants("INPUT_CODE")};
 
 const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
+const std::string DB_HOST{ReadArchivalConstants("DB_HOST")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
 const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};

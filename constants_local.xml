@@ -72,6 +72,9 @@
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
         <TXN_PATH/>
     </dispatcher>
+    <archival>
+        <DB_HOST>localhost</DB_HOST>
+    </archival>
     <accounts>
         <account>
             <wallet_address>cc02a3c906612cc5bdb087a30e6093c9f0aa04fc</wallet_address>
