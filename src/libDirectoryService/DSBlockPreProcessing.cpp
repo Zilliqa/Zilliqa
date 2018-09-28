@@ -565,59 +565,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
             + 1
         << "] BGIN");
 
-#if 1 //clark
-    for (const auto& shard : m_shards)
-    {
-        for (const auto& s : shard)
-        {
-            LOG_GENERAL(INFO,
-                        "Sending shard: " << std::get<SHARD_NODE_PUBKEY>(s)
-                                          << ", "
-                                          << std::get<SHARD_NODE_PEER>(s));
-        }
-
-        LOG_GENERAL(INFO, "new line");
-    }
-
-    for (const auto& shard : m_shardReceivers)
-    {
-        for (const auto& s : shard)
-        {
-            LOG_GENERAL(INFO, "Sending m_shardReceivers: " << s);
-        }
-
-        LOG_GENERAL(INFO, "new line");
-    }
-
-    for (const auto& shard : m_shardSenders)
-    {
-        for (const auto& s : shard)
-        {
-            LOG_GENERAL(INFO, "Sending m_shardSenders: " << s);
-        }
-
-        LOG_GENERAL(INFO, "new line");
-    }
-
-    for (const auto& s : m_DSReceivers)
-    {
-        LOG_GENERAL(INFO, "Sending m_DSReceivers: " << s);
-    }
-
-    for (const auto& s : m_publicKeyToShardIdMap)
-    {
-        LOG_GENERAL(INFO,
-                    "Sending m_publicKeyToShardIdMap: " << s.first << ", "
-                                                        << s.second);
-    }
-
-    for (const auto& s : m_mapNodeReputation)
-    {
-        LOG_GENERAL(INFO,
-                    "Sending m_mapNodeReputation: " << s.first << ", "
-                                                    << s.second);
-    }
-#endif
     auto announcementGeneratorFunc =
         [this](vector<unsigned char>& dst, unsigned int offset,
                const uint32_t consensusID,
@@ -728,46 +675,6 @@ bool DirectoryService::DSBlockValidator(
         return false;
     }
 
-#if 1 //clark
-    for (const auto& shard : m_tempShards)
-    {
-        for (const auto& s : shard)
-        {
-            LOG_GENERAL(INFO,
-                        "Received shard: " << std::get<SHARD_NODE_PUBKEY>(s)
-                                           << ", "
-                                           << std::get<SHARD_NODE_PEER>(s));
-        }
-
-        LOG_GENERAL(INFO, "new line");
-    }
-
-    for (const auto& shard : m_tempShardReceivers)
-    {
-        for (const auto& s : shard)
-        {
-            LOG_GENERAL(INFO, "Received m_tempShardReceivers: " << s);
-        }
-
-        LOG_GENERAL(INFO, "new line");
-    }
-
-    for (const auto& shard : m_tempShardSenders)
-    {
-        for (const auto& s : shard)
-        {
-            LOG_GENERAL(INFO, "Received m_tempShardSenders: " << s);
-        }
-
-        LOG_GENERAL(INFO, "new line");
-    }
-
-    for (const auto& s : m_tempDSReceivers)
-    {
-        LOG_GENERAL(INFO, "Received m_tempDSReceivers: " << s);
-    }
-#endif
-
     if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo())
     {
         auto func = [this]() mutable -> void {
@@ -849,21 +756,6 @@ bool DirectoryService::DSBlockValidator(
         return false;
     }
 
-#if 1 //clark
-    for (const auto& s : m_tempPublicKeyToShardIdMap)
-    {
-        LOG_GENERAL(INFO,
-                    "Calculated m_tempPublicKeyToShardIdMap: "
-                        << s.first << ", " << s.second);
-    }
-
-    for (const auto& s : m_tempMapNodeReputation)
-    {
-        LOG_GENERAL(INFO,
-                    "Calculated m_tempMapNodeReputation: " << s.first << ", "
-                                                           << s.second);
-    }
-#endif
     if (!VerifyPoWOrdering(m_tempShards))
     {
         LOG_GENERAL(INFO, "Failed to verify ordering");
