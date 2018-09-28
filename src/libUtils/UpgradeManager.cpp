@@ -407,23 +407,27 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
         return true;
     }
 
-#if 1 //clark
     if (DirectoryService::IDLE == mediator.m_ds->m_mode)
     {
-        LOG_GENERAL(INFO, "Shard node, upgrade after 5 seconds...");
-        this_thread::sleep_for(chrono::seconds(5));
+        LOG_GENERAL(INFO,
+                    "Shard node, upgrade after " << TERMINATION_COUNTDOWN
+                                                 << " seconds...");
+        this_thread::sleep_for(chrono::seconds(TERMINATION_COUNTDOWN));
     }
     else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode)
     {
-        LOG_GENERAL(INFO, "DS backup node, upgrade after 6 seconds...");
-        this_thread::sleep_for(chrono::seconds(6));
+        LOG_GENERAL(INFO,
+                    "DS backup node, upgrade after "
+                        << TERMINATION_COUNTDOWN + 1 << " seconds...");
+        this_thread::sleep_for(chrono::seconds(TERMINATION_COUNTDOWN + 1));
     }
     else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode)
     {
-        LOG_GENERAL(INFO, "DS leader node, upgrade after 7 seconds...");
-        this_thread::sleep_for(chrono::seconds(7));
+        LOG_GENERAL(INFO,
+                    "DS leader node, upgrade after "
+                        << TERMINATION_COUNTDOWN + 2 << " seconds...");
+        this_thread::sleep_for(chrono::seconds(TERMINATION_COUNTDOWN + 2));
     }
-#endif
 
     BlockStorage::GetBlockStorage().PutDSCommittee(
         mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);

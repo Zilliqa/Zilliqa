@@ -202,11 +202,11 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                                      .GetHeader()
                                      .GetDifficulty();
             SetState(POW_SUBMISSION);
-#if 1 //clark
             LOG_GENERAL(INFO,
-                        "Shard node, wait 5 seconds for DS nodes wakeup...");
-            this_thread::sleep_for(chrono::seconds(5));
-#endif
+                        "Shard node, wait "
+                            << SHARD_DELAY_WAKEUP
+                            << " seconds for DS nodes wakeup...");
+            this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP));
             StartPoW(block_num, dsDifficulty, difficulty,
                      m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
         }

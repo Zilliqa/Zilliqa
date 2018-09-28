@@ -154,6 +154,8 @@ extern const unsigned int MAX_ROUNDS_IN_BSTATE;
 extern const unsigned int MAX_ROUNDS_IN_CSTATE;
 extern const unsigned int MAX_TOTAL_ROUNDS;
 extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
+extern const unsigned int TERMINATION_COUNTDOWN;
+extern const unsigned int SHARD_DELAY_WAKEUP;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
