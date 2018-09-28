@@ -58,6 +58,9 @@ public:
     /// The current epoch.
     uint64_t m_currentEpochNum = 0;
 
+    /// The consensus ID
+    uint32_t m_consensusID;
+
     // DS committee members
     // Fixed-sized double-ended queue depending on size of DS committee at bootstrap
     // Leader is at head of queue

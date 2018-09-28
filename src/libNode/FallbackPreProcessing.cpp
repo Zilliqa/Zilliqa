@@ -62,7 +62,18 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
         != m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo())
     {
-        LOG_GENERAL(WARNING, "Fallback DS epoch mismatched");
+        LOG_GENERAL(
+            WARNING,
+            "Fallback DS epoch mismatched"
+                << endl
+                << "expected: "
+                << m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    + 1
+                << endl
+                << "received: "
+                << m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo());
         return false;
     }
 
@@ -70,14 +81,25 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     if (m_mediator.m_currentEpochNum
         != m_pendingFallbackBlock->GetHeader().GetFallbackEpochNo())
     {
-        LOG_GENERAL(WARNING, "Fallback epoch mismatched");
+        LOG_GENERAL(
+            WARNING,
+            "Fallback epoch mismatched"
+                << endl
+                << "expected: " << m_mediator.m_currentEpochNum << endl
+                << "received: "
+                << m_pendingFallbackBlock->GetHeader().GetFallbackEpochNo());
         return false;
     }
 
     // shard id
     if (m_myShardID != m_pendingFallbackBlock->GetHeader().GetShardId())
     {
-        LOG_GENERAL(WARNING, "Fallback shard ID mismatched");
+        LOG_GENERAL(WARNING,
+                    "Fallback shard ID mismatched"
+                        << endl
+                        << "expected: " << m_myShardID << endl
+                        << "received: "
+                        << m_pendingFallbackBlock->GetHeader().GetShardId());
         return false;
     }
 
@@ -85,7 +107,13 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     if (m_consensusLeaderID
         != m_pendingFallbackBlock->GetHeader().GetLeaderConsensusId())
     {
-        LOG_GENERAL(WARNING, "Fallback leader consensus ID mismatched");
+        LOG_GENERAL(
+            WARNING,
+            "Fallback leader consensus ID mismatched"
+                << endl
+                << "expected: " << m_consensusLeaderID << endl
+                << "received: "
+                << m_pendingFallbackBlock->GetHeader().GetLeaderConsensusId());
         return false;
     }
 
@@ -93,7 +121,14 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     if (m_myShardMembers->at(m_consensusLeaderID).second
         != m_pendingFallbackBlock->GetHeader().GetLeaderNetworkInfo())
     {
-        LOG_GENERAL(WARNING, "Fallback leader network info mismatched");
+        LOG_GENERAL(
+            WARNING,
+            "Fallback leader network info mismatched"
+                << endl
+                << "expected: "
+                << m_myShardMembers->at(m_consensusLeaderID).second << endl
+                << "received: "
+                << m_pendingFallbackBlock->GetHeader().GetLeaderNetworkInfo());
         return false;
     }
 
@@ -101,7 +136,14 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     if (!(m_myShardMembers->at(m_consensusLeaderID).first
           == m_pendingFallbackBlock->GetHeader().GetLeaderPubKey()))
     {
-        LOG_GENERAL(WARNING, "Fallback leader pubkey mismatched");
+        LOG_GENERAL(
+            WARNING,
+            "Fallback leader pubkey mismatched"
+                << endl
+                << "expected: "
+                << m_myShardMembers->at(m_consensusLeaderID).first << endl
+                << "received: "
+                << m_pendingFallbackBlock->GetHeader().GetLeaderPubKey());
         return false;
     }
 
@@ -123,9 +165,12 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
         != m_pendingFallbackBlock->GetHeader().GetStateRootHash())
     {
         LOG_GENERAL(WARNING,
-                    "fallback state root hash mismatched. local: "
+                    "fallback state root hash mismatched"
+                        << endl
+                        << "expected: "
                         << AccountStore::GetInstance().GetStateRootHash().hex()
-                        << " Proposed: "
+                        << endl
+                        << " received: "
                         << m_pendingFallbackBlock->GetHeader()
                                .GetStateRootHash()
                                .hex());
@@ -225,6 +270,8 @@ void Node::SetLastKnownGoodState()
 
 void Node::ScheduleFallbackTimeout(bool started)
 {
+    LOG_MARKER();
+
     cv_fallbackBlock.notify_all();
 
     std::unique_lock<std::mutex> cv_lk(m_MutexCVFallbackBlock);
@@ -242,6 +289,11 @@ void Node::ScheduleFallbackTimeout(bool started)
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Initiated fallback" << (started ? " again" : ""));
 
+            if (m_mediator.m_ds->m_mode != IDLE)
+            {
+                return;
+            }
+
             if (started)
             {
                 UpdateFallbackConsensusLeader();
@@ -258,6 +310,11 @@ void Node::ScheduleFallbackTimeout(bool started)
                 cv_lk, std::chrono::seconds(FALLBACK_INTERVAL_WAITING))
             == std::cv_status::timeout)
         {
+            if (m_mediator.m_ds->m_mode != IDLE)
+            {
+                return;
+            }
+
             if (m_state != FALLBACK_CONSENSUS_PREP
                 || m_state != FALLBACK_CONSENSUS)
             {
@@ -296,6 +353,11 @@ void Node::ComposeFallbackBlock()
     {
         leaderNetworkInfo = m_myShardMembers->at(m_consensusLeaderID).second;
     }
+    LOG_GENERAL(INFO,
+                "m_myShardMembers->at(m_consensusLeaderID).second: "
+                    << m_myShardMembers->at(m_consensusLeaderID).second);
+    LOG_GENERAL(INFO, "m_mediator.m_selfPeer: " << m_mediator.m_selfPeer);
+    LOG_GENERAL(INFO, "LeaderNetworkInfo: " << leaderNetworkInfo);
 
     {
         lock_guard<mutex> g(m_mutexPendingFallbackBlock);
@@ -329,9 +391,6 @@ void Node::RunConsensusOnFallback()
     SetLastKnownGoodState();
     SetState(FALLBACK_CONSENSUS_PREP);
 
-    LOG_GENERAL(WARNING, "Run fallback, init state delta");
-    AccountStore::GetInstance().InitTemp();
-
     // Upon consensus object creation failure, one should not return from the function, but rather wait for fallback.
     bool ConsensusObjCreation = true;
 
@@ -360,7 +419,7 @@ void Node::RunConsensusOnFallback()
         cv_fallbackConsensusObj.notify_all();
     }
 
-    // schedule fallback viewchange
+    // schedule fallback
     auto func = [this]() -> void { ScheduleFallbackTimeout(true /*started*/); };
     DetachedFunction(1, func);
 }
@@ -389,7 +448,7 @@ bool Node::RunConsensusOnFallbackWhenLeader()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     m_consensusObject.reset(new ConsensusLeader(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
+        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, *m_myShardMembers,
         static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(FALLBACKCONSENSUS),
@@ -461,7 +520,7 @@ bool Node::RunConsensusOnFallbackWhenBackup()
     };
 
     m_consensusObject.reset(new ConsensusBackup(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
+        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID, m_mediator.m_selfKey.first, *m_myShardMembers,
         static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(FALLBACKCONSENSUS), func));

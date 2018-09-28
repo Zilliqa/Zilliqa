@@ -142,7 +142,7 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
 
 bool Lookup::GenTxnToSend(size_t num_txn,
                           map<uint32_t, vector<unsigned char>>& mp,
-                          uint32_t nShard)
+                          uint32_t numShards)
 {
     vector<unsigned char> txns;
 
@@ -161,11 +161,11 @@ bool Lookup::GenTxnToSend(size_t num_txn,
         auto pubKey = PubKey{privKey};
         auto addr = Account::GetAddressFromPublicKey(pubKey);
 
-        if (nShard == 0)
+        if (numShards == 0)
         {
             return false;
         }
-        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+        auto txnShard = Transaction::GetShardIndex(addr, numShards);
         txns.clear();
 
         uint256_t nonce
@@ -205,7 +205,7 @@ bool Lookup::GenTxnToSend(size_t num_txn,
             LOG_GENERAL(WARNING, "Failed to get txns for DS");
         }
 
-        copy(txns.begin(), txns.end(), back_inserter(mp[nShard]));
+        copy(txns.begin(), txns.end(), back_inserter(mp[numShards]));
     }
 
     return true;
@@ -779,47 +779,52 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    if (lowBlockNum == 1)
-    {
-        lowBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                          .GetHeader()
-                          .GetBlockNum();
-    }
-    else if (lowBlockNum == 0)
-    {
-        //give all the blocks in the ds blockchain
-        lowBlockNum = 1;
-    }
-
-    if (highBlockNum == 0)
-    {
-        highBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum();
-    }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "ProcessGetDSBlockFromSeed requested by "
-                  << from << " for blocks " << lowBlockNum << " to "
-                  << highBlockNum);
-
     vector<DSBlock> dsBlocks;
     uint64_t blockNum;
 
-    for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
     {
-        try
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
+
+        if (lowBlockNum == 1)
         {
-            dsBlocks.emplace_back(m_mediator.m_dsBlockChain.GetBlock(blockNum));
+            lowBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetBlockNum();
         }
-        catch (const char* e)
+        else if (lowBlockNum == 0)
         {
-            LOG_GENERAL(INFO,
-                        "Block Number " << blockNum
-                                        << " absent. Didn't include it in "
-                                           "response message. Reason: "
-                                        << e);
-            break;
+            //give all the blocks in the ds blockchain
+            lowBlockNum = 1;
+        }
+
+        if (highBlockNum == 0)
+        {
+            highBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum();
+        }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "ProcessGetDSBlockFromSeed requested by "
+                      << from << " for blocks " << lowBlockNum << " to "
+                      << highBlockNum);
+
+        for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
+        {
+            try
+            {
+                dsBlocks.emplace_back(
+                    m_mediator.m_dsBlockChain.GetBlock(blockNum));
+            }
+            catch (const char* e)
+            {
+                LOG_GENERAL(INFO,
+                            "Block Number " << blockNum
+                                            << " absent. Didn't include it in "
+                                               "response message. Reason: "
+                                            << e);
+                break;
+            }
         }
     }
 
@@ -989,7 +994,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
             }
         }
 
-        consensusID = m_mediator.m_node->m_consensusID;
+        consensusID = m_mediator.m_consensusID;
     }
 
     // if serialization got interrupted in between, reset the highBlockNum value in msg
@@ -1270,10 +1275,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     //#endif // IS_LOOKUP_NODE
 
     if (!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying
-        && m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
-            == m_mediator.m_dsBlockChain.GetLastBlock()
-                   .GetHeader()
-                   .GetBlockNum())
+        && m_mediator.m_consensusID
+            >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS))
     {
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1410,9 +1413,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     uint64_t highBlockNum = 0;
     vector<TxBlock> txBlocks;
 
-    if (!Messenger::GetLookupSetTxBlockFromSeed(
-            message, offset, lowBlockNum, highBlockNum, txBlocks,
-            m_mediator.m_node->m_consensusID))
+    if (!Messenger::GetLookupSetTxBlockFromSeed(message, offset, lowBlockNum,
+                                                highBlockNum, txBlocks,
+                                                m_mediator.m_consensusID))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetLookupSetTxBlockFromSeed failed.");
@@ -1482,8 +1485,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-        if (m_mediator.m_node->m_consensusID == 0)
+        if (m_mediator.m_consensusID
+            >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS))
         {
+            LOG_GENERAL(INFO,
+                        "At vacuous epoch now, try getting state from lookup");
             GetStateFromLookupNodes();
         }
     }
@@ -1694,16 +1700,12 @@ bool Lookup::InitMining()
     LOG_MARKER();
 
     // General check
-    if (m_mediator.m_node->m_consensusID != 0)
+    if (m_mediator.m_consensusID
+        < (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Vacuous check failed");
         return false;
-    }
-
-    if (m_mediator.m_currentEpochNum != 0)
-    {
-        m_mediator.m_node->m_consensusID = 0;
     }
 
     uint64_t curDsBlockNum
@@ -1713,52 +1715,38 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand{};
 
-    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
+    if (true /*CheckStateRoot()*/)
     {
-        if (CheckStateRoot())
-        {
-            // Attempt PoW
-            m_startedPoW = true;
-            dsBlockRand = m_mediator.m_dsBlockRand;
-            txBlockRand = m_mediator.m_txBlockRand;
+        // Attempt PoW
+        m_startedPoW = true;
+        dsBlockRand = m_mediator.m_dsBlockRand;
+        txBlockRand = m_mediator.m_txBlockRand;
 
-            m_mediator.m_node->SetState(Node::POW_SUBMISSION);
-            POW::GetInstance().EthashConfigureLightClient(
-                m_mediator.m_dsBlockChain.GetLastBlock()
-                    .GetHeader()
-                    .GetBlockNum()
-                + 1);
+        m_mediator.m_node->SetState(Node::POW_SUBMISSION);
+        POW::GetInstance().EthashConfigureLightClient(
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1);
 
-            this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
+        this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Starting PoW for new ds block number "
-                          << curDsBlockNum + 1);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
-            m_mediator.m_node->StartPoW(curDsBlockNum + 1,
-                                        m_mediator.m_dsBlockChain.GetLastBlock()
-                                            .GetHeader()
-                                            .GetDSDifficulty(),
-                                        m_mediator.m_dsBlockChain.GetLastBlock()
-                                            .GetHeader()
-                                            .GetDifficulty(),
-                                        dsBlockRand, txBlockRand);
-        }
-        else
-        {
-            LOG_GENERAL(WARNING, "State root check failed");
-            return false;
-        }
+        m_mediator.m_node->StartPoW(curDsBlockNum + 1,
+                                    m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetDSDifficulty(),
+                                    m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetDifficulty(),
+                                    dsBlockRand, txBlockRand);
     }
     else
     {
-        LOG_EPOCH(
-            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "DS block num check failed. Current DS epoch = "
-                << (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW)
-                << " Stored DS block = " << curDsBlockNum);
+        LOG_GENERAL(WARNING, "State root check failed");
         return false;
     }
+
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS));
     m_startedPoW = false;
@@ -2556,7 +2544,7 @@ void Lookup::SenderTxnBatchThread()
     LOG_MARKER();
 
     auto main_func = [this]() mutable -> void {
-        uint32_t nShard;
+        uint32_t numShards;
         while (true)
         {
             if ((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
@@ -2564,14 +2552,14 @@ void Lookup::SenderTxnBatchThread()
             {
                 {
                     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-                    nShard = m_mediator.m_ds->m_shards.size();
+                    numShards = m_mediator.m_ds->m_shards.size();
                 }
-                if (nShard == 0)
+                if (numShards == 0)
                 {
                     this_thread::sleep_for(chrono::milliseconds(100));
                     continue;
                 }
-                SendTxnPacketToNodes(nShard);
+                SendTxnPacketToNodes(numShards);
             }
             break;
         }
@@ -2580,7 +2568,7 @@ void Lookup::SenderTxnBatchThread()
     DetachedFunction(1, main_func);
 }
 
-void Lookup::SendTxnPacketToNodes(uint32_t nShard)
+void Lookup::SendTxnPacketToNodes(uint32_t numShards)
 {
     LOG_MARKER();
 
@@ -2595,13 +2583,13 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 
     map<uint32_t, vector<unsigned char>> mp;
 
-    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, nShard))
+    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, numShards))
     {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
         // return;
     }
 
-    for (unsigned int i = 0; i < nShard + 1; i++)
+    for (unsigned int i = 0; i < numShards + 1; i++)
     {
         vector<unsigned char> msg
             = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
@@ -2636,7 +2624,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
             continue;
         }
         vector<Peer> toSend;
-        if (i < nShard)
+        if (i < numShards)
         {
             {
                 lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
@@ -2656,7 +2644,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 
             DeleteTxnShardMap(i);
         }
-        else if (i == nShard)
+        else if (i == numShards)
         {
             //To send DS
             {

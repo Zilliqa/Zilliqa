@@ -668,8 +668,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
             chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
     }
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    bool isVacuousEpoch = (m_mediator.m_consensusID
+                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
         ProcessTransactionWhenShardLeader();
@@ -694,7 +694,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am shard leader. "
-                  << " m_consensusID: " << m_consensusID
+                  << "m_consensusID: " << m_mediator.m_consensusID
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
@@ -710,7 +710,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
         -> bool { return OnCommitFailure(m); };
 
     m_consensusObject.reset(
-        new ConsensusLeader(m_consensusID, m_consensusBlockHash,
+        new ConsensusLeader(m_mediator.m_consensusID, m_consensusBlockHash,
                             m_consensusMyID, m_mediator.m_selfKey.first,
                             *m_myShardMembers, static_cast<unsigned char>(NODE),
                             static_cast<unsigned char>(MICROBLOCKCONSENSUS),
@@ -779,7 +779,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am shard backup. "
-                  << " m_consensusID: " << m_consensusID
+                  << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
                   << " m_consensusMyID: " << m_consensusMyID
                   << " m_consensusLeaderID: " << m_consensusLeaderID
                   << " Shard Leader: "
@@ -793,7 +793,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     }
 
     m_consensusObject.reset(new ConsensusBackup(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
+        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID, m_mediator.m_selfKey.first, peerList,
         static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(MICROBLOCKCONSENSUS), func));
@@ -829,7 +829,8 @@ bool Node::RunConsensusOnMicroBlock()
         m_mediator.m_ds->m_stateDeltaWhenRunDSMB
             = m_mediator.m_ds->m_stateDeltaFromShards;
         bool isVacuousEpoch
-            = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+            = (m_mediator.m_consensusID
+               >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
         if (isVacuousEpoch)
         {
             //Coinbase
@@ -1009,8 +1010,8 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
         return true;
     }
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    bool isVacuousEpoch = (m_mediator.m_consensusID
+                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (!isVacuousEpoch)
     {
         vector<TxnHash> missingTxnHashes;

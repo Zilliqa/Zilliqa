@@ -401,8 +401,6 @@ public:
         uint64_t, std::unordered_map<UnavailableMicroBlock, std::vector<bool>>>
         m_unavailableMicroBlocks;
 
-    uint32_t m_consensusID;
-
     /// Sharding variables
     std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_consensusMyID;
@@ -515,6 +513,9 @@ public:
 
     /// Force state changes from MBCON/MBCON_PREP -> WAITING_FINALBLOCK
     void PrepareGoodStateForFinalBlock();
+
+    /// Reset Consensus ID
+    void ResetConsensusId();
 
 private:
     static std::map<NodeState, std::string> NodeStateStrings;
