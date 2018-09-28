@@ -53,7 +53,7 @@ public:
                         unsigned int offset);
 
     /// Constructor with specified fallback block header parameters.
-    FallbackBlockHeader(const uint64_t& m_fallbackDSEpochNo,
+    FallbackBlockHeader(const uint64_t& fallbackDSEpochNo,
                         const uint64_t& fallbackEpochNo,
                         const unsigned char fallbackState,
                         const StateHash& stateRootHash,

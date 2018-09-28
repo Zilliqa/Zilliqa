@@ -86,7 +86,7 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock)
 
     for (auto const& shardNode : m_mediator.m_ds->m_shards[shard_id])
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(std::get<SHARD_NODE_PUBKEY>(shardNode));
             count++;
@@ -113,9 +113,8 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock)
     fallbackblock.GetCS1().Serialize(message, FallbackBlockHeader::SIZE);
     BitVector::SetBitVector(message, FallbackBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             fallbackblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      fallbackblock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       fallbackblock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
         for (auto& kv : keys)
