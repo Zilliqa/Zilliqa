@@ -58,9 +58,23 @@ void Archival::InitSync()
                 }
             }
             m_mediator.m_lookup->GetShardFromLookup();
-            SendFetchMicroBlockInfo();
-            SendFetchTxn();
-            this_thread::sleep_for(chrono::seconds(REFRESH_DELAY));
+            if (m_mediator.m_currentEpochNum > 1)
+            {
+                SendFetchMicroBlockInfo();
+                SendFetchTxn();
+            }
+            if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+            {
+                LOG_GENERAL(INFO,
+                            "Sleep for " << REFRESH_DELAY
+                                    + POW_BACKUP_WINDOW_IN_SECONDS);
+                this_thread::sleep_for(chrono::seconds(
+                    REFRESH_DELAY + POW_BACKUP_WINDOW_IN_SECONDS));
+            }
+            else
+            {
+                this_thread::sleep_for(chrono::seconds(REFRESH_DELAY));
+            }
         }
     };
     DetachedFunction(1, func);
@@ -95,6 +109,8 @@ bool Archival::AddToFetchMicroBlockInfo(const uint64_t& blockNum,
     LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexMicroBlockInfo);
+    LOG_GENERAL(
+        INFO, "Added " << blockNum << " " << shardId << " to fetch microBlock");
     m_fetchMicroBlockInfo[blockNum].push_back(shardId);
 
     return true;
@@ -116,6 +132,7 @@ bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
         return false;
     }
 
+
     auto position = find(shard_ids.begin(), shard_ids.end(), shardId);
     if (position != shard_ids.end())
     {
@@ -132,16 +149,24 @@ bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
 
 void Archival::SendFetchMicroBlockInfo()
 {
+    LOG_MARKER();
     lock_guard<mutex> g(m_mutexMicroBlockInfo);
     for (const auto& info : m_fetchMicroBlockInfo)
     {
-        LOG_GENERAL(INFO,
-                    "Sending fetch txn "
-                        << "..." << info.first);
-
-        for (const auto& shard_id : info.second)
+        
+        if (info.second.size() == 0)
         {
-            LOG_GENERAL(INFO, "Shard id " << shard_id);
+            m_fetchMicroBlockInfo.erase(info.first);
+        }
+        else
+        {
+            LOG_GENERAL(INFO,
+                    "Sending fetch microBlock "
+                        << "..." << info.first);
+            for (const auto& shard_id : info.second)
+            {
+                LOG_GENERAL(INFO, "Shard id " << shard_id);
+            }
         }
     }
     m_mediator.m_lookup->SendGetMicroBlockFromLookup(m_fetchMicroBlockInfo);
@@ -150,10 +175,8 @@ void Archival::SendFetchMicroBlockInfo()
 void Archival::AddToUnFetchedTxn(const vector<TxnHash>& txnhashes)
 {
     lock_guard<mutex> g(m_mutexUnfetchedTxns);
-    for (const auto& txnhsh : txnhashes)
-    {
-        LOG_GENERAL(INFO, "Add " << txnhsh << " to microblock fetch");
-    }
+
+    LOG_GENERAL(INFO, "Add " << txnhashes.size() << " to unfetched txns");
     copy(txnhashes.begin(), txnhashes.end(),
          inserter(m_unfetchedTxns, m_unfetchedTxns.end()));
 }
@@ -163,10 +186,11 @@ void Archival::AddTxnToDB(const vector<TransactionWithReceipt>& txns,
 {
     lock_guard<mutex> g(m_mutexUnfetchedTxns);
 
+    LOG_GENERAL(INFO, " Got " << txns.size() << " from lookup");
     for (const auto& txn : txns)
     {
         const TxnHash& txhash = txn.GetTransaction().GetTranID();
-        LOG_GENERAL(INFO, " Got " << txhash << " from lookup");
+
         if (m_unfetchedTxns.find(txhash) != m_unfetchedTxns.end())
         {
             db.InsertTxn(txn);
@@ -182,11 +206,10 @@ void Archival::AddTxnToDB(const vector<TransactionWithReceipt>& txns,
 
 void Archival::SendFetchTxn()
 {
+    LOG_MARKER();
     lock_guard<mutex> g(m_mutexUnfetchedTxns);
-    for (const auto& txnhsh : m_unfetchedTxns)
-    {
-        LOG_GENERAL(INFO, "Send for " << txnhsh << " to lookup");
-    }
+    LOG_GENERAL(INFO, "Send for " << m_unfetchedTxns.size() << " to lookup");
+
     vector<TxnHash> txnVec(m_unfetchedTxns.begin(), m_unfetchedTxns.end());
     m_mediator.m_lookup->SendGetTxnFromLookup(txnVec);
 }

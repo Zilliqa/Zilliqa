@@ -1227,9 +1227,15 @@ bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
         LOG_GENERAL(INFO, "not expected to be called from non-lookup");
         return false;
     }
+
+    LOG_MARKER();
     uint32_t id = microblock.GetHeader().GetShardID();
 
     TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blocknum);
+    LOG_GENERAL(INFO,
+                "[SendMB]"
+                    << "Add MicroBlock call " << blocknum << " shard id "
+                    << id);
     unsigned int i = 0;
     if (!(txblk == TxBlock()))
     {
@@ -1238,7 +1244,6 @@ bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
 
             if (txblk.GetShardIDs()[i] == id)
             {
-                LOG_GENERAL(INFO, "[SendMB]" << i);
                 break;
             }
         }
@@ -1259,6 +1264,10 @@ bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
                                                                body))
             {
                 LOG_GENERAL(WARNING, "Failed to put microblock in body");
+            }
+            else
+            {
+                LOG_GENERAL(INFO, "Saved " << blocknum << "shardId:" << id);
             }
         }
         else
@@ -1297,15 +1306,20 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
     vector<MicroBlock> retMicroBlocks;
+
     for (const auto& microBlockId : microBlockIds)
     {
 
         const uint64_t& blocknum = microBlockId.first;
         for (const auto& shard_id : microBlockId.second)
         {
+            LOG_GENERAL(INFO,
+                        "[SendMB]"
+                            << "Request for " << blocknum << " shardId "
+                            << shard_id);
             shared_ptr<MicroBlock> mbptr;
-            if (!BlockStorage::GetBlockStorage().GetMicroBlock(shard_id,
-                                                               blocknum, mbptr))
+            if (!BlockStorage::GetBlockStorage().GetMicroBlock(blocknum,
+                                                               shard_id, mbptr))
             {
                 LOG_GENERAL(WARNING,
                             "Failed to fetch micro block blocknum: "
@@ -1399,14 +1413,20 @@ void Lookup::SendGetMicroBlockFromLookup(
 
 void Lookup::CommitMicroBlockStorage()
 {
+    LOG_MARKER();
     lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
     const uint64_t& currentEpoch = m_mediator.m_currentEpochNum;
+    LOG_GENERAL(INFO, "[SendMB]" << currentEpoch);
 
-    for (auto& mb : m_microBlocksBuffer[currentEpoch])
+    for (uint64_t i = 1; i <= currentEpoch; i++)
     {
-        AddMicroBlockToStorage(currentEpoch - 1, mb);
+        for (auto& mb : m_microBlocksBuffer[i])
+        {
+            AddMicroBlockToStorage(i - 1, mb);
+        }
+
+        m_microBlocksBuffer[i].clear();
     }
-    m_microBlocksBuffer[currentEpoch].clear();
 }
 
 bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
@@ -1447,7 +1467,7 @@ bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
         m_microBlocksBuffer[blocknum].push_back(microblock);
         return true;
     }
-    else if (blocknum == m_mediator.m_currentEpochNum)
+    else if (blocknum <= m_mediator.m_currentEpochNum)
     {
         AddMicroBlockToStorage(blocknum - 1, microblock);
     }
@@ -1719,6 +1739,13 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                         m_mediator.m_archival->AddToFetchMicroBlockInfo(
                             txBlock.GetHeader().GetBlockNum(),
                             txBlock.GetShardIDs()[i]);
+                    }
+                    else
+                    {
+                        LOG_GENERAL(INFO,
+                                    "MicroBlock of shard "
+                                        << txBlock.GetShardIDs()[i]
+                                        << " empty");
                     }
                 }
 
