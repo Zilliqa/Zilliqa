@@ -1666,6 +1666,9 @@ bool Lookup::CheckStateRoot()
         return true;
     }
 
+    /// TODO : FIX THIS
+    return true;
+
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
     StateHash rootInFinalBlock = m_mediator.m_txBlockChain.GetLastBlock()
                                      .GetHeader()
@@ -1715,7 +1718,7 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand{};
 
-    if (true /*CheckStateRoot()*/)
+    if (CheckStateRoot())
     {
         // Attempt PoW
         m_startedPoW = true;
