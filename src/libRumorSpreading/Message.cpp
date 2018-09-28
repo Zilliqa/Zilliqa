@@ -33,10 +33,10 @@ namespace RRS
     // CONSTRUCTORS
     Message::Message() {}
 
-    Message::Message(Message::Type type, int rumorId, int round)
+    Message::Message(Message::Type type, int rumorId, int rounds)
         : m_type(type)
         , m_rumorId(rumorId)
-        , m_round(round)
+        , m_rounds(rounds)
     {
     }
 
@@ -44,7 +44,7 @@ namespace RRS
     bool Message::operator==(const Message& other) const
     {
         return m_type == other.m_type && m_rumorId == other.m_rumorId
-            && m_round == other.m_round;
+            && m_rounds == other.m_rounds;
     }
 
     bool Message::operator!=(const Message& other) const
@@ -57,14 +57,14 @@ namespace RRS
 
     int Message::rumorId() const { return m_rumorId; }
 
-    int Message::age() const { return m_round; }
+    int Message::rounds() const { return m_rounds; }
 
     // FREE OPERATORS
     std::ostream& operator<<(std::ostream& os, const Message& message)
     {
         os << "[ type: " << Message::s_enumKeyToString[message.m_type]
-           << " rumorId: " << message.m_rumorId << " age: " << message.m_round
-           << "]";
+           << " rumorId: " << message.m_rumorId
+           << " Rounds: " << message.m_rounds << "]";
         return os;
     }
 

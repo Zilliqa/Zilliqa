@@ -45,13 +45,13 @@ namespace RRS
         // MEMBERS
         Type m_type;
         int m_rumorId;
-        int m_round;
+        int m_rounds;
 
     public:
         // CONSTRUCTORS
         Message();
 
-        Message(Type type, int rumorId, int round);
+        Message(Type type, int rumorId, int rounds);
 
         // OPERATORS
         bool operator==(const Message& other) const;
@@ -66,9 +66,9 @@ namespace RRS
 
         int rumorId() const;
 
-        int age() const;
+        int rounds() const;
     };
 
 } // project namespace
 
-#endif //RANDOMIZEDRUMORSPREADING_MESSAGE_H
+#endif //__MESSAGE_H__

@@ -79,7 +79,7 @@ namespace RRS
         , m_rumors()
         , m_mutex()
         , m_nextMemberCb()
-        , m_maxNeighborsPerRounds(1)
+        , m_maxNeighborsPerRound(1)
     {
         toVector(peers);
     }
@@ -92,7 +92,7 @@ namespace RRS
         , m_rumors()
         , m_mutex()
         , m_nextMemberCb(cb)
-        , m_maxNeighborsPerRounds(1)
+        , m_maxNeighborsPerRound(1)
     {
         toVector(peers);
     }
@@ -106,7 +106,7 @@ namespace RRS
         , m_mutex()
         , m_nextMemberCb()
         , m_statistics()
-        , m_maxNeighborsPerRounds(1)
+        , m_maxNeighborsPerRound(1)
     {
         assert(networkConfig.networkSize() == peers.size());
         toVector(peers);
@@ -124,7 +124,7 @@ namespace RRS
         , m_mutex()
         , m_nextMemberCb()
         , m_statistics()
-        , m_maxNeighborsPerRounds(maxNeighborsPerRound)
+        , m_maxNeighborsPerRound(maxNeighborsPerRound)
     {
         if (maxNeighborsPerRound > (int)peers.size())
         {
@@ -143,7 +143,7 @@ namespace RRS
         , m_mutex()
         , m_nextMemberCb(cb)
         , m_statistics()
-        , m_maxNeighborsPerRounds(1)
+        , m_maxNeighborsPerRound(1)
     {
         assert(networkConfig.networkSize() == peers.size());
         toVector(peers);
@@ -199,15 +199,15 @@ namespace RRS
             for (auto& kv : m_rumors)
             {
                 RumorStateMachine& stateMach = kv.second;
-                if (stateMach.age() > 0 and !stateMach.isOld())
+                if (stateMach.rounds() > 0 and !stateMach.isOld())
                 {
-                    pullMessages.emplace_back(Message(
-                        Message::Type::PULL, kv.first, kv.second.age()));
+                    pullMessages.emplace_back(Message::Type::PULL, kv.first,
+                                              kv.second.rounds());
                 }
             }
 
             // No PULL messages to sent i.e. no rumors received yet,
-            // then send EMPTY_PULL Message. so the receiving peer will
+            // then send EMPTY_PULL Message indicating receiver to stop asking again.
             if (pullMessages.empty())
             {
                 pullMessages.emplace_back(
@@ -218,19 +218,19 @@ namespace RRS
             {
                 increaseStatValue(StatisticKey::NumPullMessages,
                                   pullMessages.size());
-                m_nonPriorPeers.insert(fromPeer);
+                m_nonPriorityPeers.insert(fromPeer);
             }
         }
 
         // An empty response from a peer that was sent a PULL
         const int receivedRumorId = message.rumorId();
-        const int theirRound = message.age();
+        const int theirRound = message.rounds();
         if (receivedRumorId >= 0)
         {
             if (m_rumors.count(receivedRumorId) > 0)
             {
                 m_rumors.at(receivedRumorId)
-                    .rumorReceived(fromPeer, message.age());
+                    .rumorReceived(fromPeer, message.rounds());
             }
             else
             {
@@ -250,7 +250,7 @@ namespace RRS
 
         if (m_peers.size() == 0)
         {
-            m_nonPriorPeers.clear();
+            m_nonPriorityPeers.clear();
             m_peersInCurrentRound.clear();
             return std::make_pair(std::vector<int>{-1}, std::vector<Message>());
         }
@@ -262,27 +262,34 @@ namespace RRS
         int retryCount = 0;
         int neighborC = 0;
 
-        if (m_nonPriorPeers.size() >= m_peers.size() - m_maxNeighborsPerRounds)
+        // Total_Peers - Non_Priority_Peers = Priority_Peers
+        int Priority_Peers = m_peers.size() - m_nonPriorityPeers.size();
+        if (Priority_Peers < m_maxNeighborsPerRound)
         {
-            m_nonPriorPeers.clear();
+            // Priority_Peers not enough, then we have to consider the Non_Prioirty_Peers aswell.
+            m_nonPriorityPeers.clear();
         }
 
         std::unordered_set<int> tmp;
-        int maxRetry = (int)m_peers.size() - m_maxNeighborsPerRounds;
+        int maxRetry = (int)m_peers.size() - m_maxNeighborsPerRound;
         if (maxRetry < MAX_RETRY)
         {
+            // we reach here when no. of peers is very close to m_maxNeighborsPerRound;
+            // So lets set it to bare min. default.
             maxRetry = MAX_RETRY;
         }
-        while (neighborC < m_maxNeighborsPerRounds && retryCount < maxRetry)
+        while (neighborC < m_maxNeighborsPerRound && retryCount < maxRetry)
         {
             toMember = m_nextMemberCb ? m_nextMemberCb() : chooseRandomMember();
-            if (tmp.count(toMember) == 0
-                && m_nonPriorPeers.count(toMember) == 0)
+            if (tmp.count(toMember) == 0 // checks if not already found
+                && m_nonPriorityPeers.count(toMember)
+                    == 0) // checks if it is not a part of Non-PriorityPeers.
             {
+                // Great! we found one which is not in Non-Priority-List and also which is not already found.
                 tmp.insert(toMember);
-                neighborC++;
-                retryCount = 0;
-                toMembers.push_back(toMember);
+                ++neighborC;
+                retryCount = 0; // reset
+                toMembers.push_back(toMember); // save it!
             }
             else
             {
@@ -291,27 +298,27 @@ namespace RRS
             }
         }
         // if still no enough neighbors, try to add from nonPriorPeers list
-        if (neighborC < m_maxNeighborsPerRounds)
+        if (neighborC < m_maxNeighborsPerRound)
         {
             LOG_GENERAL(INFO,
                         "Got " << neighborC << " neighbors. Expected: "
-                               << m_maxNeighborsPerRounds);
+                               << m_maxNeighborsPerRound);
             LOG_GENERAL(WARNING,
                         "Didn't find enough neighbors from priority peer list. "
                         "Will try selecting from NonPriority peer list");
-            for (const auto& i : m_nonPriorPeers)
+            for (const auto& i : m_nonPriorityPeers)
             {
-                if (neighborC < m_maxNeighborsPerRounds)
+                if (neighborC < m_maxNeighborsPerRound)
                 {
                     toMembers.push_back(i);
-                    neighborC++;
+                    ++neighborC;
                 }
                 else
                 {
                     break;
                 }
             }
-            if (neighborC == m_maxNeighborsPerRounds)
+            if (neighborC == m_maxNeighborsPerRound)
             {
                 LOG_GENERAL(INFO, "Finally got enough neighbors");
             }
@@ -322,7 +329,7 @@ namespace RRS
                             "to those we found.");
             }
         }
-        m_nonPriorPeers.clear();
+        m_nonPriorityPeers.clear();
 
         // Construct the push messages
         std::vector<Message> pushMessages;
@@ -333,7 +340,7 @@ namespace RRS
             if (!stateMach.isOld())
             {
                 pushMessages.emplace_back(
-                    Message(Message::Type::PUSH, r.first, r.second.age()));
+                    Message(Message::Type::PUSH, r.first, r.second.rounds()));
             }
         }
         increaseStatValue(StatisticKey::NumPushMessages, pushMessages.size());
