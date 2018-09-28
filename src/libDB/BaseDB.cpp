@@ -15,6 +15,7 @@
 **/
 
 #include "BaseDB.h"
+#include "common/Constants.h"
 #include <bsoncxx/stdx/make_unique.hpp>
 #include <bsoncxx/types.hpp>
 #include <mongocxx/client.hpp>
@@ -34,7 +35,7 @@ void BaseDB::Init(unsigned int port)
     {
 
         m_inst = move(instance);
-        string uri = "mongodb://localhost:" + to_string(port);
+        string uri = "mongodb://" + DB_HOST + ":" + to_string(port);
         mongocxx::uri URI(uri);
         mongocxx::client client(URI);
         m_client = move(client);
