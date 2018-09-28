@@ -1339,7 +1339,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             vector<unsigned char> serializedDSBlock;
             dsblock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
-                dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
+                dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
         }
 
         if (m_syncType == SyncType::DS_SYNC

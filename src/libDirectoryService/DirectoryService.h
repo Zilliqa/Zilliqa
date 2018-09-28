@@ -215,8 +215,8 @@ class DirectoryService : public Executable, public Broadcastable
     void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                         unsigned int& my_shards_lo,
                                         unsigned int& my_shards_hi) const;
-    void SendDSBlockToShardNodes(unsigned int my_shards_lo,
-                                 unsigned int my_shards_hi);
+    void SendDSBlockToShardNodes(const unsigned int my_shards_lo,
+                                 const unsigned int my_shards_hi);
     void UpdateMyDSModeAndConsensusId();
     void UpdateDSCommiteeComposition();
 
