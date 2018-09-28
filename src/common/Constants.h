@@ -150,6 +150,10 @@ extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
 extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
 extern const unsigned int MAX_SHARD_NODE_NUM;
+extern const unsigned int MAX_ROUNDS_IN_BSTATE;
+extern const unsigned int MAX_ROUNDS_IN_CSTATE;
+extern const unsigned int MAX_TOTAL_ROUNDS;
+extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

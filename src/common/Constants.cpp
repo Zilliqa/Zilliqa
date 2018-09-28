@@ -149,6 +149,13 @@ const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
+const unsigned int MAX_ROUNDS_IN_BSTATE{
+    ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
+const unsigned int MAX_ROUNDS_IN_CSTATE{
+    ReadFromConstantsFile("MAX_ROUNDS_IN_CSTATE")};
+const unsigned int MAX_TOTAL_ROUNDS{ReadFromConstantsFile("MAX_TOTAL_ROUNDS")};
+const unsigned int MAX_NEIGHBORS_PER_ROUND{
+    ReadFromConstantsFile("MAX_NEIGHBORS_PER_ROUND")};
 const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
