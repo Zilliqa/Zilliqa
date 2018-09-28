@@ -198,6 +198,7 @@ const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
 
+const unsigned int NUM_DEVICE_TO_USE{ReadGpuConstants("NUM_DEVICE_TO_USE")};
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
 const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
