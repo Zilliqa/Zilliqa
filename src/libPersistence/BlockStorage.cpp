@@ -186,7 +186,10 @@ string MakeKey(const uint64_t& blockNum, const uint32_t& shardId)
     Serializable::SetNumber<uint32_t>(vec, curr_offset, shardId,
                                       sizeof(uint32_t));
 
-    return DataConversion::Uint8VecToHexStr(vec);
+    string key = DataConversion::Uint8VecToHexStr(vec);
+    LOG_GENERAL(INFO, "blockNum: " << blockNum << " shardId:" << shardId);
+
+    return key;
 }
 
 bool BlockStorage::PutMicroBlock(const uint64_t& blockNum,
@@ -215,6 +218,7 @@ bool BlockStorage::GetMicroBlock(const uint64_t& blockNum,
         return false;
     }
 
+    LOG_MARKER();
     string key = MakeKey(blockNum, shardId);
     string blockString = m_microBlockDB->Lookup(key);
 
