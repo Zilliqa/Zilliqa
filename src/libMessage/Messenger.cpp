@@ -449,7 +449,7 @@ namespace
         Peer leaderNetworkInfo;
         PubKey leaderPubKey;
         uint256_t timestamp;
-        StateHash stateroothash;
+        StateHash stateRootHash;
 
         ProtobufByteArrayToSerializable(protoHeader.leadernetworkinfo(),
                                         leaderNetworkInfo);
@@ -457,6 +457,12 @@ namespace
                                         leaderPubKey);
         ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
             protoHeader.timestamp(), timestamp);
+
+        copy(protoHeader.stateroothash().begin(),
+             protoHeader.stateroothash().begin()
+                 + min((unsigned int)protoHeader.stateroothash().size(),
+                       (unsigned int)stateRootHash.size),
+             stateRootHash.asArray().begin());
 
         // Deserialize cosigs
 
@@ -477,7 +483,7 @@ namespace
         fallbackBlock = FallbackBlock(
             FallbackBlockHeader(
                 protoHeader.fallbackdsepochno(), protoHeader.fallbackepochno(),
-                protoHeader.fallbackstate(), stateroothash,
+                protoHeader.fallbackstate(), stateRootHash,
                 protoHeader.leaderconsensusid(), leaderNetworkInfo,
                 leaderPubKey, protoHeader.shardid(), timestamp),
             CoSignatures(cosigs));
@@ -586,6 +592,22 @@ namespace
                 inputToSigning.data() + announcement.consensusinfo().ByteSize(),
                 announcement.vcblock().ByteSize());
             break;
+        case ConsensusAnnouncement::AnnouncementCase::kFallbackblock:
+            if (!announcement.fallbackblock().IsInitialized())
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Announcement fallbackblock content not initialized.");
+                return false;
+            }
+            inputToSigning.resize(announcement.consensusinfo().ByteSize()
+                                  + announcement.fallbackblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                inputToSigning.data(), announcement.consensusinfo().ByteSize());
+            announcement.fallbackblock().SerializeToArray(
+                inputToSigning.data() + announcement.consensusinfo().ByteSize(),
+                announcement.fallbackblock().ByteSize());
+            break;
         case ConsensusAnnouncement::AnnouncementCase::ANNOUNCEMENT_NOT_SET:
         default:
             LOG_GENERAL(WARNING, "Announcement content not set.");
@@ -689,6 +711,17 @@ namespace
             announcement.vcblock().SerializeToArray(
                 tmp.data() + announcement.consensusinfo().ByteSize(),
                 announcement.vcblock().ByteSize());
+        }
+        else if (announcement.has_fallbackblock()
+                 && announcement.fallbackblock().IsInitialized())
+        {
+            tmp.resize(announcement.consensusinfo().ByteSize()
+                       + announcement.fallbackblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                tmp.data(), announcement.consensusinfo().ByteSize());
+            announcement.fallbackblock().SerializeToArray(
+                tmp.data() + announcement.consensusinfo().ByteSize(),
+                announcement.fallbackblock().ByteSize());
         }
         else
         {
