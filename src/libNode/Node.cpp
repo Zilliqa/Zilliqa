@@ -175,14 +175,8 @@ bool Node::StartRetrieveHistory()
     tDS.join();
     tTx.join();
 
-    bool tx_bodies_result = true;
-    if (!LOOKUP_NODE_MODE)
-    {
-        tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
-    }
-
     bool res = false;
-    if (st_result && ds_result && tx_result && tx_bodies_result)
+    if (st_result && ds_result && tx_result)
     {
         if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates())
             || (LOOKUP_NODE_MODE && m_retriever->ValidateStates()
@@ -735,13 +729,15 @@ bool Node::ProcessTxnPacketFromLookupCore(
                 else
                 {
                     compIdx.insert(tx);
-                    txn_sent_count++;
                 }
+                txn_sent_count++;
             }
             else
             {
                 LOG_GENERAL(WARNING, "Txn is not valid.");
             }
+
+            processed_count++;
 
             if (processed_count % 100 == 0)
             {
@@ -750,7 +746,7 @@ bool Node::ProcessTxnPacketFromLookupCore(
             }
         }
     }
-    LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
+    LOG_GENERAL(INFO, "INSERTED TXN COUNT" << txn_sent_count);
 
     return true;
 }

@@ -584,6 +584,8 @@ void Node::BeginNextConsensusRound()
 void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
                                  vector<TransactionWithReceipt>& txns_to_send)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -592,26 +594,28 @@ void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
         return;
     }
 
-    LOG_MARKER();
-
-    const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
-    for (const auto& tx_hash : tx_hashes)
+    if (m_microblock != nullptr)
     {
-        if (!FindTxnInProcessedTxnsList(blocknum, sharing_mode, txns_to_send,
-                                        tx_hash))
+        const vector<TxnHash>& tx_hashes = m_microblock->GetTranHashes();
+        for (const auto& tx_hash : tx_hashes)
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Failed trying to find txn in processed txn list");
+            if (!FindTxnInProcessedTxnsList(blocknum, sharing_mode,
+                                            txns_to_send, tx_hash))
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Failed trying to find txn in processed txn list");
+            }
         }
-    }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Number of transactions to broadcast for block "
-                  << blocknum << " = " << txns_to_send.size());
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Number of transactions to broadcast for block "
+                      << blocknum << " = " << txns_to_send.size());
 
-    {
-        lock_guard<mutex> g(m_mutexProcessedTransactions);
-        m_processedTransactions.erase(blocknum);
+        {
+            lock_guard<mutex> g(m_mutexProcessedTransactions);
+            m_processedTransactions.erase(blocknum);
+        }
     }
 }
 
@@ -928,7 +932,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         {
             BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                         {'0'});
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
         }
     }
 

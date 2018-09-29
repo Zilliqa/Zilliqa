@@ -14,37 +14,25 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __ACCOUNTSTORETRIE_H__
-#define __ACCOUNTSTORETRIE_H__
+#ifndef __MEMBERID_H__
+#define __MEMBERID_H__
 
-#include "AccountStoreSC.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libDatabase/OverlayDB.h"
+#include <atomic>
 
-template<class DB, class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP>
+namespace RRS
 {
-protected:
-    DB m_db;
-    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    dev::h256 m_prevRoot;
 
-    AccountStoreTrie();
+    class MemberID
+    {
+    private:
+        // STATIC MEMBERS
+        static std::atomic<int> d_id;
 
-    bool UpdateStateTrie(const Address& address, const Account& account);
+    public:
+        // STATIC METHODS
+        static int next() { return ++d_id; }
+    };
 
-public:
-    virtual void Init() override;
+} // project namespace
 
-    Account* GetAccount(const Address& address) override;
-
-    dev::h256 GetStateRootHash() const;
-    bool UpdateStateTrieAll();
-    void RepopulateStateTrie();
-
-    void PrintAccountState() override;
-};
-
-#include "AccountStoreTrie.tpp"
-
-#endif // __ACCOUNTSTORETRIE_H__
+#endif //__MEMBERID_H__

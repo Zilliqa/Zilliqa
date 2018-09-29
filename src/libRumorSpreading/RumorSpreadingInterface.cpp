@@ -14,37 +14,11 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __ACCOUNTSTORETRIE_H__
-#define __ACCOUNTSTORETRIE_H__
+#include "RumorSpreadingInterface.h"
 
-#include "AccountStoreSC.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libDatabase/OverlayDB.h"
-
-template<class DB, class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP>
+namespace RRS
 {
-protected:
-    DB m_db;
-    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    dev::h256 m_prevRoot;
 
-    AccountStoreTrie();
+    RumorSpreadingInterface::~RumorSpreadingInterface() {}
 
-    bool UpdateStateTrie(const Address& address, const Account& account);
-
-public:
-    virtual void Init() override;
-
-    Account* GetAccount(const Address& address) override;
-
-    dev::h256 GetStateRootHash() const;
-    bool UpdateStateTrieAll();
-    void RepopulateStateTrie();
-
-    void PrintAccountState() override;
-};
-
-#include "AccountStoreTrie.tpp"
-
-#endif // __ACCOUNTSTORETRIE_H__
+} // project namespace

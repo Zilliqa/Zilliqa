@@ -251,11 +251,9 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
     vector<unsigned char> vec(BLOCK_HASH_SIZE);
     for (const auto& shard : shards)
     {
-
         for (const auto& shardNode : shard)
         {
             const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
-            ;
             auto it = m_allPoWs.find(toFind);
 
             if (it == m_allPoWs.end())
@@ -290,7 +288,6 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
             auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
             if (!r.second)
             {
-
                 LOG_GENERAL(WARNING,
                             "The key is not unique in the sharding structure "
                                 << std::get<SHARD_NODE_PUBKEY>(shardNode));
@@ -768,7 +765,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am a backup DS node. Waiting for DS block announcement.");
+              "I am a backup DS node. Waiting for DS block announcement. "
+              "Leader is at index  "
+                  << m_consensusLeaderID << " "
+                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
     // Dummy values for now
     uint32_t consensusID = 0x0;
