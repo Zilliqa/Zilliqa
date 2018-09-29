@@ -91,8 +91,19 @@ class DirectoryService : public Executable, public Broadcastable
     // Final block consensus variables
     std::shared_ptr<TxBlock> m_finalBlock;
 
+    struct MBSubmissionBufferEntry
+    {
+        std::vector<MicroBlock> m_microBlocks;
+        std::vector<unsigned char> m_stateDelta;
+        MBSubmissionBufferEntry(const std::vector<MicroBlock>& microBlocks,
+                                const std::vector<unsigned char>& stateDelta)
+            : m_microBlocks(microBlocks)
+            , m_stateDelta(stateDelta)
+        {
+        }
+    };
     std::mutex m_mutexMBSubmissionBuffer;
-    std::unordered_map<uint64_t, std::vector<std::vector<unsigned char>>>
+    std::unordered_map<uint64_t, std::vector<MBSubmissionBufferEntry>>
         m_MBSubmissionBuffer;
 
     std::mutex m_mutexFinalBlockConsensusBuffer;
@@ -128,10 +139,12 @@ class DirectoryService : public Executable, public Broadcastable
     std::condition_variable cv_processConsensusMessage;
     std::mutex m_mutexProcessConsensusMessage;
 
+    std::mutex m_mutexRunConsensusOnFinalBlock;
+
     // TO Remove
     Mediator& m_mediator;
 
-    uint32_t m_numOfAbsentMicroBlockHashes;
+    uint32_t m_numOfAbsentMicroBlocks;
 
     //Coinbase
     std::map<uint64_t, std::unordered_map<int32_t, std::vector<Address>>>
@@ -227,13 +240,14 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
     void CommitMBSubmissionMsgBuffer();
     bool ProcessMicroblockSubmissionFromShard(
-        const std::vector<unsigned char>& message, unsigned int offset,
-        const Peer& from);
+        const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
     bool ProcessMicroblockSubmissionFromShardCore(
-        const std::vector<unsigned char>& message, unsigned int curr_offset);
+        const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
     bool ProcessMissingMicroblockSubmission(
-        const std::vector<unsigned char>& message, unsigned int offset,
-        const Peer& from);
+        const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+        const std::vector<unsigned char>& stateDelta);
     void ExtractDataFromMicroblocks(
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         TxnHash& microblockTranReceiptRoot,
@@ -244,8 +258,7 @@ class DirectoryService : public Executable, public Broadcastable
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
     bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                      uint32_t shardId);
-    bool ProcessStateDelta(const std::vector<unsigned char>& message,
-                           unsigned int cur_offset,
+    bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,
                            const StateHash& microBlockStateDeltaHash);
 
     // FinalBlockValidator functions
@@ -255,7 +268,7 @@ class DirectoryService : public Executable, public Broadcastable
     bool CheckPreviousFinalBlockHash();
     bool CheckFinalBlockNumber();
     bool CheckFinalBlockTimestamp();
-    bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
+    bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockHashRoot();
     bool CheckIsMicroBlockEmpty();
     bool CheckStateRoot();
@@ -410,8 +423,12 @@ public:
     /// Whether to send txn from ds microblock to lookup at finalblock consensus done
     std::atomic<bool> m_toSendTxnToLookup;
 
-    /// Whether ds started microblock consensuis
+    /// Whether ds started microblock consensus
     std::atomic<bool> m_dsStartedMicroblockConsensus;
+
+    /// Whether ds started finalblock consensus
+    std::mutex m_mutexPrepareRunFinalblockConsensus;
+    std::atomic<bool> m_startedRunFinalblockConsensus;
 
     std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
     std::mutex m_mutexMicroBlocks;

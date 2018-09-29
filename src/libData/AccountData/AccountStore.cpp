@@ -256,9 +256,19 @@ void AccountStore::MoveUpdatesToDisk()
         }
         i.second.Commit();
     }
-    m_state.db()->commit();
-    prevRoot = m_state.root();
-    MoveRootToDisk(prevRoot);
+
+    try
+    {
+        m_state.db()->commit();
+        m_prevRoot = m_state.root();
+        MoveRootToDisk(m_prevRoot);
+    }
+    catch (const boost::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::MoveUpdatesToDisk. "
+                        << boost::diagnostic_information(e));
+    }
 }
 
 void AccountStore::DiscardUnsavedUpdates()
@@ -270,9 +280,19 @@ void AccountStore::DiscardUnsavedUpdates()
     {
         i.second.RollBack();
     }
-    m_state.db()->rollback();
-    m_state.setRoot(prevRoot);
-    m_addressToAccount->clear();
+
+    try
+    {
+        m_state.db()->rollback();
+        m_state.setRoot(m_prevRoot);
+        m_addressToAccount->clear();
+    }
+    catch (const boost::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::DiscardUnsavedUpdates. "
+                        << boost::diagnostic_information(e));
+    }
 }
 
 bool AccountStore::RetrieveFromDisk()
@@ -283,35 +303,48 @@ bool AccountStore::RetrieveFromDisk()
     {
         return false;
     }
-    h256 root(rootBytes);
-    m_state.setRoot(root);
-    for (auto i : m_state)
+
+    try
     {
-        Address address(i.first);
-        LOG_GENERAL(INFO, "Address: " << address.hex());
-        dev::RLP rlp(i.second);
-        if (rlp.itemCount() != 4)
+        h256 root(rootBytes);
+        m_state.setRoot(root);
+        for (const auto& i : m_state)
         {
-            LOG_GENERAL(WARNING, "Account data corrupted");
-            continue;
-        }
-        Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint256_t>());
-        // Code Hash
-        if (rlp[3].toHash<h256>() != h256())
-        {
-            // Extract Code Content
-            account.SetCode(
-                ContractStorage::GetContractStorage().GetContractCode(address));
-            if (rlp[3].toHash<h256>() != account.GetCodeHash())
+            Address address(i.first);
+            LOG_GENERAL(INFO, "Address: " << address.hex());
+            dev::RLP rlp(i.second);
+            if (rlp.itemCount() != 4)
             {
-                LOG_GENERAL(WARNING,
-                            "Account Code Content doesn't match Code Hash")
+                LOG_GENERAL(WARNING, "Account data corrupted");
                 continue;
             }
-            // Storage Root
-            account.SetStorageRoot(rlp[2].toHash<h256>());
+            Account account(rlp[0].toInt<uint256_t>(),
+                            rlp[1].toInt<uint256_t>());
+            // Code Hash
+            if (rlp[3].toHash<h256>() != h256())
+            {
+                // Extract Code Content
+                account.SetCode(
+                    ContractStorage::GetContractStorage().GetContractCode(
+                        address));
+                if (rlp[3].toHash<h256>() != account.GetCodeHash())
+                {
+                    LOG_GENERAL(WARNING,
+                                "Account Code Content doesn't match Code Hash")
+                    continue;
+                }
+                // Storage Root
+                account.SetStorageRoot(rlp[2].toHash<h256>());
+            }
+            m_addressToAccount->insert({address, account});
         }
-        m_addressToAccount->insert({address, account});
+    }
+    catch (const boost::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::RetrieveFromDisk. "
+                        << boost::diagnostic_information(e));
+        return false;
     }
     return true;
 }

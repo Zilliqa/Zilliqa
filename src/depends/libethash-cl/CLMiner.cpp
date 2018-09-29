@@ -288,7 +288,7 @@ bool CLMiner::mine(const WorkPackage &w, Solution &solution)
             {
                 if (s_dagLoadMode == DAG_LOAD_MODE_SEQUENTIAL)
                 {
-                    while (s_dagLoadIndex < index)
+                    while (s_dagLoadIndex < m_index)
                         std::this_thread::sleep_for(std::chrono::seconds(1));
                     ++s_dagLoadIndex;
                 }
@@ -421,7 +421,7 @@ bool CLMiner::configureGPU(
     unsigned _platformId,
     int epoch,
     unsigned _dagLoadMode,
-    unsigned _dagCreateDevice,    
+    unsigned _dagCreateDevice,
 	bool _noeval,
     bool _exit
     )
@@ -526,8 +526,8 @@ bool CLMiner::init(uint64_t blockNumber)
         }
 
         // use selected device
-        int idx = index % devices.size();
-        unsigned deviceId = s_devices[idx] > -1 ? s_devices[idx] : index;
+        int idx = m_index % devices.size();
+        unsigned deviceId = s_devices[idx] > -1 ? s_devices[idx] : m_index;
         m_hwmoninfo.deviceIndex = deviceId % devices.size();
         cl::Device& device = devices[deviceId % devices.size()];
         std::string device_version = device.getInfo<CL_DEVICE_VERSION>();

@@ -14,37 +14,61 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __ACCOUNTSTORETRIE_H__
-#define __ACCOUNTSTORETRIE_H__
+#ifndef __MESSAGE_H__
+#define __MESSAGE_H__
 
-#include "AccountStoreSC.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libDatabase/OverlayDB.h"
+#include <map>
+#include <memory>
+#include <ostream>
+#include <vector>
 
-template<class DB, class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP>
+namespace RRS
 {
-protected:
-    DB m_db;
-    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    dev::h256 m_prevRoot;
 
-    AccountStoreTrie();
+    class Message
+    {
+    public:
+        // ENUMS
+        enum class Type
+        {
+            UNDEFINED = 0x00,
+            PUSH = 0x01,
+            PULL = 0x02,
+            EMPTY_PUSH = 0x03,
+            EMPTY_PULL = 0x04,
+            FORWARD = 0x05
+        };
 
-    bool UpdateStateTrie(const Address& address, const Account& account);
+        static std::map<Type, std::string> s_enumKeyToString;
 
-public:
-    virtual void Init() override;
+    private:
+        // MEMBERS
+        Type m_type;
+        int m_rumorId;
+        int m_rounds;
 
-    Account* GetAccount(const Address& address) override;
+    public:
+        // CONSTRUCTORS
+        Message();
 
-    dev::h256 GetStateRootHash() const;
-    bool UpdateStateTrieAll();
-    void RepopulateStateTrie();
+        Message(Type type, int rumorId, int rounds);
 
-    void PrintAccountState() override;
-};
+        // OPERATORS
+        bool operator==(const Message& other) const;
 
-#include "AccountStoreTrie.tpp"
+        bool operator!=(const Message& other) const;
 
-#endif // __ACCOUNTSTORETRIE_H__
+        friend std::ostream& operator<<(std::ostream& os,
+                                        const Message& message);
+
+        // CONST METHODS
+        Type type() const;
+
+        int rumorId() const;
+
+        int rounds() const;
+    };
+
+} // project namespace
+
+#endif //__MESSAGE_H__

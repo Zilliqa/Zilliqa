@@ -60,34 +60,27 @@ void Node::SubmitMicroblockToDSCommittee() const
         return;
     }
 
-    // Message = [8-byte DS blocknum] [4-byte consensusid] [4-byte shard ID] [Tx microblock]
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         return;
     }
 
-    // Message = [8-byte Tx blocknum] [Tx microblock core] [State Delta]
     vector<unsigned char> microblock
         = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
-    unsigned int cur_offset = MessageOffset::BODY;
-
-    microblock.push_back(
-        m_mediator.m_ds->SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK);
-    cur_offset += MessageOffset::INST;
-
-    // 8-byte tx blocknum
-    uint64_t txBlockNum
+    const uint64_t& txBlockNum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    Serializable::SetNumber<uint64_t>(microblock, cur_offset, txBlockNum,
-                                      sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
+    vector<unsigned char> stateDelta;
+    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-    // Tx microblock
-    m_microblock->SerializeCore(microblock, cur_offset);
-    cur_offset += m_microblock->GetSerializedCoreSize();
-
-    // Append State Delta
-    AccountStore::GetInstance().GetSerializedDelta(microblock);
+    if (!Messenger::SetDSMicroBlockSubmission(
+            microblock, MessageOffset::BODY,
+            DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK, txBlockNum,
+            {*m_microblock}, stateDelta))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetDSMicroBlockSubmission failed.");
+        return;
+    }
 
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -282,20 +275,25 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         }
         else
         {
-            m_mediator.m_ds->m_stateDeltaFromShards.clear();
-            AccountStore::GetInstance().SerializeDelta();
-            AccountStore::GetInstance().GetSerializedDelta(
-                m_mediator.m_ds->m_stateDeltaFromShards);
-            m_mediator.m_ds->SaveCoinbase(
-                m_microblock->GetB1(), m_microblock->GetB2(),
-                m_microblock->GetHeader().GetShardID());
-            m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+            lock_guard<mutex> g(
+                m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
+            if (!m_mediator.m_ds->m_startedRunFinalblockConsensus)
             {
-                lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
-                m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
-                    .emplace(*m_microblock);
+                m_mediator.m_ds->m_stateDeltaFromShards.clear();
+                AccountStore::GetInstance().SerializeDelta();
+                AccountStore::GetInstance().GetSerializedDelta(
+                    m_mediator.m_ds->m_stateDeltaFromShards);
+                m_mediator.m_ds->SaveCoinbase(
+                    m_microblock->GetB1(), m_microblock->GetB2(),
+                    m_microblock->GetHeader().GetShardID());
+                m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
+                {
+                    lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
+                    m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum]
+                        .emplace(*m_microblock);
+                }
+                m_mediator.m_ds->m_toSendTxnToLookup = true;
             }
-            m_mediator.m_ds->m_toSendTxnToLookup = true;
             m_mediator.m_ds->RunConsensusOnFinalBlock();
         }
     }
@@ -1127,6 +1125,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
     {
         peerList.emplace_back(it);
     }
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Leader is at index  "
+                  << m_consensusLeaderID << " "
+                  << peerList.at(m_consensusLeaderID).second);
 
     m_consensusObject.reset(new ConsensusBackup(
         m_consensusID, m_consensusBlockHash, m_consensusMyID,
@@ -1159,6 +1161,7 @@ bool Node::RunConsensusOnMicroBlock()
     if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
     {
         m_mediator.m_ds->m_toSendTxnToLookup = false;
+        m_mediator.m_ds->m_startedRunFinalblockConsensus = false;
         m_mediator.m_ds->m_stateDeltaWhenRunDSMB
             = m_mediator.m_ds->m_stateDeltaFromShards;
         bool isVacuousEpoch
