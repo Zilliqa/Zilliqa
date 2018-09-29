@@ -107,6 +107,7 @@ extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const std::string TXN_PATH;
+extern const std::string DB_HOST;
 
 extern const unsigned int MSG_VERSION;
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;

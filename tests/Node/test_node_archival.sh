@@ -23,16 +23,6 @@ sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
 # clean up persistence storage
 rm -rf archival_local_run/node*
 
-#setting the correct flag for lookup node, if not already.
-if grep -q '<ARCHIVAL_NODE>true</ARCHIVAL_NODE>' constants_local.xml ; then
-   echo "constants_local.xml was already good with ARCHIVAL_NODE being set"
-else
-   grep -q '<ARCHIVAL_NODE>false</ARCHIVAL_NODE>' constants_local.xml && \
-   sed -i 's/<ARCHIVAL_NODE>false<\/ARCHIVAL_NODE>/<ARCHIVAL_NODE>true<\/ARCHIVAL_NODE>/g' constants_local.xml || \
-   sed -i '/<\/options>/i \\t<ARCHIVAL_NODE>true<\/ARCHIVAL_NODE>' constants_local.xml
-   echo "constants_local.xml is now good with ARCHIVAL_NODE being set"
-fi
-
 python tests/Zilliqa/test_zilliqa_archival.py setup 1
 python tests/Zilliqa/test_zilliqa_archival.py start
 
