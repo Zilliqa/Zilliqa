@@ -189,7 +189,7 @@ string MakeKey(const uint64_t& blockNum, const uint32_t& shardId)
     return DataConversion::Uint8VecToHexStr(vec);
 }
 
-bool BlockStorage::PutMicroBlock(const uint64_t& blockNum,
+bool BlockStorage::PutMicroBlock(const uint64_t& blocknum,
                                  const uint32_t& shardId,
                                  const vector<unsigned char>& body)
 {
@@ -198,13 +198,13 @@ bool BlockStorage::PutMicroBlock(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "Not Expected to be called from non-lookup node");
         return false;
     }
-    string key = MakeKey(blockNum, shardId);
+    string key = MakeKey(blocknum, shardId);
     int ret = m_microBlockDB->Insert(key, body);
 
     return (ret == 0);
 }
 
-bool BlockStorage::GetMicroBlock(const uint64_t& blockNum,
+bool BlockStorage::GetMicroBlock(const uint64_t& blocknum,
                                  const uint32_t& shardId,
                                  MicroBlockSharedPtr& microblock)
 {
@@ -215,7 +215,9 @@ bool BlockStorage::GetMicroBlock(const uint64_t& blockNum,
         return false;
     }
 
-    string key = MakeKey(blockNum, shardId);
+    LOG_MARKER();
+    string key = MakeKey(blocknum, shardId);
+
     string blockString = m_microBlockDB->Lookup(key);
 
     if (blockString.empty())
