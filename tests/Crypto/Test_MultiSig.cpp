@@ -1,16 +1,16 @@
 /**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
+* Copyright (c) 2018 Zilliqa
+* This source code is being disclosed to you solely for the purpose of your participation in
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
+* the protocols and algorithms that are programmed into, and intended by, the code. You may
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
+* including modifying or publishing the code (or any part of it), and developing or forming
+* another public or private blockchain network. This source code is provided ‘as is’ and no
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
 **/
 
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(test_multisig)
 
     Schnorr& schnorr = Schnorr::GetInstance();
 
-    // Generate key pairs
+    /// Generate key pairs
     const unsigned int nbsigners = 2000;
     vector<PrivKey> privkeys;
     vector<PubKey> pubkeys;
@@ -41,17 +41,17 @@ BOOST_AUTO_TEST_CASE(test_multisig)
         pubkeys.emplace_back(keypair.second);
     }
 
-    // 1 MB message
+    /// 1 MB message
     const unsigned int message_size = 1048576;
     vector<unsigned char> message_rand(message_size);
     vector<unsigned char> message_1(message_size, 0x01);
     generate(message_rand.begin(), message_rand.end(), std::rand);
 
-    // Aggregate public keys
+    /// Aggregate public keys
     shared_ptr<PubKey> aggregatedPubkey = MultiSig::AggregatePubKeys(pubkeys);
     BOOST_CHECK_MESSAGE(aggregatedPubkey != nullptr, "AggregatePubKeys failed");
 
-    // Generate individual commitments
+    /// Generate individual commitments
     vector<CommitSecret> secrets(nbsigners);
     vector<CommitPoint> points;
     for (unsigned int i = 0; i < nbsigners; i++)
@@ -59,17 +59,22 @@ BOOST_AUTO_TEST_CASE(test_multisig)
         points.emplace_back(secrets.at(i));
     }
 
-    // Aggregate commits
+    /// Aggregate commits
     shared_ptr<CommitPoint> aggregatedCommit
         = MultiSig::AggregateCommits(points);
     BOOST_CHECK_MESSAGE(aggregatedCommit != nullptr, "AggregateCommits failed");
 
-    // Generate challenge
+    /// Generate challenge
     Challenge challenge(*aggregatedCommit, *aggregatedPubkey, message_rand);
     BOOST_CHECK_MESSAGE(challenge.Initialized() == true,
                         "Challenge generation failed");
 
-    // Generate responses
+    /// Check Challenge copy constructor
+    Challenge challengeCopy(challenge);
+    BOOST_CHECK_MESSAGE(challenge == challengeCopy,
+                        "Challenge copy constructor failed");
+
+    /// Generate responses
     vector<Response> responses;
     for (unsigned int i = 0; i < nbsigners; i++)
     {
@@ -78,18 +83,18 @@ BOOST_AUTO_TEST_CASE(test_multisig)
                             "Response generation failed");
     }
 
-    // Aggregate responses
+    /// Aggregate responses
     shared_ptr<Response> aggregatedResponse
         = MultiSig::AggregateResponses(responses);
     BOOST_CHECK_MESSAGE(aggregatedResponse != nullptr,
                         "AggregateResponses failed");
 
-    // Generate the aggregated signature
+    /// Generate the aggregated signature
     shared_ptr<Signature> signature
         = MultiSig::AggregateSign(challenge, *aggregatedResponse);
     BOOST_CHECK_MESSAGE(signature != nullptr, "AggregateSign failed");
 
-    // Verify the signature
+    /// Verify the signature
     BOOST_CHECK_MESSAGE(
         schnorr.Verify(message_rand, *signature, *aggregatedPubkey) == true,
         "Signature verification (correct message) failed");
@@ -97,16 +102,19 @@ BOOST_AUTO_TEST_CASE(test_multisig)
                             == false,
                         "Signature verification (wrong message) failed");
 
+    ///Check CommitPoint operator =
     CommitPoint cp_copy;
     cp_copy = *aggregatedCommit;
     BOOST_CHECK_MESSAGE(cp_copy == *aggregatedCommit,
                         "CommitPoint operator= failed");
 
+    ///Check Challenge operator =
     Challenge challenge_copy;
     challenge_copy = challenge;
     BOOST_CHECK_MESSAGE(challenge_copy == challenge,
                         "Challenge operator= failed");
 
+    ///Check Response operator =
     Response response_copy;
     response_copy = *aggregatedResponse;
     BOOST_CHECK_MESSAGE(response_copy == *aggregatedResponse,
@@ -152,6 +160,12 @@ BOOST_AUTO_TEST_CASE(test_serialization)
         points.back().Serialize(tmp2, 0);
         points1.emplace_back(tmp2, 0);
     }
+
+    //Check CommitSecret operator =
+    CommitSecret dummy_secret;
+    dummy_secret = secrets.at(0);
+    BOOST_CHECK_MESSAGE(dummy_secret == secrets.at(0),
+                        "The operator = failed for CommitSecret");
 
     // Aggregate commits
     shared_ptr<CommitPoint> aggregatedCommit
