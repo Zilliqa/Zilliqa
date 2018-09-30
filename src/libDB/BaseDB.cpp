@@ -37,9 +37,13 @@ void BaseDB::Init(unsigned int port)
         m_inst = move(instance);
         string uri = "mongodb://" + DB_HOST + ":" + to_string(port);
         mongocxx::uri URI(uri);
-        mongocxx::client client(URI);
-        m_client = move(client);
-        m_client[m_dbname].drop();
+        //mongocxx::client client(URI);
+        mongocxx::pool pool(URI);
+        m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(URI);
+        auto c = m_pool->acquire();
+        (*c)[m_dbname].drop();
+        //m_client = move(client);
+        //m_client[m_dbname].drop();
         m_isInitialized = true;
     }
     catch (exception& e)

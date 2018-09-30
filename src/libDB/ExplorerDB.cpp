@@ -58,15 +58,17 @@ void ExplorerDB::Init(unsigned int port)
     BaseDB::Init(port);
     mongocxx::options::index index_options;
     index_options.unique(true);
+    auto MongoClient = m_pool->acquire();
+    auto mongoDB = MongoClient->database(m_dbname);
     //ID is unique in txn and from is also an index but not unique
-    m_client[m_dbname][m_txCollectionName].create_index(
-        make_document(kvp("ID", 1)), index_options);
-    m_client[m_dbname][m_txCollectionName].create_index(
-        make_document(kvp("toAddr", 1)), {});
+    mongoDB[m_txCollectionName].create_index(make_document(kvp("ID", 1)),
+                                             index_options);
+    mongoDB[m_txCollectionName].create_index(make_document(kvp("toAddr", 1)),
+                                             {});
     //blockNum is unique in txBlock and DSBlock
-    m_client[m_dbname][m_txBlockCollectionName].create_index(
+    mongoDB[m_txBlockCollectionName].create_index(
         make_document(kvp("header.blockNum", 1)), index_options);
-    m_client[m_dbname][m_dsBlockCollectionName].create_index(
+    mongoDB[m_dsBlockCollectionName].create_index(
         make_document(kvp("header.blockNum", 1)), index_options);
 }
 
@@ -75,9 +77,11 @@ bool ExplorerDB::InsertJson(const Json::Value& _json,
 {
     try
     {
+        auto MongoClient = m_pool->acquire();
+        auto mongoDB = MongoClient->database(m_dbname);
         bsoncxx::document::value doc_val
             = bsoncxx::from_json(_json.toStyledString());
-        auto res = m_client[m_dbname][collectionName].insert_one(move(doc_val));
+        auto res = mongoDB[collectionName].insert_one(move(doc_val));
         return true;
     }
     catch (exception& e)
