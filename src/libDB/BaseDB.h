@@ -22,12 +22,13 @@
 #include "libData/BlockData/Block/TxBlock.h"
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
+#include <mongocxx/pool.hpp>
 #include <string>
 
 class BaseDB
 {
 protected:
-    mongocxx::client m_client;
+    std::unique_ptr<mongocxx::pool> m_pool;
     std::unique_ptr<mongocxx::instance> m_inst;
     bool m_isInitialized;
     const std::string m_dbname;

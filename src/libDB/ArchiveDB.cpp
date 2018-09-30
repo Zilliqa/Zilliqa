@@ -70,12 +70,15 @@ bool ArchiveDB::InsertSerializable(const Serializable& sz, const string& index,
     sz.Serialize(vec, 0);
     try
     {
+        auto MongoClient = (m_pool->acquire());
         bsoncxx::types::b_binary bin_data;
         bin_data.size = vec.size();
         bin_data.bytes = vec.data();
         bsoncxx::document::value doc_val
             = make_document(kvp("_id", index), kvp("Value", bin_data));
-        auto res = m_client[m_dbname][collectionName].insert_one(move(doc_val));
+
+        auto res = MongoClient->database(m_dbname)[collectionName].insert_one(
+            move(doc_val));
         return true;
     }
     catch (exception& e)
@@ -95,8 +98,8 @@ bool ArchiveDB::GetSerializable(vector<unsigned char>& retVec,
     {
         return false;
     }
-
-    auto cursor = m_client[m_dbname][collectionName].find(
+    auto MongoClient = (m_pool->acquire());
+    auto cursor = MongoClient->database(m_dbname)[collectionName].find(
         make_document(kvp("_id", index)));
 
     try
