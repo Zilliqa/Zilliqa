@@ -50,7 +50,6 @@ unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
     {
         dst.resize(size_needed + offset);
     }
-
     m_header.Serialize(dst, offset);
 
     BlockBase::Serialize(dst, offset + m_header.GetSize());

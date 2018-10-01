@@ -53,6 +53,7 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
                                       unsigned int offset) const
 {
     LOG_MARKER();
+
     unsigned int size_remaining = dst.size() - offset;
     if (size_remaining < GetSize())
     {
@@ -75,6 +76,10 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
     SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
     curOffset += UINT256_SIZE;
     curOffset += m_swInfo.Serialize(dst, curOffset);
+    SetNumber<uint32_t>(dst, curOffset, m_PoWDSWinners.size(),
+                        sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+
     for (const auto& DSWinner : m_PoWDSWinners)
     {
         // Pubkey
@@ -89,7 +94,6 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
             dst, curOffset, DSWinner.second.m_listenPortHost, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
     }
-
     return GetSize();
 }
 
@@ -127,8 +131,21 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
             return -1;
         }
         curOffset += SWInfo::SIZE;
-        while (curOffset + UINT128_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
-               < src.size())
+        uint32_t numOfIncomingDSMem
+            = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+        curOffset += sizeof(uint32_t);
+        uint32_t expectedSizeOffset = curOffset
+            + (numOfIncomingDSMem * (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE));
+        if (expectedSizeOffset >= src.size())
+        {
+            LOG_GENERAL(WARNING,
+                        "payload size is too small to deserialize all incoming "
+                        "ds members"
+                            << expectedSizeOffset << " " << src.size());
+            return -1;
+        }
+
+        for (uint32_t i = 0; i < numOfIncomingDSMem; i++)
         {
             deserializedPubKey.Deserialize(src, curOffset);
             curOffset += PUB_KEY_SIZE;
@@ -163,7 +180,9 @@ const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 uint32_t DSBlockHeader::GetSize() const
 {
     uint32_t dsBlockSize1 = sizeof(uint8_t) + sizeof(uint8_t) + BLOCK_HASH_SIZE
-        + PUB_KEY_SIZE + sizeof(uint64_t) + UINT256_SIZE + SWInfo::SIZE;
+        + PUB_KEY_SIZE + sizeof(uint64_t) + UINT256_SIZE + SWInfo::SIZE
+        + sizeof(uint32_t);
+
     dsBlockSize1
         += m_PoWDSWinners.size() * (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE);
     return dsBlockSize1;
