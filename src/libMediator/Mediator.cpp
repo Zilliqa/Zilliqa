@@ -144,11 +144,9 @@ void Mediator::HeartBeatLaunch()
 
     auto func = [this]() -> void {
 
-        // Set base timeout to roughly around one DS epoch (doesn't have to be very accurate), then multiply by HEARTBEAT_NUM_DS_EPOCHS_TIMEOUT
-        const unsigned int heartBeatTimeoutInSeconds
-            = (POW_WINDOW_IN_SECONDS
-               + (TX_DISTRIBUTE_TIME_IN_MS / 1000) * NUM_FINAL_BLOCK_PER_POW)
-            * HEARTBEAT_NUM_DS_EPOCHS_TIMEOUT;
+        // Set base timeout to roughly around one DS epoch (doesn't have to be very accurate)
+        const unsigned int heartBeatTimeoutInSeconds = POW_WINDOW_IN_SECONDS
+            + (TX_DISTRIBUTE_TIME_IN_MS / 1000) * NUM_FINAL_BLOCK_PER_POW;
 
         if (heartBeatTimeoutInSeconds <= HEARTBEAT_INTERVAL_IN_SECONDS)
         {

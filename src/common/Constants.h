@@ -155,7 +155,6 @@ extern const unsigned int MAX_ROUNDS_IN_CSTATE;
 extern const unsigned int MAX_TOTAL_ROUNDS;
 extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
-extern const unsigned int HEARTBEAT_NUM_DS_EPOCHS_TIMEOUT;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
