@@ -56,7 +56,7 @@ void Node::ProcessFallbackConsensusWhenDone()
     vector<PubKey> keys;
     for (auto const& kv : *m_myShardMembers)
     {
-        if (m_pendingFallbackBlock->GetB2().at(index) == true)
+        if (m_pendingFallbackBlock->GetB2().at(index))
         {
             keys.emplace_back(kv.first);
             count++;
