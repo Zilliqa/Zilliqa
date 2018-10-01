@@ -160,10 +160,10 @@ const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
-const unsigned int TERMINATION_COUNTDOWN{
-    ReadFromConstantsFile("TERMINATION_COUNTDOWN")};
-const unsigned int SHARD_DELAY_WAKEUP{
-    ReadFromConstantsFile("SHARD_DELAY_WAKEUP")};
+const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
+    ReadFromConstantsFile("TERMINATION_COUNTDOWN_IN_SECONDS")};
+const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
+    ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
