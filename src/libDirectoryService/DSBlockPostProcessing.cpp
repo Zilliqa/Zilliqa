@@ -248,8 +248,31 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
             shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
         }
 
-        P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                    dsblock_message);
+        if (false /*BROADCAST_GOSSIP_MODE*/)
+        {
+            // Choose N other Shard nodes to be recipient of DS block
+            std::vector<Peer> shardDSBlockReceivers;
+            unsigned int numOfDSBlockReceivers
+                = NUM_DSBLOCK_GOSSIP_RECEIVERS_PER_SHARD;
+            if (shard_peers.size() < numOfDSBlockReceivers)
+            {
+                numOfDSBlockReceivers = shard_peers.size();
+            }
+
+            for (unsigned int i = 0; i < numOfDSBlockReceivers; i++)
+            {
+                shardDSBlockReceivers.emplace_back(shard_peers.at(i));
+            }
+
+            P2PComm::GetInstance().SendRumorToForeignPeers(
+                shardDSBlockReceivers, dsblock_message);
+        }
+        else
+        {
+            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                        dsblock_message);
+        }
+
         p++;
     }
 }

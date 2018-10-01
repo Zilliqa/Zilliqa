@@ -73,4 +73,4 @@ namespace RRS
 
 } // project namespace
 
-#endif //RANDOMIZEDRUMORSPREADING_NETWORKSTATE_H
+#endif //__NETWORKSTATE_H__

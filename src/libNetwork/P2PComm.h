@@ -145,15 +145,18 @@ public:
 
     /// Multicasts message to specified list of peers.
     void SendMessage(const std::vector<Peer>& peers,
-                     const std::vector<unsigned char>& message);
+                     const std::vector<unsigned char>& message,
+                     const unsigned char& startByteType = START_BYTE_NORMAL);
 
     /// Multicasts message to specified list of peers.
     void SendMessage(const std::deque<Peer>& peers,
-                     const std::vector<unsigned char>& message);
+                     const std::vector<unsigned char>& message,
+                     const unsigned char& startByteType = START_BYTE_NORMAL);
 
     /// Sends normal message to specified peer.
     void SendMessage(const Peer& peer,
-                     const std::vector<unsigned char>& message);
+                     const std::vector<unsigned char>& message,
+                     const unsigned char& startByteType = START_BYTE_NORMAL);
 
     /// Multicasts message of type=broadcast to specified list of peers.
     void SendBroadcastMessage(const std::vector<Peer>& peers,
@@ -174,7 +177,16 @@ public:
 
     void SetSelfPeer(const Peer& self);
 
-    void SpreadRumor(const std::vector<unsigned char>& message);
+    bool SpreadRumor(const std::vector<unsigned char>& message);
+
+    void SendRumorToForeignPeer(const Peer& foreignPeer,
+                                const std::vector<unsigned char>& message);
+
+    void SendRumorToForeignPeers(const std::vector<Peer>& foreignPeers,
+                                 const std::vector<unsigned char>& message);
+
+    void SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
+                                 const std::vector<unsigned char>& message);
 };
 
 #endif // __P2PCOMM_H__

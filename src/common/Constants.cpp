@@ -161,6 +161,18 @@ const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
+const unsigned int NUM_MICROBLOCK_SENDERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_SENDERS")};
+const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_GOSSIP_RECEIVERS")};
+const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
+const unsigned int NUM_DSBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_DSBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
+const unsigned int NUM_DS_POW_GOSSIP_RECEIVERS{
+    ReadFromConstantsFile("NUM_DS_POW_GOSSIP_RECEIVERS")};
+const unsigned int NUM_VCBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_VCBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};

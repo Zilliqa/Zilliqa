@@ -47,10 +47,10 @@ namespace RRS
         // MEMBERS
         State m_state;
         const NetworkConfig* m_networkConfigPtr;
-        int m_age;
+        int m_rounds;
         int m_roundsInB;
         int m_roundsInC;
-        std::unordered_map<int, int> m_memberRounds; // Member ID --> age
+        std::unordered_map<int, int> m_memberRounds; // Member ID --> rounds
 
         // METHODS
         void advanceFromNew(const std::unordered_set<int>& membersInRound);
@@ -93,7 +93,7 @@ namespace RRS
         // CONST METHODS
         State state() const;
 
-        int age() const;
+        int rounds() const;
 
         bool isOld() const;
 
@@ -103,4 +103,4 @@ namespace RRS
 
 } // project namespace
 
-#endif //RANDOMIZEDRUMORSPREADING_MESSAGESTATE_H
+#endif //__RUMORSTATEMACHINE_H__

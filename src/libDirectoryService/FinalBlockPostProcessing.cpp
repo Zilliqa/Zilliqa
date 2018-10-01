@@ -236,8 +236,30 @@ void DirectoryService::SendFinalBlockToShardNodes(
                 + 1
             << "] FBBLKGEN");
 
-        P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                    finalblock_message);
+        if (BROADCAST_GOSSIP_MODE)
+        {
+            // Choose N other Shard nodes to be recipient of final block
+            std::vector<Peer> shardFinalBlockReceivers;
+            unsigned int numOfFinalBlockReceivers
+                = NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD;
+            if (shard_peers.size() < numOfFinalBlockReceivers)
+            {
+                numOfFinalBlockReceivers = shard_peers.size();
+            }
+
+            for (unsigned int i = 0; i < numOfFinalBlockReceivers; i++)
+            {
+                shardFinalBlockReceivers.emplace_back(shard_peers.at(i));
+            }
+
+            P2PComm::GetInstance().SendRumorToForeignPeers(
+                shardFinalBlockReceivers, finalblock_message);
+        }
+        else
+        {
+            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                        finalblock_message);
+        }
 
         p++;
     }

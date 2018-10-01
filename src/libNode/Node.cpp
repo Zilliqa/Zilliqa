@@ -707,7 +707,14 @@ bool Node::ProcessTxnPacketFromLookupCore(
         toSend.push_back(it.second);
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    if (BROADCAST_GOSSIP_MODE)
+    {
+        P2PComm::GetInstance().SpreadRumor(message);
+    }
+    else
+    {
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    }
 
     // Process the txns
     unsigned int txn_sent_count = 0;

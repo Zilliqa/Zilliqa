@@ -176,8 +176,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                         commit_peers.emplace_back(j->second);
                     }
                 }
-
-                P2PComm::GetInstance().SendMessage(commit_peers, challenge);
+                if (BROADCAST_GOSSIP_MODE)
+                {
+                    P2PComm::GetInstance().SpreadRumor(challenge);
+                }
+                else
+                {
+                    P2PComm::GetInstance().SendMessage(commit_peers, challenge);
+                }
             }
         }
 
@@ -448,7 +454,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 peerInfo.push_back(i.second);
             }
 
-            P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
+            if (BROADCAST_GOSSIP_MODE)
+            {
+                P2PComm::GetInstance().SpreadRumor(collectivesig);
+            }
+            else
+            {
+                P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
+            }
         }
     }
 
@@ -629,6 +642,9 @@ bool ConsensusLeader::StartConsensus(
 
     if (useGossipProto)
     {
+        // Other Nodes if too slow, dont get their RumorManager started yet.
+        // Tmp FIX - So lets wait for some time - 5 sec
+        //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         P2PComm::GetInstance().SpreadRumor(announcement_message);
     }
     else

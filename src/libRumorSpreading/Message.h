@@ -35,7 +35,8 @@ namespace RRS
             PUSH = 0x01,
             PULL = 0x02,
             EMPTY_PUSH = 0x03,
-            EMPTY_PULL = 0x04
+            EMPTY_PULL = 0x04,
+            FORWARD = 0x05
         };
 
         static std::map<Type, std::string> s_enumKeyToString;
@@ -44,13 +45,13 @@ namespace RRS
         // MEMBERS
         Type m_type;
         int m_rumorId;
-        int m_round;
+        int m_rounds;
 
     public:
         // CONSTRUCTORS
         Message();
 
-        Message(Type type, int rumorId, int round);
+        Message(Type type, int rumorId, int rounds);
 
         // OPERATORS
         bool operator==(const Message& other) const;
@@ -65,9 +66,9 @@ namespace RRS
 
         int rumorId() const;
 
-        int age() const;
+        int rounds() const;
     };
 
 } // project namespace
 
-#endif //RANDOMIZEDRUMORSPREADING_MESSAGE_H
+#endif //__MESSAGE_H__
