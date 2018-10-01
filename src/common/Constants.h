@@ -62,6 +62,9 @@ const unsigned int PORT_SIZE = 4;
 const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
 const unsigned int SERVER_PORT = 4201;
 
+// Number of initial ds epoch number, including genesis epoch
+const unsigned int INIT_DS_EPOCH_NUM = 2;
+
 // Testing parameters
 
 // Metadata type
@@ -154,8 +157,8 @@ extern const unsigned int MAX_ROUNDS_IN_BSTATE;
 extern const unsigned int MAX_ROUNDS_IN_CSTATE;
 extern const unsigned int MAX_TOTAL_ROUNDS;
 extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
-extern const unsigned int TERMINATION_COUNTDOWN;
-extern const unsigned int SHARD_DELAY_WAKEUP;
+extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
+extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

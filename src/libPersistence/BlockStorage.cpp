@@ -381,9 +381,15 @@ bool BlockStorage::GetDSCommittee(
     LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
     string dataStr;
 
-    while (m_dsCommitteeDB->Lookup(index) != "")
+    while (true)
     {
-        dataStr = m_dsCommitteeDB->Lookup(index);
+        dataStr = m_dsCommitteeDB->Lookup(index++);
+
+        if (dataStr.empty())
+        {
+            break;
+        }
+
         dsCommittee->emplace_back(
             PubKey(vector<unsigned char>(dataStr.begin(),
                                          dataStr.begin() + PUB_KEY_SIZE),
@@ -395,7 +401,6 @@ bool BlockStorage::GetDSCommittee(
                     "Retrieved DS committee: " << dsCommittee->back().first
                                                << ", "
                                                << dsCommittee->back().second);
-        ++index;
     }
 
     return true;

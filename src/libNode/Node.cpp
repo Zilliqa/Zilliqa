@@ -204,9 +204,10 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
             SetState(POW_SUBMISSION);
             LOG_GENERAL(INFO,
                         "Shard node, wait "
-                            << SHARD_DELAY_WAKEUP
+                            << SHARD_DELAY_WAKEUP_IN_SECONDS
                             << " seconds for DS nodes wakeup...");
-            this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP));
+            this_thread::sleep_for(
+                chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
             StartPoW(block_num, dsDifficulty, difficulty,
                      m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
         }

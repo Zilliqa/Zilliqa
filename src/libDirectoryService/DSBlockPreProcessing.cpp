@@ -114,18 +114,15 @@ void DirectoryService::ComposeDSBlock(
                       << ", new difficulty " << std::to_string(difficulty));
     }
 
-    auto func = [this]() mutable -> void {
-        if (UpgradeManager::GetInstance().HasNewSW())
+    if (UpgradeManager::GetInstance().HasNewSW())
+    {
+        if (UpgradeManager::GetInstance().DownloadSW())
         {
-            if (UpgradeManager::GetInstance().DownloadSW())
-            {
-                lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-                m_mediator.m_curSWInfo
-                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
-            }
+            lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+            m_mediator.m_curSWInfo
+                = *UpgradeManager::GetInstance().GetLatestSWInfo();
         }
-    };
-    DetachedFunction(1, func);
+    }
 
     // Assemble DS block
     // To-do: Handle exceptions.
