@@ -1200,6 +1200,15 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 
         LOG_MARKER();
 
+#ifdef FALLBACK_TEST
+        if (m_mediator.m_currentEpochNum == FALLBACK_TEST_EPOCH
+            && m_mediator.m_consensusID > 1)
+        {
+            LOG_GENERAL(INFO, "Stop DS for testing fallback");
+            return;
+        }
+#endif // FALLBACK_TEST
+
         m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
         SetState(FINALBLOCK_CONSENSUS_PREP);

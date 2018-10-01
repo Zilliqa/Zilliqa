@@ -155,6 +155,8 @@ const unsigned int FALLBACK_INTERVAL_WAITING{
     ReadFromConstantsFile("FALLBACK_INTERVAL_WAITING")};
 const unsigned int FALLBACK_EXTRA_TIME{
     ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
+const unsigned int FALLBACK_TEST_EPOCH{
+    ReadFromConstantsFile("FALLBACK_TEST_EPOCH")};
 const unsigned int MAX_ROUNDS_IN_BSTATE{
     ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
 const unsigned int MAX_ROUNDS_IN_CSTATE{
