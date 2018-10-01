@@ -50,8 +50,6 @@ void DirectoryService::StoreFinalBlockToDisk()
         return;
     }
 
-    m_mediator.HeartBeatPulse();
-
     // Add finalblock to txblockchain
     m_mediator.m_node->AddBlock(*m_finalBlock);
     m_mediator.m_currentEpochNum
@@ -280,6 +278,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     // Clear microblock(s)
     // m_microBlocks.clear();
+
+    m_mediator.HeartBeatPulse();
 
     if (m_mode == PRIMARY_DS)
     {
