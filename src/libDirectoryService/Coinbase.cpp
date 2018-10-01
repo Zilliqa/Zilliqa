@@ -124,9 +124,6 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
     if (shard_id == (int32_t)m_shards.size() || shard_id == -1)
     {
         //DS
-        LOG_GENERAL(INFO,
-                    "[CNBSE] "
-                        << "Hereee");
         lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);
         lock_guard<mutex> g1(m_mutexCoinbaseRewardees, adopt_lock);
