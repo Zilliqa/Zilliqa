@@ -311,6 +311,7 @@ class Node : public Executable, public Broadcastable
                              unsigned int offset,
                              std::vector<unsigned char>& errorMsg,
                              const uint32_t consensusID,
+                             const uint64_t blockNumber,
                              const std::vector<unsigned char>& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
                              std::vector<unsigned char>& messageToCosign);
@@ -340,6 +341,7 @@ class Node : public Executable, public Broadcastable
                            unsigned int offset,
                            std::vector<unsigned char>& errorMsg,
                            const uint32_t consensusID,
+                           const uint64_t blockNumber,
                            const std::vector<unsigned char>& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
                            std::vector<unsigned char>& messageToCosign);

@@ -36,8 +36,9 @@ typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)>
     ShardCommitFailureHandlerFunc;
 typedef std::function<bool(
     std::vector<unsigned char>& dst, unsigned int offset,
-    const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const std::pair<PrivKey, PubKey>& leaderKey,
     std::vector<unsigned char>& messageToCosign)>
     AnnouncementGeneratorFunc;
 
@@ -118,6 +119,7 @@ public:
     /// Constructor.
     ConsensusLeader(
         uint32_t consensus_id, // unique identifier for this consensus session
+        uint64_t block_number, // latest final block number
         const std::vector<unsigned char>&
             block_hash, // unique identifier for this consensus session
         uint16_t
