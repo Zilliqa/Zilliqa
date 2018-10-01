@@ -655,10 +655,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             + 1
         << "] BEFORE SENDING DSBLOCK");
 
-    LOG_GENERAL(WARNING,
-                "my_shards_lo" << my_shards_lo << " my_shards_hi "
-                               << my_shards_hi);
-
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_shards.size())
     {
