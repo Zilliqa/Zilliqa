@@ -462,17 +462,18 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo())
-    {
-        auto func = [this]() mutable -> void {
+    auto func = [this, dsblock]() mutable -> void {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo())
+        {
             if (UpgradeManager::GetInstance().DownloadSW())
             {
                 m_mediator.m_curSWInfo
                     = *UpgradeManager::GetInstance().GetLatestSWInfo();
             }
-        };
-        DetachedFunction(1, func);
-    }
+        }
+    };
+    DetachedFunction(1, func);
 
     m_myShardID = shardID;
 

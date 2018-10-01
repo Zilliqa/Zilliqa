@@ -114,23 +114,30 @@ void DirectoryService::ComposeDSBlock(
                       << ", new difficulty " << std::to_string(difficulty));
     }
 
-    if (UpgradeManager::GetInstance().HasNewSW())
-    {
-        if (UpgradeManager::GetInstance().DownloadSW())
+    auto func = [this]() mutable -> void {
+        if (UpgradeManager::GetInstance().HasNewSW())
         {
-            m_mediator.m_curSWInfo
-                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            if (UpgradeManager::GetInstance().DownloadSW())
+            {
+                lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+                m_mediator.m_curSWInfo
+                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            }
         }
-    }
+    };
+    DetachedFunction(1, func);
 
     // Assemble DS block
     // To-do: Handle exceptions.
     // TODO: Revise DS block structure
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash, 0, winnerKey,
-                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
-                      m_mediator.m_curSWInfo),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
+    {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        m_pendingDSBlock.reset(new DSBlock(
+            DSBlockHeader(dsDifficulty, difficulty, prevHash, 0, winnerKey,
+                          m_mediator.m_selfKey.second, blockNum,
+                          get_time_as_int(), m_mediator.m_curSWInfo),
+            CoSignatures(m_mediator.m_DSCommittee->size())));
+    }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with winning PoW = 0x"
                   << DataConversion::charArrToHexStr(winnerPoW));
@@ -675,17 +682,18 @@ bool DirectoryService::DSBlockValidator(
         return false;
     }
 
-    if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo())
-    {
-        auto func = [this]() mutable -> void {
+    auto func = [this]() mutable -> void {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo())
+        {
             if (UpgradeManager::GetInstance().DownloadSW())
             {
                 m_mediator.m_curSWInfo
                     = *UpgradeManager::GetInstance().GetLatestSWInfo();
             }
-        };
-        DetachedFunction(1, func);
-    }
+        }
+    };
+    DetachedFunction(1, func);
 
     // To-do: Put in the logic here for checking the proposed DS block
 
