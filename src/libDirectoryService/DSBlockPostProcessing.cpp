@@ -268,7 +268,7 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
         else
         {*/
         P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                        dsblock_message);
+                                                    dsblock_message);
         //}
 
         p++;
