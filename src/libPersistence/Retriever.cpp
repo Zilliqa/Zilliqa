@@ -168,11 +168,6 @@ bool Retriever::ValidateStates()
 {
     LOG_MARKER();
 
-#if 1 //clark
-    LOG_GENERAL(INFO, "TEST ONLY, ValidateStates passed.");
-    return true;
-#endif
-
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash()
         == AccountStore::GetInstance().GetStateRootHash())
     {

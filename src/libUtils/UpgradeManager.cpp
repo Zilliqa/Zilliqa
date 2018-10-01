@@ -20,13 +20,8 @@
 #include <boost/tokenizer.hpp>
 using namespace std;
 
-#if 1 //clark
-#define DEFAULT_RELEASE_URL                                                    \
-    "https://api.github.com/repos/ckyang/Zilliqa/releases/latest"
-#else
 #define DEFAULT_RELEASE_URL                                                    \
     "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
-#endif
 #define USER_AGENT "Zilliqa"
 #define VERSION_FILE_NAME "VERSION"
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
