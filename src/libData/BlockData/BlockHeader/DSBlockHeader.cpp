@@ -82,8 +82,8 @@ unsigned int DSBlockHeader::Serialize(vector<unsigned char>& dst,
         curOffset += PUB_KEY_SIZE;
         // IP address
         Serializable::SetNumber<uint128_t>(
-            dst, curOffset, DSWinner.second.m_ipAddress, sizeof(uint128_t));
-        curOffset += sizeof(uint128_t);
+            dst, curOffset, DSWinner.second.m_ipAddress, UINT128_SIZE);
+        curOffset += UINT128_SIZE;
         // Port
         Serializable::SetNumber<uint32_t>(
             dst, curOffset, DSWinner.second.m_listenPortHost, sizeof(uint32_t));
@@ -127,7 +127,7 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
             return -1;
         }
         curOffset += SWInfo::SIZE;
-        while (curOffset + sizeof(uint128_t) + sizeof(uint32_t) + PUB_KEY_SIZE
+        while (curOffset + UINT128_SIZE + sizeof(uint32_t) + PUB_KEY_SIZE
                < src.size())
         {
             deserializedPubKey.Deserialize(src, curOffset);
