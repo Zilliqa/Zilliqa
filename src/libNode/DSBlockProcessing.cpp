@@ -384,10 +384,10 @@ void Node::StartFirstTxEpoch()
                              << std::left << m_consensusMyID << "] SCBK");
     }
 
-    // Choose 4 other nodes to be sender of microblock to ds committee.
+    // Choose N other nodes to be sender of microblock to ds committee.
     // TODO: Randomly choose these nodes?
     m_isMBSender = false;
-    unsigned int numOfMBSender = 5;
+    unsigned int numOfMBSender = NUM_MICROBLOCK_SENDERS + 1;
     if (m_myShardMembers->size() < numOfMBSender)
     {
         numOfMBSender = m_myShardMembers->size();
@@ -404,6 +404,19 @@ void Node::StartFirstTxEpoch()
         }
     }
 
+    // Choose N other DS nodes to be recipient of microblock
+    m_DSMBReceivers.clear();
+    unsigned int numOfMBReceivers = NUM_MICROBLOCK_GOSSIP_RECEIVERS;
+    if (m_mediator.m_DSCommittee->size() < numOfMBReceivers)
+    {
+        numOfMBReceivers = m_mediator.m_DSCommittee->size();
+    }
+
+    for (unsigned int i = 0; i < numOfMBReceivers; i++)
+    {
+        m_DSMBReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
+    }
+
     m_consensusLeaderID = 0;
     CommitTxnPacketBuffer();
 
@@ -418,7 +431,7 @@ void Node::StartFirstTxEpoch()
             }
         }
 
-        // Set the peerlist for RumorSpreading protocol every start of DS Epoch
+        // Set the peerlist for RumorSpreading protocol every start of DS Epoch - after DS block is confirmed
         P2PComm::GetInstance().InitializeRumorManager(peers);
     }
 

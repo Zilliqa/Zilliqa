@@ -654,8 +654,24 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
             message.end());
 
         P2PComm& p2p = P2PComm::GetInstance();
-        if (p2p.m_rumorManager.rumorReceived((unsigned int)gossipMsgTyp[0],
-                                             gossipMsgAge, rumor_message, from))
+        if (gossipMsgTyp[0] == (uint8_t)RRS::Message::Type::FORWARD)
+        {
+            LOG_GENERAL(
+                INFO, "Received Gossip of type - FORWARD from Peer :" << from);
+
+            if (p2p.SpreadRumor(rumor_message))
+            {
+                std::pair<vector<unsigned char>, Peer>* raw_message
+                    = new pair<vector<unsigned char>, Peer>(rumor_message,
+                                                            from);
+
+                // Queue the message
+                m_dispatcher(raw_message);
+            }
+        }
+        else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp[0],
+                                                  gossipMsgAge, rumor_message,
+                                                  from))
         {
             std::pair<vector<unsigned char>, Peer>* raw_message
                 = new pair<vector<unsigned char>, Peer>(rumor_message, from);
@@ -781,7 +797,8 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
 }
 
 void P2PComm::SendMessage(const vector<Peer>& peers,
-                          const vector<unsigned char>& message)
+                          const vector<unsigned char>& message,
+                          const unsigned char& startByteType)
 {
     LOG_MARKER();
 
@@ -794,7 +811,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
     SendJob* job = new SendJobPeers<vector<Peer>>;
     dynamic_cast<SendJobPeers<vector<Peer>>*>(job)->m_peers = peers;
     job->m_selfPeer = m_selfPeer;
-    job->m_startbyte = START_BYTE_NORMAL;
+    job->m_startbyte = startByteType;
     job->m_message = message;
     job->m_hash.clear();
 
@@ -806,7 +823,8 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers,
-                          const vector<unsigned char>& message)
+                          const vector<unsigned char>& message,
+                          const unsigned char& startByteType)
 {
     LOG_MARKER();
 
@@ -819,7 +837,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
     SendJob* job = new SendJobPeers<deque<Peer>>;
     dynamic_cast<SendJobPeers<deque<Peer>>*>(job)->m_peers = peers;
     job->m_selfPeer = m_selfPeer;
-    job->m_startbyte = START_BYTE_NORMAL;
+    job->m_startbyte = startByteType;
     job->m_message = message;
     job->m_hash.clear();
 
@@ -831,7 +849,8 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
 }
 
 void P2PComm::SendMessage(const Peer& peer,
-                          const vector<unsigned char>& message)
+                          const vector<unsigned char>& message,
+                          const unsigned char& startByteType)
 {
     LOG_MARKER();
 
@@ -839,7 +858,7 @@ void P2PComm::SendMessage(const Peer& peer,
     SendJob* job = new SendJobPeer;
     dynamic_cast<SendJobPeer*>(job)->m_peer = peer;
     job->m_selfPeer = m_selfPeer;
-    job->m_startbyte = START_BYTE_NORMAL;
+    job->m_startbyte = startByteType;
     job->m_message = message;
     job->m_hash.clear();
 
@@ -952,10 +971,31 @@ void P2PComm::SendMessageNoQueue(const Peer& peer,
     SendJob::SendMessageCore(peer, message, startByteType, {});
 }
 
-void P2PComm::SpreadRumor(const std::vector<unsigned char>& message)
+bool P2PComm::SpreadRumor(const std::vector<unsigned char>& message)
 {
     LOG_MARKER();
-    m_rumorManager.addRumor(message);
+    return m_rumorManager.AddRumor(message);
+}
+
+void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
+                                     const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.SendRumorToForeignPeer(foreignPeer, message);
+}
+
+void P2PComm::SendRumorToForeignPeers(const std::vector<Peer>& foreignPeers,
+                                      const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
+}
+
+void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
+                                      const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
@@ -964,12 +1004,12 @@ void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers)
 {
     LOG_MARKER();
 
-    m_rumorManager.stopRounds();
+    m_rumorManager.StopRounds();
     if (m_rumorManager.Initialize(peers, m_selfPeer))
     {
         if (peers.size() != 0)
         {
-            m_rumorManager.startRounds();
+            m_rumorManager.StartRounds();
         }
     }
 }

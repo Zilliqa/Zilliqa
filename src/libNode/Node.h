@@ -87,6 +87,9 @@ class Node : public Executable, public Broadcastable
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_numShards;
 
+    // MicroBlock Sharing assignments
+    std::vector<Peer> m_DSMBReceivers;
+
     // Transaction sharing assignments
     std::atomic<bool> m_txnSharingIAmForwarder;
     std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;

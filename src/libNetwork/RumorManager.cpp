@@ -38,6 +38,8 @@ namespace
             return RRS::Message::Type::EMPTY_PUSH;
         case 4:
             return RRS::Message::Type::EMPTY_PULL;
+        case 5:
+            return RRS::Message::Type::FORWARD;
         default:
             return RRS::Message::Type::UNDEFINED;
         }
@@ -63,9 +65,15 @@ RumorManager::~RumorManager() {}
 
 // PRIVATE METHODS
 
-void RumorManager::startRounds()
+void RumorManager::StartRounds()
 {
     LOG_MARKER();
+
+    // To make sure we always have m_continueRound set at start of round.
+    {
+        std::unique_lock<std::mutex> guard(m_continueRoundMutex);
+        m_continueRound = true;
+    }
 
     std::thread([&]() {
         std::unique_lock<std::mutex> guard(m_continueRoundMutex);
@@ -77,15 +85,17 @@ void RumorManager::startRounds()
                 std::pair<std::vector<int>, std::vector<RRS::Message>> result
                     = m_rumorHolder->advanceRound();
 
+                LOG_GENERAL(DEBUG,
+                            "Sending " << result.second.size()
+                                       << " push messages to "
+                                       << result.first.size() << " peers");
+
                 // Get the corresponding Peer to which to send Push Messages if any.
                 for (const auto& i : result.first)
                 {
                     auto l = m_peerIdPeerBimap.left.find(i);
                     if (l != m_peerIdPeerBimap.left.end())
                     {
-                        LOG_GENERAL(DEBUG,
-                                    "Sending " << result.second.size()
-                                               << " push messages");
                         SendMessages(l->second, result.second);
                     }
                 }
@@ -101,9 +111,11 @@ void RumorManager::startRounds()
         .detach();
 }
 
-void RumorManager::stopRounds()
+void RumorManager::StopRounds()
 {
     LOG_MARKER();
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(ROUND_TIME_IN_MS * 2));
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
         m_continueRound = false;
@@ -124,7 +136,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
             // Seems logical error. Round should have been already Stopped.
             LOG_GENERAL(WARNING,
                         "Round is still running.. So won't re-initialize the "
-                        "rumor mamager.");
+                        "rumor manager.");
             return false;
         }
     }
@@ -164,11 +176,9 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
     return true;
 }
 
-bool RumorManager::addRumor(const RumorManager::RawBytes& message)
+bool RumorManager::AddRumor(const RumorManager::RawBytes& message)
 {
     LOG_MARKER();
-    LOG_PAYLOAD(INFO, "New Gossip message initiated by me:" << m_selfPeer,
-                message, Logger::MAX_BYTES_TO_DISPLAY);
     {
         std::lock_guard<std::mutex> guard(m_continueRoundMutex);
         if (!m_continueRound)
@@ -176,7 +186,7 @@ bool RumorManager::addRumor(const RumorManager::RawBytes& message)
             // Seems logical error. Round should have started.
             LOG_GENERAL(WARNING,
                         "Round is not running.. So won't add the rumor.");
-            return false;
+            return true;
         }
     }
 
@@ -184,18 +194,103 @@ bool RumorManager::addRumor(const RumorManager::RawBytes& message)
 
     if (m_peerIdSet.size() == 0)
     {
-        return false;
+        return true;
     }
 
-    m_rumorIdRumorBimap.insert(
-        RumorIdRumorBimap::value_type(++m_rumorIdGenerator, message));
+    auto it = m_rumorIdRumorBimap.right.find(message);
+    if (it == m_rumorIdRumorBimap.right.end())
+    {
+        m_rumorIdRumorBimap.insert(
+            RumorIdRumorBimap::value_type(++m_rumorIdGenerator, message));
 
-    m_rumorHolder->addRumor(m_rumorIdGenerator);
+        LOG_PAYLOAD(INFO,
+                    "New Gossip message (RumorId :" << m_rumorIdGenerator
+                                                    << ") initiated by me:"
+                                                    << m_selfPeer,
+                    message, Logger::MAX_BYTES_TO_DISPLAY);
 
-    return true;
+        return m_rumorHolder->addRumor(m_rumorIdGenerator);
+    }
+    else
+    {
+        LOG_GENERAL(INFO, "This Rumor was already received. No problem.");
+    }
+
+    return false;
 }
 
-bool RumorManager::rumorReceived(uint8_t type, int32_t round,
+RumorManager::RawBytes
+RumorManager::GenerateGossipForwardMessage(const RawBytes& message)
+{
+    // Add round and type to outgoing message
+    RawBytes cmd = {(unsigned char)RRS::Message::Type::FORWARD};
+    unsigned int cur_offset = RRSMessageOffset::R_AGE;
+
+    Serializable::SetNumber<uint32_t>(cmd, cur_offset, 0, sizeof(uint32_t));
+
+    cur_offset += sizeof(uint32_t);
+
+    Serializable::SetNumber<uint32_t>(
+        cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+
+    cmd.insert(cmd.end(), message.begin(), message.end());
+
+    return cmd;
+}
+
+void RumorManager::SendRumorToForeignPeers(
+    const std::deque<Peer>& toForeignPeers, const RawBytes& message)
+{
+    LOG_MARKER();
+    LOG_PAYLOAD(INFO,
+                "New message to be gossiped is forwarded to Foreign Peers by me"
+                    << m_selfPeer,
+                message, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_GENERAL(INFO, "Foreign Peers: ");
+    for (auto& i : toForeignPeers)
+    {
+        LOG_GENERAL(INFO, "             " << i);
+    }
+
+    RawBytes cmd = GenerateGossipForwardMessage(message);
+
+    P2PComm::GetInstance().SendMessage(toForeignPeers, cmd, START_BYTE_GOSSIP);
+}
+
+void RumorManager::SendRumorToForeignPeers(
+    const std::vector<Peer>& toForeignPeers, const RawBytes& message)
+{
+    LOG_MARKER();
+    LOG_PAYLOAD(INFO,
+                "New message to be gossiped is forwarded to Foreign Peers by me"
+                    << m_selfPeer,
+                message, Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_GENERAL(INFO, "Foreign Peers: ");
+    for (auto& i : toForeignPeers)
+    {
+        LOG_GENERAL(INFO, "             " << i);
+    }
+
+    RawBytes cmd = GenerateGossipForwardMessage(message);
+
+    P2PComm::GetInstance().SendMessage(toForeignPeers, cmd, START_BYTE_GOSSIP);
+}
+
+void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
+                                          const RawBytes& message)
+{
+    LOG_MARKER();
+    LOG_PAYLOAD(INFO,
+                "New message to be gossiped forwarded to Foreign Peer:"
+                    << toForeignPeer << "by me:" << m_selfPeer,
+                message, Logger::MAX_BYTES_TO_DISPLAY);
+
+    RawBytes cmd = GenerateGossipForwardMessage(message);
+
+    P2PComm::GetInstance().SendMessage(toForeignPeer, cmd, START_BYTE_GOSSIP);
+}
+
+bool RumorManager::RumorReceived(uint8_t type, int32_t round,
                                  const RawBytes& message, const Peer& from)
 {
     {
@@ -203,9 +298,9 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
         if (!m_continueRound)
         {
             LOG_GENERAL(WARNING,
-                        "Round is not running.. So won't accept the rumor "
-                        "received. Will ignore..");
-            return false;
+                        "Round is not running.. Will accept the msg but not "
+                        "gossip it further..");
+            return true;
         }
     }
 
@@ -257,18 +352,13 @@ bool RumorManager::rumorReceived(uint8_t type, int32_t round,
 
     RRS::Message recvMsg(t, recvdRumorId, round);
 
-    int peerId = p->second;
     std::pair<int, std::vector<RRS::Message>> pullMsgs
-        = m_rumorHolder->receivedMessage(recvMsg, peerId);
+        = m_rumorHolder->receivedMessage(recvMsg, p->second);
 
-    // Get the corresponding Peer to which to send Pull Messages if any.
-    auto l = m_peerIdPeerBimap.left.find(pullMsgs.first);
-    if (l != m_peerIdPeerBimap.left.end())
-    {
-        LOG_GENERAL(DEBUG,
-                    "Sending " << pullMsgs.second.size() << " PULL Messages");
-        SendMessages(l->second, pullMsgs.second);
-    }
+    LOG_GENERAL(DEBUG,
+                "Sending " << pullMsgs.second.size() << " PULL Messages");
+
+    SendMessages(from, pullMsgs.second);
 
     return toBeDispatched;
 }
@@ -282,7 +372,7 @@ void RumorManager::SendMessages(const Peer& toPeer,
         RawBytes cmd = {(unsigned char)k.type()};
         unsigned int cur_offset = RRSMessageOffset::R_AGE;
 
-        Serializable::SetNumber<uint32_t>(cmd, cur_offset, k.age(),
+        Serializable::SetNumber<uint32_t>(cmd, cur_offset, k.rounds(),
                                           sizeof(uint32_t));
 
         cur_offset += sizeof(uint32_t);
@@ -296,9 +386,10 @@ void RumorManager::SendMessages(const Peer& toPeer,
         {
             // Add raw message to outgoing message
             cmd.insert(cmd.end(), m->second.begin(), m->second.end());
-            LOG_GENERAL(DEBUG,
-                        "Sending Non Empty - Gossip Message - "
-                            << k << " To Peer : " << toPeer);
+            LOG_GENERAL(INFO,
+                        "Sending Non Empty - Gossip Message (RumorID:"
+                            << k.rumorId() << ") " << k
+                            << " To Peer : " << toPeer);
         }
 
         // Send the message to peer .

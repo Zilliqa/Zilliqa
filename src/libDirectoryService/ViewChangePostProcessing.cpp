@@ -126,8 +126,31 @@ void DirectoryService::SendVCBlockToShardNodes(
                         << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
             }
 
-            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                        vcblock_message);
+            if (BROADCAST_GOSSIP_MODE)
+            {
+                // Choose N other Shard nodes to be recipient of VC block
+                std::vector<Peer> shardVCBlockReceivers;
+                unsigned int numOfVCBlockReceivers
+                    = NUM_VCBLOCK_GOSSIP_RECEIVERS_PER_SHARD;
+                if (shard_peers.size() < numOfVCBlockReceivers)
+                {
+                    numOfVCBlockReceivers = shard_peers.size();
+                }
+
+                for (unsigned int i = 0; i < numOfVCBlockReceivers; i++)
+                {
+                    shardVCBlockReceivers.emplace_back(shard_peers.at(i));
+                }
+
+                P2PComm::GetInstance().SendRumorToForeignPeers(
+                    shardVCBlockReceivers, vcblock_message);
+            }
+            else
+            {
+                P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                            vcblock_message);
+            }
+
             p++;
         }
     }
@@ -361,6 +384,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         {
             allPowSubmitter.emplace_back(nodeNetwork.second);
         }
+        //[Sandip] - TODO
         P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
                                                     vcblock_message);
         break;

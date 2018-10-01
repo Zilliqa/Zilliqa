@@ -24,15 +24,16 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "libRumorSpreading/RumorHolder.h"
-
 #include "Peer.h"
+#include "libRumorSpreading/RumorHolder.h"
 
 enum RRSMessageOffset : unsigned int
 {
     R_TYPE = 0,
     R_AGE = 1,
 };
+
+const unsigned int RETRY_COUNT = 3;
 
 class RumorManager
 {
@@ -61,6 +62,8 @@ private:
     void SendMessages(const Peer& toPeer,
                       const std::vector<RRS::Message>& messages);
 
+    RawBytes GenerateGossipForwardMessage(const RawBytes& message);
+
 public:
     // CREATORS
     RumorManager();
@@ -69,13 +72,22 @@ public:
     // METHODS
     bool Initialize(const std::vector<Peer>& peers, const Peer& myself);
 
-    bool addRumor(const RawBytes& message);
+    bool AddRumor(const RawBytes& message);
 
-    bool rumorReceived(uint8_t type, int32_t round, const RawBytes& message,
+    bool RumorReceived(uint8_t type, int32_t round, const RawBytes& message,
                        const Peer& from);
 
-    void startRounds();
-    void stopRounds();
+    void StartRounds();
+    void StopRounds();
+
+    void SendRumorToForeignPeer(const Peer& toForeignPeer,
+                                const RawBytes& message);
+
+    void SendRumorToForeignPeers(const std::deque<Peer>& toForeignPeers,
+                                 const RawBytes& message);
+
+    void SendRumorToForeignPeers(const std::vector<Peer>& toForeignPeers,
+                                 const RawBytes& message);
 
     // CONST METHODS
     const RumorIdRumorBimap& rumors() const;

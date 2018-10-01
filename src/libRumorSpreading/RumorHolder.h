@@ -35,7 +35,8 @@ namespace RRS
     {
     public:
         // TYPES
-        typedef std::function<int()> NextMemberCb;
+        //typedef std::function<int()> NextMemberCb;
+        using NextMemberCb = std::function<int()>;
 
         // ENUMS
         enum class StatisticKey
@@ -60,11 +61,11 @@ namespace RRS
         std::unordered_map<int, RumorStateMachine> m_rumors;
         mutable std::mutex m_mutex;
         NextMemberCb m_nextMemberCb;
-        std::unordered_set<int> m_nonPriorPeers;
+        std::unordered_set<int> m_nonPriorityPeers;
         std::map<StatisticKey, double> m_statistics;
-        int m_maxNeighborsPerRounds;
+        int m_maxNeighborsPerRound;
 
-        static const int MAXRETRY = 3;
+        static const int MAX_RETRY = 3;
 
         // METHODS
         // Copy the member ids into a vector
@@ -128,4 +129,4 @@ namespace RRS
 
 } // project namespace
 
-#endif //RANDOMIZEDRUMORSPREADING_RumorHolder_H
+#endif //__RUMORHOLDER_H__
