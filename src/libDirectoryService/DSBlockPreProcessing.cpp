@@ -70,9 +70,10 @@ unsigned int DirectoryService::ComposeDSBlock(
 
     // Assemble DS block header
     unsigned int numOfElectedDSMembers
-        = max(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
+        = min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
     unsigned int counter = 0;
     std::map<PubKey, Peer> powDSWinners;
+    LOG_GENERAL(INFO, "Newly elected DS members");
     for (const auto& submitter : sortedDSPoWSolns)
     {
         if (counter >= numOfElectedDSMembers)
@@ -84,6 +85,7 @@ unsigned int DirectoryService::ComposeDSBlock(
         sortedPoWSolns.erase(
             remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
             sortedPoWSolns.end());
+        LOG_GENERAL(INFO, m_allPoWConns[submitter.second]);
         counter++;
     }
     if (sortedDSPoWSolns.size() == 0)
@@ -505,7 +507,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     for (const auto& kv : DSPoWOrderSorter)
     {
         sortedDSPoWSolns.emplace_back(kv);
-        LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
     }
 
     // Use a map to sort the soln according to difficulty level
@@ -527,11 +528,45 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         = ComposeDSBlock(sortedDSPoWSolns, sortedPoWSolns);
 
     // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
+    if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size())
+    {
+        LOG_GENERAL(FATAL,
+                    "number of proposed ds member is larger than current ds "
+                    "committee. numOfProposedDSMembers: "
+                        << numOfProposedDSMembers << " m_DSCommittee size: "
+                        << m_mediator.m_DSCommittee->size());
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    vector<unsigned char> serializedPubK;
     for (unsigned int i = 0; i < numOfProposedDSMembers; i++)
     {
-        sortedPoWSolns.emplace_back(array<unsigned char, 32>(),
+        // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK) to act as the PoW soln
+        // TODO: To determine how to include kicked out ds member (who did not do PoW) back into the shardding strcture
+        PubKey nodePubKey = m_mediator.m_DSCommittee
+                                ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                                .first;
+
+        nodePubKey.Serialize(serializedPubK, 0);
+        sha2.Update(serializedPubK);
+        vector<unsigned char> PubKeyHash;
+        PubKeyHash = sha2.Finalize();
+        array<unsigned char, 32> PubKeyHashArr;
+
+        // Injecting into sorted PoWs
+        copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
+        sortedPoWSolns.emplace_back(PubKeyHashArr,
                                     m_mediator.m_DSCommittee->back().first);
-        m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
+        sha2.Reset();
+        serializedPubK.clear();
+
+        // Injecting into Pow Connections information
+        m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(
+            m_mediator.m_DSCommittee->size() - 1 - i));
+        LOG_GENERAL(WARNING,
+                    m_mediator.m_DSCommittee
+                        ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                        .second);
     }
 
     ClearReputationOfNodeWithoutPoW();
