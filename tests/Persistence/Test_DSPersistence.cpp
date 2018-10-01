@@ -52,6 +52,8 @@ BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
 
 DSBlock constructDummyDSBlock()
 {
+    LOG_MARKER();
+
     BlockHash prevHash1;
 
     for (unsigned int i = 0; i < prevHash1.asArray().size(); i++)
@@ -62,6 +64,11 @@ DSBlock constructDummyDSBlock()
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
     std::map<PubKey, Peer> powDSWinners;
+    for (int i = 0; i < 10; i++)
+    {
+        powDSWinners[Schnorr::GetInstance().GenKeyPair().second] = Peer();
+    }
+
     return DSBlock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, 10, 789,
                                  SWInfo(), powDSWinners),
                    CoSignatures());
