@@ -44,8 +44,12 @@ using namespace boost::multiprecision;
 
 const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;
+const unsigned char START_BYTE_GOSSIP = 0x33;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
+const unsigned int GOSSIP_MSGTYPE_LEN = 1;
+const unsigned int GOSSIP_ROUND_LEN = 4;
+const unsigned int GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
 
 P2PComm::Dispatcher P2PComm::m_dispatcher;
 P2PComm::BroadcastListFunc P2PComm::m_broadcast_list_retriever;
@@ -179,7 +183,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
                                     const vector<unsigned char>& msg_hash)
 {
     // LOG_MARKER();
-    LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
+    LOG_PAYLOAD(DEBUG, "Sending message to " << peer, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0)
@@ -455,6 +459,12 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     // <32-byte hash> <message>
 
     // 0x01 ~ 0xFF - version, defined in constant file
+    // 0x33 - start byte (gossip)
+    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
+    // 0x01 ~ 0x04 - Gossip_Message_Type
+    // <4-byte Age> <message>
+
+    // 0x01 ~ 0xFF - version, defined in constant file
     // 0x33 - start byte (report)
     // 0x00 0x00 0x00 0x01 - 4-byte length of message
     // 0x00
@@ -482,15 +492,18 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     const uint32_t messageLength = (message[2] << 24) + (message[3] << 16)
         + (message[4] << 8) + message[5];
 
-    // Check for length consistency
-    if (messageLength != message.size() - HDR_LEN)
-    {
-        LOG_GENERAL(WARNING, "Incorrect message length.");
-        return;
-    }
-
     if (startByte == START_BYTE_BROADCAST)
     {
+        LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
+
+        // Check for length consistency
+        if (messageLength != message.size() - HDR_LEN)
+        {
+            LOG_GENERAL(WARNING, "Incorrect message length.");
+            return;
+        }
+
         if ((messageLength - HDR_LEN) <= HASH_LEN)
         {
             LOG_GENERAL(
@@ -574,6 +587,16 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_NORMAL)
     {
+        LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
+                    Logger::MAX_BYTES_TO_DISPLAY);
+
+        // Check for length consistency
+        if (messageLength != message.size() - HDR_LEN)
+        {
+            LOG_GENERAL(WARNING, "Incorrect message length.");
+            return;
+        }
+
         // Move the shared_ptr message to raw pointer type
         pair<vector<unsigned char>, Peer>* raw_message
             = new pair<vector<unsigned char>, Peer>(
@@ -582,6 +605,81 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
         // Queue the message
         m_dispatcher(raw_message);
+    }
+    else if (startByte == START_BYTE_GOSSIP)
+    {
+        // Check for length consistency
+
+        if (messageLength != message.size() - HDR_LEN)
+        {
+            LOG_GENERAL(WARNING, "Incorrect message length.");
+            return;
+        }
+
+        if (messageLength < GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN
+                + GOSSIP_SNDR_LISTNR_PORT_LEN)
+        {
+            LOG_GENERAL(
+                WARNING,
+                "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR "
+                "Port is missing (messageLength = "
+                    << messageLength << ")");
+            return;
+        }
+
+        std::vector<unsigned char> gossipMsgTyp(message.begin() + HDR_LEN,
+                                                message.begin() + HDR_LEN
+                                                    + GOSSIP_MSGTYPE_LEN);
+
+        std::vector<unsigned char> tmp(
+            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,
+            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN);
+
+        const uint32_t gossipMsgRound
+            = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
+
+        tmp.clear();
+        tmp.insert(tmp.end(),
+                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
+                       + GOSSIP_ROUND_LEN,
+                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
+                       + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN);
+
+        const uint32_t gossipSenderPort
+            = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
+        from.m_listenPortHost = gossipSenderPort;
+
+        RumorManager::RawBytes rumor_message(
+            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN
+                + GOSSIP_SNDR_LISTNR_PORT_LEN,
+            message.end());
+
+        P2PComm& p2p = P2PComm::GetInstance();
+        if (gossipMsgTyp[0] == (uint8_t)RRS::Message::Type::FORWARD)
+        {
+            LOG_GENERAL(
+                INFO, "Received Gossip of type - FORWARD from Peer :" << from);
+
+            if (p2p.SpreadRumor(rumor_message))
+            {
+                std::pair<vector<unsigned char>, Peer>* raw_message
+                    = new pair<vector<unsigned char>, Peer>(rumor_message,
+                                                            from);
+
+                // Queue the message
+                m_dispatcher(raw_message);
+            }
+        }
+        else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp[0],
+                                                  gossipMsgRound, rumor_message,
+                                                  from))
+        {
+            std::pair<vector<unsigned char>, Peer>* raw_message
+                = new pair<vector<unsigned char>, Peer>(rumor_message, from);
+
+            // Queue the message
+            m_dispatcher(raw_message);
+        }
     }
     else
     {
@@ -599,7 +697,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
               ((struct sockaddr_in*)cli_addr)->sin_port);
 
-    LOG_GENERAL(INFO, "Incoming message from " << from);
+    LOG_GENERAL(DEBUG, "Incoming message from " << from);
 
     if (Blacklist::GetInstance().Exist(from.m_ipAddress))
     {
@@ -700,7 +798,8 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
 }
 
 void P2PComm::SendMessage(const vector<Peer>& peers,
-                          const vector<unsigned char>& message)
+                          const vector<unsigned char>& message,
+                          const unsigned char& startByteType)
 {
     LOG_MARKER();
 
@@ -713,7 +812,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
     SendJob* job = new SendJobPeers<vector<Peer>>;
     dynamic_cast<SendJobPeers<vector<Peer>>*>(job)->m_peers = peers;
     job->m_selfPeer = m_selfPeer;
-    job->m_startbyte = START_BYTE_NORMAL;
+    job->m_startbyte = startByteType;
     job->m_message = message;
     job->m_hash.clear();
 
@@ -725,7 +824,8 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers,
-                          const vector<unsigned char>& message)
+                          const vector<unsigned char>& message,
+                          const unsigned char& startByteType)
 {
     LOG_MARKER();
 
@@ -738,7 +838,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
     SendJob* job = new SendJobPeers<deque<Peer>>;
     dynamic_cast<SendJobPeers<deque<Peer>>*>(job)->m_peers = peers;
     job->m_selfPeer = m_selfPeer;
-    job->m_startbyte = START_BYTE_NORMAL;
+    job->m_startbyte = startByteType;
     job->m_message = message;
     job->m_hash.clear();
 
@@ -750,7 +850,8 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
 }
 
 void P2PComm::SendMessage(const Peer& peer,
-                          const vector<unsigned char>& message)
+                          const vector<unsigned char>& message,
+                          const unsigned char& startByteType)
 {
     LOG_MARKER();
 
@@ -758,7 +859,7 @@ void P2PComm::SendMessage(const Peer& peer,
     SendJob* job = new SendJobPeer;
     dynamic_cast<SendJobPeer*>(job)->m_peer = peer;
     job->m_selfPeer = m_selfPeer;
-    job->m_startbyte = START_BYTE_NORMAL;
+    job->m_startbyte = startByteType;
     job->m_message = message;
     job->m_hash.clear();
 
@@ -854,9 +955,10 @@ void P2PComm::RebroadcastMessage(const vector<Peer>& peers,
 }
 
 void P2PComm::SendMessageNoQueue(const Peer& peer,
-                                 const std::vector<unsigned char>& message)
+                                 const std::vector<unsigned char>& message,
+                                 const unsigned char& startByteType)
 {
-    LOG_MARKER();
+    //LOG_MARKER();
 
     if (Blacklist::GetInstance().Exist(peer.m_ipAddress))
     {
@@ -867,7 +969,48 @@ void P2PComm::SendMessageNoQueue(const Peer& peer,
         return;
     }
 
-    SendJob::SendMessageCore(peer, message, START_BYTE_NORMAL, {});
+    SendJob::SendMessageCore(peer, message, startByteType, {});
+}
+
+bool P2PComm::SpreadRumor(const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    return m_rumorManager.AddRumor(message);
+}
+
+void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
+                                     const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.SendRumorToForeignPeer(foreignPeer, message);
+}
+
+void P2PComm::SendRumorToForeignPeers(const std::vector<Peer>& foreignPeers,
+                                      const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
+}
+
+void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
+                                      const std::vector<unsigned char>& message)
+{
+    LOG_MARKER();
+    m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
+
+void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers)
+{
+    LOG_MARKER();
+
+    m_rumorManager.StopRounds();
+    if (m_rumorManager.Initialize(peers, m_selfPeer))
+    {
+        if (peers.size() != 0)
+        {
+            m_rumorManager.StartRounds();
+        }
+    }
+}
