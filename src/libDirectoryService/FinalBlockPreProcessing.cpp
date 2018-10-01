@@ -1138,8 +1138,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am a backup DS node. Waiting for final block announcement.");
-
+              "I am a backup DS node. Waiting for final block announcement. "
+              "Leader is at index  "
+                  << m_consensusLeaderID << " "
+                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
     // Create new consensus object
 
     // Dummy values for now
@@ -1193,6 +1195,7 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
 
         LOG_MARKER();
 
+        m_mediator.m_node->SetState(Node::WAITING_FINALBLOCK);
         SetState(FINALBLOCK_CONSENSUS_PREP);
 
         if (revertStateDelta)
