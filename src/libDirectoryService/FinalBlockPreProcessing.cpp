@@ -289,9 +289,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     };
 
     m_consensusObject.reset(new ConsensusLeader(
-        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
-        static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
+        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
         nodeMissingMicroBlocksFunc, ShardCommitFailureHandlerFunc()));
 
@@ -318,13 +318,13 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     auto announcementGeneratorFunc =
         [this](vector<unsigned char>& dst, unsigned int offset,
-               const uint32_t consensusID,
+               const uint32_t consensusID, const uint64_t blockNumber,
                const vector<unsigned char>& blockHash, const uint16_t leaderID,
                const pair<PrivKey, PubKey>& leaderKey,
                vector<unsigned char>& messageToCosign) mutable -> bool {
         return Messenger::SetDSFinalBlockAnnouncement(
-            dst, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_finalBlock, messageToCosign);
+            dst, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_finalBlock, messageToCosign);
     };
 
     cl->StartConsensus(announcementGeneratorFunc);
@@ -1064,8 +1064,9 @@ bool DirectoryService::WaitForTxnBodies()
 bool DirectoryService::FinalBlockValidator(
     const vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
-    const vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, vector<unsigned char>& messageToCosign)
+    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1079,9 +1080,9 @@ bool DirectoryService::FinalBlockValidator(
 
     m_finalBlock.reset(new TxBlock);
 
-    if (!Messenger::GetDSFinalBlockAnnouncement(message, offset, consensusID,
-                                                blockHash, leaderID, leaderKey,
-                                                *m_finalBlock, messageToCosign))
+    if (!Messenger::GetDSFinalBlockAnnouncement(
+            message, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_finalBlock, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSFinalBlockAnnouncement failed.");
@@ -1146,21 +1147,22 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func
-        = [this](const vector<unsigned char>& input, unsigned int offset,
-                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
-                 const vector<unsigned char>& blockHash,
-                 const uint16_t leaderID, const PubKey& leaderKey,
-                 vector<unsigned char>& messageToCosign) mutable -> bool {
+    auto func = [this](const vector<unsigned char>& input, unsigned int offset,
+                       vector<unsigned char>& errorMsg,
+                       const uint32_t consensusID, const uint64_t blockNumber,
+                       const vector<unsigned char>& blockHash,
+                       const uint16_t leaderID, const PubKey& leaderKey,
+                       vector<unsigned char>& messageToCosign) mutable -> bool {
         return FinalBlockValidator(input, offset, errorMsg, consensusID,
-                                   blockHash, leaderID, leaderKey,
+                                   blockNumber, blockHash, leaderID, leaderKey,
                                    messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(
-        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_consensusLeaderID, m_mediator.m_selfKey.first,
-        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
+        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
+        static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
 
     if (m_consensusObject == nullptr)
