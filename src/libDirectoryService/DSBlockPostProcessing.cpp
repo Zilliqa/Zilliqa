@@ -203,34 +203,14 @@ void DirectoryService::SendDSBlockToShardNodes(const unsigned int my_shards_lo,
                     "be called from LookUp node.");
         return;
     }
-    LOG_GENERAL(WARNING, "gdb debug beforeq");
-    LOG_GENERAL(WARNING, m_shards.size());
-    LOG_GENERAL(WARNING, "my_shards_lo " << my_shards_lo);
-    LOG_GENERAL(WARNING, "my_shards_hi " << my_shards_hi);
     auto p = m_shards.begin();
     advance(p, my_shards_lo);
-
-    // Debug
-    for (const auto& x : m_publicKeyToShardIdMap)
-    {
-        LOG_GENERAL(WARNING, x.first);
-    }
 
     for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
     {
         // Get the shard ID from the leader's info in m_publicKeyToShardIdMap
-        LOG_GENERAL(WARNING,
-                    "gdb debug my_shards_lo "
-                        << my_shards_lo << " my_shards_hi " << my_shards_hi);
-        LOG_GENERAL(WARNING,
-                    "gdb debug m_publicKeyToShardIdMap "
-                        << m_publicKeyToShardIdMap.size());
-
         uint32_t shardID = m_publicKeyToShardIdMap.at(
             std::get<SHARD_NODE_PUBKEY>(p->front()));
-        LOG_GENERAL(WARNING,
-                    "gdb debug my_shards_lo " << my_shards_lo << " shardID "
-                                              << shardID);
 
         // Generate the message
         vector<unsigned char> dsblock_message
