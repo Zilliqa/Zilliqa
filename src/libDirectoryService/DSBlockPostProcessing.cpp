@@ -248,7 +248,7 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
             shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
         }
 
-        if (false /*BROADCAST_GOSSIP_MODE*/)
+        /*if (BROADCAST_GOSSIP_MODE)
         {
             // Choose N other Shard nodes to be recipient of DS block
             std::vector<Peer> shardDSBlockReceivers;
@@ -268,10 +268,10 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
                 shardDSBlockReceivers, dsblock_message);
         }
         else
-        {
-            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+        {*/
+        P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
                                                         dsblock_message);
-        }
+        //}
 
         p++;
     }
