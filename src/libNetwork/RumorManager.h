@@ -24,8 +24,8 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "libRumorSpreading/RumorHolder.h"
 #include "Peer.h"
+#include "libRumorSpreading/RumorHolder.h"
 
 enum RRSMessageOffset : unsigned int
 {
