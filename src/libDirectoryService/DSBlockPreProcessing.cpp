@@ -73,19 +73,16 @@ unsigned int DirectoryService::ComposeDSBlock(
         = min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
     unsigned int counter = 0;
     std::map<PubKey, Peer> powDSWinners;
-    LOG_GENERAL(INFO, "Newly elected DS members");
     for (const auto& submitter : sortedDSPoWSolns)
     {
         if (counter >= numOfElectedDSMembers)
         {
             break;
         }
-
         powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
         sortedPoWSolns.erase(
             remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
             sortedPoWSolns.end());
-        LOG_GENERAL(INFO, m_allPoWConns[submitter.second]);
         counter++;
     }
     if (sortedDSPoWSolns.size() == 0)
@@ -546,7 +543,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         PubKey nodePubKey = m_mediator.m_DSCommittee
                                 ->at(m_mediator.m_DSCommittee->size() - 1 - i)
                                 .first;
-
         nodePubKey.Serialize(serializedPubK, 0);
         sha2.Update(serializedPubK);
         vector<unsigned char> PubKeyHash;
@@ -555,8 +551,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 
         // Injecting into sorted PoWs
         copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
-        sortedPoWSolns.emplace_back(PubKeyHashArr,
-                                    m_mediator.m_DSCommittee->back().first);
+        sortedPoWSolns.emplace_back(PubKeyHashArr, nodePubKey);
         sha2.Reset();
         serializedPubK.clear();
 
