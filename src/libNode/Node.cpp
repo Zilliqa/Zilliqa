@@ -627,7 +627,8 @@ bool Node::ProcessTxnPacketFromLookup(
 
     {
         lock_guard<mutex> g1(m_mutexDSBlock);
-        if (((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if ((((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+              || m_justDidFallback)
              && (m_mediator.m_consensusID != 0))
             || ((m_mediator.m_currentEpochNum == 1)
                 && (m_mediator.m_dsBlockChain.GetLastBlock()

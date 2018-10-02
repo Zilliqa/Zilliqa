@@ -254,6 +254,8 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
         return false;
     }
 
+    FallbackTimerPulse();
+
     UpdateDSCommittee(shard_id, leaderPubKey, leaderNetworkInfo);
 
     StoreState();
@@ -287,8 +289,6 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am a node and my DS committee is successfully fallback to shard "
             << shard_id);
-
-    FallbackTimerPulse();
 
     return true;
 }
