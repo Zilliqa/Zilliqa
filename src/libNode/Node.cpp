@@ -1167,21 +1167,21 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW,
-           &Node::ProcessDSBlock,
-           &Node::ProcessSubmitTransaction,
-           &Node::ProcessMicroblockConsensus,
-           &Node::ProcessFinalBlock,
-           &Node::ProcessForwardTransaction,
-           &Node::ProcessCreateTransactionFromLookup,
-           &Node::ProcessVCBlock,
-           &Node::ProcessDoRejoin,
-           &Node::ProcessTxnPacketFromLookup,
-           &Node::ProcessFallbackConsensus,
-           &Node::ProcessFallbackBlock,
+    InstructionHandler ins_handlers[] = {
+        &Node::ProcessStartPoW,
+        &Node::ProcessDSBlock,
+        &Node::ProcessSubmitTransaction,
+        &Node::ProcessMicroblockConsensus,
+        &Node::ProcessFinalBlock,
+        &Node::ProcessForwardTransaction,
+        &Node::ProcessCreateTransactionFromLookup,
+        &Node::ProcessVCBlock,
+        &Node::ProcessDoRejoin,
+        &Node::ProcessTxnPacketFromLookup,
+        &Node::ProcessFallbackConsensus,
+        &Node::ProcessFallbackBlock,
 #ifdef HEARTBEAT_TEST
-           &Node::ProcessKillPulse,
+        &Node::ProcessKillPulse,
 #endif // HEARTBEAT_TEST
     };
 
