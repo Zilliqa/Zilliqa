@@ -614,22 +614,20 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
 
         unsigned char gossipMsgTyp = message.at(HDR_LEN);
 
-        std::vector<unsigned char> tmp(
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN);
-
         const uint32_t gossipMsgRound
-            = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
-
-        tmp.clear();
-        tmp.insert(tmp.end(),
-                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
-                       + GOSSIP_ROUND_LEN,
-                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
-                       + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN);
+            = (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN) << 24)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 1) << 16)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 2) << 8)
+            + message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 3);
 
         const uint32_t gossipSenderPort
-            = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
+            = (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN)
+               << 24)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1)
+               << 16)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2)
+               << 8)
+            + message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
         from.m_listenPortHost = gossipSenderPort;
 
         RumorManager::RawBytes rumor_message(
