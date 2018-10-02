@@ -64,6 +64,9 @@ enum NodeInstructionType : unsigned char
     FORWARDTXNPACKET = 0x09,
     FALLBACKCONSENSUS = 0x0A,
     FALLBACKBLOCK = 0x0B,
+#ifdef HEARTBEAT_TEST
+    HEARTBEATKILLPULSE = 0x0C,
+#endif // HEARTBEAT_TEST
 };
 
 enum LookupInstructionType : unsigned char

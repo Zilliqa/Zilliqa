@@ -60,6 +60,8 @@ void Node::StoreState()
 
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
+    LOG_MARKER();
+
     AddBlock(txBlock);
 
     m_mediator.IncreaseEpochNum();
@@ -924,6 +926,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                                                         {'0'});
         }
     }
+
+    m_mediator.HeartBeatPulse();
 
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {

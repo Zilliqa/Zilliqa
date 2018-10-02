@@ -171,6 +171,8 @@ const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
+const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
+    ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
 const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
     ReadFromConstantsFile("TERMINATION_COUNTDOWN_IN_SECONDS")};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{

@@ -275,6 +275,11 @@ class Node : public Executable, public Broadcastable
         const std::vector<unsigned char>& message, const uint32_t shardID,
         const std::vector<Transaction>& transactions);
 
+#ifdef HEARTBEAT_TEST
+    bool ProcessKillPulse(const std::vector<unsigned char>& message,
+                          unsigned int offset, const Peer& from);
+#endif // HEARTBEAT_TEST
+
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
@@ -362,9 +367,6 @@ class Node : public Executable, public Broadcastable
     bool m_doRejoinAtFinalBlock = false;
 
     void ResetRejoinFlags();
-
-    // Rejoin the network as a shard node in case of failure happens in protocol
-    void RejoinAsNormal();
 
 public:
     enum NodeState : unsigned char
@@ -519,6 +521,9 @@ public:
     /// Used by oldest DS node to configure txn sharing assignments as a new shard node
 
     void LoadTxnSharingInfo();
+
+    // Rejoin the network as a shard node in case of failure happens in protocol
+    void RejoinAsNormal();
 
     /// Force state changes from MBCON/MBCON_PREP -> WAITING_FINALBLOCK
     void PrepareGoodStateForFinalBlock();
