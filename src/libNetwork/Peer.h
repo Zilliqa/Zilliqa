@@ -48,6 +48,9 @@ struct Peer : public Serializable
     /// Inequality comparison operator.
     bool operator!=(const Peer& r) const;
 
+    /// Less-than comparison operator.
+    bool operator<(const Peer& r) const;
+
     /// Utility function for printing peer IP info.
     const char* GetPrintableIPAddress() const;
 

@@ -162,6 +162,7 @@ extern const unsigned int MAX_ROUNDS_IN_BSTATE;
 extern const unsigned int MAX_ROUNDS_IN_CSTATE;
 extern const unsigned int MAX_TOTAL_ROUNDS;
 extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
+extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 
@@ -173,6 +174,8 @@ extern const bool OPENCL_GPU_MINE;
 extern const bool CUDA_GPU_MINE;
 extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
+extern const bool BROADCAST_GOSSIP_MODE;
+extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
