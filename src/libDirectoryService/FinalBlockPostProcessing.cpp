@@ -52,9 +52,7 @@ void DirectoryService::StoreFinalBlockToDisk()
 
     // Add finalblock to txblockchain
     m_mediator.m_node->AddBlock(*m_finalBlock);
-    m_mediator.m_currentEpochNum
-        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        + 1;
+    m_mediator.IncreaseEpochNum();
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     // m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
@@ -93,9 +91,9 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     vector<unsigned char> stateDelta;
     AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-    if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY,
-                                      0, dsBlockNumber, m_consensusID,
-                                      *m_finalBlock, stateDelta))
+    if (!Messenger::SetNodeFinalBlock(
+            finalblock_message, MessageOffset::BODY, 0, dsBlockNumber,
+            m_mediator.m_consensusID, *m_finalBlock, stateDelta))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::SetNodeFinalBlock failed.");
@@ -105,57 +103,6 @@ bool DirectoryService::SendFinalBlockToLookupNodes()
     m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
 
     return true;
-}
-
-void DirectoryService::DetermineShardsToSendFinalBlockTo(
-    unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
-    unsigned int& my_shards_hi) const
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::DetermineShardsToSendFinalBlockTo not "
-                    "expected to be called from LookUp node.");
-        return;
-    }
-
-    // Multicast final block to my assigned shard's nodes - send FINALBLOCK message
-    // Message = [Final block]
-
-    // Multicast assignments:
-    // 1. Divide DS committee into clusters of size 20
-    // 2. Each cluster talks to all shard members in each shard
-    //    DS cluster 0 => Shard 0
-    //    DS cluster 1 => Shard 1
-    //    ...
-    //    DS cluster 0 => Shard (num of DS clusters)
-    //    DS cluster 1 => Shard (num of DS clusters + 1)
-    LOG_MARKER();
-
-    unsigned int num_DS_clusters
-        = m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
-    {
-        num_DS_clusters++;
-    }
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG num of ds clusters " << num_DS_clusters)
-    unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
-    if ((m_shards.size() % num_DS_clusters) > 0)
-    {
-        shard_groups_count++;
-    }
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG num of shard group count " << shard_groups_count)
-
-    my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
-    my_shards_lo = my_DS_cluster_num * shard_groups_count;
-    my_shards_hi = my_shards_lo + shard_groups_count - 1;
-
-    if (my_shards_hi >= m_shards.size())
-    {
-        my_shards_hi = m_shards.size() - 1;
-    }
 }
 
 void DirectoryService::SendFinalBlockToShardNodes(
@@ -211,7 +158,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
         if (!Messenger::SetNodeFinalBlock(
                 finalblock_message, MessageOffset::BODY, shardID, dsBlockNumber,
-                m_consensusID, *m_finalBlock, stateDelta))
+                m_mediator.m_consensusID, *m_finalBlock, stateDelta))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Messenger::SetNodeFinalBlock failed.");
@@ -296,13 +243,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     //Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
 
+    bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
+
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 
     AccountStore::GetInstance().CommitTemp();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
         AccountStore::GetInstance().MoveUpdatesToDisk();
@@ -349,8 +296,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
             + 1
         << "] BEFORE SENDING FINAL BLOCK");
 
-    DetermineShardsToSendFinalBlockTo(my_DS_cluster_num, my_shards_lo,
-                                      my_shards_hi);
+    DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo, my_shards_hi);
     SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
 
     LOG_STATE(
@@ -367,83 +313,18 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     ClearDSPoWSolns();
     ResetPoWSubmissionCounter();
 
-    auto func = [this]() mutable -> void {
+    auto func = [this, isVacuousEpoch]() mutable -> void {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "START OF a new EPOCH");
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if (isVacuousEpoch)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "[PoW needed]");
 
-            m_consensusID = 0;
-            m_mediator.m_node->m_consensusID = 0;
-            m_mediator.m_node->m_consensusLeaderID = 0;
-
-            CleanFinalblockConsensusBuffer();
-
-            m_mediator.m_node->CleanCreatedTransaction();
-
-            m_mediator.m_node->CleanMicroblockConsensusBuffer();
-
-            SetState(POW_SUBMISSION);
-            cv_POWSubmission.notify_all();
-
-            POW::GetInstance().EthashConfigureLightClient(
-                m_mediator.m_dsBlockChain.GetLastBlock()
-                    .GetHeader()
-                    .GetBlockNum()
-                + 1);
-            if (m_mode == PRIMARY_DS)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting "
-                              << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
-                              << " seconds, accepting PoW submissions...");
-
-                // Notify lookup that it's time to do PoW
-                vector<unsigned char> startpow_message = {
-                    MessageType::LOOKUP, LookupInstructionType::RAISESTARTPOW};
-                m_mediator.m_lookup->SendMessageToLookupNodesSerial(
-                    startpow_message);
-
-                // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
-                // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
-                this_thread::sleep_for(chrono::seconds(
-                    NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS));
-
-                RunConsensusOnDSBlock();
-            }
-            else
-            {
-                std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
-
-                // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
-                // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
-                if (cv_DSBlockConsensus.wait_for(
-                        cv_lk,
-                        std::chrono::seconds(NEW_NODE_SYNC_INTERVAL
-                                             + POW_BACKUP_WINDOW_IN_SECONDS))
-                    == std::cv_status::timeout)
-                {
-                    LOG_GENERAL(INFO,
-                                "Woken up from the sleep of "
-                                    << NEW_NODE_SYNC_INTERVAL
-                                        + POW_BACKUP_WINDOW_IN_SECONDS
-                                    << " seconds");
-                }
-                else
-                {
-                    LOG_GENERAL(INFO,
-                                "Received announcement message. Time to "
-                                "run consensus.");
-                }
-
-                RunConsensusOnDSBlock();
-            }
+            StartNewDSEpochConsensus();
         }
         else
         {
-            m_consensusID++;
             m_mediator.m_node->UpdateStateForNextConsensusRound();
             SetState(MICROBLOCK_SUBMISSION);
             m_dsStartedMicroblockConsensus = false;
@@ -534,7 +415,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
         lock_guard<mutex> g(m_mutexConsensus);
 
-        if (consensus_id == m_consensusID)
+        if (consensus_id == m_mediator.m_consensusID)
         {
             lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
             cv_scheduleDSMicroBlockConsensus.notify_all();
@@ -548,20 +429,20 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     }
     else
     {
-        if (consensus_id < m_consensusID)
+        if (consensus_id < m_mediator.m_consensusID)
         {
             LOG_GENERAL(WARNING,
                         "Consensus ID in message ("
                             << consensus_id << ") is smaller than current ("
-                            << m_consensusID << ")");
+                            << m_mediator.m_consensusID << ")");
             return false;
         }
-        else if (consensus_id > m_consensusID)
+        else if (consensus_id > m_mediator.m_consensusID)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "Buffer final block with larger consensus ID ("
-                          << consensus_id << "), current (" << m_consensusID
-                          << ")");
+                          << consensus_id << "), current ("
+                          << m_mediator.m_consensusID << ")");
 
             {
                 lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
@@ -582,7 +463,7 @@ void DirectoryService::CommitFinalBlockConsensusBuffer()
 {
     lock_guard<mutex> g(m_mutexFinalBlockConsensusBuffer);
 
-    for (const auto& i : m_finalBlockConsensusBuffer[m_consensusID])
+    for (const auto& i : m_finalBlockConsensusBuffer[m_mediator.m_consensusID])
     {
         auto runconsensus = [this, i]() {
             ProcessFinalBlockConsensusCore(i.second, MessageOffset::BODY,

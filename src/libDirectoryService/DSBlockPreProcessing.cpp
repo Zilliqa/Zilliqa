@@ -231,7 +231,7 @@ void DirectoryService::ComputeSharding(
     }
 }
 
-bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
+bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards)
 {
     //Requires mutex for m_shards
     vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
@@ -305,7 +305,7 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
     return ret;
 }
 
-bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
+bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards)
 {
     // If the PoW submissions less than the max number of nodes, then all nodes can join, no need to verify.
     if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM)
@@ -802,7 +802,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 }
 
 bool DirectoryService::ProcessShardingStructure(
-    const VectorOfShard& shards,
+    const DequeOfShard& shards,
     std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
     std::map<PubKey, uint16_t>& mapNodeReputation)
 {
