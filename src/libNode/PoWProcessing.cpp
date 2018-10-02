@@ -188,7 +188,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
         peerList.push_back(i.second);
     }
 
-    if (BROADCAST_GOSSIP_MODE)
+    /*if (BROADCAST_GOSSIP_MODE)
     {
         // Choose N DS nodes to be recipient of POW submission
         std::vector<Peer> dsPOWReceivers;
@@ -207,9 +207,9 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                                        powmessage);
     }
     else
-    {
-        P2PComm::GetInstance().SendMessage(peerList, powmessage);
-    }
+    {*/
+    P2PComm::GetInstance().SendMessage(peerList, powmessage);
+    //}
 
     return true;
 }
