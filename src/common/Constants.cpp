@@ -153,6 +153,8 @@ const unsigned int FALLBACK_INTERVAL_STARTED{
     ReadFromConstantsFile("FALLBACK_INTERVAL_STARTED")};
 const unsigned int FALLBACK_INTERVAL_WAITING{
     ReadFromConstantsFile("FALLBACK_INTERVAL_WAITING")};
+const unsigned int FALLBACK_CHECK_INTERVAL{
+    ReadFromConstantsFile("FALLBACK_CHECK_INTERVAL")};
 const unsigned int FALLBACK_EXTRA_TIME{
     ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
 const unsigned int FALLBACK_TEST_EPOCH{

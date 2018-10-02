@@ -150,6 +150,7 @@ extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
 extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
+extern const unsigned int FALLBACK_CHECK_INTERVAL;
 extern const unsigned int FALLBACK_EXTRA_TIME;
 extern const unsigned int FALLBACK_TEST_EPOCH;
 extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
