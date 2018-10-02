@@ -76,6 +76,8 @@ Node::~Node() {}
 
 void Node::Install(unsigned int syncType, bool toRetrieveHistory)
 {
+    LOG_MARKER();
+
     // m_state = IDLE;
     bool runInitializeGenesisBlocks = true;
 
@@ -91,6 +93,123 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
             m_mediator.m_consensusID = 0;
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
+
+            BlockStorage::GetBlockStorage().GetDSCommittee(
+                m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+            m_mediator.UpdateDSBlockRand();
+            m_mediator.UpdateTxBlockRand();
+
+            /// If this node is inside ds committee, mark it as DS node
+            for (const auto& ds : *m_mediator.m_DSCommittee)
+            {
+                if (ds.first == m_mediator.m_selfKey.second)
+                {
+                    SetState(POW_SUBMISSION);
+                    m_mediator.m_ds->m_consensusMyID = 0;
+
+                    for (auto const& i : *m_mediator.m_DSCommittee)
+                    {
+                        if (i.first == m_mediator.m_selfKey.second)
+                        {
+                            LOG_EPOCH(
+                                INFO,
+                                to_string(m_mediator.m_currentEpochNum).c_str(),
+                                "My node ID for this PoW consensus is "
+                                    << m_mediator.m_ds->m_consensusMyID);
+                            break;
+                        }
+
+                        ++m_mediator.m_ds->m_consensusMyID;
+                    }
+
+                    if (m_mediator.m_DSCommittee
+                            ->at(m_mediator.m_ds->m_consensusLeaderID)
+                            .first
+                        == m_mediator.m_selfKey.second)
+                    {
+                        m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
+                        LOG_GENERAL(
+                            INFO,
+                            "Set as DS leader: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+                        LOG_STATE(
+                            "[IDENT]["
+                            << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << std::setw(6) << std::left
+                            << m_mediator.m_ds->m_consensusMyID << "] DSLD");
+                    }
+                    else
+                    {
+                        m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
+                        LOG_GENERAL(
+                            INFO,
+                            "Set as DS backup: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+                        LOG_STATE(
+                            "[IDENT]["
+                            << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << std::setw(6) << std::left
+                            << m_mediator.m_ds->m_consensusMyID << "] DSBK");
+                    }
+
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "START OF EPOCH "
+                                  << m_mediator.m_dsBlockChain.GetLastBlock()
+                                          .GetHeader()
+                                          .GetBlockNum()
+                                      + 1);
+
+                    auto func = [this]() mutable -> void {
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Waiting "
+                                << POW_WINDOW_IN_SECONDS
+                                << " seconds, accepting PoW submissions...");
+                        this_thread::sleep_for(
+                            chrono::seconds(POW_WINDOW_IN_SECONDS));
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Starting consensus on ds block");
+                        m_mediator.m_ds->RunConsensusOnDSBlock();
+                    };
+                    DetachedFunction(1, func);
+                    return;
+                }
+            }
+
+            /// If this node is shard node, start pow
+            LOG_GENERAL(INFO,
+                        "Set as shard node: "
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
+            uint64_t block_num = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetBlockNum()
+                + 1;
+            uint8_t dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetDSDifficulty();
+            uint8_t difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDifficulty();
+            SetState(POW_SUBMISSION);
+            LOG_GENERAL(INFO,
+                        "Shard node, wait "
+                            << SHARD_DELAY_WAKEUP_IN_SECONDS
+                            << " seconds for DS nodes wakeup...");
+            this_thread::sleep_for(
+                chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
+            StartPoW(block_num, dsDifficulty, difficulty,
+                     m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
         }
         else
         {

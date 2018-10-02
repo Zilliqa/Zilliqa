@@ -189,8 +189,6 @@ class DirectoryService : public Executable, public Broadcastable
     void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                  unsigned int my_shards_hi);
 
-    // PoW (DS block) consensus functions
-    void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
@@ -496,6 +494,9 @@ public:
 
     /// Calculate node priority to determine which node has the priority to join the network.
     static uint8_t CalculateNodePriority(uint16_t reputation);
+
+    /// PoW (DS block) consensus functions
+    void RunConsensusOnDSBlock(bool isRejoin = false);
 
 private:
     static std::map<DirState, std::string> DirStateStrings;
