@@ -286,9 +286,9 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
 
         uint16_t dsIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
         m_consensusLeaderID = dsIndex;
-        LOG_GENERAL(WARNING,
-                    "dsIndex " << dsIndex << " m_consensusLeaderID "
-                               << m_consensusLeaderID);
+        LOG_GENERAL(INFO,
+                    "lastBlockHash " << lastBlockHash << " m_consensusLeaderID "
+                                     << m_consensusLeaderID);
         //if dsIndex == 0 , that means the pow Winner is the DS Leader
         if (dsIndex > 0
             && m_mediator.m_DSCommittee->at(dsIndex - 1).first
@@ -664,11 +664,21 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     UpdateDSCommiteeComposition(winnerpeer);
 
-    LOG_GENERAL(
-        INFO,
-        "New leader is at index "
-            << m_consensusLeaderID << " "
-            << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+    if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
+        == m_mediator.m_selfKey.second)
+    {
+        LOG_GENERAL(INFO,
+                    "New leader is at index " << m_consensusLeaderID << " "
+                                              << m_mediator.m_selfPeer);
+    }
+    else
+    {
+        LOG_GENERAL(
+            INFO,
+            "New leader is at index "
+                << m_consensusLeaderID << " "
+                << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+    }
 
     StartFirstTxEpoch();
 }

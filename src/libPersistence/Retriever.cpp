@@ -167,6 +167,7 @@ bool Retriever::RetrieveStates()
 bool Retriever::ValidateStates()
 {
     LOG_MARKER();
+
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetStateRootHash()
         == AccountStore::GetInstance().GetStateRootHash())
     {
