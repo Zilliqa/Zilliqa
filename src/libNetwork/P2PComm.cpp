@@ -492,17 +492,17 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     const uint32_t messageLength = (message[2] << 24) + (message[3] << 16)
         + (message[4] << 8) + message[5];
 
+    // Check for length consistency
+    if (messageLength != message.size() - HDR_LEN)
+    {
+        LOG_GENERAL(WARNING, "Incorrect message length.");
+        return;
+    }
+
     if (startByte == START_BYTE_BROADCAST)
     {
         LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
                     Logger::MAX_BYTES_TO_DISPLAY);
-
-        // Check for length consistency
-        if (messageLength != message.size() - HDR_LEN)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return;
-        }
 
         if ((messageLength - HDR_LEN) <= HASH_LEN)
         {
@@ -590,13 +590,6 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
                     Logger::MAX_BYTES_TO_DISPLAY);
 
-        // Check for length consistency
-        if (messageLength != message.size() - HDR_LEN)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return;
-        }
-
         // Move the shared_ptr message to raw pointer type
         pair<vector<unsigned char>, Peer>* raw_message
             = new pair<vector<unsigned char>, Peer>(
@@ -608,14 +601,6 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_GOSSIP)
     {
-        // Check for length consistency
-
-        if (messageLength != message.size() - HDR_LEN)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return;
-        }
-
         if (messageLength < GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN
                 + GOSSIP_SNDR_LISTNR_PORT_LEN)
         {
@@ -627,9 +612,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
             return;
         }
 
-        std::vector<unsigned char> gossipMsgTyp(message.begin() + HDR_LEN,
-                                                message.begin() + HDR_LEN
-                                                    + GOSSIP_MSGTYPE_LEN);
+        unsigned char gossipMsgTyp(message.at(HDR_LEN));
 
         std::vector<unsigned char> tmp(
             message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,
@@ -655,7 +638,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
             message.end());
 
         P2PComm& p2p = P2PComm::GetInstance();
-        if (gossipMsgTyp[0] == (uint8_t)RRS::Message::Type::FORWARD)
+        if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD)
         {
             LOG_GENERAL(
                 INFO, "Received Gossip of type - FORWARD from Peer :" << from);
@@ -670,7 +653,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
                 m_dispatcher(raw_message);
             }
         }
-        else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp[0],
+        else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
                                                   gossipMsgRound, rumor_message,
                                                   from))
         {
