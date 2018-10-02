@@ -34,7 +34,6 @@ public:
     void RetrieveTxBlocks(bool& result);
     bool RetrieveStates();
     bool ValidateStates();
-    bool RetrieveTxBodiesDB();
     bool CleanExtraTxBodies();
     void CleanAll();
 
