@@ -126,3 +126,8 @@ bool SWInfo::operator==(const SWInfo& r) const
     return tie(m_major, m_minor, m_fix, m_upgradeDS, m_commit)
         == tie(r.m_major, r.m_minor, r.m_fix, r.m_upgradeDS, r.m_commit);
 }
+
+/// Unequality operator.
+bool SWInfo::operator!=(const SWInfo& r) const { return !(*this == r); }
+
+const uint64_t& SWInfo::GetUpgradeDS() const { return m_upgradeDS; };

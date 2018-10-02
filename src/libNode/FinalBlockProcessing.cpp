@@ -47,6 +47,7 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnRootComputation.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -59,10 +60,11 @@ void Node::StoreState()
 
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
+    LOG_MARKER();
+
     AddBlock(txBlock);
-    m_mediator.m_currentEpochNum
-        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        + 1;
+
+    m_mediator.IncreaseEpochNum();
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     // EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
@@ -302,10 +304,8 @@ bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
     TxnHash microBlocksHash
         = ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
 
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "Expected FinalBlock TxRoot hash : "
-            << DataConversion::charArrToHexStr(microBlocksHash.asArray()));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Expected FinalBlock TxRoot hash: " << microBlocksHash.hex());
 
     if (finalBlock.GetHeader().GetTxRootHash() != microBlocksHash)
     {
@@ -471,10 +471,6 @@ void Node::InitiatePoW()
         return;
     }
 
-    // reset consensusID and first consensusLeader is index 0
-    m_consensusID = 0;
-    m_consensusLeaderID = 0;
-
     SetState(POW_SUBMISSION);
     POW::GetInstance().EthashConfigureLightClient(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
@@ -519,8 +515,8 @@ void Node::UpdateStateForNextConsensusRound()
         m_isPrimary = false;
     }
 
+    m_mediator.m_consensusID++;
     m_consensusLeaderID++;
-    m_consensusID++;
     m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
 
     if (m_consensusMyID == m_consensusLeaderID)
@@ -532,15 +528,9 @@ void Node::UpdateStateForNextConsensusRound()
     else
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "The new shard leader is m_consensusMyID "
+                  "The new shard leader is m_consensusLeaderID "
                       << m_consensusLeaderID);
     }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "MS: Next non-ds epoch begins");
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "[No PoW needed] MS: Start submit txn stage again.");
 }
 
 void Node::ScheduleMicroBlockConsensus()
@@ -796,6 +786,18 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock)
 //     m_microblocks.clear();
 // }
 
+void Node::PrepareGoodStateForFinalBlock()
+{
+    if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "I may have missed the micrblock consensus. However, if I "
+                  "recently received a valid finalblock, I will accept it");
+        // TODO: Optimize state transition.
+        SetState(WAITING_FINALBLOCK);
+    }
+}
+
 bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              unsigned int offset,
                              [[gnu::unused]] const Peer& from)
@@ -817,15 +819,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             }
         }
 
-        if (m_state == MICROBLOCK_CONSENSUS)
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I may have missed the micrblock consensus. However, if I "
-                "recently received a valid finalblock, I will accept it");
-            // TODO: Optimize state transition.
-            SetState(WAITING_FINALBLOCK);
-        }
+        PrepareGoodStateForFinalBlock();
 
         if (!CheckState(PROCESS_FINALBLOCK))
         {
@@ -863,11 +857,12 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    if (consensusID != m_consensusID)
+    if (consensusID != m_mediator.m_consensusID)
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Consensus ID is not correct. Expected ID: "
-                      << consensusID << " My Consensus ID: " << m_consensusID);
+                      << consensusID
+                      << " My Consensus ID: " << m_mediator.m_consensusID);
         return false;
     }
 
@@ -894,16 +889,18 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         return false;
     }
 
+    lock_guard<mutex> g(m_mutexFinalBlock);
+
     bool toSendTxnToLookup = false;
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
+    m_isVacuousEpochBuffer = isVacuousEpoch;
+
     if (!isVacuousEpoch)
     {
         ProcessStateDeltaFromFinalBlock(
             stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
-        m_isVacuousEpoch = false;
         if (!LoadUnavailableMicroBlockHashes(
                 txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup))
         {
@@ -913,7 +910,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
-        m_isVacuousEpoch = true;
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         // Remove because shard nodes will be shuffled in next epoch.
@@ -957,6 +953,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
     }
 
+    m_mediator.HeartBeatPulse();
+
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
         LOG_STATE("[TXBOD][" << std::setw(15) << std::left
@@ -965,25 +963,26 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              << "] LAST");
     }
 
-    if (LOOKUP_NODE_MODE)
-    {
-        // Now only forwarded txn are left, so only call in lookup
-        CommitForwardedMsgBuffer();
-        m_mediator.m_lookup->CommitMicroBlockStorage();
-
-        if (m_mediator.m_lookup->GetIsServer()
-            && m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0
-            && USE_REMOTE_TXN_CREATOR)
-        {
-            m_mediator.m_lookup->SenderTxnBatchThread();
-        }
-    }
-
     // Assumption: New PoW done after every block committed
     // If I am not a DS committee member (and since I got this FinalBlock message,
     // then I know I'm not), I can start doing PoW again
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
+
+    {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (0 == (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW)
+            && m_mediator.m_curSWInfo.GetUpgradeDS()
+                == ((m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW)
+                    + INIT_DS_EPOCH_NUM))
+        {
+            auto func = [this]() mutable -> void {
+                UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+            };
+
+            DetachedFunction(1, func);
+        }
+    }
 
     if (!LOOKUP_NODE_MODE)
     {
@@ -992,7 +991,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
             CallActOnFinalblock();
         }
 
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if (isVacuousEpoch)
         {
             InitiatePoW();
         }
@@ -1006,18 +1005,24 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if (!isVacuousEpoch)
         {
-            m_consensusID = 0;
-            m_consensusLeaderID = 0;
-        }
-        else
-        {
-            m_consensusID++;
+            m_mediator.m_consensusID++;
             m_consensusLeaderID++;
             m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
         }
+
+        // Now only forwarded txn are left, so only call in lookup
+        CommitForwardedTransactionBuffer();
+        m_mediator.m_lookup->CommitMicroBlockStorage();
+        if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch
+            && USE_REMOTE_TXN_CREATOR)
+        {
+            m_mediator.m_lookup->SenderTxnBatchThread();
+        }
     }
+
+    FallbackTimerPulse();
 
     return true;
 }
@@ -1053,7 +1058,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     sha2.Update(stateDeltaBytes);
     StateHash stateDeltaHash(sha2.Finalize());
 
-    LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
+    LOG_GENERAL(INFO, "Calculated StateDeltaHash: " << stateDeltaHash);
 
     if (stateDeltaHash != finalBlockStateDeltaHash)
     {
@@ -1160,6 +1165,14 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
                                      unsigned int cur_offset,
                                      [[gnu::unused]] const Peer& from)
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessForwardTransaction not expected to be "
+                    "called from Normal node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     uint64_t latestForwardBlockNum = 0;
@@ -1212,6 +1225,14 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 
 bool Node::ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry)
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessForwardTransactionCore not expected to be "
+                    "called from Normal node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_GENERAL(
@@ -1276,7 +1297,7 @@ bool Node::ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry)
                     .GetHeader()
                     .GetBlockNum());
 
-            if (LOOKUP_NODE_MODE && m_isVacuousEpoch)
+            if (LOOKUP_NODE_MODE && m_isVacuousEpochBuffer)
             {
                 BlockStorage::GetBlockStorage().PutMetadata(
                     MetaType::DSINCOMPLETED, {'0'});
@@ -1298,8 +1319,16 @@ bool Node::ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry)
     return true;
 }
 
-void Node::CommitForwardedMsgBuffer()
+void Node::CommitForwardedTransactionBuffer()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CommitForwardedTransactionBuffer not expected to be "
+                    "called from Normal node.");
+        return;
+    }
+
     LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexForwardedTxnBuffer);
