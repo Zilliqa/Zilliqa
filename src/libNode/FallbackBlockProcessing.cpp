@@ -227,6 +227,12 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
         return false;
     }
 
+    if (!AccountStore::GetInstance().UpdateStateTrieAll())
+    {
+        LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+        return false;
+    }
+
     if (AccountStore::GetInstance().GetStateRootHash()
         != fallbackblock.GetHeader().GetStateRootHash())
     {
@@ -249,10 +255,14 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     }
 
     UpdateDSCommittee(shard_id, leaderPubKey, leaderNetworkInfo);
-    cv_fallbackBlock.notify_all();
+
+    StoreState();
 
     if (!LOOKUP_NODE_MODE)
     {
+        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                    {'0'});
+
         // Clean processedTxn may have been produced during last microblock consensus
         {
             lock_guard<mutex> g(m_mutexProcessedTransactions);
@@ -278,8 +288,7 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
         "I am a node and my DS committee is successfully fallback to shard "
             << shard_id);
 
-    auto func = [this]() -> void { ScheduleFallbackTimeout(); };
-    DetachedFunction(1, func);
+    FallbackTimerPulse();
 
     return true;
 }

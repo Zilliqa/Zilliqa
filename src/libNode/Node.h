@@ -161,6 +161,10 @@ class Node : public Executable, public Broadcastable
     std::atomic<bool> m_isVacuousEpoch;
 
     // Fallback Consensus
+    std::mutex m_mutexFallbackTimer;
+    uint32_t m_fallbackTimer;
+    bool m_fallbackTimerLaunched = false;
+    bool m_fallbackStarted;
     std::mutex m_mutexPendingFallbackBlock;
     std::shared_ptr<FallbackBlock> m_pendingFallbackBlock;
     std::mutex m_MutexCVFallbackBlock;
@@ -327,7 +331,8 @@ class Node : public Executable, public Broadcastable
                                       std::vector<TxnHash>& missingtranHashes);
 
     // Fallback Consensus
-    void ScheduleFallbackTimeout(bool started = false);
+    void FallbackTimerLaunch();
+    void FallbackTimerPulse();
     bool FallbackValidator(const std::vector<unsigned char>& message,
                            unsigned int offset,
                            std::vector<unsigned char>& errorMsg,

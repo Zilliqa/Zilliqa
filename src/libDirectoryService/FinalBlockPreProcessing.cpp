@@ -220,7 +220,10 @@ void DirectoryService::ComposeFinalBlock()
                            >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
-        AccountStore::GetInstance().UpdateStateTrieAll();
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+        }
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -1098,7 +1101,11 @@ bool DirectoryService::FinalBlockValidator(
 
     if (isVacuousEpoch)
     {
-        AccountStore::GetInstance().UpdateStateTrieAll();
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+            return false;
+        }
     }
 
     if (!CheckFinalBlockValidity(errorMsg))
