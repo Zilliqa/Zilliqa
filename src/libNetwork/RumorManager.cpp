@@ -393,8 +393,7 @@ void RumorManager::SendMessages(const Peer& toPeer,
         }
 
         // Send the message to peer .
-        P2PComm::GetInstance().SendMessageNoQueue(toPeer, cmd,
-                                                  START_BYTE_GOSSIP);
+        P2PComm::GetInstance().SendMessage(toPeer, cmd, START_BYTE_GOSSIP);
     }
 }
 
