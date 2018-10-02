@@ -612,7 +612,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
             return;
         }
 
-        unsigned char gossipMsgTyp(message.at(HDR_LEN));
+        unsigned char gossipMsgTyp = message.at(HDR_LEN);
 
         std::vector<unsigned char> tmp(
             message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,
