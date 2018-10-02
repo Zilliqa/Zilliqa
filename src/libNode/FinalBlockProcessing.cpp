@@ -695,30 +695,26 @@ void Node::CallActOnFinalblock()
 
 void Node::BroadcastMicroBlockToLookup()
 {
-    if (m_microblock != nullptr)
-    {
-        LOG_GENERAL(INFO,
-                    "[SendMB]"
-                        << " Sending lookup :"
-                        << m_microblock->GetHeader().GetShardID()
-                        << " Epoch:" << m_mediator.m_currentEpochNum);
-        vector<unsigned char> msg = {
-            MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMSEED};
-        unsigned int curr_offset = MessageOffset::BODY;
-        Serializable::SetNumber<uint64_t>(
-            msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
-        curr_offset += sizeof(uint64_t);
-        m_microblock->Serialize(msg, curr_offset);
-        m_mediator.m_lookup->SendMessageToLookupNodes(msg);
-    }
-    else if (m_microblock == nullptr)
+
+    if (m_microblock == nullptr)
     {
         LOG_GENERAL(WARNING, "MicroBlock is null");
+        return;
     }
-    else
-    {
-        LOG_GENERAL(INFO, "MicroBlock empty");
-    }
+
+    LOG_GENERAL(INFO,
+                "[SendMB]"
+                    << " Sending lookup :"
+                    << m_microblock->GetHeader().GetShardID()
+                    << " Epoch:" << m_mediator.m_currentEpochNum);
+    vector<unsigned char> msg
+        = {MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMSEED};
+    unsigned int curr_offset = MessageOffset::BODY;
+    Serializable::SetNumber<uint64_t>(
+        msg, curr_offset, m_mediator.m_currentEpochNum, sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+    m_microblock->Serialize(msg, curr_offset);
+    m_mediator.m_lookup->SendMessageToLookupNodes(msg);
 }
 
 void Node::LogReceivedFinalBlockDetails([[gnu::unused]] const TxBlock& txblock)

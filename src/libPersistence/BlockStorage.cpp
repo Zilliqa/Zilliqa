@@ -118,11 +118,7 @@ bool BlockStorage::PutMicroBlock(const uint64_t& blocknum,
                                  const uint32_t& shardId,
                                  const vector<unsigned char>& body)
 {
-    if (!LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING, "Not Expected to be called from non-lookup node");
-        return false;
-    }
+
     string key = MakeKey(blocknum, shardId);
     int ret = m_microBlockDB->Insert(key, body);
 
@@ -133,13 +129,6 @@ bool BlockStorage::GetMicroBlock(const uint64_t& blocknum,
                                  const uint32_t& shardId,
                                  MicroBlockSharedPtr& microblock)
 {
-
-    if (!LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING, "Not Expected to be called from non-lookup node");
-        return false;
-    }
-
     LOG_MARKER();
     string key = MakeKey(blocknum, shardId);
 
@@ -149,8 +138,8 @@ bool BlockStorage::GetMicroBlock(const uint64_t& blocknum,
     {
         return false;
     }
-    microblock = MicroBlockSharedPtr(new MicroBlock(
-        vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+    microblock = make_shared<MicroBlock>(
+        vector<unsigned char>(blockString.begin(), blockString.end()), 0);
 
     return true;
 }
