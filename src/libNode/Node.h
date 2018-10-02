@@ -158,8 +158,6 @@ class Node : public Executable, public Broadcastable
                        std::vector<std::pair<Peer, std::vector<unsigned char>>>>
         m_microBlockConsensusBuffer;
 
-    std::atomic<bool> m_isVacuousEpoch;
-
     // Fallback Consensus
     std::mutex m_mutexFallbackTimer;
     uint32_t m_fallbackTimer;
@@ -421,6 +419,9 @@ public:
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
 
+    // a buffer flag used by lookup to store the isVacuousEpoch state before StoreFinalBlock
+    std::atomic<bool> m_isVacuousEpochBuffer;
+
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
 
@@ -471,7 +472,7 @@ public:
     /// Add new block into tx blockchain
     void AddBlock(const TxBlock& block);
 
-    void CommitForwardedMsgBuffer();
+    void CommitForwardedTransactionBuffer();
 
     void CleanCreatedTransaction();
 

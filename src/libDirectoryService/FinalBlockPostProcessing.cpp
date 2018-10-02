@@ -52,9 +52,7 @@ void DirectoryService::StoreFinalBlockToDisk()
 
     // Add finalblock to txblockchain
     m_mediator.m_node->AddBlock(*m_finalBlock);
-    m_mediator.m_currentEpochNum
-        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        + 1;
+    m_mediator.IncreaseEpochNum();
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     // m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
@@ -245,13 +243,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     //Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
 
+    bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
+
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
 
     AccountStore::GetInstance().CommitTemp();
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     if (isVacuousEpoch)
     {
         AccountStore::GetInstance().MoveUpdatesToDisk();

@@ -57,8 +57,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     LOG_MARKER();
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     auto blockNum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
@@ -105,7 +103,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
             bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
 
-            if (!isVacuousEpoch && !isEmpty)
+            if (!m_mediator.GetIsVacuousEpoch() && !isEmpty)
             {
                 m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                     {{{microBlock.GetHeader().GetTxRootHash(),
@@ -216,9 +214,7 @@ void DirectoryService::ComposeFinalBlock()
 
     StateHash stateRoot = StateHash();
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {
@@ -884,9 +880,7 @@ bool DirectoryService::CheckStateRoot()
 
     StateHash stateRoot = StateHash();
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
         // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
@@ -1096,10 +1090,7 @@ bool DirectoryService::FinalBlockValidator(
 
     // WaitForTxnBodies();
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
         if (!AccountStore::GetInstance().UpdateStateTrieAll())
         {

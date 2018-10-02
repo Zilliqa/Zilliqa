@@ -305,7 +305,6 @@ message LookupSetTxBlockFromSeed
     required uint64 lowblocknum    = 1;
     required uint64 highblocknum   = 2;
     repeated TxBlock txblocks      = 3;
-    required uint32 consensusid    = 4;
 }
 
 message LookupGetTxBodyFromSeed
