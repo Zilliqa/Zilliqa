@@ -260,6 +260,11 @@ void DirectoryService::SendDSBlockToShardNodes(const unsigned int my_shards_lo,
 void DirectoryService::UpdateMyDSModeAndConsensusId()
 {
     LOG_MARKER();
+    uint16_t numOfIncomingDs = m_mediator.m_dsBlockChain.GetLastBlock()
+                                   .GetHeader()
+                                   .GetDSPoWWinners()
+                                   .size();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -275,12 +280,14 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
             m_mediator.m_txBlockChain.GetLastBlock());
     }
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
-    if ((uint32_t)(m_consensusMyID + 1) == m_mediator.m_DSCommittee->size())
+    if ((uint32_t)(m_consensusMyID + numOfIncomingDs)
+        == m_mediator.m_DSCommittee->size())
     {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I am the oldest backup DS -> I am now just a shard node"
-                      << "\n"
-                      << DS_KICKOUT_MSG);
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I am among the oldest backup DS -> I am now just a shard node"
+                << "\n"
+                << DS_KICKOUT_MSG);
         m_mode = IDLE;
 
         LOG_STATE("[IDENT][" << setw(15) << left
@@ -290,7 +297,6 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
 
     else
     {
-
         uint16_t dsIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
         m_consensusLeaderID = dsIndex;
         LOG_GENERAL(WARNING,
@@ -316,7 +322,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
             m_mode = BACKUP_DS;
         }
 
-        m_consensusMyID++;
+        m_consensusMyID += numOfIncomingDs;
 
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -678,6 +684,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         "New leader is at index "
             << m_consensusLeaderID << " "
             << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+
+    LOG_GENERAL(INFO, "DS committee");
+    for (const auto& member : *m_mediator.m_DSCommittee)
+    {
+        LOG_GENERAL(INFO, member.second);
+    }
 
     StartFirstTxEpoch();
 }
