@@ -55,6 +55,10 @@ if(CUDA_MINE)
     add_definitions(-DCUDA_MINE)
 endif()
 
+if(FALLBACKTEST)
+	add_definitions(-DFALLBACK_TEST)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
