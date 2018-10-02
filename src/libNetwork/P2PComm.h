@@ -34,6 +34,7 @@
 struct evconnlistener;
 
 extern const unsigned char START_BYTE_NORMAL;
+extern const unsigned char START_BYTE_GOSSIP;
 
 class SendJob
 {

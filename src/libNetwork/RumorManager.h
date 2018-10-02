@@ -30,7 +30,7 @@
 enum RRSMessageOffset : unsigned int
 {
     R_TYPE = 0,
-    R_AGE = 1,
+    R_ROUNDS = 1,
 };
 
 const unsigned int RETRY_COUNT = 3;
