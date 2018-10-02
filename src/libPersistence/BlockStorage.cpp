@@ -39,78 +39,6 @@ BlockStorage& BlockStorage::GetBlockStorage()
     return bs;
 }
 
-bool BlockStorage::PushBackTxBodyDB(const uint64_t& blockNum)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PushBackTxBodyDB not expected to be called "
-                    "from LookUp node.");
-        return true;
-    }
-
-    LOG_MARKER();
-
-    if (m_txBodyDBs.size()
-        >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
-    {
-        LOG_GENERAL(INFO, "TxBodyDB pool is full")
-        return false;
-    }
-
-    std::shared_ptr<LevelDB> txBodyDBPtr
-        = std::make_shared<LevelDB>(to_string(blockNum), TX_BODY_SUBDIR);
-    m_txBodyDBs.emplace_back(txBodyDBPtr);
-
-    return true;
-}
-
-bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PopFrontTxBodyDB not expected to be called "
-                    "from LookUp node.");
-        return true;
-    }
-
-    LOG_MARKER();
-
-    if (m_txBodyDBs.empty())
-    {
-        LOG_GENERAL(INFO, "No TxBodyDB found");
-        return false;
-    }
-
-    if (!mandatory)
-    {
-        if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
-        {
-            LOG_GENERAL(INFO, "size of txBodyDB hasn't meet maximum, ignore");
-            return true;
-        }
-    }
-
-    int ret = -1;
-    ret = m_txBodyDBs.front()->DeleteDB();
-    m_txBodyDBs.pop_front();
-
-    return (ret == 0);
-}
-
-unsigned int BlockStorage::GetTxBodyDBSize()
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::GetTxBodyDBSize not expected to be called "
-                    "from LookUp node.");
-        return -1;
-    }
-    return m_txBodyDBs.size();
-}
-
 bool BlockStorage::PutBlock(const uint64_t& blockNum,
                             const vector<unsigned char>& body,
                             const BlockType& blockType)
@@ -159,14 +87,11 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
                              const vector<unsigned char>& body)
 {
     int ret;
+
     if (!LOOKUP_NODE_MODE)
     {
-        if (m_txBodyDBs.empty())
-        {
-            LOG_GENERAL(WARNING, "No TxBodyDB found");
-            return false;
-        }
-        ret = m_txBodyDBs.back()->Insert(key, body);
+        LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+        return false;
     }
     else // IS_LOOKUP_NODE
     {
@@ -267,12 +192,8 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
     std::string bodyString;
     if (!LOOKUP_NODE_MODE)
     {
-        if (m_txBodyDBs.empty())
-        {
-            LOG_GENERAL(WARNING, "No TxBodyDB found");
-            return false;
-        }
-        bodyString = m_txBodyDBs.back()->Lookup(key);
+        LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+        return false;
     }
     else // IS_LOOKUP_NODE
     {
@@ -308,7 +229,8 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key)
     int ret;
     if (!LOOKUP_NODE_MODE)
     {
-        ret = m_txBodyDBs.back()->DeleteKey(key);
+        LOG_GENERAL(WARNING, "Non lookup node should not trigger this");
+        return false;
     }
     else
     {
@@ -470,20 +392,6 @@ bool BlockStorage::ResetDB(DBTYPE type)
     case TX_BLOCK:
         ret = m_txBlockchainDB->ResetDB();
         break;
-    case TX_BODIES:
-    {
-        int size_txBodyDBs = m_txBodyDBs.size();
-        for (int i = 0; i < size_txBodyDBs; i++)
-        {
-            if (!PopFrontTxBodyDB(true))
-            {
-                LOG_GENERAL(WARNING, "failed to reset TxBodyDB list");
-                throw std::exception();
-            }
-        }
-        ret = true;
-        break;
-    }
     case TX_BODY:
         ret = m_txBodyDB->ResetDB();
         break;
@@ -515,14 +423,6 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
     case TX_BLOCK:
         ret.push_back(m_txBlockchainDB->GetDBName());
         break;
-    case TX_BODIES:
-    {
-        for (auto txBodyDB : m_txBodyDBs)
-        {
-            ret.push_back(txBodyDB->GetDBName());
-        }
-        break;
-    }
     case TX_BODY:
         ret.push_back(m_txBodyDB->GetDBName());
         break;
@@ -541,8 +441,7 @@ bool BlockStorage::ResetAll()
 {
     if (!LOOKUP_NODE_MODE)
     {
-        return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
-            && ResetDB(TX_BODIES);
+        return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK);
     }
     else // IS_LOOKUP_NODE
     {

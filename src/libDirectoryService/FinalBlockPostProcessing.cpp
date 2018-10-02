@@ -308,10 +308,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
         AccountStore::GetInstance().MoveUpdatesToDisk();
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
-        if (!LOOKUP_NODE_MODE)
-        {
-            BlockStorage::GetBlockStorage().PopFrontTxBodyDB();
-        }
     }
 
     m_mediator.UpdateDSBlockRand();

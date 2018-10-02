@@ -76,8 +76,6 @@ void DirectoryService::StoreDSBlockToStorage()
     m_pendingDSBlock->Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(
         m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
-    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-        m_pendingDSBlock->GetHeader().GetBlockNum());
     m_latestActiveDSBlockNum = m_pendingDSBlock->GetHeader().GetBlockNum();
     BlockStorage::GetBlockStorage().PutMetadata(
         LATESTACTIVEDSBLOCKNUM,
@@ -287,8 +285,11 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     else
     {
 
-        uint32_t dsIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+        uint16_t dsIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
         m_consensusLeaderID = dsIndex;
+        LOG_GENERAL(WARNING,
+                    "dsIndex " << dsIndex << " m_consensusLeaderID "
+                               << m_consensusLeaderID);
         //if dsIndex == 0 , that means the pow Winner is the DS Leader
         if (dsIndex > 0
             && m_mediator.m_DSCommittee->at(dsIndex - 1).first
@@ -633,7 +634,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             << "\n"
             << "New DSBlock hash is                     = 0x"
             << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand) << "\n"
-            << "New DS leader (PoW winner)          = " << winnerpeer);
+            << "New DS member          = " << winnerpeer);
 
     unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;
     SetupMulticastConfigForDSBlock(my_DS_cluster_num, my_shards_lo,
@@ -664,6 +665,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     UpdateMyDSModeAndConsensusId();
 
     UpdateDSCommiteeComposition(winnerpeer);
+
+    LOG_GENERAL(
+        INFO,
+        "New leader is at index "
+            << m_consensusLeaderID << " "
+            << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
     StartFirstTxEpoch();
 }
