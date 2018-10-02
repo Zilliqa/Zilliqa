@@ -35,6 +35,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -113,15 +114,27 @@ void DirectoryService::ComposeDSBlock(
                       << ", new difficulty " << std::to_string(difficulty));
     }
 
+    if (UpgradeManager::GetInstance().HasNewSW())
+    {
+        if (UpgradeManager::GetInstance().DownloadSW())
+        {
+            lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+            m_mediator.m_curSWInfo
+                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        }
+    }
+
     // Assemble DS block
     // To-do: Handle exceptions.
     // TODO: Revise DS block structure
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash, 0,
-                                  winnerKey, m_mediator.m_selfKey.second,
-                                  blockNum, get_time_as_int(), SWInfo()),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
-
+    {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        m_pendingDSBlock.reset(new DSBlock(
+            DSBlockHeader(dsDifficulty, difficulty, prevHash, 0, winnerKey,
+                          m_mediator.m_selfKey.second, blockNum,
+                          get_time_as_int(), m_mediator.m_curSWInfo),
+            CoSignatures(m_mediator.m_DSCommittee->size())));
+    }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with winning PoW = 0x"
                   << DataConversion::charArrToHexStr(winnerPoW));
@@ -231,7 +244,7 @@ void DirectoryService::ComputeSharding(
     }
 }
 
-bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
+bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards)
 {
     //Requires mutex for m_shards
     vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
@@ -305,7 +318,7 @@ bool DirectoryService::VerifyPoWOrdering(const VectorOfShard& shards)
     return ret;
 }
 
-bool DirectoryService::VerifyNodePriority(const VectorOfShard& shards)
+bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards)
 {
     // If the PoW submissions less than the max number of nodes, then all nodes can join, no need to verify.
     if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM)
@@ -666,6 +679,19 @@ bool DirectoryService::DSBlockValidator(
         return false;
     }
 
+    auto func = [this]() mutable -> void {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo())
+        {
+            if (UpgradeManager::GetInstance().DownloadSW())
+            {
+                m_mediator.m_curSWInfo
+                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            }
+        }
+    };
+    DetachedFunction(1, func);
+
     // To-do: Put in the logic here for checking the proposed DS block
 
     auto storedMember
@@ -802,7 +828,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 }
 
 bool DirectoryService::ProcessShardingStructure(
-    const VectorOfShard& shards,
+    const DequeOfShard& shards,
     std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
     std::map<PubKey, uint16_t>& mapNodeReputation)
 {

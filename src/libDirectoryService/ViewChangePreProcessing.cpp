@@ -43,8 +43,6 @@ bool DirectoryService::ViewChangeValidator(
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, vector<unsigned char>& messageToCosign)
 {
-    LOG_MARKER();
-
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -52,6 +50,8 @@ bool DirectoryService::ViewChangeValidator(
                     "called from LookUp node.");
         return true;
     }
+
+    LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexPendingVCBlock);
 
@@ -84,7 +84,6 @@ bool DirectoryService::ViewChangeValidator(
             m_viewChangestate,
             (DirState)m_pendingVCBlock->GetHeader().GetViewChangeState()))
     {
-
         LOG_GENERAL(WARNING,
                     "View change state mismatched. m_viewChangestate: "
                         << m_viewChangestate << " Proposed: "

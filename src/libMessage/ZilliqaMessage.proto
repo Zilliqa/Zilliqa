@@ -118,6 +118,31 @@ message ProtoVCBlock
     required CoSignatures cosigs                      = 2;
 }
 
+message ProtoFallbackBlock
+{
+    message FallbackBlockHeader
+    {
+        required uint64 fallbackdsepochno           = 1;
+        required uint64 fallbackepochno             = 2;
+        required uint32 fallbackstate               = 3; // only LSB used
+        required bytes stateroothash                = 4;
+        required uint32 leaderconsensusid          = 5;
+        required ByteArray leadernetworkinfo = 6;
+        required ByteArray leaderpubkey      = 7;
+        required uint32 shardid                     = 8;
+        required ByteArray timestamp                  = 9;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1                        = 1;
+        repeated bool b1                              = 2 [packed=true];
+        required ByteArray cs2                        = 3;
+        repeated bool b2                              = 4 [packed=true];
+    }
+    required FallbackBlockHeader header                     = 1;
+    required CoSignatures cosigs                      = 2;
+}
+
 // ============================================================================
 // Directory Service messages
 // ============================================================================
@@ -209,6 +234,16 @@ message NodeForwardTxnBlock
 message NodeMicroBlockAnnouncement
 {
     required ProtoMicroBlock microblock = 1;
+}
+
+message NodeFallbackBlockAnnouncement
+{
+    required ByteArray fallbackblock = 1;
+}
+
+message NodeFallbackBlock
+{
+    required ProtoFallbackBlock fallbackblock = 1;
 }
 
 // ============================================================================
@@ -368,8 +403,9 @@ message ConsensusAnnouncement
         NodeMicroBlockAnnouncement microblock = 3;
         DSFinalBlockAnnouncement finalblock   = 4;
         DSVCBlockAnnouncement vcblock         = 5;
+        NodeFallbackBlockAnnouncement fallbackblock = 6;
     }
-    required ByteArray signature              = 6;
+    required ByteArray signature              = 7;
 }
 
 message ConsensusCommit

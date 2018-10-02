@@ -126,3 +126,19 @@ std::string Mediator::GetNodeMode(const Peer& peer)
         return "SHRD";
     }
 }
+
+void Mediator::IncreaseEpochNum()
+{
+    std::lock_guard<mutex> lock(m_mutexVacuousEpoch);
+    m_currentEpochNum++;
+    if ((m_currentEpochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW == 0)
+    {
+        m_isVacuousEpoch = true;
+    }
+    else
+    {
+        m_isVacuousEpoch = false;
+    }
+}
+
+bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }

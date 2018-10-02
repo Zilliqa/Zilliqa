@@ -14,36 +14,34 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __SWINFO_H__
-#define __SWINFO_H__
+#ifndef __FALLBACKBLOCK_H__
+#define __FALLBACKBLOCK_H__
 
+#include <boost/multiprecision/cpp_int.hpp>
+
+#include "BlockBase.h"
+#include "common/Constants.h"
 #include "common/Serializable.h"
-#include <stdint.h>
+#include "libCrypto/Schnorr.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include "libData/BlockData/BlockHeader/FallbackBlockHeader.h"
+#include "libNetwork/Peer.h"
 
-class SWInfo : public Serializable
+/// Stores the fallback block header and signature
+
+class FallbackBlock : public BlockBase
 {
-    uint32_t m_major;
-    uint32_t m_minor;
-    uint32_t m_fix;
-    uint64_t m_upgradeDS;
-    uint32_t m_commit;
+    FallbackBlockHeader m_header;
 
 public:
-    static const unsigned int SIZE = sizeof(uint32_t) + sizeof(uint32_t)
-        + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t);
+    /// Default constructor.
+    FallbackBlock(); // creates a dummy invalid placeholder block
 
-    /// Default constructor for uninitialized version information.
-    SWInfo();
+    /// Constructor for loading finalblock block information from a byte stream.
+    FallbackBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Constructor.
-    SWInfo(const uint32_t& major, const uint32_t& minor, const uint32_t& fix,
-           const uint64_t& upgradeDS, const uint32_t& commit);
-
-    /// Destructor.
-    ~SWInfo();
-
-    /// Copy constructor.
-    SWInfo(const SWInfo&);
+    /// Constructor with specified fallback block parameters.
+    FallbackBlock(FallbackBlockHeader&& header, CoSignatures&& cosigs);
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -52,20 +50,23 @@ public:
     /// Implements the Deserialize function inherited from Serializable.
     int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
+    /// Returns the size in bytes when serializing the block.
+    unsigned int GetSerializedSize() const;
+
+    /// Returns the minimum required size in bytes for obtaining a fallback block from a byte stream.
+    static unsigned int GetMinSize();
+
+    /// Returns the reference to the FallbackBlockHeader part of the fallback block.
+    const FallbackBlockHeader& GetHeader() const;
+
+    /// Equality comparison operator.
+    bool operator==(const FallbackBlock& block) const;
+
     /// Less-than comparison operator.
-    bool operator<(const SWInfo& r) const;
+    bool operator<(const FallbackBlock& block) const;
 
     /// Greater-than comparison operator.
-    bool operator>(const SWInfo& r) const;
-
-    /// Equality operator.
-    bool operator==(const SWInfo& r) const;
-
-    /// Unequality operator.
-    bool operator!=(const SWInfo& r) const;
-
-    /// Returns the upgrade DS block number.
-    const uint64_t& GetUpgradeDS() const;
+    bool operator>(const FallbackBlock& block) const;
 };
 
-#endif // __SWINFO_H__
+#endif // __FALLBACKBLOCK_H__
