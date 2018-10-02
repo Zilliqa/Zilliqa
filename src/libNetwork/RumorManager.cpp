@@ -22,7 +22,6 @@
 #include "P2PComm.h"
 #include "common/Messages.h"
 
-
 namespace
 {
     RRS::Message::Type convertType(uint8_t type)
