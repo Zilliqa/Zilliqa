@@ -41,6 +41,8 @@ using namespace boost::multiprecision;
 
 void DirectoryService::StoreFinalBlockToDisk()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -48,8 +50,6 @@ void DirectoryService::StoreFinalBlockToDisk()
                     "be called from LookUp node.");
         return;
     }
-
-    LOG_MARKER();
 
     // Add finalblock to txblockchain
     m_mediator.m_node->AddBlock(*m_finalBlock);
@@ -226,6 +226,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
 
     // Clear microblock(s)
     // m_microBlocks.clear();
+
+    m_mediator.HeartBeatPulse();
 
     if (m_mode == PRIMARY_DS)
     {
