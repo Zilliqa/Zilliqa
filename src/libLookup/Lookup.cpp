@@ -978,7 +978,6 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     vector<TxBlock> txBlocks;
     uint64_t blockNum;
-    uint32_t consensusID;
 
     {
         lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
@@ -1000,8 +999,6 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                 break;
             }
         }
-
-        consensusID = m_mediator.m_consensusID;
     }
 
     // if serialization got interrupted in between, reset the highBlockNum value in msg
@@ -1015,7 +1012,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
     if (!Messenger::SetLookupSetTxBlockFromSeed(
             txBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
-            txBlocks, consensusID))
+            txBlocks))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::SetLookupSetTxBlockFromSeed failed.");
@@ -1293,8 +1290,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     //#endif // IS_LOOKUP_NODE
 
     if (!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying
-        && m_mediator.m_consensusID
-            >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS))
+        && (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0))
     {
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1414,8 +1410,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
     vector<TxBlock> txBlocks;
 
     if (!Messenger::GetLookupSetTxBlockFromSeed(message, offset, lowBlockNum,
-                                                highBlockNum, txBlocks,
-                                                m_mediator.m_consensusID))
+                                                highBlockNum, txBlocks))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetLookupSetTxBlockFromSeed failed.");
@@ -1477,19 +1472,15 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             txBlock.Serialize(serializedTxBlock, 0);
             BlockStorage::GetBlockStorage().PutTxBlock(
                 txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+            m_mediator.IncreaseEpochNum();
         }
-
-        m_mediator.m_currentEpochNum
-            = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            + 1;
 
         m_mediator.UpdateTxBlockRand();
 
-        if (m_mediator.m_consensusID
-            >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS))
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
             LOG_GENERAL(INFO,
-                        "At vacuous epoch now, try getting state from lookup");
+                        "At new DS epoch now, try getting state from lookup");
             GetStateFromLookupNodes();
         }
     }
@@ -1708,11 +1699,10 @@ bool Lookup::InitMining()
     LOG_MARKER();
 
     // General check
-    if (m_mediator.m_consensusID
-        < (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS))
+    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Vacuous check failed");
+                  "New DS epoch check failed");
         return false;
     }
 
@@ -2552,8 +2542,7 @@ void Lookup::SenderTxnBatchThread()
         uint32_t numShards;
         while (true)
         {
-            if ((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
-                != 0)
+            if (!m_mediator.GetIsVacuousEpoch())
             {
                 {
                     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);

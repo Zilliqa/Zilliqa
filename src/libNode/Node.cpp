@@ -606,12 +606,10 @@ bool Node::ProcessTxnPacketFromLookup(
     // vacuous epoch -> reject
     // new ds epoch but didn't received ds block yet -> buffer
     // else -> process
-
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
+        LOG_GENERAL(WARNING,
+                    "In vacuous epoch now, shouldn't accept any Txn Packet");
         return false;
     }
 
@@ -627,44 +625,38 @@ bool Node::ProcessTxnPacketFromLookup(
         return false;
     }
 
-    if (m_mediator.m_consensusID
-            >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS)
-        || m_mediator.m_currentEpochNum == 1)
-
     {
-        // check for recieval of new ds block
-        // need to wait the ProcessDSBlock finish
         lock_guard<mutex> g1(m_mutexDSBlock);
-        if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            < (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) + 1)
+        if (((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+             && (m_mediator.m_consensusID != 0))
+            || ((m_mediator.m_currentEpochNum == 1)
+                && (m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetBlockNum()
+                    == 0)))
+
         {
             lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
             m_txnPacketBuffer.emplace(epochNumber, message);
+            return true;
         }
-        else
-        {
-            return ProcessTxnPacketFromLookupCore(message, shardID,
-                                                  transactions);
-        }
+    }
+
+    if (epochNumber < m_mediator.m_currentEpochNum)
+    {
+        LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
+        return false;
+    }
+    else if (epochNumber == m_mediator.m_currentEpochNum)
+    {
+        return ProcessTxnPacketFromLookupCore(message, shardID, transactions);
     }
     else
     {
-        if (epochNumber < m_mediator.m_currentEpochNum)
-        {
-            LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
-            return false;
-        }
-        else if (epochNumber == m_mediator.m_currentEpochNum)
-        {
-            return ProcessTxnPacketFromLookupCore(message, shardID,
-                                                  transactions);
-        }
-        else
-        {
-            lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-            m_txnPacketBuffer.emplace(epochNumber, message);
-        }
+        lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+        m_txnPacketBuffer.emplace(epochNumber, message);
     }
+
     return true;
 }
 

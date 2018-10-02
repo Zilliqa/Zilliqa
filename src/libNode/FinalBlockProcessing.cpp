@@ -60,9 +60,8 @@ void Node::StoreState()
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
     AddBlock(txBlock);
-    m_mediator.m_currentEpochNum
-        = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-        + 1;
+
+    m_mediator.IncreaseEpochNum();
 
     // At this point, the transactions in the last Epoch is no longer useful, thus erase.
     // EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
@@ -865,14 +864,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     bool toSendTxnToLookup = false;
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+    bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
+    m_isVacuousEpochBuffer = isVacuousEpoch;
+
     if (!isVacuousEpoch)
     {
         ProcessStateDeltaFromFinalBlock(
             stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
-        m_isVacuousEpoch = false;
         if (!LoadUnavailableMicroBlockHashes(
                 txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup))
         {
@@ -882,7 +881,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
     else
     {
-        m_isVacuousEpoch = true;
         LOG_GENERAL(INFO, "isVacuousEpoch now");
 
         // Remove because shard nodes will be shuffled in next epoch.
@@ -969,7 +967,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
 
         // Now only forwarded txn are left, so only call in lookup
-        CommitForwardedMsgBuffer();
+        CommitForwardedTransactionBuffer();
 
         if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch
             && USE_REMOTE_TXN_CREATOR)
@@ -1121,6 +1119,14 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
                                      unsigned int cur_offset,
                                      [[gnu::unused]] const Peer& from)
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessForwardTransaction not expected to be "
+                    "called from Normal node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     uint64_t latestForwardBlockNum = 0;
@@ -1173,6 +1179,14 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
 
 bool Node::ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry)
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessForwardTransactionCore not expected to be "
+                    "called from Normal node.");
+        return true;
+    }
+
     LOG_MARKER();
 
     LOG_GENERAL(
@@ -1237,7 +1251,7 @@ bool Node::ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry)
                     .GetHeader()
                     .GetBlockNum());
 
-            if (LOOKUP_NODE_MODE && m_isVacuousEpoch)
+            if (LOOKUP_NODE_MODE && m_isVacuousEpochBuffer)
             {
                 BlockStorage::GetBlockStorage().PutMetadata(
                     MetaType::DSINCOMPLETED, {'0'});
@@ -1259,8 +1273,16 @@ bool Node::ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry)
     return true;
 }
 
-void Node::CommitForwardedMsgBuffer()
+void Node::CommitForwardedTransactionBuffer()
 {
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Node::CommitForwardedTransactionBuffer not expected to be "
+                    "called from Normal node.");
+        return;
+    }
+
     LOG_MARKER();
 
     lock_guard<mutex> g(m_mutexForwardedTxnBuffer);

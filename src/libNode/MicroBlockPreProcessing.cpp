@@ -668,9 +668,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
             chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
     }
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (!isVacuousEpoch)
+    if (!m_mediator.GetIsVacuousEpoch())
     {
         ProcessTransactionWhenShardLeader();
     }
@@ -832,10 +830,8 @@ bool Node::RunConsensusOnMicroBlock()
         m_mediator.m_ds->m_startedRunFinalblockConsensus = false;
         m_mediator.m_ds->m_stateDeltaWhenRunDSMB
             = m_mediator.m_ds->m_stateDeltaFromShards;
-        bool isVacuousEpoch
-            = (m_mediator.m_consensusID
-               >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-        if (isVacuousEpoch)
+
+        if (m_mediator.GetIsVacuousEpoch())
         {
             //Coinbase
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1014,9 +1010,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
         return true;
     }
 
-    bool isVacuousEpoch = (m_mediator.m_consensusID
-                           >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (!isVacuousEpoch)
+    if (!m_mediator.GetIsVacuousEpoch())
     {
         vector<TxnHash> missingTxnHashes;
         if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
