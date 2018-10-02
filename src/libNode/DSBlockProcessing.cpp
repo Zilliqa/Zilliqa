@@ -410,8 +410,8 @@ void Node::StartFirstTxEpoch()
 
     DetachedFunction(1, main_func3);
 
-    auto func = [this]() mutable -> void { ScheduleFallbackTimeout(); };
-    DetachedFunction(1, func);
+    FallbackTimerLaunch();
+    FallbackTimerPulse();
 }
 
 void Node::ResetConsensusId()
@@ -616,8 +616,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             m_mediator.m_lookup->SenderTxnBatchThread();
         }
 
-        auto func = [this]() mutable -> void { ScheduleFallbackTimeout(); };
-        DetachedFunction(1, func);
+        FallbackTimerLaunch();
+        FallbackTimerPulse();
     }
 
     return true;

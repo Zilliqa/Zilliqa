@@ -268,64 +268,102 @@ void Node::SetLastKnownGoodState()
     }
 }
 
-void Node::ScheduleFallbackTimeout(bool started)
+void Node::FallbackTimerLaunch()
 {
+    if (m_fallbackTimerLaunched)
+    {
+        return;
+    }
+
     LOG_MARKER();
 
-    cv_fallbackBlock.notify_all();
-
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVFallbackBlock);
-    // if started, will use smaller interval
-    // otherwise, using big interval
-    if (!LOOKUP_NODE_MODE)
+    if (FALLBACK_INTERVAL_STARTED < FALLBACK_CHECK_INTERVAL
+        || FALLBACK_INTERVAL_WAITING < FALLBACK_CHECK_INTERVAL)
     {
-        if (cv_fallbackBlock.wait_for(
-                cv_lk,
-                std::chrono::seconds(
-                    started ? FALLBACK_INTERVAL_STARTED
-                            : (FALLBACK_INTERVAL_WAITING * (m_myShardID + 1))))
-            == std::cv_status::timeout)
+        LOG_GENERAL(FATAL,
+                    "The configured fallback checking interval must be "
+                    "smaller than the timeout value.");
+        return;
+    }
+
+    m_fallbackTimer = 0;
+    m_fallbackStarted = false;
+
+    auto func = [this]() -> void {
+        while (true)
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated fallback" << (started ? " again" : ""));
+            this_thread::sleep_for(chrono::seconds(FALLBACK_CHECK_INTERVAL));
 
             if (m_mediator.m_ds->m_mode != DirectoryService::IDLE)
             {
+                m_fallbackTimerLaunched = false;
                 return;
             }
 
-            if (started)
+            lock_guard<mutex> g(m_mutexFallbackTimer);
+
+            if (m_fallbackStarted)
             {
-                UpdateFallbackConsensusLeader();
+                if (LOOKUP_NODE_MODE)
+                {
+                    LOG_GENERAL(WARNING,
+                                "Node::FallbackTimerLaunch when started is "
+                                "true not expected to be called from "
+                                "LookUp node.");
+                    return;
+                }
+
+                if (m_fallbackTimer >= FALLBACK_INTERVAL_STARTED)
+                {
+                    UpdateFallbackConsensusLeader();
+
+                    auto func = [this]() -> void { RunConsensusOnFallback(); };
+                    DetachedFunction(1, func);
+
+                    m_fallbackTimer = 0;
+                }
+            }
+            else
+            {
+                bool runConsensus = false;
+
+                if (!LOOKUP_NODE_MODE)
+                {
+                    if (m_fallbackTimer
+                        >= (FALLBACK_INTERVAL_WAITING * (m_myShardID + 1)))
+                    {
+                        auto func
+                            = [this]() -> void { RunConsensusOnFallback(); };
+                        DetachedFunction(1, func);
+                        m_fallbackStarted = true;
+                        runConsensus = true;
+                        m_fallbackTimer = 0;
+                    }
+                }
+
+                if (m_fallbackTimer >= FALLBACK_INTERVAL_WAITING
+                    && m_state != WAITING_FALLBACKBLOCK
+                    && m_state != FALLBACK_CONSENSUS_PREP
+                    && m_state != FALLBACK_CONSENSUS && !runConsensus)
+                {
+                    SetState(WAITING_FALLBACKBLOCK);
+                    cv_fallbackBlock.notify_all();
+                }
             }
 
-            auto func = [this]() -> void { RunConsensusOnFallback(); };
-            DetachedFunction(1, func);
+            m_fallbackTimer += FALLBACK_CHECK_INTERVAL;
         }
-    }
+    };
 
-    if (!started)
-    {
-        if (cv_fallbackBlock.wait_for(
-                cv_lk, std::chrono::seconds(FALLBACK_INTERVAL_WAITING))
-            == std::cv_status::timeout)
-        {
-            if (m_mediator.m_ds->m_mode != DirectoryService::IDLE)
-            {
-                return;
-            }
+    DetachedFunction(1, func);
+    m_fallbackTimerLaunched = true;
+}
 
-            if (m_state != FALLBACK_CONSENSUS_PREP
-                || m_state != FALLBACK_CONSENSUS)
-            {
-                LOG_EPOCH(WARNING,
-                          to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Ready for receiving fallback from other shard");
-                cv_fallbackBlock.notify_all();
-                SetState(WAITING_FALLBACKBLOCK);
-            }
-        }
-    }
+void Node::FallbackTimerPulse()
+{
+    lock_guard<mutex> g(m_mutexFallbackTimer);
+    m_fallbackTimer = 0;
+    m_fallbackStarted = false;
 }
 
 void Node::ComposeFallbackBlock()
@@ -391,6 +429,12 @@ void Node::RunConsensusOnFallback()
     SetLastKnownGoodState();
     SetState(FALLBACK_CONSENSUS_PREP);
 
+    if (!AccountStore::GetInstance().UpdateStateTrieAll())
+    {
+        LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+        return;
+    }
+
     // Upon consensus object creation failure, one should not return from the function, but rather wait for fallback.
     bool ConsensusObjCreation = true;
 
@@ -418,10 +462,6 @@ void Node::RunConsensusOnFallback()
         SetState(FALLBACK_CONSENSUS);
         cv_fallbackConsensusObj.notify_all();
     }
-
-    // schedule fallback
-    auto func = [this]() -> void { ScheduleFallbackTimeout(true /*started*/); };
-    DetachedFunction(1, func);
 }
 
 bool Node::RunConsensusOnFallbackWhenLeader()

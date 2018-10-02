@@ -171,6 +171,14 @@ void Node::ProcessFallbackConsensusWhenDone()
 
         AccountStore::GetInstance().InitTemp();
 
+        StoreState();
+
+        if (!LOOKUP_NODE_MODE)
+        {
+            BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                        {'0'});
+        }
+
         // Detach a thread, Pending for POW Submission and RunDSBlockConsensus
         auto func = [this]() -> void {
             m_mediator.m_ds->StartNewDSEpochConsensus(true);
@@ -316,7 +324,6 @@ bool Node::ProcessFallbackConsensus(const vector<unsigned char>& message,
 
     if (state == ConsensusCommon::State::DONE)
     {
-        cv_fallbackBlock.notify_all();
         ProcessFallbackConsensusWhenDone();
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Fallback consensus is DONE!!!");

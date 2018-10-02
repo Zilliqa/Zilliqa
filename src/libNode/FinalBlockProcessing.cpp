@@ -978,8 +978,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
     }
 
-    auto func = [this]() mutable -> void { ScheduleFallbackTimeout(); };
-    DetachedFunction(1, func);
+    FallbackTimerPulse();
 
     return true;
 }
