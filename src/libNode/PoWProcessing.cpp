@@ -153,7 +153,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         }
     }
 
-    if (m_state != MICROBLOCK_CONSENSUS_PREP || m_state != MICROBLOCK_CONSENSUS)
+    if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS)
     {
         SetState(WAITING_DSBLOCK);
     }
