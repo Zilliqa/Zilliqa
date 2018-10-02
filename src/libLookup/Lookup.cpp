@@ -1238,56 +1238,49 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
 bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
                                     const MicroBlock& microblock)
 {
-    if (!LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(INFO, "not expected to be called from non-lookup");
-        return false;
-    }
     uint32_t id = microblock.GetHeader().GetShardID();
 
     TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blocknum);
     unsigned int i = 0;
-    if (!(txblk == TxBlock()))
+
+    if (txblk == TxBlock())
     {
-        for (i = 0; i < txblk.GetShardIDs().size(); i++)
-        {
+        LOG_GENERAL(WARNING, "Failed to fetch microblock");
+        return false;
+    }
+    for (i = 0; i < txblk.GetShardIDs().size(); i++)
+    {
 
-            if (txblk.GetShardIDs()[i] == id)
-            {
-                LOG_GENERAL(INFO, "[SendMB]" << i);
-                break;
-            }
-        }
-        if (i == txblk.GetShardIDs().size())
+        if (txblk.GetShardIDs()[i] == id)
         {
-            LOG_GENERAL(WARNING, "Failed to find id " << id);
-            return false;
+            break;
         }
+    }
+    if (i == txblk.GetShardIDs().size())
+    {
+        LOG_GENERAL(WARNING, "Failed to find id " << id);
+        return false;
+    }
 
-        if ((txblk.GetMicroBlockHashes()[i].m_txRootHash
-             == microblock.GetHeader().GetTxRootHash())
-            && (txblk.GetMicroBlockHashes()[i].m_stateDeltaHash
-                == microblock.GetHeader().GetStateDeltaHash()))
+    if ((txblk.GetMicroBlockHashes()[i].m_txRootHash
+         == microblock.GetHeader().GetTxRootHash())
+        && (txblk.GetMicroBlockHashes()[i].m_stateDeltaHash
+            == microblock.GetHeader().GetStateDeltaHash()))
+    {
+        vector<unsigned char> body;
+        microblock.Serialize(body, 0);
+        if (!BlockStorage::GetBlockStorage().PutMicroBlock(blocknum, id, body))
         {
-            vector<unsigned char> body;
-            microblock.Serialize(body, 0);
-            if (!BlockStorage::GetBlockStorage().PutMicroBlock(blocknum, id,
-                                                               body))
-            {
-                LOG_GENERAL(WARNING, "Failed to put microblock in body");
-            }
-        }
-        else
-        {
-            LOG_GENERAL(WARNING, "MicroBlock not validated");
+            LOG_GENERAL(WARNING, "Failed to put microblock in body");
             return false;
         }
     }
     else
     {
-        LOG_GENERAL(WARNING, "failed to fetch tx block " << blocknum);
+        LOG_GENERAL(WARNING, "MicroBlock not validated");
         return false;
     }
+
     return true;
 }
 
@@ -1295,9 +1288,17 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     const vector<unsigned char>& message, unsigned int offset, const Peer& from)
 {
     LOG_MARKER();
+
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Function not expected to be called from non-lookup node");
+        return false;
+    }
     map<uint64_t, vector<uint32_t>> microBlockIds;
     microBlockIds.clear();
     uint32_t portNo = 0;
+
     if (!Messenger::GetLookupGetMicroBlockFromLookup(message, offset,
                                                      microBlockIds, portNo))
     {
@@ -1430,7 +1431,12 @@ bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
     uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
 
                                                           sizeof(uint64_t));
-
+    if (!LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "Function not expected to be called from non-lookup node");
+        return false;
+    }
     if (epochNum <= 1)
     {
         return false;
