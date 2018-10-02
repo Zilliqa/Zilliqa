@@ -1087,7 +1087,9 @@ Json::Value Server::GetShardingStructure()
     try
     {
         Json::Value _json;
+
         auto shards = m_mediator.m_lookup->GetShardPeers();
+
         unsigned int num_shards = shards.size();
 
         if (num_shards == 0)

@@ -27,7 +27,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libNetwork/PeerStore.h"
 
-/// Stores information on the header part of the DS block.
+/// Stores information on the header part of the VC block.
 class VCBlockHeader : public BlockHeaderBase
 {
     uint64_t m_VieWChangeDSEpochNo;
@@ -47,10 +47,10 @@ public:
     /// Default constructor.
     VCBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
 
-    /// Constructor for loading DS block header information from a byte stream.
+    /// Constructor for loading VC block header information from a byte stream.
     VCBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Constructor with specified DS block header parameters.
+    /// Constructor with specified VC block header parameters.
     VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
                   const uint64_t& viewChangeEpochNo,
                   const unsigned char viewChangeState,

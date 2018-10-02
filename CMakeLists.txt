@@ -59,6 +59,10 @@ if(HEARTBEATTEST)
     add_definitions(-DHEARTBEAT_TEST)
 endif()
 
+if(FALLBACKTEST)
+	add_definitions(-DFALLBACK_TEST)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})

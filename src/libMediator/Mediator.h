@@ -65,6 +65,9 @@ public:
     bool m_killPulse = false;
 #endif // HEARTBEAT_TEST
 
+    /// The consensus ID
+    uint32_t m_consensusID;
+
     // DS committee members
     // Fixed-sized double-ended queue depending on size of DS committee at bootstrap
     // Leader is at head of queue
@@ -84,8 +87,13 @@ public:
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 
+    /// Flag for indicating whether it's vacuous epoch now
+    bool m_isVacuousEpoch;
+    std::mutex m_mutexVacuousEpoch;
+
     /// Record current software information which already downloaded to this node
     SWInfo m_curSWInfo;
+    std::mutex m_mutexCurSWInfo;
 
     /// Constructor.
     Mediator(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
@@ -110,6 +118,10 @@ public:
 
     /// Resets the heartbeat counter (to indicate liveness)
     void HeartBeatPulse();
+
+    void IncreaseEpochNum();
+
+    bool GetIsVacuousEpoch();
 };
 
 #endif // __MEDIATOR_H__

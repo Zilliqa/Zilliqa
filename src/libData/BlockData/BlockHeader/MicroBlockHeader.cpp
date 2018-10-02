@@ -223,5 +223,5 @@ bool MicroBlockHeader::operator<(const MicroBlockHeader& header) const
 
 bool MicroBlockHeader::operator>(const MicroBlockHeader& header) const
 {
-    return !((*this == header) || (*this < header));
+    return header < *this;
 }
