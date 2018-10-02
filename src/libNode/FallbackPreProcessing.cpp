@@ -338,6 +338,7 @@ void Node::FallbackTimerLaunch()
                         m_fallbackStarted = true;
                         runConsensus = true;
                         m_fallbackTimer = 0;
+                        m_justDidFallback = true;
                     }
                 }
 
@@ -347,6 +348,7 @@ void Node::FallbackTimerLaunch()
                     && m_state != FALLBACK_CONSENSUS && !runConsensus)
                 {
                     SetState(WAITING_FALLBACKBLOCK);
+                    m_justDidFallback = true;
                     cv_fallbackBlock.notify_all();
                 }
             }

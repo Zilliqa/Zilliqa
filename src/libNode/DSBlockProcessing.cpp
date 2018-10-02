@@ -404,6 +404,7 @@ void Node::StartFirstTxEpoch()
         }
     }
 
+    m_justDidFallback = false;
     CommitTxnPacketBuffer();
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };

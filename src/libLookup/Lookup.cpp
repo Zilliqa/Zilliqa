@@ -1472,8 +1472,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             txBlock.Serialize(serializedTxBlock, 0);
             BlockStorage::GetBlockStorage().PutTxBlock(
                 txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
-            m_mediator.IncreaseEpochNum();
         }
+
+        m_mediator.m_currentEpochNum
+            = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1;
 
         m_mediator.UpdateTxBlockRand();
 
@@ -1699,7 +1702,7 @@ bool Lookup::InitMining()
     LOG_MARKER();
 
     // General check
-    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+    if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "New DS epoch check failed");

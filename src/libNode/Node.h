@@ -422,6 +422,9 @@ public:
     // a buffer flag used by lookup to store the isVacuousEpoch state before StoreFinalBlock
     std::atomic<bool> m_isVacuousEpochBuffer;
 
+    // a indicator of whether recovered from fallback just now
+    bool m_justDidFallback = false;
+
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
 
