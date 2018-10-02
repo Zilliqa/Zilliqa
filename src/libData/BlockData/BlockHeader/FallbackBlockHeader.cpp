@@ -204,5 +204,5 @@ bool FallbackBlockHeader::operator<(const FallbackBlockHeader& header) const
 
 bool FallbackBlockHeader::operator>(const FallbackBlockHeader& header) const
 {
-    return !((*this == header) || (*this < header));
+    return header < *this;
 }
