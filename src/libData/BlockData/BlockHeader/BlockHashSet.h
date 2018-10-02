@@ -244,4 +244,79 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t)
     return os;
 }
 
+struct FallbackBlockHashSet
+{
+    StateHash m_stateRootHash;
+
+    /// Implements the Serialize function inherited from Serializable.
+    unsigned int Serialize(std::vector<unsigned char>& dst,
+                           unsigned int offset) const
+    {
+        copy(m_stateRootHash.asArray().begin(), m_stateRootHash.asArray().end(),
+             dst.begin() + offset);
+        offset += STATE_HASH_SIZE;
+
+        return offset;
+    }
+
+    /// Implements the Deserialize function inherited from Serializable.
+    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset)
+    {
+        try
+        {
+            copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
+                 m_stateRootHash.asArray().begin());
+            offset += STATE_HASH_SIZE;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_GENERAL(WARNING,
+                        "Error with FallbackBlockHashSet::Deserialize."
+                            << ' ' << e.what());
+            return -1;
+        }
+
+        return 0;
+    }
+
+    bool operator==(const FallbackBlockHashSet& hashSet) const
+    {
+        return std::tie(m_stateRootHash) == std::tie(hashSet.m_stateRootHash);
+    }
+    bool operator<(const FallbackBlockHashSet& hashSet) const
+    {
+        return std::tie(hashSet.m_stateRootHash) > std::tie(m_stateRootHash);
+    }
+    bool operator>(const FallbackBlockHashSet& hashSet) const
+    {
+        return !((*this == hashSet) || (*this < hashSet));
+    }
+
+    static constexpr unsigned int size() { return STATE_HASH_SIZE; }
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const FallbackBlockHashSet& t);
+};
+
+// define its hash function in order to used as key in map
+namespace std
+{
+    template<> struct hash<FallbackBlockHashSet>
+    {
+        size_t operator()(FallbackBlockHashSet const& hashSet) const noexcept
+        {
+            std::size_t seed = 0;
+            boost::hash_combine(seed, hashSet.m_stateRootHash.hex());
+
+            return seed;
+        }
+    };
+}
+
+inline std::ostream& operator<<(std::ostream& os, const FallbackBlockHashSet& t)
+{
+    os << "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl;
+    return os;
+}
+
 #endif // __BLOCKHASHSET_H__

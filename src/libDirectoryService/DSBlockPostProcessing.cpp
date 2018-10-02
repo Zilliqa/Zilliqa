@@ -281,7 +281,6 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][      ] IDLE");
     }
-
     else
     {
 
@@ -390,7 +389,7 @@ void DirectoryService::StartFirstTxEpoch()
         unsigned int index = 0;
         for (const auto& i : *m_mediator.m_node->m_myShardMembers)
         {
-            if (i.second.m_listenPortHost == 0)
+            if (i.second == Peer())
             {
                 LOG_GENERAL(INFO, "m_consensusMyID = " << index);
                 m_mediator.m_node->m_consensusMyID = index;
@@ -423,9 +422,9 @@ void DirectoryService::StartFirstTxEpoch()
         }
 
         m_mediator.m_node->m_consensusLeaderID = 0;
-
         // m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
         m_mediator.m_node->m_myShardID = m_shards.size();
+        m_mediator.m_node->m_justDidFallback = false;
         m_mediator.m_node->CommitTxnPacketBuffer();
         m_stateDeltaFromShards.clear();
 
@@ -470,7 +469,6 @@ void DirectoryService::StartFirstTxEpoch()
                         WARNING,
                         "Timeout: Didn't finish DS Microblock. Proceeds "
                         "without it");
-
                     RunConsensusOnFinalBlock(true);
                 }
             }

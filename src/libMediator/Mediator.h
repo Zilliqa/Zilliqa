@@ -58,6 +58,9 @@ public:
     /// The current epoch.
     uint64_t m_currentEpochNum = 0;
 
+    /// The consensus ID
+    uint32_t m_consensusID;
+
     // DS committee members
     // Fixed-sized double-ended queue depending on size of DS committee at bootstrap
     // Leader is at head of queue
@@ -76,6 +79,10 @@ public:
 
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
+
+    /// Flag for indicating whether it's vacuous epoch now
+    bool m_isVacuousEpoch;
+    std::mutex m_mutexVacuousEpoch;
 
     /// Record current software information which already downloaded to this node
     SWInfo m_curSWInfo;
@@ -97,6 +104,10 @@ public:
     void UpdateTxBlockRand(bool isGenesis = false);
 
     std::string GetNodeMode(const Peer& peer);
+
+    void IncreaseEpochNum();
+
+    bool GetIsVacuousEpoch();
 };
 
 #endif // __MEDIATOR_H__

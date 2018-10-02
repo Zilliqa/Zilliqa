@@ -98,6 +98,8 @@ void Node::UpdateDSCommiteeComposition(const Peer& winnerpeer)
         peer = winnerpeer;
     }
 
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
     m_mediator.m_DSCommittee->emplace_front(make_pair(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetMinerPubKey(),
         peer));
@@ -255,7 +257,7 @@ bool Node::LoadShardingStructure()
         if (m_mediator.m_selfPeer == m_myShardMembers->back().second)
         {
             m_consensusMyID = index; // Set my ID
-            m_myShardMembers->back().second.m_listenPortHost = 0;
+            m_myShardMembers->back().second = Peer();
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -347,8 +349,11 @@ void Node::StartFirstTxEpoch()
 
     LOG_MARKER();
 
+    ResetConsensusId();
+
     // Check if I am the leader or backup of the shard
-    if (m_mediator.m_selfKey.second == m_myShardMembers->front().first)
+    if (m_mediator.m_selfKey.second
+        == (*m_myShardMembers)[m_consensusLeaderID].first)
     {
         m_isPrimary = true;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -399,12 +404,21 @@ void Node::StartFirstTxEpoch()
         }
     }
 
-    m_consensusLeaderID = 0;
+    m_justDidFallback = false;
     CommitTxnPacketBuffer();
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func3);
+
+    FallbackTimerLaunch();
+    FallbackTimerPulse();
+}
+
+void Node::ResetConsensusId()
+{
+    m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+    m_consensusLeaderID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 }
 
 bool Node::ProcessDSBlock(const vector<unsigned char>& message,
@@ -526,9 +540,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             m_mediator.m_ds->ProcessTxnBodySharingAssignment();
 
             // Update my ID
-            m_mediator.m_ds->m_consensusID
-                = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
             m_mediator.m_ds->m_consensusMyID = 0;
+
+            ResetConsensusId();
 
             //(We're getting rid of this eventually Clean up my txns coz I am DS)
             m_mediator.m_node->CleanCreatedTransaction();
@@ -569,6 +583,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
             m_mediator.m_ds->StartFirstTxEpoch();
             //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+
+            return true;
         }
         // If I am a shard node
         else
@@ -594,10 +610,16 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         // Process sharding structure as a lookup node
         m_mediator.m_lookup->ProcessEntireShardingStructure();
 
+        ResetConsensusId();
+
         if (m_mediator.m_lookup->GetIsServer() && USE_REMOTE_TXN_CREATOR)
         {
             m_mediator.m_lookup->SenderTxnBatchThread();
         }
+
+        FallbackTimerLaunch();
+        FallbackTimerPulse();
     }
+
     return true;
 }

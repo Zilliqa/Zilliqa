@@ -394,6 +394,101 @@ namespace
             CoSignatures(cosigs));
     }
 
+    void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
+                                 ProtoFallbackBlock& protoFallbackBlock)
+    {
+        // Serialize header
+
+        ZilliqaMessage::ProtoFallbackBlock::FallbackBlockHeader* protoHeader
+            = protoFallbackBlock.mutable_header();
+
+        const FallbackBlockHeader& header = fallbackBlock.GetHeader();
+
+        protoHeader->set_fallbackdsepochno(header.GetFallbackDSEpochNo());
+        protoHeader->set_fallbackepochno(header.GetFallbackEpochNo());
+        protoHeader->set_fallbackstate(header.GetFallbackState());
+        protoHeader->set_stateroothash(header.GetStateRootHash().data(),
+                                       header.GetStateRootHash().size);
+        protoHeader->set_leaderconsensusid(header.GetLeaderConsensusId());
+        SerializableToProtobufByteArray(
+            header.GetLeaderNetworkInfo(),
+            *protoHeader->mutable_leadernetworkinfo());
+        SerializableToProtobufByteArray(header.GetLeaderPubKey(),
+                                        *protoHeader->mutable_leaderpubkey());
+        protoHeader->set_shardid(header.GetShardId());
+        NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+            header.GetTimeStamp(), *protoHeader->mutable_timestamp());
+
+        // Serialize cosigs
+
+        ZilliqaMessage::ProtoFallbackBlock::CoSignatures* cosigs
+            = protoFallbackBlock.mutable_cosigs();
+
+        SerializableToProtobufByteArray(fallbackBlock.GetCS1(),
+                                        *cosigs->mutable_cs1());
+        for (const auto& i : fallbackBlock.GetB1())
+        {
+            cosigs->add_b1(i);
+        }
+        SerializableToProtobufByteArray(fallbackBlock.GetCS2(),
+                                        *cosigs->mutable_cs2());
+        for (const auto& i : fallbackBlock.GetB2())
+        {
+            cosigs->add_b2(i);
+        }
+    }
+
+    void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
+                                 FallbackBlock& fallbackBlock)
+    {
+        // Deserialize header
+        const ZilliqaMessage::ProtoFallbackBlock::FallbackBlockHeader&
+            protoHeader
+            = protoFallbackBlock.header();
+
+        Peer leaderNetworkInfo;
+        PubKey leaderPubKey;
+        uint256_t timestamp;
+        StateHash stateRootHash;
+
+        ProtobufByteArrayToSerializable(protoHeader.leadernetworkinfo(),
+                                        leaderNetworkInfo);
+        ProtobufByteArrayToSerializable(protoHeader.leaderpubkey(),
+                                        leaderPubKey);
+        ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+            protoHeader.timestamp(), timestamp);
+
+        copy(protoHeader.stateroothash().begin(),
+             protoHeader.stateroothash().begin()
+                 + min((unsigned int)protoHeader.stateroothash().size(),
+                       (unsigned int)stateRootHash.size),
+             stateRootHash.asArray().begin());
+
+        // Deserialize cosigs
+
+        CoSignatures cosigs;
+        cosigs.m_B1.resize(protoFallbackBlock.cosigs().b1().size());
+        cosigs.m_B2.resize(protoFallbackBlock.cosigs().b2().size());
+
+        ProtobufByteArrayToSerializable(protoFallbackBlock.cosigs().cs1(),
+                                        cosigs.m_CS1);
+        copy(protoFallbackBlock.cosigs().b1().begin(),
+             protoFallbackBlock.cosigs().b1().end(), cosigs.m_B1.begin());
+        ProtobufByteArrayToSerializable(protoFallbackBlock.cosigs().cs2(),
+                                        cosigs.m_CS2);
+        copy(protoFallbackBlock.cosigs().b2().begin(),
+             protoFallbackBlock.cosigs().b2().end(), cosigs.m_B2.begin());
+
+        // Generate the new FallbackBlock
+        fallbackBlock = FallbackBlock(
+            FallbackBlockHeader(
+                protoHeader.fallbackdsepochno(), protoHeader.fallbackepochno(),
+                protoHeader.fallbackstate(), stateRootHash,
+                protoHeader.leaderconsensusid(), leaderNetworkInfo,
+                leaderPubKey, protoHeader.shardid(), timestamp),
+            CoSignatures(cosigs));
+    }
+
     template<class T>
     bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
                           const unsigned int offset)
@@ -496,6 +591,22 @@ namespace
             announcement.vcblock().SerializeToArray(
                 inputToSigning.data() + announcement.consensusinfo().ByteSize(),
                 announcement.vcblock().ByteSize());
+            break;
+        case ConsensusAnnouncement::AnnouncementCase::kFallbackblock:
+            if (!announcement.fallbackblock().IsInitialized())
+            {
+                LOG_GENERAL(
+                    WARNING,
+                    "Announcement fallbackblock content not initialized.");
+                return false;
+            }
+            inputToSigning.resize(announcement.consensusinfo().ByteSize()
+                                  + announcement.fallbackblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                inputToSigning.data(), announcement.consensusinfo().ByteSize());
+            announcement.fallbackblock().SerializeToArray(
+                inputToSigning.data() + announcement.consensusinfo().ByteSize(),
+                announcement.fallbackblock().ByteSize());
             break;
         case ConsensusAnnouncement::AnnouncementCase::ANNOUNCEMENT_NOT_SET:
         default:
@@ -600,6 +711,17 @@ namespace
             announcement.vcblock().SerializeToArray(
                 tmp.data() + announcement.consensusinfo().ByteSize(),
                 announcement.vcblock().ByteSize());
+        }
+        else if (announcement.has_fallbackblock()
+                 && announcement.fallbackblock().IsInitialized())
+        {
+            tmp.resize(announcement.consensusinfo().ByteSize()
+                       + announcement.fallbackblock().ByteSize());
+            announcement.consensusinfo().SerializeToArray(
+                tmp.data(), announcement.consensusinfo().ByteSize());
+            announcement.fallbackblock().SerializeToArray(
+                tmp.data() + announcement.consensusinfo().ByteSize(),
+                announcement.fallbackblock().ByteSize());
         }
         else
         {
@@ -793,7 +915,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const uint32_t consensusID, const vector<unsigned char>& blockHash,
     const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
     const DSBlock& dsBlock, const Peer& powWinnerPeer,
-    const VectorOfShard& shards, const vector<Peer>& dsReceivers,
+    const DequeOfShard& shards, const vector<Peer>& dsReceivers,
     const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
@@ -887,7 +1009,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
     const uint32_t consensusID, const vector<unsigned char>& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
-    Peer& powWinnerPeer, VectorOfShard& shards, vector<Peer>& dsReceivers,
+    Peer& powWinnerPeer, DequeOfShard& shards, vector<Peer>& dsReceivers,
     vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
 {
@@ -1184,7 +1306,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
                                const unsigned int offset,
                                const uint32_t shardID, const DSBlock& dsBlock,
                                const Peer& powWinnerPeer,
-                               const VectorOfShard& shards,
+                               const DequeOfShard& shards,
                                const vector<Peer>& dsReceivers,
                                const vector<vector<Peer>>& shardReceivers,
                                const vector<vector<Peer>>& shardSenders)
@@ -1253,7 +1375,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
                                const unsigned int offset, uint32_t& shardID,
                                DSBlock& dsBlock, Peer& powWinnerPeer,
-                               VectorOfShard& shards, vector<Peer>& dsReceivers,
+                               DequeOfShard& shards, vector<Peer>& dsReceivers,
                                vector<vector<Peer>>& shardReceivers,
                                vector<vector<Peer>>& shardSenders)
 {
@@ -1683,6 +1805,148 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
         LOG_GENERAL(WARNING, "MicroBlockHeader serialization failed.");
         return false;
     }
+
+    return true;
+}
+
+bool Messenger::SetNodeFallbackBlockAnnouncement(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+    const FallbackBlock& fallbackBlock, vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    // Set the FallbackBlock announcement parameters
+
+    NodeFallbackBlockAnnouncement* fallbackblock
+        = announcement.mutable_fallbackblock();
+    SerializableToProtobufByteArray(fallbackBlock,
+                                    *fallbackblock->mutable_fallbackblock());
+
+    if (!fallbackblock->IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "NodeFallbackBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Set the common consensus announcement parameters
+
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Serialize the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (fallbackBlock.GetHeader().Serialize(messageToCosign, 0)
+        != FallbackBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed.");
+        return false;
+    }
+
+    // Serialize the announcement
+
+    return SerializeToArray(announcement, dst, offset);
+}
+
+bool Messenger::GetNodeFallbackBlockAnnouncement(
+    const vector<unsigned char>& src, const unsigned int offset,
+    const uint32_t consensusID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    FallbackBlock& fallbackBlock, vector<unsigned char>& messageToCosign)
+{
+    LOG_MARKER();
+
+    ConsensusAnnouncement announcement;
+
+    announcement.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!announcement.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed.");
+        return false;
+    }
+
+    if (!announcement.has_fallbackblock())
+    {
+        LOG_GENERAL(WARNING,
+                    "NodeFallbackBlockAnnouncement initialization failed.");
+        return false;
+    }
+
+    // Check the common consensus announcement parameters
+
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
+                                      leaderID, leaderKey))
+    {
+        LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
+        return false;
+    }
+
+    // Get the FallbackBlock announcement parameters
+
+    const NodeFallbackBlockAnnouncement& fallbackblock
+        = announcement.fallbackblock();
+    ProtobufByteArrayToSerializable(fallbackblock.fallbackblock(),
+                                    fallbackBlock);
+
+    // Get the part of the announcement that should be co-signed during the first round of consensus
+
+    messageToCosign.clear();
+    if (fallbackBlock.GetHeader().Serialize(messageToCosign, 0)
+        != FallbackBlockHeader::SIZE)
+    {
+        LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed.");
+        return false;
+    }
+
+    return true;
+}
+
+bool Messenger::SetNodeFallbackBlock(vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     const FallbackBlock& fallbackBlock)
+{
+    LOG_MARKER();
+
+    NodeFallbackBlock result;
+
+    FallbackBlockToProtobuf(fallbackBlock, *result.mutable_fallbackblock());
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeFallbackBlock initialization failed.");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeFallbackBlock(const vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     FallbackBlock& fallbackBlock)
+{
+    LOG_MARKER();
+
+    NodeFallbackBlock result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "NodeFallbackBlock initialization failed.");
+        return false;
+    }
+
+    ProtobufToFallbackBlock(result.fallbackblock(), fallbackBlock);
 
     return true;
 }
@@ -2565,7 +2829,7 @@ bool Messenger::GetLookupGetShardsFromSeed(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
                                            const unsigned int offset,
-                                           const VectorOfShard& shards)
+                                           const DequeOfShard& shards)
 {
     LOG_MARKER();
 
@@ -2600,7 +2864,7 @@ bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
-                                           VectorOfShard& shards)
+                                           DequeOfShard& shards)
 {
     LOG_MARKER();
 

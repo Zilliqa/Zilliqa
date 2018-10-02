@@ -62,7 +62,7 @@ public:
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
         const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
         const DSBlock& dsBlock, const Peer& powWinnerPeer,
-        const VectorOfShard& shards, const std::vector<Peer>& dsReceivers,
+        const DequeOfShard& shards, const std::vector<Peer>& dsReceivers,
         const std::vector<std::vector<Peer>>& shardReceivers,
         const std::vector<std::vector<Peer>>& shardSenders,
         std::vector<unsigned char>& messageToCosign);
@@ -71,7 +71,7 @@ public:
         const std::vector<unsigned char>& src, const unsigned int offset,
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
         const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
-        Peer& powWinnerPeer, VectorOfShard& shards,
+        Peer& powWinnerPeer, DequeOfShard& shards,
         std::vector<Peer>& dsReceivers,
         std::vector<std::vector<Peer>>& shardReceivers,
         std::vector<std::vector<Peer>>& shardSenders,
@@ -108,7 +108,7 @@ public:
     static bool
     SetNodeDSBlock(std::vector<unsigned char>& dst, const unsigned int offset,
                    const uint32_t shardID, const DSBlock& dsBlock,
-                   const Peer& powWinnerPeer, const VectorOfShard& shards,
+                   const Peer& powWinnerPeer, const DequeOfShard& shards,
                    const std::vector<Peer>& dsReceivers,
                    const std::vector<std::vector<Peer>>& shardReceivers,
                    const std::vector<std::vector<Peer>>& shardSenders);
@@ -116,7 +116,7 @@ public:
     static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset, uint32_t& shardID,
                                DSBlock& dsBlock, Peer& powWinnerPeer,
-                               VectorOfShard& shards,
+                               DequeOfShard& shards,
                                std::vector<Peer>& dsReceivers,
                                std::vector<std::vector<Peer>>& shardReceivers,
                                std::vector<std::vector<Peer>>& shardSenders);
@@ -176,6 +176,27 @@ public:
         const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
         const uint16_t leaderID, const PubKey& leaderKey,
         MicroBlock& microBlock, std::vector<unsigned char>& messageToCosign);
+
+    static bool SetNodeFallbackBlockAnnouncement(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+        const FallbackBlock& fallbackBlock,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool GetNodeFallbackBlockAnnouncement(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        const uint32_t consensusID, const std::vector<unsigned char>& blockHash,
+        const uint16_t leaderID, const PubKey& leaderKey,
+        FallbackBlock& fallbackBlock,
+        std::vector<unsigned char>& messageToCosign);
+
+    static bool SetNodeFallbackBlock(std::vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     const FallbackBlock& fallbackBlock);
+    static bool GetNodeFallbackBlock(const std::vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     FallbackBlock& fallbackBlock);
 
     // ============================================================================
     // Lookup messages
@@ -317,12 +338,11 @@ public:
 
     static bool SetLookupSetShardsFromSeed(std::vector<unsigned char>& dst,
                                            const unsigned int offset,
-                                           const VectorOfShard& shards);
+                                           const DequeOfShard& shards);
 
     static bool
     GetLookupSetShardsFromSeed(const std::vector<unsigned char>& src,
-                               const unsigned int offset,
-                               VectorOfShard& shards);
+                               const unsigned int offset, DequeOfShard& shards);
 
     // ============================================================================
     // Consensus messages
