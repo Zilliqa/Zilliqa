@@ -52,6 +52,8 @@ void AccountStore::InitSoft()
 
     AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
 
+    InitReversibles();
+
     InitTemp();
 }
 
