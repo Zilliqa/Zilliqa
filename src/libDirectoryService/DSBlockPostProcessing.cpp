@@ -281,7 +281,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
     }
     // Check if I am the oldest backup DS (I will no longer be part of the DS committee)
     if ((uint32_t)(m_consensusMyID + numOfIncomingDs)
-        <= m_mediator.m_DSCommittee->size())
+        >= m_mediator.m_DSCommittee->size())
     {
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
