@@ -614,8 +614,9 @@ bool ConsensusLeader::StartConsensus(
         return false;
     }
 
-    LOG_GENERAL(INFO, "DEBUG: consensus id is " << m_consensusID);
-    LOG_GENERAL(INFO, "DEBUG: consensus leader id is " << m_myID);
+    LOG_GENERAL(INFO,
+                "Consensus id is " << m_consensusID << "Consensus leader id is "
+                                   << m_myID);
 
     // Update internal state
     // =====================
