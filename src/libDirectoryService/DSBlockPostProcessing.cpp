@@ -642,10 +642,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock created with chosen nonce   = 0x"
-                  << hex << "\n"
-                  << "\n"
-                  << "New DSBlock hash is                     = 0x"
+              "New DSBlock hash is                     = 0x"
                   << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
                   << "\n");
 
