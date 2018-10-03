@@ -895,8 +895,12 @@ bool DirectoryService::ProcessShardingStructure(
                 {
                     LOG_EPOCH(WARNING,
                               to_string(m_mediator.m_currentEpochNum).c_str(),
-                              "WARNING: Why is the IP of the member different "
-                              "from what I have in m_allPoWConns???");
+                              "IP of the member different "
+                              "from what was in m_allPoWConns???");
+                    LOG_GENERAL(WARNING,
+                                "Stored  "
+                                    << storedMember->second << " Received"
+                                    << std::get<SHARD_NODE_PEER>(shardNode));
                     return false;
                 }
             }
