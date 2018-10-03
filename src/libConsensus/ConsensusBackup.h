@@ -33,8 +33,9 @@
 typedef std::function<bool(
     const std::vector<unsigned char>& input, unsigned int offset,
     std::vector<unsigned char>& errorMsg, const uint32_t consensusID,
-    const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, std::vector<unsigned char>& messageToCosign)>
+    const uint64_t blockNumber, const std::vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    std::vector<unsigned char>& messageToCosign)>
     MsgContentValidatorFunc;
 
 /// Implements the functionality for the consensus committee backup.
@@ -105,6 +106,7 @@ public:
     /// Constructor.
     ConsensusBackup(
         uint32_t consensus_id, // unique identifier for this consensus session
+        uint64_t block_number, // latest final block number
         const std::vector<unsigned char>&
             block_hash, // unique identifier for this consensus session
         uint16_t

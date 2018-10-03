@@ -87,8 +87,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     CommitPoint commitPoint;
 
     if (!Messenger::GetConsensusCommit(commit, offset, m_consensusID,
-                                       m_blockHash, backupID, commitPoint,
-                                       m_committee))
+                                       m_blockNumber, m_blockHash, backupID,
+                                       commitPoint, m_committee))
     {
         LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed.");
         return false;
@@ -215,9 +215,9 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     uint16_t backupID = 0;
     vector<unsigned char> errorMsg;
 
-    if (!Messenger::GetConsensusCommitFailure(commitFailureMsg, offset,
-                                              m_consensusID, m_blockHash,
-                                              backupID, errorMsg, m_committee))
+    if (!Messenger::GetConsensusCommitFailure(
+            commitFailureMsg, offset, m_consensusID, m_blockNumber, m_blockHash,
+            backupID, errorMsg, m_committee))
     {
         LOG_GENERAL(WARNING, "Messenger::GetConsensusCommitFailure failed.");
         return false;
@@ -296,8 +296,8 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
     // ===============================
 
     if (!Messenger::SetConsensusChallenge(
-            challenge, offset, m_consensusID, m_blockHash, m_myID,
-            aggregated_commit, aggregated_key, m_challenge,
+            challenge, offset, m_consensusID, m_blockNumber, m_blockHash,
+            m_myID, aggregated_commit, aggregated_key, m_challenge,
             make_pair(m_myPrivKey, m_committee.at(m_myID).first)))
     {
         LOG_GENERAL(WARNING, "Messenger::SetConsensusChallenge failed.");
@@ -328,7 +328,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     Response r;
 
     if (!Messenger::GetConsensusResponse(response, offset, m_consensusID,
-                                         m_blockHash, backupID, r, m_committee))
+                                         m_blockNumber, m_blockHash, backupID,
+                                         r, m_committee))
     {
         LOG_GENERAL(WARNING, "Messenger::GetConsensusResponse failed.");
         return false;
@@ -516,8 +517,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
     // ==========================================
 
     if (!Messenger::SetConsensusCollectiveSig(
-            collectivesig, offset, m_consensusID, m_blockHash, m_myID,
-            m_collectiveSig, m_responseMap,
+            collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
+            m_myID, m_collectiveSig, m_responseMap,
             make_pair(m_myPrivKey, m_committee.at(m_myID).first)))
     {
         LOG_GENERAL(WARNING, "Messenger::SetConsensusCollectiveSig failed.");
@@ -544,14 +545,14 @@ bool ConsensusLeader::ProcessMessageFinalResponse(
 }
 
 ConsensusLeader::ConsensusLeader(
-    uint32_t consensus_id, const vector<unsigned char>& block_hash,
-    uint16_t node_id, const PrivKey& privkey,
-    const deque<pair<PubKey, Peer>>& committee, unsigned char class_byte,
-    unsigned char ins_byte,
+    uint32_t consensus_id, uint64_t block_number,
+    const vector<unsigned char>& block_hash, uint16_t node_id,
+    const PrivKey& privkey, const deque<pair<PubKey, Peer>>& committee,
+    unsigned char class_byte, unsigned char ins_byte,
     NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
     ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc)
-    : ConsensusCommon(consensus_id, block_hash, node_id, privkey, committee,
-                      class_byte, ins_byte)
+    : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
+                      committee, class_byte, ins_byte)
     , m_commitMap(committee.size(), false)
     , m_commitPointMap(committee.size(), CommitPoint())
     , m_commitRedundantMap(committee.size(), false)
@@ -606,7 +607,7 @@ bool ConsensusLeader::StartConsensus(
 
     if (!announcementGeneratorFunc(
             announcement_message, MessageOffset::BODY + sizeof(unsigned char),
-            m_consensusID, m_blockHash, m_myID,
+            m_consensusID, m_blockNumber, m_blockHash, m_myID,
             make_pair(m_myPrivKey, m_committee.at(m_myID).first),
             m_messageToCosign))
     {
