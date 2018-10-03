@@ -85,14 +85,22 @@ void Node::SubmitMicroblockToDSCommittee() const
     LOG_STATE("[MICRO][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum << "] SENT");
-    deque<Peer> peerList;
 
-    for (auto const& i : *m_mediator.m_DSCommittee)
+    if (BROADCAST_GOSSIP_MODE)
     {
-        peerList.push_back(i.second);
+        P2PComm::GetInstance().SendRumorToForeignPeers(m_DSMBReceivers,
+                                                       microblock);
     }
+    else
+    {
+        deque<Peer> peerList;
 
-    P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
+        for (auto const& i : *m_mediator.m_DSCommittee)
+        {
+            peerList.push_back(i.second);
+        }
+        P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
+    }
 }
 
 bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
@@ -318,7 +326,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
             // Block till txn is fetched
             unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
             if (cv_MicroBlockMissingTxn.wait_for(
-                    lock, chrono::seconds(FETCHING_MISSING_TXNS_TIMEOUT))
+                    lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT))
                 == std::cv_status::timeout)
             {
                 LOG_EPOCH(WARNING,

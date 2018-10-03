@@ -506,14 +506,16 @@ namespace
 
     bool SetConsensusAnnouncementCore(
         ZilliqaMessage::ConsensusAnnouncement& announcement,
-        const uint32_t consensusID, const vector<unsigned char>& blockHash,
-        const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey)
+        const uint32_t consensusID, uint64_t blockNumber,
+        const vector<unsigned char>& blockHash, const uint16_t leaderID,
+        const pair<PrivKey, PubKey>& leaderKey)
     {
         LOG_MARKER();
 
         // Set the consensus parameters
 
         announcement.mutable_consensusinfo()->set_consensusid(consensusID);
+        announcement.mutable_consensusinfo()->set_blocknumber(blockNumber);
         announcement.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                             blockHash.size());
         announcement.mutable_consensusinfo()->set_leaderid(leaderID);
@@ -630,8 +632,9 @@ namespace
 
     bool GetConsensusAnnouncementCore(
         const ZilliqaMessage::ConsensusAnnouncement& announcement,
-        const uint32_t consensusID, const vector<unsigned char>& blockHash,
-        const uint16_t leaderID, const PubKey& leaderKey)
+        const uint32_t consensusID, const uint64_t blockNumber,
+        const vector<unsigned char>& blockHash, const uint16_t leaderID,
+        const PubKey& leaderKey)
     {
         LOG_MARKER();
 
@@ -643,6 +646,15 @@ namespace
                         "Consensus ID mismatch. Expected: "
                             << consensusID << " Actual: "
                             << announcement.consensusinfo().consensusid());
+            return false;
+        }
+
+        if (announcement.consensusinfo().blocknumber() != blockNumber)
+        {
+            LOG_GENERAL(WARNING,
+                        "Block number mismatch. Expected: "
+                            << blockNumber << " Actual: "
+                            << announcement.consensusinfo().blocknumber());
             return false;
         }
 
@@ -912,11 +924,11 @@ bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
 
 bool Messenger::SetDSDSBlockAnnouncement(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
-    const DSBlock& dsBlock, const Peer& powWinnerPeer,
-    const DequeOfShard& shards, const vector<Peer>& dsReceivers,
-    const vector<vector<Peer>>& shardReceivers,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
+    const Peer& powWinnerPeer, const DequeOfShard& shards,
+    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
 {
@@ -983,8 +995,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
     // Set the common consensus announcement parameters
 
-    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
         return false;
@@ -1007,9 +1019,10 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
 bool Messenger::GetDSDSBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
-    Peer& powWinnerPeer, DequeOfShard& shards, vector<Peer>& dsReceivers,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, DSBlock& dsBlock, Peer& powWinnerPeer,
+    DequeOfShard& shards, vector<Peer>& dsReceivers,
     vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
 {
@@ -1033,8 +1046,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
     // Check the common consensus announcement parameters
 
-    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
         return false;
@@ -1108,9 +1121,10 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
 bool Messenger::SetDSFinalBlockAnnouncement(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
-    const TxBlock& txBlock, vector<unsigned char>& messageToCosign)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1129,8 +1143,8 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 
     // Set the common consensus announcement parameters
 
-    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
         return false;
@@ -1153,8 +1167,9 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 
 bool Messenger::GetDSFinalBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const PubKey& leaderKey, TxBlock& txBlock,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, TxBlock& txBlock,
     vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
@@ -1177,8 +1192,8 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 
     // Check the common consensus announcement parameters
 
-    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
         return false;
@@ -1204,9 +1219,10 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 
 bool Messenger::SetDSVCBlockAnnouncement(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
-    const VCBlock& vcBlock, vector<unsigned char>& messageToCosign)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey, const VCBlock& vcBlock,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1225,8 +1241,8 @@ bool Messenger::SetDSVCBlockAnnouncement(
 
     // Set the common consensus announcement parameters
 
-    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
         return false;
@@ -1249,8 +1265,9 @@ bool Messenger::SetDSVCBlockAnnouncement(
 
 bool Messenger::GetDSVCBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const PubKey& leaderKey, VCBlock& vcBlock,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, VCBlock& vcBlock,
     vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
@@ -1273,8 +1290,8 @@ bool Messenger::GetDSVCBlockAnnouncement(
 
     // Check the common consensus announcement parameters
 
-    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
         return false;
@@ -1713,9 +1730,10 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
 
 bool Messenger::SetNodeMicroBlockAnnouncement(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
-    const MicroBlock& microBlock, vector<unsigned char>& messageToCosign)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey, const MicroBlock& microBlock,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1735,8 +1753,8 @@ bool Messenger::SetNodeMicroBlockAnnouncement(
 
     // Set the common consensus announcement parameters
 
-    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
         return false;
@@ -1759,8 +1777,9 @@ bool Messenger::SetNodeMicroBlockAnnouncement(
 
 bool Messenger::GetNodeMicroBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const PubKey& leaderKey, MicroBlock& microBlock,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, MicroBlock& microBlock,
     vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
@@ -1784,8 +1803,8 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
 
     // Check the common consensus announcement parameters
 
-    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
         return false;
@@ -1811,9 +1830,10 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
 
 bool Messenger::SetNodeFallbackBlockAnnouncement(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
-    const FallbackBlock& fallbackBlock, vector<unsigned char>& messageToCosign)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey, const FallbackBlock& fallbackBlock,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1835,8 +1855,8 @@ bool Messenger::SetNodeFallbackBlockAnnouncement(
 
     // Set the common consensus announcement parameters
 
-    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!SetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
         return false;
@@ -1859,9 +1879,10 @@ bool Messenger::SetNodeFallbackBlockAnnouncement(
 
 bool Messenger::GetNodeFallbackBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const PubKey& leaderKey,
-    FallbackBlock& fallbackBlock, vector<unsigned char>& messageToCosign)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, FallbackBlock& fallbackBlock,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1884,8 +1905,8 @@ bool Messenger::GetNodeFallbackBlockAnnouncement(
 
     // Check the common consensus announcement parameters
 
-    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockHash,
-                                      leaderID, leaderKey))
+    if (!GetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
+                                      blockHash, leaderID, leaderKey))
     {
         LOG_GENERAL(WARNING, "GetConsensusAnnouncementCore failed.");
         return false;
@@ -3115,22 +3136,22 @@ bool Messenger::GetLookupSetTxnsFromLookup(const vector<unsigned char>& src,
 // Consensus messages
 // ============================================================================
 
-bool Messenger::SetConsensusCommit(vector<unsigned char>& dst,
-                                   const unsigned int offset,
-                                   const uint32_t consensusID,
-                                   const vector<unsigned char>& blockHash,
-                                   const uint16_t backupID,
-                                   const CommitPoint& commit,
-                                   const pair<PrivKey, PubKey>& backupKey)
+bool Messenger::SetConsensusCommit(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t backupID,
+    const CommitPoint& commit, const pair<PrivKey, PubKey>& backupKey)
 {
     LOG_MARKER();
 
     ConsensusCommit result;
 
     result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blocknumber(blockNumber);
     result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                   blockHash.size());
     result.mutable_consensusinfo()->set_backupid(backupID);
+
     SerializableToProtobufByteArray(
         commit, *result.mutable_consensusinfo()->mutable_commit());
 
@@ -3165,9 +3186,9 @@ bool Messenger::SetConsensusCommit(vector<unsigned char>& dst,
 
 bool Messenger::GetConsensusCommit(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    uint16_t& backupID, CommitPoint& commit,
-    const deque<pair<PubKey, Peer>>& committeeKeys)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, uint16_t& backupID,
+    CommitPoint& commit, const deque<pair<PubKey, Peer>>& committeeKeys)
 {
     LOG_MARKER();
 
@@ -3187,6 +3208,15 @@ bool Messenger::GetConsensusCommit(
                     "Consensus ID mismatch. Expected: "
                         << consensusID
                         << " Actual: " << result.consensusinfo().consensusid());
+        return false;
+    }
+
+    if (result.consensusinfo().blocknumber() != blockNumber)
+    {
+        LOG_GENERAL(WARNING,
+                    "Block number mismatch. Expected: "
+                        << blockNumber
+                        << " Actual: " << result.consensusinfo().blocknumber());
         return false;
     }
 
@@ -3229,16 +3259,17 @@ bool Messenger::GetConsensusCommit(
 
 bool Messenger::SetConsensusChallenge(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const CommitPoint& aggregatedCommit,
-    const PubKey& aggregatedKey, const Challenge& challenge,
-    const pair<PrivKey, PubKey>& leaderKey)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
+    const Challenge& challenge, const pair<PrivKey, PubKey>& leaderKey)
 {
     LOG_MARKER();
 
     ConsensusChallenge result;
 
     result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blocknumber(blockNumber);
     result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                   blockHash.size());
     result.mutable_consensusinfo()->set_leaderid(leaderID);
@@ -3282,9 +3313,10 @@ bool Messenger::SetConsensusChallenge(
 
 bool Messenger::GetConsensusChallenge(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, CommitPoint& aggregatedCommit,
-    PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    CommitPoint& aggregatedCommit, PubKey& aggregatedKey, Challenge& challenge,
+    const PubKey& leaderKey)
 {
     LOG_MARKER();
 
@@ -3304,6 +3336,15 @@ bool Messenger::GetConsensusChallenge(
                     "Consensus ID mismatch. Expected: "
                         << consensusID
                         << " Actual: " << result.consensusinfo().consensusid());
+        return false;
+    }
+
+    if (result.consensusinfo().blocknumber() != blockNumber)
+    {
+        LOG_GENERAL(WARNING,
+                    "Block number mismatch. Expected: "
+                        << blockNumber
+                        << " Actual: " << result.consensusinfo().blocknumber());
         return false;
     }
 
@@ -3347,19 +3388,18 @@ bool Messenger::GetConsensusChallenge(
     return true;
 }
 
-bool Messenger::SetConsensusResponse(vector<unsigned char>& dst,
-                                     const unsigned int offset,
-                                     const uint32_t consensusID,
-                                     const vector<unsigned char>& blockHash,
-                                     const uint16_t backupID,
-                                     const Response& response,
-                                     const pair<PrivKey, PubKey>& backupKey)
+bool Messenger::SetConsensusResponse(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t backupID,
+    const Response& response, const pair<PrivKey, PubKey>& backupKey)
 {
     LOG_MARKER();
 
     ConsensusResponse result;
 
     result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blocknumber(blockNumber);
     result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                   blockHash.size());
     result.mutable_consensusinfo()->set_backupid(backupID);
@@ -3397,9 +3437,9 @@ bool Messenger::SetConsensusResponse(vector<unsigned char>& dst,
 
 bool Messenger::GetConsensusResponse(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    uint16_t& backupID, Response& response,
-    const deque<pair<PubKey, Peer>>& committeeKeys)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, uint16_t& backupID,
+    Response& response, const deque<pair<PubKey, Peer>>& committeeKeys)
 {
     LOG_MARKER();
 
@@ -3419,6 +3459,15 @@ bool Messenger::GetConsensusResponse(
                     "Consensus ID mismatch. Expected: "
                         << consensusID
                         << " Actual: " << result.consensusinfo().consensusid());
+        return false;
+    }
+
+    if (result.consensusinfo().blocknumber() != blockNumber)
+    {
+        LOG_GENERAL(WARNING,
+                    "Block number mismatch. Expected: "
+                        << blockNumber
+                        << " Actual: " << result.consensusinfo().blocknumber());
         return false;
     }
 
@@ -3462,15 +3511,17 @@ bool Messenger::GetConsensusResponse(
 
 bool Messenger::SetConsensusCollectiveSig(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const Signature& collectiveSig,
-    const vector<bool>& bitmap, const pair<PrivKey, PubKey>& leaderKey)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const Signature& collectiveSig, const vector<bool>& bitmap,
+    const pair<PrivKey, PubKey>& leaderKey)
 {
     LOG_MARKER();
 
     ConsensusCollectiveSig result;
 
     result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blocknumber(blockNumber);
     result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                   blockHash.size());
     result.mutable_consensusinfo()->set_leaderid(leaderID);
@@ -3514,9 +3565,9 @@ bool Messenger::SetConsensusCollectiveSig(
 
 bool Messenger::GetConsensusCollectiveSig(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, vector<bool>& bitmap, Signature& collectiveSig,
-    const PubKey& leaderKey)
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    vector<bool>& bitmap, Signature& collectiveSig, const PubKey& leaderKey)
 {
     LOG_MARKER();
 
@@ -3539,11 +3590,29 @@ bool Messenger::GetConsensusCollectiveSig(
         return false;
     }
 
+    if (result.consensusinfo().blocknumber() != blockNumber)
+    {
+        LOG_GENERAL(WARNING,
+                    "Block number mismatch. Expected: "
+                        << blockNumber
+                        << " Actual: " << result.consensusinfo().blocknumber());
+        return false;
+    }
+
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
                   result.consensusinfo().blockhash().begin()))
     {
         LOG_GENERAL(WARNING, "Block hash mismatch.");
+        return false;
+    }
+
+    if (result.consensusinfo().blocknumber() != blockNumber)
+    {
+        LOG_GENERAL(WARNING,
+                    "Block number mismatch. Expected: "
+                        << blockNumber
+                        << " Actual: " << result.consensusinfo().blocknumber());
         return false;
     }
 
@@ -3582,8 +3651,9 @@ bool Messenger::GetConsensusCollectiveSig(
 
 bool Messenger::SetConsensusCommitFailure(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    const uint16_t backupID, const vector<unsigned char>& errorMsg,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t backupID,
+    const vector<unsigned char>& errorMsg,
     const pair<PrivKey, PubKey>& backupKey)
 {
     LOG_MARKER();
@@ -3591,6 +3661,7 @@ bool Messenger::SetConsensusCommitFailure(
     ConsensusCommitFailure result;
 
     result.mutable_consensusinfo()->set_consensusid(consensusID);
+    result.mutable_consensusinfo()->set_blocknumber(blockNumber);
     result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                   blockHash.size());
     result.mutable_consensusinfo()->set_backupid(backupID);
@@ -3629,8 +3700,9 @@ bool Messenger::SetConsensusCommitFailure(
 
 bool Messenger::GetConsensusCommitFailure(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const vector<unsigned char>& blockHash,
-    uint16_t& backupID, vector<unsigned char>& errorMsg,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, uint16_t& backupID,
+    vector<unsigned char>& errorMsg,
     const deque<pair<PubKey, Peer>>& committeeKeys)
 {
     LOG_MARKER();
@@ -3651,6 +3723,15 @@ bool Messenger::GetConsensusCommitFailure(
                     "Consensus ID mismatch. Expected: "
                         << consensusID
                         << " Actual: " << result.consensusinfo().consensusid());
+        return false;
+    }
+
+    if (result.consensusinfo().blocknumber() != blockNumber)
+    {
+        LOG_GENERAL(WARNING,
+                    "Block number mismatch. Expected: "
+                        << blockNumber
+                        << " Actual: " << result.consensusinfo().blocknumber());
         return false;
     }
 

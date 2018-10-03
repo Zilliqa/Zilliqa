@@ -106,8 +106,8 @@ const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
     ReadFromConstantsFile("CONSENSUS_MSG_ORDER_BLOCK_WINDOW")};
 const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
-const unsigned int FETCHING_MISSING_TXNS_TIMEOUT{
-    ReadFromConstantsFile("FETCHING_MISSING_TXNS_TIMEOUT")};
+const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
+    ReadFromConstantsFile("FETCHING_MISSING_DATA_TIMEOUT")};
 const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
@@ -171,6 +171,12 @@ const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
+const unsigned int NUM_MICROBLOCK_SENDERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_SENDERS")};
+const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_GOSSIP_RECEIVERS")};
+const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
 const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
