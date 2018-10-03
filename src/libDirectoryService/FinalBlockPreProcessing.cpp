@@ -216,10 +216,6 @@ void DirectoryService::ComposeFinalBlock()
 
     if (m_mediator.GetIsVacuousEpoch())
     {
-        if (!AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
-        }
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -878,12 +874,16 @@ bool DirectoryService::CheckStateRoot()
 
     LOG_MARKER();
 
-    StateHash stateRoot = StateHash();
+    StateHash stateRoot;
 
     if (m_mediator.GetIsVacuousEpoch())
     {
         // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
+    }
+    else
+    {
+        stateRoot = StateHash();
     }
 
     if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash())
@@ -1088,17 +1088,6 @@ bool DirectoryService::FinalBlockValidator(
         return false;
     }
 
-    // WaitForTxnBodies();
-
-    if (m_mediator.GetIsVacuousEpoch())
-    {
-        if (!AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
-            return false;
-        }
-    }
-
     if (!CheckFinalBlockValidity(errorMsg))
     {
         LOG_GENERAL(WARNING,
@@ -1186,7 +1175,8 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
     {
         lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-        if (CheckState(PROCESS_FINALBLOCKCONSENSUS))
+        if (CheckState(PROCESS_FINALBLOCKCONSENSUS)
+            || m_state == FINALBLOCK_CONSENSUS_PREP)
         {
             return;
         }
@@ -1207,9 +1197,9 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         }
 #endif // FALLBACK_TEST
 
-        m_mediator.m_node->PrepareGoodStateForFinalBlock();
-
         SetState(FINALBLOCK_CONSENSUS_PREP);
+
+        m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
         if (revertStateDelta)
         {
@@ -1221,6 +1211,11 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         }
 
         AccountStore::GetInstance().SerializeDelta();
+
+        if (m_mediator.GetIsVacuousEpoch())
+        {
+            AccountStore::GetInstance().CommitTempReversible();
+        }
 
         // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
         bool ConsensusObjCreation = true;
@@ -1259,16 +1254,20 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         DetachedFunction(1, func1);
     }
 
-    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
-    // without triggering view change.
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
-    if (cv_viewChangeFinalBlock.wait_for(cv_lk,
-                                         std::chrono::seconds(VIEWCHANGE_TIME))
-        == std::cv_status::timeout)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Initiated final block view change. ");
-        auto func = [this]() -> void { RunConsensusOnViewChange(); };
-        DetachedFunction(1, func);
-    }
+    auto func1 = [this]() -> void {
+        // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+        // without triggering view change.
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+        if (cv_viewChangeFinalBlock.wait_for(
+                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Initiated final block view change. ");
+            auto func2 = [this]() -> void { RunConsensusOnViewChange(); };
+            DetachedFunction(1, func2);
+        }
+    };
+
+    DetachedFunction(1, func1);
 }
