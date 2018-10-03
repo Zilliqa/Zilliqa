@@ -267,7 +267,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         {
             allPowSubmitter.emplace_back(nodeNetwork.second);
         }
-        //[Sandip] - TODO
+
         P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
                                                     vcblock_message);
         break;
