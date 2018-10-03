@@ -138,7 +138,8 @@ unsigned int DirectoryService::ComposeDSBlock(
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with ds difficulty "
-                  << dsDifficulty << " and difficulty " << difficulty);
+                  << std::to_string(dsDifficulty) << " and difficulty "
+                  << std::to_string(difficulty));
     return numOfElectedDSMembers;
 }
 
