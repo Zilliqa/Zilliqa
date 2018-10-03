@@ -259,6 +259,20 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
     peerstore.RemovePeer(m_mediator.m_selfKey.second); // Remove myself
 
+    //Lets start the gossip as earliest as possible
+    if (BROADCAST_GOSSIP_MODE)
+    {
+        std::vector<Peer> peers;
+        for (const auto& i : *m_mediator.m_DSCommittee)
+        {
+            if (i.second.m_listenPortHost != 0)
+            {
+                peers.emplace_back(i.second);
+            }
+        }
+        P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
+
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
     for (auto const& i : *m_mediator.m_DSCommittee)

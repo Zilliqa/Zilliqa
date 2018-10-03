@@ -739,7 +739,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
             leaderKey, *m_microblock, messageToCosign);
     };
 
-    cl->StartConsensus(announcementGeneratorFunc);
+    cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
     return true;
 }

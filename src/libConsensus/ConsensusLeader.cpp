@@ -176,8 +176,14 @@ bool ConsensusLeader::ProcessMessageCommitCore(
                         commit_peers.emplace_back(j->second);
                     }
                 }
-
-                P2PComm::GetInstance().SendMessage(commit_peers, challenge);
+                if (BROADCAST_GOSSIP_MODE)
+                {
+                    P2PComm::GetInstance().SpreadRumor(challenge);
+                }
+                else
+                {
+                    P2PComm::GetInstance().SendMessage(commit_peers, challenge);
+                }
             }
         }
 
@@ -449,7 +455,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 peerInfo.push_back(i.second);
             }
 
-            P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
+            if (BROADCAST_GOSSIP_MODE)
+            {
+                P2PComm::GetInstance().SpreadRumor(collectivesig);
+            }
+            else
+            {
+                P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
+            }
         }
     }
 
@@ -588,7 +601,7 @@ ConsensusLeader::ConsensusLeader(
 ConsensusLeader::~ConsensusLeader() {}
 
 bool ConsensusLeader::StartConsensus(
-    AnnouncementGeneratorFunc announcementGeneratorFunc)
+    AnnouncementGeneratorFunc announcementGeneratorFunc, bool useGossipProto)
 {
     LOG_MARKER();
 
@@ -628,14 +641,21 @@ bool ConsensusLeader::StartConsensus(
     // Multicast to all nodes in the committee
     // =======================================
 
-    deque<Peer> peer;
-
-    for (auto const& i : m_committee)
+    if (useGossipProto)
     {
-        peer.push_back(i.second);
+        P2PComm::GetInstance().SpreadRumor(announcement_message);
     }
+    else
+    {
+        std::deque<Peer> peer;
 
-    P2PComm::GetInstance().SendMessage(peer, announcement_message);
+        for (auto const& i : m_committee)
+        {
+            peer.push_back(i.second);
+        }
+
+        P2PComm::GetInstance().SendMessage(peer, announcement_message);
+    }
 
     return true;
 }
