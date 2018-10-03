@@ -297,15 +297,13 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
 
     else
     {
-        uint16_t dsIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
-        m_consensusLeaderID = dsIndex;
-        LOG_GENERAL(WARNING,
-                    "dsIndex " << dsIndex << " m_consensusLeaderID "
-                               << m_consensusLeaderID);
-        //if dsIndex == 0 , that means the pow Winner is the DS Leader
-        if (dsIndex > 0
-            && m_mediator.m_DSCommittee->at(dsIndex - 1).first
-                == m_mediator.m_selfKey.second)
+        m_consensusMyID += numOfIncomingDs;
+        m_consensusLeaderID
+            = lastBlockHash % (m_mediator.m_DSCommittee->size());
+        LOG_GENERAL(WARNING, " m_consensusLeaderID " << m_consensusLeaderID);
+
+        if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
+            == m_mediator.m_selfKey.second)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "I am now Leader DS");
@@ -322,24 +320,11 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
             m_mode = BACKUP_DS;
         }
 
-        m_consensusMyID += numOfIncomingDs;
-
         LOG_STATE("[IDENT][" << setw(15) << left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][" << setw(6) << left << m_consensusMyID
                              << "] DSBK");
     }
-
-    /*// Other DS nodes continue to remain DS backups
-    else
-    {
-        m_consensusMyID++;
-
-        LOG_STATE("[IDENT][" << setw(15) << left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << setw(6) << left << m_consensusMyID
-                             << "] DSBK");
-    }*/
 }
 
 void DirectoryService::UpdateDSCommiteeComposition()
@@ -672,9 +657,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             + 1
         << "] AFTER SENDING DSBLOCK");
 
-    UpdateMyDSModeAndConsensusId();
-
     UpdateDSCommiteeComposition();
+    UpdateMyDSModeAndConsensusId();
 
     LOG_GENERAL(
         INFO,
