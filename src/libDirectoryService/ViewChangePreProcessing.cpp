@@ -172,6 +172,7 @@ void DirectoryService::RunConsensusOnViewChange()
     AccountStore::GetInstance().InitTemp();
     AccountStore::GetInstance().DeserializeDeltaTemp(
         m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
+    AccountStore::GetInstance().RevertCommitTemp();
 
     SetLastKnownGoodState();
     SetState(VIEWCHANGE_CONSENSUS_PREP);

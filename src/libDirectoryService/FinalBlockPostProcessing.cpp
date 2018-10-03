@@ -240,21 +240,22 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     // Update the final block with the co-signatures from the consensus
     m_finalBlock->SetCoSignatures(*m_consensusObject);
 
-    //Coinbase
-    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
-
     bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
 
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
-
-    AccountStore::GetInstance().CommitTemp();
 
     if (isVacuousEpoch)
     {
         AccountStore::GetInstance().MoveUpdatesToDisk();
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
+    }
+    else
+    {
+        AccountStore::GetInstance().CommitTemp();
+        //Coinbase
+        SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
     }
 
     m_mediator.UpdateDSBlockRand();

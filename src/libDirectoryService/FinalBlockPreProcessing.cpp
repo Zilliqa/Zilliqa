@@ -878,8 +878,8 @@ bool DirectoryService::CheckStateRoot()
 
     if (m_mediator.GetIsVacuousEpoch())
     {
-        // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
+        // AccountStore::GetInstance().PrintAccountState();
     }
     else
     {
