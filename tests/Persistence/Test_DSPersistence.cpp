@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_SUITE(persistencetest)
 
 BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
@@ -74,7 +74,7 @@ DSBlock constructDummyDSBlock(uint64_t blocknum)
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
 
 BOOST_AUTO_TEST_CASE(testBlockStorage)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
 
 BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 
 BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
@@ -283,7 +283,7 @@ void bootstrap(int num_threads)
 
 BOOST_AUTO_TEST_CASE(testThreadSafety)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
@@ -314,7 +314,7 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
 */
 BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
 
 BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
 {
-    INIT_STDOUT_LOGGER();
+    // INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
 
