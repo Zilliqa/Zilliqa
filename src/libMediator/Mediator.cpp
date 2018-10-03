@@ -145,8 +145,10 @@ void Mediator::HeartBeatLaunch()
     auto func = [this]() -> void {
 
         // Set base timeout to roughly around one DS epoch (doesn't have to be very accurate)
-        const unsigned int heartBeatTimeoutInSeconds = POW_WINDOW_IN_SECONDS
-            + (TX_DISTRIBUTE_TIME_IN_MS / 1000) * NUM_FINAL_BLOCK_PER_POW;
+        const unsigned int heartBeatTimeoutInSeconds = NEW_NODE_SYNC_INTERVAL
+            + POW_WINDOW_IN_SECONDS
+            + ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000)
+                * NUM_FINAL_BLOCK_PER_POW;
 
         if (heartBeatTimeoutInSeconds <= HEARTBEAT_INTERVAL_IN_SECONDS)
         {

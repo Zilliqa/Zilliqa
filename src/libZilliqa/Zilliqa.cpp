@@ -174,7 +174,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     {
         LOG_GENERAL(INFO, "I am a normal node.");
 
-        m_mediator.HeartBeatLaunch();
+        //m_mediator.HeartBeatLaunch();
     }
     else
     {
