@@ -407,18 +407,15 @@ void Node::StartFirstTxEpoch()
 
     // Choose N other DS nodes to be recipient of microblock
     m_DSMBReceivers.clear();
-    unsigned int numOfMBReceivers = NUM_MICROBLOCK_GOSSIP_RECEIVERS;
-    if (m_mediator.m_DSCommittee->size() < numOfMBReceivers)
-    {
-        numOfMBReceivers = m_mediator.m_DSCommittee->size();
-    }
+    unsigned int numOfMBReceivers
+        = std::min(NUM_MICROBLOCK_GOSSIP_RECEIVERS,
+                   (uint32_t)m_mediator.m_DSCommittee->size());
 
     for (unsigned int i = 0; i < numOfMBReceivers; i++)
     {
         m_DSMBReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
     }
 
-    m_consensusLeaderID = 0;
     m_justDidFallback = false;
     CommitTxnPacketBuffer();
 
@@ -429,7 +426,7 @@ void Node::StartFirstTxEpoch()
         {
             if (i.second.m_listenPortHost != 0)
             {
-                peers.push_back(i.second);
+                peers.emplace_back(i.second);
             }
         }
 

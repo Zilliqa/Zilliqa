@@ -446,7 +446,7 @@ void DirectoryService::StartFirstTxEpoch()
             {
                 if (i.second.m_listenPortHost != 0)
                 {
-                    peers.push_back(i.second);
+                    peers.emplace_back(i.second);
                 }
             }
             // ReInitialize RumorManager for this epoch.
@@ -533,7 +533,7 @@ void DirectoryService::StartFirstTxEpoch()
             {
                 if (i.second.m_listenPortHost != 0)
                 {
-                    peers.push_back(i.second);
+                    peers.emplace_back(i.second);
                 }
             }
 
