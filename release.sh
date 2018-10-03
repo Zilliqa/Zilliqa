@@ -20,6 +20,7 @@
 
 # [MUST BE FILLED IN] User configuration settings
 GitHubToken=""
+ownerName="Zilliqa"
 repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
 packageName=""
 releaseTitle=""
@@ -125,7 +126,7 @@ fullCommit="$(git rev-parse HEAD)"
 releaseLog="release.log"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" "https://api.github.com/repos/Zilliqa/${repoName}/releases" \
+  -H "Content-Type:application/json" "https://api.github.com/repos/${ownerName}/${repoName}/releases" \
   -d '{
   "tag_name": "'"${newVer}"'", 
   "target_commitish": "'"${fullCommit}"'",
@@ -146,7 +147,7 @@ curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @${pubKeyFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})" \
+  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})" \
   -d '{
   "Content-Type": "application/octet-stream",
   "name": "'"$(basename ${pubKeyFile})"'",
@@ -156,7 +157,7 @@ curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @${releaseDir}/${debFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${debFile}" \
+  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${debFile}" \
   -d '{
   "Content-Type": "application/vnd.debian.binary-package",
   "name": "'"${debFile}"'",
@@ -166,7 +167,7 @@ curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @${releaseDir}/${versionFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${versionFile}" \
+  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}" \
   -d '{
   "Content-Type": "application/octet-stream",
   "name": "'"${versionFile}"'",

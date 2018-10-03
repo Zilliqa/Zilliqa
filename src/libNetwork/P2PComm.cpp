@@ -48,7 +48,7 @@ const unsigned char START_BYTE_GOSSIP = 0x33;
 const unsigned int HDR_LEN = 6;
 const unsigned int HASH_LEN = 32;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
-const unsigned int GOSSIP_AGE_LEN = 4;
+const unsigned int GOSSIP_ROUND_LEN = 4;
 const unsigned int GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
 
 P2PComm::Dispatcher P2PComm::m_dispatcher;
@@ -183,8 +183,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
                                     const vector<unsigned char>& msg_hash)
 {
     // LOG_MARKER();
-    //LOG_PAYLOAD(INFO, "Sending message to " << peer, message,
-    //            Logger::MAX_BYTES_TO_DISPLAY);
+    LOG_PAYLOAD(DEBUG, "Sending message to " << peer, message,
+                Logger::MAX_BYTES_TO_DISPLAY);
 
     if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0)
     {
@@ -497,13 +497,6 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
                     Logger::MAX_BYTES_TO_DISPLAY);
 
-        // Check for length consistency
-        if (messageLength != message.size() - HDR_LEN)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return;
-        }
-
         if ((messageLength - HDR_LEN) <= HASH_LEN)
         {
             LOG_GENERAL(
@@ -590,13 +583,6 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
                     Logger::MAX_BYTES_TO_DISPLAY);
 
-        // Check for length consistency
-        if (messageLength != message.size() - HDR_LEN)
-        {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
-            return;
-        }
-
         // Move the shared_ptr message to raw pointer type
         pair<vector<unsigned char>, Peer>* raw_message
             = new pair<vector<unsigned char>, Peer>(
@@ -608,53 +594,42 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     else if (startByte == START_BYTE_GOSSIP)
     {
-        // Check for length consistency
-
-        if (messageLength != message.size() - HDR_LEN)
+        if (messageLength < GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN
+                + GOSSIP_SNDR_LISTNR_PORT_LEN)
         {
-            LOG_GENERAL(WARNING, "Incorrect message length.");
+            LOG_GENERAL(
+                WARNING,
+                "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR "
+                "Port is missing (messageLength = "
+                    << messageLength << ")");
             return;
         }
 
-        if (messageLength
-            < GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN)
-        {
-            LOG_GENERAL(WARNING,
-                        "Gossip Msg Type and/or Gossip Age and/or SNDR LISTNR "
-                        "Port is missing (messageLength = "
-                            << messageLength << ")");
-            return;
-        }
+        unsigned char gossipMsgTyp = message.at(HDR_LEN);
 
-        std::vector<unsigned char> gossipMsgTyp(message.begin() + HDR_LEN,
-                                                message.begin() + HDR_LEN
-                                                    + GOSSIP_MSGTYPE_LEN);
-
-        std::vector<unsigned char> tmp(
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN,
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN);
-
-        const uint32_t gossipMsgAge
-            = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
-
-        tmp.clear();
-        tmp.insert(tmp.end(),
-                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
-                       + GOSSIP_AGE_LEN,
-                   message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN
-                       + GOSSIP_AGE_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN);
+        const uint32_t gossipMsgRound
+            = (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN) << 24)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 1) << 16)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 2) << 8)
+            + message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 3);
 
         const uint32_t gossipSenderPort
-            = (tmp[0] << 24) + (tmp[1] << 16) + (tmp[2] << 8) + tmp[3];
+            = (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN)
+               << 24)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1)
+               << 16)
+            + (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2)
+               << 8)
+            + message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
         from.m_listenPortHost = gossipSenderPort;
 
         RumorManager::RawBytes rumor_message(
-            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_AGE_LEN
+            message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN
                 + GOSSIP_SNDR_LISTNR_PORT_LEN,
             message.end());
 
         P2PComm& p2p = P2PComm::GetInstance();
-        if (gossipMsgTyp[0] == (uint8_t)RRS::Message::Type::FORWARD)
+        if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD)
         {
             LOG_GENERAL(
                 INFO, "Received Gossip of type - FORWARD from Peer :" << from);
@@ -669,8 +644,8 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
                 m_dispatcher(raw_message);
             }
         }
-        else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp[0],
-                                                  gossipMsgAge, rumor_message,
+        else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
+                                                  gossipMsgRound, rumor_message,
                                                   from))
         {
             std::pair<vector<unsigned char>, Peer>* raw_message
@@ -696,7 +671,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
               ((struct sockaddr_in*)cli_addr)->sin_port);
 
-    //LOG_GENERAL(INFO, "Incoming message from " << from);
+    LOG_GENERAL(DEBUG, "Incoming message from " << from);
 
     if (Blacklist::GetInstance().Exist(from.m_ipAddress))
     {

@@ -149,6 +149,16 @@ const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
 const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
 const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
     ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
+const unsigned int FALLBACK_INTERVAL_STARTED{
+    ReadFromConstantsFile("FALLBACK_INTERVAL_STARTED")};
+const unsigned int FALLBACK_INTERVAL_WAITING{
+    ReadFromConstantsFile("FALLBACK_INTERVAL_WAITING")};
+const unsigned int FALLBACK_CHECK_INTERVAL{
+    ReadFromConstantsFile("FALLBACK_CHECK_INTERVAL")};
+const unsigned int FALLBACK_EXTRA_TIME{
+    ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
+const unsigned int FALLBACK_TEST_EPOCH{
+    ReadFromConstantsFile("FALLBACK_TEST_EPOCH")};
 const unsigned int MAX_ROUNDS_IN_BSTATE{
     ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
 const unsigned int MAX_ROUNDS_IN_CSTATE{
@@ -167,12 +177,12 @@ const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS{
     ReadFromConstantsFile("NUM_MICROBLOCK_GOSSIP_RECEIVERS")};
 const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
     ReadFromConstantsFile("NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
-const unsigned int NUM_DSBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
-    ReadFromConstantsFile("NUM_DSBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
-const unsigned int NUM_DS_POW_GOSSIP_RECEIVERS{
-    ReadFromConstantsFile("NUM_DS_POW_GOSSIP_RECEIVERS")};
-const unsigned int NUM_VCBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
-    ReadFromConstantsFile("NUM_VCBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
+const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
+    ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
+const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
+    ReadFromConstantsFile("TERMINATION_COUNTDOWN_IN_SECONDS")};
+const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
+    ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};

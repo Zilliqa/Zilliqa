@@ -36,7 +36,8 @@ namespace RRS
             PULL = 0x02,
             EMPTY_PUSH = 0x03,
             EMPTY_PULL = 0x04,
-            FORWARD = 0x05
+            FORWARD = 0x05,
+            NUM_TYPES
         };
 
         static std::map<Type, std::string> s_enumKeyToString;
