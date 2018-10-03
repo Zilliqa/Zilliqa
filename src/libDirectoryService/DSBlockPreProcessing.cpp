@@ -35,6 +35,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -113,15 +114,27 @@ void DirectoryService::ComposeDSBlock(
                       << ", new difficulty " << std::to_string(difficulty));
     }
 
+    if (UpgradeManager::GetInstance().HasNewSW())
+    {
+        if (UpgradeManager::GetInstance().DownloadSW())
+        {
+            lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+            m_mediator.m_curSWInfo
+                = *UpgradeManager::GetInstance().GetLatestSWInfo();
+        }
+    }
+
     // Assemble DS block
     // To-do: Handle exceptions.
     // TODO: Revise DS block structure
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash, 0,
-                                  winnerKey, m_mediator.m_selfKey.second,
-                                  blockNum, get_time_as_int(), SWInfo()),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
-
+    {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        m_pendingDSBlock.reset(new DSBlock(
+            DSBlockHeader(dsDifficulty, difficulty, prevHash, 0, winnerKey,
+                          m_mediator.m_selfKey.second, blockNum,
+                          get_time_as_int(), m_mediator.m_curSWInfo),
+            CoSignatures(m_mediator.m_DSCommittee->size())));
+    }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with winning PoW = 0x"
                   << DataConversion::charArrToHexStr(winnerPoW));
@@ -532,8 +545,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     **/
 
     m_consensusObject.reset(new ConsensusLeader(
-        consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
+        consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
+        m_consensusMyID, m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(DSBLOCKCONSENSUS),
         NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
@@ -558,20 +571,19 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
 
     auto announcementGeneratorFunc =
         [this](vector<unsigned char>& dst, unsigned int offset,
-               const uint32_t consensusID,
+               const uint32_t consensusID, const uint64_t blockNumber,
                const vector<unsigned char>& blockHash, const uint16_t leaderID,
                const pair<PrivKey, PubKey>& leaderKey,
                vector<unsigned char>& messageToCosign) mutable -> bool {
         const auto& winnerPeer = m_allPoWConns.find(
             m_pendingDSBlock->GetHeader().GetMinerPubKey());
         return Messenger::SetDSDSBlockAnnouncement(
-            dst, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingDSBlock, winnerPeer->second, m_shards, m_DSReceivers,
-            m_shardReceivers, m_shardSenders, messageToCosign);
+            dst, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_pendingDSBlock, winnerPeer->second, m_shards,
+            m_DSReceivers, m_shardReceivers, m_shardSenders, messageToCosign);
     };
 
-    cl->StartConsensus(announcementGeneratorFunc);
-
+    cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
     return true;
 }
 
@@ -630,8 +642,9 @@ void DirectoryService::ProcessTxnBodySharingAssignment()
 bool DirectoryService::DSBlockValidator(
     const vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
-    const vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, vector<unsigned char>& messageToCosign)
+    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -657,14 +670,28 @@ bool DirectoryService::DSBlockValidator(
     m_pendingDSBlock.reset(new DSBlock);
 
     if (!Messenger::GetDSDSBlockAnnouncement(
-            message, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingDSBlock, winnerPeer, m_tempShards, m_tempDSReceivers,
-            m_tempShardReceivers, m_tempShardSenders, messageToCosign))
+            message, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_pendingDSBlock, winnerPeer, m_tempShards,
+            m_tempDSReceivers, m_tempShardReceivers, m_tempShardSenders,
+            messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSDSBlockAnnouncement failed.");
         return false;
     }
+
+    auto func = [this]() mutable -> void {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo())
+        {
+            if (UpgradeManager::GetInstance().DownloadSW())
+            {
+                m_mediator.m_curSWInfo
+                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            }
+        }
+    };
+    DetachedFunction(1, func);
 
     // To-do: Put in the logic here for checking the proposed DS block
 
@@ -775,20 +802,21 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func
-        = [this](const vector<unsigned char>& input, unsigned int offset,
-                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
-                 const vector<unsigned char>& blockHash,
-                 const uint16_t leaderID, const PubKey& leaderKey,
-                 vector<unsigned char>& messageToCosign) mutable -> bool {
-        return DSBlockValidator(input, offset, errorMsg, consensusID, blockHash,
-                                leaderID, leaderKey, messageToCosign);
+    auto func = [this](const vector<unsigned char>& input, unsigned int offset,
+                       vector<unsigned char>& errorMsg,
+                       const uint32_t consensusID, const uint64_t blockNumber,
+                       const vector<unsigned char>& blockHash,
+                       const uint16_t leaderID, const PubKey& leaderKey,
+                       vector<unsigned char>& messageToCosign) mutable -> bool {
+        return DSBlockValidator(input, offset, errorMsg, consensusID,
+                                blockNumber, blockHash, leaderID, leaderKey,
+                                messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(
-        consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
-        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
-        static_cast<unsigned char>(DIRECTORY),
+        consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
+        m_consensusMyID, m_consensusLeaderID, m_mediator.m_selfKey.first,
+        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(DSBLOCKCONSENSUS), func));
 
     if (m_consensusObject == nullptr)

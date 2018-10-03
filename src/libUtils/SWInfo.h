@@ -60,6 +60,12 @@ public:
 
     /// Equality operator.
     bool operator==(const SWInfo& r) const;
+
+    /// Unequality operator.
+    bool operator!=(const SWInfo& r) const;
+
+    /// Returns the upgrade DS block number.
+    const uint64_t& GetUpgradeDS() const;
 };
 
 #endif // __SWINFO_H__

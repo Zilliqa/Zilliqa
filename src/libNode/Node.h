@@ -89,6 +89,9 @@ class Node : public Executable, public Broadcastable
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_numShards;
 
+    // MicroBlock Sharing assignments
+    std::vector<Peer> m_DSMBReceivers;
+
     // Transaction sharing assignments
     std::atomic<bool> m_txnSharingIAmForwarder;
     std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
@@ -275,6 +278,11 @@ class Node : public Executable, public Broadcastable
         const std::vector<unsigned char>& message, const uint32_t shardID,
         const std::vector<Transaction>& transactions);
 
+#ifdef HEARTBEAT_TEST
+    bool ProcessKillPulse(const std::vector<unsigned char>& message,
+                          unsigned int offset, const Peer& from);
+#endif // HEARTBEAT_TEST
+
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
@@ -306,6 +314,7 @@ class Node : public Executable, public Broadcastable
                              unsigned int offset,
                              std::vector<unsigned char>& errorMsg,
                              const uint32_t consensusID,
+                             const uint64_t blockNumber,
                              const std::vector<unsigned char>& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
                              std::vector<unsigned char>& messageToCosign);
@@ -335,6 +344,7 @@ class Node : public Executable, public Broadcastable
                            unsigned int offset,
                            std::vector<unsigned char>& errorMsg,
                            const uint32_t consensusID,
+                           const uint64_t blockNumber,
                            const std::vector<unsigned char>& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
                            std::vector<unsigned char>& messageToCosign);
@@ -362,9 +372,6 @@ class Node : public Executable, public Broadcastable
     bool m_doRejoinAtFinalBlock = false;
 
     void ResetRejoinFlags();
-
-    // Rejoin the network as a shard node in case of failure happens in protocol
-    void RejoinAsNormal();
 
 public:
     enum NodeState : unsigned char
@@ -519,6 +526,9 @@ public:
     /// Used by oldest DS node to configure txn sharing assignments as a new shard node
 
     void LoadTxnSharingInfo();
+
+    // Rejoin the network as a shard node in case of failure happens in protocol
+    void RejoinAsNormal();
 
     /// Force state changes from MBCON/MBCON_PREP -> WAITING_FINALBLOCK
     void PrepareGoodStateForFinalBlock();

@@ -55,6 +55,10 @@ if(CUDA_MINE)
     add_definitions(-DCUDA_MINE)
 endif()
 
+if(HEARTBEATTEST)
+    add_definitions(-DHEARTBEAT_TEST)
+endif()
+
 if(FALLBACKTEST)
 	add_definitions(-DFALLBACK_TEST)
 endif()

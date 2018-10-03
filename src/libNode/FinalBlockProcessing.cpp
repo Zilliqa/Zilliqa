@@ -47,6 +47,7 @@
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnRootComputation.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -59,6 +60,8 @@ void Node::StoreState()
 
 void Node::StoreFinalBlock(const TxBlock& txBlock)
 {
+    LOG_MARKER();
+
     AddBlock(txBlock);
 
     m_mediator.IncreaseEpochNum();
@@ -912,6 +915,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
     }
 
+    m_mediator.HeartBeatPulse();
+
     if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1)
     {
         LOG_STATE("[TXBOD][" << std::setw(15) << std::left
@@ -925,6 +930,21 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     // then I know I'm not), I can start doing PoW again
     m_mediator.UpdateDSBlockRand();
     m_mediator.UpdateTxBlockRand();
+
+    {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (0 == (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW)
+            && m_mediator.m_curSWInfo.GetUpgradeDS()
+                == ((m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW)
+                    + INIT_DS_EPOCH_NUM))
+        {
+            auto func = [this]() mutable -> void {
+                UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+            };
+
+            DetachedFunction(1, func);
+        }
+    }
 
     if (!LOOKUP_NODE_MODE)
     {

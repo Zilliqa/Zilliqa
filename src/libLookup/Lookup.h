@@ -53,8 +53,6 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_seedNodes;
     bool m_dsInfoWaitingNotifying = false;
     bool m_fetchedDSInfo = false;
-    std::mutex m_mutexDSInfoUpdation;
-    std::condition_variable cv_dsInfoUpdate;
 
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
@@ -266,6 +264,9 @@ public:
     bool m_startedPoW = false;
 
     bool AlreadyJoinedNetwork();
+
+    std::mutex m_mutexDSInfoUpdation;
+    std::condition_variable cv_dsInfoUpdate;
 };
 
 #endif // __LOOKUP_H__
