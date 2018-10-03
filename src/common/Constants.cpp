@@ -171,6 +171,12 @@ const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
+const unsigned int NUM_MICROBLOCK_SENDERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_SENDERS")};
+const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_GOSSIP_RECEIVERS")};
+const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
 const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{

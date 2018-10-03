@@ -138,7 +138,9 @@ public:
     ~ConsensusLeader();
 
     /// Triggers the start of consensus on a particular message (e.g., DS block).
-    bool StartConsensus(AnnouncementGeneratorFunc announcementGeneratorFunc);
+
+    bool StartConsensus(AnnouncementGeneratorFunc announcementGeneratorFunc,
+                        bool useGossipProto = false);
 
     /// Function to process any consensus message received.
     bool ProcessMessage(const std::vector<unsigned char>& message,

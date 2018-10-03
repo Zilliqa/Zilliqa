@@ -327,7 +327,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
             leaderKey, *m_finalBlock, messageToCosign);
     };
 
-    cl->StartConsensus(announcementGeneratorFunc);
+    cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
     return true;
 }
