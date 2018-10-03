@@ -95,6 +95,15 @@ bool AccountStoreTrie<DB, MAP>::UpdateStateTrie(const Address& address,
 }
 
 template<class DB, class MAP>
+bool AccountStoreTrie<DB, MAP>::RemoveFromTrie(const Address& address)
+{
+    //LOG_MARKER();
+    m_state.remove(address);
+
+    return true;
+}
+
+template<class DB, class MAP>
 dev::h256 AccountStoreTrie<DB, MAP>::GetStateRootHash() const
 {
     LOG_MARKER();

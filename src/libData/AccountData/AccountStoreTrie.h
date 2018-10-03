@@ -32,6 +32,7 @@ protected:
     AccountStoreTrie();
 
     bool UpdateStateTrie(const Address& address, const Account& account);
+    bool RemoveFromTrie(const Address& address);
 
 public:
     virtual void Init() override;
