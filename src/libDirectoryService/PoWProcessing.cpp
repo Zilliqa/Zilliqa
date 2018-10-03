@@ -372,15 +372,3 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes()
     setTopPriorityNodes.insert(m_mediator.m_DSCommittee->back().first);
     return setTopPriorityNodes;
 }
-
-BlockHash CalculateTxBlockHash(const TxBlock& txBlock)
-{
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    std::vector<unsigned char> vec;
-    txBlock.GetHeader().Serialize(vec, 0);
-    sha2.Update(vec);
-    std::vector<unsigned char> hashVec = sha2.Finalize();
-    BlockHash blockHash;
-    std::copy(hashVec.begin(), hashVec.end(), blockHash.asArray().begin());
-    return blockHash;
-}

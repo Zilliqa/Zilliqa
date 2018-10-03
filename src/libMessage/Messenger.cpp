@@ -658,17 +658,15 @@ namespace
             return false;
         }
 
-        if (!announcement.consensusinfo().has_blockhash())
-        {
-            LOG_GENERAL(WARNING,
-                        "Block hash not initialized in consensus info.");
-            return false;
-        }
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(announcement.consensusinfo().blockhash().size());
+        std::copy(announcement.consensusinfo().blockhash().begin(),
+                  announcement.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
 
-        if ((announcement.consensusinfo().blockhash().size()
-             != blockHash.size())
+        if ((remoteBlockHash.size() != blockHash.size())
             || !equal(blockHash.begin(), blockHash.end(),
-                      announcement.consensusinfo().blockhash().begin()))
+                      remoteBlockHash.begin()))
         {
             LOG_GENERAL(
                 WARNING,
@@ -3018,15 +3016,20 @@ bool Messenger::GetConsensusCommit(
         return false;
     }
 
-    if ((result.consensusinfo().blockhash().size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+    std::vector<unsigned char> remoteBlockHash;
+    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+    std::copy(result.consensusinfo().blockhash().begin(),
+              result.consensusinfo().blockhash().end(),
+              remoteBlockHash.begin());
+
+    if ((remoteBlockHash.size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
     {
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
                         << " Actual: "
-                        << result.consensusinfo().blockhash().c_str());
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3150,15 +3153,20 @@ bool Messenger::GetConsensusChallenge(
         return false;
     }
 
-    if ((result.consensusinfo().blockhash().size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+    std::vector<unsigned char> remoteBlockHash;
+    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+    std::copy(result.consensusinfo().blockhash().begin(),
+              result.consensusinfo().blockhash().end(),
+              remoteBlockHash.begin());
+
+    if ((remoteBlockHash.size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
     {
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
                         << " Actual: "
-                        << result.consensusinfo().blockhash().c_str());
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3277,15 +3285,20 @@ bool Messenger::GetConsensusResponse(
         return false;
     }
 
-    if ((result.consensusinfo().blockhash().size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+    std::vector<unsigned char> remoteBlockHash;
+    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+    std::copy(result.consensusinfo().blockhash().begin(),
+              result.consensusinfo().blockhash().end(),
+              remoteBlockHash.begin());
+
+    if ((remoteBlockHash.size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
     {
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
                         << " Actual: "
-                        << result.consensusinfo().blockhash().c_str());
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3409,15 +3422,20 @@ bool Messenger::GetConsensusCollectiveSig(
         return false;
     }
 
-    if ((result.consensusinfo().blockhash().size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+    std::vector<unsigned char> remoteBlockHash;
+    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+    std::copy(result.consensusinfo().blockhash().begin(),
+              result.consensusinfo().blockhash().end(),
+              remoteBlockHash.begin());
+
+    if ((remoteBlockHash.size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
     {
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
                         << " Actual: "
-                        << result.consensusinfo().blockhash().c_str());
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3549,15 +3567,20 @@ bool Messenger::GetConsensusCommitFailure(
         return false;
     }
 
-    if ((result.consensusinfo().blockhash().size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+    std::vector<unsigned char> remoteBlockHash;
+    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+    std::copy(result.consensusinfo().blockhash().begin(),
+              result.consensusinfo().blockhash().end(),
+              remoteBlockHash.begin());
+
+    if ((remoteBlockHash.size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
     {
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
                         << " Actual: "
-                        << result.consensusinfo().blockhash().c_str());
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
