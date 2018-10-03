@@ -554,7 +554,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             {
                 lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
                 unsigned int ds_size = (m_mediator.m_DSCommittee)->size();
-                if (lastBlockHash % ds_size == m_consensusMyID)
+                LOG_GENERAL(INFO,
+                            "DS leader at is " << (lastBlockHash % ds_size));
+                if (lastBlockHash % ds_size == m_mediator.m_ds->m_consensusMyID)
                 {
                     //I am the new DS committee leader
                     m_mediator.m_ds->m_mode
