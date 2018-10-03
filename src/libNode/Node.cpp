@@ -745,15 +745,29 @@ bool Node::ProcessTxnPacketFromLookup(
     }
 
     {
+        // The check here is in case the lookup send the packet
+        // earlier than the node receiving DS block, need to wait the
+        // node finish processing DS block and update its sharding structure
+
         lock_guard<mutex> g1(m_mutexDSBlock);
+
+        // Situation 1:
+        // Epoch later than genesis epoch, two sub situations:
+        // a : Normal DS Block (after vacuous epoch)
+        // b : DS Block after fallback
+        // Situation 2:
+        // Genesis Epoch 1, two sub situations:
+        // a : Normal DS Block (after genesis)
+        // b : Fallback happened in epoch 1 when waiting for finalblock
         if ((((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
               || m_justDidFallback)
              && (m_mediator.m_consensusID != 0))
             || ((m_mediator.m_currentEpochNum == 1)
-                && (m_mediator.m_dsBlockChain.GetLastBlock()
-                        .GetHeader()
-                        .GetBlockNum()
-                    == 0)))
+                && ((m_mediator.m_dsBlockChain.GetLastBlock()
+                         .GetHeader()
+                         .GetBlockNum()
+                     == 0)
+                    || m_justDidFallback)))
 
         {
             lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
@@ -816,7 +830,14 @@ bool Node::ProcessTxnPacketFromLookupCore(
         toSend.push_back(it.second);
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    if (BROADCAST_GOSSIP_MODE)
+    {
+        P2PComm::GetInstance().SpreadRumor(message);
+    }
+    else
+    {
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    }
 
     // Process the txns
     unsigned int txn_sent_count = 0;

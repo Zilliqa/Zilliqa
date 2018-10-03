@@ -89,6 +89,9 @@ class Node : public Executable, public Broadcastable
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_numShards;
 
+    // MicroBlock Sharing assignments
+    std::vector<Peer> m_DSMBReceivers;
+
     // Transaction sharing assignments
     std::atomic<bool> m_txnSharingIAmForwarder;
     std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
@@ -311,6 +314,7 @@ class Node : public Executable, public Broadcastable
                              unsigned int offset,
                              std::vector<unsigned char>& errorMsg,
                              const uint32_t consensusID,
+                             const uint64_t blockNumber,
                              const std::vector<unsigned char>& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
                              std::vector<unsigned char>& messageToCosign);
@@ -341,6 +345,7 @@ class Node : public Executable, public Broadcastable
                            unsigned int offset,
                            std::vector<unsigned char>& errorMsg,
                            const uint32_t consensusID,
+                           const uint64_t blockNumber,
                            const std::vector<unsigned char>& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
                            std::vector<unsigned char>& messageToCosign);

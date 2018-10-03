@@ -216,10 +216,6 @@ void DirectoryService::ComposeFinalBlock()
 
     if (m_mediator.GetIsVacuousEpoch())
     {
-        if (!AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
-        }
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -289,9 +285,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     };
 
     m_consensusObject.reset(new ConsensusLeader(
-        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
-        static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
+        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
         nodeMissingMicroBlocksFunc, ShardCommitFailureHandlerFunc()));
 
@@ -318,16 +314,16 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 
     auto announcementGeneratorFunc =
         [this](vector<unsigned char>& dst, unsigned int offset,
-               const uint32_t consensusID,
+               const uint32_t consensusID, const uint64_t blockNumber,
                const vector<unsigned char>& blockHash, const uint16_t leaderID,
                const pair<PrivKey, PubKey>& leaderKey,
                vector<unsigned char>& messageToCosign) mutable -> bool {
         return Messenger::SetDSFinalBlockAnnouncement(
-            dst, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_finalBlock, messageToCosign);
+            dst, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_finalBlock, messageToCosign);
     };
 
-    cl->StartConsensus(announcementGeneratorFunc);
+    cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
     return true;
 }
@@ -878,12 +874,16 @@ bool DirectoryService::CheckStateRoot()
 
     LOG_MARKER();
 
-    StateHash stateRoot = StateHash();
+    StateHash stateRoot;
 
     if (m_mediator.GetIsVacuousEpoch())
     {
-        // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
+        // AccountStore::GetInstance().PrintAccountState();
+    }
+    else
+    {
+        stateRoot = StateHash();
     }
 
     if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash())
@@ -1064,8 +1064,9 @@ bool DirectoryService::WaitForTxnBodies()
 bool DirectoryService::FinalBlockValidator(
     const vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
-    const vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, vector<unsigned char>& messageToCosign)
+    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1079,24 +1080,13 @@ bool DirectoryService::FinalBlockValidator(
 
     m_finalBlock.reset(new TxBlock);
 
-    if (!Messenger::GetDSFinalBlockAnnouncement(message, offset, consensusID,
-                                                blockHash, leaderID, leaderKey,
-                                                *m_finalBlock, messageToCosign))
+    if (!Messenger::GetDSFinalBlockAnnouncement(
+            message, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_finalBlock, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSFinalBlockAnnouncement failed.");
         return false;
-    }
-
-    // WaitForTxnBodies();
-
-    if (m_mediator.GetIsVacuousEpoch())
-    {
-        if (!AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
-            return false;
-        }
     }
 
     if (!CheckFinalBlockValidity(errorMsg))
@@ -1146,21 +1136,22 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func
-        = [this](const vector<unsigned char>& input, unsigned int offset,
-                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
-                 const vector<unsigned char>& blockHash,
-                 const uint16_t leaderID, const PubKey& leaderKey,
-                 vector<unsigned char>& messageToCosign) mutable -> bool {
+    auto func = [this](const vector<unsigned char>& input, unsigned int offset,
+                       vector<unsigned char>& errorMsg,
+                       const uint32_t consensusID, const uint64_t blockNumber,
+                       const vector<unsigned char>& blockHash,
+                       const uint16_t leaderID, const PubKey& leaderKey,
+                       vector<unsigned char>& messageToCosign) mutable -> bool {
         return FinalBlockValidator(input, offset, errorMsg, consensusID,
-                                   blockHash, leaderID, leaderKey,
+                                   blockNumber, blockHash, leaderID, leaderKey,
                                    messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(
-        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_consensusLeaderID, m_mediator.m_selfKey.first,
-        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
+        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
+        static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
 
     if (m_consensusObject == nullptr)
@@ -1186,7 +1177,8 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
     {
         lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-        if (CheckState(PROCESS_FINALBLOCKCONSENSUS))
+        if (CheckState(PROCESS_FINALBLOCKCONSENSUS)
+            || m_state == FINALBLOCK_CONSENSUS_PREP)
         {
             return;
         }
@@ -1207,9 +1199,9 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         }
 #endif // FALLBACK_TEST
 
-        m_mediator.m_node->PrepareGoodStateForFinalBlock();
-
         SetState(FINALBLOCK_CONSENSUS_PREP);
+
+        m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
         if (revertStateDelta)
         {
@@ -1221,6 +1213,11 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         }
 
         AccountStore::GetInstance().SerializeDelta();
+
+        if (m_mediator.GetIsVacuousEpoch())
+        {
+            AccountStore::GetInstance().CommitTempReversible();
+        }
 
         // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
         bool ConsensusObjCreation = true;
@@ -1259,16 +1256,20 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         DetachedFunction(1, func1);
     }
 
-    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
-    // without triggering view change.
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
-    if (cv_viewChangeFinalBlock.wait_for(cv_lk,
-                                         std::chrono::seconds(VIEWCHANGE_TIME))
-        == std::cv_status::timeout)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Initiated final block view change. ");
-        auto func = [this]() -> void { RunConsensusOnViewChange(); };
-        DetachedFunction(1, func);
-    }
+    auto func1 = [this]() -> void {
+        // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+        // without triggering view change.
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+        if (cv_viewChangeFinalBlock.wait_for(
+                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Initiated final block view change. ");
+            auto func2 = [this]() -> void { RunConsensusOnViewChange(); };
+            DetachedFunction(1, func2);
+        }
+    };
+
+    DetachedFunction(1, func1);
 }
