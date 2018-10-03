@@ -30,6 +30,6 @@ enum ShardData
 };
 
 using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
-using VectorOfShard = std::vector<Shard>;
+using DequeOfShard = std::deque<Shard>;
 
 #endif /*__SHARD_STRUCT__*/

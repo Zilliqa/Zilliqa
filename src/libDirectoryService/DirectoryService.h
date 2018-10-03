@@ -63,7 +63,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<Peer> m_tempDSReceivers;
     std::vector<std::vector<Peer>> m_tempShardReceivers;
     std::vector<std::vector<Peer>> m_tempShardSenders;
-    VectorOfShard m_tempShards; //vector<vector<pair<PubKey, Peer>>>;
+    DequeOfShard m_tempShards; //vector<vector<pair<PubKey, Peer>>>;
     std::map<PubKey, uint32_t> m_tempPublicKeyToShardIdMap;
     std::map<PubKey, uint16_t> m_tempMapNodeReputation;
 
@@ -143,7 +143,6 @@ class DirectoryService : public Executable, public Broadcastable
 
     // TO Remove
     Mediator& m_mediator;
-    Synchronizer m_synchronizer;
 
     uint32_t m_numOfAbsentMicroBlocks;
 
@@ -189,8 +188,6 @@ class DirectoryService : public Executable, public Broadcastable
     void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                  unsigned int my_shards_hi);
 
-    // PoW (DS block) consensus functions
-    void RunConsensusOnDSBlock(bool isRejoin = false);
     void ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
@@ -198,8 +195,8 @@ class DirectoryService : public Executable, public Broadcastable
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
     void ComputeTxnSharingAssignments(const Peer& winnerpeer);
-    bool VerifyPoWOrdering(const VectorOfShard& shards);
-    bool VerifyNodePriority(const VectorOfShard& shards);
+    bool VerifyPoWOrdering(const DequeOfShard& shards);
+    bool VerifyNodePriority(const DequeOfShard& shards);
 
     // internal calls from RunConsensusOnDSBlock
     bool RunConsensusOnDSBlockWhenDSPrimary();
@@ -226,9 +223,6 @@ class DirectoryService : public Executable, public Broadcastable
     bool SendFinalBlockToLookupNodes();
     void ProcessFinalBlockConsensusWhenDone();
 
-    void DetermineShardsToSendFinalBlockTo(unsigned int& my_DS_cluster_num,
-                                           unsigned int& my_shards_lo,
-                                           unsigned int& my_shards_hi) const;
     void SendFinalBlockToShardNodes(unsigned int my_DS_cluster_num,
                                     unsigned int my_shards_lo,
                                     unsigned int my_shards_hi);
@@ -284,6 +278,7 @@ class DirectoryService : public Executable, public Broadcastable
                           unsigned int offset,
                           std::vector<unsigned char>& errorMsg,
                           const uint32_t consensusID,
+                          const uint64_t blockNumber,
                           const std::vector<unsigned char>& blockHash,
                           const uint16_t leaderID, const PubKey& leaderKey,
                           std::vector<unsigned char>& messageToCosign);
@@ -297,6 +292,7 @@ class DirectoryService : public Executable, public Broadcastable
                              unsigned int offset,
                              std::vector<unsigned char>& errorMsg,
                              const uint32_t consensusID,
+                             const uint64_t blockNumber,
                              const std::vector<unsigned char>& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
                              std::vector<unsigned char>& messageToCosign);
@@ -306,6 +302,7 @@ class DirectoryService : public Executable, public Broadcastable
                              unsigned int offset,
                              std::vector<unsigned char>& errorMsg,
                              const uint32_t consensusID,
+                             const uint64_t blockNumber,
                              const std::vector<unsigned char>& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
                              std::vector<unsigned char>& messageToCosign);
@@ -334,16 +331,6 @@ class DirectoryService : public Executable, public Broadcastable
     bool RunConsensusOnViewChangeWhenNotCandidateLeader();
     void ProcessViewChangeConsensusWhenDone();
     void ProcessNextConsensus(unsigned char viewChangeState);
-    void DetermineShardsToSendVCBlockTo(unsigned int& my_DS_cluster_num,
-                                        unsigned int& my_shards_lo,
-                                        unsigned int& my_shards_hi) const;
-    void SendVCBlockToShardNodes(unsigned int my_DS_cluster_num,
-                                 unsigned int my_shards_lo,
-                                 unsigned int my_shards_hi,
-                                 std::vector<unsigned char>& vcblock_message);
-
-    // Rejoin the network as a DS node in case of failure happens in protocol
-    void RejoinAsDS();
 
     // Reset certain variables to the initial state
     bool CleanVariables();
@@ -389,7 +376,6 @@ public:
     /// Sharing assignment for state delta
     std::vector<Peer> m_sharingAssignment;
 
-    uint32_t m_consensusID;
     uint16_t m_consensusLeaderID;
 
     std::mutex m_MutexScheduleDSMicroBlockConsensus;
@@ -402,7 +388,8 @@ public:
     std::atomic<Mode> m_mode;
 
     // Sharding committee members
-    VectorOfShard m_shards;
+    std::mutex m_mutexShards;
+    DequeOfShard m_shards;
     std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
 
     // Proof of Reputation(PoR) variables.
@@ -437,6 +424,8 @@ public:
     std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
     std::mutex m_mutexMicroBlocks;
 
+    Synchronizer m_synchronizer;
+
     /// Constructor. Requires mediator reference to access Node and other global members.
     DirectoryService(Mediator& mediator);
 
@@ -455,6 +444,9 @@ public:
 
     /// Launches separate thread to execute sharding consensus after wait_window seconds.
     void ScheduleShardingConsensus(const unsigned int wait_window);
+
+    /// Rejoin the network as a DS node in case of failure happens in protocol
+    void RejoinAsDS();
 
     /// Post processing after the DS node successfully synchronized with the network
     bool FinishRejoinAsDS();
@@ -477,7 +469,7 @@ public:
 
     /// Used by PoW winner to configure sharding variables as the next DS leader
     bool
-    ProcessShardingStructure(const VectorOfShard& shards,
+    ProcessShardingStructure(const DequeOfShard& shards,
                              std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
                              std::map<PubKey, uint16_t>& mapNodeReputation);
 
@@ -487,6 +479,17 @@ public:
     /// Used by PoW winner to finish setup as the next DS leader
     void StartFirstTxEpoch();
 
+    void DetermineShardsToSendBlockTo(unsigned int& my_DS_cluster_num,
+                                      unsigned int& my_shards_lo,
+                                      unsigned int& my_shards_hi);
+    void SendBlockToShardNodes(unsigned int my_DS_cluster_num,
+                               unsigned int my_shards_lo,
+                               unsigned int my_shards_hi,
+                               std::vector<unsigned char>& block_message);
+
+    /// Begin next round of DS consensus
+    void StartNewDSEpochConsensus(bool fromFallback = false);
+
     static uint8_t CalculateNewDifficultyCore(
         uint8_t currentDifficulty, uint8_t minDifficulty, int64_t currentNodes,
         int64_t powSubmissions, int64_t expectedNodes,
@@ -495,6 +498,9 @@ public:
 
     /// Calculate node priority to determine which node has the priority to join the network.
     static uint8_t CalculateNodePriority(uint16_t reputation);
+
+    /// PoW (DS block) consensus functions
+    void RunConsensusOnDSBlock(bool isRejoin = false);
 
 private:
     static std::map<DirState, std::string> DirStateStrings;

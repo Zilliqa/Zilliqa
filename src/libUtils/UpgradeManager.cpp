@@ -25,6 +25,7 @@ using namespace std;
 #define USER_AGENT "Zilliqa"
 #define VERSION_FILE_NAME "VERSION"
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
+#define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
 
 UpgradeManager::UpgradeManager()
@@ -83,10 +84,11 @@ string UpgradeManager::DownloadFile(const char* fileTail,
 
     if (res != CURLE_OK)
     {
-        LOG_GENERAL(
-            WARNING,
-            "curl_easy_perform() failed to fetch data from url to string: "
-                << curl_easy_strerror(res));
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed to get latest release "
+                    "information from url ["
+                        << (releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL)
+                        << "]: " << curl_easy_strerror(res));
         return "";
     }
 
@@ -143,8 +145,9 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
-                    "curl_easy_perform() failed to fetch data from url: "
-                        << curl_easy_strerror(res));
+                    "curl_easy_perform() failed to get redirect url from url ["
+                        << downloadFilePath
+                        << "]: " << curl_easy_strerror(res));
         return "";
     }
 
@@ -182,8 +185,9 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     if (res != CURLE_OK)
     {
         LOG_GENERAL(WARNING,
-                    "curl_easy_perform() failed to download data: "
-                        << curl_easy_strerror(res));
+                    "curl_easy_perform() failed to download file from url["
+                        << downloadFilePath
+                        << "]: " << curl_easy_strerror(res));
         return "";
     }
 
@@ -202,6 +206,8 @@ bool UpgradeManager::HasNewSW()
         return false;
     }
 
+    LOG_GENERAL(INFO, "public key file has been downloaded successfully.");
+
     string versionName = DownloadFile(VERSION_FILE_NAME);
 
     if (versionName.empty())
@@ -210,16 +216,21 @@ bool UpgradeManager::HasNewSW()
         return false;
     }
 
+    LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
+
     vector<PubKey> pubKeys;
     {
         fstream pubKeyFile(PUBLIC_KEY_FILE_NAME, ios::in);
         string pubKey;
 
-        while (getline(pubKeyFile, pubKey))
+        while (getline(pubKeyFile, pubKey)
+               && PUBLIC_KEY_LENGTH == pubKey.size())
         {
             pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(pubKey), 0);
         }
     }
+
+    LOG_GENERAL(INFO, "Parsing public key file completed.");
 
     string shaStr, sigStr;
     {
@@ -238,6 +249,8 @@ bool UpgradeManager::HasNewSW()
             ++line_no;
         }
     }
+
+    LOG_GENERAL(INFO, "Parsing version key file completed.");
 
     const vector<unsigned char> sha = DataConversion::HexStrToUint8Vec(shaStr);
     const unsigned int len = sigStr.size() / pubKeys.size();
@@ -265,7 +278,7 @@ bool UpgradeManager::HasNewSW()
 bool UpgradeManager::DownloadSW()
 {
     LOG_MARKER();
-
+    lock_guard<mutex> guard(m_downloadMutex);
     string versionName = DownloadFile(VERSION_FILE_NAME);
 
     if (versionName.empty())
@@ -274,6 +287,8 @@ bool UpgradeManager::DownloadSW()
         return false;
     }
 
+    LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
+
     m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
 
     if (m_packageFileName.empty())
@@ -281,6 +296,8 @@ bool UpgradeManager::DownloadSW()
         LOG_GENERAL(WARNING, "Cannot download package (.deb) file!");
         return false;
     }
+
+    LOG_GENERAL(INFO, "Package (.deb) file has been downloaded successfully.");
 
     uint32_t major, minor, fix, commit;
     uint64_t upgradeDS;
@@ -361,7 +378,9 @@ bool UpgradeManager::DownloadSW()
 
     if (sha != downloadSha)
     {
-        LOG_GENERAL(WARNING, "SHA-256 checksum of .deb file does not match!");
+        LOG_GENERAL(WARNING,
+                    "SHA-256 checksum of .deb file does not match, expected: "
+                        << sha << ", real: " << downloadSha);
         return false;
     }
 
@@ -374,23 +393,42 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
 {
     LOG_MARKER();
 
-    /// Store states
-    AccountStore::GetInstance().UpdateStateTrieAll();
-    AccountStore::GetInstance().MoveUpdatesToDisk();
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "For LookUp node, temporarily disable upgrading protocol.");
+        return true;
+    }
 
-    /// Store DS block
-    vector<unsigned char> serializedDSBlock;
-    mediator.m_dsBlockChain.GetLastBlock().Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(
-        mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        serializedDSBlock);
+    if (DirectoryService::IDLE == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO,
+                    "Shard node, upgrade after "
+                        << TERMINATION_COUNTDOWN_IN_SECONDS << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS));
+    }
+    else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO,
+                    "DS backup node, upgrade after "
+                        << TERMINATION_COUNTDOWN_IN_SECONDS + 1
+                        << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS + 1));
+    }
+    else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO,
+                    "DS leader node, upgrade after "
+                        << TERMINATION_COUNTDOWN_IN_SECONDS + 2
+                        << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS + 2));
+    }
 
-    /// Store final block
-    vector<unsigned char> serializedTxBlock;
-    mediator.m_txBlockChain.GetLastBlock().Serialize(serializedTxBlock, 0);
-    BlockStorage::GetBlockStorage().PutTxBlock(
-        mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-        serializedTxBlock);
+    BlockStorage::GetBlockStorage().PutDSCommittee(
+        mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);
 
     /// Deploy downloaded software
     /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
