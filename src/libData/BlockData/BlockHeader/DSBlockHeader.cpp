@@ -104,7 +104,7 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
     PubKey deserializedPubKey;
     Peer deserializedPeer;
     uint128_t deserializedIP;
-    uint32_t deserialziedPort;
+    uint32_t deserializedPort;
     unsigned int curOffset = offset;
     try
     {
@@ -151,10 +151,10 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
             curOffset += PUB_KEY_SIZE;
             deserializedIP = GetNumber<uint128_t>(src, curOffset, IP_SIZE);
             curOffset += IP_SIZE;
-            deserialziedPort = GetNumber<uint32_t>(src, curOffset, PORT_SIZE);
+            deserializedPort = GetNumber<uint32_t>(src, curOffset, PORT_SIZE);
             curOffset += PORT_SIZE;
             m_PoWDSWinners[deserializedPubKey]
-                = Peer(deserializedIP, deserialziedPort);
+                = Peer(deserializedIP, deserializedPort);
         }
     }
     catch (const std::exception& e)
