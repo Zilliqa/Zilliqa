@@ -1665,9 +1665,6 @@ bool Lookup::CheckStateRoot()
         return true;
     }
 
-    /// TODO : FIX THIS
-    return true;
-
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
     StateHash rootInFinalBlock = m_mediator.m_txBlockChain.GetLastBlock()
                                      .GetHeader()

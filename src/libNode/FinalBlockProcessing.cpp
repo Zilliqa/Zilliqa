@@ -888,11 +888,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
         CleanMicroblockConsensusBuffer();
 
-        if (!AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 1");
-            return false;
-        }
+        ProcessStateDeltaFromFinalBlock(
+            stateDelta, txBlock.GetHeader().GetStateDeltaHash());
 
         if (!LOOKUP_NODE_MODE
             && (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot))
@@ -902,15 +899,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
         }
         else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock))
         {
-            return false;
-        }
-
-        ProcessStateDeltaFromFinalBlock(
-            stateDelta, txBlock.GetHeader().GetStateDeltaHash());
-
-        if (!AccountStore::GetInstance().UpdateStateTrieAll())
-        {
-            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed 2");
             return false;
         }
 

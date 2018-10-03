@@ -318,7 +318,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
             // Block till txn is fetched
             unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
             if (cv_MicroBlockMissingTxn.wait_for(
-                    lock, chrono::seconds(FETCHING_MISSING_TXNS_TIMEOUT))
+                    lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT))
                 == std::cv_status::timeout)
             {
                 LOG_EPOCH(WARNING,
