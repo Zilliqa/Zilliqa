@@ -63,6 +63,8 @@ public:
     void AddAccount(const Address& address, const Account& account);
     void AddAccount(const PubKey& pubKey, const Account& account);
 
+    void RemoveAccount(const Address& address);
+
     boost::multiprecision::uint256_t GetNumOfAccounts() const;
 
     bool IncreaseBalance(const Address& address,

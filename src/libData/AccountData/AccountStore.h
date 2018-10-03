@@ -68,6 +68,9 @@ class AccountStore
 {
     std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
 
+    std::unordered_map<Address, Account> m_addressToAccountRevChanged;
+    std::unordered_map<Address, Account> m_addressToAccountRevCreated;
+
     std::mutex m_mutexDelta;
 
     std::vector<unsigned char> m_stateDeltaSerialized;
@@ -90,7 +93,7 @@ public:
     unsigned int GetSerializedDelta(std::vector<unsigned char>& dst);
 
     int DeserializeDelta(const std::vector<unsigned char>& src,
-                         unsigned int offset);
+                         unsigned int offset, bool reversible = false);
 
     int DeserializeDeltaTemp(const std::vector<unsigned char>& src,
                              unsigned int offset);
@@ -126,6 +129,12 @@ public:
     void CommitTemp();
 
     void InitTemp();
+
+    void CommitTempReversible();
+
+    void RevertCommitTemp();
+
+    void InitReversibles();
 };
 
 #endif // __ACCOUNTSTORE_H__
