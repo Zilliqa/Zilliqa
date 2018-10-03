@@ -376,15 +376,13 @@ bool UpgradeManager::DownloadSW()
         downloadSha = DataConversion::Uint8VecToHexStr(output);
     }
 
-    /*
-    /// Temporarily comment out, cause GitHub would attach extra information in the tail of every file.
-    /// (https://github.com/Zilliqa/Issues/issues/185)
     if (sha != downloadSha)
     {
-        LOG_GENERAL(WARNING, "SHA-256 checksum of .deb file does not match!");
+        LOG_GENERAL(WARNING,
+                    "SHA-256 checksum of .deb file does not match, expected: "
+                        << sha << ", real: " << downloadSha);
         return false;
     }
-*/
 
     m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
     m_latestSHA = DataConversion::HexStrToUint8Vec(sha);
