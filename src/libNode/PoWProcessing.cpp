@@ -189,28 +189,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
         peerList.push_back(i.second);
     }
 
-    /*if (BROADCAST_GOSSIP_MODE)
-    {
-        // Choose N DS nodes to be recipient of POW submission
-        std::vector<Peer> dsPOWReceivers;
-        unsigned int numOfDSPowReceivers = NUM_DS_POW_GOSSIP_RECEIVERS;
-        if (peerList.size() < numOfDSPowReceivers)
-        {
-            numOfDSPowReceivers = peerList.size();
-        }
-
-        for (unsigned int i = 0; i < numOfDSPowReceivers; i++)
-        {
-            dsPOWReceivers.emplace_back(peerList.at(i));
-        }
-
-        P2PComm::GetInstance().SendRumorToForeignPeers(dsPOWReceivers,
-                                                       powmessage);
-    }
-    else
-    {*/
     P2PComm::GetInstance().SendMessage(peerList, powmessage);
-    //}
 
     return true;
 }

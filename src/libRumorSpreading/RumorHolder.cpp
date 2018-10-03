@@ -337,7 +337,6 @@ namespace RRS
         {
             RumorStateMachine& stateMach = r.second;
             stateMach.advanceRound(m_peersInCurrentRound);
-            LOG_GENERAL(INFO, "State of RumorId: " << r.first << stateMach);
             if (!stateMach.isOld())
             {
                 pushMessages.emplace_back(

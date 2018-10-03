@@ -388,7 +388,7 @@ void Node::StartFirstTxEpoch()
     // Choose N other nodes to be sender of microblock to ds committee.
     // TODO: Randomly choose these nodes?
     m_isMBSender = false;
-    unsigned int numOfMBSender = NUM_MICROBLOCK_SENDERS + 1;
+    unsigned int numOfMBSender = NUM_MICROBLOCK_SENDERS;
     if (m_myShardMembers->size() < numOfMBSender)
     {
         numOfMBSender = m_myShardMembers->size();
@@ -433,7 +433,7 @@ void Node::StartFirstTxEpoch()
             }
         }
 
-        // Set the peerlist for RumorSpreading protocol every start of DS Epoch - after DS block is confirmed
+        // Initialize every start of DS Epoch
         P2PComm::GetInstance().InitializeRumorManager(peers);
     }
 
@@ -624,7 +624,6 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             }
             m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
 
-            // Finally, start as the DS leader
             m_mediator.m_ds->StartFirstTxEpoch();
             //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 
