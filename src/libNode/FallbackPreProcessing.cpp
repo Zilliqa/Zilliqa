@@ -31,6 +31,7 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
                              unsigned int offset,
                              [[gnu::unused]] vector<unsigned char>& errorMsg,
                              const uint32_t consensusID,
+                             const uint64_t blockNumber,
                              const vector<unsigned char>& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
                              vector<unsigned char>& messageToCosign)
@@ -50,8 +51,8 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     m_pendingFallbackBlock.reset(new FallbackBlock);
 
     if (!Messenger::GetNodeFallbackBlockAnnouncement(
-            message, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingFallbackBlock, messageToCosign))
+            message, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_pendingFallbackBlock, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetNodeFallbackBlockAnnouncement failed.");
@@ -490,9 +491,9 @@ bool Node::RunConsensusOnFallbackWhenLeader()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     m_consensusObject.reset(new ConsensusLeader(
-        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, *m_myShardMembers,
-        static_cast<unsigned char>(NODE),
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
+        *m_myShardMembers, static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(FALLBACKCONSENSUS),
         NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
 
@@ -516,14 +517,14 @@ bool Node::RunConsensusOnFallbackWhenLeader()
 
     auto announcementGeneratorFunc =
         [this](vector<unsigned char>& dst, unsigned int offset,
-               const uint32_t consensusID,
+               const uint32_t consensusID, const uint64_t blockNumber,
                const vector<unsigned char>& blockHash, const uint16_t leaderID,
                const pair<PrivKey, PubKey>& leaderKey,
                vector<unsigned char>& messageToCosign) mutable -> bool {
         lock_guard<mutex> g(m_mutexPendingFallbackBlock);
         return Messenger::SetNodeFallbackBlockAnnouncement(
-            dst, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingFallbackBlock, messageToCosign);
+            dst, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_pendingFallbackBlock, messageToCosign);
     };
 
     cl->StartConsensus(announcementGeneratorFunc);
@@ -550,20 +551,21 @@ bool Node::RunConsensusOnFallbackWhenBackup()
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func
-        = [this](const vector<unsigned char>& input, unsigned int offset,
-                 vector<unsigned char>& errorMsg, const uint32_t consensusID,
-                 const vector<unsigned char>& blockHash,
-                 const uint16_t leaderID, const PubKey& leaderKey,
-                 vector<unsigned char>& messageToCosign) mutable -> bool {
+    auto func = [this](const vector<unsigned char>& input, unsigned int offset,
+                       vector<unsigned char>& errorMsg,
+                       const uint32_t consensusID, const uint64_t blockNumber,
+                       const vector<unsigned char>& blockHash,
+                       const uint16_t leaderID, const PubKey& leaderKey,
+                       vector<unsigned char>& messageToCosign) mutable -> bool {
         return FallbackValidator(input, offset, errorMsg, consensusID,
-                                 blockHash, leaderID, leaderKey,
+                                 blockNumber, blockHash, leaderID, leaderKey,
                                  messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(
-        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_consensusLeaderID, m_mediator.m_selfKey.first, *m_myShardMembers,
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
+        m_mediator.m_selfKey.first, *m_myShardMembers,
         static_cast<unsigned char>(NODE),
         static_cast<unsigned char>(FALLBACKCONSENSUS), func));
 
