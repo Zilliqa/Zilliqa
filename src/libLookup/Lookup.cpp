@@ -140,8 +140,9 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
     return txn;
 }
 
-bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
-                          uint32_t nShard)
+bool Lookup::GenTxnToSend(size_t num_txn,
+                          map<uint32_t, vector<unsigned char>>& mp,
+                          uint32_t numShards)
 {
     vector<unsigned char> txns;
 
@@ -151,7 +152,7 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         return false;
     }
 
-    unsigned int NUM_TXN_TO_DS = n / GENESIS_KEYS.size();
+    unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_KEYS.size();
 
     for (auto& privKeyHexStr : GENESIS_KEYS)
     {
@@ -160,18 +161,18 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         auto pubKey = PubKey{privKey};
         auto addr = Account::GetAddressFromPublicKey(pubKey);
 
-        if (nShard == 0)
+        if (numShards == 0)
         {
             return false;
         }
-        auto txnShard = Transaction::GetShardIndex(addr, nShard);
+        auto txnShard = Transaction::GetShardIndex(addr, numShards);
         txns.clear();
 
         uint256_t nonce
             = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
         if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
-                                         n, txns))
+                                         num_txn, txns))
         {
             LOG_GENERAL(WARNING, "Failed to get txns from file");
             return false;
@@ -193,18 +194,18 @@ bool Lookup::GenTxnToSend(size_t n, map<uint32_t, vector<unsigned char>>& mp,
         copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
 
         LOG_GENERAL(INFO,
-                    "[Batching] Last Nonce sent " << nonce + n << " of Addr "
-                                                  << addr.hex());
+                    "[Batching] Last Nonce sent " << nonce + num_txn
+                                                  << " of Addr " << addr.hex());
         txns.clear();
 
-        if (!GetTxnFromFile::GetFromFile(addr,
-                                         static_cast<uint32_t>(nonce) + n + 1,
-                                         NUM_TXN_TO_DS, txns))
+        if (!GetTxnFromFile::GetFromFile(
+                addr, static_cast<uint32_t>(nonce) + num_txn + 1, NUM_TXN_TO_DS,
+                txns))
         {
             LOG_GENERAL(WARNING, "Failed to get txns for DS");
         }
 
-        copy(txns.begin(), txns.end(), back_inserter(mp[nShard]));
+        copy(txns.begin(), txns.end(), back_inserter(mp[numShards]));
     }
 
     return true;
@@ -503,17 +504,17 @@ bool Lookup::SetDSCommitteInfo()
     return true;
 }
 
-VectorOfShard Lookup::GetShardPeers()
+DequeOfShard Lookup::GetShardPeers()
 {
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
                     "Lookup::GetShardPeers not expected to be called from "
                     "other than the LookUp node.");
-        return VectorOfShard();
+        return DequeOfShard();
     }
 
-    lock_guard<mutex> g(m_mutexShards);
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
     return m_mediator.m_ds->m_shards;
 }
 
@@ -545,8 +546,8 @@ bool Lookup::ProcessEntireShardingStructure()
 
     LOG_GENERAL(INFO, "[LOOKUP received sharding structure]");
 
-    lock(m_mutexShards, m_mutexNodesInNetwork);
-    lock_guard<mutex> g(m_mutexShards, adopt_lock);
+    lock(m_mediator.m_ds->m_mutexShards, m_mutexNodesInNetwork);
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards, adopt_lock);
     lock_guard<mutex> h(m_mutexNodesInNetwork, adopt_lock);
 
     m_nodesInNetwork.clear();
@@ -555,6 +556,7 @@ bool Lookup::ProcessEntireShardingStructure()
     for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++)
     {
         unsigned int index = 0;
+
         for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i))
         {
             const PubKey& key = std::get<SHARD_NODE_PUBKEY>(shardNode);
@@ -779,47 +781,52 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
         return false;
     }
 
-    if (lowBlockNum == 1)
-    {
-        lowBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                          .GetHeader()
-                          .GetBlockNum();
-    }
-    else if (lowBlockNum == 0)
-    {
-        //give all the blocks in the ds blockchain
-        lowBlockNum = 1;
-    }
-
-    if (highBlockNum == 0)
-    {
-        highBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum();
-    }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "ProcessGetDSBlockFromSeed requested by "
-                  << from << " for blocks " << lowBlockNum << " to "
-                  << highBlockNum);
-
     vector<DSBlock> dsBlocks;
     uint64_t blockNum;
 
-    for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
     {
-        try
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
+
+        if (lowBlockNum == 1)
         {
-            dsBlocks.emplace_back(m_mediator.m_dsBlockChain.GetBlock(blockNum));
+            lowBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetBlockNum();
         }
-        catch (const char* e)
+        else if (lowBlockNum == 0)
         {
-            LOG_GENERAL(INFO,
-                        "Block Number " << blockNum
-                                        << " absent. Didn't include it in "
-                                           "response message. Reason: "
-                                        << e);
-            break;
+            //give all the blocks in the ds blockchain
+            lowBlockNum = 1;
+        }
+
+        if (highBlockNum == 0)
+        {
+            highBlockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetBlockNum();
+        }
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "ProcessGetDSBlockFromSeed requested by "
+                      << from << " for blocks " << lowBlockNum << " to "
+                      << highBlockNum);
+
+        for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
+        {
+            try
+            {
+                dsBlocks.emplace_back(
+                    m_mediator.m_dsBlockChain.GetBlock(blockNum));
+            }
+            catch (const char* e)
+            {
+                LOG_GENERAL(INFO,
+                            "Block Number " << blockNum
+                                            << " absent. Didn't include it in "
+                                               "response message. Reason: "
+                                            << e);
+                break;
+            }
         }
     }
 
@@ -972,20 +979,25 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     vector<TxBlock> txBlocks;
     uint64_t blockNum;
 
-    for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
     {
-        try
+        lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
+
+        for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++)
         {
-            txBlocks.emplace_back(m_mediator.m_txBlockChain.GetBlock(blockNum));
-        }
-        catch (const char* e)
-        {
-            LOG_GENERAL(INFO,
-                        "Block Number " << blockNum
-                                        << " absent. Didn't include it in "
-                                           "response message. Reason: "
-                                        << e);
-            break;
+            try
+            {
+                txBlocks.emplace_back(
+                    m_mediator.m_txBlockChain.GetBlock(blockNum));
+            }
+            catch (const char* e)
+            {
+                LOG_GENERAL(INFO,
+                            "Block Number " << blockNum
+                                            << " absent. Didn't include it in "
+                                               "response message. Reason: "
+                                            << e);
+                break;
+            }
         }
     }
 
@@ -1099,7 +1111,8 @@ bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
     Peer requestingNode(from.m_ipAddress, portNo);
     vector<unsigned char> msg
         = {MessageType::LOOKUP, LookupInstructionType::SETSHARDSFROMSEED};
-    lock_guard<mutex> g(m_mutexShards);
+
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
     if (!Messenger::SetLookupSetShardsFromSeed(msg, MessageOffset::BODY,
                                                m_mediator.m_ds->m_shards))
@@ -1119,7 +1132,7 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
 {
     LOG_MARKER();
 
-    VectorOfShard shards;
+    DequeOfShard shards;
 
     if (!Messenger::GetLookupSetShardsFromSeed(message, offset, shards))
     {
@@ -1135,7 +1148,7 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
         LOG_GENERAL(INFO, "Size of shard " << i << " " << shard.size());
         i++;
     }
-    lock_guard<mutex> g(m_mutexShards);
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
     m_mediator.m_ds->m_shards = move(shards);
 
@@ -1277,10 +1290,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     //#endif // IS_LOOKUP_NODE
 
     if (!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying
-        && m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW
-            == m_mediator.m_dsBlockChain.GetLastBlock()
-                   .GetHeader()
-                   .GetBlockNum())
+        && (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0))
     {
         LOG_EPOCH(
             INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1470,8 +1480,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-        if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0))
+        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
         {
+            LOG_GENERAL(INFO,
+                        "At new DS epoch now, try getting state from lookup");
             GetStateFromLookupNodes();
         }
     }
@@ -1653,6 +1665,9 @@ bool Lookup::CheckStateRoot()
         return true;
     }
 
+    /// TODO : FIX THIS
+    return true;
+
     StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
     StateHash rootInFinalBlock = m_mediator.m_txBlockChain.GetLastBlock()
                                      .GetHeader()
@@ -1690,13 +1705,8 @@ bool Lookup::InitMining()
     if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Epoch num check failed");
+                  "New DS epoch check failed");
         return false;
-    }
-
-    if (m_mediator.m_currentEpochNum != 0)
-    {
-        m_mediator.m_node->m_consensusID = 0;
     }
 
     uint64_t curDsBlockNum
@@ -1706,52 +1716,38 @@ bool Lookup::InitMining()
     auto dsBlockRand = m_mediator.m_dsBlockRand;
     array<unsigned char, 32> txBlockRand{};
 
-    if (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW == curDsBlockNum)
+    if (CheckStateRoot())
     {
-        if (CheckStateRoot())
-        {
-            // Attempt PoW
-            m_startedPoW = true;
-            dsBlockRand = m_mediator.m_dsBlockRand;
-            txBlockRand = m_mediator.m_txBlockRand;
+        // Attempt PoW
+        m_startedPoW = true;
+        dsBlockRand = m_mediator.m_dsBlockRand;
+        txBlockRand = m_mediator.m_txBlockRand;
 
-            m_mediator.m_node->SetState(Node::POW_SUBMISSION);
-            POW::GetInstance().EthashConfigureLightClient(
-                m_mediator.m_dsBlockChain.GetLastBlock()
-                    .GetHeader()
-                    .GetBlockNum()
-                + 1);
+        m_mediator.m_node->SetState(Node::POW_SUBMISSION);
+        POW::GetInstance().EthashConfigureLightClient(
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
+            + 1);
 
-            this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
+        this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Starting PoW for new ds block number "
-                          << curDsBlockNum + 1);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
-            m_mediator.m_node->StartPoW(curDsBlockNum + 1,
-                                        m_mediator.m_dsBlockChain.GetLastBlock()
-                                            .GetHeader()
-                                            .GetDSDifficulty(),
-                                        m_mediator.m_dsBlockChain.GetLastBlock()
-                                            .GetHeader()
-                                            .GetDifficulty(),
-                                        dsBlockRand, txBlockRand);
-        }
-        else
-        {
-            LOG_GENERAL(WARNING, "State root check failed");
-            return false;
-        }
+        m_mediator.m_node->StartPoW(curDsBlockNum + 1,
+                                    m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetDSDifficulty(),
+                                    m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetDifficulty(),
+                                    dsBlockRand, txBlockRand);
     }
     else
     {
-        LOG_EPOCH(
-            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "DS block num check failed. Current DS epoch = "
-                << (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW)
-                << " Stored DS block = " << curDsBlockNum);
+        LOG_GENERAL(WARNING, "State root check failed");
         return false;
     }
+
     // Check whether is the new node connected to the network. Else, initiate re-sync process again.
     this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS));
     m_startedPoW = false;
@@ -2356,7 +2352,7 @@ bool Lookup::CleanVariables()
     m_currDSExpired = false;
     m_isFirstLoop = true;
     {
-        std::lock_guard<mutex> lock(m_mutexShards);
+        std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);
         m_mediator.m_ds->m_shards.clear();
     }
     {
@@ -2546,22 +2542,21 @@ void Lookup::SenderTxnBatchThread()
     LOG_MARKER();
 
     auto main_func = [this]() mutable -> void {
-        uint32_t nShard;
+        uint32_t numShards;
         while (true)
         {
-            if ((m_mediator.m_currentEpochNum + 1) % NUM_FINAL_BLOCK_PER_POW
-                != 0)
+            if (!m_mediator.GetIsVacuousEpoch())
             {
                 {
-                    lock_guard<mutex> g(m_mutexShards);
-                    nShard = m_mediator.m_ds->m_shards.size();
+                    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+                    numShards = m_mediator.m_ds->m_shards.size();
                 }
-                if (nShard == 0)
+                if (numShards == 0)
                 {
                     this_thread::sleep_for(chrono::milliseconds(100));
                     continue;
                 }
-                SendTxnPacketToNodes(nShard);
+                SendTxnPacketToNodes(numShards);
             }
             break;
         }
@@ -2570,7 +2565,7 @@ void Lookup::SenderTxnBatchThread()
     DetachedFunction(1, main_func);
 }
 
-void Lookup::SendTxnPacketToNodes(uint32_t nShard)
+void Lookup::SendTxnPacketToNodes(uint32_t numShards)
 {
     LOG_MARKER();
 
@@ -2585,16 +2580,16 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 
     map<uint32_t, vector<unsigned char>> mp;
 
-    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, nShard))
+    if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, numShards))
     {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
         // return;
     }
 
-    for (unsigned int i = 0; i < nShard + 1; i++)
+    for (unsigned int i = 0; i < numShards + 1; i++)
     {
         vector<unsigned char> msg
-            = {MessageType::NODE, NodeInstructionType::FORWARDTXNBLOCK};
+            = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
         bool result = false;
 
         {
@@ -2626,10 +2621,10 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
             continue;
         }
         vector<Peer> toSend;
-        if (i < nShard)
+        if (i < numShards)
         {
             {
-                lock_guard<mutex> g(m_mutexShards);
+                lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
                 auto it = m_mediator.m_ds->m_shards.at(i).begin();
 
                 for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP
@@ -2646,7 +2641,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t nShard)
 
             DeleteTxnShardMap(i);
         }
-        else if (i == nShard)
+        else if (i == numShards)
         {
             //To send DS
             {

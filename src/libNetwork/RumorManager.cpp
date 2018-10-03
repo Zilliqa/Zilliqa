@@ -22,25 +22,16 @@
 #include "P2PComm.h"
 #include "common/Messages.h"
 
-const unsigned char START_BYTE_GOSSIP = 0x33;
-
 namespace
 {
     RRS::Message::Type convertType(uint8_t type)
     {
-        switch (type)
+        if (type > 0 && type < static_cast<int>(RRS::Message::Type::NUM_TYPES))
         {
-        case 1:
-            return RRS::Message::Type::PUSH;
-        case 2:
-            return RRS::Message::Type::PULL;
-        case 3:
-            return RRS::Message::Type::EMPTY_PUSH;
-        case 4:
-            return RRS::Message::Type::EMPTY_PULL;
-        case 5:
-            return RRS::Message::Type::FORWARD;
-        default:
+            return static_cast<RRS::Message::Type>(type);
+        }
+        else
+        {
             return RRS::Message::Type::UNDEFINED;
         }
     }
@@ -224,7 +215,7 @@ RumorManager::GenerateGossipForwardMessage(const RawBytes& message)
 {
     // Add round and type to outgoing message
     RawBytes cmd = {(unsigned char)RRS::Message::Type::FORWARD};
-    unsigned int cur_offset = RRSMessageOffset::R_AGE;
+    unsigned int cur_offset = RRSMessageOffset::R_ROUNDS;
 
     Serializable::SetNumber<uint32_t>(cmd, cur_offset, 0, sizeof(uint32_t));
 
@@ -320,8 +311,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     int64_t recvdRumorId = -1;
     RRS::Message::Type t = convertType(type);
     bool toBeDispatched = false;
-    if (t == RRS::Message::Type::EMPTY_PUSH
-        || t == RRS::Message::Type::EMPTY_PULL)
+    if (RRS::Message::Type::EMPTY_PUSH == t
+        || RRS::Message::Type::EMPTY_PULL == t)
     {
         /* Don't add it to local RumorMap because it's not the rumor itself */
         LOG_GENERAL(DEBUG,
@@ -370,7 +361,7 @@ void RumorManager::SendMessages(const Peer& toPeer,
     {
         // Add round and type to outgoing message
         RawBytes cmd = {(unsigned char)k.type()};
-        unsigned int cur_offset = RRSMessageOffset::R_AGE;
+        unsigned int cur_offset = RRSMessageOffset::R_ROUNDS;
 
         Serializable::SetNumber<uint32_t>(cmd, cur_offset, k.rounds(),
                                           sizeof(uint32_t));
@@ -393,7 +384,8 @@ void RumorManager::SendMessages(const Peer& toPeer,
         }
 
         // Send the message to peer .
-        P2PComm::GetInstance().SendMessage(toPeer, cmd, START_BYTE_GOSSIP);
+        P2PComm::GetInstance().SendMessageNoQueue(toPeer, cmd,
+                                                  START_BYTE_GOSSIP);
     }
 }
 

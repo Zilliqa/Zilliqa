@@ -30,7 +30,7 @@
 enum RRSMessageOffset : unsigned int
 {
     R_TYPE = 0,
-    R_AGE = 1,
+    R_ROUNDS = 1,
 };
 
 const unsigned int RETRY_COUNT = 3;
@@ -93,4 +93,4 @@ public:
     const RumorIdRumorBimap& rumors() const;
 };
 
-#endif //ZILLIQA_RUMORMANAGER_H
+#endif //__RUMORMANAGER_H__

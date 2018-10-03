@@ -57,8 +57,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     LOG_MARKER();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     auto blockNum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
@@ -105,7 +103,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
             bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
 
-            if (!isVacuousEpoch && !isEmpty)
+            if (!m_mediator.GetIsVacuousEpoch() && !isEmpty)
             {
                 m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                     {{{microBlock.GetHeader().GetTxRootHash(),
@@ -216,11 +214,12 @@ void DirectoryService::ComposeFinalBlock()
 
     StateHash stateRoot = StateHash();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
-        AccountStore::GetInstance().UpdateStateTrieAll();
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+        }
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
@@ -290,7 +289,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     };
 
     m_consensusObject.reset(new ConsensusLeader(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
+        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
@@ -881,9 +880,7 @@ bool DirectoryService::CheckStateRoot()
 
     StateHash stateRoot = StateHash();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
         // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
@@ -985,7 +982,7 @@ bool DirectoryService::WaitForTxnBodies()
     LOG_MARKER();
 
     bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+        = (m_mediator.m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
     {
         unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks,
@@ -1058,7 +1055,7 @@ bool DirectoryService::WaitForTxnBodies()
 //     //     && m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
 //     // {
 //     //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-//     //               "setting false for unavailable microblock " << m_consensusID);
+//     //               "setting false for unavailable microblock " << m_mediator.m_consensusID);
 //     //     unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
 //     //     m_mediator.m_node->m_allMicroBlocksRecvd = false;
 //     // }
@@ -1093,12 +1090,13 @@ bool DirectoryService::FinalBlockValidator(
 
     // WaitForTxnBodies();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
-        AccountStore::GetInstance().UpdateStateTrieAll();
+        if (!AccountStore::GetInstance().UpdateStateTrieAll())
+        {
+            LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
+            return false;
+        }
     }
 
     if (!CheckFinalBlockValidity(errorMsg))
@@ -1160,7 +1158,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     };
 
     m_consensusObject.reset(new ConsensusBackup(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
+        m_mediator.m_consensusID, m_consensusBlockHash, m_consensusMyID,
         m_consensusLeaderID, m_mediator.m_selfKey.first,
         *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
@@ -1192,10 +1190,25 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         {
             return;
         }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "The above CheckState failed as expected, don't panic");
+        }
 
         LOG_MARKER();
 
-        m_mediator.m_node->SetState(Node::WAITING_FINALBLOCK);
+#ifdef FALLBACK_TEST
+        if (m_mediator.m_currentEpochNum == FALLBACK_TEST_EPOCH
+            && m_mediator.m_consensusID > 1)
+        {
+            LOG_GENERAL(INFO, "Stop DS for testing fallback");
+            return;
+        }
+#endif // FALLBACK_TEST
+
+        m_mediator.m_node->PrepareGoodStateForFinalBlock();
+
         SetState(FINALBLOCK_CONSENSUS_PREP);
 
         if (revertStateDelta)

@@ -34,8 +34,16 @@ do
         CMAKE_EXTRA_OPTIONS="-DADDRESS_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with AddressSanitizer"
     ;;
+    heartbeattest)
+        CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with HeartBeat test"
+    ;;
+    fallbacktest)
+        CMAKE_EXTRA_OPTIONS="-DFALLBACKTEST=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with Fallback test"
+    ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [heartbeattest] [fallbacktest]"
         exit 1
     ;;
     esac
