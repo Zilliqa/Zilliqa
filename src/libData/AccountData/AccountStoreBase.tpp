@@ -258,6 +258,15 @@ void AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
 }
 
 template<class MAP>
+void AccountStoreBase<MAP>::RemoveAccount(const Address& address)
+{
+    if (IsAccountExist(address))
+    {
+        m_addressToAccount->erase(address);
+    }
+}
+
+template<class MAP>
 Account* AccountStoreBase<MAP>::GetAccount(const Address& address)
 {
     auto it = m_addressToAccount->find(address);
