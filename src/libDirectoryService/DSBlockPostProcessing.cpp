@@ -248,6 +248,7 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
 
         P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
                                                     dsblock_message);
+
         p++;
     }
 }
@@ -286,9 +287,9 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
 
         uint16_t dsIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
         m_consensusLeaderID = dsIndex;
-        LOG_GENERAL(WARNING,
-                    "dsIndex " << dsIndex << " m_consensusLeaderID "
-                               << m_consensusLeaderID);
+        LOG_GENERAL(INFO,
+                    "lastBlockHash " << lastBlockHash << " m_consensusLeaderID "
+                                     << m_consensusLeaderID);
         //if dsIndex == 0 , that means the pow Winner is the DS Leader
         if (dsIndex > 0
             && m_mediator.m_DSCommittee->at(dsIndex - 1).first
@@ -438,6 +439,20 @@ void DirectoryService::StartFirstTxEpoch()
         SetState(MICROBLOCK_SUBMISSION);
         m_dsStartedMicroblockConsensus = false;
 
+        if (BROADCAST_GOSSIP_MODE)
+        {
+            std::vector<Peer> peers;
+            for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+            {
+                if (i.second.m_listenPortHost != 0)
+                {
+                    peers.emplace_back(i.second);
+                }
+            }
+            // ReInitialize RumorManager for this epoch.
+            P2PComm::GetInstance().InitializeRumorManager(peers);
+        }
+
         auto func = [this]() mutable -> void {
             // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
             std::unique_lock<std::mutex> cv_lk(
@@ -510,6 +525,22 @@ void DirectoryService::StartFirstTxEpoch()
 
         // Process txn sharing assignments as a shard node
         m_mediator.m_node->LoadTxnSharingInfo();
+
+        if (BROADCAST_GOSSIP_MODE)
+        {
+            std::vector<Peer> peers;
+            for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+            {
+                if (i.second.m_listenPortHost != 0)
+                {
+                    peers.emplace_back(i.second);
+                }
+            }
+
+            // Set the peerlist for RumorSpreading protocol since am no more DS member.
+            // I am now shard member.
+            P2PComm::GetInstance().InitializeRumorManager(peers);
+        }
 
         // Finally, start as a shard node
         m_mediator.m_node->StartFirstTxEpoch();
@@ -664,11 +695,21 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     UpdateDSCommiteeComposition(winnerpeer);
 
-    LOG_GENERAL(
-        INFO,
-        "New leader is at index "
-            << m_consensusLeaderID << " "
-            << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+    if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
+        == m_mediator.m_selfKey.second)
+    {
+        LOG_GENERAL(INFO,
+                    "New leader is at index " << m_consensusLeaderID << " "
+                                              << m_mediator.m_selfPeer);
+    }
+    else
+    {
+        LOG_GENERAL(
+            INFO,
+            "New leader is at index "
+                << m_consensusLeaderID << " "
+                << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+    }
 
     StartFirstTxEpoch();
 }

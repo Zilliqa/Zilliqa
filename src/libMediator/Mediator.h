@@ -30,6 +30,9 @@
 /// A mediator class for providing access to global members.
 class Mediator
 {
+    std::mutex m_mutexHeartBeat;
+    unsigned int m_heartBeatTime;
+
 public:
     /// The Zilliqa instance's key pair.
     std::pair<PrivKey, PubKey> m_selfKey;
@@ -57,6 +60,10 @@ public:
 
     /// The current epoch.
     uint64_t m_currentEpochNum = 0;
+
+#ifdef HEARTBEAT_TEST
+    bool m_killPulse = false;
+#endif // HEARTBEAT_TEST
 
     /// The consensus ID
     uint32_t m_consensusID;
@@ -86,6 +93,7 @@ public:
 
     /// Record current software information which already downloaded to this node
     SWInfo m_curSWInfo;
+    std::mutex m_mutexCurSWInfo;
 
     /// Constructor.
     Mediator(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
@@ -104,6 +112,12 @@ public:
     void UpdateTxBlockRand(bool isGenesis = false);
 
     std::string GetNodeMode(const Peer& peer);
+
+    /// Launches the heartbeat monitoring thread
+    void HeartBeatLaunch();
+
+    /// Resets the heartbeat counter (to indicate liveness)
+    void HeartBeatPulse();
 
     void IncreaseEpochNum();
 

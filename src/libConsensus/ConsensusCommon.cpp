@@ -59,7 +59,7 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
        MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_ROOT),
        MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_DELTA_HASH)};
 
-ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
+ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                                  const vector<unsigned char>& block_hash,
                                  uint16_t my_id, const PrivKey& privkey,
                                  const deque<pair<PubKey, Peer>>& committee,
@@ -67,6 +67,7 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id,
                                  unsigned char ins_byte)
     : m_consensusErrorCode(NO_ERROR)
     , m_consensusID(consensus_id)
+    , m_blockNumber(block_number)
     , m_blockHash(block_hash)
     , m_myID(my_id)
     , m_myPrivKey(privkey)

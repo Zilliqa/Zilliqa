@@ -45,6 +45,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -384,10 +385,10 @@ void Node::StartFirstTxEpoch()
                              << std::left << m_consensusMyID << "] SCBK");
     }
 
-    // Choose 4 other nodes to be sender of microblock to ds committee.
+    // Choose N other nodes to be sender of microblock to ds committee.
     // TODO: Randomly choose these nodes?
     m_isMBSender = false;
-    unsigned int numOfMBSender = 5;
+    unsigned int numOfMBSender = NUM_MICROBLOCK_SENDERS;
     if (m_myShardMembers->size() < numOfMBSender)
     {
         numOfMBSender = m_myShardMembers->size();
@@ -404,8 +405,34 @@ void Node::StartFirstTxEpoch()
         }
     }
 
+    // Choose N other DS nodes to be recipient of microblock
+    m_DSMBReceivers.clear();
+    unsigned int numOfMBReceivers
+        = std::min(NUM_MICROBLOCK_GOSSIP_RECEIVERS,
+                   (uint32_t)m_mediator.m_DSCommittee->size());
+
+    for (unsigned int i = 0; i < numOfMBReceivers; i++)
+    {
+        m_DSMBReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
+    }
+
     m_justDidFallback = false;
     CommitTxnPacketBuffer();
+
+    if (BROADCAST_GOSSIP_MODE)
+    {
+        std::vector<Peer> peers;
+        for (const auto& i : *m_myShardMembers)
+        {
+            if (i.second.m_listenPortHost != 0)
+            {
+                peers.emplace_back(i.second);
+            }
+        }
+
+        // Initialize every start of DS Epoch
+        P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
@@ -474,6 +501,19 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                   "Messenger::GetNodeDSBlock failed.");
         return false;
     }
+
+    auto func = [this, dsblock]() mutable -> void {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo())
+        {
+            if (UpgradeManager::GetInstance().DownloadSW())
+            {
+                m_mediator.m_curSWInfo
+                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            }
+        }
+    };
+    DetachedFunction(1, func);
 
     m_myShardID = shardID;
 
@@ -555,7 +595,6 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             }
 
             {
-
                 lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
                 unsigned int ds_size = (m_mediator.m_DSCommittee)->size();
 
@@ -581,6 +620,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                 }
             }
             m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
+
             m_mediator.m_ds->StartFirstTxEpoch();
             //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
 

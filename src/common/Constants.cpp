@@ -164,12 +164,25 @@ const unsigned int MAX_ROUNDS_IN_BSTATE{
 const unsigned int MAX_ROUNDS_IN_CSTATE{
     ReadFromConstantsFile("MAX_ROUNDS_IN_CSTATE")};
 const unsigned int MAX_TOTAL_ROUNDS{ReadFromConstantsFile("MAX_TOTAL_ROUNDS")};
+const unsigned int ROUND_TIME_IN_MS{ReadFromConstantsFile("ROUND_TIME_IN_MS")};
 const unsigned int MAX_NEIGHBORS_PER_ROUND{
     ReadFromConstantsFile("MAX_NEIGHBORS_PER_ROUND")};
 const unsigned int NUM_NODE_INCR_DIFFICULTY{
     ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
+const unsigned int NUM_MICROBLOCK_SENDERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_SENDERS")};
+const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS{
+    ReadFromConstantsFile("NUM_MICROBLOCK_GOSSIP_RECEIVERS")};
+const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
+const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
+    ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
+const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
+    ReadFromConstantsFile("TERMINATION_COUNTDOWN_IN_SECONDS")};
+const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
+    ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
@@ -179,7 +192,10 @@ const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE")
 const bool OPENCL_GPU_MINE{ReadFromOptionsFile("OPENCL_GPU_MINE") == "true"};
 const bool CUDA_GPU_MINE{ReadFromOptionsFile("CUDA_GPU_MINE") == "true"};
 const bool LOOKUP_NODE_MODE{ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true"};
-
+const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE")
+                                 == "true"};
+const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS{
+    ReadFromOptionsFile("GOSSIP_CUSTOM_ROUNDS_SETTINGS") == "true"};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{

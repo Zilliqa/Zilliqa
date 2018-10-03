@@ -44,6 +44,7 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         = Serializable::GetNumber<uint16_t>(message, offset, sizeof(uint16_t));
 
     uint32_t dummy_consensus_id = 0xFACEFACE;
+    uint64_t dummy_block_number = 12345678;
 
     vector<unsigned char> dummy_block_hash(BLOCK_HASH_SIZE);
     fill(dummy_block_hash.begin(), dummy_block_hash.end(), 0x88);
@@ -87,8 +88,9 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
     if (!m_leaderOrBackup) // Leader
     {
         m_consensus.reset(new ConsensusLeader(
-            dummy_consensus_id, dummy_block_hash, my_id, m_selfKey.first,
-            peerList, static_cast<unsigned char>(MessageType::CONSENSUSUSER),
+            dummy_consensus_id, dummy_block_number, dummy_block_hash, my_id,
+            m_selfKey.first, peerList,
+            static_cast<unsigned char>(MessageType::CONSENSUSUSER),
             static_cast<unsigned char>(InstructionType::CONSENSUS),
             std::function<bool(const vector<unsigned char>& errorMsg,
                                unsigned int, const Peer& from)>(),
@@ -102,8 +104,8 @@ bool ConsensusUser::ProcessSetLeader(const vector<unsigned char>& message,
         };
 
         m_consensus.reset(new ConsensusBackup(
-            dummy_consensus_id, dummy_block_hash, my_id, leader_id,
-            m_selfKey.first, peerList,
+            dummy_consensus_id, dummy_block_number, dummy_block_hash, my_id,
+            leader_id, m_selfKey.first, peerList,
             static_cast<unsigned char>(MessageType::CONSENSUSUSER),
             static_cast<unsigned char>(InstructionType::CONSENSUS), func));
     }
