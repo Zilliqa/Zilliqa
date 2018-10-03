@@ -658,12 +658,24 @@ namespace
             return false;
         }
 
+        if (!announcement.consensusinfo().has_blockhash())
+        {
+            LOG_GENERAL(WARNING,
+                        "Block hash not initialized in consensus info.");
+            return false;
+        }
+
         if ((announcement.consensusinfo().blockhash().size()
              != blockHash.size())
             || !equal(blockHash.begin(), blockHash.end(),
                       announcement.consensusinfo().blockhash().begin()))
         {
-            LOG_GENERAL(WARNING, "Block hash mismatch.");
+            LOG_GENERAL(
+                WARNING,
+                "Block hash mismatch. Expected: "
+                    << DataConversion::Uint8VecToHexStr(blockHash)
+                    << " Actual: "
+                    << announcement.consensusinfo().blockhash().c_str());
             return false;
         }
 
@@ -3010,7 +3022,11 @@ bool Messenger::GetConsensusCommit(
         || !equal(blockHash.begin(), blockHash.end(),
                   result.consensusinfo().blockhash().begin()))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << result.consensusinfo().blockhash().c_str());
         return false;
     }
 
@@ -3138,7 +3154,11 @@ bool Messenger::GetConsensusChallenge(
         || !equal(blockHash.begin(), blockHash.end(),
                   result.consensusinfo().blockhash().begin()))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << result.consensusinfo().blockhash().c_str());
         return false;
     }
 
@@ -3261,7 +3281,11 @@ bool Messenger::GetConsensusResponse(
         || !equal(blockHash.begin(), blockHash.end(),
                   result.consensusinfo().blockhash().begin()))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << result.consensusinfo().blockhash().c_str());
         return false;
     }
 
@@ -3389,7 +3413,11 @@ bool Messenger::GetConsensusCollectiveSig(
         || !equal(blockHash.begin(), blockHash.end(),
                   result.consensusinfo().blockhash().begin()))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << result.consensusinfo().blockhash().c_str());
         return false;
     }
 
@@ -3525,7 +3553,11 @@ bool Messenger::GetConsensusCommitFailure(
         || !equal(blockHash.begin(), blockHash.end(),
                   result.consensusinfo().blockhash().begin()))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << result.consensusinfo().blockhash().c_str());
         return false;
     }
 

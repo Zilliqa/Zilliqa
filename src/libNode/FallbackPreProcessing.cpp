@@ -542,8 +542,10 @@ bool Node::RunConsensusOnFallbackWhenBackup()
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am a fallback backup node. Waiting for Fallback announcement.");
 
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                        vector<unsigned char>& errorMsg,

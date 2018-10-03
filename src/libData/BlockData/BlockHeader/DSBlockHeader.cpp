@@ -15,6 +15,7 @@
 **/
 
 #include "DSBlockHeader.h"
+#include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -155,6 +156,18 @@ const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
 const SWInfo& DSBlockHeader::GetSWInfo() const { return m_swInfo; }
+
+BlockHash DSBlockHeader::GetMyHash() const
+{
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    std::vector<unsigned char> vec;
+    Serialize(vec, 0);
+    sha2.Update(vec);
+    const std::vector<unsigned char>& resVec = sha2.Finalize();
+    BlockHash blockHash;
+    std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
+    return blockHash;
+}
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const
 {
