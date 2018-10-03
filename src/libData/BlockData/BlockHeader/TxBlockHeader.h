@@ -128,6 +128,8 @@ public:
     /// Returns the digest of the parent DS block header.
     const BlockHash& GetDSBlockHeader() const;
 
+    BlockHash GetMyHash() const;
+
     /// Equality comparison operator.
     bool operator==(const TxBlockHeader& header) const;
 

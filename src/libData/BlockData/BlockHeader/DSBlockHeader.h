@@ -95,6 +95,9 @@ public:
     /// Returns the software version information used during creation of this block.
     const SWInfo& GetSWInfo() const;
 
+    /// Calculate my hash
+    BlockHash GetMyHash() const;
+
     /// Equality operator.
     bool operator==(const DSBlockHeader& header) const;
 
