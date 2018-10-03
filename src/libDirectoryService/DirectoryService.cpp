@@ -267,7 +267,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
         {
             if (i.second.m_listenPortHost != 0)
             {
-                peers.push_back(i.second);
+                peers.emplace_back(i.second);
             }
         }
         P2PComm::GetInstance().InitializeRumorManager(peers);

@@ -138,22 +138,6 @@ void DirectoryService::SendFinalBlockToShardNodes(
     for (unsigned int shardID = my_shards_lo; shardID <= my_shards_hi;
          shardID++)
     {
-        vector<Peer> shard_peers;
-
-        for (const auto& kv : *p)
-        {
-            shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                " PubKey: "
-                    << DataConversion::SerializableToHexStr(
-                           std::get<SHARD_NODE_PUBKEY>(kv))
-                    << " IP: "
-                    << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                    << " Port: "
-                    << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
-        }
-
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
@@ -188,16 +172,23 @@ void DirectoryService::SendFinalBlockToShardNodes(
         {
             // Choose N other Shard nodes to be recipient of final block
             std::vector<Peer> shardFinalBlockReceivers;
-            unsigned int numOfFinalBlockReceivers
-                = NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD;
-            if (shard_peers.size() < numOfFinalBlockReceivers)
-            {
-                numOfFinalBlockReceivers = shard_peers.size();
-            }
+            unsigned int numOfFinalBlockReceivers = std::min(
+                NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD, (uint32_t)p->size());
 
             for (unsigned int i = 0; i < numOfFinalBlockReceivers; i++)
             {
-                shardFinalBlockReceivers.emplace_back(shard_peers.at(i));
+                const auto& kv = p->at(i);
+                shardFinalBlockReceivers.emplace_back(
+                    std::get<SHARD_NODE_PEER>(kv));
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    " PubKey: "
+                        << DataConversion::SerializableToHexStr(
+                               std::get<SHARD_NODE_PUBKEY>(kv))
+                        << " IP: "
+                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
+                        << " Port: "
+                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
             }
 
             P2PComm::GetInstance().SendRumorToForeignPeers(
@@ -205,6 +196,22 @@ void DirectoryService::SendFinalBlockToShardNodes(
         }
         else
         {
+            vector<Peer> shard_peers;
+
+            for (const auto& kv : *p)
+            {
+                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    " PubKey: "
+                        << DataConversion::SerializableToHexStr(
+                               std::get<SHARD_NODE_PUBKEY>(kv))
+                        << " IP: "
+                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
+                        << " Port: "
+                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+            }
+
             P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
                                                         finalblock_message);
         }

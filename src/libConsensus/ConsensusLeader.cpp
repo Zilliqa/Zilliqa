@@ -642,9 +642,6 @@ bool ConsensusLeader::StartConsensus(
 
     if (useGossipProto)
     {
-        // Other Nodes if too slow, dont get their RumorManager started yet.
-        // Tmp FIX - So lets wait for some time - 5 sec
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         P2PComm::GetInstance().SpreadRumor(announcement_message);
     }
     else

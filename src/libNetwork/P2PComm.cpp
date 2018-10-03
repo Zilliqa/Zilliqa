@@ -492,6 +492,13 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     const uint32_t messageLength = (message[2] << 24) + (message[3] << 16)
         + (message[4] << 8) + message[5];
 
+    // Check for length consistency
+    if (messageLength != message.size() - HDR_LEN)
+    {
+        LOG_GENERAL(WARNING, "Incorrect message length.");
+        return;
+    }
+
     if (startByte == START_BYTE_BROADCAST)
     {
         LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
