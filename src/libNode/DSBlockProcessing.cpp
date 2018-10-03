@@ -583,9 +583,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                             << m_mediator.m_ds->m_consensusLeaderID);
             m_mediator.m_ds->StartFirstTxEpoch();
         }
-        // If I am a shard node
         else
         {
+            // If I am a shard node
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "I lost PoW (DS level) :-( Better luck next time!");
 
