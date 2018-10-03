@@ -48,8 +48,15 @@ ccache -s
 
 dir=build
 
+CMAKE_EXTRA_OPTIONS=""
+
+if [ "$os" = "Linux" ]
+then
+    CMAKE_EXTRA_OPTIONS="$CMAKE_EXTRA_OPTIONS -DLLVM_EXTRA_TOOLS=ON"
+fi
+
 # assume that it is run from project root directory
-cmake -H. -B${dir} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
 cmake --build ${dir} -- -j${n_parallel}
 
 # remember to append `|| exit` after the commands added in if-then-else
