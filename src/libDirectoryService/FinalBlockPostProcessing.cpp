@@ -272,21 +272,22 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone()
     // Update the final block with the co-signatures from the consensus
     m_finalBlock->SetCoSignatures(*m_consensusObject);
 
-    //Coinbase
-    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
-
     bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
 
     // StoreMicroBlocksToDisk();
     StoreFinalBlockToDisk();
-
-    AccountStore::GetInstance().CommitTemp();
 
     if (isVacuousEpoch)
     {
         AccountStore::GetInstance().MoveUpdatesToDisk();
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
+    }
+    else
+    {
+        AccountStore::GetInstance().CommitTemp();
+        //Coinbase
+        SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
     }
 
     m_mediator.UpdateDSBlockRand();
@@ -448,7 +449,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         return false;
     }
 
-    if (m_state != FINALBLOCK_CONSENSUS)
+    if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
     {
         {
             lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
@@ -458,8 +459,6 @@ bool DirectoryService::ProcessFinalBlockConsensus(
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Process final block arrived early, saved to buffer");
-
-        lock_guard<mutex> g(m_mutexConsensus);
 
         if (consensus_id == m_mediator.m_consensusID)
         {
@@ -612,7 +611,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
             // Block till txn is fetched
             unique_lock<mutex> lock(m_mutexCVMissingMicroBlock);
             if (cv_MissingMicroBlock.wait_for(
-                    lock, chrono::seconds(FETCHING_MISSING_TXNS_TIMEOUT))
+                    lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT))
                 == std::cv_status::timeout)
             {
                 LOG_EPOCH(WARNING,
@@ -626,6 +625,12 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
                     ConsensusCommon::INITIAL);
 
                 auto rerunconsensus = [this, message, offset, from]() {
+                    if (m_mediator.GetIsVacuousEpoch())
+                    {
+                        AccountStore::GetInstance().RevertCommitTemp();
+                        AccountStore::GetInstance().CommitTempReversible();
+                    }
+
                     ProcessFinalBlockConsensusCore(message, offset, from);
                 };
                 DetachedFunction(1, rerunconsensus);

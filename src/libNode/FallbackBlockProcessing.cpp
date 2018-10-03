@@ -227,12 +227,6 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
         return false;
     }
 
-    if (!AccountStore::GetInstance().UpdateStateTrieAll())
-    {
-        LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
-        return false;
-    }
-
     if (AccountStore::GetInstance().GetStateRootHash()
         != fallbackblock.GetHeader().GetStateRootHash())
     {

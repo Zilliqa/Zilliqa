@@ -432,12 +432,6 @@ void Node::RunConsensusOnFallback()
     SetLastKnownGoodState();
     SetState(FALLBACK_CONSENSUS_PREP);
 
-    if (!AccountStore::GetInstance().UpdateStateTrieAll())
-    {
-        LOG_GENERAL(WARNING, "UpdateStateTrieAll Failed");
-        return;
-    }
-
     // Upon consensus object creation failure, one should not return from the function, but rather wait for fallback.
     bool ConsensusObjCreation = true;
 

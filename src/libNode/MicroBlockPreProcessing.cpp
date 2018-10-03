@@ -659,11 +659,12 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
               "I am shard leader. Creating microblock for epoch "
                   << m_mediator.m_currentEpochNum);
 
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
+    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE
+        && !m_mediator.GetIsVacuousEpoch())
     {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "going to sleep for " << TX_DISTRIBUTE_TIME_IN_MS
-                                        << " milliseconds");
+                  "Non-vacuous epoch, going to sleep for "
+                      << TX_DISTRIBUTE_TIME_IN_MS << " milliseconds");
         std::this_thread::sleep_for(
             chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
     }

@@ -126,7 +126,7 @@ extern const unsigned int VIEWCHANGE_TIME;
 extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
-extern const unsigned int FETCHING_MISSING_TXNS_TIMEOUT;
+extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
 extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
