@@ -18,6 +18,8 @@
 
 dir=build
 
+run_clang_format_fix=0
+
 for option in "$@"
 do
     case $option in
@@ -37,6 +39,11 @@ do
         CMAKE_EXTRA_OPTIONS="-DADDRESS_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with AddressSanitizer"
     ;;
+    style)
+        CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
+        run_clang_format_fix=1
+        echo "Build with LLVM Extra Tools for codying style check"
+    ;;
     heartbeattest)
         CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with HeartBeat test"
@@ -46,7 +53,7 @@ do
         echo "Build with Fallback test"
     ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [heartbeattest] [fallbacktest]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest]"
         exit 1
     ;;
     esac
@@ -54,4 +61,4 @@ done
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
 cmake --build ${dir} -- -j4
-cmake --build ${dir} --target clang-format-fix
+[ ${run_clang_format_fix} -ne 0 ] && cmake --build ${dir} --target clang-format-fix
