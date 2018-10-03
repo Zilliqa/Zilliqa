@@ -118,6 +118,31 @@ message ProtoVCBlock
     required CoSignatures cosigs                      = 2;
 }
 
+message ProtoFallbackBlock
+{
+    message FallbackBlockHeader
+    {
+        required uint64 fallbackdsepochno           = 1;
+        required uint64 fallbackepochno             = 2;
+        required uint32 fallbackstate               = 3; // only LSB used
+        required bytes stateroothash                = 4;
+        required uint32 leaderconsensusid          = 5;
+        required ByteArray leadernetworkinfo = 6;
+        required ByteArray leaderpubkey      = 7;
+        required uint32 shardid                     = 8;
+        required ByteArray timestamp                  = 9;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1                        = 1;
+        repeated bool b1                              = 2 [packed=true];
+        required ByteArray cs2                        = 3;
+        repeated bool b2                              = 4 [packed=true];
+    }
+    required FallbackBlockHeader header                     = 1;
+    required CoSignatures cosigs                      = 2;
+}
+
 // ============================================================================
 // Directory Service messages
 // ============================================================================
@@ -209,6 +234,16 @@ message NodeForwardTxnBlock
 message NodeMicroBlockAnnouncement
 {
     required ProtoMicroBlock microblock = 1;
+}
+
+message NodeFallbackBlockAnnouncement
+{
+    required ByteArray fallbackblock = 1;
+}
+
+message NodeFallbackBlock
+{
+    required ProtoFallbackBlock fallbackblock = 1;
 }
 
 // ============================================================================
@@ -358,8 +393,9 @@ message ConsensusAnnouncement
     message ConsensusInfo
     {
         required uint32 consensusid           = 1;
-        required bytes blockhash              = 2; // 32 bytes
-        required uint32 leaderid              = 3; // only lower 2 bytes used    
+        required uint64 blocknumber           = 2;
+        required bytes blockhash              = 3; // 32 bytes
+        required uint32 leaderid              = 4; // only lower 2 bytes used    
     }
     required ConsensusInfo consensusinfo      = 1;
     oneof announcement
@@ -368,8 +404,9 @@ message ConsensusAnnouncement
         NodeMicroBlockAnnouncement microblock = 3;
         DSFinalBlockAnnouncement finalblock   = 4;
         DSVCBlockAnnouncement vcblock         = 5;
+        NodeFallbackBlockAnnouncement fallbackblock = 6;
     }
-    required ByteArray signature              = 6;
+    required ByteArray signature              = 7;
 }
 
 message ConsensusCommit
@@ -377,9 +414,10 @@ message ConsensusCommit
     message ConsensusInfo
     {
         required uint32 consensusid      = 1;
-        required bytes blockhash         = 2; // 32 bytes
-        required uint32 backupid         = 3; // only lower 2 bytes used
-        required ByteArray commit        = 4;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 backupid         = 4; // only lower 2 bytes used        
+        required ByteArray commit        = 5;
     }
     required ConsensusInfo consensusinfo = 1;
     required ByteArray signature         = 2;
@@ -390,11 +428,12 @@ message ConsensusChallenge
     message ConsensusInfo
     {
         required uint32 consensusid         = 1;
-        required bytes blockhash            = 2; // 32 bytes
-        required uint32 leaderid            = 3; // only lower 2 bytes used
-        required ByteArray aggregatedcommit = 4;
-        required ByteArray aggregatedkey    = 5;
-        required ByteArray challenge        = 6;
+        required uint64 blocknumber         = 2;
+        required bytes blockhash            = 3; // 32 bytes
+        required uint32 leaderid            = 4; // only lower 2 bytes used
+        required ByteArray aggregatedcommit = 5;
+        required ByteArray aggregatedkey    = 6;
+        required ByteArray challenge        = 7;
     }
     required ConsensusInfo consensusinfo    = 1;
     required ByteArray signature            = 2;
@@ -405,9 +444,10 @@ message ConsensusResponse
     message ConsensusInfo
     {
         required uint32 consensusid      = 1;
-        required bytes blockhash         = 2; // 32 bytes
-        required uint32 backupid         = 3; // only lower 2 bytes used
-        required ByteArray response      = 4;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 backupid         = 4; // only lower 2 bytes used
+        required ByteArray response      = 5;
     }
     required ConsensusInfo consensusinfo = 1;
     required ByteArray signature         = 2;
@@ -418,10 +458,11 @@ message ConsensusCollectiveSig
     message ConsensusInfo
     {
         required uint32 consensusid      = 1;
-        required bytes blockhash         = 2; // 32 bytes
-        required uint32 leaderid         = 3; // only lower 2 bytes used
-        required ByteArray collectivesig = 4;
-        repeated bool bitmap             = 5 [packed=true];
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 leaderid         = 4; // only lower 2 bytes used
+        required ByteArray collectivesig = 5;
+        repeated bool bitmap             = 6 [packed=true];
     }
     required ConsensusInfo consensusinfo = 1;
     required ByteArray signature         = 2;
@@ -432,9 +473,10 @@ message ConsensusCommitFailure
     message ConsensusInfo
     {
         required uint32 consensusid      = 1;
-        required bytes blockhash         = 2; // 32 bytes
-        required uint32 backupid         = 3; // only lower 2 bytes used
-        required bytes errormsg          = 4;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 backupid         = 4; // only lower 2 bytes used
+        required bytes errormsg          = 5;
     }
     required ConsensusInfo consensusinfo = 1;
     required ByteArray signature         = 2;

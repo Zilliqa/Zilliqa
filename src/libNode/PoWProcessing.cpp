@@ -99,6 +99,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
             LOG_GENERAL(INFO,
                         "Found PoW solution that met requirement for both ds "
                         "commitee and shard.");
+
             if (!SendPoWResultToDSComm(
                     block_num, ds_difficulty, winning_result.winning_nonce,
                     winning_result.result, winning_result.mix_hash))
@@ -152,7 +153,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         }
     }
 
-    if (m_state != MICROBLOCK_CONSENSUS)
+    if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS)
     {
         SetState(WAITING_DSBLOCK);
     }

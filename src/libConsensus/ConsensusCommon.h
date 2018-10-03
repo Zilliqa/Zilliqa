@@ -107,6 +107,9 @@ protected:
     /// The unique ID assigned to the active consensus session.
     uint32_t m_consensusID;
 
+    /// The latest final block number
+    uint64_t m_blockNumber;
+
     /// [TODO] The unique block hash assigned to the active consensus session.
     std::vector<unsigned char> m_blockHash;
 
@@ -153,7 +156,7 @@ protected:
     std::shared_ptr<CommitPoint> m_commitPoint;
 
     /// Constructor.
-    ConsensusCommon(uint32_t consensus_id,
+    ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                     const std::vector<unsigned char>& block_hash,
                     uint16_t my_id, const PrivKey& privkey,
                     const std::deque<std::pair<PubKey, Peer>>& committee,
