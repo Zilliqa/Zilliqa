@@ -50,10 +50,8 @@ BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
         "ERROR: return value from DB not equal to inserted value");
 }
 
-DSBlock constructDummyDSBlock()
+DSBlock constructDummyDSBlock(uint64_t blocknum)
 {
-    LOG_MARKER();
-
     BlockHash prevHash1;
 
     for (unsigned int i = 0; i < prevHash1.asArray().size(); i++)
@@ -69,8 +67,8 @@ DSBlock constructDummyDSBlock()
         powDSWinners[Schnorr::GetInstance().GenKeyPair().second] = Peer();
     }
 
-    return DSBlock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, 10, 789,
-                                 SWInfo(), powDSWinners),
+    return DSBlock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, blocknum,
+                                 789, SWInfo(), powDSWinners),
                    CoSignatures());
 }
 
@@ -82,7 +80,7 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization)
 
     // checking if normal serialization and deserialization of blocks is working or not
 
-    DSBlock block1 = constructDummyDSBlock();
+    DSBlock block1 = constructDummyDSBlock(1);
 
     std::vector<unsigned char> serializedDSBlock;
     block1.Serialize(serializedDSBlock, 0);
@@ -99,7 +97,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
 
     LOG_MARKER();
 
-    DSBlock block1 = constructDummyDSBlock();
+    DSBlock block1 = constructDummyDSBlock(1);
 
     std::vector<unsigned char> serializedDSBlock;
     block1.Serialize(serializedDSBlock, 0);
@@ -166,10 +164,10 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses)
 
     LOG_MARKER();
 
-    DSBlock block1 = constructDummyDSBlock();
-    DSBlock block2 = constructDummyDSBlock();
-    DSBlock block3 = constructDummyDSBlock();
-    DSBlock block4 = constructDummyDSBlock();
+    DSBlock block1 = constructDummyDSBlock(1);
+    DSBlock block2 = constructDummyDSBlock(2);
+    DSBlock block3 = constructDummyDSBlock(3);
+    DSBlock block4 = constructDummyDSBlock(4);
 
     std::vector<unsigned char> serializedDSBlock;
 
@@ -211,11 +209,11 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
 
     LOG_MARKER();
 
-    DSBlock block = constructDummyDSBlock();
+    DSBlock block = constructDummyDSBlock(1);
 
     for (int i = 5; i < 21; i++)
     {
-        block = constructDummyDSBlock();
+        block = constructDummyDSBlock(i);
 
         std::vector<unsigned char> serializedDSBlock;
 
@@ -238,7 +236,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks)
 
 void writeBlock(int id)
 {
-    DSBlock block = constructDummyDSBlock();
+    DSBlock block = constructDummyDSBlock(1);
 
     std::vector<unsigned char> serializedDSBlock;
 
@@ -270,7 +268,7 @@ void bootstrap(int num_threads)
     {
         for (int j = 0; j < 100; j++)
         {
-            DSBlock block = constructDummyDSBlock();
+            DSBlock block = constructDummyDSBlock(j);
 
             std::vector<unsigned char> serializedDSBlock;
 
@@ -323,11 +321,11 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
     //     BlockStorage::SetBlockFileSize(128 * ONE_MEGABYTE / 512);
     //     // BlockStorage::m_blockFileSize = 128 * ONE_MEGABYTE / 512;
 
-    DSBlock block = constructDummyDSBlock();
+    DSBlock block = constructDummyDSBlock(1);
 
     for (int i = 21; i < 2500; i++)
     {
-        block = constructDummyDSBlock();
+        block = constructDummyDSBlock(i);
 
         std::vector<unsigned char> serializedDSBlock;
 
@@ -357,7 +355,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
 
         for (int i = 0; i < 10; i++)
         {
-            DSBlock block = constructDummyDSBlock();
+            DSBlock block = constructDummyDSBlock(i);
 
             std::vector<unsigned char> serializedDSBlock;
 
