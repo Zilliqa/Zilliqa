@@ -1141,7 +1141,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
               "I am a backup DS node. Waiting for final block announcement. "
               "Leader is at index  "
                   << m_consensusLeaderID << " "
-                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second
+                  << " my consensus id is " << m_consensusMyID);
     // Create new consensus object
 
     // Dummy values for now
