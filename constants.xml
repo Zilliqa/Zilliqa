@@ -77,10 +77,10 @@
     </options>
     <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
-        <TXN_PATH></TXN_PATH>
+        <TXN_PATH/>
     </dispatcher>
     <archival>
-        <DB_HOST></DB_HOST>
+        <DB_HOST/>
     </archival>
     <smart_contract>
         <SCILLA_ROOT/>
