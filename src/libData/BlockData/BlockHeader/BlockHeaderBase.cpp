@@ -15,9 +15,22 @@
 **/
 
 #include "BlockHeaderBase.h"
+#include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
 BlockHeaderBase::BlockHeaderBase() {}
+
+BlockHash BlockHeaderBase::GetMyHash() const
+{
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    std::vector<unsigned char> vec;
+    Serialize(vec, 0);
+    sha2.Update(vec);
+    const std::vector<unsigned char>& resVec = sha2.Finalize();
+    BlockHash blockHash;
+    std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
+    return blockHash;
+}

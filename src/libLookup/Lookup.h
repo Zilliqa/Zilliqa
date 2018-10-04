@@ -30,6 +30,7 @@
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block/MicroBlock.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
@@ -94,9 +95,12 @@ class Lookup : public Executable, public Broadcastable
     std::mutex m_mutexSetTxBodyFromSeed;
     std::mutex m_mutexSetState;
     std::mutex m_mutexOfflineLookups;
+    std::mutex m_mutexMicroBlocksBuffer;
 
     std::vector<unsigned char> ComposeGetDSInfoMessage();
     std::vector<unsigned char> ComposeGetStateMessage();
+
+    std::unordered_map<uint64_t, std::vector<MicroBlock>> m_microBlocksBuffer;
 
     std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
                                                         uint64_t highBlockNum);
@@ -215,6 +219,30 @@ public:
 
     bool ProcessGetNetworkId(const std::vector<unsigned char>& message,
                              unsigned int offset, const Peer& from);
+
+    bool ProcessSetMicroBlockFromSeed(const std::vector<unsigned char>& message,
+                                      unsigned int offset, const Peer& from);
+
+    bool ProcessGetTxnsFromLookup(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+    bool ProcessSetTxnsFromLookup(const std::vector<unsigned char>& message,
+                                  unsigned int offset,
+                                  [[gnu::unused]] const Peer& from);
+    void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
+
+    void CommitMicroBlockStorage();
+
+    void SendGetMicroBlockFromLookup(
+        const std::map<uint64_t, std::vector<uint32_t>>& mbInfos);
+
+    bool
+    ProcessGetMicroBlockFromLookup(const std::vector<unsigned char>& message,
+                                   unsigned int offset, const Peer& from);
+    bool
+    ProcessSetMicroBlockFromLookup(const std::vector<unsigned char>& message,
+                                   unsigned int offset, const Peer& from);
+    bool AddMicroBlockToStorage(const uint64_t& blocknum,
+                                const MicroBlock& microblock);
 
     bool ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
