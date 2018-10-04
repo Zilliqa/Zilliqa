@@ -1204,19 +1204,15 @@ void Node::CommitForwardedTransactionBuffer()
     for (auto it = m_forwardedTxnBuffer.begin();
          it != m_forwardedTxnBuffer.end();)
     {
-        if (it->first < m_mediator.m_txBlockChain.GetLastBlock()
-                            .GetHeader()
-                            .GetBlockNum())
-        {
-            it = m_forwardedTxnBuffer.erase(it);
-        }
-        else
+        if (it->first >= m_mediator.m_txBlockChain.GetLastBlock()
+                             .GetHeader()
+                             .GetBlockNum())
         {
             for (const auto& entry : it->second)
             {
                 ProcessForwardTransactionCore(entry);
             }
-            m_forwardedTxnBuffer.erase(it);
         }
+        it = m_forwardedTxnBuffer.erase(it);
     }
 }
