@@ -170,6 +170,9 @@ extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
+extern const unsigned int NUM_DSBLOCK_RECEIVERS_PER_SHARD;
+extern const unsigned int NUM_VCBLOCK_RECEIVERS_PER_SHARD;
+extern const unsigned int NUM_VCBLOCK_RECEIVERS_FROM_POW_WINNERS;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
@@ -181,6 +184,7 @@ extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
 extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
+extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;

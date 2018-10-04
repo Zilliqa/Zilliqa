@@ -183,6 +183,12 @@ const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
     ReadFromConstantsFile("TERMINATION_COUNTDOWN_IN_SECONDS")};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
     ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
+const unsigned int NUM_DSBLOCK_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_DSBLOCK_RECEIVERS_PER_SHARD")};
+const unsigned int NUM_VCBLOCK_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_VCBLOCK_RECEIVERS_PER_SHARD")};
+const unsigned int NUM_VCBLOCK_RECEIVERS_FROM_POW_WINNERS{
+    ReadFromConstantsFile("NUM_VCBLOCK_RECEIVERS_FROM_POW_WINNERS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
@@ -196,6 +202,8 @@ const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE")
                                  == "true"};
 const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS{
     ReadFromOptionsFile("GOSSIP_CUSTOM_ROUNDS_SETTINGS") == "true"};
+const bool BROADCAST_TREEBASED_CLUSTER_MODE{
+    ReadFromOptionsFile("BROADCAST_TREEBASED_CLUSTER_MODE") == "true"};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
