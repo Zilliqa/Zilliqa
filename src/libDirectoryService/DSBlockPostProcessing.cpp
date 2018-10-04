@@ -689,9 +689,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     UpdateDSCommiteeComposition();
     UpdateMyDSModeAndConsensusId();
 
-
-    UpdateDSCommiteeComposition(winnerpeer);
-
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
         == m_mediator.m_selfKey.second)
     {
