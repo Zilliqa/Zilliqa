@@ -658,16 +658,20 @@ namespace
             return false;
         }
 
-        std::vector<unsigned char> remoteBlockHash;
-        remoteBlockHash.resize(announcement.consensusinfo().blockhash().size());
-        std::copy(announcement.consensusinfo().blockhash().begin(),
-                  announcement.consensusinfo().blockhash().end(),
-                  remoteBlockHash.begin());
-
-        if ((remoteBlockHash.size() != blockHash.size())
+        if ((announcement.consensusinfo().blockhash().size()
+             != blockHash.size())
             || !equal(blockHash.begin(), blockHash.end(),
-                      remoteBlockHash.begin()))
+                      announcement.consensusinfo().blockhash().begin(),
+                      [](const unsigned char left, const char right) -> bool {
+                          return left == (unsigned char)right;
+                      }))
         {
+            std::vector<unsigned char> remoteBlockHash;
+            remoteBlockHash.resize(
+                announcement.consensusinfo().blockhash().size());
+            std::copy(announcement.consensusinfo().blockhash().begin(),
+                      announcement.consensusinfo().blockhash().end(),
+                      remoteBlockHash.begin());
             LOG_GENERAL(
                 WARNING,
                 "Block hash mismatch. Expected: "
@@ -3016,15 +3020,18 @@ bool Messenger::GetConsensusCommit(
         return false;
     }
 
-    std::vector<unsigned char> remoteBlockHash;
-    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
-    std::copy(result.consensusinfo().blockhash().begin(),
-              result.consensusinfo().blockhash().end(),
-              remoteBlockHash.begin());
-
-    if ((remoteBlockHash.size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
@@ -3153,15 +3160,18 @@ bool Messenger::GetConsensusChallenge(
         return false;
     }
 
-    std::vector<unsigned char> remoteBlockHash;
-    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
-    std::copy(result.consensusinfo().blockhash().begin(),
-              result.consensusinfo().blockhash().end(),
-              remoteBlockHash.begin());
-
-    if ((remoteBlockHash.size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
@@ -3285,15 +3295,18 @@ bool Messenger::GetConsensusResponse(
         return false;
     }
 
-    std::vector<unsigned char> remoteBlockHash;
-    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
-    std::copy(result.consensusinfo().blockhash().begin(),
-              result.consensusinfo().blockhash().end(),
-              remoteBlockHash.begin());
-
-    if ((remoteBlockHash.size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
@@ -3422,15 +3435,18 @@ bool Messenger::GetConsensusCollectiveSig(
         return false;
     }
 
-    std::vector<unsigned char> remoteBlockHash;
-    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
-    std::copy(result.consensusinfo().blockhash().begin(),
-              result.consensusinfo().blockhash().end(),
-              remoteBlockHash.begin());
-
-    if ((remoteBlockHash.size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
@@ -3567,15 +3583,18 @@ bool Messenger::GetConsensusCommitFailure(
         return false;
     }
 
-    std::vector<unsigned char> remoteBlockHash;
-    remoteBlockHash.resize(result.consensusinfo().blockhash().size());
-    std::copy(result.consensusinfo().blockhash().begin(),
-              result.consensusinfo().blockhash().end(),
-              remoteBlockHash.begin());
-
-    if ((remoteBlockHash.size() != blockHash.size())
-        || !equal(blockHash.begin(), blockHash.end(), remoteBlockHash.begin()))
+    if ((result.consensusinfo().blockhash().size() != blockHash.size())
+        || !equal(blockHash.begin(), blockHash.end(),
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
         LOG_GENERAL(WARNING,
                     "Block hash mismatch. Expected: "
                         << DataConversion::Uint8VecToHexStr(blockHash)
