@@ -327,9 +327,10 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 
     uint32_t consensusID = m_viewChangeCounter;
     // Create new consensus object
-    // Dummy values for now
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     m_consensusObject.reset(new ConsensusLeader(
         consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
@@ -393,8 +394,10 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
                   << m_consensusLeaderID << " "
                   << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                        vector<unsigned char>& errorMsg,

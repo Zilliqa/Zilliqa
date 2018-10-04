@@ -689,8 +689,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     }
 
     //m_consensusID = 0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am shard leader. "
                   << "m_consensusID: " << m_mediator.m_consensusID
@@ -762,8 +764,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
         "I am a backup node. Waiting for microblock announcement for epoch "
             << m_mediator.m_currentEpochNum);
     //m_consensusID = 0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                        vector<unsigned char>& errorMsg,
