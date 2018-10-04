@@ -628,12 +628,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                 }
             }
             m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
-            LOG_GENERAL(WARNING,
-                        "debug consensus leader index is at "
+            LOG_GENERAL(INFO,
+                        "DS consensus leader index is at "
                             << m_mediator.m_ds->m_consensusLeaderID);
             m_mediator.m_ds->StartFirstTxEpoch();
-            //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
-
             return true;
         }
         else
