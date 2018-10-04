@@ -29,6 +29,7 @@
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 
@@ -100,6 +101,49 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
     }
 
     return (ret == 0);
+}
+
+string MakeKey(const uint64_t& blockNum, const uint32_t& shardId)
+{
+    unsigned int curr_offset = 0;
+    vector<unsigned char> vec;
+    Serializable::SetNumber<uint64_t>(vec, curr_offset, blockNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+    Serializable::SetNumber<uint32_t>(vec, curr_offset, shardId,
+                                      sizeof(uint32_t));
+
+    return DataConversion::Uint8VecToHexStr(vec);
+}
+
+bool BlockStorage::PutMicroBlock(const uint64_t& blocknum,
+                                 const uint32_t& shardId,
+                                 const vector<unsigned char>& body)
+{
+
+    string key = MakeKey(blocknum, shardId);
+    int ret = m_microBlockDB->Insert(key, body);
+
+    return (ret == 0);
+}
+
+bool BlockStorage::GetMicroBlock(const uint64_t& blocknum,
+                                 const uint32_t& shardId,
+                                 MicroBlockSharedPtr& microblock)
+{
+    LOG_MARKER();
+    string key = MakeKey(blocknum, shardId);
+
+    string blockString = m_microBlockDB->Lookup(key);
+
+    if (blockString.empty())
+    {
+        return false;
+    }
+    microblock = make_shared<MicroBlock>(
+        vector<unsigned char>(blockString.begin(), blockString.end()), 0);
+
+    return true;
 }
 
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block)
@@ -426,6 +470,9 @@ bool BlockStorage::ResetDB(DBTYPE type)
     case TX_BODY_TMP:
         ret = m_txBodyTmpDB->ResetDB();
         break;
+    case MICROBLOCK:
+        ret = m_microBlockDB->ResetDB();
+        break;
     case DS_COMMITTEE:
         ret = m_dsCommitteeDB->ResetDB();
         break;
@@ -457,6 +504,9 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
     case TX_BODY_TMP:
         ret.push_back(m_txBodyTmpDB->GetDBName());
         break;
+    case MICROBLOCK:
+        ret.push_back(m_microBlockDB->GetDBName());
+        break;
     case DS_COMMITTEE:
         ret.push_back(m_dsCommitteeDB->GetDBName());
         break;
@@ -475,7 +525,7 @@ bool BlockStorage::ResetAll()
     else // IS_LOOKUP_NODE
     {
         return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
-            && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP)
+            && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP) && ResetDB(MICROBLOCK)
             && ResetDB(DS_COMMITTEE);
     }
 }
