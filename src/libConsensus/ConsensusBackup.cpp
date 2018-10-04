@@ -18,6 +18,7 @@
 #include "ConsensusBackup.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -73,7 +74,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Initial checks
     // ==============
 
-    if (CheckState(PROCESS_ANNOUNCE) == false)
+    if (!CheckState(PROCESS_ANNOUNCE))
     {
         return false;
     }
@@ -81,91 +82,11 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Extract and check announce message body
     // =======================================
 
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [message] [4-byte length to co-sign] [64-byte signature]
-
-    const unsigned int length_available = announcement.size() - offset;
-    const unsigned int min_length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
-        + sizeof(uint16_t) + 1 + sizeof(uint32_t) + SIGNATURE_CHALLENGE_SIZE
-        + SIGNATURE_RESPONSE_SIZE;
-
-    if (min_length_needed > length_available)
-    {
-        LOG_GENERAL(WARNING, "Malformed message");
-        return false;
-    }
-
-    unsigned int curr_offset = offset;
-
-    // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
-        announcement, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // Check the consensus id
-    if (consensus_id != m_consensusID)
-    {
-        LOG_GENERAL(WARNING,
-                    "Consensus ID in announcement ("
-                        << consensus_id
-                        << ") does not match instance consensus ID ("
-                        << m_consensusID << ")");
-        return false;
-    }
-
-    // 32-byte blockhash
-
-    // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              announcement.begin() + curr_offset)
-        == false)
-    {
-        LOG_GENERAL(WARNING,
-                    "Block hash in announcement does not match instance "
-                    "block hash");
-        return false;
-    }
-    curr_offset += BLOCK_HASH_SIZE;
-
-    // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
-        announcement, curr_offset, sizeof(uint16_t));
-    curr_offset += sizeof(uint16_t);
-
-    // Check the leader id
-    if (leader_id != m_leaderID)
-    {
-        LOG_GENERAL(WARNING,
-                    "Leader ID mismatch. Expected: "
-                        << m_leaderID << ". But gotten: " << leader_id);
-        return false;
-    }
-
-    // message
-    const unsigned int message_size = announcement.size() - curr_offset
-        - sizeof(uint32_t) - SIGNATURE_CHALLENGE_SIZE - SIGNATURE_RESPONSE_SIZE;
-    m_message.resize(message_size);
-    copy(announcement.begin() + curr_offset,
-         announcement.begin() + curr_offset + message_size, m_message.begin());
-    curr_offset += message_size;
-
-    // 4-byte length to co-sign
-    m_lengthToCosign = Serializable::GetNumber<uint32_t>(
-        announcement, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // Check the length to co-sign
-    if (m_lengthToCosign > m_message.size())
-    {
-        LOG_GENERAL(WARNING,
-                    "m_lengthToCosign > message size "
-                        << "m_lengthToCosign: " << m_lengthToCosign << " "
-                        << "m_message: " << m_message.size());
-    }
-
-    // Check the message
     std::vector<unsigned char> errorMsg;
-    bool msg_valid = m_msgContentValidator(m_message, errorMsg);
-    if (msg_valid == false)
+    if (!m_msgContentValidator(announcement, offset, errorMsg, m_consensusID,
+                               m_blockNumber, m_blockHash, m_leaderID,
+                               m_committee.at(m_leaderID).first,
+                               m_messageToCosign))
     {
         LOG_GENERAL(WARNING, "Message validation failed");
 
@@ -180,7 +101,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
                 commitFailureMsg, MessageOffset::BODY + sizeof(unsigned char),
                 errorMsg);
 
-            if (result == true)
+            if (result)
             {
                 // Update internal state
                 // =====================
@@ -199,25 +120,6 @@ bool ConsensusBackup::ProcessMessageAnnounce(
         return false;
     }
 
-    // 64-byte signature
-    // Signature signature(announcement, curr_offset);
-    Signature signature;
-    if (signature.Deserialize(announcement, curr_offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to deserialize signature.");
-        return false;
-    }
-
-    // Check the signature
-    bool sig_valid = VerifyMessage(announcement, offset, curr_offset - offset,
-                                   signature, m_leaderID);
-    if (sig_valid == false)
-    {
-        LOG_GENERAL(WARNING, "Invalid signature in announce message");
-        m_state = ERROR;
-        return false;
-    }
-
     // Generate commit
     // ===============
 
@@ -227,7 +129,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
     bool result = GenerateCommitMessage(
         commit, MessageOffset::BODY + sizeof(unsigned char));
-    if (result == true)
+    if (result)
     {
         // Update internal state
         // =====================
@@ -259,25 +161,14 @@ bool ConsensusBackup::GenerateCommitFailureMessage(
 {
     LOG_MARKER();
 
-    unsigned int curr_offset = offset;
-
-    // 4-byte consensus id
-    Serializable::SetNumber<uint32_t>(commitFailure, curr_offset, m_consensusID,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // 32-byte blockhash
-    commitFailure.insert(commitFailure.begin() + curr_offset,
-                         m_blockHash.begin(), m_blockHash.end());
-    curr_offset += m_blockHash.size();
-
-    // 2-byte backup id
-    Serializable::SetNumber<uint16_t>(commitFailure, curr_offset, m_myID,
-                                      sizeof(uint16_t));
-    curr_offset += sizeof(uint16_t);
-
-    commitFailure.resize(curr_offset + errorMsg.size());
-    copy(errorMsg.begin(), errorMsg.end(), commitFailure.begin() + curr_offset);
+    if (!Messenger::SetConsensusCommitFailure(
+            commitFailure, offset, m_consensusID, m_blockNumber, m_blockHash,
+            m_myID, errorMsg,
+            make_pair(m_myPrivKey, m_committee.at(m_myID).first)))
+    {
+        LOG_GENERAL(WARNING, "Messenger::SetConsensusCommitFailure failed.");
+        return false;
+    }
 
     return true;
 }
@@ -295,35 +186,15 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
     // Assemble commit message body
     // ============================
 
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte backup id] [33-byte commit] [64-byte signature]
-    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte backup id] [33-byte commit]
-
-    unsigned int curr_offset = offset;
-
-    // 4-byte consensus id
-    Serializable::SetNumber<uint32_t>(commit, curr_offset, m_consensusID,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-    // 32-byte blockhash
-    commit.insert(commit.begin() + curr_offset, m_blockHash.begin(),
-                  m_blockHash.end());
-    curr_offset += m_blockHash.size();
-    // 2-byte backup id
-    Serializable::SetNumber<uint16_t>(commit, curr_offset, m_myID,
-                                      sizeof(uint16_t));
-    curr_offset += sizeof(uint16_t);
-    // 33-byte commit
-    m_commitPoint->Serialize(commit, curr_offset);
-    curr_offset += COMMIT_POINT_SIZE;
-    // 64-byte signature
-    Signature signature = SignMessage(commit, offset, curr_offset - offset);
-    if (signature.Initialized() == false)
+    if (!Messenger::SetConsensusCommit(
+            commit, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
+            *m_commitPoint,
+            make_pair(m_myPrivKey, m_committee.at(m_myID).first)))
     {
-        LOG_GENERAL(WARNING, "Message signing failed");
-        m_state = ERROR;
+        LOG_GENERAL(WARNING, "Messenger::SetConsensusCommit failed.");
         return false;
     }
-    signature.Serialize(commit, curr_offset);
+
     return true;
 }
 
@@ -336,7 +207,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Initial checks
     // ==============
 
-    if (CheckState(action) == false)
+    if (!CheckState(action))
     {
         return false;
     }
@@ -344,128 +215,48 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Extract and check challenge message body
     // ========================================
 
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [33-byte aggregated commit] [33-byte aggregated key] [32-byte challenge] [64-byte signature]
+    CommitPoint aggregated_commit;
+    PubKey aggregated_key;
 
-    const unsigned int length_available = challenge.size() - offset;
-    const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
-        + sizeof(uint16_t) + COMMIT_POINT_SIZE + PUB_KEY_SIZE + CHALLENGE_SIZE
-        + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
-
-    if (length_needed > length_available)
+    if (!Messenger::GetConsensusChallenge(
+            challenge, offset, m_consensusID, m_blockNumber, m_blockHash,
+            m_leaderID, aggregated_commit, aggregated_key, m_challenge,
+            m_committee.at(m_leaderID).first))
     {
-        LOG_GENERAL(WARNING, "Malformed message");
+        LOG_GENERAL(WARNING, "Messenger::GetConsensusChallenge failed.");
         return false;
     }
-
-    unsigned int curr_offset = offset;
-
-    // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
-        challenge, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // Check the consensus id
-    if (consensus_id != m_consensusID)
-    {
-        LOG_GENERAL(WARNING,
-                    "Consensus ID in challenge ("
-                        << consensus_id
-                        << ") does not match instance consensus ID ("
-                        << m_consensusID << ")");
-        return false;
-    }
-
-    // 32-byte blockhash
-
-    // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              challenge.begin() + curr_offset)
-        == false)
-    {
-        LOG_GENERAL(WARNING,
-                    "Block hash in challenge does not match instance "
-                    "block hash");
-        return false;
-    }
-    curr_offset += BLOCK_HASH_SIZE;
-
-    // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
-        challenge, curr_offset, sizeof(uint16_t));
-    curr_offset += sizeof(uint16_t);
-
-    // Check the leader id
-    if (leader_id != m_leaderID)
-    {
-        LOG_GENERAL(WARNING, "Leader ID mismatch");
-        return false;
-    }
-
-    // 33-byte aggregated commit
-    CommitPoint aggregated_commit(challenge, curr_offset);
-    curr_offset += COMMIT_POINT_SIZE;
 
     // Check the aggregated commit
-    if (aggregated_commit.Initialized() == false)
+    if (!aggregated_commit.Initialized())
     {
         LOG_GENERAL(WARNING, "Invalid aggregated commit received");
         m_state = ERROR;
         return false;
     }
 
-    // 33-byte aggregated key
-    PubKey aggregated_key(challenge, curr_offset);
-    curr_offset += PUB_KEY_SIZE;
-
     // Check the aggregated key
-    if (aggregated_key.Initialized() == false)
+    if (!aggregated_key.Initialized())
     {
         LOG_GENERAL(WARNING, "Invalid aggregated key received");
         m_state = ERROR;
         return false;
     }
 
-    // 32-byte challenge
-    // m_challenge.Deserialize(challenge, curr_offset);
-    if (m_challenge.Deserialize(challenge, curr_offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to deserialize m_challenge.");
-        return false;
-    }
-    curr_offset += CHALLENGE_SIZE;
-
     // Check the challenge
-    if (m_challenge.Initialized() == false)
+    if (!m_challenge.Initialized())
     {
         LOG_GENERAL(WARNING, "Invalid challenge received");
         m_state = ERROR;
         return false;
     }
-    Challenge challenge_verif = GetChallenge(m_message, 0, m_lengthToCosign,
-                                             aggregated_commit, aggregated_key);
+
+    Challenge challenge_verif
+        = GetChallenge(m_messageToCosign, aggregated_commit, aggregated_key);
 
     if (!(challenge_verif == m_challenge))
     {
         LOG_GENERAL(WARNING, "Generated challenge mismatch");
-        m_state = ERROR;
-        return false;
-    }
-
-    // 64-byte signature
-    // Signature signature(challenge, curr_offset);
-    Signature signature;
-    if (signature.Deserialize(challenge, curr_offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to deserialize signature.");
-        return false;
-    }
-
-    // Check the signature
-    bool sig_valid = VerifyMessage(challenge, offset, curr_offset - offset,
-                                   signature, m_leaderID);
-    if (sig_valid == false)
-    {
-        LOG_GENERAL(WARNING, "Invalid signature in challenge message");
         m_state = ERROR;
         return false;
     }
@@ -477,7 +268,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
         = {m_classByte, m_insByte, static_cast<unsigned char>(returnmsgtype)};
     bool result = GenerateResponseMessage(
         response, MessageOffset::BODY + sizeof(unsigned char));
-    if (result == true)
+    if (result)
     {
 
         // Update internal state
@@ -511,40 +302,15 @@ bool ConsensusBackup::GenerateResponseMessage(vector<unsigned char>& response,
     // Assemble response message body
     // ==============================
 
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte backup id] [32-byte response] [64-byte signature]
-    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte backup id] [32-byte response]
-
-    unsigned int curr_offset = offset;
-
-    // 4-byte consensus id
-    Serializable::SetNumber<uint32_t>(response, curr_offset, m_consensusID,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // 32-byte blockhash
-    response.insert(response.begin() + curr_offset, m_blockHash.begin(),
-                    m_blockHash.end());
-    curr_offset += m_blockHash.size();
-
-    // 2-byte backup id
-    Serializable::SetNumber<uint16_t>(response, curr_offset, m_myID,
-                                      sizeof(uint16_t));
-    curr_offset += sizeof(uint16_t);
-
-    // 32-byte response
     Response r(*m_commitSecret, m_challenge, m_myPrivKey);
-    r.Serialize(response, curr_offset);
-    curr_offset += RESPONSE_SIZE;
 
-    // 64-byte signature
-    Signature signature = SignMessage(response, offset, curr_offset - offset);
-    if (signature.Initialized() == false)
+    if (!Messenger::SetConsensusResponse(
+            response, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
+            r, make_pair(m_myPrivKey, m_committee.at(m_myID).first)))
     {
-        LOG_GENERAL(WARNING, "Message signing failed");
-        m_state = ERROR;
+        LOG_GENERAL(WARNING, "Messenger::SetConsensusResponse failed.");
         return false;
     }
-    signature.Serialize(response, curr_offset);
 
     return true;
 }
@@ -557,7 +323,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
     // Initial checks
     // ==============
-    if (CheckState(action) == false)
+    if (!CheckState(action))
     {
         return false;
     }
@@ -565,121 +331,30 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     // Extract and check collective signature message body
     // ===================================================
 
-    // Format: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [N-byte bitmap] [64-byte collective signature] [64-byte signature]
-    // Signature is over: [4-byte consensus id] [32-byte blockhash] [2-byte leader id] [N-byte bitmap] [64-byte collective signature]
-    // Note on N-byte bitmap: N = number of bytes needed to represent all nodes (1 bit = 1 node) + 2 (length indicator)
+    m_responseMap.clear();
 
-    const unsigned int length_available = collectivesig.size() - offset;
-    const unsigned int length_needed = sizeof(uint32_t) + BLOCK_HASH_SIZE
-        + sizeof(uint16_t) + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE
-        + BitVector::GetBitVectorSerializedSize(m_committee.size())
-        + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
-
-    if (length_needed > length_available)
+    if (!Messenger::GetConsensusCollectiveSig(
+            collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
+            m_leaderID, m_responseMap, m_collectiveSig,
+            m_committee.at(m_leaderID).first))
     {
-        LOG_GENERAL(WARNING, "Malformed message");
+        LOG_GENERAL(WARNING, "Messenger::GetConsensusCollectiveSig failed.");
         return false;
     }
-
-    unsigned int curr_offset = offset;
-
-    // 4-byte consensus id
-    uint32_t consensus_id = Serializable::GetNumber<uint32_t>(
-        collectivesig, curr_offset, sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    // Check the consensus id
-    if (consensus_id != m_consensusID)
-    {
-        LOG_GENERAL(WARNING,
-                    "Consensus ID in challenge ("
-                        << consensus_id
-                        << ") does not match instance consensus ID ("
-                        << m_consensusID << ")");
-        return false;
-    }
-
-    // 32-byte blockhash
-
-    // Check the block hash
-    if (equal(m_blockHash.begin(), m_blockHash.end(),
-              collectivesig.begin() + curr_offset)
-        == false)
-    {
-        LOG_GENERAL(WARNING,
-                    "Block hash in challenge does not match instance "
-                    "block hash");
-        return false;
-    }
-    curr_offset += BLOCK_HASH_SIZE;
-
-    // 2-byte leader id
-    uint16_t leader_id = Serializable::GetNumber<uint16_t>(
-        collectivesig, curr_offset, sizeof(uint16_t));
-    curr_offset += sizeof(uint16_t);
-
-    // Check the leader id
-    if (leader_id != m_leaderID)
-    {
-        LOG_GENERAL(WARNING, "Leader ID mismatch");
-        return false;
-    }
-
-    // N-byte bitmap
-    m_responseMap = BitVector::GetBitVector(
-        collectivesig, curr_offset,
-        BitVector::GetBitVectorLengthInBytes(m_committee.size()));
-    curr_offset += BitVector::GetBitVectorSerializedSize(m_committee.size());
-
-    // Check the bitmap
-    if (m_responseMap.empty())
-    {
-        LOG_GENERAL(WARNING, "Response map deserialization failed");
-        return false;
-    }
-
-    // 64-byte collective signature
-    // m_collectiveSig.Deserialize(collectivesig, curr_offset);
-    if (m_collectiveSig.Deserialize(collectivesig, curr_offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to deserialize m_collectiveSig.");
-        return false;
-    }
-    curr_offset += SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 
     // Aggregate keys
     PubKey aggregated_key = AggregateKeys(m_responseMap);
-    if (aggregated_key.Initialized() == false)
+    if (!aggregated_key.Initialized())
     {
         LOG_GENERAL(WARNING, "Aggregated key generation failed");
         m_state = ERROR;
         return false;
     }
 
-    if (Schnorr::GetInstance().Verify(m_message, 0, m_lengthToCosign,
-                                      m_collectiveSig, aggregated_key)
-        == false)
+    if (!Schnorr::GetInstance().Verify(m_messageToCosign, m_collectiveSig,
+                                       aggregated_key))
     {
         LOG_GENERAL(WARNING, "Collective signature verification failed");
-        m_state = ERROR;
-        return false;
-    }
-
-    // 64-byte signature
-    // Signature signature(collectivesig, curr_offset);
-    Signature signature;
-    if (signature.Deserialize(collectivesig, curr_offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to deserialize signature.");
-        return false;
-    }
-
-    // Check the signature
-    bool sig_valid = VerifyMessage(collectivesig, offset, curr_offset - offset,
-                                   signature, m_leaderID);
-    if (sig_valid == false)
-    {
-        LOG_GENERAL(WARNING, "Invalid signature in challenge message");
         m_state = ERROR;
         return false;
     }
@@ -693,18 +368,16 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     {
         // First round: consensus over part of message (e.g., DS block header)
         // Second round: consensus over part of message + CS1 + B1
-        m_message.resize(m_lengthToCosign);
-        m_collectiveSig.Serialize(m_message, m_lengthToCosign);
-        BitVector::SetBitVector(m_message, m_lengthToCosign + BLOCK_SIG_SIZE,
+        m_collectiveSig.Serialize(m_messageToCosign, m_messageToCosign.size());
+        BitVector::SetBitVector(m_messageToCosign, m_messageToCosign.size(),
                                 m_responseMap);
-        m_lengthToCosign = m_message.size();
 
         vector<unsigned char> finalcommit
             = {m_classByte, m_insByte,
                static_cast<unsigned char>(ConsensusMessageType::FINALCOMMIT)};
         result = GenerateCommitMessage(
             finalcommit, MessageOffset::BODY + sizeof(unsigned char));
-        if (result == true)
+        if (result)
         {
             // Update internal state
             // =====================
@@ -763,13 +436,16 @@ bool ConsensusBackup::ProcessMessageFinalCollectiveSig(
                                            PROCESS_FINALCOLLECTIVESIG, DONE);
 }
 
-ConsensusBackup::ConsensusBackup(
-    uint32_t consensus_id, const vector<unsigned char>& block_hash,
-    uint16_t node_id, uint16_t leader_id, const PrivKey& privkey,
-    const deque<pair<PubKey, Peer>>& committee, unsigned char class_byte,
-    unsigned char ins_byte, MsgContentValidatorFunc msg_validator)
-    : ConsensusCommon(consensus_id, block_hash, node_id, privkey, committee,
-                      class_byte, ins_byte)
+ConsensusBackup::ConsensusBackup(uint32_t consensus_id, uint64_t block_number,
+                                 const vector<unsigned char>& block_hash,
+                                 uint16_t node_id, uint16_t leader_id,
+                                 const PrivKey& privkey,
+                                 const deque<pair<PubKey, Peer>>& committee,
+                                 unsigned char class_byte,
+                                 unsigned char ins_byte,
+                                 MsgContentValidatorFunc msg_validator)
+    : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
+                      committee, class_byte, ins_byte)
     , m_leaderID(leader_id)
     , m_msgContentValidator(msg_validator)
 {

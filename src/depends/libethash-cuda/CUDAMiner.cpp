@@ -20,20 +20,19 @@ along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
 #include "libethash/internal.h"
 #include "libethash/ethash.h"
 
-using namespace std;
 using namespace dev;
 using namespace eth;
 
 unsigned CUDAMiner::s_numInstances = 0;
 
-vector<int> CUDAMiner::s_devices(MAX_MINERS, -1);
+std::vector<int> CUDAMiner::s_devices(MAX_MINERS, -1);
 
 #define cudalog s_ssLog
 #define cwarn s_ssWarn
 #define cnote s_ssNote
 #define cllog s_ssLog
 
-CUDAMiner::CUDAMiner() : m_light(getNumDevices()) {}
+CUDAMiner::CUDAMiner(size_t _index) : Miner(_index), m_light(getNumDevices()) {}
 
 CUDAMiner::~CUDAMiner()
 {
@@ -43,11 +42,11 @@ bool CUDAMiner::init(uint64_t blockNumber)
 {
     try {
         if (s_dagLoadMode == DAG_LOAD_MODE_SEQUENTIAL)
-            while (s_dagLoadIndex < index)
-                this_thread::sleep_for(chrono::milliseconds(100));
-        unsigned device = s_devices[index] > -1 ? s_devices[index] : index;
+            while (s_dagLoadIndex < m_index)
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        unsigned device = s_devices[m_index] > -1 ? s_devices[m_index] : m_index;
 
-        cnote << "Initialising miner " << index;
+        cnote << "Initialising miner " << m_index;
 
         cuda_init(getNumDevices(), blockNumber, device, (s_dagLoadMode == DAG_LOAD_MODE_SINGLE),
             s_dagInHostMemory, s_dagCreateDevice);
@@ -79,7 +78,7 @@ void CUDAMiner::setNumInstances(unsigned _instances)
     s_numInstances = std::min<unsigned>(_instances, getNumDevices());
 }
 
-void CUDAMiner::setDevices(const vector<unsigned>& _devices, unsigned _selectedDeviceCount)
+void CUDAMiner::setDevices(const std::vector<unsigned>& _devices, unsigned _selectedDeviceCount)
 {
     for (unsigned i = 0; i < _selectedDeviceCount; i++)
         s_devices[i] = _devices[i];
@@ -108,18 +107,18 @@ void CUDAMiner::listDevices()
 {
     try
     {
-        cout << "\nListing CUDA devices.\nFORMAT: [deviceID] deviceName\n";
+        std::cout << "\nListing CUDA devices.\nFORMAT: [deviceID] deviceName\n";
         int numDevices = getNumDevices();
         for (int i = 0; i < numDevices; ++i)
         {
             cudaDeviceProp props;
             CUDA_SAFE_CALL(cudaGetDeviceProperties(&props, i));
 
-            cout << "[" + to_string(i) + "] " + string(props.name) + "\n";
-            cout << "\tCompute version: " + to_string(props.major) + "." + to_string(props.minor) + "\n";
-            cout << "\tcudaDeviceProp::totalGlobalMem: " + to_string(props.totalGlobalMem) + "\n";
-            cout << "\tPci: " << setw(4) << setfill('0') << hex << props.pciDomainID << ':' << setw(2)
-                << props.pciBusID << ':' << setw(2) << props.pciDeviceID << '\n';
+            std::cout << "[" + std::to_string(i) + "] " + std::string(props.name) + "\n";
+            std::cout << "\tCompute version: " + std::to_string(props.major) + "." + std::to_string(props.minor) + "\n";
+            std::cout << "\tcudaDeviceProp::totalGlobalMem: " + std::to_string(props.totalGlobalMem) + "\n";
+            std::cout << "\tPci: " << std::setw(4) << std::setfill('0') << std::hex << props.pciDomainID << ':' << std::setw(2)
+                << props.pciBusID << ':' << std::setw(2) << props.pciDeviceID << '\n';
         }
     }
     catch(std::runtime_error const& err)
@@ -155,7 +154,7 @@ bool CUDAMiner::configureGPU(
         _noeval)
         )
     {
-        cout << "No CUDA device with sufficient memory was found. Can't CUDA mine. Remove the -U argument" << endl;
+        std::cout << "No CUDA device with sufficient memory was found. Can't CUDA mine. Remove the -U argument" << std::endl;
         return false;
     }
     return true;
@@ -172,7 +171,7 @@ unsigned const CUDAMiner::c_defaultNumStreams = 2;
 
 bool CUDAMiner::cuda_configureGPU(
     size_t numDevices,
-    const vector<int>& _devices,
+    const std::vector<int>& _devices,
     unsigned _blockSize,
     unsigned _gridSize,
     unsigned _numStreams,
@@ -197,23 +196,23 @@ bool CUDAMiner::cuda_configureGPU(
         {
             if (_devices[i] != -1)
             {
-                int deviceId = min(devicesCount - 1, _devices[i]);
+                int deviceId = std::min(devicesCount - 1, _devices[i]);
                 cudaDeviceProp props;
                 CUDA_SAFE_CALL(cudaGetDeviceProperties(&props, deviceId));
                 if (props.totalGlobalMem >= dagSize)
                 {
-                    cudalog <<  "Found suitable CUDA device [" << string(props.name) << "] with " << props.totalGlobalMem << " bytes of GPU memory";
+                    cudalog <<  "Found suitable CUDA device [" << std::string(props.name) << "] with " << props.totalGlobalMem << " bytes of GPU memory";
                 }
                 else
                 {
-                    cudalog <<  "CUDA device " << string(props.name) << " has insufficient GPU memory. " << props.totalGlobalMem << " bytes of memory found < " << dagSize << " bytes of memory required";
+                    cudalog <<  "CUDA device " << std::string(props.name) << " has insufficient GPU memory. " << props.totalGlobalMem << " bytes of memory found < " << dagSize << " bytes of memory required";
                     return false;
                 }
             }
         }
         return true;
     }
-    catch (runtime_error)
+    catch (std::runtime_error)
     {
         if(s_exit)
             exit(1);
@@ -249,7 +248,7 @@ bool CUDAMiner::cuda_init(
         cudaDeviceProp device_props;
         CUDA_SAFE_CALL(cudaGetDeviceProperties(&device_props, m_device_num));
 
-        cudalog << "Using device: " << device_props.name << " (Compute " + to_string(device_props.major) + "." + to_string(device_props.minor) + ")";
+        cudalog << "Using device: " << device_props.name << " (Compute " + std::to_string(device_props.major) + "." + std::to_string(device_props.minor) + ")";
 
         m_search_buf = new volatile search_results *[s_numStreams];
         m_streams = new cudaStream_t[s_numStreams];
@@ -266,7 +265,7 @@ bool CUDAMiner::cuda_init(
             //Check whether the current device has sufficient memory every time we recreate the dag
             if (device_props.totalGlobalMem < dagSize)
             {
-                cudalog <<  "CUDA device " << string(device_props.name) << " has insufficient GPU memory. " << device_props.totalGlobalMem << " bytes of memory found < " << dagSize << " bytes of memory required";
+                cudalog <<  "CUDA device " << std::string(device_props.name) << " has insufficient GPU memory. " << device_props.totalGlobalMem << " bytes of memory found < " << dagSize << " bytes of memory required";
                 return false;
             }
             //We need to reset the device and recreate the dag  
@@ -333,7 +332,7 @@ bool CUDAMiner::cuda_init(
                     }
                 }else{
                     while(!hostDAG)
-                        this_thread::sleep_for(chrono::milliseconds(100)); 
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
                     goto cpyDag;
                 }
             }
@@ -350,7 +349,7 @@ cpyDag:
         m_dag_size = dagNumItems;
         return true;
     }
-    catch (runtime_error const&)
+    catch (std::runtime_error const&)
     {
         if(s_exit)
             exit(1);

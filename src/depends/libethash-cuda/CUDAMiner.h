@@ -19,9 +19,7 @@ along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ethash_cuda_miner_kernel.h"
 
-//#include <libethcore/EthashAux.h>
 #include <common/Miner.h>
-
 #include <functional>
 
 namespace dev
@@ -32,7 +30,7 @@ namespace eth
 class CUDAMiner: public Miner
 {
 public:
-	CUDAMiner();
+	CUDAMiner(size_t _index);
 	~CUDAMiner() override;
 
 	static unsigned instances()
@@ -53,10 +51,10 @@ public:
 		bool _exit
 		);
 	static void setNumInstances(unsigned _instances);
-	static void setDevices(const vector<unsigned>& _devices, unsigned _selectedDeviceCount);
+	static void setDevices(const std::vector<unsigned>& _devices, unsigned _selectedDeviceCount);
 	static bool cuda_configureGPU(
 		size_t numDevices,
-		const vector<int>& _devices,
+		const std::vector<int>& _devices,
 		unsigned _blockSize,
 		unsigned _gridSize,
 		unsigned _numStreams,
@@ -113,7 +111,7 @@ private:
 	static unsigned m_parallelHash;
 
 	static unsigned s_numInstances;
-	static vector<int> s_devices;
+	static std::vector<int> s_devices;
 };
 
 

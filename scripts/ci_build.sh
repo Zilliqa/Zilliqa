@@ -5,9 +5,6 @@
 
 set -e
 
-# add more options to cmake
-CMAKE_EXTRA_OPTIONS=""
-
 # set n_parallel to fully utilize the resources
 os=$(uname)
 case $os in
@@ -33,17 +30,23 @@ ccache -z
 echo "ccache status"
 ccache -s
 
+dir=build
+
 # assume that it is run from project root directory
-mkdir build && cd build
-cmake ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON ..
-make -j${n_parallel}
-make clang-format
+cmake -H. -B${dir} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
+cmake --build ${dir} -- -j${n_parallel}
+cmake --build ${dir} --target clang-format
+
+# remember to append `|| exit` after the commands added in if-then-else
 if [ "$os" = "Linux" ]
 then
-    # this target already include "ctest" command, see cmake/CodeCoverage.cmake
-    make Zilliqa_coverage
+    cmake --build ${dir} --target clang-tidy 2>/dev/null || exit 1
+    # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
+    cmake --build ${dir} --target Zilliqa_coverage || exit 1
+    ./scripts/ci_xml_checker.sh constants.xml || exit 1
+    ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
 else
-    ctest --output-on-failure -j${n_parallel}
+    cd build && ctest --output-on-failure -j${n_parallel} || exit 1
 fi
 
 echo "ccache status"

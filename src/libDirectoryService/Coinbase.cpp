@@ -67,18 +67,29 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
     }
 
     unsigned int i = 0;
+    constexpr uint16_t MAX_REPUTATION
+        = 4096; // This means the max priority is 12. A node need to continually run for 5 days to achieve this reputation.
 
     for (const auto& kv : shard)
     {
+        const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(kv);
         if (b1.at(i))
         {
             m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
-                .push_back(Account::GetAddressFromPublicKey(kv.first));
+                .push_back(Account::GetAddressFromPublicKey(pubKey));
+            if (m_mapNodeReputation[pubKey] < MAX_REPUTATION)
+            {
+                ++m_mapNodeReputation[pubKey];
+            }
         }
         if (b2.at(i))
         {
             m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id]
-                .push_back(Account::GetAddressFromPublicKey(kv.first));
+                .push_back(Account::GetAddressFromPublicKey(pubKey));
+            if (m_mapNodeReputation[pubKey] < MAX_REPUTATION)
+            {
+                ++m_mapNodeReputation[pubKey];
+            }
         }
         i++;
     }
@@ -113,9 +124,6 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
     if (shard_id == (int32_t)m_shards.size() || shard_id == -1)
     {
         //DS
-        LOG_GENERAL(INFO,
-                    "[CNBSE] "
-                        << "Hereee");
         lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);
         lock_guard<mutex> g1(m_mutexCoinbaseRewardees, adopt_lock);

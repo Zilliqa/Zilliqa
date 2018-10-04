@@ -28,15 +28,21 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 
+using namespace std;
+
 bool DirectoryService::ViewChangeValidator(
-    const vector<unsigned char>& vcBlock,
-    [[gnu::unused]] std::vector<unsigned char>& errorMsg)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    vector<unsigned char>& messageToCosign)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -47,9 +53,19 @@ bool DirectoryService::ViewChangeValidator(
     }
 
     LOG_MARKER();
+
     lock_guard<mutex> g(m_mutexPendingVCBlock);
 
-    m_pendingVCBlock.reset(new VCBlock(vcBlock, 0));
+    m_pendingVCBlock.reset(new VCBlock);
+
+    if (!Messenger::GetDSVCBlockAnnouncement(
+            message, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_pendingVCBlock, messageToCosign))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetDSVCBlockAnnouncement failed.");
+        return false;
+    }
 
     if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second
         != m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo())
@@ -69,7 +85,6 @@ bool DirectoryService::ViewChangeValidator(
             m_viewChangestate,
             (DirState)m_pendingVCBlock->GetHeader().GetViewChangeState()))
     {
-
         LOG_GENERAL(WARNING,
                     "View change state mismatched. m_viewChangestate: "
                         << m_viewChangestate << " Proposed: "
@@ -158,6 +173,7 @@ void DirectoryService::RunConsensusOnViewChange()
     AccountStore::GetInstance().InitTemp();
     AccountStore::GetInstance().DeserializeDeltaTemp(
         m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
+    AccountStore::GetInstance().RevertCommitTemp();
 
     SetLastKnownGoodState();
     SetState(VIEWCHANGE_CONSENSUS_PREP);
@@ -170,9 +186,9 @@ void DirectoryService::RunConsensusOnViewChange()
                 "The new consensus leader is at index "
                     << to_string(m_viewChangeCounter));
 
-    for (unsigned i = 0; i < m_mediator.m_DSCommittee->size(); i++)
+    for (auto& i : *m_mediator.m_DSCommittee)
     {
-        LOG_GENERAL(INFO, m_mediator.m_DSCommittee->at(i).second);
+        LOG_GENERAL(INFO, i.second);
     }
 
     // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
@@ -316,13 +332,11 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     m_consensusObject.reset(new ConsensusLeader(
-        consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
+        consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
+        m_consensusMyID, m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
         static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(VIEWCHANGECONSENSUS),
-        std::function<bool(const vector<unsigned char>&, unsigned int,
-                           const Peer&)>(),
-        std::function<bool(map<unsigned int, vector<unsigned char>>)>()));
+        NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
 
     if (m_consensusObject == nullptr)
     {
@@ -341,13 +355,28 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(VIEWCHANGE_EXTRA_TIME));
-    cl->StartConsensus(m, VCBlockHeader::SIZE);
+
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID, const uint64_t blockNumber,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        lock_guard<mutex> g(m_mutexPendingVCBlock);
+        return Messenger::SetDSVCBlockAnnouncement(
+            dst, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_pendingVCBlock, messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
     return true;
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -357,25 +386,32 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader()
         return true;
     }
 
-    LOG_MARKER();
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am a backup DS node (after view change). Waiting for View "
-              "Change announcement.");
+              "I am a backup DS node (after view change). Waiting for view "
+              "change announcement. "
+              "Leader is at index  "
+                  << m_consensusLeaderID << " "
+                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return ViewChangeValidator(message, errorMsg);
+    auto func = [this](const vector<unsigned char>& input, unsigned int offset,
+                       vector<unsigned char>& errorMsg,
+                       const uint32_t consensusID, const uint64_t blockNumber,
+                       const vector<unsigned char>& blockHash,
+                       const uint16_t leaderID, const PubKey& leaderKey,
+                       vector<unsigned char>& messageToCosign) mutable -> bool {
+        return ViewChangeValidator(input, offset, errorMsg, consensusID,
+                                   blockNumber, blockHash, leaderID, leaderKey,
+                                   messageToCosign);
     };
 
     uint32_t consensusID = m_viewChangeCounter;
     m_consensusObject.reset(new ConsensusBackup(
-        consensusID, m_consensusBlockHash, m_consensusMyID, m_viewChangeCounter,
-        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
-        static_cast<unsigned char>(DIRECTORY),
+        consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
+        m_consensusMyID, m_viewChangeCounter, m_mediator.m_selfKey.first,
+        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(VIEWCHANGECONSENSUS), func));
 
     if (m_consensusObject == nullptr)

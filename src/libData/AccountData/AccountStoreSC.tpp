@@ -23,12 +23,12 @@
 
 template<class MAP> AccountStoreSC<MAP>::AccountStoreSC()
 {
-    m_accountStoreAtomic = make_unique<AccountStoreAtomic<MAP>>(*this);
+    m_accountStoreAtomic = std::make_unique<AccountStoreAtomic<MAP>>(*this);
 }
 
 template<class MAP> void AccountStoreSC<MAP>::Init()
 {
-    lock_guard<mutex> g(m_mutexUpdateAccounts);
+    std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
     AccountStoreBase<MAP>::Init();
     m_curContractAddr.clear();
     m_curSenderAddr.clear();
@@ -47,17 +47,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     // LOG_MARKER();
     m_curIsDS = isDS;
 
-    lock_guard<mutex> g(m_mutexUpdateAccounts);
+    std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
 
-    const uint256_t& amount = transaction.GetAmount();
+    const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
 
     uint256_t gasRemained = transaction.GetGasLimit();
 
-    // FIXME: Possible integer overflow here
     uint256_t gasDeposit;
     if (!SafeMath<uint256_t>::mul(gasRemained, transaction.GetGasPrice(),
                                   gasDeposit))
@@ -343,7 +342,7 @@ AccountStoreSC<MAP>::GetBlockStateJson(const uint64_t& BlockNum) const
     Json::Value blockItem;
     blockItem["vname"] = "BLOCKNUMBER";
     blockItem["type"] = "BNum";
-    blockItem["value"] = to_string(BlockNum);
+    blockItem["value"] = std::to_string(BlockNum);
     root.append(blockItem);
 
     return root;
@@ -415,16 +414,17 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
     ExportContractFiles(contract);
 
     // Message Json
-    string dataStr(transaction.GetData().begin(), transaction.GetData().end());
+    std::string dataStr(transaction.GetData().begin(),
+                        transaction.GetData().end());
     Json::Value msgObj;
     if (!JSONUtils::convertStrtoJson(dataStr, msgObj))
     {
         return false;
     }
-    string prepend = "0x";
+    std::string prepend = "0x";
     msgObj["_sender"] = prepend
         + Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
-    msgObj["_amount"] = transaction.GetAmount().convert_to<string>();
+    msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 
     JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
 
@@ -442,11 +442,15 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
     JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 }
 
+<<<<<<< HEAD
 template<class MAP>
 string
 AccountStoreSC<MAP>::GetCreateContractCmdStr(const uint256_t& available_gas)
+=======
+template<class MAP> std::string AccountStoreSC<MAP>::GetCreateContractCmdStr()
+>>>>>>> 77c987635d7e82137a3f851e09c492b22876b469
 {
-    string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
+    std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE
         + " -libdir " + SCILLA_LIB + " -gaslimit "
         + available_gas.convert_to<string>();
@@ -454,11 +458,15 @@ AccountStoreSC<MAP>::GetCreateContractCmdStr(const uint256_t& available_gas)
     return ret;
 }
 
+<<<<<<< HEAD
 template<class MAP>
 string
 AccountStoreSC<MAP>::GetCallContractCmdStr(const uint256_t& available_gas)
+=======
+template<class MAP> std::string AccountStoreSC<MAP>::GetCallContractCmdStr()
+>>>>>>> 77c987635d7e82137a3f851e09c492b22876b469
 {
-    string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
+    std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE + " -libdir " + SCILLA_LIB + " -gaslimit "
@@ -472,7 +480,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(uint256_t& gasRemained)
 {
     // LOG_MARKER();
 
-    ifstream in(OUTPUT_JSON, ios::binary);
+    std::ifstream in(OUTPUT_JSON, std::ios::binary);
 
     if (!in.is_open())
     {
@@ -480,12 +488,13 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(uint256_t& gasRemained)
                     "Error opening output file or no output file generated");
         return false;
     }
-    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
-    LOG_GENERAL(INFO, "Output: " << endl << outStr);
+    std::string outStr{std::istreambuf_iterator<char>(in),
+                       std::istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
-    string errors;
+    std::string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                       &errors))
     {
@@ -546,7 +555,7 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(uint256_t& gasRemained)
 {
     // LOG_MARKER();
 
-    ifstream in(OUTPUT_JSON, ios::binary);
+    std::ifstream in(OUTPUT_JSON, std::ios::binary);
 
     if (!in.is_open())
     {
@@ -554,12 +563,13 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(uint256_t& gasRemained)
                     "Error opening output file or no output file generated");
         return false;
     }
-    string outStr{istreambuf_iterator<char>(in), istreambuf_iterator<char>()};
-    LOG_GENERAL(INFO, "Output: " << endl << outStr);
+    std::string outStr{std::istreambuf_iterator<char>(in),
+                       std::istreambuf_iterator<char>()};
+    LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
     Json::Value root;
-    string errors;
+    std::string errors;
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                       &errors))
     {
@@ -641,9 +651,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                             << ", The json output of states is corrupted");
             continue;
         }
-        string vname = s["vname"].asString();
-        string type = s["type"].asString();
-        string value = s["value"].isString()
+        std::string vname = s["vname"].asString();
+        std::string type = s["type"].asString();
+        std::string value = s["value"].isString()
             ? s["value"].asString()
             : JSONUtils::convertJsontoStr(s["value"]);
 
@@ -742,9 +752,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
-                                                const Address& to,
-                                                const uint256_t& delta)
+bool AccountStoreSC<MAP>::TransferBalanceAtomic(
+    const Address& from, const Address& to,
+    const boost::multiprecision::uint256_t& delta)
 {
     // LOG_MARKER();
     return m_accountStoreAtomic->TransferBalance(from, to, delta);
@@ -762,7 +772,7 @@ template<class MAP> void AccountStoreSC<MAP>::CommitTransferBalanceAtomic()
         }
         else
         {
-            // this->m_addressToAccount.emplace(make_pair(entry.first, entry.second));
+            // this->m_addressToAccount.emplace(std::make_pair(entry.first, entry.second));
             this->AddAccount(entry.first, entry.second);
         }
     }

@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -47,10 +48,13 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
+bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
+                    uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand1,
                     const array<unsigned char, UINT256_SIZE>& rand2)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(
@@ -59,8 +63,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         return true;
     }
 
-    LOG_MARKER();
-    // if (m_state == POW_SUBMISSION)
     if (!CheckState(STARTPOW))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -68,11 +70,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
         return false;
     }
 
-    // SetState(POW_SUBMISSION);
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Current dsblock is " << block_num);
-    //POW POWClient;
+
     ethash_mining_result winning_result = POW::GetInstance().PoWMine(
         block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
         m_mediator.m_selfKey.second, FULL_DATASET_MINE);
@@ -86,68 +86,118 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t difficulty,
                   "Winning result  = 0x" << hex << winning_result.result);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Winning mixhash = 0x" << hex << winning_result.mix_hash);
-        vector<unsigned char> result_vec
-            = DataConversion::HexStrToUint8Vec(winning_result.result);
-        vector<unsigned char> mixhash_vec
-            = DataConversion::HexStrToUint8Vec(winning_result.mix_hash);
 
-        // Send PoW result
-        // Message = [8-byte block number] [4-byte listening port] [33-byte public key]
-        // [8-byte nonce] [32-byte resulting hash] [32-byte mixhash] [64-byte Signature]
-        vector<unsigned char> powmessage
-            = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
-        unsigned int cur_offset = MessageOffset::BODY;
-
-        Serializable::SetNumber<uint64_t>(powmessage, cur_offset, block_num,
-                                          sizeof(uint64_t));
-        cur_offset += sizeof(uint64_t);
-
-        Serializable::SetNumber<uint32_t>(
-            powmessage, cur_offset, m_mediator.m_selfPeer.m_listenPortHost,
-            sizeof(uint32_t));
-        cur_offset += sizeof(uint32_t);
-
-        m_mediator.m_selfKey.second.Serialize(powmessage, cur_offset);
-        cur_offset += PUB_KEY_SIZE;
-
-        Serializable::SetNumber<uint64_t>(powmessage, cur_offset,
-                                          winning_result.winning_nonce,
-                                          sizeof(uint64_t));
-        cur_offset += sizeof(uint64_t);
-
-        powmessage.insert(powmessage.end(), result_vec.begin(),
-                          result_vec.end());
-        cur_offset += BLOCK_HASH_SIZE;
-        powmessage.insert(powmessage.end(), mixhash_vec.begin(),
-                          mixhash_vec.end());
-        cur_offset += BLOCK_HASH_SIZE;
-
-        Signature sign;
-        if (!Schnorr::GetInstance().Sign(powmessage, m_mediator.m_selfKey.first,
-                                         m_mediator.m_selfKey.second, sign))
+        // Possible scenarios
+        // 1. Found solution that meets ds difficulty and difficulty
+        // - Submit solution
+        // 2. Found solution that meets only diffiulty
+        // - Submit solution and continue to do PoW till DS difficulty met or
+        //   ds block received. (stopmining())
+        if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
+                winning_result.result, ds_difficulty))
         {
-            LOG_GENERAL(WARNING, "Failed to sign PoW");
+            LOG_GENERAL(INFO,
+                        "Found PoW solution that met requirement for both ds "
+                        "commitee and shard.");
+
+            if (!SendPoWResultToDSComm(
+                    block_num, ds_difficulty, winning_result.winning_nonce,
+                    winning_result.result, winning_result.mix_hash))
+            {
+                return false;
+            }
         }
-        sign.Serialize(powmessage, cur_offset);
-
-        deque<Peer> peerList;
-
-        for (auto const& i : *m_mediator.m_DSCommittee)
+        else
         {
-            peerList.push_back(i.second);
-        }
+            // If solution does not meet targeted ds difficulty, send the initial solution to
+            // ds commitee and continue to do PoW
+            if (!SendPoWResultToDSComm(
+                    block_num, difficulty, winning_result.winning_nonce,
+                    winning_result.result, winning_result.mix_hash))
+            {
+                return false;
+            }
 
-        P2PComm::GetInstance().SendMessage(peerList, powmessage);
+            LOG_GENERAL(INFO,
+                        "soln does not meet ds committee criteria. Will keep "
+                        "doing more pow");
+
+            ethash_mining_result ds_pow_winning_result
+                = POW::GetInstance().PoWMine(
+                    block_num, ds_difficulty, rand1, rand2,
+                    m_mediator.m_selfPeer.m_ipAddress,
+                    m_mediator.m_selfKey.second, FULL_DATASET_MINE);
+
+            if (ds_pow_winning_result.success)
+            {
+                LOG_GENERAL(INFO,
+                            "Founds PoW solution that meet ds commitee "
+                            "requirement. 0x"
+                                << hex << ds_pow_winning_result.result);
+
+                // Submission of PoW for ds commitee
+                if (!SendPoWResultToDSComm(block_num, ds_difficulty,
+                                           ds_pow_winning_result.winning_nonce,
+                                           ds_pow_winning_result.result,
+                                           ds_pow_winning_result.mix_hash))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                LOG_GENERAL(INFO,
+                            "Unable to find PoW solution that meet ds commitee "
+                            "requirement");
+            }
+        }
     }
 
-    SetState(MICROBLOCK_CONSENSUS_PREP);
+    if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS)
+    {
+        SetState(WAITING_DSBLOCK);
+    }
+
+    return true;
+}
+
+bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
+                                 const uint8_t& difficultyLevel,
+                                 const uint64_t winningNonce,
+                                 const string& powResultHash,
+                                 const string& powMixhash)
+{
+    LOG_MARKER();
+
+    vector<unsigned char> powmessage
+        = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
+
+    if (!Messenger::SetDSPoWSubmission(
+            powmessage, MessageOffset::BODY, block_num, difficultyLevel,
+            m_mediator.m_selfPeer, m_mediator.m_selfKey, winningNonce,
+            powResultHash, powMixhash))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetDSPoWSubmission failed.");
+        return false;
+    }
+
+    vector<Peer> peerList;
+
+    for (auto const& i : *m_mediator.m_DSCommittee)
+    {
+        peerList.push_back(i.second);
+    }
+
+    P2PComm::GetInstance().SendMessage(peerList, powmessage);
+
     return true;
 }
 
 bool Node::ReadVariablesFromStartPoWMessage(
     const vector<unsigned char>& message, unsigned int cur_offset,
-    uint64_t& block_num, uint8_t& difficulty, array<unsigned char, 32>& rand1,
-    array<unsigned char, 32>& rand2)
+    uint64_t& block_num, uint8_t& ds_difficulty, uint8_t& difficulty,
+    array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -159,7 +209,8 @@ bool Node::ReadVariablesFromStartPoWMessage(
 
     if (IsMessageSizeInappropriate(message.size(), cur_offset,
                                    sizeof(uint64_t) + sizeof(uint8_t)
-                                       + UINT256_SIZE + UINT256_SIZE,
+                                       + sizeof(uint8_t) + UINT256_SIZE
+                                       + UINT256_SIZE,
                                    PUB_KEY_SIZE + IP_SIZE + PORT_SIZE))
     {
         return false;
@@ -169,6 +220,11 @@ bool Node::ReadVariablesFromStartPoWMessage(
     block_num = Serializable::GetNumber<uint64_t>(message, cur_offset,
                                                   sizeof(uint64_t));
     cur_offset += sizeof(uint64_t);
+
+    // 1-byte ds difficulty
+    ds_difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
+                                                     sizeof(uint8_t));
+    cur_offset += sizeof(uint8_t);
 
     // 1-byte difficulty
     difficulty = Serializable::GetNumber<uint8_t>(message, cur_offset,
@@ -189,12 +245,24 @@ bool Node::ReadVariablesFromStartPoWMessage(
                                 << "][" << block_num << "]");
 
     // Log all values
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "My IP address     = " << m_mediator.m_selfPeer.GetPrintableIPAddress());
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "My Listening Port = " << m_mediator.m_selfPeer.m_listenPortHost);
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Difficulty        = " << to_string(difficulty));
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Rand1             = " << DataConversion::charArrToHexStr(rand1));
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Rand2             = " << DataConversion::charArrToHexStr(rand2));
-    // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "Pubkey            = " << DataConversion::SerializableToHexStr(m_mediator.m_selfKey.second));
+    /**
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "My IP address     = "
+                  << m_mediator.m_selfPeer.GetPrintableIPAddress());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "My Listening Port = " << m_mediator.m_selfPeer.m_listenPortHost);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DS Difficulty        = " << to_string(ds_difficulty));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Difficulty        = " << to_string(difficulty));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Rand1             = " << DataConversion::charArrToHexStr(rand1));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Rand2             = " << DataConversion::charArrToHexStr(rand2));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Pubkey            = " << DataConversion::SerializableToHexStr(
+                  m_mediator.m_selfKey.second));
+    **/
 
     // DS nodes ip addr and port
     const unsigned int numDS
@@ -204,7 +272,7 @@ bool Node::ReadVariablesFromStartPoWMessage(
     // We'll need this if we win PoW
     m_mediator.m_DSCommittee->clear();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DS nodes count    = " << numDS);
+              "DS nodes count    = " << numDS + 1);
     for (unsigned int i = 0; i < numDS; i++)
     {
         PubKey pubkey(message, cur_offset);
@@ -238,7 +306,7 @@ bool Node::ProcessStartPoW(const vector<unsigned char>& message,
     }
 
     // Note: This function should only be invoked on a new node that was not part of the sharding committees in previous epoch
-    // Message = [8-byte block num] [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
+    // Message = [8-byte block num] [1-byte ds difficulty]  [1-byte difficulty] [32-byte rand1] [32-byte rand2] [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
     LOG_MARKER();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -247,13 +315,24 @@ bool Node::ProcessStartPoW(const vector<unsigned char>& message,
                                        .GetBlockNum()
                       + 1);
 
+    if (m_mediator.m_currentEpochNum > 1)
+    {
+        // TODO:: Get the IP address of who send this message, and deduct its reputation.
+        LOG_GENERAL(WARNING,
+                    "Node::ProcessStartPoW is a bootstrap function, it "
+                    "shouldn't be called after blockchain started.");
+        return false;
+    }
+
     uint64_t block_num;
     uint8_t difficulty = POW_DIFFICULTY;
+    uint8_t dsDifficulty = DS_POW_DIFFICULTY;
+
     array<unsigned char, 32> rand1;
     array<unsigned char, 32> rand2;
 
-    if (!ReadVariablesFromStartPoWMessage(message, offset, block_num,
-                                          difficulty, rand1, rand2))
+    if (!ReadVariablesFromStartPoWMessage(
+            message, offset, block_num, dsDifficulty, difficulty, rand1, rand2))
     {
         return false;
     }
@@ -263,6 +342,9 @@ bool Node::ProcessStartPoW(const vector<unsigned char>& message,
         block_num
             = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
             + 1;
+        dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetDSDifficulty();
         difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
                          .GetHeader()
                          .GetDifficulty();
@@ -271,7 +353,7 @@ bool Node::ProcessStartPoW(const vector<unsigned char>& message,
     }
 
     // Start mining
-    StartPoW(block_num, difficulty, rand1, rand2);
+    StartPoW(block_num, dsDifficulty, difficulty, rand1, rand2);
 
     return true;
 }

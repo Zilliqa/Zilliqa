@@ -27,6 +27,7 @@ apt-get install -y \
     libminiupnpc-dev \
     libevent-dev \
     libprotobuf-dev \
+    libcurl4-openssl-dev \
     protobuf-compiler
 
 # install development dependencies
@@ -36,7 +37,11 @@ apt-get install -y \
     clang-tidy-5.0 \
     clang-5.0 \
     lcov \
-    curl
+    curl \
+    libxml2-utils \
+    python-pip
+
+pip install pyyaml
 }
 
 function on_osx() {

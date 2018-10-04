@@ -62,6 +62,9 @@ const unsigned int PORT_SIZE = 4;
 const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
 const unsigned int SERVER_PORT = 4201;
 
+// Number of initial ds epoch number, including genesis epoch
+const unsigned int INIT_DS_EPOCH_NUM = 2;
+
 // Testing parameters
 
 // Metadata type
@@ -115,14 +118,16 @@ extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int POW_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;
+extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
+extern const unsigned int POW_SUBMISSION_LIMIT;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
 extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
-extern const unsigned int FETCHING_MISSING_TXNS_TIMEOUT;
-extern const unsigned int FINALBLOCK_CONSENSUS_OBJECT_TIMEOUT;
+extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
+extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
@@ -134,19 +139,37 @@ extern const unsigned int POST_VIEWCHANGE_BUFFER;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
-extern const unsigned int WAITING_FORWARD;
 extern const unsigned int COINBASE_REWARD;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
 extern const unsigned int BROADCAST_EXPIRY;
 extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
+extern const unsigned int FINALBLOCK_DELAY_IN_MS;
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
 extern const unsigned int MAX_INDEXES_PER_TXN;
 extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
-extern const unsigned int NUM_NETWORK_NODE;
+extern const unsigned int FALLBACK_INTERVAL_STARTED;
+extern const unsigned int FALLBACK_INTERVAL_WAITING;
+extern const unsigned int FALLBACK_CHECK_INTERVAL;
+extern const unsigned int FALLBACK_EXTRA_TIME;
+extern const unsigned int FALLBACK_TEST_EPOCH;
+extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
+extern const unsigned int MAX_SHARD_NODE_NUM;
+extern const unsigned int MAX_ROUNDS_IN_BSTATE;
+extern const unsigned int MAX_ROUNDS_IN_CSTATE;
+extern const unsigned int MAX_TOTAL_ROUNDS;
+extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
+extern const unsigned int ROUND_TIME_IN_MS;
+extern const unsigned int NUM_MICROBLOCK_SENDERS;
+extern const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS;
+extern const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD;
+extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
+extern const unsigned int ROUND_TIME_IN_MS;
+extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
+extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
@@ -156,10 +179,13 @@ extern const bool OPENCL_GPU_MINE;
 extern const bool CUDA_GPU_MINE;
 extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
+extern const bool BROADCAST_GOSSIP_MODE;
+extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 
+extern const unsigned int NUM_DEVICE_TO_USE;
 extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
 extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
 extern const unsigned int OPENCL_START_EPOCH;

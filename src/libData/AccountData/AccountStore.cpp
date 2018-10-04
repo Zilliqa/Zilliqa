@@ -23,6 +23,10 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/SysCommand.h"
 
+using namespace std;
+using namespace dev;
+using namespace boost::multiprecision;
+
 AccountStore::AccountStore()
 {
     m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
@@ -47,6 +51,8 @@ void AccountStore::InitSoft()
     LOG_MARKER();
 
     AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
+
+    InitReversibles();
 
     InitTemp();
 }
@@ -157,7 +163,7 @@ unsigned int AccountStore::GetSerializedDelta(vector<unsigned char>& dst)
 }
 
 int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
-                                   unsigned int offset)
+                                   unsigned int offset, bool reversible)
 {
     LOG_MARKER();
     // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -211,6 +217,18 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
             }
             (*m_addressToAccount)[address] = account;
 
+            if (reversible)
+            {
+                if (fullCopy)
+                {
+                    m_addressToAccountRevCreated[address] = account;
+                }
+                else
+                {
+                    m_addressToAccountRevChanged[address] = account;
+                }
+            }
+
             UpdateStateTrie(address, account);
         }
     }
@@ -252,9 +270,19 @@ void AccountStore::MoveUpdatesToDisk()
         }
         i.second.Commit();
     }
-    m_state.db()->commit();
-    prevRoot = m_state.root();
-    MoveRootToDisk(prevRoot);
+
+    try
+    {
+        m_state.db()->commit();
+        m_prevRoot = m_state.root();
+        MoveRootToDisk(m_prevRoot);
+    }
+    catch (const boost::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::MoveUpdatesToDisk. "
+                        << boost::diagnostic_information(e));
+    }
 }
 
 void AccountStore::DiscardUnsavedUpdates()
@@ -266,9 +294,19 @@ void AccountStore::DiscardUnsavedUpdates()
     {
         i.second.RollBack();
     }
-    m_state.db()->rollback();
-    m_state.setRoot(prevRoot);
-    m_addressToAccount->clear();
+
+    try
+    {
+        m_state.db()->rollback();
+        m_state.setRoot(m_prevRoot);
+        m_addressToAccount->clear();
+    }
+    catch (const boost::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::DiscardUnsavedUpdates. "
+                        << boost::diagnostic_information(e));
+    }
 }
 
 bool AccountStore::RetrieveFromDisk()
@@ -279,35 +317,48 @@ bool AccountStore::RetrieveFromDisk()
     {
         return false;
     }
-    h256 root(rootBytes);
-    m_state.setRoot(root);
-    for (auto i : m_state)
+
+    try
     {
-        Address address(i.first);
-        LOG_GENERAL(INFO, "Address: " << address.hex());
-        dev::RLP rlp(i.second);
-        if (rlp.itemCount() != 4)
+        h256 root(rootBytes);
+        m_state.setRoot(root);
+        for (const auto& i : m_state)
         {
-            LOG_GENERAL(WARNING, "Account data corrupted");
-            continue;
-        }
-        Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint256_t>());
-        // Code Hash
-        if (rlp[3].toHash<h256>() != h256())
-        {
-            // Extract Code Content
-            account.SetCode(
-                ContractStorage::GetContractStorage().GetContractCode(address));
-            if (rlp[3].toHash<h256>() != account.GetCodeHash())
+            Address address(i.first);
+            LOG_GENERAL(INFO, "Address: " << address.hex());
+            dev::RLP rlp(i.second);
+            if (rlp.itemCount() != 4)
             {
-                LOG_GENERAL(WARNING,
-                            "Account Code Content doesn't match Code Hash")
+                LOG_GENERAL(WARNING, "Account data corrupted");
                 continue;
             }
-            // Storage Root
-            account.SetStorageRoot(rlp[2].toHash<h256>());
+            Account account(rlp[0].toInt<uint256_t>(),
+                            rlp[1].toInt<uint256_t>());
+            // Code Hash
+            if (rlp[3].toHash<h256>() != h256())
+            {
+                // Extract Code Content
+                account.SetCode(
+                    ContractStorage::GetContractStorage().GetContractCode(
+                        address));
+                if (rlp[3].toHash<h256>() != account.GetCodeHash())
+                {
+                    LOG_GENERAL(WARNING,
+                                "Account Code Content doesn't match Code Hash")
+                    continue;
+                }
+                // Storage Root
+                account.SetStorageRoot(rlp[2].toHash<h256>());
+            }
+            m_addressToAccount->insert({address, account});
         }
-        m_addressToAccount->insert({address, account});
+    }
+    catch (const boost::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Error with AccountStore::RetrieveFromDisk. "
+                        << boost::diagnostic_information(e));
+        return false;
     }
     return true;
 }
@@ -362,9 +413,9 @@ StateHash AccountStore::GetStateDeltaHash()
 
     bool isEmpty = true;
 
-    for (unsigned int i = 0; i < m_stateDeltaSerialized.size(); i++)
+    for (unsigned char i : m_stateDeltaSerialized)
     {
-        if (m_stateDeltaSerialized[i] != 0)
+        if (i != 0)
         {
             isEmpty = false;
             break;
@@ -396,4 +447,38 @@ void AccountStore::InitTemp()
 
     m_accountStoreTemp->Init();
     m_stateDeltaSerialized.clear();
+}
+
+void AccountStore::CommitTempReversible()
+{
+    LOG_MARKER();
+
+    InitReversibles();
+
+    DeserializeDelta(m_stateDeltaSerialized, 0, true);
+}
+
+void AccountStore::RevertCommitTemp()
+{
+    LOG_MARKER();
+
+    // Revert changed
+    for (auto const entry : m_addressToAccountRevChanged)
+    {
+        (*m_addressToAccount)[entry.first] = entry.second;
+        UpdateStateTrie(entry.first, entry.second);
+    }
+    for (auto const entry : m_addressToAccountRevCreated)
+    {
+        RemoveAccount(entry.first);
+        RemoveFromTrie(entry.first);
+    }
+}
+
+void AccountStore::InitReversibles()
+{
+    LOG_MARKER();
+
+    m_addressToAccountRevChanged.clear();
+    m_addressToAccountRevCreated.clear();
 }

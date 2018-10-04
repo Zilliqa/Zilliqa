@@ -30,6 +30,9 @@
 /// A mediator class for providing access to global members.
 class Mediator
 {
+    std::mutex m_mutexHeartBeat;
+    unsigned int m_heartBeatTime;
+
 public:
     /// The Zilliqa instance's key pair.
     std::pair<PrivKey, PubKey> m_selfKey;
@@ -58,6 +61,13 @@ public:
     /// The current epoch.
     uint64_t m_currentEpochNum = 0;
 
+#ifdef HEARTBEAT_TEST
+    bool m_killPulse = false;
+#endif // HEARTBEAT_TEST
+
+    /// The consensus ID
+    uint32_t m_consensusID;
+
     // DS committee members
     // Fixed-sized double-ended queue depending on size of DS committee at bootstrap
     // Leader is at head of queue
@@ -65,7 +75,7 @@ public:
     // Oldest member will be pushed out from tail of queue
 
     /// The public keys and current members of the DS committee.
-    std::shared_ptr<std::deque<pair<PubKey, Peer>>> m_DSCommittee;
+    std::shared_ptr<std::deque<std::pair<PubKey, Peer>>> m_DSCommittee;
     std::mutex m_mutexDSCommittee;
 
     /// The current epoch randomness from the DS blockchain.
@@ -77,8 +87,16 @@ public:
     /// To determine if the node successfully recovered from persistence
     bool m_isRetrievedHistory;
 
+    /// Flag for indicating whether it's vacuous epoch now
+    bool m_isVacuousEpoch;
+    std::mutex m_mutexVacuousEpoch;
+
+    /// Record current software information which already downloaded to this node
+    SWInfo m_curSWInfo;
+    std::mutex m_mutexCurSWInfo;
+
     /// Constructor.
-    Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer);
+    Mediator(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
 
     /// Destructor.
     ~Mediator();
@@ -94,6 +112,16 @@ public:
     void UpdateTxBlockRand(bool isGenesis = false);
 
     std::string GetNodeMode(const Peer& peer);
+
+    /// Launches the heartbeat monitoring thread
+    void HeartBeatLaunch();
+
+    /// Resets the heartbeat counter (to indicate liveness)
+    void HeartBeatPulse();
+
+    void IncreaseEpochNum();
+
+    bool GetIsVacuousEpoch();
 };
 
 #endif // __MEDIATOR_H__
