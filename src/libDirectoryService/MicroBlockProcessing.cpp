@@ -277,8 +277,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
               microBlocksAtEpoch.size()
                   << " of " << m_shards.size() << " microblocks received");
 
-    ProcessStateDelta(stateDelta,
-                      microBlock.GetHeader().GetHash().m_stateDeltaHash);
+    ProcessStateDelta(stateDelta, microBlock.GetHeader().GetStateDeltaHash());
 
     if (microBlocksAtEpoch.size() == m_shards.size())
     {
@@ -296,9 +295,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
         for (auto& mb : microBlocksAtEpoch)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Timestamp: "
-                          << mb.GetHeader().GetTimestamp()
-                          << mb.GetHeader().GetHash().m_stateDeltaHash);
+                      "Timestamp: " << mb.GetHeader().GetTimestamp()
+                                    << mb.GetHeader().GetStateDeltaHash());
         }
 
         // m_mediator.m_node->RunConsensusOnMicroBlock();

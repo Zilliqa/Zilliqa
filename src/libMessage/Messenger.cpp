@@ -180,20 +180,18 @@ namespace
         protoHeader->set_blocknum(header.GetBlockNum());
         NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
             header.GetTimestamp(), *protoHeader->mutable_timestamp());
-        protoHeader->set_txroothash(header.GetHash().m_txRootHash.data(),
-                                    header.GetHash().m_txRootHash.size);
+        protoHeader->set_txroothash(header.GetTxRootHash().data(),
+                                    header.GetTxRootHash().size);
         protoHeader->set_numtxs(header.GetNumTxs());
         SerializableToProtobufByteArray(header.GetMinerPubKey(),
                                         *protoHeader->mutable_minerpubkey());
         protoHeader->set_dsblocknum(header.GetDSBlockNum());
         protoHeader->set_dsblockheader(header.GetDSBlockHeader().data(),
                                        header.GetDSBlockHeader().size);
-        protoHeader->set_statedeltahash(
-            header.GetHash().m_stateDeltaHash.data(),
-            header.GetHash().m_stateDeltaHash.size);
-        protoHeader->set_tranreceipthash(
-            header.GetHash().m_tranReceiptHash.data(),
-            header.GetHash().m_tranReceiptHash.size);
+        protoHeader->set_statedeltahash(header.GetStateDeltaHash().data(),
+                                        header.GetStateDeltaHash().size);
+        protoHeader->set_tranreceipthash(header.GetTranReceiptHash().data(),
+                                         header.GetTranReceiptHash().size);
 
         // Serialize body
 
