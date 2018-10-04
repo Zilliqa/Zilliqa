@@ -65,7 +65,7 @@ bool Node::ComposeMicroBlock()
     // TxBlockHeader
     uint8_t type = TXBLOCKTYPE::MICRO;
     uint32_t version = BLOCKVERSION::VERSION1;
-    uint32_t shardID = m_myShardID;
+    uint32_t shardId = m_myshardId;
     uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
     uint256_t gasUsed = 1;
     BlockHash prevHash;
@@ -114,7 +114,7 @@ bool Node::ComposeMicroBlock()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
-        MicroBlockHeader(type, version, shardID, gasLimit, gasUsed, prevHash,
+        MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, prevHash,
                          blockNum, timestamp, txRootHash, numTxs, minerPubKey,
                          dsBlockNum, dsBlockHeader, stateDeltaHash,
                          txReceiptHash),
@@ -932,12 +932,12 @@ bool Node::CheckMicroBlockVersion()
     return true;
 }
 
-bool Node::CheckMicroBlockShardID()
+bool Node::CheckMicroBlockshardId()
 {
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "Node::CheckMicroBlockShardID not expected to be called "
+                    "Node::CheckMicroBlockshardId not expected to be called "
                     "from LookUp node.");
         return true;
     }
@@ -947,12 +947,12 @@ bool Node::CheckMicroBlockShardID()
     {
         return true;
     }
-    if (m_microblock->GetHeader().GetShardID() != m_myShardID)
+    if (m_microblock->GetHeader().GetShardId() != m_myshardId)
     {
         LOG_GENERAL(WARNING,
-                    "ShardID check failed. Expected: "
-                        << m_myShardID << " Actual: "
-                        << m_microblock->GetHeader().GetShardID());
+                    "shardId check failed. Expected: "
+                        << m_myshardId << " Actual: "
+                        << m_microblock->GetHeader().GetShardId());
 
         m_consensusObject->SetConsensusErrorCode(
             ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
@@ -960,7 +960,7 @@ bool Node::CheckMicroBlockShardID()
         return false;
     }
 
-    LOG_GENERAL(INFO, "ShardID check passed");
+    LOG_GENERAL(INFO, "shardId check passed");
 
     return true;
 }
@@ -1145,10 +1145,10 @@ bool Node::CheckMicroBlockTxnRootHash()
         "Microblock root computation done "
             << DataConversion::charArrToHexStr(expectedTxRootHash.asArray()));
     LOG_GENERAL(INFO,
-                "Expected root: " << DataConversion::charArrToHexStr(
-                    m_microblock->GetHeader().GetTxRootHash().asArray()));
+                "Expected root: "
+                    << m_microblock->GetHeader().GetHash().m_txRootHash.hex());
 
-    if (expectedTxRootHash != m_microblock->GetHeader().GetTxRootHash())
+    if (expectedTxRootHash != m_microblock->GetHeader().GetHash().m_txRootHash)
     {
         LOG_GENERAL(WARNING, "Txn root does not match");
 
@@ -1179,11 +1179,13 @@ bool Node::CheckMicroBlockStateDeltaHash()
     LOG_GENERAL(INFO,
                 "Microblock state delta generation done "
                     << expectedStateDeltaHash.hex());
-    LOG_GENERAL(INFO,
-                "Received root: "
-                    << m_microblock->GetHeader().GetStateDeltaHash().hex());
+    LOG_GENERAL(
+        INFO,
+        "Received root: "
+            << m_microblock->GetHeader().GetHash().m_stateDeltaHash.hex());
 
-    if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
+    if (expectedStateDeltaHash
+        != m_microblock->GetHeader().GetHash().m_stateDeltaHash)
     {
         LOG_GENERAL(WARNING, "State delta hash does not match");
 
@@ -1213,11 +1215,13 @@ bool Node::CheckMicroBlockTranReceiptHash()
     LOG_GENERAL(INFO,
                 "Microblock transaction receipt hash generation done "
                     << expectedTranHash.hex());
-    LOG_GENERAL(INFO,
-                "Received hash: "
-                    << m_microblock->GetHeader().GetTranReceiptHash().hex());
+    LOG_GENERAL(
+        INFO,
+        "Received hash: "
+            << m_microblock->GetHeader().GetHash().m_tranReceiptHash.hex());
 
-    if (expectedTranHash != m_microblock->GetHeader().GetTranReceiptHash())
+    if (expectedTranHash
+        != m_microblock->GetHeader().GetHash().m_tranReceiptHash)
     {
         LOG_GENERAL(WARNING, "Transaction receipt hash does not match");
 
@@ -1263,7 +1267,7 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
     }
 
     if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
-        || !CheckMicroBlockShardID() || !CheckMicroBlockTimestamp()
+        || !CheckMicroBlockshardId() || !CheckMicroBlockTimestamp()
         || !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash()
         || !CheckMicroBlockStateDeltaHash()
         || !CheckMicroBlockTranReceiptHash())

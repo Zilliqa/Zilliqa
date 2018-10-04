@@ -31,7 +31,7 @@ class MicroBlockHeader : public BlockHeaderBase
 {
     uint8_t m_type; // 0: microblock proposed by a committee, 1: final tx block
     uint32_t m_version;
-    uint32_t m_shardID;
+    uint32_t m_shardId;
     boost::multiprecision::uint256_t m_gasLimit;
     boost::multiprecision::uint256_t m_gasUsed;
     BlockHash m_prevHash; // Hash of the previous block
@@ -61,7 +61,7 @@ public:
 
     /// Constructor with predefined member values.
     MicroBlockHeader(const uint8_t type, const uint32_t version,
-                     const uint32_t shardID,
+                     const uint32_t shardId,
                      const boost::multiprecision::uint256_t& gasLimit,
                      const boost::multiprecision::uint256_t& gasUsed,
                      const BlockHash& prevHash, const uint64_t& blockNum,
@@ -82,19 +82,17 @@ public:
     // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so no need to add Doxygen tags for now
     const uint8_t& GetType() const;
     const uint32_t& GetVersion() const;
-    const uint32_t& GetShardID() const;
+    const uint32_t& GetShardId() const;
     const boost::multiprecision::uint256_t& GetGasLimit() const;
     const boost::multiprecision::uint256_t& GetGasUsed() const;
     const BlockHash& GetPrevHash() const;
     const uint64_t& GetBlockNum() const;
     const boost::multiprecision::uint256_t& GetTimestamp() const;
-    const TxnHash& GetTxRootHash() const;
     const uint32_t& GetNumTxs() const;
     const PubKey& GetMinerPubKey() const;
     const uint64_t& GetDSBlockNum() const;
     const BlockHash& GetDSBlockHeader() const;
-    const StateHash& GetStateDeltaHash() const;
-    const TxnHash& GetTranReceiptHash() const;
+    const MicroBlockHashSet& GetHash() const;
 
     // Operators
     bool operator==(const MicroBlockHeader& header) const;

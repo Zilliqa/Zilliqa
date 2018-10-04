@@ -93,12 +93,12 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     }
 
     // shard id
-    if (m_myShardID != m_pendingFallbackBlock->GetHeader().GetShardId())
+    if (m_myshardId != m_pendingFallbackBlock->GetHeader().GetShardId())
     {
         LOG_GENERAL(WARNING,
                     "Fallback shard ID mismatched"
                         << endl
-                        << "expected: " << m_myShardID << endl
+                        << "expected: " << m_myshardId << endl
                         << "received: "
                         << m_pendingFallbackBlock->GetHeader().GetShardId());
         return false;
@@ -331,7 +331,7 @@ void Node::FallbackTimerLaunch()
                 if (!LOOKUP_NODE_MODE)
                 {
                     if (m_fallbackTimer
-                        >= (FALLBACK_INTERVAL_WAITING * (m_myShardID + 1)))
+                        >= (FALLBACK_INTERVAL_WAITING * (m_myshardId + 1)))
                     {
                         auto func
                             = [this]() -> void { RunConsensusOnFallback(); };
@@ -412,7 +412,7 @@ void Node::ComposeFallbackBlock()
                                 AccountStore::GetInstance().GetStateRootHash(),
                                 m_consensusLeaderID, leaderNetworkInfo,
                                 m_myShardMembers->at(m_consensusLeaderID).first,
-                                m_myShardID, get_time_as_int()),
+                                m_myshardId, get_time_as_int()),
             CoSignatures()));
     }
 }

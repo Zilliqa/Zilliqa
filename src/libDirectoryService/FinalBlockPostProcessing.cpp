@@ -135,14 +135,14 @@ void DirectoryService::SendFinalBlockToShardNodes(
     auto p = m_shards.begin();
     advance(p, my_shards_lo);
 
-    for (unsigned int shardID = my_shards_lo; shardID <= my_shards_hi;
-         shardID++)
+    for (unsigned int shardId = my_shards_lo; shardId <= my_shards_hi;
+         shardId++)
     {
         vector<unsigned char> finalblock_message
             = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
         if (!Messenger::SetNodeFinalBlock(
-                finalblock_message, MessageOffset::BODY, shardID, dsBlockNumber,
+                finalblock_message, MessageOffset::BODY, shardId, dsBlockNumber,
                 m_mediator.m_consensusID, *m_finalBlock, stateDelta))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),

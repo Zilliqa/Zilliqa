@@ -22,23 +22,23 @@
 struct UnavailableMicroBlock
 {
     MicroBlockHashSet m_hash;
-    uint32_t m_shardID;
+    uint32_t m_shardId;
 
     bool operator==(const UnavailableMicroBlock& umb) const
     {
-        return std::tie(m_hash, m_shardID)
-            == std::tie(umb.m_hash, umb.m_shardID);
-    }
-
-    bool operator<(const UnavailableMicroBlock& umb) const
-    {
-        return std::tie(umb.m_hash, umb.m_shardID)
-            > std::tie(m_hash, m_shardID);
+        return std::tie(m_hash, m_shardId)
+            == std::tie(umb.m_hash, umb.m_shardId);
     }
 
     bool operator>(const UnavailableMicroBlock& umb) const
     {
-        return !((*this == umb) || (*this < umb));
+        return std::tie(m_hash, m_shardId)
+            > std::tie(umb.m_hash, umb.m_shardId);
+    }
+
+    bool operator<(const UnavailableMicroBlock& umb) const
+    {
+        return (umb > *this);
     }
 
     friend std::ostream& operator<<(std::ostream& os,
@@ -48,9 +48,10 @@ struct UnavailableMicroBlock
 inline std::ostream& operator<<(std::ostream& os,
                                 const UnavailableMicroBlock& t)
 {
-    os << "m_txRootHash : " << t.m_hash.m_txRootHash.hex() << std::endl
+    os << "<UnavailableMicroBlock>" << std::endl
+       << "m_txRootHash : " << t.m_hash.m_txRootHash.hex() << std::endl
        << "m_stateDeltaHash : " << t.m_hash.m_stateDeltaHash.hex() << std::endl
-       << "m_shardID : " << t.m_shardID;
+       << "m_shardId : " << t.m_shardId;
     return os;
 }
 
@@ -62,7 +63,7 @@ namespace std
         size_t operator()(UnavailableMicroBlock const& umb) const noexcept
         {
             size_t const h1(std::hash<MicroBlockHashSet>{}(umb.m_hash));
-            size_t const h2(std::hash<uint32_t>{}(umb.m_shardID));
+            size_t const h2(std::hash<uint32_t>{}(umb.m_shardId));
             return h1 ^ (h2 << 1);
         }
     };
