@@ -262,14 +262,34 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP:
     {
-        vector<Peer> allPowSubmitter;
-        for (auto& nodeNetwork : m_allPoWConns)
+        if (BROADCAST_TREEBASED_CLUSTER_MODE)
         {
-            allPowSubmitter.emplace_back(nodeNetwork.second);
-        }
+            // Choose N other pow winner nodes to be recipient of VC block
+            std::vector<Peer> powWinnerVCBlockReceivers;
+            unsigned int numOfVCBlockReceivers
+                = std::min(NUM_VCBLOCK_RECEIVERS_FROM_POW_WINNERS,
+                           (uint32_t)m_allPoWConns.size());
 
-        P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
-                                                    vcblock_message);
+            const auto& kv = m_allPoWConns.begin();
+            for (unsigned int i = 0; i < numOfVCBlockReceivers; i++)
+            {
+                powWinnerVCBlockReceivers.emplace_back(kv->second);
+
+                P2PComm::GetInstance().SendRumorToForeignPeers(
+                    powWinnerVCBlockReceivers, vcblock_message);
+            }
+        }
+        else
+        {
+            vector<Peer> allPowSubmitter;
+            for (auto& nodeNetwork : m_allPoWConns)
+            {
+                allPowSubmitter.emplace_back(nodeNetwork.second);
+            }
+
+            P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
+                                                        vcblock_message);
+        }
         break;
     }
     case FINALBLOCK_CONSENSUS:
@@ -365,7 +385,8 @@ bool DirectoryService::ProcessViewChangeConsensus(
                     "Time out while waiting for state transition to view "
                     "change "
                     "consensus and "
-                    "consensus object creation. Most likely view change didn't "
+                    "consensus object creation. Most likely view change "
+                    "didn't "
                     "occur. A malicious node may be trying to initate view "
                     "change.");
                 return false;
