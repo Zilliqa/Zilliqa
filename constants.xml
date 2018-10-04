@@ -74,14 +74,13 @@
         <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
         <BROADCAST_GOSSIP_MODE>false</BROADCAST_GOSSIP_MODE>
         <GOSSIP_CUSTOM_ROUNDS_SETTINGS>false</GOSSIP_CUSTOM_ROUNDS_SETTINGS>
-
     </options>
     <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
-        <TXN_PATH/>
+        <TXN_PATH></TXN_PATH>
     </dispatcher>
     <archival>
-        <DB_HOST/>
+        <DB_HOST></DB_HOST>
     </archival>
     <smart_contract>
         <SCILLA_ROOT/>
