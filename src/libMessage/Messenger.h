@@ -350,6 +350,41 @@ public:
     GetLookupSetShardsFromSeed(const std::vector<unsigned char>& src,
                                const unsigned int offset, DequeOfShard& shards);
 
+    static bool SetLookupGetMicroBlockFromLookup(
+        std::vector<unsigned char>& dest, const unsigned int offset,
+        const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+        uint32_t portNo);
+
+    static bool GetLookupGetMicroBlockFromLookup(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+        uint32_t& portNo);
+
+    static bool
+    SetLookupSetMicroBlockFromLookup(std::vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     const std::vector<MicroBlock>& mbs);
+
+    static bool
+    GetLookupSetMicroBlockFromLookup(const std::vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     std::vector<MicroBlock>& mbs);
+
+    static bool SetLookupGetTxnsFromLookup(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const std::vector<TxnHash>& txnhashes, uint32_t portNo);
+    static bool GetLookupGetTxnsFromLookup(
+        const std::vector<unsigned char>& src, const unsigned int offset,
+        std::vector<TxnHash>& txnhashes, uint32_t& portNo);
+    static bool
+    SetLookupSetTxnsFromLookup(std::vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const std::vector<TransactionWithReceipt>& txns);
+    static bool
+    GetLookupSetTxnsFromLookup(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               std::vector<TransactionWithReceipt>& txns);
+
     // ============================================================================
     // Consensus messages
     // ============================================================================
@@ -440,5 +475,4 @@ public:
         std::vector<unsigned char>& errorMsg,
         const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 };
-
 #endif // __MESSENGER_H__
