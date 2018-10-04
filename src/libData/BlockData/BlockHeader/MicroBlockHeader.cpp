@@ -182,6 +182,21 @@ const BlockHash& MicroBlockHeader::GetDSBlockHeader() const
     return m_dsBlockHeader;
 }
 
+const TxnHash& MicroBlockHeader::GetTxRootHash() const
+{
+    return m_hash.m_txRootHash;
+}
+
+const StateHash& MicroBlockHeader::GetStateDeltaHash() const
+{
+    return m_hash.m_stateDeltaHash;
+}
+
+const TxnHash& MicroBlockHeader::GetTranReceiptHash() const
+{
+    return m_hash.m_tranReceiptHash;
+}
+
 const MicroBlockHashSet& MicroBlockHeader::GetHash() const { return m_hash; }
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const

@@ -1144,11 +1144,11 @@ bool Node::CheckMicroBlockTxnRootHash()
         INFO,
         "Microblock root computation done "
             << DataConversion::charArrToHexStr(expectedTxRootHash.asArray()));
-    LOG_GENERAL(INFO,
-                "Expected root: "
-                    << m_microblock->GetHeader().GetHash().m_txRootHash.hex());
+    LOG_GENERAL(
+        INFO,
+        "Expected root: " << m_microblock->GetHeader().GetTxRootHash().hex());
 
-    if (expectedTxRootHash != m_microblock->GetHeader().GetHash().m_txRootHash)
+    if (expectedTxRootHash != m_microblock->GetHeader().GetTxRootHash())
     {
         LOG_GENERAL(WARNING, "Txn root does not match");
 
@@ -1179,13 +1179,11 @@ bool Node::CheckMicroBlockStateDeltaHash()
     LOG_GENERAL(INFO,
                 "Microblock state delta generation done "
                     << expectedStateDeltaHash.hex());
-    LOG_GENERAL(
-        INFO,
-        "Received root: "
-            << m_microblock->GetHeader().GetHash().m_stateDeltaHash.hex());
+    LOG_GENERAL(INFO,
+                "Received root: "
+                    << m_microblock->GetHeader().GetStateDeltaHash().hex());
 
-    if (expectedStateDeltaHash
-        != m_microblock->GetHeader().GetHash().m_stateDeltaHash)
+    if (expectedStateDeltaHash != m_microblock->GetHeader().GetStateDeltaHash())
     {
         LOG_GENERAL(WARNING, "State delta hash does not match");
 
@@ -1215,13 +1213,11 @@ bool Node::CheckMicroBlockTranReceiptHash()
     LOG_GENERAL(INFO,
                 "Microblock transaction receipt hash generation done "
                     << expectedTranHash.hex());
-    LOG_GENERAL(
-        INFO,
-        "Received hash: "
-            << m_microblock->GetHeader().GetHash().m_tranReceiptHash.hex());
+    LOG_GENERAL(INFO,
+                "Received hash: "
+                    << m_microblock->GetHeader().GetTranReceiptHash().hex());
 
-    if (expectedTranHash
-        != m_microblock->GetHeader().GetHash().m_tranReceiptHash)
+    if (expectedTranHash != m_microblock->GetHeader().GetTranReceiptHash())
     {
         LOG_GENERAL(WARNING, "Transaction receipt hash does not match");
 

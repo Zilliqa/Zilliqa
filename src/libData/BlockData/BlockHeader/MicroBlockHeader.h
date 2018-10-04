@@ -92,6 +92,9 @@ public:
     const PubKey& GetMinerPubKey() const;
     const uint64_t& GetDSBlockNum() const;
     const BlockHash& GetDSBlockHeader() const;
+    const TxnHash& GetTxRootHash() const;
+    const StateHash& GetStateDeltaHash() const;
+    const TxnHash& GetTranReceiptHash() const;
     const MicroBlockHashSet& GetHash() const;
 
     // Operators
