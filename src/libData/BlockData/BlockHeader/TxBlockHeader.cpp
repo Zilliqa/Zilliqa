@@ -244,5 +244,5 @@ bool TxBlockHeader::operator<(const TxBlockHeader& header) const
 
 bool TxBlockHeader::operator>(const TxBlockHeader& header) const
 {
-    return !((*this == header) || (*this < header));
+    return header < *this;
 }

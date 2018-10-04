@@ -54,6 +54,8 @@ class Node : public Executable, public Broadcastable
         PROCESS_MICROBLOCKCONSENSUS,
         PROCESS_FINALBLOCK,
         PROCESS_TXNBODY,
+        PROCESS_FALLBACKCONSENSUS,
+        PROCESS_FALLBACKBLOCK,
         NUM_ACTIONS
     };
 
@@ -86,6 +88,9 @@ class Node : public Executable, public Broadcastable
     // Sharding information
     std::atomic<bool> m_isMBSender;
     std::atomic<uint32_t> m_numShards;
+
+    // MicroBlock Sharing assignments
+    std::vector<Peer> m_DSMBReceivers;
 
     // Transaction sharing assignments
     std::atomic<bool> m_txnSharingIAmForwarder;
@@ -156,7 +161,17 @@ class Node : public Executable, public Broadcastable
                        std::vector<std::pair<Peer, std::vector<unsigned char>>>>
         m_microBlockConsensusBuffer;
 
-    std::atomic<bool> m_isVacuousEpoch;
+    // Fallback Consensus
+    std::mutex m_mutexFallbackTimer;
+    uint32_t m_fallbackTimer;
+    bool m_fallbackTimerLaunched = false;
+    bool m_fallbackStarted;
+    std::mutex m_mutexPendingFallbackBlock;
+    std::shared_ptr<FallbackBlock> m_pendingFallbackBlock;
+    std::mutex m_MutexCVFallbackBlock;
+    std::condition_variable cv_fallbackBlock;
+    std::mutex m_MutexCVFallbackConsensusObj;
+    std::condition_variable cv_fallbackConsensusObj;
 
     bool CheckState(Action action);
 
@@ -263,6 +278,11 @@ class Node : public Executable, public Broadcastable
         const std::vector<unsigned char>& message, const uint32_t shardID,
         const std::vector<Transaction>& transactions);
 
+#ifdef HEARTBEAT_TEST
+    bool ProcessKillPulse(const std::vector<unsigned char>& message,
+                          unsigned int offset, const Peer& from);
+#endif // HEARTBEAT_TEST
+
     // bool ProcessCreateAccounts(const std::vector<unsigned char> & message, unsigned int offset, const Peer & from);
     bool ProcessDSBlock(const std::vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
@@ -294,6 +314,7 @@ class Node : public Executable, public Broadcastable
                              unsigned int offset,
                              std::vector<unsigned char>& errorMsg,
                              const uint32_t consensusID,
+                             const uint64_t blockNumber,
                              const std::vector<unsigned char>& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
                              std::vector<unsigned char>& messageToCosign);
@@ -317,6 +338,33 @@ class Node : public Executable, public Broadcastable
     ProcessTransactionWhenShardBackup(const std::vector<TxnHash>& tranHashes,
                                       std::vector<TxnHash>& missingtranHashes);
 
+    // Fallback Consensus
+    void FallbackTimerLaunch();
+    void FallbackTimerPulse();
+    bool FallbackValidator(const std::vector<unsigned char>& message,
+                           unsigned int offset,
+                           std::vector<unsigned char>& errorMsg,
+                           const uint32_t consensusID,
+                           const uint64_t blockNumber,
+                           const std::vector<unsigned char>& blockHash,
+                           const uint16_t leaderID, const PubKey& leaderKey,
+                           std::vector<unsigned char>& messageToCosign);
+    void UpdateFallbackConsensusLeader();
+    void SetLastKnownGoodState();
+    void ComposeFallbackBlock();
+    void RunConsensusOnFallback();
+    bool RunConsensusOnFallbackWhenLeader();
+    bool RunConsensusOnFallbackWhenBackup();
+    void ProcessFallbackConsensusWhenDone();
+    bool ProcessFallbackConsensus(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+    // Fallback block processing
+    void UpdateDSCommittee(const uint32_t& shard_id, const PubKey& leaderPubKey,
+                           const Peer& leaderNetworkInfo);
+    bool VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock);
+    bool ProcessFallbackBlock(const std::vector<unsigned char>& message,
+                              unsigned int cur_offset, const Peer& from);
+
     // Is Running from New Process
     bool m_fromNewProcess = true;
 
@@ -326,16 +374,17 @@ class Node : public Executable, public Broadcastable
 
     void ResetRejoinFlags();
 
-    // Rejoin the network as a shard node in case of failure happens in protocol
-    void RejoinAsNormal();
-
 public:
     enum NodeState : unsigned char
     {
         POW_SUBMISSION = 0x00,
         WAITING_DSBLOCK,
+        MICROBLOCK_CONSENSUS_PREP,
         MICROBLOCK_CONSENSUS,
         WAITING_FINALBLOCK,
+        FALLBACK_CONSENSUS_PREP,
+        FALLBACK_CONSENSUS,
+        WAITING_FALLBACKBLOCK,
         SYNC
     };
 
@@ -363,19 +412,26 @@ public:
         uint64_t, std::unordered_map<UnavailableMicroBlock, std::vector<bool>>>
         m_unavailableMicroBlocks;
 
-    uint32_t m_consensusID;
-
     /// Sharding variables
     std::atomic<uint32_t> m_myShardID;
     std::atomic<uint32_t> m_consensusMyID;
     std::atomic<bool> m_isPrimary;
     std::atomic<uint32_t> m_consensusLeaderID;
 
+    // Finalblock Processing
+    std::mutex m_mutexFinalBlock;
+
     // DS block information
     std::mutex m_mutexDSBlock;
 
     /// The current internal state of this Node instance.
     std::atomic<NodeState> m_state;
+
+    // a buffer flag used by lookup to store the isVacuousEpoch state before StoreFinalBlock
+    std::atomic<bool> m_isVacuousEpochBuffer;
+
+    // a indicator of whether recovered from fallback just now
+    bool m_justDidFallback = false;
 
     /// Constructor. Requires mediator reference to access DirectoryService and other global members.
     Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -427,7 +483,7 @@ public:
     /// Add new block into tx blockchain
     void AddBlock(const TxBlock& block);
 
-    void CommitForwardedMsgBuffer();
+    void CommitForwardedTransactionBuffer();
 
     void CleanCreatedTransaction();
 
@@ -472,11 +528,23 @@ public:
 
     void LoadTxnSharingInfo();
 
+    // Rejoin the network as a shard node in case of failure happens in protocol
+    void RejoinAsNormal();
+
+    /// Force state changes from MBCON/MBCON_PREP -> WAITING_FINALBLOCK
+    void PrepareGoodStateForFinalBlock();
+
+    /// Reset Consensus ID
+    void ResetConsensusId();
+
 private:
     static std::map<NodeState, std::string> NodeStateStrings;
     std::string GetStateString() const;
     static std::map<Action, std::string> ActionStrings;
     std::string GetActionString(Action action) const;
+    /// Fallback Consensus Related
+    std::atomic<NodeState> m_fallbackState;
+    bool ValidateFallbackState(NodeState nodeState, NodeState statePropose);
 };
 
 #endif // __NODE_H__

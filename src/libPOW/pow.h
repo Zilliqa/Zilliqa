@@ -102,7 +102,11 @@ private:
     ethash_light_t ethash_light_client;
     uint64_t currentBlockNum;
     std::atomic<bool> m_shouldMine;
-    std::unique_ptr<dev::eth::Miner> m_miner;
+    std::vector<dev::eth::MinerPtr> m_miners;
+    std::vector<ethash_mining_result_t> m_vecMiningResult;
+    std::atomic<int> m_minerIndex;
+    std::condition_variable m_cvMiningResult;
+    std::mutex m_mutexMiningResult;
 
     ethash_light_t EthashLightNew(uint64_t block_number);
     ethash_light_t EthashLightReuse(ethash_light_t ethashLight,
@@ -126,6 +130,8 @@ private:
     ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                        ethash_h256_t const& header_hash,
                                        uint8_t difficulty);
+    void MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
+                           uint8_t difficulty, uint64_t nonce);
     bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
                      uint64_t winning_nonce, ethash_h256_t& difficulty,
                      ethash_h256_t& result, ethash_h256_t& mixhash);

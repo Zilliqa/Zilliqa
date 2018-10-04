@@ -51,7 +51,7 @@ DirectoryService::DirectoryService(Mediator& mediator)
     }
     m_mode = IDLE;
     m_consensusLeaderID = 0;
-    m_consensusID = 1;
+    m_mediator.m_consensusID = 1;
     m_viewChangeCounter = 0;
 }
 
@@ -259,6 +259,20 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     copy(tmp1.begin(), tmp1.end(), m_mediator.m_DSCommittee->begin());
     peerstore.RemovePeer(m_mediator.m_selfKey.second); // Remove myself
 
+    //Lets start the gossip as earliest as possible
+    if (BROADCAST_GOSSIP_MODE)
+    {
+        std::vector<Peer> peers;
+        for (const auto& i : *m_mediator.m_DSCommittee)
+        {
+            if (i.second.m_listenPortHost != 0)
+            {
+                peers.emplace_back(i.second);
+            }
+        }
+        P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
+
     // Now I need to find my index in the sorted list (this will be my ID for the consensus)
     m_consensusMyID = 0;
     for (auto const& i : *m_mediator.m_DSCommittee)
@@ -424,7 +438,7 @@ bool DirectoryService::CleanVariables()
     m_viewChangeCounter = 0;
     m_mode = IDLE;
     m_consensusLeaderID = 0;
-    m_consensusID = 0;
+    m_mediator.m_consensusID = 0;
     return true;
 }
 
@@ -488,6 +502,177 @@ bool DirectoryService::FinishRejoinAsDS()
                   DS_BACKUP_MSG);
     RunConsensusOnDSBlock(true);
     return true;
+}
+
+void DirectoryService::DetermineShardsToSendBlockTo(
+    unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
+    unsigned int& my_shards_hi)
+{
+    // Multicast block to my assigned shard's nodes - send BLOCK message
+    // Message = [block]
+
+    // Multicast assignments:
+    // 1. Divide DS committee into clusters of size 20
+    // 2. Each cluster talks to all shard members in each shard
+    //    DS cluster 0 => Shard 0
+    //    DS cluster 1 => Shard 1
+    //    ...
+    //    DS cluster 0 => Shard (num of DS clusters)
+    //    DS cluster 1 => Shard (num of DS clusters + 1)
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::DetermineShardsToSendBlockTo not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
+    LOG_MARKER();
+
+    unsigned int num_DS_clusters
+        = m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
+    if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
+    {
+        num_DS_clusters++;
+    }
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG num of ds clusters " << num_DS_clusters)
+    unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
+    if ((m_shards.size() % num_DS_clusters) > 0)
+    {
+        shard_groups_count++;
+    }
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DEBUG num of shard group count " << shard_groups_count)
+
+    my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
+    my_shards_lo = my_DS_cluster_num * shard_groups_count;
+    my_shards_hi = my_shards_lo + shard_groups_count - 1;
+
+    if (my_shards_hi >= m_shards.size())
+    {
+        my_shards_hi = m_shards.size() - 1;
+    }
+}
+
+void DirectoryService::StartNewDSEpochConsensus(bool fromFallback)
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::StartNewDSEpochConsensus not "
+                    "expected to be called from LookUp node.");
+        return;
+    }
+
+    LOG_MARKER();
+
+    m_mediator.m_consensusID = 0;
+    m_mediator.m_node->m_consensusLeaderID = 0;
+
+    CleanFinalblockConsensusBuffer();
+
+    m_mediator.m_node->CleanCreatedTransaction();
+
+    m_mediator.m_node->CleanMicroblockConsensusBuffer();
+
+    SetState(POW_SUBMISSION);
+    cv_POWSubmission.notify_all();
+
+    POW::GetInstance().EthashConfigureLightClient(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+    if (m_mode == PRIMARY_DS)
+    {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
+                          + (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+                             << " seconds, accepting PoW submissions...");
+
+        // Notify lookup that it's time to do PoW
+        vector<unsigned char> startpow_message
+            = {MessageType::LOOKUP, LookupInstructionType::RAISESTARTPOW};
+        m_mediator.m_lookup->SendMessageToLookupNodesSerial(startpow_message);
+
+        // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
+        // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
+        this_thread::sleep_for(
+            chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS
+                            + (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+
+        RunConsensusOnDSBlock();
+    }
+    else
+    {
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVDSBlockConsensus);
+
+        // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
+        // So let's add that to our wait time to allow new nodes to get SETSTARTPOW and submit a PoW
+        if (cv_DSBlockConsensus.wait_for(
+                cv_lk,
+                std::chrono::seconds(
+                    NEW_NODE_SYNC_INTERVAL + POW_BACKUP_WINDOW_IN_SECONDS
+                    + (fromFallback ? FALLBACK_EXTRA_TIME : 0)))
+            == std::cv_status::timeout)
+        {
+            LOG_GENERAL(INFO,
+                        "Woken up from the sleep of " << NEW_NODE_SYNC_INTERVAL
+                                + POW_BACKUP_WINDOW_IN_SECONDS
+                                + (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+                                                      << " seconds");
+        }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "Received announcement message. Time to "
+                        "run consensus.");
+        }
+
+        RunConsensusOnDSBlock();
+    }
+}
+
+void DirectoryService::SendBlockToShardNodes(
+    unsigned int my_DS_cluster_num, unsigned int my_shards_lo,
+    unsigned int my_shards_hi, vector<unsigned char>& block_message)
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "DirectoryService::SendBlockToShardNodes not expected to "
+                    "be called from LookUp node.");
+        return;
+    }
+    // Too few target shards - avoid asking all DS clusters to send
+    LOG_MARKER();
+
+    if ((my_DS_cluster_num + 1) <= m_shards.size())
+    {
+        auto p = m_shards.begin();
+        advance(p, my_shards_lo);
+
+        for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
+        {
+            vector<Peer> shard_peers;
+
+            for (const auto& kv : *p)
+            {
+                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+                LOG_EPOCH(
+                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    " PubKey: "
+                        << DataConversion::SerializableToHexStr(
+                               std::get<SHARD_NODE_PUBKEY>(kv))
+                        << " IP: "
+                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
+                        << " Port: "
+                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+            }
+
+            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                        block_message);
+            p++;
+        }
+    }
 }
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
