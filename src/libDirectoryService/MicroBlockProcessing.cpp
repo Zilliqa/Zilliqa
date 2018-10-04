@@ -220,15 +220,15 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
     const MicroBlock& microBlock = microBlocks.at(0);
 
-    uint32_t shardId = microBlock.GetHeader().GetShardID();
+    uint32_t shardId = microBlock.GetHeader().GetShardId();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "shard_id " << shardId);
 
     const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
     // Check public key - shard ID mapping
-    const auto& minerEntry = m_publicKeyToShardIdMap.find(pubKey);
-    if (minerEntry == m_publicKeyToShardIdMap.end())
+    const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
+    if (minerEntry == m_publicKeyToshardIdMap.end())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Cannot find the miner key: "
@@ -250,13 +250,9 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
         return false;
     }
 
-    LOG_GENERAL(INFO,
-                "MicroBlock StateDeltaHash: "
-                    << microBlock.GetHeader().GetStateDeltaHash() << endl
-                    << "TxRootHash: " << microBlock.GetHeader().GetTxRootHash()
-                    << endl
-                    << "TranReceiptHash: "
-                    << microBlock.GetHeader().GetTranReceiptHash());
+    LOG_GENERAL(
+        INFO,
+        "MicroBlock StateDeltaHash: " << microBlock.GetHeader().GetHash());
 
     lock_guard<mutex> g(m_mutexMicroBlocks);
 
@@ -269,7 +265,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     }
 
     if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                      microBlock.GetHeader().GetShardID()))
+                      microBlock.GetHeader().GetShardId()))
     {
         return false;
     }
@@ -281,7 +277,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
               microBlocksAtEpoch.size()
                   << " of " << m_shards.size() << " microblocks received");
 
-    ProcessStateDelta(stateDelta, microBlock.GetHeader().GetStateDeltaHash());
+    ProcessStateDelta(stateDelta,
+                      microBlock.GetHeader().GetHash().m_stateDeltaHash);
 
     if (microBlocksAtEpoch.size() == m_shards.size())
     {
@@ -299,8 +296,9 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
         for (auto& mb : microBlocksAtEpoch)
         {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Timestamp: " << mb.GetHeader().GetTimestamp()
-                                    << mb.GetHeader().GetStateDeltaHash());
+                      "Timestamp: "
+                          << mb.GetHeader().GetTimestamp()
+                          << mb.GetHeader().GetHash().m_stateDeltaHash);
         }
 
         // m_mediator.m_node->RunConsensusOnMicroBlock();
@@ -499,7 +497,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
 
         for (const auto& microBlock : microBlocks)
         {
-            uint32_t shardId = microBlock.GetHeader().GetShardID();
+            uint32_t shardId = microBlock.GetHeader().GetShardId();
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "shard_id " << shardId);
 
@@ -531,8 +529,8 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
             else
             {
                 // normal shard
-                const auto& minerEntry = m_publicKeyToShardIdMap.find(pubKey);
-                if (minerEntry == m_publicKeyToShardIdMap.end())
+                const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
+                if (minerEntry == m_publicKeyToshardIdMap.end())
                 {
                     LOG_EPOCH(
                         WARNING,
@@ -559,15 +557,11 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
                 continue;
             }
 
-            LOG_GENERAL(INFO,
-                        "MicroBlock StateDeltaHash: "
-                            << microBlock.GetHeader().GetStateDeltaHash()
-                            << endl
-                            << "TxRootHash: "
-                            << microBlock.GetHeader().GetTxRootHash());
+            LOG_GENERAL(
+                INFO, "MicroBlock Hash: " << microBlock.GetHeader().GetHash());
 
             if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                              microBlock.GetHeader().GetShardID()))
+                              microBlock.GetHeader().GetShardId()))
             {
                 continue;
             }
