@@ -192,13 +192,14 @@ class Miner
 {
 public:
     Miner() = default;
+	Miner(size_t _index) : m_index(_index) {}
 	virtual ~Miner() = default;
 
 	uint64_t hashCount() const { return m_hashCount.load(std::memory_order_relaxed); }
 
 	void resetHashCount() { m_hashCount.store(0, std::memory_order_relaxed); }
 
-	unsigned Index() { return index; };
+	unsigned Index() { return m_index; };
 	HwMonitorInfo hwmonInfo() { return m_hwmoninfo; }
 
 	void set_mining_paused(MinigPauseReason pause_reason)
@@ -229,7 +230,7 @@ protected:
 	static bool s_exit;
 	static bool s_noeval;
 
-	const size_t index = 0;
+	const size_t m_index = 0;
 	std::chrono::high_resolution_clock::time_point workSwitchStart;
 	HwMonitorInfo m_hwmoninfo;
 	static std::stringstream s_ssLog;
@@ -241,6 +242,8 @@ private:
 	std::atomic<uint64_t> m_hashCount = {0};
 	MiningPause m_mining_paused;
 };
+
+using MinerPtr = std::unique_ptr<Miner>;
 
 }
 }

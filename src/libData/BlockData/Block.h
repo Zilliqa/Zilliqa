@@ -18,10 +18,12 @@
 #define __BLOCK_H__
 
 #include "Block/DSBlock.h"
+#include "Block/FallbackBlock.h"
 #include "Block/MicroBlock.h"
 #include "Block/TxBlock.h"
 #include "Block/VCBlock.h"
 #include "BlockHeader/DSBlockHeader.h"
+#include "BlockHeader/FallbackBlockHeader.h"
 #include "BlockHeader/MicroBlockHeader.h"
 #include "BlockHeader/TxBlockHeader.h"
 #include "BlockHeader/VCBlockHeader.h"
@@ -30,7 +32,8 @@ enum BlockType : unsigned int
 {
     DS = 0,
     Tx = 1,
-    VC = 2
+    VC = 2,
+    FB = 3
 };
 
 enum TXBLOCKTYPE : unsigned char

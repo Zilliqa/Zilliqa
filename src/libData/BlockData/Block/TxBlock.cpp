@@ -139,7 +139,6 @@ unsigned int TxBlock::GetSerializedSize() const
         + (m_microBlockHashes.size()
            * (MicroBlockHashSet::size() + sizeof(uint32_t)))
         + BlockBase::GetSerializedSize();
-    ;
 }
 
 unsigned int TxBlock::GetMinSize() { return TxBlockHeader::SIZE; }

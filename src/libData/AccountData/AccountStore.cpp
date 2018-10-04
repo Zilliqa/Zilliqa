@@ -52,6 +52,8 @@ void AccountStore::InitSoft()
 
     AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
 
+    InitReversibles();
+
     InitTemp();
 }
 
@@ -161,7 +163,7 @@ unsigned int AccountStore::GetSerializedDelta(vector<unsigned char>& dst)
 }
 
 int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
-                                   unsigned int offset)
+                                   unsigned int offset, bool reversible)
 {
     LOG_MARKER();
     // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -214,6 +216,18 @@ int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
                 continue;
             }
             (*m_addressToAccount)[address] = account;
+
+            if (reversible)
+            {
+                if (fullCopy)
+                {
+                    m_addressToAccountRevCreated[address] = account;
+                }
+                else
+                {
+                    m_addressToAccountRevChanged[address] = account;
+                }
+            }
 
             UpdateStateTrie(address, account);
         }
@@ -433,4 +447,38 @@ void AccountStore::InitTemp()
 
     m_accountStoreTemp->Init();
     m_stateDeltaSerialized.clear();
+}
+
+void AccountStore::CommitTempReversible()
+{
+    LOG_MARKER();
+
+    InitReversibles();
+
+    DeserializeDelta(m_stateDeltaSerialized, 0, true);
+}
+
+void AccountStore::RevertCommitTemp()
+{
+    LOG_MARKER();
+
+    // Revert changed
+    for (auto const entry : m_addressToAccountRevChanged)
+    {
+        (*m_addressToAccount)[entry.first] = entry.second;
+        UpdateStateTrie(entry.first, entry.second);
+    }
+    for (auto const entry : m_addressToAccountRevCreated)
+    {
+        RemoveAccount(entry.first);
+        RemoveFromTrie(entry.first);
+    }
+}
+
+void AccountStore::InitReversibles()
+{
+    LOG_MARKER();
+
+    m_addressToAccountRevChanged.clear();
+    m_addressToAccountRevCreated.clear();
 }
