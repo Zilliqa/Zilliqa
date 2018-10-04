@@ -532,20 +532,9 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
     if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
     {
-<<<<<<< HEAD
-        lock_guard<mutex> g(m_mutexConsensus);
-
-        if (!CheckState(PROCESS_FINALBLOCKCONSENSUS))
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Ignoring consensus message. I am at state " << m_state);
-            return false;
-        }
-=======
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Ignoring consensus message. I am at state " << m_state);
         return false;
->>>>>>> 77c987635d7e82137a3f851e09c492b22876b469
     }
 
     // Consensus messages must be processed in correct sequence as they come in
