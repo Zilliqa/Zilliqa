@@ -442,13 +442,9 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
     JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 }
 
-<<<<<<< HEAD
 template<class MAP>
 string
 AccountStoreSC<MAP>::GetCreateContractCmdStr(const uint256_t& available_gas)
-=======
-template<class MAP> std::string AccountStoreSC<MAP>::GetCreateContractCmdStr()
->>>>>>> 77c987635d7e82137a3f851e09c492b22876b469
 {
     std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE
@@ -458,13 +454,9 @@ template<class MAP> std::string AccountStoreSC<MAP>::GetCreateContractCmdStr()
     return ret;
 }
 
-<<<<<<< HEAD
 template<class MAP>
 string
 AccountStoreSC<MAP>::GetCallContractCmdStr(const uint256_t& available_gas)
-=======
-template<class MAP> std::string AccountStoreSC<MAP>::GetCallContractCmdStr()
->>>>>>> 77c987635d7e82137a3f851e09c492b22876b469
 {
     std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
@@ -513,7 +505,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     const Json::Value& _json, uint256_t& gasRemained)
 {
     // LOG_MARKER();
-    if (!_json.isMember("remaining_gas"))
+    if (!_json.isMember("gas_remaining"))
     {
         LOG_GENERAL(
             WARNING,
