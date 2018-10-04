@@ -187,7 +187,7 @@ void Node::ProcessFallbackConsensusWhenDone()
     }
 
     // Update m_shards
-    for (unsigned int i = 0; i <= m_myShardID; i++)
+    for (unsigned int i = 0; i <= m_myshardId; i++)
     {
         m_mediator.m_ds->m_shards.pop_front();
     }

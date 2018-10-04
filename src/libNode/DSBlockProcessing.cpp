@@ -234,15 +234,15 @@ bool Node::LoadShardingStructure()
     m_numShards = m_mediator.m_ds->m_shards.size();
 
     // Check the shard ID against the deserialized structure
-    if (m_myShardID >= m_mediator.m_ds->m_shards.size())
+    if (m_myshardId >= m_mediator.m_ds->m_shards.size())
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Shard ID " << m_myShardID << " >= num shards "
+                  "Shard ID " << m_myshardId << " >= num shards "
                               << m_mediator.m_ds->m_shards.size());
         return false;
     }
 
-    const auto& my_shard = m_mediator.m_ds->m_shards.at(m_myShardID);
+    const auto& my_shard = m_mediator.m_ds->m_shards.at(m_myshardId);
 
     // m_myShardMembers->clear();
     m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);
@@ -312,7 +312,7 @@ void Node::LoadTxnSharingInfo()
             m_txnSharingAssignedNodes.back().emplace_back(
                 m_mediator.m_ds->m_shardReceivers.at(i).at(j));
 
-            if ((i == m_myShardID)
+            if ((i == m_myshardId)
                 && (m_txnSharingAssignedNodes.back().back()
                     == m_mediator.m_selfPeer))
             {
@@ -328,7 +328,7 @@ void Node::LoadTxnSharingInfo()
             m_txnSharingAssignedNodes.back().emplace_back(
                 m_mediator.m_ds->m_shardSenders.at(i).at(j));
 
-            if ((i == m_myShardID)
+            if ((i == m_myshardId)
                 && (m_txnSharingAssignedNodes.back().back()
                     == m_mediator.m_selfPeer))
             {
@@ -362,7 +362,7 @@ void Node::StartFirstTxEpoch()
 
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_myShardID << "][0  ] SCLD");
+                             << "][" << m_myshardId << "][0  ] SCLD");
     }
     else
     {
@@ -381,7 +381,7 @@ void Node::StartFirstTxEpoch()
 
         LOG_STATE("[IDENT][" << std::setw(15) << std::left
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_myShardID << "][" << std::setw(3)
+                             << "][" << m_myshardId << "][" << std::setw(3)
                              << std::left << m_consensusMyID << "] SCBK");
     }
 
@@ -484,7 +484,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     }
 
     DSBlock dsblock;
-    uint32_t shardID;
+    uint32_t shardId;
     Peer newleaderIP;
 
     m_mediator.m_ds->m_shards.clear();
@@ -493,7 +493,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     m_mediator.m_ds->m_shardSenders.clear();
 
     if (!Messenger::GetNodeDSBlock(
-            message, cur_offset, shardID, dsblock, newleaderIP,
+            message, cur_offset, shardId, dsblock, newleaderIP,
             m_mediator.m_ds->m_shards, m_mediator.m_ds->m_DSReceivers,
             m_mediator.m_ds->m_shardReceivers, m_mediator.m_ds->m_shardSenders))
     {
@@ -515,7 +515,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     };
     DetachedFunction(1, func);
 
-    m_myShardID = shardID;
+    m_myshardId = shardId;
 
     LogReceivedDSBlockDetails(dsblock);
 
@@ -570,7 +570,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             // Process sharding structure as a DS node
             if (!m_mediator.m_ds->ProcessShardingStructure(
                     m_mediator.m_ds->m_shards,
-                    m_mediator.m_ds->m_publicKeyToShardIdMap,
+                    m_mediator.m_ds->m_publicKeyToshardIdMap,
                     m_mediator.m_ds->m_mapNodeReputation))
             {
                 return false;
