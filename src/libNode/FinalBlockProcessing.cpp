@@ -140,7 +140,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
         return false;
     }
 
-    bool doRejoin = false;
+    // bool doRejoin = false;
 
     for (unsigned int i = 0; i < hashesInMicroBlocks.size(); i++)
     {
@@ -161,7 +161,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                     LOG_GENERAL(WARNING,
                                 "Found my shard microblock but microblock obj "
                                 "not initiated");
-                    doRejoin = true;
+                    // doRejoin = true;
                 }
                 else if (m_lastMicroBlockCoSig.first
                          != m_mediator.m_currentEpochNum)
@@ -169,7 +169,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                     LOG_GENERAL(
                         WARNING,
                         "Found my shard microblock but Cosig not updated");
-                    doRejoin = true;
+                    // doRejoin = true;
                 }
                 else
                 {
@@ -198,14 +198,14 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
         }
     }
 
-    if (doRejoin || m_doRejoinAtFinalBlock)
+    if (/*doRejoin || */ m_doRejoinAtFinalBlock)
     {
-        // LOG_GENERAL(WARNING,
-        //             "Failed the last microblock consensus but "
-        //             "still found my shard microblock, "
-        //             " need to Rejoin");
-        // RejoinAsNormal();
-        // return false;
+        LOG_GENERAL(WARNING,
+                    "Failed the last microblock consensus but "
+                    "still found my shard microblock, "
+                    " need to Rejoin");
+        RejoinAsNormal();
+        return false;
     }
 
     return true;
@@ -214,8 +214,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
     const ForwardedTxnEntry& entry)
 {
-    for (auto it = m_unavailableMicroBlocks[entry.m_blockNum].begin();
-         it != m_unavailableMicroBlocks[entry.m_blockNum].end(); it++)
+    for (auto it = m_unavailableMicroBlocks.at(entry.m_blockNum).begin();
+         it != m_unavailableMicroBlocks.at(entry.m_blockNum).end(); it++)
     {
         if (it->m_hash == entry.m_hash && it->m_shardId == entry.m_shardId)
         {
@@ -223,12 +223,12 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
             LOG_GENERAL(
                 INFO,
                 "Microblocks count before removing: "
-                    << m_unavailableMicroBlocks[entry.m_blockNum].size());
-            m_unavailableMicroBlocks[entry.m_blockNum].erase(it);
+                    << m_unavailableMicroBlocks.at(entry.m_blockNum).size());
+            m_unavailableMicroBlocks.at(entry.m_blockNum).erase(it);
             LOG_GENERAL(
                 INFO,
                 "Microblocks count after removing: "
-                    << m_unavailableMicroBlocks[entry.m_blockNum].size());
+                    << m_unavailableMicroBlocks.at(entry.m_blockNum).size());
             return true;
         }
     }
@@ -1209,7 +1209,6 @@ void Node::CommitForwardedTransactionBuffer()
                             .GetBlockNum())
         {
             it = m_forwardedTxnBuffer.erase(it);
-            continue;
         }
         else
         {
@@ -1218,8 +1217,6 @@ void Node::CommitForwardedTransactionBuffer()
                 ProcessForwardTransactionCore(entry);
             }
             m_forwardedTxnBuffer.erase(it);
-            continue;
         }
-        it++;
     }
 }
