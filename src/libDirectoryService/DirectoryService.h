@@ -188,8 +188,6 @@ class DirectoryService : public Executable, public Broadcastable
     void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                  unsigned int my_shards_hi);
 
-    // PoW (DS block) consensus functions
-    void RunConsensusOnDSBlock(bool isRejoin = false);
     unsigned int ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedDSPoWSolns,

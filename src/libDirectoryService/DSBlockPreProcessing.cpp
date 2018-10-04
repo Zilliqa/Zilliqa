@@ -143,11 +143,11 @@ unsigned int DirectoryService::ComposeDSBlock(
     // TODO: Revise DS block structure
     {
         lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-        m_pendingDSBlock.reset(
-            new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  get_time_as_int(), SWInfo(), powDSWinners),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
+        m_pendingDSBlock.reset(new DSBlock(
+            DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                          m_mediator.m_selfKey.second, blockNum,
+                          get_time_as_int(), SWInfo(), powDSWinners),
+            CoSignatures(m_mediator.m_DSCommittee->size())));
     }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New DSBlock created with ds difficulty "
@@ -639,15 +639,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
                const pair<PrivKey, PubKey>& leaderKey,
                vector<unsigned char>& messageToCosign) mutable -> bool {
         return Messenger::SetDSDSBlockAnnouncement(
-<<<<<<< HEAD
-            dst, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingDSBlock, m_shards, m_DSReceivers, m_shardReceivers,
-            m_shardSenders, messageToCosign);
-=======
             dst, offset, consensusID, blockNumber, blockHash, leaderID,
-            leaderKey, *m_pendingDSBlock, winnerPeer->second, m_shards,
-            m_DSReceivers, m_shardReceivers, m_shardSenders, messageToCosign);
->>>>>>> 9bf43f2048d51fa8fcedfe261caa66d6e6e3bf2a
+            leaderKey, *m_pendingDSBlock, m_shards, m_DSReceivers,
+            m_shardReceivers, m_shardSenders, messageToCosign);
     };
 
     cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
@@ -735,16 +729,9 @@ bool DirectoryService::DSBlockValidator(
     m_pendingDSBlock.reset(new DSBlock);
 
     if (!Messenger::GetDSDSBlockAnnouncement(
-<<<<<<< HEAD
-            message, offset, consensusID, blockHash, leaderID, leaderKey,
-            *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
-            m_tempShardReceivers, m_tempShardSenders, messageToCosign))
-=======
             message, offset, consensusID, blockNumber, blockHash, leaderID,
-            leaderKey, *m_pendingDSBlock, winnerPeer, m_tempShards,
-            m_tempDSReceivers, m_tempShardReceivers, m_tempShardSenders,
-            messageToCosign))
->>>>>>> 9bf43f2048d51fa8fcedfe261caa66d6e6e3bf2a
+            leaderKey, *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
+            m_tempShardReceivers, m_tempShardSenders, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSDSBlockAnnouncement failed.");

@@ -944,8 +944,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
-    const DequeOfShard& shards,
-    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
+    const DequeOfShard& shards, const vector<Peer>& dsReceivers,
+    const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
 {
@@ -1040,10 +1040,9 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, DSBlock& dsBlock,
-    DequeOfShard& shards, vector<Peer>& dsReceivers,
-    vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders,
-    vector<unsigned char>& messageToCosign)
+    const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
+    vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
+    vector<vector<Peer>>& shardSenders, vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1411,8 +1410,8 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
                                const unsigned int offset, uint32_t& shardID,
-                               DSBlock& dsBlock,
-                               DequeOfShard& shards, vector<Peer>& dsReceivers,
+                               DSBlock& dsBlock, DequeOfShard& shards,
+                               vector<Peer>& dsReceivers,
                                vector<vector<Peer>>& shardReceivers,
                                vector<vector<Peer>>& shardSenders)
 {
