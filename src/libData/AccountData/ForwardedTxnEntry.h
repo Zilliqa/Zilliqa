@@ -20,7 +20,7 @@
 #include "AccountStore.h"
 #include "Transaction.h"
 #include "TransactionReceipt.h"
-#include "../BlockData/BlockHeader/BlockHashSet.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
 struct ForwardedTxnEntry
 {
