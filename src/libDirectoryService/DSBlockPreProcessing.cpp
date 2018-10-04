@@ -519,7 +519,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     ComputeTxnSharingAssignments(winnerPeer->second);
 
     // Create new consensus object
-    // Dummy values for now
     uint32_t consensusID = 0;
     m_consensusBlockHash = m_mediator.m_dsBlockChain.GetLastBlock()
                                .GetHeader()
