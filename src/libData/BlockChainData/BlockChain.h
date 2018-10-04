@@ -155,4 +155,14 @@ public:
     }
 };
 
+class FallbackBlockChain : public BlockChain<FallbackBlock>
+{
+public:
+    FallbackBlock GetBlockFromPersistentStorage([
+        [gnu::unused]] const uint64_t& blockNum)
+    {
+        throw "fallback block persistent storage not supported";
+    }
+};
+
 #endif // __BLOCKCHAIN_H__

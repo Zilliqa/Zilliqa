@@ -45,6 +45,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -251,7 +252,7 @@ bool Node::LoadShardingStructure()
         if (m_mediator.m_selfPeer == m_myShardMembers->back().second)
         {
             m_consensusMyID = index; // Set my ID
-            m_myShardMembers->back().second.m_listenPortHost = 0;
+            m_myShardMembers->back().second = Peer();
         }
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -343,8 +344,11 @@ void Node::StartFirstTxEpoch()
 
     LOG_MARKER();
 
+    ResetConsensusId();
+
     // Check if I am the leader or backup of the shard
-    if (m_mediator.m_selfKey.second == m_myShardMembers->front().first)
+    if (m_mediator.m_selfKey.second
+        == (*m_myShardMembers)[m_consensusLeaderID].first)
     {
         m_isPrimary = true;
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -375,10 +379,10 @@ void Node::StartFirstTxEpoch()
                              << std::left << m_consensusMyID << "] SCBK");
     }
 
-    // Choose 4 other nodes to be sender of microblock to ds committee.
+    // Choose N other nodes to be sender of microblock to ds committee.
     // TODO: Randomly choose these nodes?
     m_isMBSender = false;
-    unsigned int numOfMBSender = 5;
+    unsigned int numOfMBSender = NUM_MICROBLOCK_SENDERS;
     if (m_myShardMembers->size() < numOfMBSender)
     {
         numOfMBSender = m_myShardMembers->size();
@@ -395,12 +399,47 @@ void Node::StartFirstTxEpoch()
         }
     }
 
-    m_consensusLeaderID = 0;
+    // Choose N other DS nodes to be recipient of microblock
+    m_DSMBReceivers.clear();
+    unsigned int numOfMBReceivers
+        = std::min(NUM_MICROBLOCK_GOSSIP_RECEIVERS,
+                   (uint32_t)m_mediator.m_DSCommittee->size());
+
+    for (unsigned int i = 0; i < numOfMBReceivers; i++)
+    {
+        m_DSMBReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
+    }
+
+    m_justDidFallback = false;
     CommitTxnPacketBuffer();
+
+    if (BROADCAST_GOSSIP_MODE)
+    {
+        std::vector<Peer> peers;
+        for (const auto& i : *m_myShardMembers)
+        {
+            if (i.second.m_listenPortHost != 0)
+            {
+                peers.emplace_back(i.second);
+            }
+        }
+
+        // Initialize every start of DS Epoch
+        P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
 
     auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
     DetachedFunction(1, main_func3);
+
+    FallbackTimerLaunch();
+    FallbackTimerPulse();
+}
+
+void Node::ResetConsensusId()
+{
+    m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+    m_consensusLeaderID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 }
 
 bool Node::ProcessDSBlock(const vector<unsigned char>& message,
@@ -455,6 +494,19 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                   "Messenger::GetNodeDSBlock failed.");
         return false;
     }
+
+    auto func = [this, dsblock]() mutable -> void {
+        lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+        if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo())
+        {
+            if (UpgradeManager::GetInstance().DownloadSW())
+            {
+                m_mediator.m_curSWInfo
+                    = *UpgradeManager::GetInstance().GetLatestSWInfo();
+            }
+        }
+    };
+    DetachedFunction(1, func);
 
     m_myShardID = shardID;
 
@@ -541,6 +593,8 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
             m_mediator.m_ds->m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 
+            ResetConsensusId();
+
             //(We're getting rid of this eventually Clean up my txns coz I am DS)
             m_mediator.m_node->CleanCreatedTransaction();
 
@@ -582,6 +636,9 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                         "debug consensus leader index is at "
                             << m_mediator.m_ds->m_consensusLeaderID);
             m_mediator.m_ds->StartFirstTxEpoch();
+            //m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
+
+            return true;
         }
         else
         {
@@ -607,15 +664,22 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
         // Process sharding structure as a lookup node
         m_mediator.m_lookup->ProcessEntireShardingStructure();
 
+        ResetConsensusId();
+
         if (m_mediator.m_lookup->GetIsServer() && USE_REMOTE_TXN_CREATOR)
         {
             m_mediator.m_lookup->SenderTxnBatchThread();
         }
+
+        FallbackTimerLaunch();
+        FallbackTimerPulse();
     }
+
     LOG_GENERAL(INFO, "DS committee");
     for (const auto& member : *m_mediator.m_DSCommittee)
     {
         LOG_GENERAL(INFO, member.second);
     }
+
     return true;
 }

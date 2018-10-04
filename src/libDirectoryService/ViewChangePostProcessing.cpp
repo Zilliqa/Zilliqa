@@ -38,101 +38,6 @@
 
 using namespace std;
 
-void DirectoryService::DetermineShardsToSendVCBlockTo(
-    unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
-    unsigned int& my_shards_hi) const
-{
-    // Multicast VC block to my assigned shard's nodes - send VCBLOCK message
-    // Message = [VC block]
-
-    // Multicast assignments:
-    // 1. Divide DS committee into clusters of size 20
-    // 2. Each cluster talks to all shard members in each shard
-    //    DS cluster 0 => Shard 0
-    //    DS cluster 1 => Shard 1
-    //    ...
-    //    DS cluster 0 => Shard (num of DS clusters)
-    //    DS cluster 1 => Shard (num of DS clusters + 1)
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::DetermineShardsToSendVCBlockTo not "
-                    "expected to be called from LookUp node.");
-        return;
-    }
-
-    LOG_MARKER();
-
-    unsigned int num_DS_clusters
-        = m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
-    if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0)
-    {
-        num_DS_clusters++;
-    }
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG num of ds clusters " << num_DS_clusters)
-    unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
-    if ((m_shards.size() % num_DS_clusters) > 0)
-    {
-        shard_groups_count++;
-    }
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DEBUG num of shard group count " << shard_groups_count)
-
-    my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
-    my_shards_lo = my_DS_cluster_num * shard_groups_count;
-    my_shards_hi = my_shards_lo + shard_groups_count - 1;
-
-    if (my_shards_hi >= m_shards.size())
-    {
-        my_shards_hi = m_shards.size() - 1;
-    }
-}
-
-void DirectoryService::SendVCBlockToShardNodes(
-    unsigned int my_DS_cluster_num, unsigned int my_shards_lo,
-    unsigned int my_shards_hi, vector<unsigned char>& vcblock_message)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::SendVCBlockToShardNodes not expected to "
-                    "be called from LookUp node.");
-        return;
-    }
-    // Too few target shards - avoid asking all DS clusters to send
-    LOG_MARKER();
-
-    if ((my_DS_cluster_num + 1) <= m_shards.size())
-    {
-        auto p = m_shards.begin();
-        advance(p, my_shards_lo);
-
-        for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
-        {
-            vector<Peer> shard_peers;
-
-            for (const auto& kv : *p)
-            {
-                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-                LOG_EPOCH(
-                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    " PubKey: "
-                        << DataConversion::SerializableToHexStr(
-                               std::get<SHARD_NODE_PUBKEY>(kv))
-                        << " IP: "
-                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                        << " Port: "
-                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
-            }
-
-            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                        vcblock_message);
-            p++;
-        }
-    }
-}
-
 void DirectoryService::ProcessViewChangeConsensusWhenDone()
 {
     if (LOOKUP_NODE_MODE)
@@ -362,6 +267,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
         {
             allPowSubmitter.emplace_back(nodeNetwork.second);
         }
+
         P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
                                                     vcblock_message);
         break;
@@ -369,10 +275,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
     {
-        DetermineShardsToSendVCBlockTo(my_DS_cluster_num, my_shards_lo,
-                                       my_shards_hi);
-        SendVCBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
-                                vcblock_message);
+        DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo,
+                                     my_shards_hi);
+        SendBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
+                              vcblock_message);
         break;
     }
     case VIEWCHANGE_CONSENSUS:
@@ -440,33 +346,30 @@ bool DirectoryService::ProcessViewChangeConsensus(
     {
         lock_guard<mutex> g(m_mutexConsensus);
 
-        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
-        if (cv_ViewChangeConsensusObj.wait_for(
-                cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                [this] { return (m_state == VIEWCHANGE_CONSENSUS); }))
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Successfully transit to viewchange consensus or I am in the "
-                "correct state.");
-        }
-        else
-        {
-            LOG_EPOCH(
-                WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Time out while waiting for state transition to view change "
-                "consensus and "
-                "consensus object creation. Most likely view change didn't "
-                "occur. A malicious node may be trying to initate view "
-                "change.");
-        }
-
         if (!CheckState(PROCESS_VIEWCHANGECONSENSUS))
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Ignoring consensus message. Not at viewchange consensus "
-                      "state.");
-            return false;
+            std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
+            if (cv_ViewChangeConsensusObj.wait_for(
+                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+                    [this] { return CheckState(PROCESS_VIEWCHANGECONSENSUS); }))
+            {
+                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "Successfully transit to viewchange consensus or I "
+                          "am in the "
+                          "correct state.");
+            }
+            else
+            {
+                LOG_EPOCH(
+                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Time out while waiting for state transition to view "
+                    "change "
+                    "consensus and "
+                    "consensus object creation. Most likely view change didn't "
+                    "occur. A malicious node may be trying to initate view "
+                    "change.");
+                return false;
+            }
         }
     }
 

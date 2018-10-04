@@ -53,8 +53,6 @@ class Lookup : public Executable, public Broadcastable
     std::vector<Peer> m_seedNodes;
     bool m_dsInfoWaitingNotifying = false;
     bool m_fetchedDSInfo = false;
-    std::mutex m_mutexDSInfoUpdation;
-    std::condition_variable cv_dsInfoUpdate;
 
     // To ensure that the confirm of DS node rejoin won't be later than
     // It receiving a new DS block
@@ -64,7 +62,7 @@ class Lookup : public Executable, public Broadcastable
     bool m_isServer = false;
 
     // Sharding committee members
-    std::mutex m_mutexShards;
+
     std::mutex m_mutexNodesInNetwork;
     std::vector<Peer> m_nodesInNetwork;
     std::unordered_set<Peer> l_nodesInNetwork;
@@ -131,9 +129,9 @@ public:
     std::vector<Peer> GetLookupNodes();
 
     //Gen n valid txns
-    bool GenTxnToSend(size_t n,
+    bool GenTxnToSend(size_t num_txn,
                       std::map<uint32_t, std::vector<unsigned char>>& mp,
-                      uint32_t nShard);
+                      uint32_t numShards);
 
     // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
     void
@@ -173,7 +171,7 @@ public:
 
     bool SetDSCommitteInfo();
 
-    VectorOfShard GetShardPeers();
+    DequeOfShard GetShardPeers();
     std::vector<Peer> GetNodePeers();
 
     // Start synchronization with other lookup nodes as a lookup node
@@ -266,6 +264,9 @@ public:
     bool m_startedPoW = false;
 
     bool AlreadyJoinedNetwork();
+
+    std::mutex m_mutexDSInfoUpdation;
+    std::condition_variable cv_dsInfoUpdate;
 };
 
 #endif // __LOOKUP_H__
