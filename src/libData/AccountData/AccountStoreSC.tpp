@@ -509,7 +509,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     {
         LOG_GENERAL(
             WARNING,
-            "The json output of this contract didn't contain remaining_gas");
+            "The json output of this contract didn't contain gas_remaining");
         if (gasRemained > CONTRACT_CREATE_GAS)
         {
             gasRemained -= CONTRACT_CREATE_GAS;
@@ -520,7 +520,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
         }
         return false;
     }
-    gasRemained = atoi(_json["remaining_gas"].asString().c_str());
+    gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
@@ -580,11 +580,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                                                       uint256_t& gasRemained)
 {
     // LOG_MARKER();
-    if (!_json.isMember("remaining_gas"))
+    if (!_json.isMember("gas_remaining"))
     {
         LOG_GENERAL(
             WARNING,
-            "The json output of this contract didn't contain remaining_gas");
+            "The json output of this contract didn't contain gas_remaining");
         if (gasRemained > CONTRACT_INVOKE_GAS)
         {
             gasRemained -= CONTRACT_INVOKE_GAS;
@@ -595,7 +595,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
         }
         return false;
     }
-    gasRemained = atoi(_json["remaining_gas"].asString().c_str());
+    gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
     if (!_json.isMember("message") || !_json.isMember("states")
         || !_json.isMember("events"))
