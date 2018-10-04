@@ -90,7 +90,7 @@
     </smart_contract>
     <dispatcher>
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
-        <TXN_PATH></TXN_PATH>
+        <TXN_PATH/>
     </dispatcher>
     <archival>
         <DB_HOST>localhost</DB_HOST>
