@@ -117,7 +117,7 @@ int DSBlockHeader::Deserialize(const vector<unsigned char>& src,
         curOffset += BLOCK_HASH_SIZE;
         if (m_leaderPubKey.Deserialize(src, curOffset) != 0)
         {
-            LOG_GENERAL(WARNING, "We failed to init m_minerPubKey.");
+            LOG_GENERAL(WARNING, "We failed to init m_leaderPubKey.");
             return -1;
         }
         curOffset += PUB_KEY_SIZE;
