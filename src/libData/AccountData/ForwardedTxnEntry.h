@@ -14,38 +14,32 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#ifndef __BLOCK_H__
-#define __BLOCK_H__
+#ifndef __FORWARDEDTXNENTRY_H__
+#define __FORWARDEDTXNENTRY_H__
 
-#include "Block/DSBlock.h"
-#include "Block/FallbackBlock.h"
-#include "Block/MicroBlock.h"
-#include "Block/TxBlock.h"
-#include "Block/VCBlock.h"
-#include "BlockHeader/BlockHashSet.h"
-#include "BlockHeader/DSBlockHeader.h"
-#include "BlockHeader/FallbackBlockHeader.h"
-#include "BlockHeader/MicroBlockHeader.h"
-#include "BlockHeader/TxBlockHeader.h"
-#include "BlockHeader/VCBlockHeader.h"
+#include "AccountStore.h"
+#include "Transaction.h"
+#include "TransactionReceipt.h"
+#include "../BlockData/BlockHeader/BlockHashSet.h"
 
-enum BlockType : unsigned int
+struct ForwardedTxnEntry
 {
-    DS = 0,
-    Tx = 1,
-    VC = 2,
-    FB = 3
+    uint64_t m_blockNum;
+    MicroBlockHashSet m_hash;
+    uint32_t m_shardId;
+    std::vector<TransactionWithReceipt> m_transactions;
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const ForwardedTxnEntry& t);
 };
 
-enum TXBLOCKTYPE : unsigned char
+inline std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t)
 {
-    MICRO = 0x00,
-    FINAL = 0x01
-};
+    os << "<ForwardedTxnEntry>" << std::endl
+       << "m_blockNum : " << t.m_blockNum << std::endl
+       << "m_hash : " << t.m_hash << std::endl
+       << "m_shardId : " << t.m_shardId;
+    return os;
+}
 
-enum BLOCKVERSION : unsigned char
-{
-    VERSION1 = 0x00
-};
-
-#endif // __BLOCK_H__
+#endif // __FORWARDEDTXNENTRY_H__
