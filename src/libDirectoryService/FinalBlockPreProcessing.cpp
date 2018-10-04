@@ -182,12 +182,8 @@ void DirectoryService::ComposeFinalBlock()
     if (m_mediator.m_txBlockChain.GetBlockCount() > 0)
     {
         TxBlock lastBlock = m_mediator.m_txBlockChain.GetLastBlock();
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-        vector<unsigned char> vec;
-        lastBlock.GetHeader().Serialize(vec, 0);
-        sha2.Update(vec);
-        vector<unsigned char> hashVec = sha2.Finalize();
-        copy(hashVec.begin(), hashVec.end(), prevHash.asArray().begin());
+        prevHash = lastBlock.GetHeader().GetMyHash();
+
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Prev block hash as per leader "
                       << prevHash.hex() << endl
@@ -273,10 +269,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     **/
 
     // Create new consensus object
-    // Dummy values for now
-    //uint32_t consensusID = 0x0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto nodeMissingMicroBlocksFunc
         = [this](const vector<unsigned char>& errorMsg,
@@ -1133,8 +1129,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
     // Create new consensus object
 
     // Dummy values for now
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                        vector<unsigned char>& errorMsg,

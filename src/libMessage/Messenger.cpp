@@ -661,9 +661,23 @@ namespace
         if ((announcement.consensusinfo().blockhash().size()
              != blockHash.size())
             || !equal(blockHash.begin(), blockHash.end(),
-                      announcement.consensusinfo().blockhash().begin()))
+                      announcement.consensusinfo().blockhash().begin(),
+                      [](const unsigned char left, const char right) -> bool {
+                          return left == (unsigned char)right;
+                      }))
         {
-            LOG_GENERAL(WARNING, "Block hash mismatch.");
+            std::vector<unsigned char> remoteBlockHash;
+            remoteBlockHash.resize(
+                announcement.consensusinfo().blockhash().size());
+            std::copy(announcement.consensusinfo().blockhash().begin(),
+                      announcement.consensusinfo().blockhash().end(),
+                      remoteBlockHash.begin());
+            LOG_GENERAL(
+                WARNING,
+                "Block hash mismatch. Expected: "
+                    << DataConversion::Uint8VecToHexStr(blockHash)
+                    << " Actual: "
+                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
             return false;
         }
 
@@ -2918,6 +2932,220 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
     return true;
 }
 
+bool Messenger::SetLookupGetMicroBlockFromLookup(
+    vector<unsigned char>& dest, const unsigned int offset,
+    const map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t portNo)
+{
+    LOG_MARKER();
+
+    LookupGetMicroBlockFromLookup result;
+
+    result.set_portno(portNo);
+
+    for (const auto& mb : microBlockInfo)
+    {
+        MicroBlockInfo& res_mb = *result.add_blocknums();
+        res_mb.set_blocknum(mb.first);
+
+        for (uint32_t shard_id : mb.second)
+        {
+            res_mb.add_shards(shard_id);
+        }
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupGetMicroBlockFromLookup initialization failed.");
+        return false;
+    }
+    return SerializeToArray(result, dest, offset);
+}
+
+bool Messenger::GetLookupGetMicroBlockFromLookup(
+    const vector<unsigned char>& src, const unsigned int offset,
+    map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t& portNo)
+{
+    LOG_MARKER();
+
+    LookupGetMicroBlockFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupGetMicroBlockFromLookup initialization failed.");
+        return false;
+    }
+
+    portNo = result.portno();
+
+    for (const auto& blocknum : result.blocknums())
+    {
+        vector<uint32_t> tempVec;
+        for (const auto& id : blocknum.shards())
+        {
+            tempVec.emplace_back(id);
+        }
+        microBlockInfo.insert(make_pair(blocknum.blocknum(), tempVec));
+    }
+    return true;
+}
+
+bool Messenger::SetLookupSetMicroBlockFromLookup(vector<unsigned char>& dst,
+                                                 const unsigned int offset,
+                                                 const vector<MicroBlock>& mbs)
+{
+    LOG_MARKER();
+    LookupSetMicroBlockFromLookup result;
+
+    for (const auto& mb : mbs)
+    {
+        MicroBlockToProtobuf(mb, *result.add_microblocks());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupSetMicroBlockFromLookup initialization failed");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetMicroBlockFromLookup(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<MicroBlock>& mbs)
+{
+    LOG_MARKER();
+    LookupSetMicroBlockFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupSetMicroBlockFromLookup initialization failed");
+        return false;
+    }
+
+    for (const auto& res_mb : result.microblocks())
+    {
+        MicroBlock mb;
+
+        ProtobufToMicroBlock(res_mb, mb);
+
+        mbs.emplace_back(mb);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetTxnsFromLookup(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const vector<TxnHash>& txnhashes,
+                                           uint32_t portNo)
+{
+    LOG_MARKER();
+
+    LookupGetTxnsFromLookup result;
+
+    result.set_portno(portNo);
+
+    for (const auto& txhash : txnhashes)
+    {
+        result.add_txnhashes(txhash.data(), txhash.size);
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxnsFromLookup initialization failure");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetTxnsFromLookup(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<TxnHash>& txnhashes,
+                                           uint32_t& portNo)
+{
+    LOG_MARKER();
+
+    LookupGetTxnsFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    portNo = result.portno();
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxnsFromLookup initialization failure");
+        return false;
+    }
+
+    for (const auto& hash : result.txnhashes())
+    {
+        txnhashes.emplace_back();
+        unsigned int size = min((unsigned int)hash.size(),
+                                (unsigned int)txnhashes.back().size);
+        copy(hash.begin(), hash.begin() + size,
+             txnhashes.back().asArray().begin());
+    }
+    return true;
+}
+
+bool Messenger::SetLookupSetTxnsFromLookup(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    LookupSetTxnsFromLookup result;
+
+    for (auto const& txn : txns)
+    {
+        SerializableToProtobufByteArray(txn, *result.add_transactions());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxnsFromLookup initialization failure");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetTxnsFromLookup(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    LookupSetTxnsFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxnsFromLookup initialization failed");
+        return false;
+    }
+
+    for (auto const& protoTxn : result.transactions())
+    {
+        TransactionWithReceipt txn;
+        ProtobufByteArrayToSerializable(protoTxn, txn);
+        txns.emplace_back(txn);
+    }
+
+    return true;
+}
+
 // ============================================================================
 // Consensus messages
 // ============================================================================
@@ -3008,9 +3236,21 @@ bool Messenger::GetConsensusCommit(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3136,9 +3376,21 @@ bool Messenger::GetConsensusChallenge(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3259,9 +3511,21 @@ bool Messenger::GetConsensusResponse(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3387,9 +3651,21 @@ bool Messenger::GetConsensusCollectiveSig(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3523,9 +3799,21 @@ bool Messenger::GetConsensusCommitFailure(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
