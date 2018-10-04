@@ -29,10 +29,6 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const std::vector<unsigned char>& input,
-                           std::vector<unsigned char>& errorMsg)>
-    MsgContentValidatorFunc;
-
 /// Implements base functionality shared between all consensus committee members
 class ConsensusCommon
 {
@@ -71,7 +67,7 @@ public:
         INVALID_MICROBLOCK_ROOT_HASH,
         MISSING_TXN,
         WRONG_TXN_ORDER,
-        FINALBLOCK_MISSING_HASH,
+        FINALBLOCK_MISSING_MICROBLOCKS,
         FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
         FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
         INVALID_MICROBLOCK_STATE_DELTA_HASH,
@@ -111,6 +107,9 @@ protected:
     /// The unique ID assigned to the active consensus session.
     uint32_t m_consensusID;
 
+    /// The latest final block number
+    uint64_t m_blockNumber;
+
     /// [TODO] The unique block hash assigned to the active consensus session.
     std::vector<unsigned char> m_blockHash;
 
@@ -123,8 +122,8 @@ protected:
     /// List of <public keys, peers> for the committee.
     std::deque<std::pair<PubKey, Peer>> m_committee;
 
-    /// The payload to be evaluated for the active consensus session.
-    std::vector<unsigned char> m_message;
+    /// The payload segment to be co-signed by the committee.
+    std::vector<unsigned char> m_messageToCosign;
 
     /// The class byte value for the next consensus message to be composed.
     unsigned char m_classByte;
@@ -150,9 +149,6 @@ protected:
     /// Co-sig bitmap for second round
     std::vector<bool> m_B2;
 
-    /// Length of the part of the message to co-sign
-    uint32_t m_lengthToCosign;
-
     /// Generated commit secret
     std::shared_ptr<CommitSecret> m_commitSecret;
 
@@ -160,7 +156,7 @@ protected:
     std::shared_ptr<CommitPoint> m_commitPoint;
 
     /// Constructor.
-    ConsensusCommon(uint32_t consensus_id,
+    ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                     const std::vector<unsigned char>& block_hash,
                     uint16_t my_id, const PrivKey& privkey,
                     const std::deque<std::pair<PubKey, Peer>>& committee,
@@ -193,7 +189,6 @@ protected:
 
     /// Generates the challenge according to the aggregated commit and key.
     Challenge GetChallenge(const std::vector<unsigned char>& msg,
-                           unsigned int offset, unsigned int size,
                            const CommitPoint& aggregated_commit,
                            const PubKey& aggregated_key);
 
@@ -209,10 +204,14 @@ public:
     /// Returns the state of the active consensus session
     State GetState() const;
 
-    /// Return the consensus error code
+    /// Returns the consensus ID indicated in the message
+    bool GetConsensusID(const std::vector<unsigned char>& message,
+                        const unsigned int offset, uint32_t& consensusID) const;
+
+    /// Returns the consensus error code
     ConsensusErrorCode GetConsensusErrorCode() const;
 
-    /// Return the consensus error message
+    /// Returns the consensus error message
     std::string GetConsensusErrorMsg() const;
 
     /// Set consensus error code

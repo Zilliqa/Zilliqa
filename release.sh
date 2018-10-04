@@ -13,8 +13,14 @@
 # GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 # and which include a reference to GPLv3 in their program files.
 
-# User configuration settings, mandatory to be filled in
+#######################################################################################
+# This script should be only used by Zilliqa Research,                                #
+# for releasing a draft version binary with relative version information onto GitHub. #
+#######################################################################################
+
+# [MUST BE FILLED IN] User configuration settings
 GitHubToken=""
+ownerName="Zilliqa"
 repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
 packageName=""
 releaseTitle=""
@@ -107,7 +113,7 @@ echo -e "Making SHA-256 & multi-signature..."
 privKeyFile="$(realpath $1)"
 pubKeyFile="$(realpath $2)"
 cd ${releaseDir}
-sha="$(md5sum ${debFile}|cut -d ' ' -f1)"
+sha="$(sha256sum ${debFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
 signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
 sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
@@ -120,7 +126,7 @@ fullCommit="$(git rev-parse HEAD)"
 releaseLog="release.log"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" "https://api.github.com/repos/Zilliqa/${repoName}/releases" \
+  -H "Content-Type:application/json" "https://api.github.com/repos/${ownerName}/${repoName}/releases" \
   -d '{
   "tag_name": "'"${newVer}"'", 
   "target_commitish": "'"${fullCommit}"'",
@@ -141,32 +147,17 @@ curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @${pubKeyFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})" \
-  -d '{
-  "Content-Type": "application/octet-stream",
-  "name": "'"$(basename ${pubKeyFile})"'",
-  "label": "'"${newVer}"'"
-}'
+  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @${releaseDir}/${debFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${debFile}" \
-  -d '{
-  "Content-Type": "application/vnd.debian.binary-package",
-  "name": "'"${debFile}"'",
-  "label": "'"${newVer}"'"
-}'
+  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${debFile}"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/json" \
   --data-binary @${releaseDir}/${versionFile} \
-  "https://uploads.github.com/repos/Zilliqa/${repoName}/releases/${releaseId}/assets?name=${versionFile}" \
-  -d '{
-  "Content-Type": "application/octet-stream",
-  "name": "'"${versionFile}"'",
-  "label": "'"${newVer}"'"
-}'
+  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}"
 rm ${releaseLog}
 echo -e "\nA new draft release with package is created on Github sucessfully, please proceed to publishing the draft release on Github webpage.\n"
 

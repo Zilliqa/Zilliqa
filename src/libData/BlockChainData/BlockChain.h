@@ -48,14 +48,14 @@ public:
     /// Returns the number of blocks.
     uint64_t GetBlockCount()
     {
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
         return m_blocks.size();
     }
 
     /// Returns the last stored block.
     T GetLastBlock()
     {
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
         try
         {
             return m_blocks.back();
@@ -69,7 +69,7 @@ public:
     /// Returns the block at the specified block number.
     T GetBlock(const uint64_t& blockNum)
     {
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
 
         if (blockNum >= m_blocks.size())
         {
@@ -104,7 +104,7 @@ public:
     {
         uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
 
-        lock_guard<mutex> g(m_mutexBlocks);
+        std::lock_guard<std::mutex> g(m_mutexBlocks);
 
         uint64_t blockNumOfExistingBlock
             = m_blocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
@@ -152,6 +152,16 @@ public:
         [gnu::unused]] const uint64_t& blockNum)
     {
         throw "vc block persistent storage not supported";
+    }
+};
+
+class FallbackBlockChain : public BlockChain<FallbackBlock>
+{
+public:
+    FallbackBlock GetBlockFromPersistentStorage([
+        [gnu::unused]] const uint64_t& blockNum)
+    {
+        throw "fallback block persistent storage not supported";
     }
 };
 

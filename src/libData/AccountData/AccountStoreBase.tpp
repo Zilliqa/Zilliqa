@@ -21,7 +21,7 @@
 
 template<class MAP> AccountStoreBase<MAP>::AccountStoreBase()
 {
-    m_addressToAccount = make_shared<MAP>();
+    m_addressToAccount = std::make_shared<MAP>();
 }
 
 template<class MAP> void AccountStoreBase<MAP>::Init()
@@ -30,7 +30,7 @@ template<class MAP> void AccountStoreBase<MAP>::Init()
 }
 
 template<class MAP>
-unsigned int AccountStoreBase<MAP>::Serialize(vector<unsigned char>& dst,
+unsigned int AccountStoreBase<MAP>::Serialize(std::vector<unsigned char>& dst,
                                               unsigned int offset) const
 {
     // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -52,11 +52,12 @@ unsigned int AccountStoreBase<MAP>::Serialize(vector<unsigned char>& dst,
     LOG_GENERAL(
         INFO,
         "Debug: Total number of accounts to serialize: " << GetNumOfAccounts());
-    uint256_t totalNumOfAccounts = GetNumOfAccounts();
-    SetNumber<uint256_t>(dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
+    boost::multiprecision::uint256_t totalNumOfAccounts = GetNumOfAccounts();
+    SetNumber<boost::multiprecision::uint256_t>(
+        dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
     curOffset += UINT256_SIZE;
 
-    vector<unsigned char> address_vec;
+    std::vector<unsigned char> address_vec;
     // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
     for (auto entry : *m_addressToAccount)
     {
@@ -77,7 +78,7 @@ unsigned int AccountStoreBase<MAP>::Serialize(vector<unsigned char>& dst,
 }
 
 template<class MAP>
-int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
+int AccountStoreBase<MAP>::Deserialize(const std::vector<unsigned char>& src,
                                        unsigned int offset)
 {
     // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
@@ -86,8 +87,9 @@ int AccountStoreBase<MAP>::Deserialize(const vector<unsigned char>& src,
     try
     {
         unsigned int curOffset = offset;
-        uint256_t totalNumOfAccounts
-            = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+        boost::multiprecision::uint256_t totalNumOfAccounts
+            = GetNumber<boost::multiprecision::uint256_t>(src, curOffset,
+                                                          UINT256_SIZE);
         curOffset += UINT256_SIZE;
 
         Address address;
@@ -130,7 +132,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     const PubKey& senderPubKey = transaction.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     Address toAddr = transaction.GetToAddr();
-    const uint256_t& amount = transaction.GetAmount();
+    const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
 
     Account* fromAccount = this->GetAccount(fromAddr);
     if (fromAccount == nullptr)
@@ -155,7 +157,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     }
 
     // FIXME: Possible integer overflow here
-    uint256_t gasDeposit
+    boost::multiprecision::uint256_t gasDeposit
         = transaction.GetGasLimit() * transaction.GetGasPrice();
 
     if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit)
@@ -184,7 +186,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
         return false;
     }
 
-    uint256_t gasRefund;
+    boost::multiprecision::uint256_t gasRefund;
     if (!CalculateGasRefund(gasDeposit, NORMAL_TRAN_GAS,
                             transaction.GetGasPrice(), gasRefund))
     {
@@ -203,19 +205,22 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::CalculateGasRefund(const uint256_t& gasDeposit,
-                                               const uint256_t& gasUnit,
-                                               const uint256_t& gasPrice,
-                                               uint256_t& gasRefund)
+bool AccountStoreBase<MAP>::CalculateGasRefund(
+    const boost::multiprecision::uint256_t& gasDeposit,
+    const boost::multiprecision::uint256_t& gasUnit,
+    const boost::multiprecision::uint256_t& gasPrice,
+    boost::multiprecision::uint256_t& gasRefund)
 {
-    uint256_t gasFee;
-    if (!SafeMath<uint256_t>::mul(gasUnit, gasPrice, gasFee))
+    boost::multiprecision::uint256_t gasFee;
+    if (!SafeMath<boost::multiprecision::uint256_t>::mul(gasUnit, gasPrice,
+                                                         gasFee))
     {
         LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
         return false;
     }
 
-    if (!SafeMath<uint256_t>::sub(gasDeposit, gasFee, gasRefund))
+    if (!SafeMath<boost::multiprecision::uint256_t>::sub(gasDeposit, gasFee,
+                                                         gasRefund))
     {
         LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
         return false;
@@ -240,7 +245,7 @@ void AccountStoreBase<MAP>::AddAccount(const Address& address,
 
     if (!IsAccountExist(address))
     {
-        m_addressToAccount->insert(make_pair(address, account));
+        m_addressToAccount->insert(std::make_pair(address, account));
         // UpdateStateTrie(address, account);
     }
 }
@@ -250,6 +255,15 @@ void AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
                                        const Account& account)
 {
     AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
+}
+
+template<class MAP>
+void AccountStoreBase<MAP>::RemoveAccount(const Address& address)
+{
+    if (IsAccountExist(address))
+    {
+        m_addressToAccount->erase(address);
+    }
 }
 
 template<class MAP>
@@ -263,15 +277,16 @@ Account* AccountStoreBase<MAP>::GetAccount(const Address& address)
     return nullptr;
 }
 
-template<class MAP> uint256_t AccountStoreBase<MAP>::GetNumOfAccounts() const
+template<class MAP>
+boost::multiprecision::uint256_t AccountStoreBase<MAP>::GetNumOfAccounts() const
 {
     // LOG_MARKER();
     return m_addressToAccount->size();
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
-                                            const uint256_t& delta)
+bool AccountStoreBase<MAP>::IncreaseBalance(
+    const Address& address, const boost::multiprecision::uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -304,8 +319,8 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
-                                            const uint256_t& delta)
+bool AccountStoreBase<MAP>::DecreaseBalance(
+    const Address& address, const boost::multiprecision::uint256_t& delta)
 {
     // LOG_MARKER();
 
@@ -333,9 +348,9 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
 }
 
 template<class MAP>
-bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
-                                            const Address& to,
-                                            const uint256_t& delta)
+bool AccountStoreBase<MAP>::TransferBalance(
+    const Address& from, const Address& to,
+    const boost::multiprecision::uint256_t& delta)
 {
     // LOG_MARKER();
     // FIXME: Is there any elegent way to implement this atomic change on balance?
@@ -355,7 +370,8 @@ bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
 }
 
 template<class MAP>
-uint256_t AccountStoreBase<MAP>::GetBalance(const Address& address)
+boost::multiprecision::uint256_t
+AccountStoreBase<MAP>::GetBalance(const Address& address)
 {
     // LOG_MARKER();
 
@@ -399,7 +415,8 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
 }
 
 template<class MAP>
-uint256_t AccountStoreBase<MAP>::GetNonce(const Address& address)
+boost::multiprecision::uint256_t
+AccountStoreBase<MAP>::GetNonce(const Address& address)
 {
     //LOG_MARKER();
 

@@ -29,6 +29,7 @@
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 
@@ -36,78 +37,6 @@ BlockStorage& BlockStorage::GetBlockStorage()
 {
     static BlockStorage bs;
     return bs;
-}
-
-bool BlockStorage::PushBackTxBodyDB(const uint64_t& blockNum)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PushBackTxBodyDB not expected to be called "
-                    "from LookUp node.");
-        return true;
-    }
-
-    LOG_MARKER();
-
-    if (m_txBodyDBs.size()
-        >= NUM_DS_KEEP_TX_BODY + 1) // Leave one for keeping tmp txBody
-    {
-        LOG_GENERAL(INFO, "TxBodyDB pool is full")
-        return false;
-    }
-
-    std::shared_ptr<LevelDB> txBodyDBPtr
-        = std::make_shared<LevelDB>(to_string(blockNum), TX_BODY_SUBDIR);
-    m_txBodyDBs.emplace_back(txBodyDBPtr);
-
-    return true;
-}
-
-bool BlockStorage::PopFrontTxBodyDB(bool mandatory)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::PopFrontTxBodyDB not expected to be called "
-                    "from LookUp node.");
-        return true;
-    }
-
-    LOG_MARKER();
-
-    if (m_txBodyDBs.empty())
-    {
-        LOG_GENERAL(INFO, "No TxBodyDB found");
-        return false;
-    }
-
-    if (!mandatory)
-    {
-        if (m_txBodyDBs.size() <= NUM_DS_KEEP_TX_BODY)
-        {
-            LOG_GENERAL(INFO, "size of txBodyDB hasn't meet maximum, ignore");
-            return true;
-        }
-    }
-
-    int ret = -1;
-    ret = m_txBodyDBs.front()->DeleteDB();
-    m_txBodyDBs.pop_front();
-
-    return (ret == 0);
-}
-
-unsigned int BlockStorage::GetTxBodyDBSize()
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "BlockStorage::GetTxBodyDBSize not expected to be called "
-                    "from LookUp node.");
-        return -1;
-    }
-    return m_txBodyDBs.size();
 }
 
 bool BlockStorage::PutBlock(const uint64_t& blockNum,
@@ -118,10 +47,12 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum,
     if (blockType == BlockType::DS)
     {
         ret = m_dsBlockchainDB->Insert(blockNum, body);
+        LOG_GENERAL(INFO, "Stored DsBlock  Num:" << blockNum);
     }
     else if (blockType == BlockType::Tx)
     {
         ret = m_txBlockchainDB->Insert(blockNum, body);
+        LOG_GENERAL(INFO, "Stored TxBlock  Num:" << blockNum);
     }
     return (ret == 0);
 }
@@ -158,14 +89,11 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
                              const vector<unsigned char>& body)
 {
     int ret;
+
     if (!LOOKUP_NODE_MODE)
     {
-        if (m_txBodyDBs.empty())
-        {
-            LOG_GENERAL(WARNING, "No TxBodyDB found");
-            return false;
-        }
-        ret = m_txBodyDBs.back()->Insert(key, body);
+        LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+        return false;
     }
     else // IS_LOOKUP_NODE
     {
@@ -173,6 +101,49 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
     }
 
     return (ret == 0);
+}
+
+string MakeKey(const uint64_t& blockNum, const uint32_t& shardId)
+{
+    unsigned int curr_offset = 0;
+    vector<unsigned char> vec;
+    Serializable::SetNumber<uint64_t>(vec, curr_offset, blockNum,
+                                      sizeof(uint64_t));
+    curr_offset += sizeof(uint64_t);
+    Serializable::SetNumber<uint32_t>(vec, curr_offset, shardId,
+                                      sizeof(uint32_t));
+
+    return DataConversion::Uint8VecToHexStr(vec);
+}
+
+bool BlockStorage::PutMicroBlock(const uint64_t& blocknum,
+                                 const uint32_t& shardId,
+                                 const vector<unsigned char>& body)
+{
+
+    string key = MakeKey(blocknum, shardId);
+    int ret = m_microBlockDB->Insert(key, body);
+
+    return (ret == 0);
+}
+
+bool BlockStorage::GetMicroBlock(const uint64_t& blocknum,
+                                 const uint32_t& shardId,
+                                 MicroBlockSharedPtr& microblock)
+{
+    LOG_MARKER();
+    string key = MakeKey(blocknum, shardId);
+
+    string blockString = m_microBlockDB->Lookup(key);
+
+    if (blockString.empty())
+    {
+        return false;
+    }
+    microblock = make_shared<MicroBlock>(
+        vector<unsigned char>(blockString.begin(), blockString.end()), 0);
+
+    return true;
 }
 
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block)
@@ -212,12 +183,8 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body)
     std::string bodyString;
     if (!LOOKUP_NODE_MODE)
     {
-        if (m_txBodyDBs.empty())
-        {
-            LOG_GENERAL(WARNING, "No TxBodyDB found");
-            return false;
-        }
-        bodyString = m_txBodyDBs.back()->Lookup(key);
+        LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+        return false;
     }
     else // IS_LOOKUP_NODE
     {
@@ -253,7 +220,8 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key)
     int ret;
     if (!LOOKUP_NODE_MODE)
     {
-        ret = m_txBodyDBs.back()->DeleteKey(key);
+        LOG_GENERAL(WARNING, "Non lookup node should not trigger this");
+        return false;
     }
     else
     {
@@ -286,7 +254,6 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
@@ -299,6 +266,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks)
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
         blocks.emplace_back(block);
+        LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
     }
 
     delete it;
@@ -321,7 +289,6 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         string bns = it->key().ToString();
-        LOG_GENERAL(INFO, "blockNum: " << bns);
         string blockString = it->value().ToString();
         if (blockString.empty())
         {
@@ -333,6 +300,7 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks)
             std::vector<unsigned char>(blockString.begin(), blockString.end()),
             0));
         blocks.emplace_back(block);
+        LOG_GENERAL(INFO, "Retrievd TxBlock Num:" << bns);
     }
 
     delete it;
@@ -401,6 +369,87 @@ bool BlockStorage::GetMetadata(MetaType type, std::vector<unsigned char>& data)
     return true;
 }
 
+bool BlockStorage::PutDSCommittee(
+    const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
+    const uint16_t& consensusLeaderID)
+{
+    LOG_MARKER();
+
+    unsigned int index = 0;
+    string leaderId = to_string(consensusLeaderID);
+
+    if (0
+        != m_dsCommitteeDB->Insert(
+               index++,
+               vector<unsigned char>(leaderId.begin(), leaderId.end())))
+    {
+        LOG_GENERAL(WARNING,
+                    "Failed to store DS leader ID:" << consensusLeaderID);
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "Stored DS leader ID:" << consensusLeaderID);
+
+    vector<unsigned char> data;
+
+    for (const auto& ds : *dsCommittee)
+    {
+        int pubKeySize = ds.first.Serialize(data, 0);
+        ds.second.Serialize(data, pubKeySize);
+
+        /// Store index as key, to guarantee the sequence of DS committee after retrieval
+        /// Because first DS committee is DS leader
+        if (0 != m_dsCommitteeDB->Insert(index++, data))
+        {
+            LOG_GENERAL(WARNING,
+                        "Failed to store DS committee:" << ds.first << ", "
+                                                        << ds.second);
+            return false;
+        }
+
+        LOG_GENERAL(INFO,
+                    "Stored DS committee:" << ds.first << ", " << ds.second);
+    }
+
+    return true;
+}
+
+bool BlockStorage::GetDSCommittee(
+    shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
+    uint16_t& consensusLeaderID)
+{
+    LOG_MARKER();
+
+    unsigned int index = 0;
+    consensusLeaderID = stoul(m_dsCommitteeDB->Lookup(index++));
+    LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
+    string dataStr;
+
+    while (true)
+    {
+        dataStr = m_dsCommitteeDB->Lookup(index++);
+
+        if (dataStr.empty())
+        {
+            break;
+        }
+
+        dsCommittee->emplace_back(
+            PubKey(vector<unsigned char>(dataStr.begin(),
+                                         dataStr.begin() + PUB_KEY_SIZE),
+                   0),
+            Peer(vector<unsigned char>(dataStr.begin() + PUB_KEY_SIZE,
+                                       dataStr.end()),
+                 0));
+        LOG_GENERAL(INFO,
+                    "Retrieved DS committee: " << dsCommittee->back().first
+                                               << ", "
+                                               << dsCommittee->back().second);
+    }
+
+    return true;
+}
+
 bool BlockStorage::ResetDB(DBTYPE type)
 {
     bool ret = false;
@@ -415,25 +464,17 @@ bool BlockStorage::ResetDB(DBTYPE type)
     case TX_BLOCK:
         ret = m_txBlockchainDB->ResetDB();
         break;
-    case TX_BODIES:
-    {
-        int size_txBodyDBs = m_txBodyDBs.size();
-        for (int i = 0; i < size_txBodyDBs; i++)
-        {
-            if (!PopFrontTxBodyDB(true))
-            {
-                LOG_GENERAL(WARNING, "failed to reset TxBodyDB list");
-                throw std::exception();
-            }
-        }
-        ret = true;
-        break;
-    }
     case TX_BODY:
         ret = m_txBodyDB->ResetDB();
         break;
     case TX_BODY_TMP:
         ret = m_txBodyTmpDB->ResetDB();
+        break;
+    case MICROBLOCK:
+        ret = m_microBlockDB->ResetDB();
+        break;
+    case DS_COMMITTEE:
+        ret = m_dsCommitteeDB->ResetDB();
         break;
     }
     if (!ret)
@@ -457,19 +498,17 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type)
     case TX_BLOCK:
         ret.push_back(m_txBlockchainDB->GetDBName());
         break;
-    case TX_BODIES:
-    {
-        for (auto txBodyDB : m_txBodyDBs)
-        {
-            ret.push_back(txBodyDB->GetDBName());
-        }
-        break;
-    }
     case TX_BODY:
         ret.push_back(m_txBodyDB->GetDBName());
         break;
     case TX_BODY_TMP:
         ret.push_back(m_txBodyTmpDB->GetDBName());
+        break;
+    case MICROBLOCK:
+        ret.push_back(m_microBlockDB->GetDBName());
+        break;
+    case DS_COMMITTEE:
+        ret.push_back(m_dsCommitteeDB->GetDBName());
         break;
     }
 
@@ -481,11 +520,12 @@ bool BlockStorage::ResetAll()
     if (!LOOKUP_NODE_MODE)
     {
         return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
-            && ResetDB(TX_BODIES);
+            && ResetDB(DS_COMMITTEE);
     }
     else // IS_LOOKUP_NODE
     {
         return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK)
-            && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP);
+            && ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP) && ResetDB(MICROBLOCK)
+            && ResetDB(DS_COMMITTEE);
     }
 }

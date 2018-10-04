@@ -15,15 +15,39 @@
 
 dir=build
 
-if [ "$1" = "cuda" ]
-then
-    CMAKE_EXTRA_OPTIONS="-DCUDA_MINE=1"
-    echo build normal node with cuda
-elif [ "$1" = "opencl" ]
-then
-    CMAKE_EXTRA_OPTIONS="-DOPENCL_MINE=1"
-    echo build normal node with opencl
-fi
+for option in "$@"
+do
+    case $option in
+    cuda)
+        CMAKE_EXTRA_OPTIONS="-DCUDA_MINE=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with CUDA"
+    ;;
+    opencl)
+        CMAKE_EXTRA_OPTIONS="-DOPENCL_MINE=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with OpenCL"
+    ;;
+    tsan)
+        CMAKE_EXTRA_OPTIONS="-DTHREAD_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with ThreadSanitizer"
+    ;;
+    asan)
+        CMAKE_EXTRA_OPTIONS="-DADDRESS_SANITIZER=ON ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with AddressSanitizer"
+    ;;
+    heartbeattest)
+        CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with HeartBeat test"
+    ;;
+    fallbacktest)
+        CMAKE_EXTRA_OPTIONS="-DFALLBACKTEST=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with Fallback test"
+    ;;
+    *)
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [heartbeattest] [fallbacktest]"
+        exit 1
+    ;;
+    esac
+done
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
 cmake --build ${dir} -- -j4

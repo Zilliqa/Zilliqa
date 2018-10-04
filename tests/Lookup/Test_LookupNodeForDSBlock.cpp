@@ -27,6 +27,7 @@
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/TimeUtils.h"
 
@@ -65,8 +66,8 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring)
 
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    DSBlock dsblock(DSBlockHeader(20, prevHash1, 12344, pubKey1.first,
-                                  pubKey1.second, 0, 789, SWInfo()),
+    DSBlock dsblock(DSBlockHeader(50, 20, prevHash1, 0, pubKey1.first,
+                                  pubKey1.second, 0, 0, SWInfo()),
                     CoSignatures());
 
     curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
@@ -113,21 +114,16 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval)
 
     vector<unsigned char> getDSBlockMessage
         = {MessageType::LOOKUP, LookupInstructionType::GETDSBLOCKFROMSEED};
-    unsigned int curr_offset = MessageOffset::BODY;
 
-    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset, 0,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
-
-    Serializable::SetNumber<uint256_t>(getDSBlockMessage, curr_offset, 1,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
-
-    Serializable::SetNumber<uint32_t>(getDSBlockMessage, curr_offset, 5000,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    P2PComm::GetInstance().SendMessage(lookup_node, getDSBlockMessage);
+    if (!Messenger::SetLookupGetDSBlockFromSeed(
+            getDSBlockMessage, MessageOffset::BODY, 0, 1, 5000))
+    {
+        LOG_GENERAL(WARNING, "Messenger::SetLookupGetDSBlockFromSeed failed.");
+    }
+    else
+    {
+        P2PComm::GetInstance().SendMessage(lookup_node, getDSBlockMessage);
+    }
 }
 
 // BOOST_AUTO_TEST_CASE (testTxBlockRetrieval)

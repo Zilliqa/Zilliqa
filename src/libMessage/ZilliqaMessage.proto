@@ -1,0 +1,513 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+// ============================================================================
+// Primitives
+// ============================================================================
+
+message ByteArray
+{
+    required bytes data = 1;
+}
+
+message ShardingStructure
+{
+    message Member
+    {
+        required ByteArray pubkey   = 1;
+        required ByteArray peerinfo = 2;
+        required uint32 reputation  = 3;
+    }
+    message Shard
+    {
+        repeated Member members     = 1;
+    }
+    repeated Shard shards           = 1;
+}
+
+message TxSharingAssignments
+{
+    message AssignedNodes
+    {
+        repeated ByteArray receivers  = 1;
+        repeated ByteArray senders    = 2;
+    }
+    repeated ByteArray dsnodes        = 1;
+    repeated AssignedNodes shardnodes = 2;
+}
+
+message ProtoDSBlock
+{
+    message DSBlockHeader
+    {
+        required uint32 dsdifficulty    = 1; // only LSB used
+        required uint32 difficulty      = 2; // only LSB used
+        required bytes prevhash         = 3; // 32 bytes
+        required ByteArray nonce        = 4;
+        required ByteArray minerpubkey  = 5;
+        required ByteArray leaderpubkey = 6;
+        required uint64 blocknum        = 7;
+        required ByteArray timestamp    = 8;
+        required ByteArray swinfo       = 9;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1          = 1;
+        repeated bool b1                = 2 [packed=true];
+        required ByteArray cs2          = 3;
+        repeated bool b2                = 4 [packed=true];
+    }
+    required DSBlockHeader header       = 1;
+    required CoSignatures cosigs        = 2;
+}
+
+message ProtoMicroBlock
+{
+    message MicroBlockHeader
+    {
+        required uint32 type           = 1; // only LSB used
+        required uint32 version        = 2;
+        required uint32 shardid        = 3;
+        required ByteArray gaslimit    = 4;
+        required ByteArray gasused     = 5;
+        required bytes prevhash        = 6;
+        required uint64 blocknum       = 7;
+        required ByteArray timestamp   = 8;
+        required bytes txroothash      = 9;
+        required uint32 numtxs         = 10;
+        required ByteArray minerpubkey = 11;
+        required uint64 dsblocknum     = 12;
+        required bytes dsblockheader   = 13;
+        required bytes statedeltahash  = 14;
+        required bytes tranreceipthash = 15;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1         = 1;
+        repeated bool b1               = 2 [packed=true];
+        required ByteArray cs2         = 3;
+        repeated bool b2               = 4 [packed=true];
+    }
+    required MicroBlockHeader header   = 1;
+    repeated bytes tranhashes          = 2;
+    required CoSignatures cosigs       = 3;
+}
+
+message ProtoVCBlock
+{
+    message VCBlockHeader
+    {
+        required uint64 viewchangedsepochno           = 1;
+        required uint64 viewchangeepochno             = 2;
+        required uint32 viewchangestate               = 3; // only LSB used
+        required uint32 candidateleaderindex          = 4;
+        required ByteArray candidateleadernetworkinfo = 5;
+        required ByteArray candidateleaderpubkey      = 6;
+        required uint32 vccounter                     = 7;
+        required ByteArray timestamp                  = 8;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1                        = 1;
+        repeated bool b1                              = 2 [packed=true];
+        required ByteArray cs2                        = 3;
+        repeated bool b2                              = 4 [packed=true];
+    }
+    required VCBlockHeader header                     = 1;
+    required CoSignatures cosigs                      = 2;
+}
+
+message ProtoFallbackBlock
+{
+    message FallbackBlockHeader
+    {
+        required uint64 fallbackdsepochno           = 1;
+        required uint64 fallbackepochno             = 2;
+        required uint32 fallbackstate               = 3; // only LSB used
+        required bytes stateroothash                = 4;
+        required uint32 leaderconsensusid          = 5;
+        required ByteArray leadernetworkinfo = 6;
+        required ByteArray leaderpubkey      = 7;
+        required uint32 shardid                     = 8;
+        required ByteArray timestamp                  = 9;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1                        = 1;
+        repeated bool b1                              = 2 [packed=true];
+        required ByteArray cs2                        = 3;
+        repeated bool b2                              = 4 [packed=true];
+    }
+    required FallbackBlockHeader header                     = 1;
+    required CoSignatures cosigs                      = 2;
+}
+
+// ============================================================================
+// Directory Service messages
+// ============================================================================
+
+message DSPoWSubmission
+{
+    message Data
+    {
+        required uint64 blocknumber        = 1;
+        required uint32 difficultylevel    = 2; // only LSB used
+        required ByteArray submitterpeer   = 3;
+        required ByteArray submitterpubKey = 4;
+        required uint64 nonce              = 5;
+        required string resultinghash      = 6;
+        required string mixhash            = 7;
+    }
+    required Data data                     = 1;
+    required ByteArray signature           = 2;
+}
+
+message DSMicroBlockSubmission
+{
+    required uint32 microblocktype       = 1; // only LSB used
+    required uint64 blocknumber          = 2;
+    repeated ProtoMicroBlock microblocks = 3;
+    optional bytes statedelta            = 4;
+}
+
+message DSDSBlockAnnouncement
+{
+    required ProtoDSBlock dsblock             = 1;
+    required ByteArray powwinnerpeer          = 2;
+    required ShardingStructure sharding       = 3;
+    required TxSharingAssignments assignments = 4;
+}
+
+message DSFinalBlockAnnouncement
+{
+    required ByteArray txblock = 1;
+}
+
+message DSVCBlockAnnouncement
+{
+    required ByteArray vcblock = 1;
+}
+
+// ============================================================================
+// Node messages
+// ============================================================================
+
+message NodeDSBlock
+{
+    required uint32 shardid                   = 1;
+    required ProtoDSBlock dsblock             = 2;
+    required ByteArray powwinnerpeer          = 3;
+    required ShardingStructure sharding       = 4;
+    required TxSharingAssignments assignments = 5;
+}
+
+message NodeFinalBlock
+{
+    required uint32 shardid       = 1;
+    required uint64 dsblocknumber = 2;
+    required uint32 consensusid   = 3;
+    required ByteArray txblock    = 4;
+    required bytes statedelta     = 5;
+}
+
+message NodeForwardTransaction
+{
+    required uint64 blocknum           = 1;
+    required bytes microblocktxhash    = 2;
+    required bytes microblockdeltahash = 3;
+    repeated ByteArray txnswithreceipt = 4;
+}
+
+message NodeVCBlock
+{
+    required ProtoVCBlock vcblock = 1;
+}
+
+message NodeForwardTxnBlock
+{
+    required uint64 epochnumber     = 1;
+    required uint32 shardid         = 2;
+    repeated ByteArray transactions = 3;
+}
+
+message NodeMicroBlockAnnouncement
+{
+    required ProtoMicroBlock microblock = 1;
+}
+
+message NodeFallbackBlockAnnouncement
+{
+    required ByteArray fallbackblock = 1;
+}
+
+message NodeFallbackBlock
+{
+    required ProtoFallbackBlock fallbackblock = 1;
+}
+
+// ============================================================================
+// Lookup messages
+// ============================================================================
+
+message LookupGetSeedPeers
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetSeedPeers
+{
+    repeated ByteArray candidateseeds = 1;
+}
+
+message LookupGetDSInfoFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetDSInfoFromSeed
+{
+    message DSNode
+    {
+        required ByteArray pubkey = 1;
+        required ByteArray peer   = 2;
+    }
+    repeated DSNode dsnodes       = 1;
+}
+
+message LookupGetDSBlockFromSeed
+{
+    required uint64 lowblocknum  = 1;
+    required uint64 highblocknum = 2;
+    required uint32 listenport   = 3;
+}
+
+message LookupSetDSBlockFromSeed
+{
+    required uint64 lowblocknum    = 1;
+    required uint64 highblocknum   = 2;
+    repeated ProtoDSBlock dsblocks = 3;
+}
+
+message LookupGetTxBlockFromSeed
+{
+    required uint64 lowblocknum  = 1;
+    required uint64 highblocknum = 2;
+    required uint32 listenport   = 3;
+}
+
+message LookupSetTxBlockFromSeed
+{
+    message TxBlock
+    {
+        required ByteArray txblock = 1;
+    }
+    required uint64 lowblocknum    = 1;
+    required uint64 highblocknum   = 2;
+    repeated TxBlock txblocks      = 3;
+}
+
+message LookupGetTxBodyFromSeed
+{
+    required bytes txhash      = 1;
+    required uint32 listenport = 2;
+}
+
+message LookupSetTxBodyFromSeed
+{
+    required bytes txhash     = 1;
+    required ByteArray txbody = 2;
+}
+
+message LookupGetNetworkIDFromSeed
+{
+    // Unused
+}
+
+message LookupSetNetworkIDFromSeed
+{
+    required string networkid = 1;
+}
+
+message LookupGetStateFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetStateFromSeed
+{
+    required ByteArray accounts = 1;
+}
+
+message LookupSetLookupOffline
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetLookupOnline
+{
+    required uint32 listenport = 1;
+}
+
+message LookupGetOfflineLookups
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetOfflineLookups
+{
+    repeated ByteArray nodes = 1;
+}
+
+message LookupRaiseStartPoW
+{
+    // Empty
+}
+
+message LookupGetStartPoWFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetStartPoWFromSeed
+{
+    // Empty
+}
+
+message LookupGetShardsFromSeed
+{
+    required uint32 listenport = 1;
+}
+
+message LookupSetShardsFromSeed
+{
+    required ShardingStructure sharding = 1;
+}
+
+message MicroBlockInfo
+{
+    required uint64 blocknum      = 1;
+    repeated uint32 shards        = 2;
+}
+
+message LookupGetMicroBlockFromLookup
+{
+    required uint32 portno            = 1;
+    repeated MicroBlockInfo blocknums = 2;
+}
+
+message LookupSetMicroBlockFromLookup
+{
+    repeated ProtoMicroBlock microblocks = 1;
+}
+
+message LookupGetTxnsFromLookup
+{
+    required uint32 portno = 1;
+    repeated bytes txnhashes = 2;
+}
+
+message LookupSetTxnsFromLookup
+{
+    repeated ByteArray transactions = 1;   
+}
+
+
+// ============================================================================
+// Consensus messages
+// ============================================================================
+
+message ConsensusAnnouncement
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid           = 1;
+        required uint64 blocknumber           = 2;
+        required bytes blockhash              = 3; // 32 bytes
+        required uint32 leaderid              = 4; // only lower 2 bytes used    
+    }
+    required ConsensusInfo consensusinfo      = 1;
+    oneof announcement
+    {
+        DSDSBlockAnnouncement dsblock         = 2;
+        NodeMicroBlockAnnouncement microblock = 3;
+        DSFinalBlockAnnouncement finalblock   = 4;
+        DSVCBlockAnnouncement vcblock         = 5;
+        NodeFallbackBlockAnnouncement fallbackblock = 6;
+    }
+    required ByteArray signature              = 7;
+}
+
+message ConsensusCommit
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 backupid         = 4; // only lower 2 bytes used        
+        required ByteArray commit        = 5;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusChallenge
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid         = 1;
+        required uint64 blocknumber         = 2;
+        required bytes blockhash            = 3; // 32 bytes
+        required uint32 leaderid            = 4; // only lower 2 bytes used
+        required ByteArray aggregatedcommit = 5;
+        required ByteArray aggregatedkey    = 6;
+        required ByteArray challenge        = 7;
+    }
+    required ConsensusInfo consensusinfo    = 1;
+    required ByteArray signature            = 2;
+}
+
+message ConsensusResponse
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 backupid         = 4; // only lower 2 bytes used
+        required ByteArray response      = 5;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusCollectiveSig
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 leaderid         = 4; // only lower 2 bytes used
+        required ByteArray collectivesig = 5;
+        repeated bool bitmap             = 6 [packed=true];
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+
+message ConsensusCommitFailure
+{
+    message ConsensusInfo
+    {
+        required uint32 consensusid      = 1;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 backupid         = 4; // only lower 2 bytes used
+        required bytes errormsg          = 5;
+    }
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
+}
+

@@ -38,24 +38,27 @@ class BlockStorage : public Singleton<BlockStorage>
     std::shared_ptr<LevelDB> m_metadataDB;
     std::shared_ptr<LevelDB> m_dsBlockchainDB;
     std::shared_ptr<LevelDB> m_txBlockchainDB;
-    std::list<std::shared_ptr<LevelDB>> m_txBodyDBs;
     std::shared_ptr<LevelDB> m_txBodyDB;
+    std::shared_ptr<LevelDB> m_microBlockDB;
     std::shared_ptr<LevelDB> m_txBodyTmpDB;
+    std::shared_ptr<LevelDB> m_dsCommitteeDB;
 
     BlockStorage()
-        : m_metadataDB(make_shared<LevelDB>("metadata"))
-        , m_dsBlockchainDB(make_shared<LevelDB>("dsBlocks"))
-        , m_txBlockchainDB(make_shared<LevelDB>("txBlocks"))
+        : m_metadataDB(std::make_shared<LevelDB>("metadata"))
+        , m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks"))
+        , m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks"))
+        , m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee"))
     {
         if (LOOKUP_NODE_MODE)
         {
-            m_txBodyDB = make_shared<LevelDB>("txBodies");
-            m_txBodyTmpDB = make_shared<LevelDB>("txBodiesTmp");
+            m_txBodyDB = std::make_shared<LevelDB>("txBodies");
+            m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
+            m_microBlockDB = std::make_shared<LevelDB>("microBlocks");
         }
     };
     ~BlockStorage() = default;
     bool PutBlock(const uint64_t& blockNum,
-                  const std::vector<unsigned char>& block,
+                  const std::vector<unsigned char>& body,
                   const BlockType& blockType);
 
 public:
@@ -64,46 +67,43 @@ public:
         META = 0x00,
         DS_BLOCK,
         TX_BLOCK,
-        TX_BODIES,
         TX_BODY,
         TX_BODY_TMP,
+        MICROBLOCK,
+        DS_COMMITTEE,
     };
 
     /// Returns the singleton BlockStorage instance.
     static BlockStorage& GetBlockStorage();
-
-    /// Adds a txBody database for a new DSEpoch.
-    bool PushBackTxBodyDB(const uint64_t& blockNum);
-
-    /// Pop the txBody database at front.
-    bool PopFrontTxBodyDB(bool mandatory = false);
 
     /// Get the size of current TxBodyDB
     unsigned int GetTxBodyDBSize();
 
     /// Adds a DS block to storage.
     bool PutDSBlock(const uint64_t& blockNum,
-                    const std::vector<unsigned char>& block);
+                    const std::vector<unsigned char>& body);
 
     /// Adds a Tx block to storage.
     bool PutTxBlock(const uint64_t& blockNum,
-                    const std::vector<unsigned char>& block);
+                    const std::vector<unsigned char>& body);
 
     // /// Adds a micro block to storage.
-    // bool PutMicroBlock(const dev::h256 & key, const std::vector<unsigned char> & block);
+    bool PutMicroBlock(const uint64_t& blocknum, const uint32_t& shardId,
+                       const std::vector<unsigned char>& body);
 
     /// Adds a transaction body to storage.
     bool PutTxBody(const dev::h256& key,
                    const std::vector<unsigned char>& body);
 
     /// Retrieves the requested DS block.
-    bool GetDSBlock(const uint64_t& blocknum, DSBlockSharedPtr& block);
+    bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
 
     /// Retrieves the requested Tx block.
-    bool GetTxBlock(const uint64_t& blocknum, TxBlockSharedPtr& block);
+    bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
     // /// Retrieves the requested Micro block
-    // bool GetMicroBlock(const dev::h256 & key, MicroBlockSharedPtr & block);
+    bool GetMicroBlock(const uint64_t& blocknum, const uint32_t& shardId,
+                       MicroBlockSharedPtr& microblock);
 
     /// Retrieves the requested transaction body.
     bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
@@ -140,6 +140,16 @@ public:
 
     /// Retrieve Last Transactions Trie Root Hash
     bool GetMetadata(MetaType type, std::vector<unsigned char>& data);
+
+    /// Save DS committee
+    bool PutDSCommittee(
+        const std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& dsCommittee,
+        const uint16_t& consensusLeaderID);
+
+    /// Retrieve DS committee
+    bool GetDSCommittee(
+        std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& dsCommittee,
+        uint16_t& consensusLeaderID);
 
     /// Clean a DB
     bool ResetDB(DBTYPE type);

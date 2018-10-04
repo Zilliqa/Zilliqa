@@ -15,121 +15,40 @@
 **/
 
 #include "UpgradeManager.h"
+#include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
-
+#include <boost/tokenizer.hpp>
 using namespace std;
 
-SWInfo::SWInfo()
-    : m_major(0)
-    , m_minor(0)
-    , m_fix(0)
-    , m_upgradeDS(0)
-    , m_commit(0)
+#define DEFAULT_RELEASE_URL                                                    \
+    "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
+#define USER_AGENT "Zilliqa"
+#define VERSION_FILE_NAME "VERSION"
+#define PUBLIC_KEY_FILE_NAME "pubKeyFile"
+#define PUBLIC_KEY_LENGTH 66
+#define PACKAGE_FILE_EXTENSION "deb"
+
+UpgradeManager::UpgradeManager()
 {
-}
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    m_curl = curl_easy_init();
 
-SWInfo::SWInfo(const uint32_t& major, const uint32_t& minor,
-               const uint32_t& fix, const uint64_t& upgradeDS,
-               const uint32_t& commit)
-    : m_major(major)
-    , m_minor(minor)
-    , m_fix(fix)
-    , m_upgradeDS(upgradeDS)
-    , m_commit(commit)
-{
-}
-
-SWInfo::SWInfo(const SWInfo& src)
-    : m_major(src.m_major)
-    , m_minor(src.m_minor)
-    , m_fix(src.m_fix)
-    , m_upgradeDS(src.m_upgradeDS)
-    , m_commit(src.m_commit)
-{
-}
-
-SWInfo::~SWInfo(){};
-
-/// Implements the Serialize function inherited from Serializable.
-unsigned int SWInfo::Serialize(std::vector<unsigned char>& dst,
-                               unsigned int offset) const
-{
-    LOG_MARKER();
-
-    unsigned int size_remaining = dst.size() - offset;
-
-    if (size_remaining < SIZE)
+    if (!m_curl)
     {
-        dst.resize(SIZE + offset);
+        LOG_GENERAL(WARNING, "curl initialization fail!");
+        curl_global_cleanup();
+    }
+}
+
+UpgradeManager::~UpgradeManager()
+{
+    if (m_curl)
+    {
+        curl_easy_cleanup(m_curl);
     }
 
-    unsigned int curOffset = offset;
-
-    SetNumber<uint32_t>(dst, curOffset, m_major, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    SetNumber<uint32_t>(dst, curOffset, m_minor, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    SetNumber<uint32_t>(dst, curOffset, m_fix, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    SetNumber<uint64_t>(dst, curOffset, m_upgradeDS, sizeof(uint64_t));
-    curOffset += sizeof(uint64_t);
-    SetNumber<uint32_t>(dst, curOffset, m_commit, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-
-    return SIZE;
+    curl_global_cleanup();
 }
-
-/// Implements the Deserialize function inherited from Serializable.
-int SWInfo::Deserialize(const std::vector<unsigned char>& src,
-                        unsigned int offset)
-{
-    LOG_MARKER();
-
-    unsigned int curOffset = offset;
-
-    try
-    {
-        m_major = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-        curOffset += sizeof(uint32_t);
-        m_minor = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-        curOffset += sizeof(uint32_t);
-        m_fix = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-        curOffset += sizeof(uint32_t);
-        m_upgradeDS = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
-        curOffset += sizeof(uint64_t);
-        m_commit = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-        curOffset += sizeof(uint32_t);
-    }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING,
-                    "Error with SWInfo::Deserialize." << ' ' << e.what());
-        return -1;
-    }
-
-    return 0;
-}
-
-/// Less-than comparison operator.
-bool SWInfo::operator<(const SWInfo& r) const
-{
-    return tie(m_major, m_minor, m_fix, m_upgradeDS, m_commit)
-        < tie(r.m_major, r.m_minor, r.m_fix, r.m_upgradeDS, r.m_commit);
-}
-
-/// Greater-than comparison operator.
-bool SWInfo::operator>(const SWInfo& r) const { return r < *this; }
-
-/// Equality operator.
-bool SWInfo::operator==(const SWInfo& r) const
-{
-    return tie(m_major, m_minor, m_fix, m_upgradeDS, m_commit)
-        == tie(r.m_major, r.m_minor, r.m_fix, r.m_upgradeDS, r.m_commit);
-}
-
-UpgradeManager::UpgradeManager() {}
-
-UpgradeManager::~UpgradeManager() {}
 
 UpgradeManager& UpgradeManager::GetInstance()
 {
@@ -137,26 +56,389 @@ UpgradeManager& UpgradeManager::GetInstance()
     return um;
 }
 
+static size_t WriteString(void* contents, size_t size, size_t nmemb,
+                          void* userp)
+{
+    ((string*)userp)->append((char*)contents, size * nmemb);
+    return size * nmemb;
+}
+
+string UpgradeManager::DownloadFile(const char* fileTail,
+                                    const char* releaseUrl)
+{
+    if (!m_curl)
+    {
+        LOG_GENERAL(WARNING, "Cannot perform any curl operation!");
+        return "";
+    }
+
+    string curlRes;
+    curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_URL,
+                     releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL);
+    curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
+    curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+    curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, WriteString);
+    curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &curlRes);
+    CURLcode res = curl_easy_perform(m_curl);
+
+    if (res != CURLE_OK)
+    {
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed to get latest release "
+                    "information from url ["
+                        << (releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL)
+                        << "]: " << curl_easy_strerror(res));
+        return "";
+    }
+
+    int find = 0;
+    string cur;
+    vector<string> downloadFilePaths;
+    boost::char_separator<char> sep(",\"");
+    boost::tokenizer<boost::char_separator<char>> tokens(curlRes, sep);
+    for (boost::tokenizer<boost::char_separator<char>>::iterator tok_iter
+         = tokens.begin();
+         tok_iter != tokens.end(); ++tok_iter)
+    {
+        if (1 == find)
+        {
+            ++find;
+            continue;
+        }
+
+        if (2 == find)
+        {
+            find = 0;
+            downloadFilePaths.emplace_back(*tok_iter);
+            continue;
+        }
+
+        cur = *tok_iter;
+
+        if (cur == "browser_download_url")
+        {
+            find = 1;
+            continue;
+        }
+    }
+
+    string downloadFilePath;
+
+    for (auto s : downloadFilePaths)
+    {
+        if (string::npos != s.rfind(fileTail))
+        {
+            downloadFilePath = s;
+            break;
+        }
+    }
+
+    string fileName = downloadFilePath.substr(downloadFilePath.rfind('/') + 1);
+
+    /// Get the redirection url (if applicable)
+    curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+    curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
+    res = curl_easy_perform(m_curl);
+
+    if (res != CURLE_OK)
+    {
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed to get redirect url from url ["
+                        << downloadFilePath
+                        << "]: " << curl_easy_strerror(res));
+        return "";
+    }
+
+    long response_code;
+    res = curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+    if ((res != CURLE_OK) || ((response_code / 100) == 3))
+    {
+        char* location = nullptr;
+        res = curl_easy_getinfo(m_curl, CURLINFO_REDIRECT_URL, &location);
+
+        if ((res == CURLE_OK) && location)
+        {
+            downloadFilePath = location;
+        }
+    }
+
+    /// Download the file
+    curl_easy_reset(m_curl);
+    curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+    curl_easy_setopt(m_curl, CURLOPT_URL, downloadFilePath.data());
+    curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(m_curl, CURLOPT_NOPROGRESS, 1L);
+    unique_ptr<FILE, decltype(&fclose)> fp(fopen(fileName.data(), "wb"),
+                                           &fclose);
+
+    if (!fp)
+    {
+        return "";
+    }
+
+    curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, fp.get());
+    res = curl_easy_perform(m_curl);
+
+    if (res != CURLE_OK)
+    {
+        LOG_GENERAL(WARNING,
+                    "curl_easy_perform() failed to download file from url["
+                        << downloadFilePath
+                        << "]: " << curl_easy_strerror(res));
+        return "";
+    }
+
+    return fileName;
+}
+
 bool UpgradeManager::HasNewSW()
 {
-    /// Check website, verify if sig is valid && SHA-256 is new
-    /// TBD
+    LOG_MARKER();
 
-    return false;
+    string pubKeyFileName = DownloadFile(PUBLIC_KEY_FILE_NAME);
+
+    if (pubKeyFileName.empty())
+    {
+        LOG_GENERAL(WARNING, "Cannot download public key file!");
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "public key file has been downloaded successfully.");
+
+    string versionName = DownloadFile(VERSION_FILE_NAME);
+
+    if (versionName.empty())
+    {
+        LOG_GENERAL(WARNING, "Cannot download version file!");
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
+
+    vector<PubKey> pubKeys;
+    {
+        fstream pubKeyFile(PUBLIC_KEY_FILE_NAME, ios::in);
+        string pubKey;
+
+        while (getline(pubKeyFile, pubKey)
+               && PUBLIC_KEY_LENGTH == pubKey.size())
+        {
+            pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(pubKey), 0);
+        }
+    }
+
+    LOG_GENERAL(INFO, "Parsing public key file completed.");
+
+    string shaStr, sigStr;
+    {
+        fstream versionFile(VERSION_FILE_NAME, ios::in);
+        int line_no = 0;
+
+        /// Read SHA-256 hash
+        while (line_no != 14 && getline(versionFile, shaStr))
+        {
+            ++line_no;
+        }
+
+        /// Read signature
+        while (line_no != 16 && getline(versionFile, sigStr))
+        {
+            ++line_no;
+        }
+    }
+
+    LOG_GENERAL(INFO, "Parsing version key file completed.");
+
+    const vector<unsigned char> sha = DataConversion::HexStrToUint8Vec(shaStr);
+    const unsigned int len = sigStr.size() / pubKeys.size();
+    vector<Signature> mutliSig;
+
+    for (unsigned int i = 0; i < pubKeys.size(); ++i)
+    {
+        mutliSig.emplace_back(
+            DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len)), 0);
+    }
+
+    /// Multi-sig verification
+    for (unsigned int i = 0; i < pubKeys.size(); ++i)
+    {
+        if (!Schnorr::GetInstance().Verify(sha, mutliSig.at(i), pubKeys.at(i)))
+        {
+            LOG_GENERAL(WARNING, "Multisig verification failed!");
+            return false;
+        }
+    }
+
+    return m_latestSHA != sha;
 }
 
 bool UpgradeManager::DownloadSW()
 {
-    /// Download SW from website, then update current SHA-256 value & curSWInfo
-    /// TBD
+    LOG_MARKER();
+    lock_guard<mutex> guard(m_downloadMutex);
+    string versionName = DownloadFile(VERSION_FILE_NAME);
 
+    if (versionName.empty())
+    {
+        LOG_GENERAL(WARNING, "Cannot download version file!");
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
+
+    m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
+
+    if (m_packageFileName.empty())
+    {
+        LOG_GENERAL(WARNING, "Cannot download package (.deb) file!");
+        return false;
+    }
+
+    LOG_GENERAL(INFO, "Package (.deb) file has been downloaded successfully.");
+
+    uint32_t major, minor, fix, commit;
+    uint64_t upgradeDS;
+    string sha;
+
+    try
+    {
+        fstream versionFile(VERSION_FILE_NAME, ios::in);
+        int line_no = 0;
+        string line;
+
+        /// Read major version
+        while (line_no != 2 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        major = stoul(line);
+
+        /// Read minor version
+        while (line_no != 4 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        minor = stoul(line);
+
+        /// Read fix version
+        while (line_no != 6 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        fix = stoul(line);
+
+        /// Read expected DS epoch
+        while (line_no != 8 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        upgradeDS = stoull(line);
+
+        /// Read Git commit ID
+        while (line_no != 12 && getline(versionFile, line))
+        {
+            ++line_no;
+        }
+
+        commit = stoul(line, nullptr, 16);
+
+        /// Read SHA-256 hash
+        while (line_no != 14 && getline(versionFile, sha))
+        {
+            ++line_no;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        LOG_GENERAL(WARNING,
+                    "Cannot parse " << VERSION_FILE_NAME << ": " << ' '
+                                    << e.what());
+        return false;
+    }
+
+    /// Verify SHA-256 checksum of .deb file
+    string downloadSha;
+    {
+        fstream debFile(m_packageFileName, ios::in);
+
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+        vector<unsigned char> vec((istreambuf_iterator<char>(debFile)),
+                                  (istreambuf_iterator<char>()));
+        sha2.Update(vec, 0, vec.size());
+        vector<unsigned char> output = sha2.Finalize();
+        downloadSha = DataConversion::Uint8VecToHexStr(output);
+    }
+
+    if (sha != downloadSha)
+    {
+        LOG_GENERAL(WARNING,
+                    "SHA-256 checksum of .deb file does not match, expected: "
+                        << sha << ", real: " << downloadSha);
+        return false;
+    }
+
+    m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
+    m_latestSHA = DataConversion::HexStrToUint8Vec(sha);
     return true;
 }
 
-bool UpgradeManager::ReplaceNode()
+bool UpgradeManager::ReplaceNode(Mediator& mediator)
 {
-    /// Store all the useful states into metadata, create a new node with loading the metadata, and kill current node
-    /// TBD
+    LOG_MARKER();
 
-    return true;
+    if (LOOKUP_NODE_MODE)
+    {
+        LOG_GENERAL(WARNING,
+                    "For LookUp node, temporarily disable upgrading protocol.");
+        return true;
+    }
+
+    if (DirectoryService::IDLE == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO,
+                    "Shard node, upgrade after "
+                        << TERMINATION_COUNTDOWN_IN_SECONDS << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS));
+    }
+    else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO,
+                    "DS backup node, upgrade after "
+                        << TERMINATION_COUNTDOWN_IN_SECONDS + 1
+                        << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS + 1));
+    }
+    else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode)
+    {
+        LOG_GENERAL(INFO,
+                    "DS leader node, upgrade after "
+                        << TERMINATION_COUNTDOWN_IN_SECONDS + 2
+                        << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS + 2));
+    }
+
+    BlockStorage::GetBlockStorage().PutDSCommittee(
+        mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);
+
+    /// Deploy downloaded software
+    /// TBD: The call of "dpkg" should be removed. (https://github.com/Zilliqa/Issues/issues/185)
+    if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr)
+        < 0)
+    {
+        LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
+        return false;
+    }
+
+    /// Kill current node, then the recovery procedure will wake up node with stored data
+    return raise(SIGKILL) == 0;
 }

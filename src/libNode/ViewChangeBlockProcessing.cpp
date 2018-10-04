@@ -31,6 +31,7 @@
 #include "libConsensus/ConsensusUser.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -41,50 +42,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-
-/** TODO
-void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
-{
-    LOG_MARKER();
-
-    m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Storing DS Block Number: "
-                  << dsblock.GetHeader().GetBlockNum()
-                  << " with Nonce: " << dsblock.GetHeader().GetNonce()
-                  << ", Difficulty: " << dsblock.GetHeader().GetDifficulty()
-                  << ", Timestamp: " << dsblock.GetHeader().GetTimestamp()
-                  << ", view change count: "
-                  << dsblock.GetHeader().GetViewChangeCount());
-
-    // Update the rand1 value for next PoW
-    m_mediator.UpdateDSBlockRand();
-
-    // Store DS Block to disk
-    vector<unsigned char> serializedDSBlock;
-    dsblock.Serialize(serializedDSBlock, 0);
-
-    LOG_GENERAL(
-        INFO,
-        "View change count:  " << dsblock.GetHeader().GetViewChangeCount());
-
-    for (unsigned int i = 0; i < dsblock.GetHeader().GetViewChangeCount(); i++)
-    {
-        m_mediator.m_DSCommitteeNetworkInfo.emplace_back(
-            m_mediator.m_DSCommitteeNetworkInfo.front());
-        m_mediator.m_DSCommitteeNetworkInfo.pop_front();
-        m_mediator.m_DSCommitteePubKeys.emplace_back(
-            m_mediator.m_DSCommitteePubKeys.front());
-        m_mediator.m_DSCommitteePubKeys.pop_front();
-    }
-    BlockStorage::GetBlockStorage().PutDSBlock(
-        dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
-#ifndef IS_LOOKUP_NODE
-    BlockStorage::GetBlockStorage().PushBackTxBodyDB(
-        dsblock.GetHeader().GetBlockNum());
-#endif
-}
-**/
 
 void Node::UpdateDSCommiteeComposition()
 {
@@ -117,7 +74,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
 
     for (auto const& kv : *m_mediator.m_DSCommittee)
     {
-        if (B2.at(index) == true)
+        if (B2.at(index))
         {
             keys.emplace_back(kv.first);
             count++;
@@ -144,9 +101,8 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock)
     vcblock.GetCS1().Serialize(message, VCBlockHeader::SIZE);
     BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
                             vcblock.GetB1());
-    if (Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                      vcblock.GetCS2(), *aggregatedKey)
-        == false)
+    if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                       vcblock.GetCS2(), *aggregatedKey))
     {
         LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
         for (auto& kv : keys)
@@ -193,24 +149,16 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
                           unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from)
 {
-    // Message = [VC block]
     LOG_MARKER();
 
-    if (IsMessageSizeInappropriate(message.size(), cur_offset,
-                                   VCBlock::GetMinSize()))
-    {
-        LOG_GENERAL(WARNING, "Incoming vc block size too small");
-        return false;
-    }
-
     VCBlock vcblock;
-    if (vcblock.Deserialize(message, cur_offset) != 0)
+
+    if (!Messenger::GetNodeVCBlock(message, cur_offset, vcblock))
     {
-        LOG_GENERAL(WARNING, "We failed to deserialize vcblock.");
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeVCBlock failed.");
         return false;
     }
-
-    cur_offset += vcblock.GetSerializedSize();
 
     if (vcblock.GetHeader().GetViewChangeEpochNo()
         != m_mediator.m_currentEpochNum)

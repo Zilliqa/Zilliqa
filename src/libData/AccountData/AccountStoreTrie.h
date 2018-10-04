@@ -27,18 +27,19 @@ class AccountStoreTrie : public AccountStoreSC<MAP>
 protected:
     DB m_db;
     dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    h256 prevRoot;
+    dev::h256 m_prevRoot;
 
     AccountStoreTrie();
 
     bool UpdateStateTrie(const Address& address, const Account& account);
+    bool RemoveFromTrie(const Address& address);
 
 public:
     virtual void Init() override;
 
     Account* GetAccount(const Address& address) override;
 
-    h256 GetStateRootHash() const;
+    dev::h256 GetStateRootHash() const;
     bool UpdateStateTrieAll();
     void RepopulateStateTrie();
 

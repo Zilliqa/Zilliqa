@@ -28,6 +28,7 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -56,8 +57,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
     LOG_MARKER();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
     auto blockNum
         = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
         + 1;
@@ -77,6 +76,17 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
             i++;
 
+            LOG_GENERAL(INFO,
+                        "Pushback microblock shard ID: "
+                            << microBlock.GetHeader().GetShardID() << endl
+                            << "TxnRoot hash: "
+                            << microBlock.GetHeader().GetTxRootHash() << endl
+                            << "StateDelta hash: "
+                            << microBlock.GetHeader().GetStateDeltaHash()
+                            << endl
+                            << "TxnReceipt hash: "
+                            << microBlock.GetHeader().GetStateDeltaHash());
+
             microblockHashes.push_back(
                 {microBlock.GetHeader().GetTxRootHash(),
                  microBlock.GetHeader().GetStateDeltaHash(),
@@ -93,7 +103,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
 
             bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
 
-            if (!isVacuousEpoch && !isEmpty)
+            if (!m_mediator.GetIsVacuousEpoch() && !isEmpty)
             {
                 m_mediator.m_node->m_unavailableMicroBlocks[blockNum].insert(
                     {{{microBlock.GetHeader().GetTxRootHash(),
@@ -134,17 +144,17 @@ void DirectoryService::ExtractDataFromMicroblocks(
             << " TranReceiptRootHash: " << microblockTranReceiptRoot.hex());
 }
 
-void DirectoryService::ComposeFinalBlockCore()
+void DirectoryService::ComposeFinalBlock()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "DirectoryService::ComposeFinalBlockCore not expected to "
+                    "DirectoryService::ComposeFinalBlock not expected to "
                     "be called from LookUp node.");
         return;
     }
-
-    LOG_MARKER();
 
     TxnHash microblockTxnTrieRoot;
     StateHash microblockDeltaTrieRoot;
@@ -204,17 +214,11 @@ void DirectoryService::ComposeFinalBlockCore()
 
     StateHash stateRoot = StateHash();
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
-        AccountStore::GetInstance().UpdateStateTrieAll();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
     }
 
-    // Make sure signature placeholders are of the expected size (in particular, the bitmaps)
-    // This is because backups will save the final block before consensus inside m_finalBlockMessage
-    // Then, m_finalBlockMessage will be updated after consensus (for the cosig values)
     m_finalBlock.reset(new TxBlock(
         TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash,
                       blockNum, timestamp, microblockTxnTrieRoot, stateRoot,
@@ -239,71 +243,10 @@ void DirectoryService::ComposeFinalBlockCore()
                   << m_finalBlock->GetHeader().GetNumTxs() << " transactions.");
 }
 
-vector<unsigned char> DirectoryService::ComposeFinalBlockMessage()
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::ComposeFinalBlockMessage not expected "
-                    "to be called from LookUp node.");
-        return vector<unsigned char>();
-    }
-
-    LOG_MARKER();
-
-    vector<unsigned char> finalBlockMessage;
-    unsigned int curr_offset = 0;
-    /** To remove. Redundant code. 
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    {
-        unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks,
-                             defer_lock);
-        unique_lock<mutex> g2(m_mediator.m_node->m_mutexAllMicroBlocksRecvd,
-                              defer_lock);
-        lock(g, g2);
-
-        if (isVacuousEpoch && !m_mediator.m_node->m_allMicroBlocksRecvd)
-        {
-            LOG_EPOCH(
-                INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Waiting for microblocks before composing final block. Count: "
-                    << m_mediator.m_node->m_unavailableMicroBlocks.size());
-            for (auto it : m_mediator.m_node->m_unavailableMicroBlocks)
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Waiting for finalblock " << it.first << ". Count "
-                                                    << it.second.size());
-                for (auto it2 : it.second)
-                {
-                    LOG_EPOCH(INFO,
-                              to_string(m_mediator.m_currentEpochNum).c_str(),
-                              it2.first);
-                }
-            }
-
-            m_mediator.m_node->m_cvAllMicroBlocksRecvd.wait(
-                g, [this] { return m_mediator.m_node->m_allMicroBlocksRecvd; });
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "All microblocks recvd, moving to compose final block");
-        }
-    }
-    **/
-
-    ComposeFinalBlockCore(); // stores it in m_finalBlock
-
-    m_finalBlock->Serialize(finalBlockMessage, curr_offset);
-
-    // At this point, cosigs are still not updated inside m_finalBlockMessage
-    // Update will be done in ProcessFinalBlockConsensusWhenDone
-    m_finalBlockMessage = finalBlockMessage;
-    return finalBlockMessage;
-}
-
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -312,15 +255,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
         return true;
     }
 
-    LOG_MARKER();
-
     // Compose the final block from all the microblocks
     // I guess only the leader has to do this
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am the leader DS node. Creating final block.");
 
-    // finalBlockMessage = serialized final block + tx-body sharing setup
-    vector<unsigned char> finalBlockMessage = ComposeFinalBlockMessage();
+    ComposeFinalBlock(); // stores it in m_finalBlock
 
     // kill first ds leader (used for view change testing)
     /**
@@ -339,18 +279,17 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
     auto nodeMissingMicroBlocksFunc
-        = [this](const vector<unsigned char>& errorMsg, unsigned int offset,
+        = [this](const vector<unsigned char>& errorMsg,
                  const Peer& from) mutable -> bool {
-        return OnNodeMissingMicroBlocks(errorMsg, offset, from);
+        return OnNodeMissingMicroBlocks(errorMsg, from);
     };
 
     m_consensusObject.reset(new ConsensusLeader(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
-        static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
+        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS),
-        nodeMissingMicroBlocksFunc,
-        std::function<bool(map<unsigned int, std::vector<unsigned char>>)>()));
+        nodeMissingMicroBlocksFunc, ShardCommitFailureHandlerFunc()));
 
     if (m_consensusObject == nullptr)
     {
@@ -373,7 +312,18 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
                       + 1 << "] BGIN");
     }
 
-    cl->StartConsensus(finalBlockMessage, TxBlockHeader::SIZE);
+    auto announcementGeneratorFunc =
+        [this](vector<unsigned char>& dst, unsigned int offset,
+               const uint32_t consensusID, const uint64_t blockNumber,
+               const vector<unsigned char>& blockHash, const uint16_t leaderID,
+               const pair<PrivKey, PubKey>& leaderKey,
+               vector<unsigned char>& messageToCosign) mutable -> bool {
+        return Messenger::SetDSFinalBlockAnnouncement(
+            dst, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_finalBlock, messageToCosign);
+    };
+
+    cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
     return true;
 }
@@ -570,80 +520,98 @@ bool DirectoryService::CheckFinalBlockTimestamp()
 }
 
 // Check microblock hashes
-bool DirectoryService::CheckMicroBlockHashes(
-    std::vector<unsigned char>& errorMsg)
+bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg)
 {
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "DirectoryService::CheckMicroBlockHashes not expected to "
+                    "DirectoryService::CheckMicroBlocks not expected to "
                     "be called from LookUp node.");
         return true;
     }
 
     LOG_MARKER();
 
-    auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
-
-    std::vector<MicroBlockHashSet> missingMicroBlocks;
+    std::vector<std::pair<uint32_t, MicroBlockHashSet>> missingMicroBlocks;
 
     {
         lock_guard<mutex> g(m_mutexMicroBlocks);
         // O(n^2) might be fine since number of shards is low
         // If its slow on benchmarking, may be first populate an unordered_set and then std::find
-        for (auto& microBlockHash : hashesInMicroBlocks)
+        auto& hashesInMicroBlocks = m_finalBlock->GetMicroBlockHashes();
+        auto& shardIDsInMicroBlocks = m_finalBlock->GetShardIDs();
+
+        for (unsigned int i = 0;
+             i < m_finalBlock->GetHeader().GetNumMicroBlockHashes(); i++)
         {
+            LOG_GENERAL(INFO,
+                        "shardID: " << shardIDsInMicroBlocks[i] << endl
+                                    << "hashes: " << hashesInMicroBlocks[i]);
             bool found = false;
             auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
             for (auto& microBlock : microBlocks)
             {
-                if (microBlock.GetHeader().GetTxRootHash()
-                        == microBlockHash.m_txRootHash
+                if (microBlock.GetHeader().GetShardID()
+                        == shardIDsInMicroBlocks[i]
+                    && microBlock.GetHeader().GetTxRootHash()
+                        == hashesInMicroBlocks[i].m_txRootHash
                     && microBlock.GetHeader().GetStateDeltaHash()
-                        == microBlockHash.m_stateDeltaHash)
+                        == hashesInMicroBlocks[i].m_stateDeltaHash
+                    && microBlock.GetHeader().GetTranReceiptHash()
+                        == hashesInMicroBlocks[i].m_tranReceiptHash)
                 {
                     found = true;
                     break;
                 }
             }
+
             if (!found)
             {
-                LOG_GENERAL(WARNING, "cannot find hashes. " << microBlockHash)
-                missingMicroBlocks.emplace_back(microBlockHash);
+                LOG_GENERAL(WARNING,
+                            "cannot find microblock with shard id: "
+                                << shardIDsInMicroBlocks[i] << endl
+                                << "hashes: " << hashesInMicroBlocks[i]);
+                missingMicroBlocks.push_back(
+                    {shardIDsInMicroBlocks[i], hashesInMicroBlocks[i]});
             }
         }
     }
 
-    m_numOfAbsentMicroBlockHashes = 0;
+    m_numOfAbsentMicroBlocks = 0;
     int offset = 0;
 
     if (!missingMicroBlocks.empty())
     {
-        for (auto const& hash : missingMicroBlocks)
+        for (auto const& mb : missingMicroBlocks)
         {
             if (errorMsg.empty())
             {
                 errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t)
-                                + hash.size());
+                                + sizeof(uint32_t) + mb.second.size());
                 offset += (sizeof(uint32_t) + sizeof(uint64_t));
             }
             else
             {
-                errorMsg.resize(offset + hash.size());
+                errorMsg.resize(offset + sizeof(uint32_t) + mb.second.size());
             }
-            offset = hash.Serialize(errorMsg, offset);
+            Serializable::SetNumber<uint32_t>(errorMsg, offset, mb.first,
+                                              sizeof(uint32_t));
+            offset += sizeof(uint32_t);
+            offset = mb.second.Serialize(errorMsg, offset);
 
-            m_numOfAbsentMicroBlockHashes++;
+            m_numOfAbsentMicroBlocks++;
         }
 
-        if (m_numOfAbsentMicroBlockHashes > 0)
+        if (m_numOfAbsentMicroBlocks > 0)
         {
             Serializable::SetNumber<uint32_t>(
-                errorMsg, 0, m_numOfAbsentMicroBlockHashes, sizeof(uint32_t));
+                errorMsg, 0, m_numOfAbsentMicroBlocks, sizeof(uint32_t));
             Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
                                               m_mediator.m_currentEpochNum,
                                               sizeof(uint64_t));
         }
+
+        LOG_PAYLOAD(INFO, "ErrorMsg generated:", errorMsg, 200);
 
         // AccountStore::GetInstance().InitTemp();
         // LOG_GENERAL(WARNING, "Got missing microblocks, revert state delta");
@@ -651,7 +619,7 @@ bool DirectoryService::CheckMicroBlockHashes(
         //     m_mediator.m_ds->m_stateDeltaFromShards, 0);
 
         m_consensusObject->SetConsensusErrorCode(
-            ConsensusCommon::FINALBLOCK_MISSING_HASH);
+            ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS);
 
         return false;
     }
@@ -660,14 +628,21 @@ bool DirectoryService::CheckMicroBlockHashes(
 }
 
 bool DirectoryService::OnNodeMissingMicroBlocks(
-    const std::vector<unsigned char>& errorMsg, unsigned int offset,
-    const Peer& from)
+    const std::vector<unsigned char>& errorMsg, const Peer& from)
 {
     LOG_MARKER();
+
+    unsigned int offset = 0;
 
     if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset)
     {
         LOG_GENERAL(WARNING, "Malformed Message");
+        LOG_PAYLOAD(INFO, "errorMsg from " << from, errorMsg, 200);
+        LOG_GENERAL(INFO,
+                    "MsgSize: "
+                        << errorMsg.size() << " expected size: "
+                        << sizeof(uint32_t) + sizeof(uint64_t) + offset);
+
         return false;
     }
 
@@ -679,10 +654,14 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         = Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
 
-    vector<MicroBlockHashSet> missingMicroBlockHashes;
+    vector<std::pair<uint32_t, MicroBlockHashSet>> missingMicroBlocks;
 
     for (uint32_t i = 0; i < numOfAbsentHashes; i++)
     {
+        uint32_t shard_id = Serializable::GetNumber<uint32_t>(errorMsg, offset,
+                                                              sizeof(uint32_t));
+        offset += sizeof(uint32_t);
+
         MicroBlockHashSet mbHash;
         if (mbHash.Deserialize(errorMsg, offset) != 0)
         {
@@ -691,7 +670,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         }
         offset += mbHash.size();
 
-        missingMicroBlockHashes.emplace_back(mbHash);
+        missingMicroBlocks.push_back({shard_id, mbHash});
     }
 
     uint32_t portNo
@@ -704,35 +683,23 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
 
     auto& microBlocks = m_microBlocks[blockNum];
 
-    unsigned int cur_offset = 0;
-    vector<unsigned char> mb_message
-        = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
-    cur_offset += MessageOffset::BODY;
-    mb_message.push_back(SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK);
-    cur_offset += MessageOffset::INST;
-    Serializable::SetNumber<uint64_t>(mb_message, cur_offset, blockNum,
-                                      sizeof(uint64_t));
-    cur_offset += sizeof(uint64_t);
-    mb_message.resize(cur_offset + sizeof(uint32_t));
-    unsigned int mb_num_offset = cur_offset;
-    cur_offset += sizeof(uint32_t);
-
-    uint32_t numOfMicroblocksSent = 0;
+    vector<MicroBlock> microBlocksSent;
 
     for (uint32_t i = 0; i < numOfAbsentHashes; i++)
     {
         bool found = false;
         // O(n^2) might be fine since number of shards is low
         // If its slow on benchmarking, may be first populate an unordered_set and then std::find
-        for (const auto& microBlock : microBlocks)
+        auto microBlockIter = microBlocks.begin();
+        for (; microBlockIter != microBlocks.end(); microBlockIter++)
         {
-            if (microBlock.GetHeader().GetTxRootHash()
-                    == missingMicroBlockHashes[i].m_txRootHash
-                && microBlock.GetHeader().GetStateDeltaHash()
-                    == missingMicroBlockHashes[i].m_stateDeltaHash)
+            if (microBlockIter->GetHeader().GetShardID()
+                    == missingMicroBlocks[i].first
+                && microBlockIter->GetHeader().GetTxRootHash()
+                    == missingMicroBlocks[i].second.m_txRootHash
+                && microBlockIter->GetHeader().GetStateDeltaHash()
+                    == missingMicroBlocks[i].second.m_stateDeltaHash)
             {
-                cur_offset += microBlock.SerializeCore(mb_message, cur_offset);
-                numOfMicroblocksSent++;
                 found = true;
                 break;
             }
@@ -740,27 +707,37 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         if (!found)
         {
             LOG_GENERAL(WARNING,
-                        "cannot find missing microblock: "
-                            << missingMicroBlockHashes[i]);
+                        "cannot find missing microblock: (shardID)"
+                            << missingMicroBlocks[i].first << " (hashes)"
+                            << missingMicroBlocks[i].second);
             continue;
         }
+        microBlocksSent.emplace_back(*microBlockIter);
     }
-    Serializable::SetNumber<uint32_t>(mb_message, mb_num_offset,
-                                      numOfMicroblocksSent, sizeof(uint32_t));
 
     // Final state delta
+    vector<unsigned char> stateDelta;
     if (m_finalBlock->GetHeader().GetStateDeltaHash() != StateHash())
     {
-        vector<unsigned char> stateDelta;
         AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-
-        copy(stateDelta.begin(), stateDelta.end(), back_inserter(mb_message));
-        cur_offset += stateDelta.size();
     }
     else
     {
         LOG_GENERAL(
             INFO, "State Delta Hash is empty, skip sharing final state delta");
+    }
+
+    vector<unsigned char> mb_message
+        = {MessageType::DIRECTORY, DSInstructionType::MICROBLOCKSUBMISSION};
+
+    if (!Messenger::SetDSMicroBlockSubmission(
+            mb_message, MessageOffset::BODY,
+            DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, blockNum,
+            microBlocksSent, stateDelta))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::SetDSMicroBlockSubmission failed.");
+        return false;
     }
 
     P2PComm::GetInstance().SendMessage(peer, mb_message);
@@ -897,14 +874,16 @@ bool DirectoryService::CheckStateRoot()
 
     LOG_MARKER();
 
-    StateHash stateRoot = StateHash();
+    StateHash stateRoot;
 
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
-        // AccountStore::GetInstance().PrintAccountState();
         stateRoot = AccountStore::GetInstance().GetStateRootHash();
+        // AccountStore::GetInstance().PrintAccountState();
+    }
+    else
+    {
+        stateRoot = StateHash();
     }
 
     if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash())
@@ -965,6 +944,8 @@ bool DirectoryService::CheckStateDeltaHash()
 
 bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -973,31 +954,11 @@ bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
         return true;
     }
 
-    LOG_MARKER();
-
-    bool valid = false;
-
-    do
-    {
-        if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
-            || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
-            || !CheckFinalBlockTimestamp() || !CheckMicroBlockHashes(errorMsg)
-            || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
-            || !CheckStateRoot() || !CheckStateDeltaHash())
-        {
-            break;
-        }
-
-        // TODO: Check gas limit (must satisfy some equations)
-        // TODO: Check gas used (must be <= gas limit)
-        // TODO: Check pubkey (must be valid and = shard leader)
-        // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
-        // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
-
-        valid = true;
-    } while (false);
-
-    if (!valid)
+    if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion()
+        || !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash()
+        || !CheckFinalBlockTimestamp() || !CheckMicroBlocks(errorMsg)
+        || !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty()
+        || !CheckStateRoot() || !CheckStateDeltaHash())
     {
         Serializable::SetNumber<uint32_t>(
             errorMsg, errorMsg.size(), m_mediator.m_selfPeer.m_listenPortHost,
@@ -1005,7 +966,13 @@ bool DirectoryService::CheckFinalBlockValidity(vector<unsigned char>& errorMsg)
         return false;
     }
 
-    return valid;
+    // TODO: Check gas limit (must satisfy some equations)
+    // TODO: Check gas used (must be <= gas limit)
+    // TODO: Check pubkey (must be valid and = shard leader)
+    // TODO: Check parent DS hash (must be = digest of last DS block header in the DS blockchain)
+    // TODO: Check parent DS block number (must be = block number of last DS block header in the DS blockchain)
+
+    return true;
 }
 
 /** To remove. Redundant code. 
@@ -1015,7 +982,7 @@ bool DirectoryService::WaitForTxnBodies()
     LOG_MARKER();
 
     bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
+        = (m_mediator.m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
 
     {
         unique_lock<mutex> g(m_mediator.m_node->m_mutexUnavailableMicroBlocks,
@@ -1088,16 +1055,21 @@ bool DirectoryService::WaitForTxnBodies()
 //     //     && m_mediator.m_node->m_unavailableMicroBlocks[blockNum].size() > 0)
 //     // {
 //     //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-//     //               "setting false for unavailable microblock " << m_consensusID);
+//     //               "setting false for unavailable microblock " << m_mediator.m_consensusID);
 //     //     unique_lock<mutex> g(m_mediator.m_node->m_mutexAllMicroBlocksRecvd);
 //     //     m_mediator.m_node->m_allMicroBlocksRecvd = false;
 //     // }
 // }
 
 bool DirectoryService::FinalBlockValidator(
-    const vector<unsigned char>& finalblock,
-    [[gnu::unused]] vector<unsigned char>& errorMsg)
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    vector<unsigned char>& messageToCosign)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -1106,21 +1078,15 @@ bool DirectoryService::FinalBlockValidator(
         return true;
     }
 
-    LOG_MARKER();
+    m_finalBlock.reset(new TxBlock);
 
-    unsigned int curr_offset = 0;
-
-    m_finalBlock.reset(new TxBlock(finalblock, curr_offset));
-    curr_offset += m_finalBlock->GetSerializedSize();
-
-    // WaitForTxnBodies();
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-
-    if (isVacuousEpoch)
+    if (!Messenger::GetDSFinalBlockAnnouncement(
+            message, offset, consensusID, blockNumber, blockHash, leaderID,
+            leaderKey, *m_finalBlock, messageToCosign))
     {
-        AccountStore::GetInstance().UpdateStateTrieAll();
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetDSFinalBlockAnnouncement failed.");
+        return false;
     }
 
     if (!CheckFinalBlockValidity(errorMsg))
@@ -1144,13 +1110,13 @@ bool DirectoryService::FinalBlockValidator(
                   << DataConversion::charArrToHexStr(
                          m_finalBlock->GetHeader().GetPrevHash().asArray()));
 
-    m_finalBlockMessage = finalblock;
-
     return true;
 }
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -1159,26 +1125,33 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup()
         return true;
     }
 
-    LOG_MARKER();
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am a backup DS node. Waiting for final block announcement.");
-
+              "I am a backup DS node. Waiting for final block announcement. "
+              "Leader is at index  "
+                  << m_consensusLeaderID << " "
+                  << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
     // Create new consensus object
 
     // Dummy values for now
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return FinalBlockValidator(message, errorMsg);
+    auto func = [this](const vector<unsigned char>& input, unsigned int offset,
+                       vector<unsigned char>& errorMsg,
+                       const uint32_t consensusID, const uint64_t blockNumber,
+                       const vector<unsigned char>& blockHash,
+                       const uint16_t leaderID, const PubKey& leaderKey,
+                       vector<unsigned char>& messageToCosign) mutable -> bool {
+        return FinalBlockValidator(input, offset, errorMsg, consensusID,
+                                   blockNumber, blockHash, leaderID, leaderKey,
+                                   messageToCosign);
     };
 
     m_consensusObject.reset(new ConsensusBackup(
-        m_consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_consensusLeaderID, m_mediator.m_selfKey.first,
-        *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
+        m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
+        static_cast<unsigned char>(DIRECTORY),
         static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
 
     if (m_consensusObject == nullptr)
@@ -1201,64 +1174,102 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta)
         return;
     }
 
-    LOG_MARKER();
-
-    SetState(FINALBLOCK_CONSENSUS_PREP);
-
-    if (revertStateDelta)
     {
-        LOG_GENERAL(WARNING,
-                    "Failed DS microblock consensus, revert state delta");
-        AccountStore::GetInstance().InitTemp();
-        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
-                                                         0);
-    }
+        lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    AccountStore::GetInstance().SerializeDelta();
+        if (CheckState(PROCESS_FINALBLOCKCONSENSUS)
+            || m_state == FINALBLOCK_CONSENSUS_PREP)
+        {
+            return;
+        }
+        else
+        {
+            LOG_GENERAL(INFO,
+                        "The above CheckState failed as expected, don't panic");
+        }
 
-    // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
-    bool ConsensusObjCreation = true;
-    if (m_mode == PRIMARY_DS)
-    {
-        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
-        if (!ConsensusObjCreation)
+        LOG_MARKER();
+
+#ifdef FALLBACK_TEST
+        if (m_mediator.m_currentEpochNum == FALLBACK_TEST_EPOCH
+            && m_mediator.m_consensusID > 1)
+        {
+            LOG_GENERAL(INFO, "Stop DS for testing fallback");
+            return;
+        }
+#endif // FALLBACK_TEST
+
+        SetState(FINALBLOCK_CONSENSUS_PREP);
+
+        m_mediator.m_node->PrepareGoodStateForFinalBlock();
+
+        if (revertStateDelta)
         {
             LOG_GENERAL(WARNING,
-                        "Consensus failed at "
-                        "RunConsensusOnFinalBlockWhenDSPrimary");
+                        "Failed DS microblock consensus, revert state delta");
+            AccountStore::GetInstance().InitTemp();
+            AccountStore::GetInstance().DeserializeDeltaTemp(
+                m_stateDeltaFromShards, 0);
         }
-    }
-    else
-    {
-        ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSBackup();
-        if (!ConsensusObjCreation)
+
+        AccountStore::GetInstance().SerializeDelta();
+
+        if (m_mediator.GetIsVacuousEpoch())
         {
-            LOG_GENERAL(WARNING,
-                        "Consensus failed at "
-                        "RunConsensusOnFinalBlockWhenDSBackup");
+            AccountStore::GetInstance().CommitTempReversible();
         }
+
+        // Upon consensus object creation failure, one should not return from the function, but rather wait for view change.
+        bool ConsensusObjCreation = true;
+        if (m_mode == PRIMARY_DS)
+        {
+            this_thread::sleep_for(
+                chrono::milliseconds(FINALBLOCK_DELAY_IN_MS));
+            ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
+            if (!ConsensusObjCreation)
+            {
+                LOG_GENERAL(WARNING,
+                            "Consensus failed at "
+                            "RunConsensusOnFinalBlockWhenDSPrimary");
+            }
+        }
+        else
+        {
+            ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSBackup();
+            if (!ConsensusObjCreation)
+            {
+                LOG_GENERAL(WARNING,
+                            "Consensus failed at "
+                            "RunConsensusOnFinalBlockWhenDSBackup");
+            }
+        }
+
+        if (ConsensusObjCreation)
+        {
+            SetState(FINALBLOCK_CONSENSUS);
+        }
+
+        m_startedRunFinalblockConsensus = true;
+
+        auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
+
+        DetachedFunction(1, func1);
     }
 
-    if (ConsensusObjCreation)
-    {
-        SetState(FINALBLOCK_CONSENSUS);
-        cv_finalBlockConsensusObject.notify_all();
-    }
-
-    auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
+    auto func1 = [this]() -> void {
+        // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
+        // without triggering view change.
+        std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+        if (cv_viewChangeFinalBlock.wait_for(
+                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
+            == std::cv_status::timeout)
+        {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Initiated final block view change. ");
+            auto func2 = [this]() -> void { RunConsensusOnViewChange(); };
+            DetachedFunction(1, func2);
+        }
+    };
 
     DetachedFunction(1, func1);
-
-    // View change will wait for timeout. If conditional variable is notified before timeout, the thread will return
-    // without triggering view change.
-    std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
-    if (cv_viewChangeFinalBlock.wait_for(cv_lk,
-                                         std::chrono::seconds(VIEWCHANGE_TIME))
-        == std::cv_status::timeout)
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Initiated final block view change. ");
-        auto func = [this]() -> void { RunConsensusOnViewChange(); };
-        DetachedFunction(1, func);
-    }
 }

@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libUtils/DataConversion.h"
@@ -75,6 +76,8 @@ Node::~Node() {}
 
 void Node::Install(unsigned int syncType, bool toRetrieveHistory)
 {
+    LOG_MARKER();
+
     // m_state = IDLE;
     bool runInitializeGenesisBlocks = true;
 
@@ -87,9 +90,126 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                       .GetHeader()
                       .GetBlockNum()
                 + 1;
-            m_consensusID = 0;
+            m_mediator.m_consensusID = 0;
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
+
+            BlockStorage::GetBlockStorage().GetDSCommittee(
+                m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+            m_mediator.UpdateDSBlockRand();
+            m_mediator.UpdateTxBlockRand();
+
+            /// If this node is inside ds committee, mark it as DS node
+            for (const auto& ds : *m_mediator.m_DSCommittee)
+            {
+                if (ds.first == m_mediator.m_selfKey.second)
+                {
+                    SetState(POW_SUBMISSION);
+                    m_mediator.m_ds->m_consensusMyID = 0;
+
+                    for (auto const& i : *m_mediator.m_DSCommittee)
+                    {
+                        if (i.first == m_mediator.m_selfKey.second)
+                        {
+                            LOG_EPOCH(
+                                INFO,
+                                to_string(m_mediator.m_currentEpochNum).c_str(),
+                                "My node ID for this PoW consensus is "
+                                    << m_mediator.m_ds->m_consensusMyID);
+                            break;
+                        }
+
+                        ++m_mediator.m_ds->m_consensusMyID;
+                    }
+
+                    if (m_mediator.m_DSCommittee
+                            ->at(m_mediator.m_ds->m_consensusLeaderID)
+                            .first
+                        == m_mediator.m_selfKey.second)
+                    {
+                        m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
+                        LOG_GENERAL(
+                            INFO,
+                            "Set as DS leader: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+                        LOG_STATE(
+                            "[IDENT]["
+                            << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << std::setw(6) << std::left
+                            << m_mediator.m_ds->m_consensusMyID << "] DSLD");
+                    }
+                    else
+                    {
+                        m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
+                        LOG_GENERAL(
+                            INFO,
+                            "Set as DS backup: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+                        LOG_STATE(
+                            "[IDENT]["
+                            << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << std::setw(6) << std::left
+                            << m_mediator.m_ds->m_consensusMyID << "] DSBK");
+                    }
+
+                    LOG_EPOCH(INFO,
+                              to_string(m_mediator.m_currentEpochNum).c_str(),
+                              "START OF EPOCH "
+                                  << m_mediator.m_dsBlockChain.GetLastBlock()
+                                          .GetHeader()
+                                          .GetBlockNum()
+                                      + 1);
+
+                    auto func = [this]() mutable -> void {
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Waiting "
+                                << POW_WINDOW_IN_SECONDS
+                                << " seconds, accepting PoW submissions...");
+                        this_thread::sleep_for(
+                            chrono::seconds(POW_WINDOW_IN_SECONDS));
+                        LOG_EPOCH(
+                            INFO,
+                            to_string(m_mediator.m_currentEpochNum).c_str(),
+                            "Starting consensus on ds block");
+                        m_mediator.m_ds->RunConsensusOnDSBlock();
+                    };
+                    DetachedFunction(1, func);
+                    return;
+                }
+            }
+
+            /// If this node is shard node, start pow
+            LOG_GENERAL(INFO,
+                        "Set as shard node: "
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
+            uint64_t block_num = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetBlockNum()
+                + 1;
+            uint8_t dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                       .GetHeader()
+                                       .GetDSDifficulty();
+            uint8_t difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDifficulty();
+            SetState(POW_SUBMISSION);
+            LOG_GENERAL(INFO,
+                        "Shard node, wait "
+                            << SHARD_DELAY_WAKEUP_IN_SECONDS
+                            << " seconds for DS nodes wakeup...");
+            this_thread::sleep_for(
+                chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
+            StartPoW(block_num, dsDifficulty, difficulty,
+                     m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
         }
         else
         {
@@ -102,13 +222,13 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
         this->Init();
         if (syncType == SyncType::NO_SYNC)
         {
-            m_consensusID = 1;
+            m_mediator.m_consensusID = 1;
             m_consensusLeaderID = 1;
             addBalanceToGenesisAccount();
         }
         else
         {
-            m_consensusID = 0;
+            m_mediator.m_consensusID = 0;
             m_consensusLeaderID = 0;
         }
     }
@@ -174,14 +294,8 @@ bool Node::StartRetrieveHistory()
     tDS.join();
     tTx.join();
 
-    bool tx_bodies_result = true;
-    if (!LOOKUP_NODE_MODE)
-    {
-        tx_bodies_result = m_retriever->RetrieveTxBodiesDB();
-    }
-
     bool res = false;
-    if (st_result && ds_result && tx_result && tx_bodies_result)
+    if (st_result && ds_result && tx_result)
     {
         if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates())
             || (LOOKUP_NODE_MODE && m_retriever->ValidateStates()
@@ -189,7 +303,7 @@ bool Node::StartRetrieveHistory()
         {
             LOG_GENERAL(INFO, "RetrieveHistory Successed");
             m_mediator.m_isRetrievedHistory = true;
-            m_mediator.m_ds->m_consensusID
+            m_mediator.m_consensusID
                 = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
             res = true;
         }
@@ -265,9 +379,12 @@ bool Node::CheckState(Action action)
 
     static const std::multimap<NodeState, Action> ACTIONS_FOR_STATE
         = {{POW_SUBMISSION, STARTPOW},
-           {MICROBLOCK_CONSENSUS_PREP, PROCESS_DSBLOCK},
+           {POW_SUBMISSION, PROCESS_DSBLOCK},
+           {WAITING_DSBLOCK, PROCESS_DSBLOCK},
            {MICROBLOCK_CONSENSUS, PROCESS_MICROBLOCKCONSENSUS},
-           {WAITING_FINALBLOCK, PROCESS_FINALBLOCK}};
+           {WAITING_FINALBLOCK, PROCESS_FINALBLOCK},
+           {FALLBACK_CONSENSUS, PROCESS_FALLBACKCONSENSUS},
+           {WAITING_FALLBACKBLOCK, PROCESS_FALLBACKBLOCK}};
 
     bool found = false;
 
@@ -595,6 +712,7 @@ bool Node::ProcessTxnPacketFromLookup(
     [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from)
 {
     LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -607,41 +725,81 @@ bool Node::ProcessTxnPacketFromLookup(
     // vacuous epoch -> reject
     // new ds epoch but didn't received ds block yet -> buffer
     // else -> process
-
-    bool isVacuousEpoch
-        = (m_consensusID >= (NUM_FINAL_BLOCK_PER_POW - NUM_VACUOUS_EPOCHS));
-    if (isVacuousEpoch)
+    if (m_mediator.GetIsVacuousEpoch())
     {
+        LOG_GENERAL(WARNING,
+                    "In vacuous epoch now, shouldn't accept any Txn Packet");
         return false;
     }
-    else if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0
-             || m_mediator.m_currentEpochNum == 1)
+
+    uint64_t epochNumber = 0;
+    uint32_t shardID = 0;
+    vector<Transaction> transactions;
+
+    if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
+                                           shardID, transactions))
+    {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Messenger::GetNodeForwardTxnBlock failed.");
+        return false;
+    }
 
     {
-        // check for recieval of new ds block
-        // need to wait the ProcessDSBlock finish
-        lock_guard<mutex> g(m_mutexDSBlock);
-        if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-            < (m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) + 1)
+        // The check here is in case the lookup send the packet
+        // earlier than the node receiving DS block, need to wait the
+        // node finish processing DS block and update its sharding structure
+
+        lock_guard<mutex> g1(m_mutexDSBlock);
+
+        // Situation 1:
+        // Epoch later than genesis epoch, two sub situations:
+        // a : Normal DS Block (after vacuous epoch)
+        // b : DS Block after fallback
+        // Situation 2:
+        // Genesis Epoch 1, two sub situations:
+        // a : Normal DS Block (after genesis)
+        // b : Fallback happened in epoch 1 when waiting for finalblock
+        if ((((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+              || m_justDidFallback)
+             && (m_mediator.m_consensusID != 0))
+            || ((m_mediator.m_currentEpochNum == 1)
+                && ((m_mediator.m_dsBlockChain.GetLastBlock()
+                         .GetHeader()
+                         .GetBlockNum()
+                     == 0)
+                    || m_justDidFallback)))
+
         {
-            lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-            m_txnPacketBuffer.emplace_back(message);
+            lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
+            m_txnPacketBuffer.emplace(epochNumber, message);
+            return true;
         }
-        else
-        {
-            return ProcessTxnPacketFromLookupCore(message, offset);
-        }
+    }
+
+    if (epochNumber < m_mediator.m_currentEpochNum)
+    {
+        LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
+        return false;
+    }
+    else if (epochNumber == m_mediator.m_currentEpochNum)
+    {
+        return ProcessTxnPacketFromLookupCore(message, shardID, transactions);
     }
     else
     {
-        return ProcessTxnPacketFromLookupCore(message, offset);
+        lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+        m_txnPacketBuffer.emplace(epochNumber, message);
     }
+
     return true;
 }
 
-bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
-                                          unsigned int offset)
+bool Node::ProcessTxnPacketFromLookupCore(
+    const vector<unsigned char>& message, const uint32_t shardID,
+    const vector<Transaction>& transactions)
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -650,8 +808,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return true;
     }
 
-    LOG_MARKER();
-
     if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
     {
         LOG_GENERAL(WARNING,
@@ -659,51 +815,29 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         return false;
     }
 
-    // core part:
-    if (IsMessageSizeInappropriate(message.size(), offset,
-                                   2 * sizeof(uint32_t)))
+    if (shardID != m_myShardID)
     {
-        return false;
-    }
-    unsigned int curr_offset = offset;
-    uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
-                                                          sizeof(uint64_t));
-
-    if (epochNum > m_mediator.m_currentEpochNum)
-    {
-        LOG_GENERAL(WARNING, "Recvd txns for larger epoch");
-    }
-
-    curr_offset += sizeof(uint64_t);
-    uint32_t shardId = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                         sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    if (shardId != m_myShardID)
-    {
-        LOG_GENERAL(WARNING, "Wrong Shard");
-        return false;
-    }
-
-    uint32_t num = Serializable::GetNumber<uint32_t>(message, curr_offset,
-                                                     sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
-
-    if (IsMessageSizeInappropriate(message.size(), curr_offset,
-                                   Transaction::GetMinSerializedSize() * num))
-    {
+        LOG_GENERAL(WARNING,
+                    "Wrong Shard (" << shardID << "), m_myShardID ("
+                                    << m_myShardID << ")");
         return false;
     }
 
     // Broadcast to other shard node
     vector<Peer> toSend;
-    for (auto it = m_myShardMembers->begin(); it != m_myShardMembers->end();
-         it++)
+    for (auto& it : *m_myShardMembers)
     {
-        toSend.push_back(it->second);
+        toSend.push_back(it.second);
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    if (BROADCAST_GOSSIP_MODE)
+    {
+        P2PComm::GetInstance().SpreadRumor(message);
+    }
+    else
+    {
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    }
 
     // Process the txns
     unsigned int txn_sent_count = 0;
@@ -712,15 +846,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         auto& compIdx
             = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-        for (unsigned int i = 0; i < num; i++)
-        {
-            Transaction tx;
-            if (tx.Deserialize(message, curr_offset) != 0)
-            {
-                LOG_GENERAL(WARNING, "Failed to deserialize");
-                return false;
-            }
 
+        unsigned int processed_count = 0;
+
+        for (const auto& tx : transactions)
+        {
             if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx))
             {
                 auto it = compIdx.find(
@@ -735,29 +865,46 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                 else
                 {
                     compIdx.insert(tx);
-                    txn_sent_count++;
                 }
+                txn_sent_count++;
             }
             else
             {
                 LOG_GENERAL(WARNING, "Txn is not valid.");
             }
 
-            if (i % 100 == 0)
-            {
-                LOG_GENERAL(INFO, i << " txns from packet processed");
-            }
+            processed_count++;
 
-            curr_offset += tx.GetSerializedSize();
+            if (processed_count % 100 == 0)
+            {
+                LOG_GENERAL(INFO,
+                            processed_count << " txns from packet processed");
+            }
         }
     }
-    LOG_GENERAL(INFO, "TXN COUNT" << txn_sent_count);
+    LOG_GENERAL(INFO, "INSERTED TXN COUNT" << txn_sent_count);
 
     return true;
 }
 
+#ifdef HEARTBEAT_TEST
+bool
+    Node::ProcessKillPulse([[gnu::unused]] const vector<unsigned char>& message,
+                           [[gnu::unused]] unsigned int offset,
+                           [[gnu::unused]] const Peer& from)
+{
+    LOG_MARKER();
+
+    m_mediator.m_killPulse = true;
+
+    return true;
+}
+#endif // HEARTBEAT_TEST
+
 void Node::CommitTxnPacketBuffer()
 {
+    LOG_MARKER();
+
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
@@ -766,16 +913,26 @@ void Node::CommitTxnPacketBuffer()
         return;
     }
 
-    LOG_MARKER();
-
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+    auto it = m_txnPacketBuffer.find(m_mediator.m_currentEpochNum);
 
-    for (const auto& msg : m_txnPacketBuffer)
+    if (it != m_txnPacketBuffer.end())
     {
-        ProcessTxnPacketFromLookupCore(msg, MessageOffset::BODY);
-    }
+        uint64_t epochNumber = 0;
+        uint32_t shardID = 0;
+        vector<Transaction> transactions;
 
-    m_txnPacketBuffer.clear();
+        if (!Messenger::GetNodeForwardTxnBlock(it->second, MessageOffset::BODY,
+                                               epochNumber, shardID,
+                                               transactions))
+        {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Messenger::GetNodeForwardTxnBlock failed.");
+            return;
+        }
+
+        ProcessTxnPacketFromLookupCore(it->second, shardID, transactions);
+    }
 }
 
 // Used by Zilliqa in pow branch. This will be useful for us when doing the accounts and wallet in the future.
@@ -872,6 +1029,7 @@ bool Node::CleanVariables()
     m_isMBSender = false;
     m_myShardID = 0;
     CleanCreatedTransaction();
+    CleanMicroblockConsensusBuffer();
     {
         std::lock_guard<mutex> lock(m_mutexConsensus);
         m_consensusObject.reset();
@@ -919,9 +1077,15 @@ void Node::SetMyShardID(uint32_t shardID)
 
 void Node::CleanCreatedTransaction()
 {
-    std::lock_guard<mutex> lock(m_mutexCreatedTransactions);
-    m_createdTransactions.clear();
-    m_addrNonceTxnMap.clear();
+    {
+        std::lock_guard<mutex> g(m_mutexCreatedTransactions);
+        m_createdTransactions.clear();
+        m_addrNonceTxnMap.clear();
+    }
+    {
+        std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);
+        m_txnPacketBuffer.clear();
+    }
 }
 
 bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
@@ -1024,17 +1188,23 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-    InstructionHandler ins_handlers[]
-        = {&Node::ProcessStartPoW,
-           &Node::ProcessDSBlock,
-           &Node::ProcessSubmitTransaction,
-           &Node::ProcessMicroblockConsensus,
-           &Node::ProcessFinalBlock,
-           &Node::ProcessForwardTransaction,
-           &Node::ProcessCreateTransactionFromLookup,
-           &Node::ProcessVCBlock,
-           &Node::ProcessDoRejoin,
-           &Node::ProcessTxnPacketFromLookup};
+    InstructionHandler ins_handlers[] = {
+        &Node::ProcessStartPoW,
+        &Node::ProcessDSBlock,
+        &Node::ProcessSubmitTransaction,
+        &Node::ProcessMicroblockConsensus,
+        &Node::ProcessFinalBlock,
+        &Node::ProcessForwardTransaction,
+        &Node::ProcessCreateTransactionFromLookup,
+        &Node::ProcessVCBlock,
+        &Node::ProcessDoRejoin,
+        &Node::ProcessTxnPacketFromLookup,
+        &Node::ProcessFallbackConsensus,
+        &Node::ProcessFallbackBlock,
+#ifdef HEARTBEAT_TEST
+        &Node::ProcessKillPulse,
+#endif // HEARTBEAT_TEST
+    };
 
     const unsigned char ins_byte = message.at(offset);
     const unsigned int ins_handlers_count
@@ -1051,7 +1221,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
     if (ins_byte < ins_handlers_count)
     {
         result = (this->*ins_handlers[ins_byte])(message, offset + 1, from);
-        if (result == false)
+        if (!result)
         {
             // To-do: Error recovery
         }
@@ -1072,10 +1242,13 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 
 map<Node::NodeState, string> Node::NodeStateStrings
     = {MAKE_LITERAL_PAIR(POW_SUBMISSION),
+       MAKE_LITERAL_PAIR(WAITING_DSBLOCK),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS_PREP),
        MAKE_LITERAL_PAIR(MICROBLOCK_CONSENSUS),
        MAKE_LITERAL_PAIR(WAITING_FINALBLOCK),
-       MAKE_LITERAL_PAIR(ERROR),
+       MAKE_LITERAL_PAIR(WAITING_FALLBACKBLOCK),
+       MAKE_LITERAL_PAIR(FALLBACK_CONSENSUS_PREP),
+       MAKE_LITERAL_PAIR(FALLBACK_CONSENSUS),
        MAKE_LITERAL_PAIR(SYNC)};
 
 string Node::GetStateString() const
@@ -1096,6 +1269,8 @@ map<Node::Action, string> Node::ActionStrings
        MAKE_LITERAL_PAIR(PROCESS_MICROBLOCKCONSENSUS),
        MAKE_LITERAL_PAIR(PROCESS_FINALBLOCK),
        MAKE_LITERAL_PAIR(PROCESS_TXNBODY),
+       MAKE_LITERAL_PAIR(PROCESS_FALLBACKCONSENSUS),
+       MAKE_LITERAL_PAIR(PROCESS_FALLBACKBLOCK),
        MAKE_LITERAL_PAIR(NUM_ACTIONS)};
 
 std::string Node::GetActionString(Action action) const
