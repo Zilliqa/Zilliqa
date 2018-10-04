@@ -253,6 +253,7 @@ void DirectoryService::SendDSBlockToShardNodes(const unsigned int my_shards_lo,
 
         P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
                                                     dsblock_message);
+
         p++;
     }
 }
@@ -294,13 +295,12 @@ void DirectoryService::UpdateMyDSModeAndConsensusId()
                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
                              << "][      ] IDLE");
     }
-
     else
     {
         m_consensusMyID += numOfIncomingDs;
         m_consensusLeaderID
             = lastBlockHash % (m_mediator.m_DSCommittee->size());
-        LOG_GENERAL(WARNING, " m_consensusLeaderID " << m_consensusLeaderID);
+        LOG_GENERAL(INFO, " m_consensusLeaderID " << m_consensusLeaderID);
 
         if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
             == m_mediator.m_selfKey.second)
@@ -396,7 +396,7 @@ void DirectoryService::StartFirstTxEpoch()
         unsigned int index = 0;
         for (const auto& i : *m_mediator.m_node->m_myShardMembers)
         {
-            if (i.second.m_listenPortHost == 0)
+            if (i.second == Peer())
             {
                 LOG_GENERAL(INFO, "m_consensusMyID = " << index);
                 m_mediator.m_node->m_consensusMyID = index;
@@ -429,9 +429,9 @@ void DirectoryService::StartFirstTxEpoch()
         }
 
         m_mediator.m_node->m_consensusLeaderID = 0;
-
         // m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
         m_mediator.m_node->m_myShardID = m_shards.size();
+        m_mediator.m_node->m_justDidFallback = false;
         m_mediator.m_node->CommitTxnPacketBuffer();
         m_stateDeltaFromShards.clear();
 
@@ -444,6 +444,20 @@ void DirectoryService::StartFirstTxEpoch()
         // Start sharding work
         SetState(MICROBLOCK_SUBMISSION);
         m_dsStartedMicroblockConsensus = false;
+
+        if (BROADCAST_GOSSIP_MODE)
+        {
+            std::vector<Peer> peers;
+            for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+            {
+                if (i.second.m_listenPortHost != 0)
+                {
+                    peers.emplace_back(i.second);
+                }
+            }
+            // ReInitialize RumorManager for this epoch.
+            P2PComm::GetInstance().InitializeRumorManager(peers);
+        }
 
         auto func = [this]() mutable -> void {
             // Check for state change. If it get stuck at microblock submission for too long, move on to finalblock without the microblock
@@ -476,7 +490,6 @@ void DirectoryService::StartFirstTxEpoch()
                         WARNING,
                         "Timeout: Didn't finish DS Microblock. Proceeds "
                         "without it");
-
                     RunConsensusOnFinalBlock(true);
                 }
             }
@@ -518,6 +531,22 @@ void DirectoryService::StartFirstTxEpoch()
 
         // Process txn sharing assignments as a shard node
         m_mediator.m_node->LoadTxnSharingInfo();
+
+        if (BROADCAST_GOSSIP_MODE)
+        {
+            std::vector<Peer> peers;
+            for (const auto& i : *m_mediator.m_node->m_myShardMembers)
+            {
+                if (i.second.m_listenPortHost != 0)
+                {
+                    peers.emplace_back(i.second);
+                }
+            }
+
+            // Set the peerlist for RumorSpreading protocol since am no more DS member.
+            // I am now shard member.
+            P2PComm::GetInstance().InitializeRumorManager(peers);
+        }
 
         // Finally, start as a shard node
         m_mediator.m_node->StartFirstTxEpoch();
@@ -660,11 +689,24 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     UpdateDSCommiteeComposition();
     UpdateMyDSModeAndConsensusId();
 
-    LOG_GENERAL(
-        INFO,
-        "New leader is at index "
-            << m_consensusLeaderID << " "
-            << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+
+    UpdateDSCommiteeComposition(winnerpeer);
+
+    if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first
+        == m_mediator.m_selfKey.second)
+    {
+        LOG_GENERAL(INFO,
+                    "New leader is at index " << m_consensusLeaderID << " "
+                                              << m_mediator.m_selfPeer);
+    }
+    else
+    {
+        LOG_GENERAL(
+            INFO,
+            "New leader is at index "
+                << m_consensusLeaderID << " "
+                << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+    }
 
     LOG_GENERAL(INFO, "DS committee");
     for (const auto& member : *m_mediator.m_DSCommittee)

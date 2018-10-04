@@ -173,6 +173,8 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     if (!LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(INFO, "I am a normal node.");
+
+        //m_mediator.HeartBeatLaunch();
     }
     else
     {
