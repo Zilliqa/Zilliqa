@@ -1424,13 +1424,17 @@ void Lookup::CommitMicroBlockStorage()
     lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
     const uint64_t& currentEpoch = m_mediator.m_currentEpochNum;
 
-    for (uint64_t i = 1; i <= currentEpoch; i++)
+    for (auto& epochMBpair : m_microBlocksBuffer)
     {
-        for (auto& mb : m_microBlocksBuffer[i])
+        if (epochMBpair.first > currentEpoch)
         {
-            AddMicroBlockToStorage(i - 1, mb);
+            continue;
         }
-        m_microBlocksBuffer[i].clear();
+        for (auto& mb : epochMBpair.second)
+        {
+            AddMicroBlockToStorage(epochMBpair.first - 1, mb);
+        }
+        epochMBpair.second.clear();
     }
 }
 
