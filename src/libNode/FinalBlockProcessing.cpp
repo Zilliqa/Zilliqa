@@ -611,7 +611,7 @@ void Node::BroadcastMicroBlockToLookup()
     LOG_GENERAL(INFO,
                 "[SendMB]"
                     << " Sending lookup :"
-                    << m_microblock->GetHeader().GetShardID()
+                    << m_microblock->GetHeader().GetShardId()
                     << " Epoch:" << m_mediator.m_currentEpochNum);
     vector<unsigned char> msg
         = {MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMSEED};
