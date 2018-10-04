@@ -480,7 +480,6 @@ bool Node::RunConsensusOnFallbackWhenLeader()
     ComposeFallbackBlock();
 
     // Create new consensus object
-    // Dummy values for now
     m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
     fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
 

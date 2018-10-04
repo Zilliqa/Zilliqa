@@ -35,6 +35,9 @@ protected:
 public:
     // Constructors
     BlockHeaderBase();
+
+    /// Calculate my hash
+    BlockHash GetMyHash() const;
 };
 
 #endif // __BLOCKHEADERBASE_H__

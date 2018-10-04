@@ -673,7 +673,7 @@ namespace
                 "Block hash mismatch. Expected: "
                     << DataConversion::Uint8VecToHexStr(blockHash)
                     << " Actual: "
-                    << announcement.consensusinfo().blockhash().c_str());
+                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
             return false;
         }
 

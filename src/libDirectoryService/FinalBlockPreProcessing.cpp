@@ -269,8 +269,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary()
     **/
 
     // Create new consensus object
-    // Dummy values for now
-    //uint32_t consensusID = 0x0;
     m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
                                .GetHeader()
                                .GetMyHash()

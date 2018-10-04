@@ -327,7 +327,6 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader()
 
     uint32_t consensusID = m_viewChangeCounter;
     // Create new consensus object
-    // Dummy values for now
     m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
                                .GetHeader()
                                .GetMyHash()

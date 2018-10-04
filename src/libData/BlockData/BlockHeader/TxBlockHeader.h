@@ -72,10 +72,11 @@ public:
 
     /// Implements the Serialize function inherited from Serializable.
     unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+                           unsigned int offset) const override;
 
     /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+    int Deserialize(const std::vector<unsigned char>& src,
+                    unsigned int offset) override;
 
     /// Returns the type of the block.
     const uint8_t& GetType() const;
@@ -127,8 +128,6 @@ public:
 
     /// Returns the digest of the parent DS block header.
     const BlockHash& GetDSBlockHeader() const;
-
-    BlockHash GetMyHash() const;
 
     /// Equality comparison operator.
     bool operator==(const TxBlockHeader& header) const;
