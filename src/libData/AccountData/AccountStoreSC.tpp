@@ -201,6 +201,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             receipt.SetCumGas(CONTRACT_CREATE_GAS);
             receipt.update();
 
+            this->IncreaseNonce(fromAddr);
+
             return true; // Return true because the states already changed
         }
     }
@@ -215,6 +217,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 receipt.SetResult(false);
                 receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
                 receipt.update();
+
+                this->IncreaseNonce(fromAddr);
 
                 return true;
             }
@@ -322,6 +326,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         {
             receipt.SetResult(false);
             receipt.update();
+
+            this->IncreaseNonce(fromAddr);
+
             return true; // Return true because the states already changed
         }
     }
