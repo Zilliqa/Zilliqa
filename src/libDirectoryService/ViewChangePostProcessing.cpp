@@ -262,34 +262,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone()
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP:
     {
-        if (BROADCAST_TREEBASED_CLUSTER_MODE)
+        vector<Peer> allPowSubmitter;
+        for (auto& nodeNetwork : m_allPoWConns)
         {
-            // Choose N other pow winner nodes to be recipient of VC block
-            std::vector<Peer> powWinnerVCBlockReceivers;
-            unsigned int numOfVCBlockReceivers
-                = std::min(NUM_VCBLOCK_RECEIVERS_FROM_POW_WINNERS,
-                           (uint32_t)m_allPoWConns.size());
-
-            const auto& kv = m_allPoWConns.begin();
-            for (unsigned int i = 0; i < numOfVCBlockReceivers; i++)
-            {
-                powWinnerVCBlockReceivers.emplace_back(kv->second);
-
-                P2PComm::GetInstance().SendRumorToForeignPeers(
-                    powWinnerVCBlockReceivers, vcblock_message);
-            }
+            allPowSubmitter.emplace_back(nodeNetwork.second);
         }
-        else
-        {
-            vector<Peer> allPowSubmitter;
-            for (auto& nodeNetwork : m_allPoWConns)
-            {
-                allPowSubmitter.emplace_back(nodeNetwork.second);
-            }
 
-            P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
-                                                        vcblock_message);
-        }
+        P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
+                                                    vcblock_message);
         break;
     }
     case FINALBLOCK_CONSENSUS:
