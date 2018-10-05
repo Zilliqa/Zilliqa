@@ -131,6 +131,8 @@ class Mediator {
   void IncreaseEpochNum();
 
   bool GetIsVacuousEpoch();
+
+  uint32_t GetShardSize(const bool& useShardStr) const;
 };
 
 #endif  // __MEDIATOR_H__

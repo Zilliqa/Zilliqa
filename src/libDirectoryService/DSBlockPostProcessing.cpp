@@ -576,7 +576,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
             "DSBlock to be sent to the lookup nodes");
 
   // TODO: Refine this
-  unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
+  unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
   unsigned int nodeToSendToLookUpHi =
       nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
