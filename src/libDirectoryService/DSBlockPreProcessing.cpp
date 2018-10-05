@@ -40,25 +40,39 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void DirectoryService::ComposeDSBlock(
-    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns)
+unsigned int DirectoryService::ComposeDSBlock(
+    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedDSPoWSolns,
+    std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
+        sortedPoWSolns)
 {
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
                     "DirectoryService::ComposeDSBlock not expected to be "
                     "called from LookUp node.");
-        return;
+        return 0;
     }
 
     LOG_MARKER();
 
     // Assemble DS block header
-    const array<unsigned char, 32> winnerPoW = sortedPoWSolns.front().first;
-    const PubKey& winnerKey = sortedPoWSolns.front().second;
-
-    if (!POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-            DataConversion::charArrToHexStr(winnerPoW), DS_POW_DIFFICULTY))
+    unsigned int numOfElectedDSMembers
+        = min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
+    unsigned int counter = 0;
+    std::map<PubKey, Peer> powDSWinners;
+    for (const auto& submitter : sortedDSPoWSolns)
+    {
+        if (counter >= numOfElectedDSMembers)
+        {
+            break;
+        }
+        powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
+        sortedPoWSolns.erase(
+            remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
+            sortedPoWSolns.end());
+        counter++;
+    }
+    if (sortedDSPoWSolns.size() == 0)
     {
         LOG_GENERAL(WARNING, "No soln met the DS difficulty level");
         //TODO: To handle if no PoW soln can meet DS difficulty level.
@@ -121,14 +135,16 @@ void DirectoryService::ComposeDSBlock(
     {
         lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
         m_pendingDSBlock.reset(new DSBlock(
-            DSBlockHeader(dsDifficulty, difficulty, prevHash, 0, winnerKey,
+            DSBlockHeader(dsDifficulty, difficulty, prevHash,
                           m_mediator.m_selfKey.second, blockNum,
-                          get_time_as_int(), m_mediator.m_curSWInfo),
+                          get_time_as_int(), SWInfo(), powDSWinners),
             CoSignatures(m_mediator.m_DSCommittee->size())));
     }
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock created with winning PoW = 0x"
-                  << DataConversion::charArrToHexStr(winnerPoW));
+              "New DSBlock created with ds difficulty "
+                  << std::to_string(dsDifficulty) << " and difficulty "
+                  << std::to_string(difficulty));
+    return numOfElectedDSMembers;
 }
 
 void DirectoryService::ComputeSharding(
@@ -147,16 +163,16 @@ void DirectoryService::ComputeSharding(
     m_shards.clear();
     m_publicKeyToshardIdMap.clear();
 
-    if (m_allPoWs.size() < COMM_SIZE)
+    if (sortedPoWSolns.size() < COMM_SIZE)
     {
         LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
     }
 
     std::set<PubKey> setTopPriorityNodes;
-    if (m_allPoWs.size() > MAX_SHARD_NODE_NUM)
+    if (sortedPoWSolns.size() > MAX_SHARD_NODE_NUM)
     {
         LOG_GENERAL(INFO,
-                    "PoWs recvd " << m_allPoWs.size()
+                    "PoWs recvd " << sortedPoWSolns.size()
                                   << " more than max node number "
                                   << MAX_SHARD_NODE_NUM);
         setTopPriorityNodes = FindTopPriorityNodes();
@@ -348,7 +364,8 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards)
     return true;
 }
 
-void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
+void DirectoryService::ComputeTxnSharingAssignments(
+    const vector<Peer>& proposedDSMembers)
 {
     if (LOOKUP_NODE_MODE)
     {
@@ -362,7 +379,7 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
 
     // PART 1
     // First version: We just take the first X nodes in DS committee
-    // Take note that this is the OLD DS committee -> we must consider that winnerpeer is the new DS leader (and the last node in the committee will no longer be a DS node)
+    // Take note that this is the OLD DS committee -> we must consider that winnerpeer is the new DS member (and the last node in the committee will no longer be a DS node)
 
     m_DSReceivers.clear();
 
@@ -372,7 +389,11 @@ void DirectoryService::ComputeTxnSharingAssignments(const Peer& winnerpeer)
         : TX_SHARING_CLUSTER_SIZE;
 
     // Add the new DS leader first
-    m_DSReceivers.emplace_back(winnerpeer);
+    for (const auto& proposedMember : proposedDSMembers)
+    {
+        m_DSReceivers.emplace_back(proposedMember);
+    }
+
     m_mediator.m_node->m_txnSharingIAmSender = true;
     num_ds_nodes--;
 
@@ -477,6 +498,20 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
     // Use a map to sort the soln according to difficulty level
+    map<array<unsigned char, 32>, PubKey> DSPoWOrderSorter;
+    for (const auto& powsoln : m_allDSPoWs)
+    {
+        DSPoWOrderSorter[powsoln.second] = powsoln.first;
+    }
+
+    // Put it back to vector for easy manipilation and adjustment of the ordering
+    vector<pair<array<unsigned char, 32>, PubKey>> sortedDSPoWSolns;
+    for (const auto& kv : DSPoWOrderSorter)
+    {
+        sortedDSPoWSolns.emplace_back(kv);
+    }
+
+    // Use a map to sort the soln according to difficulty level
     map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
     for (const auto& powsoln : m_allPoWs)
     {
@@ -491,32 +526,73 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
         LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
     }
 
-    ComposeDSBlock(sortedPoWSolns);
+    unsigned int numOfProposedDSMembers
+        = ComposeDSBlock(sortedDSPoWSolns, sortedPoWSolns);
 
-    // Remove the PoW winner from m_allPoWs so it doesn't get included in sharding structure
-    swap(sortedPoWSolns.front(), sortedPoWSolns.back());
-    sortedPoWSolns.pop_back();
-
-    // Add the oldest DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
-    sortedPoWSolns.emplace_back(array<unsigned char, 32>(),
-                                m_mediator.m_DSCommittee->back().first);
-
-    if (m_mediator.m_DSCommittee->back().first == m_mediator.m_selfKey.second)
+    // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it gets included in sharding structure
+    if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size())
     {
-        m_allPoWConns.emplace(
-            make_pair(m_mediator.m_selfKey.second, m_mediator.m_selfPeer));
-    }
-    else
-    {
-        m_allPoWConns.emplace(m_mediator.m_DSCommittee->back());
+        LOG_GENERAL(FATAL,
+                    "number of proposed ds member is larger than current ds "
+                    "committee. numOfProposedDSMembers: "
+                        << numOfProposedDSMembers << " m_DSCommittee size: "
+                        << m_mediator.m_DSCommittee->size());
     }
 
-    const auto& winnerPeer
-        = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    vector<unsigned char> serializedPubK;
+    for (unsigned int i = 0; i < numOfProposedDSMembers; i++)
+    {
+        // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK) to act as the PoW soln
+        // TODO: To determine how to include kicked out ds member (who did not do PoW) back into the shardding strcture
+        PubKey nodePubKey = m_mediator.m_DSCommittee
+                                ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                                .first;
+        nodePubKey.Serialize(serializedPubK, 0);
+        sha2.Update(serializedPubK);
+        vector<unsigned char> PubKeyHash;
+        PubKeyHash = sha2.Finalize();
+        array<unsigned char, 32> PubKeyHashArr;
+
+        // Injecting into sorted PoWs
+        copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
+        sortedPoWSolns.emplace_back(PubKeyHashArr, nodePubKey);
+        sha2.Reset();
+        serializedPubK.clear();
+
+        // Injecting into Pow Connections information
+        LOG_GENERAL(INFO, "Injecting into Pow Connections");
+        if (m_mediator.m_DSCommittee
+                ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                .second
+            == Peer())
+        {
+            m_allPoWConns.emplace(m_mediator.m_selfKey.second,
+                                  m_mediator.m_selfPeer);
+            LOG_GENERAL(INFO, m_mediator.m_selfPeer);
+        }
+        else
+        {
+            m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(
+                m_mediator.m_DSCommittee->size() - 1 - i));
+            LOG_GENERAL(INFO,
+                        m_mediator.m_DSCommittee
+                            ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                            .second);
+        }
+    }
 
     ClearReputationOfNodeWithoutPoW();
     ComputeSharding(sortedPoWSolns);
-    ComputeTxnSharingAssignments(winnerPeer->second);
+
+    vector<Peer> proposedDSMembersInfo;
+    for (const auto& proposedMember : DSPoWOrderSorter)
+    {
+        proposedDSMembersInfo.emplace_back(
+            m_allPoWConns[proposedMember.second]);
+    }
+
+    ComputeTxnSharingAssignments(proposedDSMembersInfo);
 
     // Create new consensus object
     uint32_t consensusID = 0;
@@ -567,12 +643,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
                const vector<unsigned char>& blockHash, const uint16_t leaderID,
                const pair<PrivKey, PubKey>& leaderKey,
                vector<unsigned char>& messageToCosign) mutable -> bool {
-        const auto& winnerPeer = m_allPoWConns.find(
-            m_pendingDSBlock->GetHeader().GetMinerPubKey());
         return Messenger::SetDSDSBlockAnnouncement(
             dst, offset, consensusID, blockNumber, blockHash, leaderID,
-            leaderKey, *m_pendingDSBlock, winnerPeer->second, m_shards,
-            m_DSReceivers, m_shardReceivers, m_shardSenders, messageToCosign);
+            leaderKey, *m_pendingDSBlock, m_shards, m_DSReceivers,
+            m_shardReceivers, m_shardSenders, messageToCosign);
     };
 
     cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
@@ -648,8 +722,6 @@ bool DirectoryService::DSBlockValidator(
         return true;
     }
 
-    Peer winnerPeer;
-
     m_tempDSReceivers.clear();
     m_tempShardReceivers.clear();
     m_tempShardSenders.clear();
@@ -663,9 +735,8 @@ bool DirectoryService::DSBlockValidator(
 
     if (!Messenger::GetDSDSBlockAnnouncement(
             message, offset, consensusID, blockNumber, blockHash, leaderID,
-            leaderKey, *m_pendingDSBlock, winnerPeer, m_tempShards,
-            m_tempDSReceivers, m_tempShardReceivers, m_tempShardSenders,
-            messageToCosign))
+            leaderKey, *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
+            m_tempShardReceivers, m_tempShardSenders, messageToCosign))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetDSDSBlockAnnouncement failed.");
@@ -686,26 +757,28 @@ bool DirectoryService::DSBlockValidator(
     DetachedFunction(1, func);
 
     // To-do: Put in the logic here for checking the proposed DS block
-
-    auto storedMember
-        = m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey());
-
-    // I know the winner but the winner IP given by the leader is different!
-    if (storedMember != m_allPoWConns.end())
+    const map<PubKey, Peer> NewDSMembers
+        = m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetDSPoWWinners();
+    for (const auto& DSPowWinner : NewDSMembers)
     {
-        if (storedMember->second != winnerPeer)
+        if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end())
         {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "WARNING: Why is the IP of the winner different from "
-                      "what I have in m_allPoWConns???");
-            return false;
+            if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second)
+            {
+                LOG_EPOCH(WARNING,
+                          to_string(m_mediator.m_currentEpochNum).c_str(),
+                          "WARNING: Why is the IP of the winner different from "
+                          "what I have in m_allPoWConns???");
+                return false;
+            }
         }
-    }
-    // I don't know the winner -> store the IP given by the leader
-    else
-    {
-        m_allPoWConns.emplace(m_pendingDSBlock->GetHeader().GetMinerPubKey(),
-                              winnerPeer);
+        else
+        {
+            // I don't know the winner -> store the IP given by the leader
+            m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
+        }
     }
 
     // Start to adjust difficulty from second DS block.
@@ -857,8 +930,12 @@ bool DirectoryService::ProcessShardingStructure(
                 {
                     LOG_EPOCH(WARNING,
                               to_string(m_mediator.m_currentEpochNum).c_str(),
-                              "WARNING: Why is the IP of the member different "
-                              "from what I have in m_allPoWConns???");
+                              "IP of the member different "
+                              "from what was in m_allPoWConns???");
+                    LOG_GENERAL(WARNING,
+                                "Stored  "
+                                    << storedMember->second << " Received"
+                                    << std::get<SHARD_NODE_PEER>(shardNode));
                     return false;
                 }
             }

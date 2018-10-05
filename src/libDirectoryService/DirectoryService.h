@@ -188,13 +188,17 @@ class DirectoryService : public Executable, public Broadcastable
     void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                  unsigned int my_shards_hi);
 
-    void ComposeDSBlock(
+    unsigned int ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
+            sortedDSPoWSolns,
+        std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
     void ComputeSharding(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
-    void ComputeTxnSharingAssignments(const Peer& winnerpeer);
+
+    void
+    ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
     bool VerifyPoWOrdering(const DequeOfShard& shards);
     bool VerifyNodePriority(const DequeOfShard& shards);
 
@@ -204,16 +208,15 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    void SendDSBlockToLookupNodes(const Peer& winnerpeer);
-    void SendDSBlockToNewDSLeader(const Peer& winnerpeer);
+    void SendDSBlockToLookupNodes();
+    void SendDSBlockToNewDSLeader();
     void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                         unsigned int& my_shards_lo,
                                         unsigned int& my_shards_hi) const;
-    void SendDSBlockToShardNodes(const Peer& winnerpeer,
-                                 unsigned int my_shards_lo,
-                                 unsigned int my_shards_hi);
+    void SendDSBlockToShardNodes(const unsigned int my_shards_lo,
+                                 const unsigned int my_shards_hi);
     void UpdateMyDSModeAndConsensusId();
-    void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
+    void UpdateDSCommiteeComposition();
 
     void
     ProcessDSBlockConsensusWhenDone(const std::vector<unsigned char>& message,
