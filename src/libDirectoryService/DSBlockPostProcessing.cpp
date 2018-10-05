@@ -698,7 +698,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     // Too few target nodes - avoid asking all DS clusters to send
     if ((my_DS_cluster_num + 1) <= m_shards.size())
     {
-        LOG_GENERAL(INFO, "I am sending DS Block to ShardNodes");
         SendDSBlockToShardNodes(winnerpeer, my_shards_lo, my_shards_hi);
     }
 
