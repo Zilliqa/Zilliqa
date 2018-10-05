@@ -349,8 +349,8 @@ void DirectoryService::UpdateDSCommiteeComposition()
         m_allPoWConns.erase(DSPowWinner.first);
         if (m_mediator.m_selfKey.second == DSPowWinner.first)
         {
-            m_mediator.m_DSCommittee->emplace_front(
-                make_pair(m_mediator.m_selfKey.second, Peer()));
+            m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
+                                                    Peer());
         }
         else
         {
