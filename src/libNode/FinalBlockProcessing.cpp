@@ -174,10 +174,28 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                 else
                 {
                     if (m_microblock->GetHeader().GetHash()
-                            == hashesInMicroBlocks[i]
-                        && !isMicroBlockEmptys[i])
+                        == hashesInMicroBlocks[i])
                     {
-                        toSendTxnToLookup = true;
+                        if (m_microblock->GetHeader().GetTxRootHash()
+                            != TxnHash())
+                        {
+                            if (!isMicroBlockEmptys[i])
+                            {
+                                toSendTxnToLookup = true;
+                            }
+                            else
+                            {
+                                LOG_GENERAL(
+                                    WARNING,
+                                    "My MicroBlock txRootHash ("
+                                        << m_microblock->GetHeader()
+                                               .GetTxRootHash()
+                                        << ") is not null"
+                                           " but isMicroBlockEmpty for me is "
+                                        << isMicroBlockEmptys[i]);
+                                return false;
+                            }
+                        }
                     }
                     else
                     {
