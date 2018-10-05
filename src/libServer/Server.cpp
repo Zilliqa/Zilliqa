@@ -114,9 +114,22 @@ Json::Value Server::CreateTransaction(const Json::Value& _json)
 
             if (tx.GetData().empty() || tx.GetToAddr() == NullAddress)
             {
-                m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-                ret["Info"] = "Non-contract txn, sent to shard";
-                ret["TranID"] = tx.GetTranID().hex();
+                if (tx.GetData().empty() && tx.GetCode().empty())
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    ret["Info"] = "Non-contract txn, sent to shard";
+                    ret["TranID"] = tx.GetTranID().hex();
+                }
+                else if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress)
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    ret["Info"] = "Contract Creation txn, sent to shard";
+                    ret["TranID"] = tx.GetTranID().hex();
+                }
+                else
+                {
+                    ret["Error"] = "Code is empty and To addr is null";
+                }
                 return ret;
             }
             else
