@@ -98,21 +98,21 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx)
     // Check if from account is sharded here
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    unsigned int shardID = m_mediator.m_node->getShardID();
+    unsigned int shardId = m_mediator.m_node->GetShardId();
     unsigned int numShards = m_mediator.m_node->getNumShards();
     unsigned int correct_shard_from
         = Transaction::GetShardIndex(fromAddr, numShards);
 
     if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
     {
-        if (correct_shard_from != shardID)
+        if (correct_shard_from != shardId)
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "This tx is not sharded to me!"
                           << " From Account  = 0x" << fromAddr
                           << " Correct shard = " << correct_shard_from
                           << " This shard    = "
-                          << m_mediator.m_node->getShardID());
+                          << m_mediator.m_node->GetShardId());
             return false;
             // // Transaction created from the GenTransactionBulk will be rejected
             // // by all shards but one. Next line is commented to avoid this

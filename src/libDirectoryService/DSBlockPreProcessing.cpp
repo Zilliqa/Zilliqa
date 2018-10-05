@@ -53,20 +53,6 @@ void DirectoryService::ComposeDSBlock(
 
     LOG_MARKER();
 
-    // Compute hash of previous DS block header
-    BlockHash prevHash;
-    if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
-    {
-        DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-        vector<unsigned char> vec;
-        const DSBlockHeader& lastHeader = lastBlock.GetHeader();
-        lastHeader.Serialize(vec, 0);
-        sha2.Update(vec);
-        const vector<unsigned char>& resVec = sha2.Finalize();
-        copy(resVec.begin(), resVec.end(), prevHash.asArray().begin());
-    }
-
     // Assemble DS block header
     const array<unsigned char, 32> winnerPoW = sortedPoWSolns.front().first;
     const PubKey& winnerKey = sortedPoWSolns.front().second;
@@ -79,12 +65,17 @@ void DirectoryService::ComposeDSBlock(
     }
 
     uint64_t blockNum = 0;
+    BlockHash prevHash;
     uint8_t dsDifficulty = DS_POW_DIFFICULTY;
     uint8_t difficulty = POW_DIFFICULTY;
     if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
     {
         DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
         blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
+        prevHash = lastBlock.GetHeader().GetMyHash();
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Prev DS block hash as per leader " << prevHash.hex());
     }
 
     // Start to adjust difficulty from second DS block.
@@ -154,7 +145,7 @@ void DirectoryService::ComputeSharding(
     LOG_MARKER();
 
     m_shards.clear();
-    m_publicKeyToShardIdMap.clear();
+    m_publicKeyToshardIdMap.clear();
 
     if (m_allPoWs.size() < COMM_SIZE)
     {
@@ -239,7 +230,7 @@ void DirectoryService::ComputeSharding(
         auto& shard = m_shards.at(min(i / COMM_SIZE, max_shard));
         shard.emplace_back(key, m_allPoWConns.at(key),
                            m_mapNodeReputation[key]);
-        m_publicKeyToShardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
+        m_publicKeyToshardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
         i++;
     }
 }
@@ -528,10 +519,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     ComputeTxnSharingAssignments(winnerPeer->second);
 
     // Create new consensus object
-    // Dummy values for now
     uint32_t consensusID = 0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     // kill first ds leader (used for view change testing)
     // Either do killing of ds leader or make ds leader do nothing.
@@ -756,7 +748,7 @@ bool DirectoryService::DSBlockValidator(
         }
     }
 
-    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToShardIdMap,
+    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToshardIdMap,
                                   m_tempMapNodeReputation))
     {
         return false;
@@ -799,8 +791,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
     // Dummy values for now
     uint32_t consensusID = 0x0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                        vector<unsigned char>& errorMsg,
@@ -831,7 +825,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
 bool DirectoryService::ProcessShardingStructure(
     const DequeOfShard& shards,
-    std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
+    std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
     std::map<PubKey, uint16_t>& mapNodeReputation)
 {
     if (LOOKUP_NODE_MODE)
@@ -842,7 +836,7 @@ bool DirectoryService::ProcessShardingStructure(
         return true;
     }
 
-    publicKeyToShardIdMap.clear();
+    publicKeyToshardIdMap.clear();
     mapNodeReputation.clear();
 
     for (unsigned int i = 0; i < shards.size(); i++)
@@ -875,7 +869,7 @@ bool DirectoryService::ProcessShardingStructure(
                                       std::get<SHARD_NODE_PEER>(shardNode));
             }
 
-            publicKeyToShardIdMap.emplace(
+            publicKeyToshardIdMap.emplace(
                 std::get<SHARD_NODE_PUBKEY>(shardNode), i);
         }
     }

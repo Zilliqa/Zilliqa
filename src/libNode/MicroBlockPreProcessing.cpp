@@ -65,7 +65,7 @@ bool Node::ComposeMicroBlock()
     // TxBlockHeader
     uint8_t type = TXBLOCKTYPE::MICRO;
     uint32_t version = BLOCKVERSION::VERSION1;
-    uint32_t shardID = m_myShardID;
+    uint32_t shardId = m_myshardId;
     uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
     uint256_t gasUsed = 1;
     BlockHash prevHash;
@@ -114,7 +114,7 @@ bool Node::ComposeMicroBlock()
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Creating new micro block.")
     m_microblock.reset(new MicroBlock(
-        MicroBlockHeader(type, version, shardID, gasLimit, gasUsed, prevHash,
+        MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, prevHash,
                          blockNum, timestamp, txRootHash, numTxs, minerPubKey,
                          dsBlockNum, dsBlockHeader, stateDeltaHash,
                          txReceiptHash),
@@ -689,8 +689,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader()
     }
 
     //m_consensusID = 0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am shard leader. "
                   << "m_consensusID: " << m_mediator.m_consensusID
@@ -762,8 +764,10 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup()
         "I am a backup node. Waiting for microblock announcement for epoch "
             << m_mediator.m_currentEpochNum);
     //m_consensusID = 0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                        vector<unsigned char>& errorMsg,
@@ -932,12 +936,12 @@ bool Node::CheckMicroBlockVersion()
     return true;
 }
 
-bool Node::CheckMicroBlockShardID()
+bool Node::CheckMicroBlockshardId()
 {
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(WARNING,
-                    "Node::CheckMicroBlockShardID not expected to be called "
+                    "Node::CheckMicroBlockshardId not expected to be called "
                     "from LookUp node.");
         return true;
     }
@@ -947,12 +951,12 @@ bool Node::CheckMicroBlockShardID()
     {
         return true;
     }
-    if (m_microblock->GetHeader().GetShardID() != m_myShardID)
+    if (m_microblock->GetHeader().GetShardId() != m_myshardId)
     {
         LOG_GENERAL(WARNING,
-                    "ShardID check failed. Expected: "
-                        << m_myShardID << " Actual: "
-                        << m_microblock->GetHeader().GetShardID());
+                    "shardId check failed. Expected: "
+                        << m_myshardId << " Actual: "
+                        << m_microblock->GetHeader().GetShardId());
 
         m_consensusObject->SetConsensusErrorCode(
             ConsensusCommon::INVALID_MICROBLOCK_SHARD_ID);
@@ -960,7 +964,7 @@ bool Node::CheckMicroBlockShardID()
         return false;
     }
 
-    LOG_GENERAL(INFO, "ShardID check passed");
+    LOG_GENERAL(INFO, "shardId check passed");
 
     return true;
 }
@@ -1144,9 +1148,9 @@ bool Node::CheckMicroBlockTxnRootHash()
         INFO,
         "Microblock root computation done "
             << DataConversion::charArrToHexStr(expectedTxRootHash.asArray()));
-    LOG_GENERAL(INFO,
-                "Expected root: " << DataConversion::charArrToHexStr(
-                    m_microblock->GetHeader().GetTxRootHash().asArray()));
+    LOG_GENERAL(
+        INFO,
+        "Expected root: " << m_microblock->GetHeader().GetTxRootHash().hex());
 
     if (expectedTxRootHash != m_microblock->GetHeader().GetTxRootHash())
     {
@@ -1263,7 +1267,7 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
     }
 
     if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion()
-        || !CheckMicroBlockShardID() || !CheckMicroBlockTimestamp()
+        || !CheckMicroBlockshardId() || !CheckMicroBlockTimestamp()
         || !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash()
         || !CheckMicroBlockStateDeltaHash()
         || !CheckMicroBlockTranReceiptHash())

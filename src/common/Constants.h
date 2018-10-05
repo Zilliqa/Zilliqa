@@ -169,6 +169,7 @@ extern const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD;
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
+extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int NUM_DSBLOCK_RECEIVERS_PER_SHARD;
 extern const unsigned int NUM_VCBLOCK_RECEIVERS_PER_SHARD;

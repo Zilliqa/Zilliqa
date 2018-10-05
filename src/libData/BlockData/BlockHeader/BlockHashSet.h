@@ -97,7 +97,8 @@ struct MicroBlockHashSet
 
 inline std::ostream& operator<<(std::ostream& os, const MicroBlockHashSet& t)
 {
-    os << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
+    os << "<MicroBlockHashSet>" << std::endl
+       << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
        << "m_stateDeltaHash : " << t.m_stateDeltaHash.hex() << std::endl
        << "m_tranReceiptHash : " << t.m_tranReceiptHash.hex();
     return os;
@@ -236,7 +237,8 @@ namespace std
 
 inline std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t)
 {
-    os << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
+    os << "<TxBlockHashSet> " << std::endl
+       << "m_txRootHash : " << t.m_txRootHash.hex() << std::endl
        << "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl
        << "m_deltaRootHash : " << t.m_deltaRootHash.hex() << std::endl
        << "m_stateDeltaHash : " << t.m_stateDeltaHash.hex() << std::endl

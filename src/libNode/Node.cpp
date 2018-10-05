@@ -97,16 +97,35 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
             m_consensusLeaderID = 0;
             runInitializeGenesisBlocks = false;
 
+            if (LOOKUP_NODE_MODE)
+            {
+                m_mediator.m_DSCommittee->clear();
+            }
+
             BlockStorage::GetBlockStorage().GetDSCommittee(
                 m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
             m_mediator.UpdateDSBlockRand();
             m_mediator.UpdateTxBlockRand();
+
+            if (LOOKUP_NODE_MODE)
+            {
+                LOG_GENERAL(INFO, "Lookup node, wakeup immediately.");
+                BlockStorage::GetBlockStorage().PutMetadata(
+                    MetaType::DSINCOMPLETED, {'1'});
+                return;
+            }
 
             /// If this node is inside ds committee, mark it as DS node
             for (const auto& ds : *m_mediator.m_DSCommittee)
             {
                 if (ds.first == m_mediator.m_selfKey.second)
                 {
+                    LOG_GENERAL(INFO,
+                                "DS node, wait "
+                                    << DS_DELAY_WAKEUP_IN_SECONDS
+                                    << " seconds for lookup wakeup...");
+                    this_thread::sleep_for(
+                        chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
                     SetState(POW_SUBMISSION);
                     m_mediator.m_ds->m_consensusMyID = 0;
 
@@ -173,9 +192,9 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                         LOG_EPOCH(
                             INFO,
                             to_string(m_mediator.m_currentEpochNum).c_str(),
-                            "Waiting "
-                                << POW_WINDOW_IN_SECONDS
-                                << " seconds, accepting PoW submissions...");
+                            "Waiting " << POW_WINDOW_IN_SECONDS
+                                       << " seconds, accepting PoW "
+                                          "submissions...");
                         this_thread::sleep_for(
                             chrono::seconds(POW_WINDOW_IN_SECONDS));
                         LOG_EPOCH(
@@ -205,14 +224,20 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory)
                                      .GetHeader()
                                      .GetDifficulty();
             SetState(POW_SUBMISSION);
-            LOG_GENERAL(INFO,
-                        "Shard node, wait "
-                            << SHARD_DELAY_WAKEUP_IN_SECONDS
-                            << " seconds for DS nodes wakeup...");
-            this_thread::sleep_for(
-                chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
-            StartPoW(block_num, dsDifficulty, difficulty,
-                     m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
+
+            auto func = [this, block_num, dsDifficulty,
+                         difficulty]() mutable -> void {
+                LOG_GENERAL(
+                    INFO,
+                    "Shard node, wait "
+                        << SHARD_DELAY_WAKEUP_IN_SECONDS
+                        << " seconds for lookup and DS nodes wakeup...");
+                this_thread::sleep_for(
+                    chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
+                StartPoW(block_num, dsDifficulty, difficulty,
+                         m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand);
+            };
+            DetachedFunction(1, func);
         }
         else
         {
@@ -736,11 +761,11 @@ bool Node::ProcessTxnPacketFromLookup(
     }
 
     uint64_t epochNumber = 0;
-    uint32_t shardID = 0;
+    uint32_t shardId = 0;
     vector<Transaction> transactions;
 
     if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
-                                           shardID, transactions))
+                                           shardId, transactions))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetNodeForwardTxnBlock failed.");
@@ -786,7 +811,7 @@ bool Node::ProcessTxnPacketFromLookup(
     }
     else if (epochNumber == m_mediator.m_currentEpochNum)
     {
-        return ProcessTxnPacketFromLookupCore(message, shardID, transactions);
+        return ProcessTxnPacketFromLookupCore(message, shardId, transactions);
     }
     else
     {
@@ -798,7 +823,7 @@ bool Node::ProcessTxnPacketFromLookup(
 }
 
 bool Node::ProcessTxnPacketFromLookupCore(
-    const vector<unsigned char>& message, const uint32_t shardID,
+    const vector<unsigned char>& message, const uint32_t shardId,
     const vector<Transaction>& transactions)
 {
     LOG_MARKER();
@@ -818,11 +843,11 @@ bool Node::ProcessTxnPacketFromLookupCore(
         return false;
     }
 
-    if (shardID != m_myShardID)
+    if (shardId != m_myshardId)
     {
         LOG_GENERAL(WARNING,
-                    "Wrong Shard (" << shardID << "), m_myShardID ("
-                                    << m_myShardID << ")");
+                    "Wrong Shard (" << shardId << "), m_myshardId ("
+                                    << m_myshardId << ")");
         return false;
     }
 
@@ -922,11 +947,11 @@ void Node::CommitTxnPacketBuffer()
     if (it != m_txnPacketBuffer.end())
     {
         uint64_t epochNumber = 0;
-        uint32_t shardID = 0;
+        uint32_t shardId = 0;
         vector<Transaction> transactions;
 
         if (!Messenger::GetNodeForwardTxnBlock(it->second, MessageOffset::BODY,
-                                               epochNumber, shardID,
+                                               epochNumber, shardId,
                                                transactions))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -934,7 +959,7 @@ void Node::CommitTxnPacketBuffer()
             return;
         }
 
-        ProcessTxnPacketFromLookupCore(it->second, shardID, transactions);
+        ProcessTxnPacketFromLookupCore(it->second, shardId, transactions);
     }
 }
 
@@ -1030,7 +1055,7 @@ bool Node::CleanVariables()
     m_myShardMembers->clear();
     m_isPrimary = false;
     m_isMBSender = false;
-    m_myShardID = 0;
+    m_myshardId = 0;
     CleanCreatedTransaction();
     CleanMicroblockConsensusBuffer();
     {
@@ -1066,16 +1091,16 @@ bool Node::CleanVariables()
     return true;
 }
 
-void Node::SetMyShardID(uint32_t shardID)
+void Node::SetMyshardId(uint32_t shardId)
 {
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(
             WARNING,
-            "Node::SetMyShardID not expected to be called from LookUp node.");
+            "Node::SetMyshardId not expected to be called from LookUp node.");
         return;
     }
-    m_myShardID = shardID;
+    m_myshardId = shardId;
 }
 
 void Node::CleanCreatedTransaction()
