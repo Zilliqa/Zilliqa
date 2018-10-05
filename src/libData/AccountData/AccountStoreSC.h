@@ -50,21 +50,30 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
     Address m_curSenderAddr;
+
     boost::multiprecision::uint256_t m_curAmount;
-    boost::multiprecision::uint256_t m_curGasCum;
     boost::multiprecision::uint256_t m_curGasLimit;
     boost::multiprecision::uint256_t m_curGasPrice;
+
     unsigned int m_curNumShards;
     bool m_curIsDS;
     TransactionReceipt m_curTranReceipt;
 
-    bool ParseCreateContractOutput();
-    bool ParseCreateContractJsonOutput(const Json::Value& _json);
-    bool ParseCallContractOutput();
-    bool ParseCallContractJsonOutput(const Json::Value& _json);
+    bool
+    ParseCreateContractOutput(boost::multiprecision::uint256_t& gasRemained);
+    bool ParseCreateContractJsonOutput(
+        const Json::Value& _json,
+        boost::multiprecision::uint256_t& gasRemained);
+    bool ParseCallContractOutput(boost::multiprecision::uint256_t& gasRemained);
+    bool
+    ParseCallContractJsonOutput(const Json::Value& _json,
+                                boost::multiprecision::uint256_t& gasRemained);
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-    std::string GetCreateContractCmdStr();
-    std::string GetCallContractCmdStr();
+
+    std::string GetCreateContractCmdStr(
+        const boost::multiprecision::uint256_t& available_gas);
+    std::string GetCallContractCmdStr(
+        const boost::multiprecision::uint256_t& available_gas);
 
     // Generate input for interpreter to check the correctness of contract
     void ExportCreateContractFiles(const Account& contract);
@@ -79,10 +88,6 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
                                const boost::multiprecision::uint256_t& delta);
     void CommitTransferBalanceAtomic();
     void DiscardTransferBalanceAtomic();
-
-    bool CheckGasExceededLimit(const boost::multiprecision::uint256_t& gas);
-
-    boost::multiprecision::uint256_t CalculateGas();
 
 protected:
     AccountStoreSC();

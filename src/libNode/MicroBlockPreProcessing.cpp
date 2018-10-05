@@ -1021,6 +1021,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(vector<unsigned char>& errorMsg)
         if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
                                                missingTxnHashes))
         {
+            LOG_GENERAL(WARNING, "The leader may have composed wrong order");
             return LEGITIMACYRESULT::WRONGORDER;
         }
 
