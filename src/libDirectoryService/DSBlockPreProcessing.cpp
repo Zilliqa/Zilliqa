@@ -760,7 +760,7 @@ bool DirectoryService::DSBlockValidator(
     {
         if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end())
         {
-            if (m_allPoWConns[DSPowWinner.first] != DSPowWinner.second)
+            if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second)
             {
                 LOG_EPOCH(WARNING,
                           to_string(m_mediator.m_currentEpochNum).c_str(),
