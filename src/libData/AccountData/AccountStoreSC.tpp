@@ -55,11 +55,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
 
-    uint256_t gasRemained = transaction.GetGasLimit();
+    boost::multiprecision::uint256_t gasRemained = transaction.GetGasLimit();
 
-    uint256_t gasDeposit;
-    if (!SafeMath<uint256_t>::mul(gasRemained, transaction.GetGasPrice(),
-                                  gasDeposit))
+    boost::multiprecision::uint256_t gasDeposit;
+    if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+            gasRemained, transaction.GetGasPrice(), gasDeposit))
     {
         return false;
     }
@@ -185,9 +185,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             gasRemained = std::min(
                 transaction.GetGasLimit() - CONTRACT_CREATE_GAS, gasRemained);
         }
-        uint256_t gasRefund;
-        if (!SafeMath<uint256_t>::mul(gasRemained, transaction.GetGasPrice(),
-                                      gasRefund))
+        boost::multiprecision::uint256_t gasRefund;
+        if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+                gasRemained, transaction.GetGasPrice(), gasRefund))
         {
             this->m_addressToAccount->erase(toAddr);
             return false;
@@ -308,9 +308,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         {
             CommitTransferBalanceAtomic();
         }
-        uint256_t gasRefund;
-        if (!SafeMath<uint256_t>::mul(gasRemained, transaction.GetGasPrice(),
-                                      gasRefund))
+        boost::multiprecision::uint256_t gasRefund;
+        if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+                gasRemained, transaction.GetGasPrice(), gasRefund))
         {
             return false;
         }
@@ -443,32 +443,33 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
 }
 
 template<class MAP>
-string
-AccountStoreSC<MAP>::GetCreateContractCmdStr(const uint256_t& available_gas)
+std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
+    const boost::multiprecision::uint256_t& available_gas)
 {
     std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE
         + " -libdir " + SCILLA_LIB + " -gaslimit "
-        + available_gas.convert_to<string>();
+        + available_gas.convert_to<std::string>();
     LOG_GENERAL(INFO, ret);
     return ret;
 }
 
 template<class MAP>
-string
-AccountStoreSC<MAP>::GetCallContractCmdStr(const uint256_t& available_gas)
+std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
+    const boost::multiprecision::uint256_t& available_gas)
 {
     std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
         + INPUT_CODE + " -libdir " + SCILLA_LIB + " -gaslimit "
-        + available_gas.convert_to<string>();
+        + available_gas.convert_to<std::string>();
     LOG_GENERAL(INFO, ret);
     return ret;
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::ParseCreateContractOutput(uint256_t& gasRemained)
+bool AccountStoreSC<MAP>::ParseCreateContractOutput(
+    boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
 
@@ -502,7 +503,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(uint256_t& gasRemained)
 
 template<class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
-    const Json::Value& _json, uint256_t& gasRemained)
+    const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
     if (!_json.isMember("gas_remaining"))
@@ -543,7 +544,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::ParseCallContractOutput(uint256_t& gasRemained)
+bool AccountStoreSC<MAP>::ParseCallContractOutput(
+    boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
 
@@ -576,8 +578,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(uint256_t& gasRemained)
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
-                                                      uint256_t& gasRemained)
+bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
+    const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
     if (!_json.isMember("gas_remaining"))
