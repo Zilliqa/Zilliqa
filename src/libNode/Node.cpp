@@ -1214,7 +1214,8 @@ void Node::GetNodesToBroadCastUsingTreeBasedClustering(
     cluster_size = std::max(cluster_size, MIN_CLUSTER_SIZE);
     cluster_size = std::min(cluster_size, (uint32_t)m_myShardMembers->size());
 
-    uint32_t num_of_total_clusters = m_myShardMembers->size() / cluster_size;
+    uint32_t num_of_total_clusters
+        = std::ceil((double)m_myShardMembers->size() / cluster_size);
 
     // make sure child_cluster_size is within valid range
     num_of_child_clusters
@@ -1225,10 +1226,11 @@ void Node::GetNodesToBroadCastUsingTreeBasedClustering(
     uint32_t my_cluster_num = m_consensusMyID / cluster_size;
 
     LOG_GENERAL(INFO,
-                "cluster_size :" << cluster_size
-                                 << " , num_of_total_clusters : "
-                                 << num_of_total_clusters
-                                 << ", my_cluster_num : " << my_cluster_num);
+                "cluster_size :"
+                    << cluster_size
+                    << ", num_of_child_clusters : " << num_of_child_clusters
+                    << ", num_of_total_clusters : " << num_of_total_clusters
+                    << ", my_cluster_num : " << my_cluster_num);
 
     nodes_lo = (my_cluster_num * num_of_child_clusters + 1) * cluster_size;
     nodes_hi = (my_cluster_num + 1) * num_of_child_clusters * cluster_size + 1;

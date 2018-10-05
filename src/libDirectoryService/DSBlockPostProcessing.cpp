@@ -245,7 +245,7 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
             // Choose N other Shard nodes to be recipient of DS block
             std::vector<Peer> shardDSBlockReceivers;
             unsigned int numOfDSBlockReceivers = std::min(
-                NUM_DSBLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
+                NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
 
             for (unsigned int i = 0; i < numOfDSBlockReceivers; i++)
             {
