@@ -15,6 +15,8 @@
 **/
 
 #include "Messenger.h"
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 #include <random>
@@ -168,7 +170,7 @@ namespace
 
         protoHeader->set_type(header.GetType());
         protoHeader->set_version(header.GetVersion());
-        protoHeader->set_shardid(header.GetShardID());
+        protoHeader->set_shardid(header.GetShardId());
         NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
             header.GetGasLimit(), *protoHeader->mutable_gaslimit());
         NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
@@ -661,9 +663,23 @@ namespace
         if ((announcement.consensusinfo().blockhash().size()
              != blockHash.size())
             || !equal(blockHash.begin(), blockHash.end(),
-                      announcement.consensusinfo().blockhash().begin()))
+                      announcement.consensusinfo().blockhash().begin(),
+                      [](const unsigned char left, const char right) -> bool {
+                          return left == (unsigned char)right;
+                      }))
         {
-            LOG_GENERAL(WARNING, "Block hash mismatch.");
+            std::vector<unsigned char> remoteBlockHash;
+            remoteBlockHash.resize(
+                announcement.consensusinfo().blockhash().size());
+            std::copy(announcement.consensusinfo().blockhash().begin(),
+                      announcement.consensusinfo().blockhash().end(),
+                      remoteBlockHash.begin());
+            LOG_GENERAL(
+                WARNING,
+                "Block hash mismatch. Expected: "
+                    << DataConversion::Uint8VecToHexStr(blockHash)
+                    << " Actual: "
+                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
             return false;
         }
 
@@ -1321,7 +1337,7 @@ bool Messenger::GetDSVCBlockAnnouncement(
 
 bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
                                const unsigned int offset,
-                               const uint32_t shardID, const DSBlock& dsBlock,
+                               const uint32_t shardId, const DSBlock& dsBlock,
                                const Peer& powWinnerPeer,
                                const DequeOfShard& shards,
                                const vector<Peer>& dsReceivers,
@@ -1332,7 +1348,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 
     NodeDSBlock result;
 
-    result.set_shardid(shardID);
+    result.set_shardid(shardId);
     DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
     SerializableToProtobufByteArray(powWinnerPeer,
                                     *result.mutable_powwinnerpeer());
@@ -1390,7 +1406,7 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 }
 
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
-                               const unsigned int offset, uint32_t& shardID,
+                               const unsigned int offset, uint32_t& shardId,
                                DSBlock& dsBlock, Peer& powWinnerPeer,
                                DequeOfShard& shards, vector<Peer>& dsReceivers,
                                vector<vector<Peer>>& shardReceivers,
@@ -1408,7 +1424,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
         return false;
     }
 
-    shardID = result.shardid();
+    shardId = result.shardid();
     ProtobufToDSBlock(result.dsblock(), dsBlock);
     ProtobufByteArrayToSerializable(result.powwinnerpeer(), powWinnerPeer);
 
@@ -1463,7 +1479,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
                                   const unsigned int offset,
-                                  const uint32_t shardID,
+                                  const uint32_t shardId,
                                   const uint64_t dsBlockNumber,
                                   const uint32_t consensusID,
                                   const TxBlock& txBlock,
@@ -1473,7 +1489,7 @@ bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
 
     NodeFinalBlock result;
 
-    result.set_shardid(shardID);
+    result.set_shardid(shardId);
     result.set_dsblocknumber(dsBlockNumber);
     result.set_consensusid(consensusID);
     SerializableToProtobufByteArray(txBlock, *result.mutable_txblock());
@@ -1489,7 +1505,7 @@ bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
 }
 
 bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
-                                  const unsigned int offset, uint32_t& shardID,
+                                  const unsigned int offset, uint32_t& shardId,
                                   uint64_t& dsBlockNumber,
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   vector<unsigned char>& stateDelta)
@@ -1506,7 +1522,7 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
         return false;
     }
 
-    shardID = result.shardid();
+    shardId = result.shardid();
     dsBlockNumber = result.dsblocknumber();
     consensusID = result.consensusid();
     ProtobufByteArrayToSerializable(result.txblock(), txBlock);
@@ -1519,18 +1535,20 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeForwardTransaction(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t blockNum, const TxnHash& txHash, const StateHash& stateHash,
-    const vector<TransactionWithReceipt>& txns)
+    const uint64_t blockNum, const MicroBlockHashSet& hashes,
+    const uint32_t& shardId, const vector<TransactionWithReceipt>& txns)
 {
     LOG_MARKER();
 
     NodeForwardTransaction result;
 
     result.set_blocknum(blockNum);
-    result.set_microblocktxhash(txHash.asArray().data(),
-                                txHash.asArray().size());
-    result.set_microblockdeltahash(stateHash.asArray().data(),
-                                   stateHash.asArray().size());
+    result.set_microblocktxhash(hashes.m_txRootHash.asArray().data(),
+                                hashes.m_txRootHash.asArray().size());
+    result.set_microblockdeltahash(hashes.m_stateDeltaHash.asArray().data(),
+                                   hashes.m_stateDeltaHash.asArray().size());
+    result.set_microblockreceipthash(hashes.m_tranReceiptHash.asArray().data(),
+                                     hashes.m_tranReceiptHash.asArray().size());
 
     unsigned int txnsCount = 0;
 
@@ -1547,21 +1565,16 @@ bool Messenger::SetNodeForwardTransaction(
     }
 
     LOG_GENERAL(INFO,
-                "BlockNum: "
-                    << blockNum << " TxHash: "
-                    << DataConversion::charArrToHexStr(txHash.asArray())
-                    << " StateHash: "
-                    << DataConversion::charArrToHexStr(stateHash.asArray())
-                    << " Txns: " << txnsCount);
+                "BlockNum: " << blockNum << " shardId: " << shardId
+                             << " Hashes: " << hashes
+                             << " Txns: " << txnsCount);
 
     return SerializeToArray(result, dst, offset);
 }
 
 bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
                                           const unsigned int offset,
-                                          uint64_t& blockNum, TxnHash& txHash,
-                                          StateHash& stateHash,
-                                          vector<TransactionWithReceipt>& txns)
+                                          ForwardedTxnEntry& entry)
 {
     LOG_MARKER();
 
@@ -1575,11 +1588,23 @@ bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
         return false;
     }
 
-    blockNum = result.blocknum();
+    entry.m_blockNum = result.blocknum();
+
+    TxnHash txRootHash;
+    StateHash stateDeltaHash;
+    TxnHash tranReceiptHash;
+
     copy(result.microblocktxhash().begin(), result.microblocktxhash().end(),
-         txHash.asArray().begin());
+         txRootHash.asArray().begin());
     copy(result.microblockdeltahash().begin(),
-         result.microblockdeltahash().end(), stateHash.asArray().begin());
+         result.microblockdeltahash().end(), stateDeltaHash.asArray().begin());
+    copy(result.microblockreceipthash().begin(),
+         result.microblockreceipthash().end(),
+         tranReceiptHash.asArray().begin());
+
+    entry.m_hash = {txRootHash, stateDeltaHash, tranReceiptHash};
+
+    entry.m_shardId = result.shardid();
 
     unsigned int txnsCount = 0;
 
@@ -1587,17 +1612,11 @@ bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
     {
         TransactionWithReceipt txr;
         ProtobufByteArrayToSerializable(txn, txr);
-        txns.emplace_back(txr);
+        entry.m_transactions.emplace_back(txr);
         txnsCount++;
     }
 
-    LOG_GENERAL(INFO,
-                "BlockNum: "
-                    << blockNum << " TxHash: "
-                    << DataConversion::charArrToHexStr(txHash.asArray())
-                    << " StateHash: "
-                    << DataConversion::charArrToHexStr(stateHash.asArray())
-                    << " Txns: " << txnsCount);
+    LOG_GENERAL(INFO, entry << endl << " Txns: " << txnsCount);
 
     return true;
 }
@@ -1643,7 +1662,7 @@ bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeForwardTxnBlock(
     std::vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t epochNumber, const uint32_t shardID,
+    const uint64_t epochNumber, const uint32_t shardId,
     const std::vector<Transaction>& txnsCurrent,
     const std::vector<unsigned char>& txnsGenerated)
 {
@@ -1652,7 +1671,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     NodeForwardTxnBlock result;
 
     result.set_epochnumber(epochNumber);
-    result.set_shardid(shardID);
+    result.set_shardid(shardId);
 
     unsigned int txnsCurrentCount = 0;
     unsigned int txnsGeneratedCount = 0;
@@ -1687,7 +1706,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     }
 
     LOG_GENERAL(INFO,
-                "Epoch: " << epochNumber << " Shard: " << shardID
+                "Epoch: " << epochNumber << " shardId: " << shardId
                           << " Current txns: " << txnsCurrentCount
                           << " Generated txns: " << txnsGeneratedCount);
 
@@ -1696,7 +1715,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
 bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                        const unsigned int offset,
-                                       uint64_t& epochNumber, uint32_t& shardID,
+                                       uint64_t& epochNumber, uint32_t& shardId,
                                        std::vector<Transaction>& txns)
 {
     LOG_MARKER();
@@ -1712,7 +1731,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
     }
 
     epochNumber = result.epochnumber();
-    shardID = result.shardid();
+    shardId = result.shardid();
 
     for (const auto& txn : result.transactions())
     {
@@ -1722,7 +1741,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
     }
 
     LOG_GENERAL(INFO,
-                "Epoch: " << epochNumber << " Shard: " << shardID
+                "Epoch: " << epochNumber << " Shard: " << shardId
                           << " Received txns: " << txns.size());
 
     return true;
@@ -2918,6 +2937,220 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
     return true;
 }
 
+bool Messenger::SetLookupGetMicroBlockFromLookup(
+    vector<unsigned char>& dest, const unsigned int offset,
+    const map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t portNo)
+{
+    LOG_MARKER();
+
+    LookupGetMicroBlockFromLookup result;
+
+    result.set_portno(portNo);
+
+    for (const auto& mb : microBlockInfo)
+    {
+        MicroBlockInfo& res_mb = *result.add_blocknums();
+        res_mb.set_blocknum(mb.first);
+
+        for (uint32_t shard_id : mb.second)
+        {
+            res_mb.add_shards(shard_id);
+        }
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupGetMicroBlockFromLookup initialization failed.");
+        return false;
+    }
+    return SerializeToArray(result, dest, offset);
+}
+
+bool Messenger::GetLookupGetMicroBlockFromLookup(
+    const vector<unsigned char>& src, const unsigned int offset,
+    map<uint64_t, vector<uint32_t>>& microBlockInfo, uint32_t& portNo)
+{
+    LOG_MARKER();
+
+    LookupGetMicroBlockFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupGetMicroBlockFromLookup initialization failed.");
+        return false;
+    }
+
+    portNo = result.portno();
+
+    for (const auto& blocknum : result.blocknums())
+    {
+        vector<uint32_t> tempVec;
+        for (const auto& id : blocknum.shards())
+        {
+            tempVec.emplace_back(id);
+        }
+        microBlockInfo.insert(make_pair(blocknum.blocknum(), tempVec));
+    }
+    return true;
+}
+
+bool Messenger::SetLookupSetMicroBlockFromLookup(vector<unsigned char>& dst,
+                                                 const unsigned int offset,
+                                                 const vector<MicroBlock>& mbs)
+{
+    LOG_MARKER();
+    LookupSetMicroBlockFromLookup result;
+
+    for (const auto& mb : mbs)
+    {
+        MicroBlockToProtobuf(mb, *result.add_microblocks());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupSetMicroBlockFromLookup initialization failed");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetMicroBlockFromLookup(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<MicroBlock>& mbs)
+{
+    LOG_MARKER();
+    LookupSetMicroBlockFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING,
+                    "LookupSetMicroBlockFromLookup initialization failed");
+        return false;
+    }
+
+    for (const auto& res_mb : result.microblocks())
+    {
+        MicroBlock mb;
+
+        ProtobufToMicroBlock(res_mb, mb);
+
+        mbs.emplace_back(mb);
+    }
+
+    return true;
+}
+
+bool Messenger::SetLookupGetTxnsFromLookup(vector<unsigned char>& dst,
+                                           const unsigned int offset,
+                                           const vector<TxnHash>& txnhashes,
+                                           uint32_t portNo)
+{
+    LOG_MARKER();
+
+    LookupGetTxnsFromLookup result;
+
+    result.set_portno(portNo);
+
+    for (const auto& txhash : txnhashes)
+    {
+        result.add_txnhashes(txhash.data(), txhash.size);
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxnsFromLookup initialization failure");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetTxnsFromLookup(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<TxnHash>& txnhashes,
+                                           uint32_t& portNo)
+{
+    LOG_MARKER();
+
+    LookupGetTxnsFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    portNo = result.portno();
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupGetTxnsFromLookup initialization failure");
+        return false;
+    }
+
+    for (const auto& hash : result.txnhashes())
+    {
+        txnhashes.emplace_back();
+        unsigned int size = min((unsigned int)hash.size(),
+                                (unsigned int)txnhashes.back().size);
+        copy(hash.begin(), hash.begin() + size,
+             txnhashes.back().asArray().begin());
+    }
+    return true;
+}
+
+bool Messenger::SetLookupSetTxnsFromLookup(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    LookupSetTxnsFromLookup result;
+
+    for (auto const& txn : txns)
+    {
+        SerializableToProtobufByteArray(txn, *result.add_transactions());
+    }
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxnsFromLookup initialization failure");
+        return false;
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetTxnsFromLookup(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<TransactionWithReceipt>& txns)
+{
+    LOG_MARKER();
+
+    LookupSetTxnsFromLookup result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!result.IsInitialized())
+    {
+        LOG_GENERAL(WARNING, "LookupSetTxnsFromLookup initialization failed");
+        return false;
+    }
+
+    for (auto const& protoTxn : result.transactions())
+    {
+        TransactionWithReceipt txn;
+        ProtobufByteArrayToSerializable(protoTxn, txn);
+        txns.emplace_back(txn);
+    }
+
+    return true;
+}
+
 // ============================================================================
 // Consensus messages
 // ============================================================================
@@ -3008,9 +3241,21 @@ bool Messenger::GetConsensusCommit(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3136,9 +3381,21 @@ bool Messenger::GetConsensusChallenge(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3259,9 +3516,21 @@ bool Messenger::GetConsensusResponse(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3387,9 +3656,21 @@ bool Messenger::GetConsensusCollectiveSig(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 
@@ -3523,9 +3804,21 @@ bool Messenger::GetConsensusCommitFailure(
 
     if ((result.consensusinfo().blockhash().size() != blockHash.size())
         || !equal(blockHash.begin(), blockHash.end(),
-                  result.consensusinfo().blockhash().begin()))
+                  result.consensusinfo().blockhash().begin(),
+                  [](const unsigned char left, const char right) -> bool {
+                      return left == (unsigned char)right;
+                  }))
     {
-        LOG_GENERAL(WARNING, "Block hash mismatch.");
+        std::vector<unsigned char> remoteBlockHash;
+        remoteBlockHash.resize(result.consensusinfo().blockhash().size());
+        std::copy(result.consensusinfo().blockhash().begin(),
+                  result.consensusinfo().blockhash().end(),
+                  remoteBlockHash.begin());
+        LOG_GENERAL(WARNING,
+                    "Block hash mismatch. Expected: "
+                        << DataConversion::Uint8VecToHexStr(blockHash)
+                        << " Actual: "
+                        << DataConversion::Uint8VecToHexStr(remoteBlockHash));
         return false;
     }
 

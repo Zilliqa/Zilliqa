@@ -14,23 +14,32 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include "BlockHeaderBase.h"
-#include "libCrypto/Sha2.h"
-#include "libUtils/Logger.h"
+#ifndef __FORWARDEDTXNENTRY_H__
+#define __FORWARDEDTXNENTRY_H__
 
-using namespace std;
-using namespace boost::multiprecision;
+#include "AccountStore.h"
+#include "Transaction.h"
+#include "TransactionReceipt.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
-BlockHeaderBase::BlockHeaderBase() {}
-
-BlockHash BlockHeaderBase::GetMyHash() const
+struct ForwardedTxnEntry
 {
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    std::vector<unsigned char> vec;
-    Serialize(vec, 0);
-    sha2.Update(vec);
-    const std::vector<unsigned char>& resVec = sha2.Finalize();
-    BlockHash blockHash;
-    std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
-    return blockHash;
+    uint64_t m_blockNum;
+    MicroBlockHashSet m_hash;
+    uint32_t m_shardId;
+    std::vector<TransactionWithReceipt> m_transactions;
+
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const ForwardedTxnEntry& t);
+};
+
+inline std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t)
+{
+    os << "<ForwardedTxnEntry>" << std::endl
+       << "m_blockNum : " << t.m_blockNum << std::endl
+       << "m_hash : " << t.m_hash << std::endl
+       << "m_shardId : " << t.m_shardId;
+    return os;
 }
+
+#endif // __FORWARDEDTXNENTRY_H__

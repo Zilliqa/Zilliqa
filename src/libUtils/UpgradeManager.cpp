@@ -28,6 +28,11 @@ using namespace std;
 #define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
 
+const unsigned int TERMINATION_COUNTDOWN_OFFSET_SHARD = 0;
+const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP = 1;
+const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_LEADER = 2;
+const unsigned int TERMINATION_COUNTDOWN_OFFSET_LOOKUP = 3;
+
 UpgradeManager::UpgradeManager()
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -250,7 +255,7 @@ bool UpgradeManager::HasNewSW()
         }
     }
 
-    LOG_GENERAL(INFO, "Parsing version key file completed.");
+    LOG_GENERAL(INFO, "Parsing version file completed.");
 
     const vector<unsigned char> sha = DataConversion::HexStrToUint8Vec(shaStr);
     const unsigned int len = sigStr.size() / pubKeys.size();
@@ -379,8 +384,8 @@ bool UpgradeManager::DownloadSW()
     if (sha != downloadSha)
     {
         LOG_GENERAL(WARNING,
-                    "SHA-256 checksum of .deb file does not match, expected: "
-                        << sha << ", real: " << downloadSha);
+                    "SHA-256 checksum of .deb file mismatch. Expected: "
+                        << sha << " Actual: " << downloadSha);
         return false;
     }
 
@@ -395,36 +400,53 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator)
 
     if (LOOKUP_NODE_MODE)
     {
-        LOG_GENERAL(WARNING,
-                    "For LookUp node, temporarily disable upgrading protocol.");
-        return true;
-    }
+        LOG_GENERAL(INFO,
+                    "Lookup node, upgrade after "
+                        << TERMINATION_COUNTDOWN_IN_SECONDS
+                            + TERMINATION_COUNTDOWN_OFFSET_LOOKUP
+                        << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS
+                            + TERMINATION_COUNTDOWN_OFFSET_LOOKUP));
 
-    if (DirectoryService::IDLE == mediator.m_ds->m_mode)
-    {
-        LOG_GENERAL(INFO,
-                    "Shard node, upgrade after "
-                        << TERMINATION_COUNTDOWN_IN_SECONDS << " seconds...");
-        this_thread::sleep_for(
-            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS));
+        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                    {'0'});
     }
-    else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode)
+    else
     {
-        LOG_GENERAL(INFO,
-                    "DS backup node, upgrade after "
-                        << TERMINATION_COUNTDOWN_IN_SECONDS + 1
-                        << " seconds...");
-        this_thread::sleep_for(
-            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS + 1));
-    }
-    else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode)
-    {
-        LOG_GENERAL(INFO,
-                    "DS leader node, upgrade after "
-                        << TERMINATION_COUNTDOWN_IN_SECONDS + 2
-                        << " seconds...");
-        this_thread::sleep_for(
-            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS + 2));
+        if (DirectoryService::IDLE == mediator.m_ds->m_mode)
+        {
+            LOG_GENERAL(INFO,
+                        "Shard node, upgrade after "
+                            << TERMINATION_COUNTDOWN_IN_SECONDS
+                                + TERMINATION_COUNTDOWN_OFFSET_SHARD
+                            << " seconds...");
+            this_thread::sleep_for(
+                chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS
+                                + TERMINATION_COUNTDOWN_OFFSET_SHARD));
+        }
+        else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode)
+        {
+            LOG_GENERAL(INFO,
+                        "DS backup node, upgrade after "
+                            << TERMINATION_COUNTDOWN_IN_SECONDS
+                                + TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP
+                            << " seconds...");
+            this_thread::sleep_for(
+                chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS
+                                + TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP));
+        }
+        else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode)
+        {
+            LOG_GENERAL(INFO,
+                        "DS leader node, upgrade after "
+                            << TERMINATION_COUNTDOWN_IN_SECONDS
+                                + TERMINATION_COUNTDOWN_OFFSET_DS_LEADER
+                            << " seconds...");
+            this_thread::sleep_for(
+                chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS
+                                + TERMINATION_COUNTDOWN_OFFSET_DS_LEADER));
+        }
     }
 
     BlockStorage::GetBlockStorage().PutDSCommittee(
