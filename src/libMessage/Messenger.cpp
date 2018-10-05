@@ -1425,15 +1425,9 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 }
 
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
-<<<<<<< HEAD
-                               const unsigned int offset, uint32_t& shardID,
+                               const unsigned int offset, uint32_t& shardId,
                                DSBlock& dsBlock, DequeOfShard& shards,
                                vector<Peer>& dsReceivers,
-=======
-                               const unsigned int offset, uint32_t& shardId,
-                               DSBlock& dsBlock, Peer& powWinnerPeer,
-                               DequeOfShard& shards, vector<Peer>& dsReceivers,
->>>>>>> f8cf5417033f68ce152293555a790cd4940d3f42
                                vector<vector<Peer>>& shardReceivers,
                                vector<vector<Peer>>& shardSenders)
 {
