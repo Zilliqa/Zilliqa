@@ -203,15 +203,15 @@ void DirectoryService::SendDSBlockToShardNodes(const Peer& winnerpeer,
     advance(p, my_shards_lo);
     for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
     {
-        // Get the shard ID from the leader's info in m_publicKeyToShardIdMap
-        uint32_t shardID = m_publicKeyToShardIdMap.at(
+        // Get the shard ID from the leader's info in m_publicKeyToshardIdMap
+        uint32_t shardId = m_publicKeyToshardIdMap.at(
             std::get<SHARD_NODE_PUBKEY>(p->front()));
 
         // Generate the message
         vector<unsigned char> dsblock_message
             = {MessageType::NODE, NodeInstructionType::DSBLOCK};
         if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY,
-                                       shardID, *m_pendingDSBlock, winnerpeer,
+                                       shardId, *m_pendingDSBlock, winnerpeer,
                                        m_shards, m_DSReceivers,
                                        m_shardReceivers, m_shardSenders))
         {
@@ -423,8 +423,8 @@ void DirectoryService::StartFirstTxEpoch()
         }
 
         m_mediator.m_node->m_consensusLeaderID = 0;
-        // m_mediator.m_node->m_myShardID = std::numeric_limits<uint32_t>::max();
-        m_mediator.m_node->m_myShardID = m_shards.size();
+        // m_mediator.m_node->m_myshardId = std::numeric_limits<uint32_t>::max();
+        m_mediator.m_node->m_myshardId = m_shards.size();
         m_mediator.m_node->m_justDidFallback = false;
         m_mediator.m_node->CommitTxnPacketBuffer();
         m_stateDeltaFromShards.clear();
@@ -503,7 +503,7 @@ void DirectoryService::StartFirstTxEpoch()
                 if (std::get<SHARD_NODE_PUBKEY>(shardNode)
                     == m_mediator.m_selfKey.second)
                 {
-                    m_mediator.m_node->SetMyShardID(i);
+                    m_mediator.m_node->SetMyshardId(i);
                     found = true;
                     break;
                 }
@@ -620,7 +620,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
         m_shardReceivers = std::move(m_tempShardReceivers);
         m_shardSenders = std::move(m_tempShardSenders);
         m_shards = std::move(m_tempShards);
-        m_publicKeyToShardIdMap = std::move(m_tempPublicKeyToShardIdMap);
+        m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
         m_mapNodeReputation = std::move(m_tempMapNodeReputation);
         ProcessTxnBodySharingAssignment();
     }

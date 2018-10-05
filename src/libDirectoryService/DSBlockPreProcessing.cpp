@@ -145,7 +145,7 @@ void DirectoryService::ComputeSharding(
     LOG_MARKER();
 
     m_shards.clear();
-    m_publicKeyToShardIdMap.clear();
+    m_publicKeyToshardIdMap.clear();
 
     if (m_allPoWs.size() < COMM_SIZE)
     {
@@ -230,7 +230,7 @@ void DirectoryService::ComputeSharding(
         auto& shard = m_shards.at(min(i / COMM_SIZE, max_shard));
         shard.emplace_back(key, m_allPoWConns.at(key),
                            m_mapNodeReputation[key]);
-        m_publicKeyToShardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
+        m_publicKeyToshardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
         i++;
     }
 }
@@ -748,7 +748,7 @@ bool DirectoryService::DSBlockValidator(
         }
     }
 
-    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToShardIdMap,
+    if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToshardIdMap,
                                   m_tempMapNodeReputation))
     {
         return false;
@@ -825,7 +825,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
 bool DirectoryService::ProcessShardingStructure(
     const DequeOfShard& shards,
-    std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
+    std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
     std::map<PubKey, uint16_t>& mapNodeReputation)
 {
     if (LOOKUP_NODE_MODE)
@@ -836,7 +836,7 @@ bool DirectoryService::ProcessShardingStructure(
         return true;
     }
 
-    publicKeyToShardIdMap.clear();
+    publicKeyToshardIdMap.clear();
     mapNodeReputation.clear();
 
     for (unsigned int i = 0; i < shards.size(); i++)
@@ -869,7 +869,7 @@ bool DirectoryService::ProcessShardingStructure(
                                       std::get<SHARD_NODE_PEER>(shardNode));
             }
 
-            publicKeyToShardIdMap.emplace(
+            publicKeyToshardIdMap.emplace(
                 std::get<SHARD_NODE_PUBKEY>(shardNode), i);
         }
     }
