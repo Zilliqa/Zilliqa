@@ -44,13 +44,18 @@ message ProtoDSBlock
         required uint32 dsdifficulty    = 1; // only LSB used
         required uint32 difficulty      = 2; // only LSB used
         required bytes prevhash         = 3; // 32 bytes
-        required ByteArray nonce        = 4;
-        required ByteArray minerpubkey  = 5;
-        required ByteArray leaderpubkey = 6;
-        required uint64 blocknum        = 7;
-        required ByteArray timestamp    = 8;
-        required ByteArray swinfo       = 9;
+        required ByteArray leaderpubkey = 4;
+        required uint64 blocknum        = 5;
+        required ByteArray timestamp    = 6;
+        required ByteArray swinfo       = 7;
+        message PowDSWinners
+        {
+            required ByteArray key = 1;
+            required ByteArray val = 2;
+        }
+        repeated PowDSWinners dswinners = 8;
     }
+
     message CoSignatures
     {
         required ByteArray cs1          = 1;
@@ -174,9 +179,8 @@ message DSMicroBlockSubmission
 message DSDSBlockAnnouncement
 {
     required ProtoDSBlock dsblock             = 1;
-    required ByteArray powwinnerpeer          = 2;
-    required ShardingStructure sharding       = 3;
-    required TxSharingAssignments assignments = 4;
+    required ShardingStructure sharding       = 2;
+    required TxSharingAssignments assignments = 3;
 }
 
 message DSFinalBlockAnnouncement
@@ -197,9 +201,8 @@ message NodeDSBlock
 {
     required uint32 shardid                   = 1;
     required ProtoDSBlock dsblock             = 2;
-    required ByteArray powwinnerpeer          = 3;
-    required ShardingStructure sharding       = 4;
-    required TxSharingAssignments assignments = 5;
+    required ShardingStructure sharding       = 3;
+    required TxSharingAssignments assignments = 4;
 }
 
 message NodeFinalBlock

@@ -1545,7 +1545,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 }
 
 bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
-                                       unsigned int offset, const Peer& from)
+                                       unsigned int offset,
+                                       [[gnu::unused]] const Peer& from)
 {
     // #ifndef IS_LOOKUP_NODE TODO: uncomment later
 
@@ -1558,23 +1559,16 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 
     unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
-    uint64_t lowBlockNum = 0;
-    uint64_t highBlockNum = 0;
-
+    uint64_t lowBlockNum;
+    uint64_t highBlockNum;
     vector<DSBlock> dsBlocks;
-
     if (!Messenger::GetLookupSetDSBlockFromSeed(message, offset, lowBlockNum,
                                                 highBlockNum, dsBlocks))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Messenger::GetLookupSetDSBlockFromSeed failed.");
+                  "Messenger::SetLookupGetDSBlockFromSeed failed.");
         return false;
     }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "ProcessSetDSBlockFromSeed sent by " << from << " for blocks "
-                                                   << lowBlockNum << " to "
-                                                   << highBlockNum);
 
     uint64_t latestSynBlockNum
         = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()
@@ -1588,31 +1582,15 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     }
     else
     {
-        for (const auto& dsBlock : dsBlocks)
+
+        for (const auto& dsblock : dsBlocks)
         {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "dsblock.GetHeader().GetDifficulty(): "
-                          << (int)dsBlock.GetHeader().GetDifficulty());
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "dsblock.GetHeader().GetNonce(): "
-                          << dsBlock.GetHeader().GetNonce());
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "dsblock.GetHeader().GetBlockNum(): "
-                          << dsBlock.GetHeader().GetBlockNum());
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "dsblock.GetHeader().GetMinerPubKey().hex(): "
-                          << dsBlock.GetHeader().GetMinerPubKey());
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "dsblock.GetHeader().GetLeaderPubKey().hex(): "
-                          << dsBlock.GetHeader().GetLeaderPubKey());
-
-            m_mediator.m_dsBlockChain.AddBlock(dsBlock);
-
+            m_mediator.m_dsBlockChain.AddBlock(dsblock);
             // Store DS Block to disk
             vector<unsigned char> serializedDSBlock;
-            dsBlock.Serialize(serializedDSBlock, 0);
+            dsblock.Serialize(serializedDSBlock, 0);
             BlockStorage::GetBlockStorage().PutDSBlock(
-                dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
+                dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
         }
 
         if (m_syncType == SyncType::DS_SYNC
