@@ -114,8 +114,6 @@ public:
     SetNodeDSBlock(std::vector<unsigned char>& dst, const unsigned int offset,
                    const uint32_t shardID, const DSBlock& dsBlock,
                    const DequeOfShard& shards,
-                   const uint32_t shardId, const DSBlock& dsBlock,
-                   const DequeOfShard& shards,
                    const std::vector<Peer>& dsReceivers,
                    const std::vector<std::vector<Peer>>& shardReceivers,
                    const std::vector<std::vector<Peer>>& shardSenders);
