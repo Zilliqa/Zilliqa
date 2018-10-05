@@ -235,7 +235,7 @@ class Node : public Executable, public Broadcastable
     // internal calls from ProcessDSBlock
     void LogReceivedDSBlockDetails(const DSBlock& dsblock);
     void StoreDSBlockToDisk(const DSBlock& dsblock);
-    void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
+    void UpdateDSCommiteeComposition();
 
     // Message handlers
     bool ProcessStartPoW(const std::vector<unsigned char>& message,
@@ -280,7 +280,7 @@ class Node : public Executable, public Broadcastable
     bool CheckStateRoot(const TxBlock& finalBlock);
 
     // View change
-    void UpdateDSCommiteeComposition();
+    void UpdateDSCommiteeCompositionAfterVC();
     bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
     bool ProcessVCBlock(const std::vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
