@@ -16,6 +16,7 @@
 
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
+#include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
@@ -113,12 +114,14 @@ public:
     SetNodeDSBlock(std::vector<unsigned char>& dst, const unsigned int offset,
                    const uint32_t shardID, const DSBlock& dsBlock,
                    const DequeOfShard& shards,
+                   const uint32_t shardId, const DSBlock& dsBlock,
+                   const DequeOfShard& shards,
                    const std::vector<Peer>& dsReceivers,
                    const std::vector<std::vector<Peer>>& shardReceivers,
                    const std::vector<std::vector<Peer>>& shardSenders);
 
     static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
-                               const unsigned int offset, uint32_t& shardID,
+                               const unsigned int offset, uint32_t& shardId,
                                DSBlock& dsBlock, DequeOfShard& shards,
                                std::vector<Peer>& dsReceivers,
                                std::vector<std::vector<Peer>>& shardReceivers,
@@ -126,14 +129,14 @@ public:
 
     static bool SetNodeFinalBlock(std::vector<unsigned char>& dst,
                                   const unsigned int offset,
-                                  const uint32_t shardID,
+                                  const uint32_t shardId,
                                   const uint64_t dsBlockNumber,
                                   const uint32_t consensusID,
                                   const TxBlock& txBlock,
                                   const std::vector<unsigned char>& stateDelta);
 
     static bool GetNodeFinalBlock(const std::vector<unsigned char>& src,
-                                  const unsigned int offset, uint32_t& shardID,
+                                  const unsigned int offset, uint32_t& shardId,
                                   uint64_t& dsBlockNumber,
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   std::vector<unsigned char>& stateDelta);
@@ -144,27 +147,24 @@ public:
     static bool GetNodeVCBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset, VCBlock& vcBlock);
 
-    static bool
-    SetNodeForwardTransaction(std::vector<unsigned char>& dst,
-                              const unsigned int offset,
-                              const uint64_t blockNum, const TxnHash& txHash,
-                              const StateHash& stateHash,
-                              const std::vector<TransactionWithReceipt>& txns);
-    static bool
-    GetNodeForwardTransaction(const std::vector<unsigned char>& src,
-                              const unsigned int offset, uint64_t& blockNum,
-                              TxnHash& txHash, StateHash& stateHash,
-                              std::vector<TransactionWithReceipt>& txns);
+    static bool SetNodeForwardTransaction(
+        std::vector<unsigned char>& dst, const unsigned int offset,
+        const uint64_t blockNum, const MicroBlockHashSet& hashes,
+        const uint32_t& shardId,
+        const std::vector<TransactionWithReceipt>& txns);
+    static bool GetNodeForwardTransaction(const std::vector<unsigned char>& src,
+                                          const unsigned int offset,
+                                          ForwardedTxnEntry& entry);
 
     static bool
     SetNodeForwardTxnBlock(std::vector<unsigned char>& dst,
                            const unsigned int offset,
-                           const uint64_t epochNumber, const uint32_t shardID,
+                           const uint64_t epochNumber, const uint32_t shardId,
                            const std::vector<Transaction>& txnsCurrent,
                            const std::vector<unsigned char>& txnsGenerated);
     static bool GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                        const unsigned int offset,
-                                       uint64_t& epochNumber, uint32_t& shardID,
+                                       uint64_t& epochNumber, uint32_t& shardId,
                                        std::vector<Transaction>& txns);
 
     static bool SetNodeMicroBlockAnnouncement(

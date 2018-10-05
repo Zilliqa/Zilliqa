@@ -60,8 +60,8 @@ unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
 
     for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
     {
-        const uint32_t& shardID = m_shardIDs[i];
-        SetNumber<uint32_t>(dst, curOffset, shardID, sizeof(uint32_t));
+        const uint32_t& shardId = m_shardIds[i];
+        SetNumber<uint32_t>(dst, curOffset, shardId, sizeof(uint32_t));
         curOffset += sizeof(uint32_t);
 
         curOffset = m_microBlockHashes.at(i).Serialize(dst, curOffset);
@@ -103,11 +103,11 @@ int TxBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
 
         for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++)
         {
-            uint32_t shardID
+            uint32_t shardId
                 = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
             curOffset += sizeof(uint32_t);
 
-            m_shardIDs.push_back(shardID);
+            m_shardIds.push_back(shardId);
 
             MicroBlockHashSet microBlockHash;
             microBlockHash.Deserialize(src, curOffset);
@@ -156,14 +156,14 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset)
 
 TxBlock::TxBlock(TxBlockHeader&& header, vector<bool>&& isMicroBlockEmpty,
                  vector<MicroBlockHashSet>&& microBlockHashes,
-                 vector<uint32_t>&& shardIDs, CoSignatures&& cosigs)
+                 vector<uint32_t>&& shardIds, CoSignatures&& cosigs)
     : m_header(move(header))
     , m_isMicroBlockEmpty(move(isMicroBlockEmpty))
     , m_microBlockHashes(move(microBlockHashes))
-    , m_shardIDs(move(shardIDs))
+    , m_shardIds(move(shardIds))
 {
     if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()
-        && m_header.GetNumMicroBlockHashes() != m_shardIDs.size())
+        && m_header.GetNumMicroBlockHashes() != m_shardIds.size())
     {
         LOG_GENERAL(WARNING,
                     "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
@@ -185,7 +185,7 @@ const vector<MicroBlockHashSet>& TxBlock::GetMicroBlockHashes() const
     return m_microBlockHashes;
 }
 
-const vector<uint32_t>& TxBlock::GetShardIDs() const { return m_shardIDs; }
+const vector<uint32_t>& TxBlock::GetShardIds() const { return m_shardIds; }
 
 bool TxBlock::operator==(const TxBlock& block) const
 {

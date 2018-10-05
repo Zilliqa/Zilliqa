@@ -1251,7 +1251,7 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
 bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
                                     const MicroBlock& microblock)
 {
-    uint32_t id = microblock.GetHeader().GetShardID();
+    uint32_t id = microblock.GetHeader().GetShardId();
 
     TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blocknum);
     unsigned int i = 0;
@@ -1261,15 +1261,15 @@ bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
         LOG_GENERAL(WARNING, "Failed to fetch microblock");
         return false;
     }
-    for (i = 0; i < txblk.GetShardIDs().size(); i++)
+    for (i = 0; i < txblk.GetShardIds().size(); i++)
     {
 
-        if (txblk.GetShardIDs()[i] == id)
+        if (txblk.GetShardIds()[i] == id)
         {
             break;
         }
     }
-    if (i == txblk.GetShardIDs().size())
+    if (i == txblk.GetShardIds().size())
     {
         LOG_GENERAL(WARNING, "Failed to find id " << id);
         return false;
@@ -1390,7 +1390,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
         LOG_GENERAL(INFO,
                     "[SendMB]"
                         << " Recvd " << mb.GetHeader().GetBlockNum()
-                        << " shard:" << mb.GetHeader().GetShardID());
+                        << " shard:" << mb.GetHeader().GetShardId());
     } //do something with mb
 
     return true;
@@ -1464,12 +1464,12 @@ bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
     curr_offset += microblock.GetSerializedCoreSize()
         + microblock.GetSerializedTxnHashesSize();
 
-    uint32_t id = microblock.GetHeader().GetShardID();
+    uint32_t id = microblock.GetHeader().GetShardId();
 
     LOG_GENERAL(INFO,
                 "[SendMB]"
                     << "Recvd from " << from << " EpochNum:" << epochNum
-                    << " ShardID:" << id);
+                    << " ShardId:" << id);
 
     if (epochNum > m_mediator.m_currentEpochNum)
     {

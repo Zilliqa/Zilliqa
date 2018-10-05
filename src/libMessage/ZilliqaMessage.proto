@@ -216,10 +216,12 @@ message NodeFinalBlock
 
 message NodeForwardTransaction
 {
-    required uint64 blocknum           = 1;
-    required bytes microblocktxhash    = 2;
-    required bytes microblockdeltahash = 3;
-    repeated ByteArray txnswithreceipt = 4;
+    required uint64 blocknum             = 1;
+    required bytes microblocktxhash      = 2;
+    required bytes microblockdeltahash   = 3;
+    required bytes microblockreceipthash = 4;
+    required uint32 shardid              = 5;
+    repeated ByteArray txnswithreceipt   = 6;
 }
 
 message NodeVCBlock
