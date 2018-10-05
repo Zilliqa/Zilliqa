@@ -758,11 +758,11 @@ bool Node::ProcessTxnPacketFromLookup(
     }
 
     uint64_t epochNumber = 0;
-    uint32_t shardID = 0;
+    uint32_t shardId = 0;
     vector<Transaction> transactions;
 
     if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
-                                           shardID, transactions))
+                                           shardId, transactions))
     {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetNodeForwardTxnBlock failed.");
@@ -808,7 +808,7 @@ bool Node::ProcessTxnPacketFromLookup(
     }
     else if (epochNumber == m_mediator.m_currentEpochNum)
     {
-        return ProcessTxnPacketFromLookupCore(message, shardID, transactions);
+        return ProcessTxnPacketFromLookupCore(message, shardId, transactions);
     }
     else
     {
@@ -820,7 +820,7 @@ bool Node::ProcessTxnPacketFromLookup(
 }
 
 bool Node::ProcessTxnPacketFromLookupCore(
-    const vector<unsigned char>& message, const uint32_t shardID,
+    const vector<unsigned char>& message, const uint32_t shardId,
     const vector<Transaction>& transactions)
 {
     LOG_MARKER();
@@ -840,11 +840,11 @@ bool Node::ProcessTxnPacketFromLookupCore(
         return false;
     }
 
-    if (shardID != m_myShardID)
+    if (shardId != m_myshardId)
     {
         LOG_GENERAL(WARNING,
-                    "Wrong Shard (" << shardID << "), m_myShardID ("
-                                    << m_myShardID << ")");
+                    "Wrong Shard (" << shardId << "), m_myshardId ("
+                                    << m_myshardId << ")");
         return false;
     }
 
@@ -944,11 +944,11 @@ void Node::CommitTxnPacketBuffer()
     if (it != m_txnPacketBuffer.end())
     {
         uint64_t epochNumber = 0;
-        uint32_t shardID = 0;
+        uint32_t shardId = 0;
         vector<Transaction> transactions;
 
         if (!Messenger::GetNodeForwardTxnBlock(it->second, MessageOffset::BODY,
-                                               epochNumber, shardID,
+                                               epochNumber, shardId,
                                                transactions))
         {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -956,7 +956,7 @@ void Node::CommitTxnPacketBuffer()
             return;
         }
 
-        ProcessTxnPacketFromLookupCore(it->second, shardID, transactions);
+        ProcessTxnPacketFromLookupCore(it->second, shardId, transactions);
     }
 }
 
@@ -1052,7 +1052,7 @@ bool Node::CleanVariables()
     m_myShardMembers->clear();
     m_isPrimary = false;
     m_isMBSender = false;
-    m_myShardID = 0;
+    m_myshardId = 0;
     CleanCreatedTransaction();
     CleanMicroblockConsensusBuffer();
     {
@@ -1088,16 +1088,16 @@ bool Node::CleanVariables()
     return true;
 }
 
-void Node::SetMyShardID(uint32_t shardID)
+void Node::SetMyshardId(uint32_t shardId)
 {
     if (LOOKUP_NODE_MODE)
     {
         LOG_GENERAL(
             WARNING,
-            "Node::SetMyShardID not expected to be called from LookUp node.");
+            "Node::SetMyshardId not expected to be called from LookUp node.");
         return;
     }
-    m_myShardID = shardID;
+    m_myshardId = shardId;
 }
 
 void Node::CleanCreatedTransaction()
