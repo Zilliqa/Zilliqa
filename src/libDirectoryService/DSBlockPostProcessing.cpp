@@ -340,9 +340,10 @@ void DirectoryService::UpdateDSCommiteeComposition()
     // Update the DS committee composition
     LOG_MARKER();
 
-    map<PubKey, Peer> NewDSMembers = m_mediator.m_dsBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetDSPoWWinners();
+    const map<PubKey, Peer> NewDSMembers
+        = m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetDSPoWWinners();
     for (const auto& DSPowWinner : NewDSMembers)
     {
         m_allPoWConns.erase(DSPowWinner.first);

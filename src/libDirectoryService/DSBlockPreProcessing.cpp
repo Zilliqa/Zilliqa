@@ -752,9 +752,10 @@ bool DirectoryService::DSBlockValidator(
     DetachedFunction(1, func);
 
     // To-do: Put in the logic here for checking the proposed DS block
-    map<PubKey, Peer> NewDSMembers = m_mediator.m_dsBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetDSPoWWinners();
+    const map<PubKey, Peer> NewDSMembers
+        = m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetDSPoWWinners();
     for (const auto& DSPowWinner : NewDSMembers)
     {
         if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end())
