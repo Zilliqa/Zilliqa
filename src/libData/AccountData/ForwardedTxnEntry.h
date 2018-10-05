@@ -14,41 +14,32 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <array>
-#include <string>
-#include <vector>
+#ifndef __FORWARDEDTXNENTRY_H__
+#define __FORWARDEDTXNENTRY_H__
 
-#include "libData/BlockData/Block.h"
-#include "libPersistence/BlockStorage.h"
-#include "libPersistence/DB.h"
-#include "libUtils/TimeUtils.h"
+#include "AccountStore.h"
+#include "Transaction.h"
+#include "TransactionReceipt.h"
+#include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
-#define BOOST_TEST_MODULE persistencetest
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-
-BOOST_AUTO_TEST_SUITE(persistencetest)
-
-BOOST_AUTO_TEST_CASE(testBlockStorage)
+struct ForwardedTxnEntry
 {
-    INIT_STDOUT_LOGGER();
+    uint64_t m_blockNum;
+    MicroBlockHashSet m_hash;
+    uint32_t m_shardId;
+    std::vector<TransactionWithReceipt> m_transactions;
 
-    LOG_MARKER();
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const ForwardedTxnEntry& t);
+};
 
-    int blocknumber = 0;
-
-    DSBlockSharedPtr block;
-    BlockStorage::GetBlockStorage().GetDSBlock(blocknumber, block);
-
-    LOG_GENERAL(INFO,
-                "Block2 difficulty value retrieved: "
-                    << (int)((*block).GetHeader().GetDifficulty()));
-    LOG_GENERAL(INFO,
-                "Block2 blocknum value retrieved: "
-                    << (*block).GetHeader().GetBlockNum());
-    LOG_GENERAL(INFO,
-                "Block2 timestamp value retrieved: "
-                    << (*block).GetHeader().GetTimestamp());
+inline std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t)
+{
+    os << "<ForwardedTxnEntry>" << std::endl
+       << "m_blockNum : " << t.m_blockNum << std::endl
+       << "m_hash : " << t.m_hash << std::endl
+       << "m_shardId : " << t.m_shardId;
+    return os;
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+#endif // __FORWARDEDTXNENTRY_H__
