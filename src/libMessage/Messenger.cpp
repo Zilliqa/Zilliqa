@@ -1567,6 +1567,7 @@ bool Messenger::SetNodeForwardTransaction(
                                    hashes.m_stateDeltaHash.asArray().size());
     result.set_microblockreceipthash(hashes.m_tranReceiptHash.asArray().data(),
                                      hashes.m_tranReceiptHash.asArray().size());
+    result.set_shardid(shardId);
 
     unsigned int txnsCount = 0;
 
