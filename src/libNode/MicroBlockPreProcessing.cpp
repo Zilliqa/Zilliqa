@@ -421,7 +421,7 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 {
     LOG_MARKER();
 
-    lock_guard<mutex> g1(m_mutexCreatedTransactions);
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
 
     auto findFromCreated = [this](const TxnHash& th) -> bool {
         auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
@@ -456,22 +456,53 @@ bool Node::ProcessTransactionWhenShardBackup(const vector<TxnHash>& tranHashes,
 
     std::list<Transaction> curTxns;
 
-    return VerifyTxnsOrdering(tranHashes);
+    if (!VerifyTxnsOrdering(tranHashes, curTxns))
+    {
+        return false;
+    }
+
+    auto appendOne
+        = [this](const Transaction& t, const TransactionReceipt& tr) {
+              lock_guard<mutex> g(m_mutexProcessedTransactions);
+              auto& processedTransactions
+                  = m_processedTransactions[m_mediator.m_currentEpochNum];
+              processedTransactions.insert(
+                  make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+          };
+
+    AccountStore::GetInstance().InitTemp();
+    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
+    {
+        AccountStore::GetInstance().DeserializeDeltaTemp(
+            m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
+    }
+
+    for (const auto& t : curTxns)
+    {
+        TransactionReceipt tr;
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)
+            || (!t.GetCode().empty() && t.GetToAddr() == NullAddress)
+            || (!t.GetData().empty() && t.GetToAddr() != NullAddress
+                && t.GetCode().empty()))
+        {
+            appendOne(t, tr);
+        }
+    }
+
+    return true;
 }
 
-bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes)
+bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
+                              list<Transaction>& curTxns)
 {
     LOG_MARKER();
 
-    lock_guard<mutex> g2(m_mutexProcessedTransactions);
-
-    auto t_addrNonceTxnMap = m_addrNonceTxnMap;
-    auto t_createdTransactions = m_createdTransactions;
+    std::unordered_map<Address,
+                       std::map<boost::multiprecision::uint256_t, Transaction>>
+        t_addrNonceTxnMap = m_addrNonceTxnMap;
+    gas_txnid_comp_txns t_createdTransactions = m_createdTransactions;
     vector<TxnHash> t_tranHashes;
     unsigned int txn_sent_count = 0;
-
-    auto& processedTransactions
-        = m_processedTransactions[m_mediator.m_currentEpochNum];
 
     auto findOneFromAddrNonceTxnMap
         = [&t_addrNonceTxnMap](Transaction& t) -> bool {
@@ -522,11 +553,9 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes)
         return true;
     };
 
-    auto appendOne = [&t_tranHashes, &processedTransactions](
-                         const Transaction& t, const TransactionReceipt& tr) {
+    auto appendOne = [&t_tranHashes, &curTxns](const Transaction& t) {
         t_tranHashes.emplace_back(t.GetTranID());
-        processedTransactions.insert(
-            make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
+        curTxns.emplace_back(t);
     };
 
     uint256_t gasUsedTotal = 0;
@@ -551,7 +580,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes)
                 || (!t.GetData().empty() && t.GetToAddr() != NullAddress
                     && t.GetCode().empty()))
             {
-                appendOne(t, tr);
+                appendOne(t);
                 gasUsedTotal += tr.GetCumGas();
                 continue;
             }
@@ -593,7 +622,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes)
                      || (!t.GetData().empty() && t.GetToAddr() != NullAddress
                          && t.GetCode().empty()))
             {
-                appendOne(t, tr);
+                appendOne(t);
                 gasUsedTotal += tr.GetCumGas();
             }
         }
@@ -608,18 +637,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes)
     {
         m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
         m_createdTransactions = std::move(t_createdTransactions);
-        LOG_GENERAL(INFO, "VerifyTxnsOrdering succeed");
         return true;
-    }
-
-    LOG_GENERAL(WARNING, "VerifyTxnsOrdering failed!");
-
-    processedTransactions.clear();
-    AccountStore::GetInstance().InitTemp();
-    if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE)
-    {
-        AccountStore::GetInstance().DeserializeDeltaTemp(
-            m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
     }
 
     return false;
