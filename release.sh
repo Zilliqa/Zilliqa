@@ -145,17 +145,17 @@ if ! [[ $releaseId =~ $check ]] ; then
 fi
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" \
+  -H "Content-Type:application/octet-stream" \
   --data-binary @${pubKeyFile} \
   "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" \
+  -H "Content-Type:application/vnd.debian.binary-package" \
   --data-binary @${releaseDir}/${debFile} \
   "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${debFile}"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" \
+  -H "Content-Type:application/octet-stream" \
   --data-binary @${releaseDir}/${versionFile} \
   "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}"
 rm ${releaseLog}
