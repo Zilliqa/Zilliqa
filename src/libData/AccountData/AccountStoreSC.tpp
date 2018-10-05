@@ -33,7 +33,6 @@ template<class MAP> void AccountStoreSC<MAP>::Init()
     m_curContractAddr.clear();
     m_curSenderAddr.clear();
     m_curAmount = 0;
-    m_curGasCum = 0;
     m_curGasLimit = 0;
     m_curGasPrice = 0;
 }
@@ -56,10 +55,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
 
-    // FIXME: Possible integer overflow here
+    boost::multiprecision::uint256_t gasRemained = transaction.GetGasLimit();
+
     boost::multiprecision::uint256_t gasDeposit;
     if (!SafeMath<boost::multiprecision::uint256_t>::mul(
-            transaction.GetGasLimit(), transaction.GetGasPrice(), gasDeposit))
+            gasRemained, transaction.GetGasPrice(), gasDeposit))
     {
         return false;
     }
@@ -171,18 +171,23 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         ExportCreateContractFiles(*toAccount);
 
         bool ret = true;
-        if (!SysCommand::ExecuteCmdWithoutOutput(GetCreateContractCmdStr()))
+        if (!SysCommand::ExecuteCmdWithoutOutput(
+                GetCreateContractCmdStr(gasRemained)))
         {
             ret = false;
         }
-        if (ret && !ParseCreateContractOutput())
+        if (ret && !ParseCreateContractOutput(gasRemained))
         {
             ret = false;
+        }
+        if (!ret)
+        {
+            gasRemained = std::min(
+                transaction.GetGasLimit() - CONTRACT_CREATE_GAS, gasRemained);
         }
         boost::multiprecision::uint256_t gasRefund;
-        if (!AccountStoreBase<MAP>::CalculateGasRefund(
-                gasDeposit, CONTRACT_CREATE_GAS, transaction.GetGasPrice(),
-                gasRefund))
+        if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+                gasRemained, transaction.GetGasPrice(), gasRefund))
         {
             this->m_addressToAccount->erase(toAddr);
             return false;
@@ -196,6 +201,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             receipt.SetCumGas(CONTRACT_CREATE_GAS);
             receipt.update();
 
+            this->IncreaseNonce(fromAddr);
+
             return true; // Return true because the states already changed
         }
     }
@@ -208,14 +215,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             {
                 this->IncreaseNonce(fromAddr);
                 receipt.SetResult(false);
-                receipt.SetCumGas(CONTRACT_CREATE_GAS);
+                receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
                 receipt.update();
+
+                this->IncreaseNonce(fromAddr);
 
                 return true;
             }
         }
 
-        receipt.SetCumGas(CONTRACT_CREATE_GAS);
+        receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
     }
     else
     {
@@ -270,7 +279,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             return false;
         }
         m_curGasLimit = transaction.GetGasLimit();
-        m_curGasCum = CalculateGas();
         m_curGasPrice = transaction.GetGasPrice();
 
         m_curContractAddr = toAddr;
@@ -284,36 +292,43 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         //     return false;
         // }
         bool ret = true;
-        if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
+        if (!SysCommand::ExecuteCmdWithoutOutput(
+                GetCallContractCmdStr(gasRemained)))
         {
             ret = false;
         }
-        if (ret && !ParseCallContractOutput())
+
+        if (ret && !ParseCallContractOutput(gasRemained))
         {
             ret = false;
         }
         if (!ret)
         {
             DiscardTransferBalanceAtomic();
+            gasRemained = std::min(
+                transaction.GetGasLimit() - CONTRACT_INVOKE_GAS, gasRemained);
         }
         else
         {
             CommitTransferBalanceAtomic();
         }
-
         boost::multiprecision::uint256_t gasRefund;
-        if (!AccountStoreBase<MAP>::CalculateGasRefund(
-                gasDeposit, m_curGasCum, m_curGasPrice, gasRefund))
+        if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+                gasRemained, transaction.GetGasPrice(), gasRefund))
         {
             return false;
         }
+
         this->IncreaseBalance(fromAddr, gasRefund);
         receipt = m_curTranReceipt;
-        receipt.SetCumGas(m_curGasCum);
+        receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         if (!ret)
         {
             receipt.SetResult(false);
             receipt.update();
+
+            this->IncreaseNonce(fromAddr);
+
             return true; // Return true because the states already changed
         }
     }
@@ -434,26 +449,34 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
     JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 }
 
-template<class MAP> std::string AccountStoreSC<MAP>::GetCreateContractCmdStr()
+template<class MAP>
+std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
+    const boost::multiprecision::uint256_t& available_gas)
 {
     std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain "
         + INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " + INPUT_CODE
-        + " -libdir " + SCILLA_LIB;
+        + " -libdir " + SCILLA_LIB + " -gaslimit "
+        + available_gas.convert_to<std::string>();
     LOG_GENERAL(INFO, ret);
     return ret;
 }
 
-template<class MAP> std::string AccountStoreSC<MAP>::GetCallContractCmdStr()
+template<class MAP>
+std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
+    const boost::multiprecision::uint256_t& available_gas)
 {
     std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate "
         + INPUT_STATE_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON
         + " -imessage " + INPUT_MESSAGE_JSON + " -o " + OUTPUT_JSON + " -i "
-        + INPUT_CODE + " -libdir " + SCILLA_LIB;
+        + INPUT_CODE + " -libdir " + SCILLA_LIB + " -gaslimit "
+        + available_gas.convert_to<std::string>();
     LOG_GENERAL(INFO, ret);
     return ret;
 }
 
-template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
+template<class MAP>
+bool AccountStoreSC<MAP>::ParseCreateContractOutput(
+    boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
 
@@ -475,7 +498,7 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                       &errors))
     {
-        return ParseCreateContractJsonOutput(root);
+        return ParseCreateContractJsonOutput(root, gasRemained);
     }
     else
     {
@@ -487,13 +510,31 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCreateContractOutput()
 
 template<class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
-    const Json::Value& _json)
+    const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
+    if (!_json.isMember("gas_remaining"))
+    {
+        LOG_GENERAL(
+            WARNING,
+            "The json output of this contract didn't contain gas_remaining");
+        if (gasRemained > CONTRACT_CREATE_GAS)
+        {
+            gasRemained -= CONTRACT_CREATE_GAS;
+        }
+        else
+        {
+            gasRemained = 0;
+        }
+        return false;
+    }
+    gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
     if (!_json.isMember("message") || !_json.isMember("states"))
     {
-        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        LOG_GENERAL(WARNING,
+                    "The json output of this contract is corrupted or create "
+                    "contract failed");
         return false;
     }
 
@@ -509,7 +550,9 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
 }
 
-template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
+template<class MAP>
+bool AccountStoreSC<MAP>::ParseCallContractOutput(
+    boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
 
@@ -531,7 +574,7 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
     if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                       &errors))
     {
-        return ParseCallContractJsonOutput(root);
+        return ParseCallContractJsonOutput(root, gasRemained);
     }
     else
     {
@@ -542,14 +585,33 @@ template<class MAP> bool AccountStoreSC<MAP>::ParseCallContractOutput()
 }
 
 template<class MAP>
-bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
+bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
+    const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained)
 {
     // LOG_MARKER();
+    if (!_json.isMember("gas_remaining"))
+    {
+        LOG_GENERAL(
+            WARNING,
+            "The json output of this contract didn't contain gas_remaining");
+        if (gasRemained > CONTRACT_INVOKE_GAS)
+        {
+            gasRemained -= CONTRACT_INVOKE_GAS;
+        }
+        else
+        {
+            gasRemained = 0;
+        }
+        return false;
+    }
+    gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
     if (!_json.isMember("message") || !_json.isMember("states")
         || !_json.isMember("events"))
     {
-        LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+        LOG_GENERAL(WARNING,
+                    "The json output of this contract is corrupted or call "
+                    "transition failed");
         return false;
     }
 
@@ -669,24 +731,17 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json)
         return false;
     }
 
-    if (CheckGasExceededLimit(CalculateGas()))
+    if (!SysCommand::ExecuteCmdWithoutOutput(
+            GetCallContractCmdStr(gasRemained)))
     {
         LOG_GENERAL(
             WARNING,
-            "The predicted accumulated gas has already exceed the gas limit,"
-            "can no longer continue the invocation");
-        return false;
-    }
-    m_curGasCum += CalculateGas();
-
-    if (!SysCommand::ExecuteCmdWithoutOutput(GetCallContractCmdStr()))
-    {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr());
+            "ExecuteCmd failed: " << GetCallContractCmdStr(gasRemained));
         return false;
     }
     Address t_address = m_curContractAddr;
     m_curContractAddr = recipient;
-    if (!ParseCallContractOutput())
+    if (!ParseCallContractOutput(gasRemained))
     {
         LOG_GENERAL(WARNING,
                     "ParseCallContractOutput failed of calling contract: "
@@ -728,18 +783,4 @@ template<class MAP> void AccountStoreSC<MAP>::DiscardTransferBalanceAtomic()
 {
     LOG_MARKER();
     m_accountStoreAtomic->Init();
-}
-
-template<class MAP>
-boost::multiprecision::uint256_t AccountStoreSC<MAP>::CalculateGas()
-{
-    // TODO: return gas based on calculation of customed situations
-    return boost::multiprecision::uint256_t(CONTRACT_INVOKE_GAS);
-}
-
-template<class MAP>
-bool AccountStoreSC<MAP>::CheckGasExceededLimit(
-    const boost::multiprecision::uint256_t& gas)
-{
-    return m_curGasCum + gas > m_curGasLimit;
 }
