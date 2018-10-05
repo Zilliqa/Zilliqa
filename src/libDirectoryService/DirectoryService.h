@@ -64,7 +64,7 @@ class DirectoryService : public Executable, public Broadcastable
     std::vector<std::vector<Peer>> m_tempShardReceivers;
     std::vector<std::vector<Peer>> m_tempShardSenders;
     DequeOfShard m_tempShards; //vector<vector<pair<PubKey, Peer>>>;
-    std::map<PubKey, uint32_t> m_tempPublicKeyToShardIdMap;
+    std::map<PubKey, uint32_t> m_tempPublicKeyToshardIdMap;
     std::map<PubKey, uint16_t> m_tempMapNodeReputation;
 
     // PoW common variables
@@ -188,13 +188,17 @@ class DirectoryService : public Executable, public Broadcastable
     void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                  unsigned int my_shards_hi);
 
-    void ComposeDSBlock(
+    unsigned int ComposeDSBlock(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
+            sortedDSPoWSolns,
+        std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
     void ComputeSharding(
         const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
             sortedPoWSolns);
-    void ComputeTxnSharingAssignments(const Peer& winnerpeer);
+
+    void
+    ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
     bool VerifyPoWOrdering(const DequeOfShard& shards);
     bool VerifyNodePriority(const DequeOfShard& shards);
 
@@ -204,16 +208,15 @@ class DirectoryService : public Executable, public Broadcastable
 
     // internal calls from ProcessDSBlockConsensus
     void StoreDSBlockToStorage(); // To further refactor
-    void SendDSBlockToLookupNodes(const Peer& winnerpeer);
-    void SendDSBlockToNewDSLeader(const Peer& winnerpeer);
+    void SendDSBlockToLookupNodes();
+    void SendDSBlockToNewDSLeader();
     void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                         unsigned int& my_shards_lo,
                                         unsigned int& my_shards_hi) const;
-    void SendDSBlockToShardNodes(const Peer& winnerpeer,
-                                 unsigned int my_shards_lo,
-                                 unsigned int my_shards_hi);
+    void SendDSBlockToShardNodes(const unsigned int my_shards_lo,
+                                 const unsigned int my_shards_hi);
     void UpdateMyDSModeAndConsensusId();
-    void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
+    void UpdateDSCommiteeComposition();
 
     void
     ProcessDSBlockConsensusWhenDone(const std::vector<unsigned char>& message,
@@ -247,7 +250,7 @@ class DirectoryService : public Executable, public Broadcastable
         TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
         TxnHash& microblockTranReceiptRoot,
         std::vector<MicroBlockHashSet>& microblockHashes,
-        std::vector<uint32_t>& shardIDs,
+        std::vector<uint32_t>& shardIds,
         boost::multiprecision::uint256_t& allGasLimit,
         boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
         std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
@@ -390,7 +393,7 @@ public:
     // Sharding committee members
     std::mutex m_mutexShards;
     DequeOfShard m_shards;
-    std::map<PubKey, uint32_t> m_publicKeyToShardIdMap;
+    std::map<PubKey, uint32_t> m_publicKeyToshardIdMap;
 
     // Proof of Reputation(PoR) variables.
     std::map<PubKey, uint16_t> m_mapNodeReputation;
@@ -470,7 +473,7 @@ public:
     /// Used by PoW winner to configure sharding variables as the next DS leader
     bool
     ProcessShardingStructure(const DequeOfShard& shards,
-                             std::map<PubKey, uint32_t>& publicKeyToShardIdMap,
+                             std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
                              std::map<PubKey, uint16_t>& mapNodeReputation);
 
     /// Used by PoW winner to configure txn sharing assignment variables as the next DS leader

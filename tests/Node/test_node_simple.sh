@@ -23,6 +23,10 @@ sudo sysctl net.ipv4.tcp_tw_reuse=1;
 sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
+ulimit -n 65535;
+ulimit -Sc unlimited; 
+ulimit -Hc unlimited;
+ulimit -s unlimited; 
 
 python tests/Zilliqa/test_zilliqa_local.py stop
 python tests/Zilliqa/test_zilliqa_local.py setup 20

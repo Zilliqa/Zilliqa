@@ -15,8 +15,13 @@
 **/
 
 #include "Messenger.h"
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
+
+#include <algorithm>
+#include <map>
 #include <random>
 #include <unordered_set>
 
@@ -73,17 +78,25 @@ namespace
         protoHeader->set_difficulty(header.GetDifficulty());
         protoHeader->set_prevhash(header.GetPrevHash().data(),
                                   header.GetPrevHash().size);
-        NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-            header.GetNonce(), *protoHeader->mutable_nonce());
-        SerializableToProtobufByteArray(header.GetMinerPubKey(),
-                                        *protoHeader->mutable_minerpubkey());
         SerializableToProtobufByteArray(header.GetLeaderPubKey(),
                                         *protoHeader->mutable_leaderpubkey());
+
         protoHeader->set_blocknum(header.GetBlockNum());
         NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
             header.GetTimestamp(), *protoHeader->mutable_timestamp());
         SerializableToProtobufByteArray(header.GetSWInfo(),
                                         *protoHeader->mutable_swinfo());
+
+        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
+
+        for (const auto& winner : header.GetDSPoWWinners())
+        {
+            powdswinner = protoDSBlock.mutable_header()->add_dswinners();
+            SerializableToProtobufByteArray(winner.first,
+                                            *powdswinner->mutable_key());
+            SerializableToProtobufByteArray(winner.second,
+                                            *powdswinner->mutable_val());
+        }
 
         // Serialize cosigs
 
@@ -112,8 +125,6 @@ namespace
             = protoDSBlock.header();
 
         BlockHash prevHash;
-        uint256_t nonce;
-        PubKey minerPubKey;
         PubKey leaderPubKey;
         uint256_t timestamp;
         SWInfo swInfo;
@@ -123,17 +134,25 @@ namespace
 
         copy(protoHeader.prevhash().begin(),
              protoHeader.prevhash().begin() + size, prevHash.asArray().begin());
-        ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoHeader.nonce(),
-                                                           nonce);
-        ProtobufByteArrayToSerializable(protoHeader.minerpubkey(), minerPubKey);
         ProtobufByteArrayToSerializable(protoHeader.leaderpubkey(),
                                         leaderPubKey);
         ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
             protoHeader.timestamp(), timestamp);
         ProtobufByteArrayToSerializable(protoHeader.swinfo(), swInfo);
 
-        // Deserialize cosigs
+        // Deserialize powDSWinners
+        map<PubKey, Peer> powDSWinners;
+        PubKey tempPubKey;
+        Peer tempWinnerNetworkInfo;
+        for (const auto& dswinner : protoHeader.dswinners())
+        {
+            ProtobufByteArrayToSerializable(dswinner.key(), tempPubKey);
+            ProtobufByteArrayToSerializable(dswinner.val(),
+                                            tempWinnerNetworkInfo);
+            powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
+        }
 
+        // Deserialize cosigs
         CoSignatures cosigs;
         cosigs.m_B1.resize(protoDSBlock.cosigs().b1().size());
         cosigs.m_B2.resize(protoDSBlock.cosigs().b2().size());
@@ -149,11 +168,11 @@ namespace
 
         // Generate the new DSBlock
 
-        dsBlock = DSBlock(
-            DSBlockHeader(protoHeader.dsdifficulty(), protoHeader.difficulty(),
-                          prevHash, nonce, minerPubKey, leaderPubKey,
-                          protoHeader.blocknum(), timestamp, swInfo),
-            CoSignatures(cosigs));
+        dsBlock = DSBlock(DSBlockHeader(protoHeader.dsdifficulty(),
+                                        protoHeader.difficulty(), prevHash,
+                                        leaderPubKey, protoHeader.blocknum(),
+                                        timestamp, swInfo, powDSWinners),
+                          CoSignatures(cosigs));
     }
 
     void MicroBlockToProtobuf(const MicroBlock& microBlock,
@@ -168,7 +187,7 @@ namespace
 
         protoHeader->set_type(header.GetType());
         protoHeader->set_version(header.GetVersion());
-        protoHeader->set_shardid(header.GetShardID());
+        protoHeader->set_shardid(header.GetShardId());
         NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
             header.GetGasLimit(), *protoHeader->mutable_gaslimit());
         NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
@@ -941,8 +960,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
-    const Peer& powWinnerPeer, const DequeOfShard& shards,
-    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
+    const DequeOfShard& shards, const vector<Peer>& dsReceivers,
+    const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders,
     vector<unsigned char>& messageToCosign)
 {
@@ -955,8 +974,6 @@ bool Messenger::SetDSDSBlockAnnouncement(
     DSDSBlockAnnouncement* dsblock = announcement.mutable_dsblock();
 
     DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
-    SerializableToProtobufByteArray(powWinnerPeer,
-                                    *dsblock->mutable_powwinnerpeer());
 
     for (const auto& shard : shards)
     {
@@ -1003,7 +1020,9 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
     if (!dsblock->IsInitialized())
     {
-        LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed.");
+        LOG_GENERAL(WARNING,
+                    "DSDSBlockAnnouncement initialization failed. Debug: "
+                        << announcement.DebugString());
         return false;
     }
 
@@ -1012,7 +1031,9 @@ bool Messenger::SetDSDSBlockAnnouncement(
     if (!SetConsensusAnnouncementCore(announcement, consensusID, blockNumber,
                                       blockHash, leaderID, leaderKey))
     {
-        LOG_GENERAL(WARNING, "SetConsensusAnnouncementCore failed.");
+        LOG_GENERAL(WARNING,
+                    "SetConsensusAnnouncementCore failed. Debug: "
+                        << announcement.DebugString());
         return false;
     }
 
@@ -1020,7 +1041,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
     messageToCosign.clear();
     if (dsBlock.GetHeader().Serialize(messageToCosign, 0)
-        != DSBlockHeader::SIZE)
+        != dsBlock.GetHeader().GetSize())
     {
         LOG_GENERAL(WARNING, "DSBlockHeader serialization failed.");
         return false;
@@ -1035,10 +1056,9 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const vector<unsigned char>& src, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, DSBlock& dsBlock, Peer& powWinnerPeer,
-    DequeOfShard& shards, vector<Peer>& dsReceivers,
-    vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders,
-    vector<unsigned char>& messageToCosign)
+    const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
+    vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
+    vector<vector<Peer>>& shardSenders, vector<unsigned char>& messageToCosign)
 {
     LOG_MARKER();
 
@@ -1048,13 +1068,18 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
     if (!announcement.IsInitialized())
     {
-        LOG_GENERAL(WARNING, "ConsensusAnnouncement initialization failed.");
+        LOG_GENERAL(WARNING,
+                    "ConsensusAnnouncement initialization failed. Debug: "
+                        << announcement.DebugString());
         return false;
     }
 
     if (!announcement.has_dsblock())
     {
-        LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed.");
+        LOG_GENERAL(
+            WARNING,
+            "DSDSBlockAnnouncement initialization failed (no ds block). Debug: "
+                << announcement.DebugString());
         return false;
     }
 
@@ -1072,7 +1097,6 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const DSDSBlockAnnouncement& dsblock = announcement.dsblock();
 
     ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
-    ProtobufByteArrayToSerializable(dsblock.powwinnerpeer(), powWinnerPeer);
 
     for (const auto& proto_shard : dsblock.sharding().shards())
     {
@@ -1124,7 +1148,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
     messageToCosign.clear();
     if (dsBlock.GetHeader().Serialize(messageToCosign, 0)
-        != DSBlockHeader::SIZE)
+        != dsBlock.GetHeader().GetSize())
     {
         LOG_GENERAL(WARNING, "DSBlockHeader serialization failed.");
         return false;
@@ -1335,8 +1359,7 @@ bool Messenger::GetDSVCBlockAnnouncement(
 
 bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
                                const unsigned int offset,
-                               const uint32_t shardID, const DSBlock& dsBlock,
-                               const Peer& powWinnerPeer,
+                               const uint32_t shardId, const DSBlock& dsBlock,
                                const DequeOfShard& shards,
                                const vector<Peer>& dsReceivers,
                                const vector<vector<Peer>>& shardReceivers,
@@ -1346,10 +1369,8 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 
     NodeDSBlock result;
 
-    result.set_shardid(shardID);
+    result.set_shardid(shardId);
     DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
-    SerializableToProtobufByteArray(powWinnerPeer,
-                                    *result.mutable_powwinnerpeer());
 
     for (const auto& shard : shards)
     {
@@ -1404,9 +1425,9 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
 }
 
 bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
-                               const unsigned int offset, uint32_t& shardID,
-                               DSBlock& dsBlock, Peer& powWinnerPeer,
-                               DequeOfShard& shards, vector<Peer>& dsReceivers,
+                               const unsigned int offset, uint32_t& shardId,
+                               DSBlock& dsBlock, DequeOfShard& shards,
+                               vector<Peer>& dsReceivers,
                                vector<vector<Peer>>& shardReceivers,
                                vector<vector<Peer>>& shardSenders)
 {
@@ -1422,9 +1443,8 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
         return false;
     }
 
-    shardID = result.shardid();
+    shardId = result.shardid();
     ProtobufToDSBlock(result.dsblock(), dsBlock);
-    ProtobufByteArrayToSerializable(result.powwinnerpeer(), powWinnerPeer);
 
     for (const auto& proto_shard : result.sharding().shards())
     {
@@ -1477,7 +1497,7 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
                                   const unsigned int offset,
-                                  const uint32_t shardID,
+                                  const uint32_t shardId,
                                   const uint64_t dsBlockNumber,
                                   const uint32_t consensusID,
                                   const TxBlock& txBlock,
@@ -1487,7 +1507,7 @@ bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
 
     NodeFinalBlock result;
 
-    result.set_shardid(shardID);
+    result.set_shardid(shardId);
     result.set_dsblocknumber(dsBlockNumber);
     result.set_consensusid(consensusID);
     SerializableToProtobufByteArray(txBlock, *result.mutable_txblock());
@@ -1503,7 +1523,7 @@ bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
 }
 
 bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
-                                  const unsigned int offset, uint32_t& shardID,
+                                  const unsigned int offset, uint32_t& shardId,
                                   uint64_t& dsBlockNumber,
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   vector<unsigned char>& stateDelta)
@@ -1520,7 +1540,7 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
         return false;
     }
 
-    shardID = result.shardid();
+    shardId = result.shardid();
     dsBlockNumber = result.dsblocknumber();
     consensusID = result.consensusid();
     ProtobufByteArrayToSerializable(result.txblock(), txBlock);
@@ -1533,18 +1553,20 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeForwardTransaction(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t blockNum, const TxnHash& txHash, const StateHash& stateHash,
-    const vector<TransactionWithReceipt>& txns)
+    const uint64_t blockNum, const MicroBlockHashSet& hashes,
+    const uint32_t& shardId, const vector<TransactionWithReceipt>& txns)
 {
     LOG_MARKER();
 
     NodeForwardTransaction result;
 
     result.set_blocknum(blockNum);
-    result.set_microblocktxhash(txHash.asArray().data(),
-                                txHash.asArray().size());
-    result.set_microblockdeltahash(stateHash.asArray().data(),
-                                   stateHash.asArray().size());
+    result.set_microblocktxhash(hashes.m_txRootHash.asArray().data(),
+                                hashes.m_txRootHash.asArray().size());
+    result.set_microblockdeltahash(hashes.m_stateDeltaHash.asArray().data(),
+                                   hashes.m_stateDeltaHash.asArray().size());
+    result.set_microblockreceipthash(hashes.m_tranReceiptHash.asArray().data(),
+                                     hashes.m_tranReceiptHash.asArray().size());
 
     unsigned int txnsCount = 0;
 
@@ -1561,21 +1583,16 @@ bool Messenger::SetNodeForwardTransaction(
     }
 
     LOG_GENERAL(INFO,
-                "BlockNum: "
-                    << blockNum << " TxHash: "
-                    << DataConversion::charArrToHexStr(txHash.asArray())
-                    << " StateHash: "
-                    << DataConversion::charArrToHexStr(stateHash.asArray())
-                    << " Txns: " << txnsCount);
+                "BlockNum: " << blockNum << " shardId: " << shardId
+                             << " Hashes: " << hashes
+                             << " Txns: " << txnsCount);
 
     return SerializeToArray(result, dst, offset);
 }
 
 bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
                                           const unsigned int offset,
-                                          uint64_t& blockNum, TxnHash& txHash,
-                                          StateHash& stateHash,
-                                          vector<TransactionWithReceipt>& txns)
+                                          ForwardedTxnEntry& entry)
 {
     LOG_MARKER();
 
@@ -1589,11 +1606,23 @@ bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
         return false;
     }
 
-    blockNum = result.blocknum();
+    entry.m_blockNum = result.blocknum();
+
+    TxnHash txRootHash;
+    StateHash stateDeltaHash;
+    TxnHash tranReceiptHash;
+
     copy(result.microblocktxhash().begin(), result.microblocktxhash().end(),
-         txHash.asArray().begin());
+         txRootHash.asArray().begin());
     copy(result.microblockdeltahash().begin(),
-         result.microblockdeltahash().end(), stateHash.asArray().begin());
+         result.microblockdeltahash().end(), stateDeltaHash.asArray().begin());
+    copy(result.microblockreceipthash().begin(),
+         result.microblockreceipthash().end(),
+         tranReceiptHash.asArray().begin());
+
+    entry.m_hash = {txRootHash, stateDeltaHash, tranReceiptHash};
+
+    entry.m_shardId = result.shardid();
 
     unsigned int txnsCount = 0;
 
@@ -1601,17 +1630,11 @@ bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
     {
         TransactionWithReceipt txr;
         ProtobufByteArrayToSerializable(txn, txr);
-        txns.emplace_back(txr);
+        entry.m_transactions.emplace_back(txr);
         txnsCount++;
     }
 
-    LOG_GENERAL(INFO,
-                "BlockNum: "
-                    << blockNum << " TxHash: "
-                    << DataConversion::charArrToHexStr(txHash.asArray())
-                    << " StateHash: "
-                    << DataConversion::charArrToHexStr(stateHash.asArray())
-                    << " Txns: " << txnsCount);
+    LOG_GENERAL(INFO, entry << endl << " Txns: " << txnsCount);
 
     return true;
 }
@@ -1657,7 +1680,7 @@ bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeForwardTxnBlock(
     std::vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t epochNumber, const uint32_t shardID,
+    const uint64_t epochNumber, const uint32_t shardId,
     const std::vector<Transaction>& txnsCurrent,
     const std::vector<unsigned char>& txnsGenerated)
 {
@@ -1666,7 +1689,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     NodeForwardTxnBlock result;
 
     result.set_epochnumber(epochNumber);
-    result.set_shardid(shardID);
+    result.set_shardid(shardId);
 
     unsigned int txnsCurrentCount = 0;
     unsigned int txnsGeneratedCount = 0;
@@ -1701,7 +1724,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     }
 
     LOG_GENERAL(INFO,
-                "Epoch: " << epochNumber << " Shard: " << shardID
+                "Epoch: " << epochNumber << " shardId: " << shardId
                           << " Current txns: " << txnsCurrentCount
                           << " Generated txns: " << txnsGeneratedCount);
 
@@ -1710,7 +1733,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
 bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                        const unsigned int offset,
-                                       uint64_t& epochNumber, uint32_t& shardID,
+                                       uint64_t& epochNumber, uint32_t& shardId,
                                        std::vector<Transaction>& txns)
 {
     LOG_MARKER();
@@ -1726,7 +1749,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
     }
 
     epochNumber = result.epochnumber();
-    shardID = result.shardid();
+    shardId = result.shardid();
 
     for (const auto& txn : result.transactions())
     {
@@ -1736,7 +1759,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
     }
 
     LOG_GENERAL(INFO,
-                "Epoch: " << epochNumber << " Shard: " << shardID
+                "Epoch: " << epochNumber << " Shard: " << shardId
                           << " Received txns: " << txns.size());
 
     return true;

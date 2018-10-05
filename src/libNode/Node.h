@@ -30,6 +30,7 @@
 #include "common/Executable.h"
 #include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
+#include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
@@ -143,14 +144,8 @@ class Node : public Executable, public Broadcastable
     // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
     //     m_committedTransactions;
 
-    struct ForwardedTxnBufferEntry
-    {
-        TxnHash m_txnHash;
-        StateHash m_stateHash;
-        std::vector<TransactionWithReceipt> m_transactions;
-    };
     std::mutex m_mutexForwardedTxnBuffer;
-    std::unordered_map<uint64_t, std::vector<ForwardedTxnBufferEntry>>
+    std::unordered_map<uint64_t, std::vector<ForwardedTxnEntry>>
         m_forwardedTxnBuffer;
 
     std::mutex m_mutexTxnPacketBuffer;
@@ -212,22 +207,17 @@ class Node : public Executable, public Broadcastable
         const std::vector<unsigned char>& stateDeltaBytes,
         const StateHash& finalBlockStateDeltaHash);
 
+    // internal calls from ProcessForwardTransaction
+    void CommitForwardedTransactions(const ForwardedTxnEntry& entry);
+
     bool
-    RemoveTxRootHashFromUnavailableMicroBlock(const uint64_t& blocknum,
-                                              const TxnHash& txnRootHash,
-                                              const StateHash& stateDeltaHash);
+    RemoveTxRootHashFromUnavailableMicroBlock(const ForwardedTxnEntry& entry);
+
+    bool IsMicroBlockTxRootHashInFinalBlock(const ForwardedTxnEntry& entry,
+                                            bool& isEveryMicroBlockAvailable);
 
     bool CheckMicroBlockRootHash(const TxBlock& finalBlock,
                                  const uint64_t& blocknum);
-    bool IsMicroBlockTxRootHashInFinalBlock(TxnHash microBlockTxRootHash,
-                                            StateHash microBlockStateDeltaHash,
-                                            const uint64_t& blocknum,
-                                            bool& isEveryMicroBlockAvailable);
-    bool
-    IsMyShardMicroBlockTxRootHashInFinalBlock(const uint64_t& blocknum,
-                                              bool& isEveryMicroBlockAvailable);
-    bool IsMyShardMicroBlockInFinalBlock(const uint64_t& blocknum);
-    bool IsMyShardIdInFinalBlock(const uint64_t& blocknum);
 
     void StoreState();
     // void StoreMicroBlocks();
@@ -235,11 +225,6 @@ class Node : public Executable, public Broadcastable
     void InitiatePoW();
     void ScheduleMicroBlockConsensus();
     void BeginNextConsensusRound();
-
-    // internal calls from ProcessForwardTransaction
-    void CommitForwardedTransactions(
-        const std::vector<TransactionWithReceipt>& txnsInForwardedMessage,
-        const uint64_t& blocknum);
 
     void CommitMicroBlockConsensusBuffer();
 
@@ -250,7 +235,7 @@ class Node : public Executable, public Broadcastable
     // internal calls from ProcessDSBlock
     void LogReceivedDSBlockDetails(const DSBlock& dsblock);
     void StoreDSBlockToDisk(const DSBlock& dsblock);
-    void UpdateDSCommiteeComposition(const Peer& winnerpeer); //TODO: Refactor
+    void UpdateDSCommiteeComposition();
 
     // Message handlers
     bool ProcessStartPoW(const std::vector<unsigned char>& message,
@@ -268,14 +253,14 @@ class Node : public Executable, public Broadcastable
                            unsigned int offset, const Peer& from);
     bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
                                    unsigned int cur_offset, const Peer& from);
-    bool ProcessForwardTransactionCore(const ForwardedTxnBufferEntry& entry);
+    bool ProcessForwardTransactionCore(const ForwardedTxnEntry& entry);
     bool ProcessCreateTransactionFromLookup(
         const std::vector<unsigned char>& message, unsigned int offset,
         const Peer& from);
     bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                     unsigned int offset, const Peer& from);
     bool ProcessTxnPacketFromLookupCore(
-        const std::vector<unsigned char>& message, const uint32_t shardID,
+        const std::vector<unsigned char>& message, const uint32_t shardId,
         const std::vector<Transaction>& transactions);
 
 #ifdef HEARTBEAT_TEST
@@ -295,7 +280,7 @@ class Node : public Executable, public Broadcastable
     bool CheckStateRoot(const TxBlock& finalBlock);
 
     // View change
-    void UpdateDSCommiteeComposition();
+    void UpdateDSCommiteeCompositionAfterVC();
     bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
     bool ProcessVCBlock(const std::vector<unsigned char>& message,
                         unsigned int cur_offset, const Peer& from);
@@ -322,7 +307,7 @@ class Node : public Executable, public Broadcastable
     CheckLegitimacyOfTxnHashes(std::vector<unsigned char>& errorMsg);
     bool CheckBlockTypeIsMicro();
     bool CheckMicroBlockVersion();
-    bool CheckMicroBlockShardID();
+    bool CheckMicroBlockshardId();
     bool CheckMicroBlockTimestamp();
     bool CheckMicroBlockHashes(std::vector<unsigned char>& errorMsg);
     bool CheckMicroBlockTxnRootHash();
@@ -408,12 +393,11 @@ public:
 
     // Transaction body sharing variables
     std::mutex m_mutexUnavailableMicroBlocks;
-    std::unordered_map<
-        uint64_t, std::unordered_map<UnavailableMicroBlock, std::vector<bool>>>
+    std::unordered_map<uint64_t, std::vector<UnavailableMicroBlock>>
         m_unavailableMicroBlocks;
 
     /// Sharding variables
-    std::atomic<uint32_t> m_myShardID;
+    std::atomic<uint32_t> m_myshardId;
     std::atomic<uint32_t> m_consensusMyID;
     std::atomic<bool> m_isPrimary;
     std::atomic<uint32_t> m_consensusLeaderID;
@@ -455,7 +439,7 @@ public:
     uint32_t getNumShards() { return m_numShards; };
 
     /// Get this node shard ID
-    uint32_t getShardID() { return m_myShardID; };
+    uint32_t GetShardId() { return m_myshardId; };
 
     /// Sets the value of m_state.
     void SetState(NodeState state);
@@ -510,7 +494,7 @@ public:
                                const std::string& powMixhash);
 
     /// Used by oldest DS node to configure shard ID as a new shard node
-    void SetMyShardID(uint32_t shardID);
+    void SetMyshardId(uint32_t shardId);
 
     /// Used by oldest DS node to finish setup as a new shard node
     void StartFirstTxEpoch();

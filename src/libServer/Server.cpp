@@ -75,23 +75,27 @@ string Server::GetNetworkId() { return "TestNet"; }
 
 string Server::GetProtocolVersion() { return "Hello"; }
 
-string Server::CreateTransaction(const Json::Value& _json)
+Json::Value Server::CreateTransaction(const Json::Value& _json)
 {
     LOG_MARKER();
+
+    Json::Value ret;
 
     try
     {
 
         if (!JSONConversion::checkJsonTx(_json))
         {
-            return "Invalid Tx Json";
+            ret["Error"] = "Invalid Tx Json";
+            return ret;
         }
 
         Transaction tx = JSONConversion::convertJsontoTx(_json);
 
         if (!m_mediator.m_validator->VerifyTransaction(tx))
         {
-            return "Signature incorrect";
+            ret["Error"] = "Unable to Verify Transaction";
+            return ret;
         }
 
         //LOG_GENERAL(INFO, "Nonce: "<<tx.GetNonce().str()<<" toAddr: "<<tx.GetToAddr().hex()<<" senderPubKey: "<<static_cast<string>(tx.GetSenderPubKey());<<" amount: "<<tx.GetAmount().str());
@@ -110,8 +114,23 @@ string Server::CreateTransaction(const Json::Value& _json)
 
             if (tx.GetData().empty() || tx.GetToAddr() == NullAddress)
             {
-                m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-                return "Created A shard Txn";
+                if (tx.GetData().empty() && tx.GetCode().empty())
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    ret["Info"] = "Non-contract txn, sent to shard";
+                    ret["TranID"] = tx.GetTranID().hex();
+                }
+                else if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress)
+                {
+                    m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+                    ret["Info"] = "Contract Creation txn, sent to shard";
+                    ret["TranID"] = tx.GetTranID().hex();
+                }
+                else
+                {
+                    ret["Error"] = "Code is empty and To addr is null";
+                }
+                return ret;
             }
             else
             {
@@ -120,12 +139,23 @@ string Server::CreateTransaction(const Json::Value& _json)
                 if (to_shard == shard)
                 {
                     m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
-                    return "Shards Match of the sender and reciever";
+                    ret["Info"] = "Contract Txn, Shards Match of the sender "
+                                  "and reciever";
+                    ret["TranID"] = tx.GetTranID().hex();
+                    ret["ContractAddress"] = Account::GetAddressForContract(
+                                                 fromAddr, tx.GetNonce())
+                                                 .hex();
+                    return ret;
                 }
                 else
                 {
                     m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
-                    return "Sent to Ds for processing";
+                    ret["Info"] = "Contract Txn, Sent To Ds";
+                    ret["TranID"] = tx.GetTranID().hex();
+                    ret["ContractAddress"] = Account::GetAddressForContract(
+                                                 fromAddr, tx.GetNonce())
+                                                 .hex();
+                    return ret;
                 }
             }
             /*map<PubKey, Peer> shardMembers
@@ -155,11 +185,9 @@ string Server::CreateTransaction(const Json::Value& _json)
         else
         {
             LOG_GENERAL(INFO, "No shards yet");
-
-            return "Could Not Create Transaction";
+            ret["Error"] = "Could not create Transaction";
+            return ret;
         }
-
-        return tx.GetTranID().hex();
     }
     catch (exception& e)
     {
@@ -167,8 +195,8 @@ string Server::CreateTransaction(const Json::Value& _json)
         LOG_GENERAL(INFO,
                     "[Error]" << e.what()
                               << " Input: " << _json.toStyledString());
-
-        return "Unable to process";
+        ret["Error"] = "Unable to Process";
+        return ret;
     }
 }
 
@@ -560,9 +588,37 @@ string Server::GetBlockTransactionCount([[gnu::unused]] const string& blockHash)
     return "Hello";
 }
 
-string Server::GetCode([[gnu::unused]] const string& address)
+string Server::GetContractAddressFromTransactionID(const string& tranID)
 {
-    return "Hello";
+    try
+    {
+        TxBodySharedPtr tptr;
+        TxnHash tranHash(tranID);
+        if (tranID.size() != TRAN_HASH_SIZE * 2)
+        {
+            return "Size not appropriate";
+        }
+        bool isPresent
+            = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
+        if (!isPresent)
+        {
+
+            return "Txn Hash not Present";
+        }
+        const Transaction& tx = tptr->GetTransaction();
+        if (tx.GetData().empty() || tx.GetToAddr() == NullAddress)
+        {
+            return "ID not a contract txn";
+        }
+
+        return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce())
+            .hex();
+    }
+    catch (exception& e)
+    {
+        LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
+        return "Unable to process";
+    }
 }
 
 string Server::CreateMessage([[gnu::unused]] const Json::Value& _json)

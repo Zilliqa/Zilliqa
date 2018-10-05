@@ -22,6 +22,7 @@
 #include "Block/MicroBlock.h"
 #include "Block/TxBlock.h"
 #include "Block/VCBlock.h"
+#include "BlockHeader/BlockHashSet.h"
 #include "BlockHeader/DSBlockHeader.h"
 #include "BlockHeader/FallbackBlockHeader.h"
 #include "BlockHeader/MicroBlockHeader.h"
