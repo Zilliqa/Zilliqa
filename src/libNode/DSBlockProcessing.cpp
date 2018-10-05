@@ -638,6 +638,11 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                 return false;
             }
 
+            if (BROADCAST_TREEBASED_CLUSTER_MODE)
+            {
+                SendDSBlockToOtherShardNodes(message);
+            }
+
             // Process txn sharing assignments as a shard node
             LoadTxnSharingInfo();
 
@@ -662,4 +667,12 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     }
 
     return true;
+}
+
+void Node::SendDSBlockToOtherShardNodes(
+    const vector<unsigned char>& dsblock_message)
+{
+    LOG_MARKER();
+    SendBlockToOtherShardNodes(dsblock_message, NUM_DSBLOCK_RECEIVERS_PER_SHARD,
+                               NUM_OF_DSBLOCK_CHILD_CLUSTERS);
 }

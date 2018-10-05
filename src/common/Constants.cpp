@@ -187,8 +187,10 @@ const unsigned int NUM_DSBLOCK_RECEIVERS_PER_SHARD{
     ReadFromConstantsFile("NUM_DSBLOCK_RECEIVERS_PER_SHARD")};
 const unsigned int NUM_VCBLOCK_RECEIVERS_PER_SHARD{
     ReadFromConstantsFile("NUM_VCBLOCK_RECEIVERS_PER_SHARD")};
-const unsigned int NUM_VCBLOCK_RECEIVERS_FROM_POW_WINNERS{
-    ReadFromConstantsFile("NUM_VCBLOCK_RECEIVERS_FROM_POW_WINNERS")};
+const unsigned int NUM_OF_DSBLOCK_CHILD_CLUSTERS{
+    ReadFromConstantsFile("NUM_OF_DSBLOCK_CHILD_CLUSTERS")};
+const unsigned int NUM_OF_VCBLOCK_CHILD_CLUSTERS{
+    ReadFromConstantsFile("NUM_OF_VCBLOCK_CHILD_CLUSTERS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};

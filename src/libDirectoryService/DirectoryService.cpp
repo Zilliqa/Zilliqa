@@ -677,7 +677,7 @@ void DirectoryService::SendBlockToShardNodes(
                             << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
                 }
 
-                P2PComm::GetInstance().SendRumorToForeignPeers(
+                P2PComm::GetInstance().SendBroadcastMessage(
                     shardVCBlockReceivers, block_message);
             }
             else

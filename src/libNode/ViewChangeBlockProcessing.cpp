@@ -221,7 +221,20 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     // Add to block chain and Store the VC block to disk.
     // StoreVCBlockToDisk(dsblock);
 
+    if (BROADCAST_TREEBASED_CLUSTER_MODE)
+    {
+        SendVCBlockToOtherShardNodes(message);
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a node and my view of leader is successfully changed.");
     return true;
+}
+
+void Node::SendVCBlockToOtherShardNodes(
+    const vector<unsigned char>& vcblock_message)
+{
+    LOG_MARKER();
+    SendBlockToOtherShardNodes(vcblock_message, NUM_VCBLOCK_RECEIVERS_PER_SHARD,
+                               NUM_OF_VCBLOCK_CHILD_CLUSTERS);
 }
