@@ -1400,12 +1400,12 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
         LOG_GENERAL(INFO,
                     "[SendMB]"
                         << " Recvd " << mb.GetHeader().GetBlockNum()
-                        << " shard:" << mb.GetHeader().GetShardID());
+                        << " shard:" << mb.GetHeader().GetShardId());
 
         if (ARCHIVAL_NODE)
         {
             if (!m_mediator.m_archival->RemoveFromFetchMicroBlockInfo(
-                    mb.GetHeader().GetBlockNum(), mb.GetHeader().GetShardID()))
+                    mb.GetHeader().GetBlockNum(), mb.GetHeader().GetShardId()))
             {
                 LOG_GENERAL(WARNING, "Error in remove fetch micro block");
                 continue;
@@ -1413,7 +1413,6 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
             m_mediator.m_archival->AddToUnFetchedTxn(mb.GetTranHashes());
         }
     }
-
 
     return true;
 }
@@ -1614,13 +1613,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
             if (!ARCHIVAL_NODE)
             {
                 vector<unsigned char> serializedDSBlock;
-                dsBlock.Serialize(serializedDSBlock, 0);
+                dsblock.Serialize(serializedDSBlock, 0);
                 BlockStorage::GetBlockStorage().PutDSBlock(
-                    dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
+                    dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
             }
             else
             {
-                m_mediator.m_archDB->InsertDSBlock(dsBlock);
+                m_mediator.m_archDB->InsertDSBlock(dsblock);
             }
         }
 
@@ -1727,19 +1726,19 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             }
             else
             {
-                for (unsigned int i = 0; i < txBlock.GetShardIDs().size(); i++)
+                for (unsigned int i = 0; i < txBlock.GetShardIds().size(); i++)
                 {
                     if (!txBlock.GetIsMicroBlockEmpty()[i])
                     {
                         m_mediator.m_archival->AddToFetchMicroBlockInfo(
                             txBlock.GetHeader().GetBlockNum(),
-                            txBlock.GetShardIDs()[i]);
+                            txBlock.GetShardIds()[i]);
                     }
                     else
                     {
                         LOG_GENERAL(INFO,
                                     "MicroBlock of shard "
-                                        << txBlock.GetShardIDs()[i]
+                                        << txBlock.GetShardIds()[i]
                                         << " empty");
                     }
                 }
