@@ -24,6 +24,7 @@
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/ShardSizeCalculator.h"
 #include "libValidator/Validator.h"
 
 using namespace std;
@@ -242,3 +243,19 @@ void Mediator::IncreaseEpochNum() {
 }
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }
+
+uint32_t Mediator::GetShardSize(const bool& useShardStr) const {
+  uint32_t shardNodeNum = 0;
+
+  if (useShardStr) {
+    for (const auto& shard : m_ds->m_shards) {
+      shardNodeNum += shard.size();
+    }
+  } else {
+    shardNodeNum = m_ds->m_allPoWs.size();
+  }
+
+  return (shardNodeNum < 651)
+             ? COMM_SIZE
+             : ShardSizeCalculator::CalculateShardSize(shardNodeNum);
+}

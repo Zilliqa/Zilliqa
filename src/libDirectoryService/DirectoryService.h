@@ -76,9 +76,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexAllPoWCounter;
   std::map<PubKey, uint8_t> m_AllPoWCounter;
-  std::mutex m_mutexAllPOW;
-  std::map<PubKey, std::array<unsigned char, 32>>
-      m_allPoWs;  // map<pubkey, PoW Soln>
   std::mutex m_mutexAllDSPOWs;
   std::map<PubKey, std::array<unsigned char, 32>>
       m_allDSPoWs;  // map<pubkey, DS PoW Sol
@@ -377,6 +374,10 @@ class DirectoryService : public Executable, public Broadcastable {
   /// The current role of this Zilliqa instance within the directory service
   /// committee.
   std::atomic<Mode> m_mode;
+
+  std::mutex m_mutexAllPOW;
+  std::map<PubKey, std::array<unsigned char, 32>>
+      m_allPoWs;  // map<pubkey, PoW Soln>
 
   // Sharding committee members
   std::mutex m_mutexShards;
