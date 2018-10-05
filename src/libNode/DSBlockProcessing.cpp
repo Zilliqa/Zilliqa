@@ -84,9 +84,10 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock)
 void Node::UpdateDSCommiteeComposition()
 {
     LOG_MARKER();
-    map<PubKey, Peer> NewDSMembers = m_mediator.m_dsBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetDSPoWWinners();
+    const map<PubKey, Peer> NewDSMembers
+        = m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetDSPoWWinners();
     for (const auto& DSPowWinner : NewDSMembers)
     {
         if (m_mediator.m_selfKey.second == DSPowWinner.first)
@@ -529,9 +530,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // Add to block chain and Store the DS block to disk.
     StoreDSBlockToDisk(dsblock);
 
-    map<PubKey, Peer> dsPoWWinners = m_mediator.m_dsBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetDSPoWWinners();
+    const map<PubKey, Peer> dsPoWWinners
+        = m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetDSPoWWinners();
 
     LOG_STATE(
         "[DSBLK]["
