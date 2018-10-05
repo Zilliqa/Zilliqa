@@ -92,8 +92,8 @@ void Node::UpdateDSCommiteeComposition()
     {
         if (m_mediator.m_selfKey.second == DSPowWinner.first)
         {
-            m_mediator.m_DSCommittee->emplace_front(
-                make_pair(m_mediator.m_selfKey.second, Peer()));
+            m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
+                                                    Peer());
         }
         else
         {
@@ -530,11 +530,6 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     // Add to block chain and Store the DS block to disk.
     StoreDSBlockToDisk(dsblock);
 
-    const map<PubKey, Peer> dsPoWWinners
-        = m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetDSPoWWinners();
-
     LOG_STATE(
         "[DSBLK]["
         << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -559,6 +554,10 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
 
         // Assign from size -1 as it will get pop and push into ds committee data structure,
         // Hence, the ordering is reverse.
+        const map<PubKey, Peer> dsPoWWinners
+            = m_mediator.m_dsBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetDSPoWWinners();
         unsigned int newDSMemberIndex = dsPoWWinners.size() - 1;
         bool isNewDSMember = false;
 
@@ -607,7 +606,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                 lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
                 unsigned int ds_size = (m_mediator.m_DSCommittee)->size();
                 LOG_GENERAL(INFO,
-                            "DS leader at is " << (lastBlockHash % ds_size));
+                            "DS leader is at " << (lastBlockHash % ds_size));
                 if (lastBlockHash % ds_size == m_mediator.m_ds->m_consensusMyID)
                 {
                     //I am the new DS committee leader
