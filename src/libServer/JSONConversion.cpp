@@ -135,8 +135,6 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock)
 
     ret_header["difficulty"] = dshead.GetDifficulty();
     ret_header["prevhash"] = dshead.GetPrevHash().hex();
-    ret_header["nonce"] = dshead.GetNonce().str();
-    ret_header["minerPubKey"] = static_cast<string>(dshead.GetMinerPubKey());
     ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
     ret_header["blockNum"] = to_string(dshead.GetBlockNum());
     ret_header["timestamp"] = dshead.GetTimestamp().str();

@@ -40,9 +40,6 @@ BOOST_AUTO_TEST_CASE(testBlockStorage)
     DSBlockSharedPtr block;
     BlockStorage::GetBlockStorage().GetDSBlock(blocknumber, block);
 
-    LOG_GENERAL(
-        INFO,
-        "Block2 nonce value retrieved: " << (*block).GetHeader().GetNonce());
     LOG_GENERAL(INFO,
                 "Block2 difficulty value retrieved: "
                     << (int)((*block).GetHeader().GetDifficulty()));
