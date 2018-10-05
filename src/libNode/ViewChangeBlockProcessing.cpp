@@ -235,6 +235,7 @@ void Node::SendVCBlockToOtherShardNodes(
     const vector<unsigned char>& vcblock_message)
 {
     LOG_MARKER();
-    SendBlockToOtherShardNodes(vcblock_message, NUM_VCBLOCK_RECEIVERS_PER_SHARD,
-                               NUM_OF_VCBLOCK_CHILD_CLUSTERS);
+    SendBlockToOtherShardNodes(vcblock_message,
+                               NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                               NUM_OF_TREEBASED_CHILD_CLUSTERS);
 }

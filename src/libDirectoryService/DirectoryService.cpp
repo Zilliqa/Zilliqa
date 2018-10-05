@@ -654,15 +654,16 @@ void DirectoryService::SendBlockToShardNodes(
         {
             if (BROADCAST_TREEBASED_CLUSTER_MODE)
             {
-                // Choose N other Shard nodes to be recipient of DS block
-                std::vector<Peer> shardVCBlockReceivers;
-                unsigned int numOfVCBlockReceivers = std::min(
-                    NUM_VCBLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
+                // Choose N other Shard nodes to be recipient of block
+                std::vector<Peer> shardBlockReceivers;
+                unsigned int numOfBlockReceivers
+                    = std::min(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                               (uint32_t)p->size());
 
-                for (unsigned int i = 0; i < numOfVCBlockReceivers; i++)
+                for (unsigned int i = 0; i < numOfBlockReceivers; i++)
                 {
                     const auto& kv = p->at(i);
-                    shardVCBlockReceivers.emplace_back(
+                    shardBlockReceivers.emplace_back(
                         std::get<SHARD_NODE_PEER>(kv));
 
                     LOG_EPOCH(
@@ -677,8 +678,8 @@ void DirectoryService::SendBlockToShardNodes(
                             << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
                 }
 
-                P2PComm::GetInstance().SendBroadcastMessage(
-                    shardVCBlockReceivers, block_message);
+                P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers,
+                                                            block_message);
             }
             else
             {

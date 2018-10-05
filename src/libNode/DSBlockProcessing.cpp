@@ -673,6 +673,7 @@ void Node::SendDSBlockToOtherShardNodes(
     const vector<unsigned char>& dsblock_message)
 {
     LOG_MARKER();
-    SendBlockToOtherShardNodes(dsblock_message, NUM_DSBLOCK_RECEIVERS_PER_SHARD,
-                               NUM_OF_DSBLOCK_CHILD_CLUSTERS);
+    SendBlockToOtherShardNodes(dsblock_message,
+                               NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                               NUM_OF_TREEBASED_CHILD_CLUSTERS);
 }

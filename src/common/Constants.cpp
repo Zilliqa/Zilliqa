@@ -185,14 +185,10 @@ const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
     ReadFromConstantsFile("DS_DELAY_WAKEUP_IN_SECONDS")};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
     ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
-const unsigned int NUM_DSBLOCK_RECEIVERS_PER_SHARD{
-    ReadFromConstantsFile("NUM_DSBLOCK_RECEIVERS_PER_SHARD")};
-const unsigned int NUM_VCBLOCK_RECEIVERS_PER_SHARD{
-    ReadFromConstantsFile("NUM_VCBLOCK_RECEIVERS_PER_SHARD")};
-const unsigned int NUM_OF_DSBLOCK_CHILD_CLUSTERS{
-    ReadFromConstantsFile("NUM_OF_DSBLOCK_CHILD_CLUSTERS")};
-const unsigned int NUM_OF_VCBLOCK_CHILD_CLUSTERS{
-    ReadFromConstantsFile("NUM_OF_VCBLOCK_CHILD_CLUSTERS")};
+const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD")};
+const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{
+    ReadFromConstantsFile("NUM_OF_TREEBASED_CHILD_CLUSTERS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
