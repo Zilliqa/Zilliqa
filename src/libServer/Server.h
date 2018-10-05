@@ -45,7 +45,7 @@ public:
                                &AbstractZServer::GetProtocolVersionI);
         this->bindAndAddMethod(
             jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION,
-                               jsonrpc::JSON_STRING, "param01",
+                               jsonrpc::JSON_OBJECT, "param01",
                                jsonrpc::JSON_OBJECT, NULL),
             &AbstractZServer::CreateTransactionI);
         this->bindAndAddMethod(
@@ -97,10 +97,11 @@ public:
                 jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, NULL),
             &AbstractZServer::GetBlockTransactionCountI);
         this->bindAndAddMethod(
-            jsonrpc::Procedure("GetCode", jsonrpc::PARAMS_BY_POSITION,
+            jsonrpc::Procedure("GetContractAddressFromTransactionID",
+                               jsonrpc::PARAMS_BY_POSITION,
                                jsonrpc::JSON_STRING, "param01",
                                jsonrpc::JSON_STRING, NULL),
-            &AbstractZServer::GetCodeI);
+            &AbstractZServer::GetContractAddressFromTransactionIDI);
         this->bindAndAddMethod(
             jsonrpc::Procedure("CreateMessage", jsonrpc::PARAMS_BY_POSITION,
                                jsonrpc::JSON_STRING, "param01",
@@ -288,10 +289,12 @@ public:
     {
         response = this->GetBlockTransactionCount(request[0u].asString());
     }
-    inline virtual void GetCodeI(const Json::Value& request,
-                                 Json::Value& response)
+    inline virtual void
+    GetContractAddressFromTransactionIDI(const Json::Value& request,
+                                         Json::Value& response)
     {
-        response = this->GetCode(request[0u].asString());
+        response
+            = this->GetContractAddressFromTransactionID(request[0u].asString());
     }
     inline virtual void CreateMessageI(const Json::Value& request,
                                        Json::Value& response)
@@ -440,7 +443,7 @@ public:
     virtual std::string GetClientVersion() = 0;
     virtual std::string GetNetworkId() = 0;
     virtual std::string GetProtocolVersion() = 0;
-    virtual std::string CreateTransaction(const Json::Value& param01) = 0;
+    virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
     virtual Json::Value GetTransaction(const std::string& param01) = 0;
     virtual Json::Value GetDsBlock(const std::string& param01) = 0;
     virtual Json::Value GetTxBlock(const std::string& param01) = 0;
@@ -454,7 +457,9 @@ public:
     virtual Json::Value GetSmartContracts(const std::string& param01) = 0;
     virtual std::string GetBlockTransactionCount(const std::string& param01)
         = 0;
-    virtual std::string GetCode(const std::string& param01) = 0;
+    virtual std::string
+    GetContractAddressFromTransactionID(const std::string& param01)
+        = 0;
     virtual std::string CreateMessage(const Json::Value& param01) = 0;
     virtual std::string GetGasEstimate(const Json::Value& param01) = 0;
     virtual Json::Value GetTransactionReceipt(const std::string& param01) = 0;
@@ -501,7 +506,7 @@ public:
     virtual std::string GetClientVersion();
     virtual std::string GetNetworkId();
     virtual std::string GetProtocolVersion();
-    virtual std::string CreateTransaction(const Json::Value& _json);
+    virtual Json::Value CreateTransaction(const Json::Value& _json);
     virtual Json::Value GetTransaction(const std::string& transactionHash);
     virtual Json::Value GetDsBlock(const std::string& blockNum);
     virtual Json::Value GetTxBlock(const std::string& blockNum);
@@ -513,7 +518,8 @@ public:
                                      const std::string& position);
     virtual Json::Value GetSmartContracts(const std::string& address);
     virtual std::string GetBlockTransactionCount(const std::string& blockHash);
-    virtual std::string GetCode(const std::string& address);
+    virtual std::string
+    GetContractAddressFromTransactionID(const std::string& tranID);
     virtual std::string CreateMessage(const Json::Value& _json);
     virtual std::string GetGasEstimate(const Json::Value& _json);
     virtual Json::Value
