@@ -55,20 +55,6 @@ unsigned int DirectoryService::ComposeDSBlock(
 
     LOG_MARKER();
 
-    // Compute hash of previous DS block header
-    BlockHash prevHash;
-    if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
-    {
-        DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-        vector<unsigned char> vec;
-        const DSBlockHeader& lastHeader = lastBlock.GetHeader();
-        lastHeader.Serialize(vec, 0);
-        sha2.Update(vec);
-        const vector<unsigned char>& resVec = sha2.Finalize();
-        copy(resVec.begin(), resVec.end(), prevHash.asArray().begin());
-    }
-
     // Assemble DS block header
     unsigned int numOfElectedDSMembers
         = min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
@@ -93,12 +79,17 @@ unsigned int DirectoryService::ComposeDSBlock(
     }
 
     uint64_t blockNum = 0;
+    BlockHash prevHash;
     uint8_t dsDifficulty = DS_POW_DIFFICULTY;
     uint8_t difficulty = POW_DIFFICULTY;
     if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
     {
         DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
         blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
+        prevHash = lastBlock.GetHeader().GetMyHash();
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Prev DS block hash as per leader " << prevHash.hex());
     }
 
     // Start to adjust difficulty from second DS block.
@@ -591,10 +582,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
     ComputeTxnSharingAssignments(proposedDSMembersInfo);
 
     // Create new consensus object
-    // Dummy values for now
     uint32_t consensusID = 0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     // kill first ds leader (used for view change testing)
     // Either do killing of ds leader or make ds leader do nothing.
@@ -859,8 +851,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
 
     // Dummy values for now
     uint32_t consensusID = 0x0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+    m_consensusBlockHash = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetMyHash()
+                               .asBytes();
 
     auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                        vector<unsigned char>& errorMsg,

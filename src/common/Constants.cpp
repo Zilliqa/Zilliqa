@@ -182,6 +182,8 @@ const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
 const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
     ReadFromConstantsFile("TERMINATION_COUNTDOWN_IN_SECONDS")};
+const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
+    ReadFromConstantsFile("DS_DELAY_WAKEUP_IN_SECONDS")};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
     ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
 
