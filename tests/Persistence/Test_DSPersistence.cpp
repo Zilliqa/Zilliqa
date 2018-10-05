@@ -62,7 +62,7 @@ DSBlock constructDummyDSBlock(uint64_t blocknum)
     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
     std::map<PubKey, Peer> powDSWinners;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 3; i++)
     {
         powDSWinners[Schnorr::GetInstance().GenKeyPair().second] = Peer();
     }
@@ -379,6 +379,7 @@ BOOST_AUTO_TEST_CASE(testThreadSafety)
     tests correctness when blocks get written over a series of files
     when running this test change BLOCK_FILE_SIZE to 128*1024*1024/512 in BlockStorage.h
 */
+
 BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
 {
     // INIT_STDOUT_LOGGER();
@@ -390,7 +391,7 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
 
     DSBlock block = constructDummyDSBlock(0);
 
-    for (int i = 21; i < 2500; i++)
+    for (int i = 21; i < 250; i++)
     {
         block = constructDummyDSBlock(i);
 
@@ -401,7 +402,7 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
     }
 
     DSBlockSharedPtr blockRetrieved;
-    BlockStorage::GetBlockStorage().GetDSBlock(2499, blockRetrieved);
+    BlockStorage::GetBlockStorage().GetDSBlock(249, blockRetrieved);
 
     LOG_GENERAL(INFO,
                 "Block num value entered: " << block.GetHeader().GetBlockNum());
@@ -412,9 +413,6 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles)
         block.GetHeader().GetBlockNum()
             == (*blockRetrieved).GetHeader().GetBlockNum(),
         "Block num shouldn't change after writing to/ reading from disk");
-
-    //     // BlockStorage::m_blockFileSize = 128 * 1024 * 1024;
-    //     BlockStorage::SetBlockFileSize(128 * ONE_MEGABYTE);
 }
 
 BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB)
