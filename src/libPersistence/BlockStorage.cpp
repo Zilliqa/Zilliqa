@@ -158,7 +158,7 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block)
         return false;
     }
 
-    LOG_GENERAL(INFO, blockString);
+    // LOG_GENERAL(INFO, blockString);
     LOG_GENERAL(INFO, blockString.length());
     block = DSBlockSharedPtr(new DSBlock(
         std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
