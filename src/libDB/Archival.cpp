@@ -29,10 +29,27 @@ unsigned int REFRESH_DELAY = 5;
 void Archival::InitSync()
 {
     auto func = [this]() -> void {
-        m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
+
         m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
         uint64_t dsBlockNum = 0;
         uint64_t txBlockNum = 0;
+
+        {
+            unique_lock<mutex> lock(
+                m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+            while (!m_mediator.m_lookup->m_fetchedOfflineLookups)
+            {
+                if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
+                        lock, chrono::seconds(POW_WINDOW_IN_SECONDS))
+                    == std::cv_status::timeout)
+                {
+                    LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
+                    break;
+                }
+            }
+            m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+        }
+
         while (true)
         {
             if (m_mediator.m_dsBlockChain.GetBlockCount() != 1)
@@ -48,6 +65,7 @@ void Archival::InitSync()
                                       << " DSBlockNum: " << dsBlockNum);
             m_synchronizer.FetchLatestDSBlocks(m_mediator.m_lookup, dsBlockNum);
             m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup, txBlockNum);
+            m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
             m_synchronizer.FetchLatestState(m_mediator.m_lookup);
 
             if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
@@ -123,14 +141,14 @@ bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
 
     lock_guard<mutex> g(m_mutexMicroBlockInfo);
 
-    vector<uint32_t>& shard_ids = m_fetchMicroBlockInfo[blockNum];
-
-    if (shard_ids.size() == 0)
+    if (m_fetchMicroBlockInfo.count(blockNum) == 0)
     {
         LOG_GENERAL(INFO,
                     "Already empty " << blockNum << " shard id" << shardId);
         return false;
     }
+
+    vector<uint32_t>& shard_ids = m_fetchMicroBlockInfo.at(blockNum);
 
     auto position = find(shard_ids.begin(), shard_ids.end(), shardId);
     if (position != shard_ids.end())
