@@ -404,7 +404,7 @@ bool DirectoryService::CleanVariables()
     LOG_MARKER();
 
     m_shards.clear();
-    m_publicKeyToShardIdMap.clear();
+    m_publicKeyToshardIdMap.clear();
     m_allPoWConns.clear();
     m_mapNodeReputation.clear();
 
