@@ -254,13 +254,13 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 
     StoreState();
 
-    if (BROADCAST_TREEBASED_CLUSTER_MODE)
-    {
-        SendFallbackBlockToOtherShardNodes(message);
-    }
-
     if (!LOOKUP_NODE_MODE)
     {
+        if (BROADCAST_TREEBASED_CLUSTER_MODE)
+        {
+            SendFallbackBlockToOtherShardNodes(message);
+        }
+
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'0'});
 
