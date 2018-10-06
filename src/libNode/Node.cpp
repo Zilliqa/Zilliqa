@@ -1233,7 +1233,8 @@ void Node::GetNodesToBroadCastUsingTreeBasedClustering(
                     << ", my_cluster_num : " << my_cluster_num);
 
     nodes_lo = (my_cluster_num * num_of_child_clusters + 1) * cluster_size;
-    nodes_hi = (my_cluster_num + 1) * num_of_child_clusters * cluster_size + 1;
+    nodes_hi
+        = ((my_cluster_num + 1) * num_of_child_clusters + 1) * cluster_size - 1;
 }
 
 // Tree-Based Clustering decision
