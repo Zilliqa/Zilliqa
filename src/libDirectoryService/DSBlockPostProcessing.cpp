@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #include <algorithm>
 #include <chrono>
@@ -245,14 +248,38 @@ void DirectoryService::SendDSBlockToShardNodes(const unsigned int my_shards_lo,
                 + 1
             << "] SHMSG");
 
-        vector<Peer> shard_peers;
-        for (const auto& kv : *p)
+        if (BROADCAST_TREEBASED_CLUSTER_MODE)
         {
-            shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-        }
+            // Choose N other Shard nodes to be recipient of DS block
+            std::vector<Peer> shardDSBlockReceivers;
 
-        P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                    dsblock_message);
+            LOG_GENERAL(
+                INFO,
+                "Sending to {NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD} peers : "
+                    << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
+
+            unsigned int numOfDSBlockReceivers = std::min(
+                NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
+
+            for (unsigned int i = 0; i < numOfDSBlockReceivers; i++)
+            {
+                shardDSBlockReceivers.emplace_back(
+                    std::get<SHARD_NODE_PEER>(p->at(i)));
+            }
+
+            P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
+                                                        dsblock_message);
+        }
+        else
+        {
+            vector<Peer> shard_peers;
+            for (const auto& kv : *p)
+            {
+                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+            }
+            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                        dsblock_message);
+        }
 
         p++;
     }

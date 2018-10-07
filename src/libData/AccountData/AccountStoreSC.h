@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa
-* This source code is being disclosed to you solely for the purpose of your participation in
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
-* the protocols and algorithms that are programmed into, and intended by, the code. You may
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
-* including modifying or publishing the code (or any part of it), and developing or forming
-* another public or private blockchain network. This source code is provided ‘as is’ and no
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #ifndef __ACCOUNTSTORESC_H__
 #define __ACCOUNTSTORESC_H__
@@ -50,21 +53,30 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
     uint64_t m_curBlockNum;
     Address m_curContractAddr;
     Address m_curSenderAddr;
+
     boost::multiprecision::uint256_t m_curAmount;
-    boost::multiprecision::uint256_t m_curGasCum;
     boost::multiprecision::uint256_t m_curGasLimit;
     boost::multiprecision::uint256_t m_curGasPrice;
+
     unsigned int m_curNumShards;
     bool m_curIsDS;
     TransactionReceipt m_curTranReceipt;
 
-    bool ParseCreateContractOutput();
-    bool ParseCreateContractJsonOutput(const Json::Value& _json);
-    bool ParseCallContractOutput();
-    bool ParseCallContractJsonOutput(const Json::Value& _json);
+    bool
+    ParseCreateContractOutput(boost::multiprecision::uint256_t& gasRemained);
+    bool ParseCreateContractJsonOutput(
+        const Json::Value& _json,
+        boost::multiprecision::uint256_t& gasRemained);
+    bool ParseCallContractOutput(boost::multiprecision::uint256_t& gasRemained);
+    bool
+    ParseCallContractJsonOutput(const Json::Value& _json,
+                                boost::multiprecision::uint256_t& gasRemained);
     Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
-    std::string GetCreateContractCmdStr();
-    std::string GetCallContractCmdStr();
+
+    std::string GetCreateContractCmdStr(
+        const boost::multiprecision::uint256_t& available_gas);
+    std::string GetCallContractCmdStr(
+        const boost::multiprecision::uint256_t& available_gas);
 
     // Generate input for interpreter to check the correctness of contract
     void ExportCreateContractFiles(const Account& contract);
@@ -79,10 +91,6 @@ template<class MAP> class AccountStoreSC : public AccountStoreBase<MAP>
                                const boost::multiprecision::uint256_t& delta);
     void CommitTransferBalanceAtomic();
     void DiscardTransferBalanceAtomic();
-
-    bool CheckGasExceededLimit(const boost::multiprecision::uint256_t& gas);
-
-    boost::multiprecision::uint256_t CalculateGas();
 
 protected:
     AccountStoreSC();

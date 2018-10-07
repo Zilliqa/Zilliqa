@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #include <algorithm>
 #include <chrono>
@@ -652,24 +655,64 @@ void DirectoryService::SendBlockToShardNodes(
 
         for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++)
         {
-            vector<Peer> shard_peers;
-
-            for (const auto& kv : *p)
+            if (BROADCAST_TREEBASED_CLUSTER_MODE)
             {
-                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-                LOG_EPOCH(
-                    INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    " PubKey: "
-                        << DataConversion::SerializableToHexStr(
-                               std::get<SHARD_NODE_PUBKEY>(kv))
-                        << " IP: "
-                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                        << " Port: "
-                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+                // Choose N other Shard nodes to be recipient of block
+                std::vector<Peer> shardBlockReceivers;
+
+                LOG_GENERAL(INFO,
+                            "Sending to "
+                            "{NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD} peers : "
+                                << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
+
+                unsigned int numOfBlockReceivers
+                    = std::min(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                               (uint32_t)p->size());
+
+                for (unsigned int i = 0; i < numOfBlockReceivers; i++)
+                {
+                    const auto& kv = p->at(i);
+                    shardBlockReceivers.emplace_back(
+                        std::get<SHARD_NODE_PEER>(kv));
+
+                    LOG_EPOCH(
+                        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                        " PubKey: "
+                            << DataConversion::SerializableToHexStr(
+                                   std::get<SHARD_NODE_PUBKEY>(kv))
+                            << " IP: "
+                            << std::get<SHARD_NODE_PEER>(kv)
+                                   .GetPrintableIPAddress()
+                            << " Port: "
+                            << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+                }
+
+                P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers,
+                                                            block_message);
+            }
+            else
+            {
+                vector<Peer> shard_peers;
+
+                for (const auto& kv : *p)
+                {
+                    shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+                    LOG_EPOCH(
+                        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                        " PubKey: "
+                            << DataConversion::SerializableToHexStr(
+                                   std::get<SHARD_NODE_PUBKEY>(kv))
+                            << " IP: "
+                            << std::get<SHARD_NODE_PEER>(kv)
+                                   .GetPrintableIPAddress()
+                            << " Port: "
+                            << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+                }
+
+                P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                            block_message);
             }
 
-            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                        block_message);
             p++;
         }
     }
