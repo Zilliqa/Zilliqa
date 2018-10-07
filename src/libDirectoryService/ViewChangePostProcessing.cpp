@@ -368,7 +368,8 @@ bool DirectoryService::ProcessViewChangeConsensus(
                     "Time out while waiting for state transition to view "
                     "change "
                     "consensus and "
-                    "consensus object creation. Most likely view change didn't "
+                    "consensus object creation. Most likely view change "
+                    "didn't "
                     "occur. A malicious node may be trying to initate view "
                     "change.");
                 return false;

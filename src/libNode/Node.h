@@ -362,6 +362,19 @@ class Node : public Executable, public Broadcastable
 
     void ResetRejoinFlags();
 
+    void SendDSBlockToOtherShardNodes(
+        const std::vector<unsigned char>& dsblock_message);
+    void SendVCBlockToOtherShardNodes(
+        const std::vector<unsigned char>& vcblock_message);
+    void SendFallbackBlockToOtherShardNodes(
+        const std::vector<unsigned char>& fallbackblock_message);
+    void SendBlockToOtherShardNodes(const std::vector<unsigned char>& message,
+                                    uint32_t cluster_size,
+                                    uint32_t num_of_child_clusters);
+    void GetNodesToBroadCastUsingTreeBasedClustering(
+        uint32_t cluster_size, uint32_t num_of_child_clusters,
+        uint32_t& nodes_lo, uint32_t& nodes_hi);
+
 public:
     enum NodeState : unsigned char
     {
