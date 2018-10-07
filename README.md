@@ -79,7 +79,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 * macOS (experimental):
 
     ```bash
-    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc
+    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
     ```
     ```sudo ./scripts/install_mongo.sh```
 
