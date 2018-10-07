@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #include <array>
 #include <chrono>
@@ -49,6 +52,9 @@
 using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
+
+const unsigned int MIN_CLUSTER_SIZE = 2;
+const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 void addBalanceToGenesisAccount()
 {
@@ -1201,6 +1207,84 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte)
         }
     }
     return false;
+}
+
+void Node::GetNodesToBroadCastUsingTreeBasedClustering(
+    uint32_t cluster_size, uint32_t num_of_child_clusters, uint32_t& nodes_lo,
+    uint32_t& nodes_hi)
+{
+    // make sure cluster_size is with-in the valid range
+    cluster_size = std::max(cluster_size, MIN_CLUSTER_SIZE);
+    cluster_size = std::min(cluster_size, (uint32_t)m_myShardMembers->size());
+
+    uint32_t num_of_total_clusters
+        = std::ceil((double)m_myShardMembers->size() / cluster_size);
+
+    // make sure child_cluster_size is within valid range
+    num_of_child_clusters
+        = std::max(num_of_child_clusters, MIN_CHILD_CLUSTER_SIZE);
+    num_of_child_clusters
+        = std::min(num_of_child_clusters, num_of_total_clusters - 1);
+
+    uint32_t my_cluster_num = m_consensusMyID / cluster_size;
+
+    LOG_GENERAL(INFO,
+                "cluster_size :"
+                    << cluster_size
+                    << ", num_of_child_clusters : " << num_of_child_clusters
+                    << ", num_of_total_clusters : " << num_of_total_clusters
+                    << ", my_cluster_num : " << my_cluster_num);
+
+    nodes_lo = (my_cluster_num * num_of_child_clusters + 1) * cluster_size;
+    nodes_hi
+        = ((my_cluster_num + 1) * num_of_child_clusters + 1) * cluster_size - 1;
+}
+
+// Tree-Based Clustering decision
+//  --  Should I broadcast the message to some-one from my shard.
+//  --  If yes, To whom-all should i broadcast the message.
+void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
+                                      uint32_t cluster_size,
+                                      uint32_t num_of_child_clusters)
+{
+    LOG_MARKER();
+
+    uint32_t nodes_lo, nodes_hi;
+
+    GetNodesToBroadCastUsingTreeBasedClustering(
+        cluster_size, num_of_child_clusters, nodes_lo, nodes_hi);
+
+    if (nodes_lo >= m_myShardMembers->size())
+    {
+        // I am at last level in tree.
+        LOG_GENERAL(INFO,
+                    "I am at last level in tree. And not supposed to broadcast "
+                    "message further");
+        return;
+    }
+
+    //set to max valid node index, if upperbound is invalid.
+    nodes_hi = std::min(nodes_hi, (uint32_t)m_myShardMembers->size() - 1);
+
+    LOG_GENERAL(INFO,
+                "I am broadcasting message further to following "
+                    << nodes_hi - nodes_lo + 1 << " peers."
+                    << "(" << nodes_lo << "~" << nodes_hi << ")");
+    std::vector<Peer> shardVCBlockReceivers;
+    for (uint32_t i = nodes_lo; i <= nodes_hi; i++)
+    {
+        const auto& kv = m_myShardMembers->at(i);
+        shardVCBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " PubKey: "
+                      << DataConversion::SerializableToHexStr(
+                             std::get<SHARD_NODE_PUBKEY>(kv))
+                      << " IP: "
+                      << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
+                      << " Port: "
+                      << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+    }
+    P2PComm::GetInstance().SendBroadcastMessage(shardVCBlockReceivers, message);
 }
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
