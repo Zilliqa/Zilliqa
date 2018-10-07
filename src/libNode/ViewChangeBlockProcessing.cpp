@@ -235,6 +235,10 @@ void Node::SendVCBlockToOtherShardNodes(
     const vector<unsigned char>& vcblock_message)
 {
     LOG_MARKER();
+    LOG_GENERAL(INFO,
+                "Primary CLUSTER SIZE used is "
+                "(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD):"
+                    << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
     SendBlockToOtherShardNodes(vcblock_message,
                                NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
                                NUM_OF_TREEBASED_CHILD_CLUSTERS);

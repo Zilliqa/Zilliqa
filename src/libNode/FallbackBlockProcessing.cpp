@@ -296,6 +296,10 @@ void Node::SendFallbackBlockToOtherShardNodes(
     const vector<unsigned char>& fallbackblock_message)
 {
     LOG_MARKER();
+    LOG_GENERAL(INFO,
+                "Primary CLUSTER SIZE used is "
+                "(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD):"
+                    << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
     SendBlockToOtherShardNodes(fallbackblock_message,
                                NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
                                NUM_OF_TREEBASED_CHILD_CLUSTERS);
