@@ -224,7 +224,25 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     // Add to block chain and Store the VC block to disk.
     // StoreVCBlockToDisk(dsblock);
 
+    if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE)
+    {
+        SendVCBlockToOtherShardNodes(message);
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am a node and my view of leader is successfully changed.");
     return true;
+}
+
+void Node::SendVCBlockToOtherShardNodes(
+    const vector<unsigned char>& vcblock_message)
+{
+    LOG_MARKER();
+    LOG_GENERAL(INFO,
+                "Primary CLUSTER SIZE used is "
+                "(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD):"
+                    << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
+    SendBlockToOtherShardNodes(vcblock_message,
+                               NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                               NUM_OF_TREEBASED_CHILD_CLUSTERS);
 }

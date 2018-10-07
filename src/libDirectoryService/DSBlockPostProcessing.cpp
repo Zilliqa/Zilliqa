@@ -248,14 +248,38 @@ void DirectoryService::SendDSBlockToShardNodes(const unsigned int my_shards_lo,
                 + 1
             << "] SHMSG");
 
-        vector<Peer> shard_peers;
-        for (const auto& kv : *p)
+        if (BROADCAST_TREEBASED_CLUSTER_MODE)
         {
-            shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-        }
+            // Choose N other Shard nodes to be recipient of DS block
+            std::vector<Peer> shardDSBlockReceivers;
 
-        P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                    dsblock_message);
+            LOG_GENERAL(
+                INFO,
+                "Sending to {NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD} peers : "
+                    << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
+
+            unsigned int numOfDSBlockReceivers = std::min(
+                NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
+
+            for (unsigned int i = 0; i < numOfDSBlockReceivers; i++)
+            {
+                shardDSBlockReceivers.emplace_back(
+                    std::get<SHARD_NODE_PEER>(p->at(i)));
+            }
+
+            P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
+                                                        dsblock_message);
+        }
+        else
+        {
+            vector<Peer> shard_peers;
+            for (const auto& kv : *p)
+            {
+                shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+            }
+            P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                        dsblock_message);
+        }
 
         p++;
     }
