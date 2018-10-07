@@ -19,6 +19,8 @@
 
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
+#include <mongocxx/client.hpp>
+#include <mongocxx/instance.hpp>
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
@@ -26,6 +28,7 @@
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
+#include "libDB/Archival.h"
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
@@ -101,10 +104,13 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     , m_ds(m_mediator)
     , m_lookup(m_mediator)
     , m_n(m_mediator, syncType, toRetrieveHistory)
+    , m_db("archiveDB", "txn", "txBlock", "dsBlock", "accountState")
+    , m_arch(m_mediator)
     //    , m_cu(key, peer)
     , m_msgQueue(MSGQUEUE_SIZE)
     , m_httpserver(SERVER_PORT)
     , m_server(m_mediator, m_httpserver)
+
 {
     LOG_MARKER();
     // Launch the thread that reads messages from the queue
@@ -125,7 +131,19 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     DetachedFunction(1, funcCheckMsgQueue);
 
     m_validator = make_shared<Validator>(m_mediator);
-    m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
+    if (ARCHIVAL_NODE)
+    {
+        m_db.Init();
+        m_arch.Init();
+        m_arch.InitSync();
+        m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get(),
+                                      &m_db, &m_arch);
+    }
+    else
+    {
+        m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup,
+                                      m_validator.get());
+    }
     m_n.Install(syncType, toRetrieveHistory);
 
     LogSelfNodeInfo(key, peer);

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env python
 # Copyright (c) 2018 Zilliqa
 # This source code is being disclosed to you solely for the purpose of your
 # participation in testing Zilliqa. You may view, compile and run the code for
@@ -16,43 +16,17 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 
-# clean up persistent storage
-rm -rf local_run/node*
-
 sudo sysctl net.core.somaxconn=102400; 
 sudo sysctl net.core.netdev_max_backlog=65536; 
 sudo sysctl net.ipv4.tcp_tw_reuse=1; 
 sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
-ulimit -n 65535;
-ulimit -Sc unlimited; 
-ulimit -Hc unlimited;
-ulimit -s unlimited; 
 
-python tests/Zilliqa/test_zilliqa_local.py stop
-python tests/Zilliqa/test_zilliqa_local.py setup 20
-python tests/Zilliqa/test_zilliqa_local.py start 10
+# clean up persistence storage
+rm -rf archival_local_run/node*
 
-sleep 40
-echo "starting..."
+python tests/Zilliqa/test_zilliqa_archival.py setup 1
+python tests/Zilliqa/test_zilliqa_archival.py start
 
-#set primary 
-for ds in {1..10}
-do
-    python tests/Zilliqa/test_zilliqa_local.py sendcmd $ds 01000000000000000000000000000100007F00001389
-done
-sleep 10
-
-# PoW submission should be multicasted to all DS committee members
-for node in {11..20}
-do
-    python tests/Zilliqa/test_zilliqa_local.py startpow $node 10 0000000000000001 05 03 2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf
-done
-
-
-for port in {1..20}
-do
-    python tests/Zilliqa/test_zilliqa_local.py sendtxn $((5000 + $port))
-done 
-
+echo "end"

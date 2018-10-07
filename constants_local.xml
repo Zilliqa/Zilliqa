@@ -75,6 +75,7 @@
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
+        <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
         <BROADCAST_GOSSIP_MODE>false</BROADCAST_GOSSIP_MODE>
         <GOSSIP_CUSTOM_ROUNDS_SETTINGS>true</GOSSIP_CUSTOM_ROUNDS_SETTINGS>
         <BROADCAST_TREEBASED_CLUSTER_MODE>true</BROADCAST_TREEBASED_CLUSTER_MODE>
@@ -96,6 +97,9 @@
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
         <TXN_PATH/>
     </dispatcher>
+    <archival>
+        <DB_HOST>localhost</DB_HOST>
+    </archival>
     <accounts>
         <account>
             <wallet_address>cc02a3c906612cc5bdb087a30e6093c9f0aa04fc</wallet_address>

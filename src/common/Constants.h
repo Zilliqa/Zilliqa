@@ -113,6 +113,7 @@ extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const std::string TXN_PATH;
+extern const std::string DB_HOST;
 
 extern const unsigned int MSG_VERSION;
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
@@ -186,6 +187,7 @@ extern const bool OPENCL_GPU_MINE;
 extern const bool CUDA_GPU_MINE;
 extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
+extern const bool ARCHIVAL_NODE;
 extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
 extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
