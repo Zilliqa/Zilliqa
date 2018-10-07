@@ -74,12 +74,14 @@ To run Zilliqa, we recommend the following minimum system requirements:
         libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config \
         libevent-dev libminiupnpc-dev libprotobuf-dev protobuf-compiler libcurl4-openssl-dev
     ```
+    ```sudo ./scripts/install_mongo.sh```
 
 * macOS (experimental):
 
     ```bash
-    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc
+    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
     ```
+    ```sudo ./scripts/install_mongo.sh```
 
 ## Running Zilliqa locally
 

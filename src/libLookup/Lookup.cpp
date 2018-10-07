@@ -963,6 +963,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     }
     else if (lowBlockNum == 0)
     {
+
         //give all the blocks till now in blockchain
         lowBlockNum = 1;
     }
@@ -1257,6 +1258,10 @@ bool Lookup::AddMicroBlockToStorage(const uint64_t& blocknum,
     uint32_t id = microblock.GetHeader().GetShardId();
 
     TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blocknum);
+    LOG_GENERAL(INFO,
+                "[SendMB]"
+                    << "Add MicroBlock call " << blocknum << " shard id "
+                    << id);
     unsigned int i = 0;
 
     if (txblk == TxBlock())
@@ -1333,12 +1338,17 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     uint128_t ipAddr = from.m_ipAddress;
     Peer requestingNode(ipAddr, portNo);
     vector<MicroBlock> retMicroBlocks;
+
     for (const auto& microBlockId : microBlockIds)
     {
 
         const uint64_t& blocknum = microBlockId.first;
         for (const auto& shard_id : microBlockId.second)
         {
+            LOG_GENERAL(INFO,
+                        "[SendMB]"
+                            << "Request for " << blocknum << " shardId "
+                            << shard_id);
             shared_ptr<MicroBlock> mbptr;
             if (!BlockStorage::GetBlockStorage().GetMicroBlock(blocknum,
                                                                shard_id, mbptr))
@@ -1394,7 +1404,18 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
                     "[SendMB]"
                         << " Recvd " << mb.GetHeader().GetBlockNum()
                         << " shard:" << mb.GetHeader().GetShardId());
-    } //do something with mb
+
+        if (ARCHIVAL_NODE)
+        {
+            if (!m_mediator.m_archival->RemoveFromFetchMicroBlockInfo(
+                    mb.GetHeader().GetBlockNum(), mb.GetHeader().GetShardId()))
+            {
+                LOG_GENERAL(WARNING, "Error in remove fetch micro block");
+                continue;
+            }
+            m_mediator.m_archival->AddToUnFetchedTxn(mb.GetTranHashes());
+        }
+    }
 
     return true;
 }
@@ -1424,8 +1445,10 @@ void Lookup::SendGetMicroBlockFromLookup(
 
 void Lookup::CommitMicroBlockStorage()
 {
+    LOG_MARKER();
     lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
     const uint64_t& currentEpoch = m_mediator.m_currentEpochNum;
+    LOG_GENERAL(INFO, "[SendMB]" << currentEpoch);
 
     for (auto& epochMBpair : m_microBlocksBuffer)
     {
@@ -1590,10 +1613,17 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         {
             m_mediator.m_dsBlockChain.AddBlock(dsblock);
             // Store DS Block to disk
-            vector<unsigned char> serializedDSBlock;
-            dsblock.Serialize(serializedDSBlock, 0);
-            BlockStorage::GetBlockStorage().PutDSBlock(
-                dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+            if (!ARCHIVAL_NODE)
+            {
+                vector<unsigned char> serializedDSBlock;
+                dsblock.Serialize(serializedDSBlock, 0);
+                BlockStorage::GetBlockStorage().PutDSBlock(
+                    dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+            }
+            else
+            {
+                m_mediator.m_archDB->InsertDSBlock(dsblock);
+            }
         }
 
         if (m_syncType == SyncType::DS_SYNC
@@ -1690,10 +1720,34 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.m_node->AddBlock(txBlock);
 
             // Store Tx Block to disk
-            vector<unsigned char> serializedTxBlock;
-            txBlock.Serialize(serializedTxBlock, 0);
-            BlockStorage::GetBlockStorage().PutTxBlock(
-                txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+            if (!ARCHIVAL_NODE)
+            {
+                vector<unsigned char> serializedTxBlock;
+                txBlock.Serialize(serializedTxBlock, 0);
+                BlockStorage::GetBlockStorage().PutTxBlock(
+                    txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+            }
+            else
+            {
+                for (unsigned int i = 0; i < txBlock.GetShardIds().size(); i++)
+                {
+                    if (!txBlock.GetIsMicroBlockEmpty()[i])
+                    {
+                        m_mediator.m_archival->AddToFetchMicroBlockInfo(
+                            txBlock.GetHeader().GetBlockNum(),
+                            txBlock.GetShardIds()[i]);
+                    }
+                    else
+                    {
+                        LOG_GENERAL(INFO,
+                                    "MicroBlock of shard "
+                                        << txBlock.GetShardIds()[i]
+                                        << " empty");
+                    }
+                }
+
+                m_mediator.m_archDB->InsertTxBlock(txBlock);
+            }
         }
 
         m_mediator.m_currentEpochNum
@@ -1702,7 +1756,8 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
 
         m_mediator.UpdateTxBlockRand();
 
-        if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+        if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)
+            && !ARCHIVAL_NODE)
         {
             LOG_GENERAL(INFO,
                         "At new DS epoch now, try getting state from lookup");
@@ -1749,6 +1804,12 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Messenger::GetLookupSetStateFromSeed failed.");
         return false;
+    }
+
+    if (ARCHIVAL_NODE)
+    {
+        LOG_GENERAL(INFO, "Succesfull state change");
+        return true;
     }
 
     if (!LOOKUP_NODE_MODE)
@@ -1902,11 +1963,9 @@ bool Lookup::ProcessSetTxnsFromLookup(const vector<unsigned char>& message,
         LOG_GENERAL(WARNING, "Failed to Process");
         return false;
     }
-
-    for (const auto& txn : txns)
+    if (ARCHIVAL_NODE)
     {
-        LOG_GENERAL(INFO, "Recvd " << txn.GetTransaction().GetTranID());
-        //do something here
+        m_mediator.m_archival->AddTxnToDB(txns, *m_mediator.m_archDB);
     }
     return true;
 }
@@ -2810,7 +2869,14 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
     return result;
 }
 
-bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
+bool Lookup::AlreadyJoinedNetwork()
+{
+    if (ARCHIVAL_NODE)
+    {
+        return false;
+    }
+    return m_syncType == SyncType::NO_SYNC;
+}
 
 bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId)
 {
