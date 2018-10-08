@@ -22,422 +22,371 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
-template<class MAP> AccountStoreBase<MAP>::AccountStoreBase()
-{
-    m_addressToAccount = std::make_shared<MAP>();
+template <class MAP>
+AccountStoreBase<MAP>::AccountStoreBase() {
+  m_addressToAccount = std::make_shared<MAP>();
 }
 
-template<class MAP> void AccountStoreBase<MAP>::Init()
-{
-    m_addressToAccount->clear();
+template <class MAP>
+void AccountStoreBase<MAP>::Init() {
+  m_addressToAccount->clear();
 }
 
-template<class MAP>
+template <class MAP>
 unsigned int AccountStoreBase<MAP>::Serialize(std::vector<unsigned char>& dst,
-                                              unsigned int offset) const
-{
-    // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+                                              unsigned int offset) const {
+  // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2]
+  // [Account 2] .... [Addr n] [Account n]
 
-    // LOG_MARKER();
+  // LOG_MARKER();
 
-    unsigned int size_needed = UINT256_SIZE;
-    unsigned int size_remaining = dst.size() - offset;
-    unsigned int totalSerializedSize = size_needed;
+  unsigned int size_needed = UINT256_SIZE;
+  unsigned int size_remaining = dst.size() - offset;
+  unsigned int totalSerializedSize = size_needed;
 
-    if (size_remaining < size_needed)
-    {
-        dst.resize(size_needed + offset);
-    }
+  if (size_remaining < size_needed) {
+    dst.resize(size_needed + offset);
+  }
 
+  unsigned int curOffset = offset;
+
+  // [Total number of accounts]
+  LOG_GENERAL(INFO, "Debug: Total number of accounts to serialize: "
+                        << GetNumOfAccounts());
+  boost::multiprecision::uint256_t totalNumOfAccounts = GetNumOfAccounts();
+  SetNumber<boost::multiprecision::uint256_t>(dst, curOffset,
+                                              totalNumOfAccounts, UINT256_SIZE);
+  curOffset += UINT256_SIZE;
+
+  std::vector<unsigned char> address_vec;
+  // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+  for (auto entry : *m_addressToAccount) {
+    // Address
+    address_vec = entry.first.asBytes();
+
+    copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
+    curOffset += ACC_ADDR_SIZE;
+    totalSerializedSize += ACC_ADDR_SIZE;
+
+    // Account
+    size_needed = entry.second.Serialize(dst, curOffset);
+    curOffset += size_needed;
+    totalSerializedSize += size_needed;
+  }
+
+  return totalSerializedSize;
+}
+
+template <class MAP>
+int AccountStoreBase<MAP>::Deserialize(const std::vector<unsigned char>& src,
+                                       unsigned int offset) {
+  // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] ....
+  // [Addr n] [Account n] LOG_MARKER();
+
+  try {
     unsigned int curOffset = offset;
-
-    // [Total number of accounts]
-    LOG_GENERAL(
-        INFO,
-        "Debug: Total number of accounts to serialize: " << GetNumOfAccounts());
-    boost::multiprecision::uint256_t totalNumOfAccounts = GetNumOfAccounts();
-    SetNumber<boost::multiprecision::uint256_t>(
-        dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
+    boost::multiprecision::uint256_t totalNumOfAccounts =
+        GetNumber<boost::multiprecision::uint256_t>(src, curOffset,
+                                                    UINT256_SIZE);
     curOffset += UINT256_SIZE;
 
-    std::vector<unsigned char> address_vec;
-    // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    for (auto entry : *m_addressToAccount)
-    {
-        // Address
-        address_vec = entry.first.asBytes();
+    Address address;
+    Account account;
+    unsigned int numberOfAccountDeserialze = 0;
+    while (numberOfAccountDeserialze < totalNumOfAccounts) {
+      numberOfAccountDeserialze++;
 
-        copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
-        curOffset += ACC_ADDR_SIZE;
-        totalSerializedSize += ACC_ADDR_SIZE;
+      // Deserialize address
+      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
+           address.asArray().begin());
+      curOffset += ACC_ADDR_SIZE;
 
-        // Account
-        size_needed = entry.second.Serialize(dst, curOffset);
-        curOffset += size_needed;
-        totalSerializedSize += size_needed;
-    }
-
-    return totalSerializedSize;
-}
-
-template<class MAP>
-int AccountStoreBase<MAP>::Deserialize(const std::vector<unsigned char>& src,
-                                       unsigned int offset)
-{
-    // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    // LOG_MARKER();
-
-    try
-    {
-        unsigned int curOffset = offset;
-        boost::multiprecision::uint256_t totalNumOfAccounts
-            = GetNumber<boost::multiprecision::uint256_t>(src, curOffset,
-                                                          UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-
-        Address address;
-        Account account;
-        unsigned int numberOfAccountDeserialze = 0;
-        while (numberOfAccountDeserialze < totalNumOfAccounts)
-        {
-            numberOfAccountDeserialze++;
-
-            // Deserialize address
-            copy(src.begin() + curOffset,
-                 src.begin() + curOffset + ACC_ADDR_SIZE,
-                 address.asArray().begin());
-            curOffset += ACC_ADDR_SIZE;
-
-            // Deserialize account
-            // account.Deserialize(src, curOffset);
-            if (account.DeserializeAddOffset(src, curOffset) < 0)
-            {
-                LOG_GENERAL(WARNING, "We failed to init account.");
-                return -1;
-            }
-            (*m_addressToAccount)[address] = account;
-        }
-    }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING,
-                    "Error with AccountStoreBase::Deserialize." << ' '
-                                                                << e.what());
+      // Deserialize account
+      // account.Deserialize(src, curOffset);
+      if (account.DeserializeAddOffset(src, curOffset) < 0) {
+        LOG_GENERAL(WARNING, "We failed to init account.");
         return -1;
+      }
+      (*m_addressToAccount)[address] = account;
     }
-    return 0;
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Error with AccountStoreBase::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
 }
 
-template<class MAP>
+template <class MAP>
 bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
-                                           TransactionReceipt& receipt)
-{
-    const PubKey& senderPubKey = transaction.GetSenderPubKey();
-    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    Address toAddr = transaction.GetToAddr();
-    const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
+                                           TransactionReceipt& receipt) {
+  const PubKey& senderPubKey = transaction.GetSenderPubKey();
+  const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+  Address toAddr = transaction.GetToAddr();
+  const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
 
-    Account* fromAccount = this->GetAccount(fromAddr);
-    if (fromAccount == nullptr)
-    {
-        // FIXME: remove this, temporary way to test transactions, should return false
-        LOG_GENERAL(WARNING,
-                    "AddAccount... FIXME: remove this, temporary way to "
-                    "test transactions, should return false in the future");
-        this->AddAccount(fromAddr, {10000000000, 0});
-        fromAccount = this->GetAccount(fromAddr);
-        // return false;
-    }
+  Account* fromAccount = this->GetAccount(fromAddr);
+  if (fromAccount == nullptr) {
+    // FIXME: remove this, temporary way to test transactions, should return
+    // false
+    LOG_GENERAL(WARNING,
+                "AddAccount... FIXME: remove this, temporary way to "
+                "test transactions, should return false in the future");
+    this->AddAccount(fromAddr, {10000000000, 0});
+    fromAccount = this->GetAccount(fromAddr);
+    // return false;
+  }
 
-    if (transaction.GetGasLimit() < NORMAL_TRAN_GAS)
-    {
-        LOG_GENERAL(WARNING,
-                    "The gas limit "
-                        << transaction.GetGasLimit()
-                        << " should be larger than the normal transaction gas ("
-                        << NORMAL_TRAN_GAS << ")");
-        return false;
-    }
+  if (transaction.GetGasLimit() < NORMAL_TRAN_GAS) {
+    LOG_GENERAL(WARNING,
+                "The gas limit "
+                    << transaction.GetGasLimit()
+                    << " should be larger than the normal transaction gas ("
+                    << NORMAL_TRAN_GAS << ")");
+    return false;
+  }
 
-    // FIXME: Possible integer overflow here
-    boost::multiprecision::uint256_t gasDeposit
-        = transaction.GetGasLimit() * transaction.GetGasPrice();
+  // FIXME: Possible integer overflow here
+  boost::multiprecision::uint256_t gasDeposit =
+      transaction.GetGasLimit() * transaction.GetGasPrice();
 
-    if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit)
-    {
-        LOG_GENERAL(
-            WARNING,
-            "The account (balance: "
-                << fromAccount->GetBalance()
-                << ") "
-                   "doesn't have enough balance to pay for the gas limit ("
-                << gasDeposit
-                << ") "
-                   "with amount ("
-                << transaction.GetAmount() << ") in the transaction");
-        return false;
-    }
+  if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit) {
+    LOG_GENERAL(WARNING,
+                "The account (balance: "
+                    << fromAccount->GetBalance()
+                    << ") "
+                       "doesn't have enough balance to pay for the gas limit ("
+                    << gasDeposit
+                    << ") "
+                       "with amount ("
+                    << transaction.GetAmount() << ") in the transaction");
+    return false;
+  }
 
-    if (!DecreaseBalance(fromAddr, gasDeposit))
-    {
-        return false;
-    }
+  if (!DecreaseBalance(fromAddr, gasDeposit)) {
+    return false;
+  }
 
-    if (!TransferBalance(fromAddr, toAddr, amount))
-    {
-        IncreaseBalance(fromAddr, gasDeposit);
-        return false;
-    }
+  if (!TransferBalance(fromAddr, toAddr, amount)) {
+    IncreaseBalance(fromAddr, gasDeposit);
+    return false;
+  }
 
-    boost::multiprecision::uint256_t gasRefund;
-    if (!CalculateGasRefund(gasDeposit, NORMAL_TRAN_GAS,
-                            transaction.GetGasPrice(), gasRefund))
-    {
-        return false;
-    }
+  boost::multiprecision::uint256_t gasRefund;
+  if (!CalculateGasRefund(gasDeposit, NORMAL_TRAN_GAS,
+                          transaction.GetGasPrice(), gasRefund)) {
+    return false;
+  }
 
-    IncreaseBalance(fromAddr, gasRefund);
+  IncreaseBalance(fromAddr, gasRefund);
 
-    IncreaseNonce(fromAddr);
+  IncreaseNonce(fromAddr);
 
-    receipt.SetResult(true);
-    receipt.SetCumGas(NORMAL_TRAN_GAS);
-    receipt.update();
+  receipt.SetResult(true);
+  receipt.SetCumGas(NORMAL_TRAN_GAS);
+  receipt.update();
 
-    return true;
+  return true;
 }
 
-template<class MAP>
+template <class MAP>
 bool AccountStoreBase<MAP>::CalculateGasRefund(
     const boost::multiprecision::uint256_t& gasDeposit,
     const boost::multiprecision::uint256_t& gasUnit,
     const boost::multiprecision::uint256_t& gasPrice,
-    boost::multiprecision::uint256_t& gasRefund)
-{
-    boost::multiprecision::uint256_t gasFee;
-    if (!SafeMath<boost::multiprecision::uint256_t>::mul(gasUnit, gasPrice,
-                                                         gasFee))
-    {
-        LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
-        return false;
-    }
-
-    if (!SafeMath<boost::multiprecision::uint256_t>::sub(gasDeposit, gasFee,
-                                                         gasRefund))
-    {
-        LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
-        return false;
-    }
-
-    // LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
-    return true;
-}
-
-template<class MAP>
-bool AccountStoreBase<MAP>::IsAccountExist(const Address& address)
-{
-    // LOG_MARKER();
-    return (nullptr != GetAccount(address));
-}
-
-template<class MAP>
-void AccountStoreBase<MAP>::AddAccount(const Address& address,
-                                       const Account& account)
-{
-    // LOG_MARKER();
-
-    if (!IsAccountExist(address))
-    {
-        m_addressToAccount->insert(std::make_pair(address, account));
-        // UpdateStateTrie(address, account);
-    }
-}
-
-template<class MAP>
-void AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
-                                       const Account& account)
-{
-    AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
-}
-
-template<class MAP>
-void AccountStoreBase<MAP>::RemoveAccount(const Address& address)
-{
-    if (IsAccountExist(address))
-    {
-        m_addressToAccount->erase(address);
-    }
-}
-
-template<class MAP>
-Account* AccountStoreBase<MAP>::GetAccount(const Address& address)
-{
-    auto it = m_addressToAccount->find(address);
-    if (it != m_addressToAccount->end())
-    {
-        return &it->second;
-    }
-    return nullptr;
-}
-
-template<class MAP>
-boost::multiprecision::uint256_t AccountStoreBase<MAP>::GetNumOfAccounts() const
-{
-    // LOG_MARKER();
-    return m_addressToAccount->size();
-}
-
-template<class MAP>
-bool AccountStoreBase<MAP>::IncreaseBalance(
-    const Address& address, const boost::multiprecision::uint256_t& delta)
-{
-    // LOG_MARKER();
-
-    if (delta == 0)
-    {
-        return true;
-    }
-
-    Account* account = GetAccount(address);
-
-    // LOG_GENERAL(INFO, "address: " << address);
-
-    if (account != nullptr && account->IncreaseBalance(delta))
-    {
-        // UpdateStateTrie(address, *account);
-        // LOG_GENERAL(INFO, "account: " << *account);
-        return true;
-    }
-    // FIXME: remove this, temporary way to test transactions, should return false
-    else if (account == nullptr)
-    {
-        LOG_GENERAL(WARNING,
-                    "AddAccount... FIXME: remove this, temporary way to test "
-                    "transactions");
-        AddAccount(address, {delta, 0});
-        return true;
-    }
-
+    boost::multiprecision::uint256_t& gasRefund) {
+  boost::multiprecision::uint256_t gasFee;
+  if (!SafeMath<boost::multiprecision::uint256_t>::mul(gasUnit, gasPrice,
+                                                       gasFee)) {
+    LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
     return false;
+  }
+
+  if (!SafeMath<boost::multiprecision::uint256_t>::sub(gasDeposit, gasFee,
+                                                       gasRefund)) {
+    LOG_GENERAL(WARNING, "gasDeposit - gasFee overflow!");
+    return false;
+  }
+
+  // LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
+  return true;
 }
 
-template<class MAP>
-bool AccountStoreBase<MAP>::DecreaseBalance(
-    const Address& address, const boost::multiprecision::uint256_t& delta)
-{
-    // LOG_MARKER();
+template <class MAP>
+bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
+  // LOG_MARKER();
+  return (nullptr != GetAccount(address));
+}
 
-    if (delta == 0)
-    {
-        return true;
-    }
+template <class MAP>
+void AccountStoreBase<MAP>::AddAccount(const Address& address,
+                                       const Account& account) {
+  // LOG_MARKER();
 
-    Account* account = GetAccount(address);
+  if (!IsAccountExist(address)) {
+    m_addressToAccount->insert(std::make_pair(address, account));
+    // UpdateStateTrie(address, account);
+  }
+}
 
-    // LOG_GENERAL(INFO, "address: " << address);
+template <class MAP>
+void AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
+                                       const Account& account) {
+  AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
+}
+
+template <class MAP>
+void AccountStoreBase<MAP>::RemoveAccount(const Address& address) {
+  if (IsAccountExist(address)) {
+    m_addressToAccount->erase(address);
+  }
+}
+
+template <class MAP>
+Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
+  auto it = m_addressToAccount->find(address);
+  if (it != m_addressToAccount->end()) {
+    return &it->second;
+  }
+  return nullptr;
+}
+
+template <class MAP>
+boost::multiprecision::uint256_t AccountStoreBase<MAP>::GetNumOfAccounts()
+    const {
+  // LOG_MARKER();
+  return m_addressToAccount->size();
+}
+
+template <class MAP>
+bool AccountStoreBase<MAP>::IncreaseBalance(
+    const Address& address, const boost::multiprecision::uint256_t& delta) {
+  // LOG_MARKER();
+
+  if (delta == 0) {
+    return true;
+  }
+
+  Account* account = GetAccount(address);
+
+  // LOG_GENERAL(INFO, "address: " << address);
+
+  if (account != nullptr && account->IncreaseBalance(delta)) {
+    // UpdateStateTrie(address, *account);
     // LOG_GENERAL(INFO, "account: " << *account);
+    return true;
+  }
+  // FIXME: remove this, temporary way to test transactions, should return false
+  else if (account == nullptr) {
+    LOG_GENERAL(WARNING,
+                "AddAccount... FIXME: remove this, temporary way to test "
+                "transactions");
+    AddAccount(address, {delta, 0});
+    return true;
+  }
 
-    // FIXME: remove this, temporary way to test transactions, should return false
-    if (nullptr == account)
-    {
-        LOG_GENERAL(WARNING,
-                    "AddAccount... FIXME: remove this, temporary way to test "
-                    "transactions");
-        AddAccount(address, {10000000000, 0});
-        return true;
-    }
-
-    return account->DecreaseBalance(delta);
+  return false;
 }
 
-template<class MAP>
+template <class MAP>
+bool AccountStoreBase<MAP>::DecreaseBalance(
+    const Address& address, const boost::multiprecision::uint256_t& delta) {
+  // LOG_MARKER();
+
+  if (delta == 0) {
+    return true;
+  }
+
+  Account* account = GetAccount(address);
+
+  // LOG_GENERAL(INFO, "address: " << address);
+  // LOG_GENERAL(INFO, "account: " << *account);
+
+  // FIXME: remove this, temporary way to test transactions, should return false
+  if (nullptr == account) {
+    LOG_GENERAL(WARNING,
+                "AddAccount... FIXME: remove this, temporary way to test "
+                "transactions");
+    AddAccount(address, {10000000000, 0});
+    return true;
+  }
+
+  return account->DecreaseBalance(delta);
+}
+
+template <class MAP>
 bool AccountStoreBase<MAP>::TransferBalance(
     const Address& from, const Address& to,
-    const boost::multiprecision::uint256_t& delta)
-{
-    // LOG_MARKER();
-    // FIXME: Is there any elegent way to implement this atomic change on balance?
-    if (DecreaseBalance(from, delta))
-    {
-        if (IncreaseBalance(to, delta))
-        {
-            return true;
-        }
-        else
-        {
-            IncreaseBalance(from, delta);
-        }
+    const boost::multiprecision::uint256_t& delta) {
+  // LOG_MARKER();
+  // FIXME: Is there any elegent way to implement this atomic change on balance?
+  if (DecreaseBalance(from, delta)) {
+    if (IncreaseBalance(to, delta)) {
+      return true;
+    } else {
+      IncreaseBalance(from, delta);
     }
+  }
+
+  return false;
+}
+
+template <class MAP>
+boost::multiprecision::uint256_t AccountStoreBase<MAP>::GetBalance(
+    const Address& address) {
+  // LOG_MARKER();
+
+  const Account* account = GetAccount(address);
+
+  if (account != nullptr) {
+    return account->GetBalance();
+  }
+
+  return 0;
+}
+
+template <class MAP>
+bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
+  // LOG_MARKER();
+
+  Account* account = GetAccount(address);
+
+  // LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
+
+  if (nullptr == account) {
+    LOG_GENERAL(WARNING, "Increase nonce failed");
 
     return false;
+  }
+
+  if (account->IncreaseNonce()) {
+    // LOG_GENERAL(INFO, "Increase nonce done");
+    // UpdateStateTrie(address, *account);
+    return true;
+  } else {
+    LOG_GENERAL(WARNING, "Increase nonce failed");
+    return false;
+  }
 }
 
-template<class MAP>
-boost::multiprecision::uint256_t
-AccountStoreBase<MAP>::GetBalance(const Address& address)
-{
-    // LOG_MARKER();
+template <class MAP>
+boost::multiprecision::uint256_t AccountStoreBase<MAP>::GetNonce(
+    const Address& address) {
+  // LOG_MARKER();
 
-    const Account* account = GetAccount(address);
+  Account* account = GetAccount(address);
 
-    if (account != nullptr)
-    {
-        return account->GetBalance();
-    }
+  if (account != nullptr) {
+    return account->GetNonce();
+  }
 
-    return 0;
+  return 0;
 }
 
-template<class MAP>
-bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address)
-{
-    // LOG_MARKER();
-
-    Account* account = GetAccount(address);
-
-    // LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
-
-    if (nullptr == account)
-    {
-        LOG_GENERAL(WARNING, "Increase nonce failed");
-
-        return false;
-    }
-
-    if (account->IncreaseNonce())
-    {
-        // LOG_GENERAL(INFO, "Increase nonce done");
-        // UpdateStateTrie(address, *account);
-        return true;
-    }
-    else
-    {
-        LOG_GENERAL(WARNING, "Increase nonce failed");
-        return false;
-    }
-}
-
-template<class MAP>
-boost::multiprecision::uint256_t
-AccountStoreBase<MAP>::GetNonce(const Address& address)
-{
-    //LOG_MARKER();
-
-    Account* account = GetAccount(address);
-
-    if (account != nullptr)
-    {
-        return account->GetNonce();
-    }
-
-    return 0;
-}
-
-template<class MAP> void AccountStoreBase<MAP>::PrintAccountState()
-{
-    LOG_MARKER();
-    for (auto entry : *m_addressToAccount)
-    {
-        LOG_GENERAL(INFO, entry.first << " " << entry.second);
-    }
+template <class MAP>
+void AccountStoreBase<MAP>::PrintAccountState() {
+  LOG_MARKER();
+  for (auto entry : *m_addressToAccount) {
+    LOG_GENERAL(INFO, entry.first << " " << entry.second);
+  }
 }

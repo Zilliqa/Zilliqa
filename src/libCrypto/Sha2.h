@@ -20,86 +20,73 @@
 #ifndef __SHA2_H__
 #define __SHA2_H__
 
-#include "libUtils/Logger.h"
 #include <openssl/sha.h>
 #include <vector>
+#include "libUtils/Logger.h"
 
 /// List of supported hash variants.
-class HASH_TYPE
-{
-public:
-    static const unsigned int HASH_VARIANT_256 = 256;
-    static const unsigned int HASH_VARIANT_512 = 512;
+class HASH_TYPE {
+ public:
+  static const unsigned int HASH_VARIANT_256 = 256;
+  static const unsigned int HASH_VARIANT_512 = 512;
 };
 
 /// Implements SHA2 hash algorithm.
-template<unsigned int SIZE> class SHA2
-{
-    static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
-    SHA256_CTX m_context;
-    std::vector<unsigned char> output;
+template <unsigned int SIZE>
+class SHA2 {
+  static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
+  SHA256_CTX m_context;
+  std::vector<unsigned char> output;
 
-public:
-    /// Constructor.
-    SHA2()
-        : output(HASH_OUTPUT_SIZE)
-    {
-        if (SIZE != HASH_TYPE::HASH_VARIANT_256)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
-
-        Reset();
+ public:
+  /// Constructor.
+  SHA2() : output(HASH_OUTPUT_SIZE) {
+    if (SIZE != HASH_TYPE::HASH_VARIANT_256) {
+      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                              << ": " << __FUNCTION__ << ")");
     }
 
-    /// Destructor.
-    ~SHA2() {}
+    Reset();
+  }
 
-    /// Hash update function.
-    void Update(const std::vector<unsigned char>& input)
-    {
-        if (input.size() <= 0)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
+  /// Destructor.
+  ~SHA2() {}
 
-        SHA256_Update(&m_context, input.data(), input.size());
+  /// Hash update function.
+  void Update(const std::vector<unsigned char>& input) {
+    if (input.size() <= 0) {
+      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                              << ": " << __FUNCTION__ << ")");
     }
 
-    /// Hash update function.
-    void Update(const std::vector<unsigned char>& input, unsigned int offset,
-                unsigned int size)
-    {
-        if ((offset + size) > input.size())
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
+    SHA256_Update(&m_context, input.data(), input.size());
+  }
 
-        SHA256_Update(&m_context, input.data() + offset, size);
+  /// Hash update function.
+  void Update(const std::vector<unsigned char>& input, unsigned int offset,
+              unsigned int size) {
+    if ((offset + size) > input.size()) {
+      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                              << ": " << __FUNCTION__ << ")");
     }
 
-    /// Resets the algorithm.
-    void Reset() { SHA256_Init(&m_context); }
+    SHA256_Update(&m_context, input.data() + offset, size);
+  }
 
-    /// Hash finalize function.
-    std::vector<unsigned char> Finalize()
-    {
-        switch (SIZE)
-        {
-        case 256:
-            SHA256_Final(output.data(), &m_context);
-            break;
-        default:
-            break;
-        }
-        return output;
+  /// Resets the algorithm.
+  void Reset() { SHA256_Init(&m_context); }
+
+  /// Hash finalize function.
+  std::vector<unsigned char> Finalize() {
+    switch (SIZE) {
+      case 256:
+        SHA256_Final(output.data(), &m_context);
+        break;
+      default:
+        break;
     }
+    return output;
+  }
 };
 
-#endif // __SHA2_H__
+#endif  // __SHA2_H__

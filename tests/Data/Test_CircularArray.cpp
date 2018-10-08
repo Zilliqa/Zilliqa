@@ -32,40 +32,38 @@ using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_SUITE(circulararraytest)
 
-BOOST_AUTO_TEST_CASE(CircularArray_test)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(CircularArray_test) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    CircularArray<int> arr;
-    arr.resize(100);
+  CircularArray<int> arr;
+  arr.resize(100);
 
-    arr.insert_new(arr.size(), 1);
-    arr.insert_new(arr.size(), 2);
+  arr.insert_new(arr.size(), 1);
+  arr.insert_new(arr.size(), 2);
 
-    BOOST_CHECK_MESSAGE(arr[0] == 1, "arr[0] != 1!");
-    BOOST_CHECK_MESSAGE(arr[1] == 2, "arr[1] != 2!");
+  BOOST_CHECK_MESSAGE(arr[0] == 1, "arr[0] != 1!");
+  BOOST_CHECK_MESSAGE(arr[1] == 2, "arr[1] != 2!");
 
-    BOOST_CHECK_MESSAGE(arr.back() == 2, "arr.back() != 2!");
+  BOOST_CHECK_MESSAGE(arr.back() == 2, "arr.back() != 2!");
 
-    for (int i = 0; i < 100; i++)
-    {
-        arr.insert_new(arr.size(), 11);
-    }
+  for (int i = 0; i < 100; i++) {
+    arr.insert_new(arr.size(), 11);
+  }
 
-    BOOST_CHECK_MESSAGE(arr[101] == 11, "arr[101] != 2!");
+  BOOST_CHECK_MESSAGE(arr[101] == 11, "arr[101] != 2!");
 
-    arr[101] = 12;
-    BOOST_CHECK_MESSAGE(arr[101] == 12, "arr[101] != 12!");
-    BOOST_CHECK_MESSAGE(arr[101] != 11, "arr[101] == 11!");
+  arr[101] = 12;
+  BOOST_CHECK_MESSAGE(arr[101] == 12, "arr[101] != 12!");
+  BOOST_CHECK_MESSAGE(arr[101] != 11, "arr[101] == 11!");
 
-    int value = -1;
-    arr.insert_new(102, value);
-    BOOST_CHECK_MESSAGE(arr[102] == -1, "arr[102] != -1!");
+  int value = -1;
+  arr.insert_new(102, value);
+  BOOST_CHECK_MESSAGE(arr[102] == -1, "arr[102] != -1!");
 
-    arr.insert_new(arr.size(), 2);
-    BOOST_CHECK_MESSAGE(arr[103] == 2, "arr[103] != 2!");
+  arr.insert_new(arr.size(), 2);
+  BOOST_CHECK_MESSAGE(arr[103] == 2, "arr[103] != 2!");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

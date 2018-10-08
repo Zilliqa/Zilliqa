@@ -38,16 +38,15 @@ using namespace std;
 using namespace boost::multiprecision;
 
 // Usage: input the hex string of private key
-int main()
-{
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Reset();
-    vector<unsigned char> message;
-    string s;
-    cin >> s;
+int main() {
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Reset();
+  vector<unsigned char> message;
+  string s;
+  cin >> s;
 
-    PrivKey privKey{DataConversion::HexStrToUint8Vec(s), 0};
-    PubKey pubKey{privKey};
+  PrivKey privKey{DataConversion::HexStrToUint8Vec(s), 0};
+  PubKey pubKey{privKey};
 
-    cout << pubKey << endl;
+  cout << pubKey << endl;
 }

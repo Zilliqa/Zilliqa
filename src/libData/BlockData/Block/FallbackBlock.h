@@ -32,44 +32,45 @@
 
 /// Stores the fallback block header and signature
 
-class FallbackBlock : public BlockBase
-{
-    FallbackBlockHeader m_header;
+class FallbackBlock : public BlockBase {
+  FallbackBlockHeader m_header;
 
-public:
-    /// Default constructor.
-    FallbackBlock(); // creates a dummy invalid placeholder block
+ public:
+  /// Default constructor.
+  FallbackBlock();  // creates a dummy invalid placeholder block
 
-    /// Constructor for loading finalblock block information from a byte stream.
-    FallbackBlock(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Constructor for loading finalblock block information from a byte stream.
+  FallbackBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Constructor with specified fallback block parameters.
-    FallbackBlock(FallbackBlockHeader&& header, CoSignatures&& cosigs);
+  /// Constructor with specified fallback block parameters.
+  FallbackBlock(FallbackBlockHeader&& header, CoSignatures&& cosigs);
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Returns the size in bytes when serializing the block.
-    unsigned int GetSerializedSize() const;
+  /// Returns the size in bytes when serializing the block.
+  unsigned int GetSerializedSize() const;
 
-    /// Returns the minimum required size in bytes for obtaining a fallback block from a byte stream.
-    static unsigned int GetMinSize();
+  /// Returns the minimum required size in bytes for obtaining a fallback block
+  /// from a byte stream.
+  static unsigned int GetMinSize();
 
-    /// Returns the reference to the FallbackBlockHeader part of the fallback block.
-    const FallbackBlockHeader& GetHeader() const;
+  /// Returns the reference to the FallbackBlockHeader part of the fallback
+  /// block.
+  const FallbackBlockHeader& GetHeader() const;
 
-    /// Equality comparison operator.
-    bool operator==(const FallbackBlock& block) const;
+  /// Equality comparison operator.
+  bool operator==(const FallbackBlock& block) const;
 
-    /// Less-than comparison operator.
-    bool operator<(const FallbackBlock& block) const;
+  /// Less-than comparison operator.
+  bool operator<(const FallbackBlock& block) const;
 
-    /// Greater-than comparison operator.
-    bool operator>(const FallbackBlock& block) const;
+  /// Greater-than comparison operator.
+  bool operator>(const FallbackBlock& block) const;
 };
 
-#endif // __FALLBACKBLOCK_H__
+#endif  // __FALLBACKBLOCK_H__

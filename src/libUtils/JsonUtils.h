@@ -25,44 +25,37 @@
 #include <sstream>
 #include <string>
 
-class JSONUtils
-{
-public:
-    //Convert a string to Json object
-    static bool convertStrtoJson(const std::string& str, Json::Value& dstObj)
-    {
-        Json::CharReaderBuilder readBuilder;
-        std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
-        std::string errors;
-        if (!reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
-                           &errors))
-        {
-            LOG_GENERAL(WARNING,
-                        "The Json is corrupted, failed to parse: " << errors);
-            return false;
-        }
-        return true;
+class JSONUtils {
+ public:
+  // Convert a string to Json object
+  static bool convertStrtoJson(const std::string& str, Json::Value& dstObj) {
+    Json::CharReaderBuilder readBuilder;
+    std::unique_ptr<Json::CharReader> reader(readBuilder.newCharReader());
+    std::string errors;
+    if (!reader->parse(str.c_str(), str.c_str() + str.size(), &dstObj,
+                       &errors)) {
+      LOG_GENERAL(WARNING,
+                  "The Json is corrupted, failed to parse: " << errors);
+      return false;
     }
-    //Convert a Json object to string
-    static std::string convertJsontoStr(const Json::Value& _json)
-    {
-        Json::StreamWriterBuilder writeBuilder;
-        std::unique_ptr<Json::StreamWriter> writer(
-            writeBuilder.newStreamWriter());
-        std::ostringstream oss;
-        writer->write(_json, &oss);
-        return oss.str();
-    }
-    //Write a Json object to target file
-    static void writeJsontoFile(const std::string& path,
-                                const Json::Value& _json)
-    {
-        Json::StreamWriterBuilder writeBuilder;
-        std::unique_ptr<Json::StreamWriter> writer(
-            writeBuilder.newStreamWriter());
-        std::ofstream os(path);
-        writer->write(_json, &os);
-    }
+    return true;
+  }
+  // Convert a Json object to string
+  static std::string convertJsontoStr(const Json::Value& _json) {
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    std::ostringstream oss;
+    writer->write(_json, &oss);
+    return oss.str();
+  }
+  // Write a Json object to target file
+  static void writeJsontoFile(const std::string& path,
+                              const Json::Value& _json) {
+    Json::StreamWriterBuilder writeBuilder;
+    std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
+    std::ofstream os(path);
+    writer->write(_json, &os);
+  }
 };
 
-#endif // __JSONUTILS_H__
+#endif  // __JSONUTILS_H__

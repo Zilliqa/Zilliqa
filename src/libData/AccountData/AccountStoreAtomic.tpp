@@ -17,40 +17,34 @@
  * program files.
  */
 
-template<class MAP>
+template <class MAP>
 AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
-    : m_parent(parent)
-{
+    : m_parent(parent) {}
+
+template <class MAP>
+Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address) {
+  Account* account =
+      AccountStoreBase<std::unordered_map<Address, Account>>::GetAccount(
+          address);
+  if (account != nullptr) {
+    // LOG_GENERAL(INFO, "Got From Temp");
+    return account;
+  }
+
+  account = m_parent.GetAccount(address);
+  if (account) {
+    // LOG_GENERAL(INFO, "Got From Parent");
+    m_addressToAccount->insert(std::make_pair(address, *account));
+    return &(m_addressToAccount->find(address))->second;
+  }
+
+  // LOG_GENERAL(INFO, "Got Nullptr");
+
+  return nullptr;
 }
 
-template<class MAP>
-Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address)
-{
-    Account* account
-        = AccountStoreBase<std::unordered_map<Address, Account>>::GetAccount(
-            address);
-    if (account != nullptr)
-    {
-        // LOG_GENERAL(INFO, "Got From Temp");
-        return account;
-    }
-
-    account = m_parent.GetAccount(address);
-    if (account)
-    {
-        // LOG_GENERAL(INFO, "Got From Parent");
-        m_addressToAccount->insert(std::make_pair(address, *account));
-        return &(m_addressToAccount->find(address))->second;
-    }
-
-    // LOG_GENERAL(INFO, "Got Nullptr");
-
-    return nullptr;
-}
-
-template<class MAP>
+template <class MAP>
 const std::shared_ptr<std::unordered_map<Address, Account>>&
-AccountStoreAtomic<MAP>::GetAddressToAccount()
-{
-    return this->m_addressToAccount;
+AccountStoreAtomic<MAP>::GetAddressToAccount() {
+  return this->m_addressToAccount;
 }

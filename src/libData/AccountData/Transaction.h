@@ -35,125 +35,124 @@ using TxnHash = dev::h256;
 using KeyPair = std::pair<PrivKey, PubKey>;
 
 /// Stores information on a single transaction.
-class Transaction : public Serializable
-{
-    TxnHash m_tranID;
-    boost::multiprecision::uint256_t m_version;
-    boost::multiprecision::uint256_t
-        m_nonce; // counter: the number of tx from m_fromAddr
-    Address m_toAddr;
-    PubKey m_senderPubKey;
-    boost::multiprecision::uint256_t m_amount;
-    boost::multiprecision::uint256_t m_gasPrice;
-    boost::multiprecision::uint256_t m_gasLimit;
-    std::vector<unsigned char> m_code;
-    std::vector<unsigned char> m_data;
-    Signature m_signature;
+class Transaction : public Serializable {
+  TxnHash m_tranID;
+  boost::multiprecision::uint256_t m_version;
+  boost::multiprecision::uint256_t
+      m_nonce;  // counter: the number of tx from m_fromAddr
+  Address m_toAddr;
+  PubKey m_senderPubKey;
+  boost::multiprecision::uint256_t m_amount;
+  boost::multiprecision::uint256_t m_gasPrice;
+  boost::multiprecision::uint256_t m_gasLimit;
+  std::vector<unsigned char> m_code;
+  std::vector<unsigned char> m_data;
+  Signature m_signature;
 
-public:
-    /// Default constructor.
-    Transaction();
+ public:
+  /// Default constructor.
+  Transaction();
 
-    /// Copy constructor.
-    Transaction(const Transaction& src);
+  /// Copy constructor.
+  Transaction(const Transaction& src);
 
-    /// Constructor with specified transaction fields.
-    Transaction(boost::multiprecision::uint256_t version,
-                const boost::multiprecision::uint256_t& nonce,
-                const Address& toAddr, const KeyPair& senderKeyPair,
-                const boost::multiprecision::uint256_t& amount,
-                const boost::multiprecision::uint256_t& gasPrice,
-                const boost::multiprecision::uint256_t& gasLimit,
-                const std::vector<unsigned char>& code = {},
-                const std::vector<unsigned char>& data = {});
+  /// Constructor with specified transaction fields.
+  Transaction(boost::multiprecision::uint256_t version,
+              const boost::multiprecision::uint256_t& nonce,
+              const Address& toAddr, const KeyPair& senderKeyPair,
+              const boost::multiprecision::uint256_t& amount,
+              const boost::multiprecision::uint256_t& gasPrice,
+              const boost::multiprecision::uint256_t& gasLimit,
+              const std::vector<unsigned char>& code = {},
+              const std::vector<unsigned char>& data = {});
 
-    /// Constructor with specified transaction fields.
-    Transaction(boost::multiprecision::uint256_t version,
-                const boost::multiprecision::uint256_t& nonce,
-                const Address& toAddr, const PubKey& senderPubKey,
-                const boost::multiprecision::uint256_t& amount,
-                const boost::multiprecision::uint256_t& gasPrice,
-                const boost::multiprecision::uint256_t& gasLimit,
-                const std::vector<unsigned char>& code,
-                const std::vector<unsigned char>& data,
-                const Signature& signature);
+  /// Constructor with specified transaction fields.
+  Transaction(boost::multiprecision::uint256_t version,
+              const boost::multiprecision::uint256_t& nonce,
+              const Address& toAddr, const PubKey& senderPubKey,
+              const boost::multiprecision::uint256_t& amount,
+              const boost::multiprecision::uint256_t& gasPrice,
+              const boost::multiprecision::uint256_t& gasLimit,
+              const std::vector<unsigned char>& code,
+              const std::vector<unsigned char>& data,
+              const Signature& signature);
 
-    /// Constructor for loading transaction information from a byte stream.
-    Transaction(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Constructor for loading transaction information from a byte stream.
+  Transaction(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    unsigned int SerializeCoreFields(std::vector<unsigned char>& dst,
-                                     unsigned int offset) const;
+  unsigned int SerializeCoreFields(std::vector<unsigned char>& dst,
+                                   unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Returns the size in bytes when serializing the transaction.
-    unsigned int GetSerializedSize() const;
+  /// Returns the size in bytes when serializing the transaction.
+  unsigned int GetSerializedSize() const;
 
-    /// Return the size of static typed variables for a minimum size check
-    static unsigned int GetMinSerializedSize();
+  /// Return the size of static typed variables for a minimum size check
+  static unsigned int GetMinSerializedSize();
 
-    /// Returns the transaction ID.
-    const TxnHash& GetTranID() const;
+  /// Returns the transaction ID.
+  const TxnHash& GetTranID() const;
 
-    /// Returns the current version.
-    const boost::multiprecision::uint256_t& GetVersion() const;
+  /// Returns the current version.
+  const boost::multiprecision::uint256_t& GetVersion() const;
 
-    /// Returns the transaction nonce.
-    const boost::multiprecision::uint256_t& GetNonce() const;
+  /// Returns the transaction nonce.
+  const boost::multiprecision::uint256_t& GetNonce() const;
 
-    /// Returns the transaction destination account address.
-    const Address& GetToAddr() const;
+  /// Returns the transaction destination account address.
+  const Address& GetToAddr() const;
 
-    //// Returns the sender's Public Key.
-    const PubKey& GetSenderPubKey() const;
+  //// Returns the sender's Public Key.
+  const PubKey& GetSenderPubKey() const;
 
-    /// Returns the sender's Address
-    Address GetSenderAddr() const;
+  /// Returns the sender's Address
+  Address GetSenderAddr() const;
 
-    /// Returns the transaction amount.
-    const boost::multiprecision::uint256_t& GetAmount() const;
+  /// Returns the transaction amount.
+  const boost::multiprecision::uint256_t& GetAmount() const;
 
-    /// Returns the gas price.
-    const boost::multiprecision::uint256_t& GetGasPrice() const;
+  /// Returns the gas price.
+  const boost::multiprecision::uint256_t& GetGasPrice() const;
 
-    /// Returns the gas limit.
-    const boost::multiprecision::uint256_t& GetGasLimit() const;
+  /// Returns the gas limit.
+  const boost::multiprecision::uint256_t& GetGasLimit() const;
 
-    /// Returns the code.
-    const std::vector<unsigned char>& GetCode() const;
+  /// Returns the code.
+  const std::vector<unsigned char>& GetCode() const;
 
-    /// Returns the data.
-    const std::vector<unsigned char>& GetData() const;
+  /// Returns the data.
+  const std::vector<unsigned char>& GetData() const;
 
-    /// Returns the EC-Schnorr signature over the transaction data.
-    const Signature& GetSignature() const;
+  /// Returns the EC-Schnorr signature over the transaction data.
+  const Signature& GetSignature() const;
 
-    /// Set the signature
-    void SetSignature(const Signature& signature);
+  /// Set the signature
+  void SetSignature(const Signature& signature);
 
-    /// Identifies the shard number that should process the transaction.
-    static unsigned int GetShardIndex(const Address& fromAddr,
-                                      unsigned int numShards);
+  /// Identifies the shard number that should process the transaction.
+  static unsigned int GetShardIndex(const Address& fromAddr,
+                                    unsigned int numShards);
 
-    /// Equality comparison operator.
-    bool operator==(const Transaction& tran) const;
+  /// Equality comparison operator.
+  bool operator==(const Transaction& tran) const;
 
-    /// Less-than comparison operator.
-    bool operator<(const Transaction& tran) const;
+  /// Less-than comparison operator.
+  bool operator<(const Transaction& tran) const;
 
-    /// Greater-than comparison operator.
-    bool operator>(const Transaction& tran) const;
+  /// Greater-than comparison operator.
+  bool operator>(const Transaction& tran) const;
 
-    /// Assignment operator.
-    Transaction& operator=(const Transaction& src);
+  /// Assignment operator.
+  Transaction& operator=(const Transaction& src);
 };
 
-#endif // __TRANSACTION_H__
+#endif  // __TRANSACTION_H__
 
 #if 0
 

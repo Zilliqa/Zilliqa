@@ -32,26 +32,22 @@
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE(testBlockStorage)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testBlockStorage) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    int blocknumber = 0;
+  int blocknumber = 0;
 
-    DSBlockSharedPtr block;
-    BlockStorage::GetBlockStorage().GetDSBlock(blocknumber, block);
+  DSBlockSharedPtr block;
+  BlockStorage::GetBlockStorage().GetDSBlock(blocknumber, block);
 
-    LOG_GENERAL(INFO,
-                "Block2 difficulty value retrieved: "
-                    << (int)((*block).GetHeader().GetDifficulty()));
-    LOG_GENERAL(INFO,
-                "Block2 blocknum value retrieved: "
-                    << (*block).GetHeader().GetBlockNum());
-    LOG_GENERAL(INFO,
-                "Block2 timestamp value retrieved: "
-                    << (*block).GetHeader().GetTimestamp());
+  LOG_GENERAL(INFO, "Block2 difficulty value retrieved: "
+                        << (int)((*block).GetHeader().GetDifficulty()));
+  LOG_GENERAL(INFO, "Block2 blocknum value retrieved: "
+                        << (*block).GetHeader().GetBlockNum());
+  LOG_GENERAL(INFO, "Block2 timestamp value retrieved: "
+                        << (*block).GetHeader().GetTimestamp());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

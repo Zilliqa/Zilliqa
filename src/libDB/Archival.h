@@ -31,35 +31,33 @@
 class Mediator;
 class Synchronizer;
 
-class Archival : public Executable, public Broadcastable
-{
-    Mediator& m_mediator;
-    Synchronizer m_synchronizer;
+class Archival : public Executable, public Broadcastable {
+  Mediator& m_mediator;
+  Synchronizer m_synchronizer;
 
-    std::mutex m_mutexMicroBlockInfo;
-    std::map<uint64_t, std::vector<uint32_t>> m_fetchMicroBlockInfo;
+  std::mutex m_mutexMicroBlockInfo;
+  std::map<uint64_t, std::vector<uint32_t>> m_fetchMicroBlockInfo;
 
-    std::mutex m_mutexUnfetchedTxns;
-    std::set<TxnHash> m_unfetchedTxns;
+  std::mutex m_mutexUnfetchedTxns;
+  std::set<TxnHash> m_unfetchedTxns;
 
-public:
-    Archival(Mediator& mediator);
-    ~Archival();
+ public:
+  Archival(Mediator& mediator);
+  ~Archival();
 
-    void Init();
-    void InitSync();
-    bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-                 const Peer& from);
+  void Init();
+  void InitSync();
+  bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
+               const Peer& from);
 
-    bool AddToFetchMicroBlockInfo(const uint64_t& blockNum,
-                                  const uint32_t shardId);
-    bool RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
-                                       const uint32_t shardId);
-    void SendFetchMicroBlockInfo();
-    void AddToUnFetchedTxn(const std::vector<TxnHash>& txnhashes);
-    void AddTxnToDB(const std::vector<TransactionWithReceipt>& txns,
-                    BaseDB& db);
-    void SendFetchTxn();
+  bool AddToFetchMicroBlockInfo(const uint64_t& blockNum,
+                                const uint32_t shardId);
+  bool RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
+                                     const uint32_t shardId);
+  void SendFetchMicroBlockInfo();
+  void AddToUnFetchedTxn(const std::vector<TxnHash>& txnhashes);
+  void AddTxnToDB(const std::vector<TransactionWithReceipt>& txns, BaseDB& db);
+  void SendFetchTxn();
 };
 
-#endif //__ARCHIVAL_H__
+#endif  //__ARCHIVAL_H__

@@ -24,31 +24,30 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 
-template<class DB, class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP>
-{
-protected:
-    DB m_db;
-    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    dev::h256 m_prevRoot;
+template <class DB, class MAP>
+class AccountStoreTrie : public AccountStoreSC<MAP> {
+ protected:
+  DB m_db;
+  dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
+  dev::h256 m_prevRoot;
 
-    AccountStoreTrie();
+  AccountStoreTrie();
 
-    bool UpdateStateTrie(const Address& address, const Account& account);
-    bool RemoveFromTrie(const Address& address);
+  bool UpdateStateTrie(const Address& address, const Account& account);
+  bool RemoveFromTrie(const Address& address);
 
-public:
-    virtual void Init() override;
+ public:
+  virtual void Init() override;
 
-    Account* GetAccount(const Address& address) override;
+  Account* GetAccount(const Address& address) override;
 
-    dev::h256 GetStateRootHash() const;
-    bool UpdateStateTrieAll();
-    void RepopulateStateTrie();
+  dev::h256 GetStateRootHash() const;
+  bool UpdateStateTrieAll();
+  void RepopulateStateTrie();
 
-    void PrintAccountState() override;
+  void PrintAccountState() override;
 };
 
 #include "AccountStoreTrie.tpp"
 
-#endif // __ACCOUNTSTORETRIE_H__
+#endif  // __ACCOUNTSTORETRIE_H__

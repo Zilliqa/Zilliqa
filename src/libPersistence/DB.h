@@ -25,32 +25,31 @@
 #include <string>
 
 /// Utility class for providing database-type storage.
-class DB
-{
-    std::string m_db_name;
-    leveldb::DB* m_db;
+class DB {
+  std::string m_db_name;
+  leveldb::DB* m_db;
 
-public:
-    /// Constructor.
-    DB(const std::string& name = "db.txt");
+ public:
+  /// Constructor.
+  DB(const std::string& name = "db.txt");
 
-    /// Destructor.
-    ~DB();
+  /// Destructor.
+  ~DB();
 
-    /// Returns the reference to the leveldb database instance.
-    leveldb::DB* GetDB();
+  /// Returns the reference to the leveldb database instance.
+  leveldb::DB* GetDB();
 
-    /// Returns the value at the specified key.
-    std::string ReadFromDB(const std::string& key);
+  /// Returns the value at the specified key.
+  std::string ReadFromDB(const std::string& key);
 
-    /// Sets the value at the specified key.
-    int WriteToDB(const std::string& key, const std::string& value);
+  /// Sets the value at the specified key.
+  int WriteToDB(const std::string& key, const std::string& value);
 
-    /// Deletes the value at the specified key.
-    int DeleteFromDB(const std::string& key);
+  /// Deletes the value at the specified key.
+  int DeleteFromDB(const std::string& key);
 
-    /// Deletes the entire database.
-    int DeleteDB();
+  /// Deletes the entire database.
+  int DeleteDB();
 };
 
-#endif // DB_H
+#endif  // DB_H

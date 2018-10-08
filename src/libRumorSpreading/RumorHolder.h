@@ -30,106 +30,100 @@
 #include "RumorSpreadingInterface.h"
 #include "RumorStateMachine.h"
 
-namespace RRS
-{
+namespace RRS {
 
-    // This is a thread-safe implementation of the 'RumorSpreadingInterface'.
-    class RumorHolder : public RumorSpreadingInterface
-    {
-    public:
-        // TYPES
-        //typedef std::function<int()> NextMemberCb;
-        using NextMemberCb = std::function<int()>;
+// This is a thread-safe implementation of the 'RumorSpreadingInterface'.
+class RumorHolder : public RumorSpreadingInterface {
+ public:
+  // TYPES
+  // typedef std::function<int()> NextMemberCb;
+  using NextMemberCb = std::function<int()>;
 
-        // ENUMS
-        enum class StatisticKey
-        {
-            NumPeers,
-            NumMessagesReceived,
-            Rounds,
-            NumPushMessages,
-            NumEmptyPushMessages,
-            NumPullMessages,
-            NumEmptyPullMessages,
-        };
+  // ENUMS
+  enum class StatisticKey {
+    NumPeers,
+    NumMessagesReceived,
+    Rounds,
+    NumPushMessages,
+    NumEmptyPushMessages,
+    NumPullMessages,
+    NumEmptyPullMessages,
+  };
 
-        static std::map<StatisticKey, std::string> s_enumKeyToString;
+  static std::map<StatisticKey, std::string> s_enumKeyToString;
 
-    private:
-        // MEMBERS
-        const int m_id;
-        NetworkConfig m_networkConfig;
-        std::vector<int> m_peers;
-        std::unordered_set<int> m_peersInCurrentRound;
-        std::unordered_map<int, RumorStateMachine> m_rumors;
-        mutable std::mutex m_mutex;
-        NextMemberCb m_nextMemberCb;
-        std::unordered_set<int> m_nonPriorityPeers;
-        std::map<StatisticKey, double> m_statistics;
-        int m_maxNeighborsPerRound;
+ private:
+  // MEMBERS
+  const int m_id;
+  NetworkConfig m_networkConfig;
+  std::vector<int> m_peers;
+  std::unordered_set<int> m_peersInCurrentRound;
+  std::unordered_map<int, RumorStateMachine> m_rumors;
+  mutable std::mutex m_mutex;
+  NextMemberCb m_nextMemberCb;
+  std::unordered_set<int> m_nonPriorityPeers;
+  std::map<StatisticKey, double> m_statistics;
+  int m_maxNeighborsPerRound;
 
-        static const int MAX_RETRY = 3;
+  static const int MAX_RETRY = 3;
 
-        // METHODS
-        // Copy the member ids into a vector
-        void toVector(const std::unordered_set<int>& peers);
+  // METHODS
+  // Copy the member ids into a vector
+  void toVector(const std::unordered_set<int>& peers);
 
-        // Return a randomly selected member id
-        int chooseRandomMember();
+  // Return a randomly selected member id
+  int chooseRandomMember();
 
-        // Add the specified 'value' to the previous statistic value
-        void increaseStatValue(StatisticKey key, double value);
+  // Add the specified 'value' to the previous statistic value
+  void increaseStatValue(StatisticKey key, double value);
 
-    public:
-        // CONSTRUCTORS
-        /// Create an instance which automatically figures out the network parameters.
-        RumorHolder(const std::unordered_set<int>& peers,
-                    int id = MemberID::next());
-        RumorHolder(const std::unordered_set<int>& peers,
-                    const NextMemberCb& cb, int id = MemberID::next());
+ public:
+  // CONSTRUCTORS
+  /// Create an instance which automatically figures out the network parameters.
+  RumorHolder(const std::unordered_set<int>& peers, int id = MemberID::next());
+  RumorHolder(const std::unordered_set<int>& peers, const NextMemberCb& cb,
+              int id = MemberID::next());
 
-        /// Used for manually passed network parameters.
-        RumorHolder(const std::unordered_set<int>& peers,
-                    const NetworkConfig& networkConfig,
-                    int id = MemberID::next());
-        RumorHolder(const std::unordered_set<int>& peers,
-                    const NetworkConfig& networkConfig, const NextMemberCb& cb,
-                    int id = MemberID::next());
-        RumorHolder(const std::unordered_set<int>& peers, int maxRoundsInB,
-                    int maxRoundsInC, int maxTotalRounds,
-                    int maxNeighborsPerRound, int id);
+  /// Used for manually passed network parameters.
+  RumorHolder(const std::unordered_set<int>& peers,
+              const NetworkConfig& networkConfig, int id = MemberID::next());
+  RumorHolder(const std::unordered_set<int>& peers,
+              const NetworkConfig& networkConfig, const NextMemberCb& cb,
+              int id = MemberID::next());
+  RumorHolder(const std::unordered_set<int>& peers, int maxRoundsInB,
+              int maxRoundsInC, int maxTotalRounds, int maxNeighborsPerRound,
+              int id);
 
-        RumorHolder(const RumorHolder& other);
+  RumorHolder(const RumorHolder& other);
 
-        RumorHolder(RumorHolder&& other) noexcept;
+  RumorHolder(RumorHolder&& other) noexcept;
 
-        // METHODS
-        bool addRumor(int rumorId) override;
+  // METHODS
+  bool addRumor(int rumorId) override;
 
-        std::pair<int, std::vector<Message>>
-        receivedMessage(const Message& message, int fromPeer) override;
+  std::pair<int, std::vector<Message>> receivedMessage(const Message& message,
+                                                       int fromPeer) override;
 
-        std::pair<std::vector<int>, std::vector<Message>>
-        advanceRound() override;
+  std::pair<std::vector<int>, std::vector<Message>> advanceRound() override;
 
-        // CONST METHODS
-        int id() const;
+  // CONST METHODS
+  int id() const;
 
-        const NetworkConfig& networkConfig() const;
+  const NetworkConfig& networkConfig() const;
 
-        const std::unordered_map<int, RumorStateMachine>& rumorsMap() const;
+  const std::unordered_map<int, RumorStateMachine>& rumorsMap() const;
 
-        bool rumorExists(int rumorId) const;
+  bool rumorExists(int rumorId) const;
 
-        bool isOld(int rumorId) const;
+  bool isOld(int rumorId) const;
 
-        const std::map<StatisticKey, double>& statistics() const;
+  const std::map<StatisticKey, double>& statistics() const;
 
-        std::ostream& printStatistics(std::ostream& outStream) const;
+  std::ostream& printStatistics(std::ostream& outStream) const;
 
-        bool operator==(const RumorHolder& other) const;
-    };
+  bool operator==(const RumorHolder& other) const;
+};
 
-} // project namespace
+}  // namespace RRS
 
-#endif //__RUMORHOLDER_H__
+#endif  //__RUMORHOLDER_H__

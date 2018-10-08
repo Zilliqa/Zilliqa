@@ -20,20 +20,18 @@
 #ifndef __EXECUTABLE_H__
 #define __EXECUTABLE_H__
 
-#include "libNetwork/Peer.h"
 #include <vector>
+#include "libNetwork/Peer.h"
 
 /// Specifies the interface required for classes that process messages.
-class Executable
-{
-public:
-    /// Message processing function.
-    virtual bool Execute(const std::vector<unsigned char>& message,
-                         unsigned int offset, const Peer& from)
-        = 0;
+class Executable {
+ public:
+  /// Message processing function.
+  virtual bool Execute(const std::vector<unsigned char>& message,
+                       unsigned int offset, const Peer& from) = 0;
 
-    /// Virtual destructor.
-    virtual ~Executable() {}
+  /// Virtual destructor.
+  virtual ~Executable() {}
 };
 
-#endif // __EXECUTABLE_H__
+#endif  // __EXECUTABLE_H__

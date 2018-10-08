@@ -30,83 +30,84 @@
 #include "libNetwork/PeerStore.h"
 
 /// Stores information on the header part of the fallback block.
-class FallbackBlockHeader : public BlockHeaderBase
-{
-    uint64_t m_fallbackDSEpochNo;
-    uint64_t m_fallbackEpochNo;
-    unsigned char m_fallbackState;
-    FallbackBlockHashSet m_hash;
-    uint32_t m_leaderConsensusId;
-    Peer m_leaderNetworkInfo;
-    PubKey m_leaderPubKey;
-    uint32_t m_shardId;
-    boost::multiprecision::uint256_t m_timestamp;
+class FallbackBlockHeader : public BlockHeaderBase {
+  uint64_t m_fallbackDSEpochNo;
+  uint64_t m_fallbackEpochNo;
+  unsigned char m_fallbackState;
+  FallbackBlockHashSet m_hash;
+  uint32_t m_leaderConsensusId;
+  Peer m_leaderNetworkInfo;
+  PubKey m_leaderPubKey;
+  uint32_t m_shardId;
+  boost::multiprecision::uint256_t m_timestamp;
 
-public:
-    static const unsigned int SIZE = sizeof(uint64_t) + sizeof(uint64_t)
-        + sizeof(unsigned char) + FallbackBlockHashSet::size()
-        + sizeof(uint32_t) + IP_SIZE + PORT_SIZE + PUB_KEY_SIZE
-        + sizeof(uint32_t) + UINT256_SIZE;
+ public:
+  static const unsigned int SIZE =
+      sizeof(uint64_t) + sizeof(uint64_t) + sizeof(unsigned char) +
+      FallbackBlockHashSet::size() + sizeof(uint32_t) + IP_SIZE + PORT_SIZE +
+      PUB_KEY_SIZE + sizeof(uint32_t) + UINT256_SIZE;
 
-    /// Default constructor.
-    FallbackBlockHeader(); // creates a dummy invalid placeholder BlockHeader
+  /// Default constructor.
+  FallbackBlockHeader();  // creates a dummy invalid placeholder BlockHeader
 
-    /// Constructor for loading fallback block header information from a byte stream.
-    FallbackBlockHeader(const std::vector<unsigned char>& src,
-                        unsigned int offset);
+  /// Constructor for loading fallback block header information from a byte
+  /// stream.
+  FallbackBlockHeader(const std::vector<unsigned char>& src,
+                      unsigned int offset);
 
-    /// Constructor with specified fallback block header parameters.
-    FallbackBlockHeader(const uint64_t& fallbackDSEpochNo,
-                        const uint64_t& fallbackEpochNo,
-                        const unsigned char fallbackState,
-                        const StateHash& stateRootHash,
-                        const uint32_t leaderConsensusId,
-                        const Peer& leaderNetworkInfo,
-                        const PubKey& leaderPubKey, const uint32_t shardId,
-                        const boost::multiprecision::uint256_t& timestamp);
+  /// Constructor with specified fallback block header parameters.
+  FallbackBlockHeader(const uint64_t& fallbackDSEpochNo,
+                      const uint64_t& fallbackEpochNo,
+                      const unsigned char fallbackState,
+                      const StateHash& stateRootHash,
+                      const uint32_t leaderConsensusId,
+                      const Peer& leaderNetworkInfo, const PubKey& leaderPubKey,
+                      const uint32_t shardId,
+                      const boost::multiprecision::uint256_t& timestamp);
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Returns the DS Epoch number where view change happen
-    const uint64_t& GetFallbackDSEpochNo() const;
+  /// Returns the DS Epoch number where view change happen
+  const uint64_t& GetFallbackDSEpochNo() const;
 
-    /// Returns the Epoch number where view change happen
-    const uint64_t& GetFallbackEpochNo() const;
+  /// Returns the Epoch number where view change happen
+  const uint64_t& GetFallbackEpochNo() const;
 
-    /// Return the candidate leader ds state when view change happen
-    unsigned char GetFallbackState() const;
+  /// Return the candidate leader ds state when view change happen
+  unsigned char GetFallbackState() const;
 
-    /// Returns the digest that represents the root of the Merkle tree that stores all state uptil this block.
-    const StateHash& GetStateRootHash() const;
+  /// Returns the digest that represents the root of the Merkle tree that stores
+  /// all state uptil this block.
+  const StateHash& GetStateRootHash() const;
 
-    /// Return the consensus Id of the leader
-    uint32_t GetLeaderConsensusId() const;
+  /// Return the consensus Id of the leader
+  uint32_t GetLeaderConsensusId() const;
 
-    /// Return the IP and port of leader (at the point where fall back happen)
-    const Peer& GetLeaderNetworkInfo() const;
+  /// Return the IP and port of leader (at the point where fall back happen)
+  const Peer& GetLeaderNetworkInfo() const;
 
-    /// Return pub key of leader
-    const PubKey& GetLeaderPubKey() const;
+  /// Return pub key of leader
+  const PubKey& GetLeaderPubKey() const;
 
-    /// Return the shard id where fallback happens
-    uint32_t GetShardId() const;
+  /// Return the shard id where fallback happens
+  uint32_t GetShardId() const;
 
-    /// Return the timestamp when this fallback block is generated by the proposer
-    const boost::multiprecision::uint256_t& GetTimeStamp() const;
+  /// Return the timestamp when this fallback block is generated by the proposer
+  const boost::multiprecision::uint256_t& GetTimeStamp() const;
 
-    /// Equality operator.
-    bool operator==(const FallbackBlockHeader& header) const;
+  /// Equality operator.
+  bool operator==(const FallbackBlockHeader& header) const;
 
-    /// Less-than comparison operator.
-    bool operator<(const FallbackBlockHeader& header) const;
+  /// Less-than comparison operator.
+  bool operator<(const FallbackBlockHeader& header) const;
 
-    /// Greater-than comparison operator.
-    bool operator>(const FallbackBlockHeader& header) const;
+  /// Greater-than comparison operator.
+  bool operator>(const FallbackBlockHeader& header) const;
 };
 
-#endif // __FALLBACKBLOCKHEADER_H__
+#endif  // __FALLBACKBLOCKHEADER_H__

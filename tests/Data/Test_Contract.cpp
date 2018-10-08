@@ -17,6 +17,10 @@
  * program files.
  */
 
+#include <array>
+#include <regex>
+#include <string>
+#include <vector>
 #include "common/Constants.h"
 #include "depends/common/CommonIO.h"
 #include "libCrypto/Schnorr.h"
@@ -28,10 +32,6 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
-#include <array>
-#include <regex>
-#include <string>
-#include <vector>
 
 #include "CrowdFundingCodes.h"
 
@@ -50,139 +50,119 @@ KeyPair sender, sender2;
 uint256_t nonce = 0;
 
 // Create Transaction to create contract
-BOOST_AUTO_TEST_CASE(testContract)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testContract) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().Init();
 
-    sender = Schnorr::GetInstance().GenKeyPair();
-    sender2 = Schnorr::GetInstance().GenKeyPair();
+  sender = Schnorr::GetInstance().GenKeyPair();
+  sender2 = Schnorr::GetInstance().GenKeyPair();
 
-    fromAddr = Account::GetAddressFromPublicKey(sender.second);
-    fromAddr2 = Account::GetAddressFromPublicKey(sender2.second);
+  fromAddr = Account::GetAddressFromPublicKey(sender.second);
+  fromAddr2 = Account::GetAddressFromPublicKey(sender2.second);
 
-    std::vector<unsigned char> code(cfCodeStr.begin(), cfCodeStr.end());
+  std::vector<unsigned char> code(cfCodeStr.begin(), cfCodeStr.end());
 
-    toAddress = Account::GetAddressForContract(fromAddr, nonce);
-    LOG_GENERAL(INFO, "CrowdFunding Address: " << toAddress);
-    string initStr
-        = regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + toAddress.hex());
-    std::vector<unsigned char> data(initStr.begin(), initStr.end());
+  toAddress = Account::GetAddressForContract(fromAddr, nonce);
+  LOG_GENERAL(INFO, "CrowdFunding Address: " << toAddress);
+  string initStr =
+      regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + toAddress.hex());
+  std::vector<unsigned char> data(initStr.begin(), initStr.end());
 
-    Transaction tx1(1, nonce, NullAddress, sender, 0, 1, 50, code, data);
+  Transaction tx1(1, nonce, NullAddress, sender, 0, 1, 50, code, data);
 
-    TransactionReceipt tr1;
-    AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx1, tr1);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx1, tr1);
 
-    bool checkToAddr = true;
-    Account* account = AccountStore::GetInstance().GetAccount(toAddress);
-    if (account == nullptr)
-    {
-        checkToAddr = false;
-    }
-    else
-    {
-        nonce++;
-    }
-    BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
+  bool checkToAddr = true;
+  Account* account = AccountStore::GetInstance().GetAccount(toAddress);
+  if (account == nullptr) {
+    checkToAddr = false;
+  } else {
+    nonce++;
+  }
+  BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
 
-    LOG_GENERAL(INFO,
-                "[Create] Sender1 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr));
+  LOG_GENERAL(INFO, "[Create] Sender1 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr));
 
-    std::vector<unsigned char> dataDonate(cfDataDonateStr.begin(),
-                                          cfDataDonateStr.end());
+  std::vector<unsigned char> dataDonate(cfDataDonateStr.begin(),
+                                        cfDataDonateStr.end());
 
-    Transaction tx2(1, nonce, toAddress, sender, 100, 1, 10, {}, dataDonate);
-    TransactionReceipt tr2;
-    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx2, tr2))
-    {
-        nonce++;
-    }
+  Transaction tx2(1, nonce, toAddress, sender, 100, 1, 10, {}, dataDonate);
+  TransactionReceipt tr2;
+  if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx2, tr2)) {
+    nonce++;
+  }
 
-    cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), ' '),
-                   cfOutStr.end());
-    cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), '\n'),
-                   cfOutStr.end());
+  cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), ' '),
+                 cfOutStr.end());
+  cfOutStr.erase(std::remove(cfOutStr.begin(), cfOutStr.end(), '\n'),
+                 cfOutStr.end());
 
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
+  ifstream infile{OUTPUT_JSON};
+  std::string output_file{istreambuf_iterator<char>(infile),
+                          istreambuf_iterator<char>()};
 
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
+  output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
+                    output_file.end());
+  output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
+                    output_file.end());
 
-    // BOOST_CHECK_MESSAGE(cfOutStr == output_file,
-    //                     "Error: didn't get desired output");
+  // BOOST_CHECK_MESSAGE(cfOutStr == output_file,
+  //                     "Error: didn't get desired output");
 
-    LOG_GENERAL(INFO,
-                "[Call1] Sender1 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO,
-                "[Call1] Contract balance: "
-                    << AccountStore::GetInstance().GetBalance(toAddress));
+  LOG_GENERAL(INFO, "[Call1] Sender1 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr));
+  LOG_GENERAL(INFO, "[Call1] Contract balance: "
+                        << AccountStore::GetInstance().GetBalance(toAddress));
 
-    Transaction tx3(1, nonce, toAddress, sender2, 200, 1, 10, {}, dataDonate);
-    TransactionReceipt tr3;
-    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx3, tr3))
-    {
-        nonce++;
-    }
+  Transaction tx3(1, nonce, toAddress, sender2, 200, 1, 10, {}, dataDonate);
+  TransactionReceipt tr3;
+  if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx3, tr3)) {
+    nonce++;
+  }
 
-    LOG_GENERAL(INFO,
-                "[Call3] Sender1 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO,
-                "[Call3] Sender2 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO,
-                "[Call3] Contract balance: "
-                    << AccountStore::GetInstance().GetBalance(toAddress));
+  LOG_GENERAL(INFO, "[Call3] Sender1 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr));
+  LOG_GENERAL(INFO, "[Call3] Sender2 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr2));
+  LOG_GENERAL(INFO, "[Call3] Contract balance: "
+                        << AccountStore::GetInstance().GetBalance(toAddress));
 
-    std::vector<unsigned char> dataGetFunds(cfDataGetFundsStr.begin(),
-                                            cfDataGetFundsStr.end());
+  std::vector<unsigned char> dataGetFunds(cfDataGetFundsStr.begin(),
+                                          cfDataGetFundsStr.end());
 
-    Transaction tx4(1, nonce, toAddress, sender2, 0, 1, 10, {}, dataGetFunds);
-    TransactionReceipt tr4;
-    if (AccountStore::GetInstance().UpdateAccounts(200, 1, true, tx4, tr4))
-    {
-        nonce++;
-    }
+  Transaction tx4(1, nonce, toAddress, sender2, 0, 1, 10, {}, dataGetFunds);
+  TransactionReceipt tr4;
+  if (AccountStore::GetInstance().UpdateAccounts(200, 1, true, tx4, tr4)) {
+    nonce++;
+  }
 
-    LOG_GENERAL(INFO,
-                "[Call4] Sender1 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO,
-                "[Call4] Sender2 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO,
-                "[Call4] Contract balance: "
-                    << AccountStore::GetInstance().GetBalance(toAddress));
+  LOG_GENERAL(INFO, "[Call4] Sender1 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr));
+  LOG_GENERAL(INFO, "[Call4] Sender2 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr2));
+  LOG_GENERAL(INFO, "[Call4] Contract balance: "
+                        << AccountStore::GetInstance().GetBalance(toAddress));
 
-    std::vector<unsigned char> dataClaimBack(cfDataClaimBackStr.begin(),
-                                             cfDataClaimBackStr.end());
+  std::vector<unsigned char> dataClaimBack(cfDataClaimBackStr.begin(),
+                                           cfDataClaimBackStr.end());
 
-    Transaction tx5(1, nonce, toAddress, sender, 0, 1, 10, {}, dataClaimBack);
-    TransactionReceipt tr5;
-    if (AccountStore::GetInstance().UpdateAccounts(300, 1, true, tx5, tr5))
-    {
-        nonce++;
-    }
+  Transaction tx5(1, nonce, toAddress, sender, 0, 1, 10, {}, dataClaimBack);
+  TransactionReceipt tr5;
+  if (AccountStore::GetInstance().UpdateAccounts(300, 1, true, tx5, tr5)) {
+    nonce++;
+  }
 
-    LOG_GENERAL(INFO,
-                "[Call5] Sender1 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO,
-                "[Call5] Sender2 balance: "
-                    << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO,
-                "[Call5] Contract balance: "
-                    << AccountStore::GetInstance().GetBalance(toAddress));
+  LOG_GENERAL(INFO, "[Call5] Sender1 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr));
+  LOG_GENERAL(INFO, "[Call5] Sender2 balance: "
+                        << AccountStore::GetInstance().GetBalance(fromAddr2));
+  LOG_GENERAL(INFO, "[Call5] Contract balance: "
+                        << AccountStore::GetInstance().GetBalance(toAddress));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

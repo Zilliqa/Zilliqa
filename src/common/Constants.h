@@ -71,27 +71,25 @@ const unsigned int INIT_DS_EPOCH_NUM = 2;
 // Testing parameters
 
 // Metadata type
-enum MetaType : unsigned char
-{
-    STATEROOT = 0x00,
-    DSINCOMPLETED,
-    LATESTACTIVEDSBLOCKNUM,
+enum MetaType : unsigned char {
+  STATEROOT = 0x00,
+  DSINCOMPLETED,
+  LATESTACTIVEDSBLOCKNUM,
 };
 
 // Sync Type
-enum SyncType : unsigned int
-{
-    NO_SYNC = 0,
-    NEW_SYNC,
-    NORMAL_SYNC,
-    DS_SYNC,
-    LOOKUP_SYNC,
+enum SyncType : unsigned int {
+  NO_SYNC = 0,
+  NEW_SYNC,
+  NORMAL_SYNC,
+  DS_SYNC,
+  LOOKUP_SYNC,
 };
 
-const std::string RAND1_GENESIS
-    = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
-const std::string RAND2_GENESIS
-    = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
+const std::string RAND1_GENESIS =
+    "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
+const std::string RAND2_GENESIS =
+    "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
 const std::string REMOTE_TEST_DIR = "zilliqa-test";
 const std::string PERSISTENCE_PATH = "persistence";
@@ -204,4 +202,4 @@ extern const unsigned int CUDA_GRID_SIZE;
 extern const unsigned int CUDA_STREAM_NUM;
 extern const unsigned int CUDA_SCHEDULE_FLAG;
 
-#endif // __CONSTANTS_H__
+#endif  // __CONSTANTS_H__

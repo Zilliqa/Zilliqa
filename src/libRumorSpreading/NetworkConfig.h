@@ -23,57 +23,55 @@
 #include <string>
 #include <unordered_map>
 
-namespace RRS
-{
+namespace RRS {
 
-    class NetworkConfig
-    {
-    private:
-        // MEMBERS
-        /// Number of peers
-        size_t m_networkSize;
+class NetworkConfig {
+ private:
+  // MEMBERS
+  /// Number of peers
+  size_t m_networkSize;
 
-        /**
-     * Maximum number of rounds while in state B (NEW).
-     * Specified in the paper as `O(ln(ln(n)))`.
-     * Can be configured.
-     */
-        int m_maxRoundsInB;
+  /**
+   * Maximum number of rounds while in state B (NEW).
+   * Specified in the paper as `O(ln(ln(n)))`.
+   * Can be configured.
+   */
+  int m_maxRoundsInB;
 
-        /**
-     * Maximum number of rounds while in state C (KNOWN).
-     * Specified in the paper as `O(ln(ln(n)))`.
-     * Can be configured.
-     */
-        int m_maxRoundsInC;
+  /**
+   * Maximum number of rounds while in state C (KNOWN).
+   * Specified in the paper as `O(ln(ln(n)))`.
+   * Can be configured.
+   */
+  int m_maxRoundsInC;
 
-        /**
-     * The maximum number of rounds. This is termination condition for a given rumor.
-     * Once a peer reaches this number of rounds it will advance to state D (OLD).
-     * Specified in the paper as `O(ln(n))`.
-     * Can be configured.
-     */
-        int m_maxRoundsTotal;
+  /**
+   * The maximum number of rounds. This is termination condition for a given
+   * rumor. Once a peer reaches this number of rounds it will advance to state D
+   * (OLD). Specified in the paper as `O(ln(n))`. Can be configured.
+   */
+  int m_maxRoundsTotal;
 
-    public:
-        // CONSTRUCTORS
-        /// Create a NetworkConfig instance with the default initialization based on theory.
-        explicit NetworkConfig(size_t numOfPeers);
+ public:
+  // CONSTRUCTORS
+  /// Create a NetworkConfig instance with the default initialization based on
+  /// theory.
+  explicit NetworkConfig(size_t numOfPeers);
 
-        /// Create a NetworkConfig with user specified configuration.
-        NetworkConfig(size_t networkSize, int maxRoundsInB, int maxRoundsInC,
-                      int maxRoundsTotal);
+  /// Create a NetworkConfig with user specified configuration.
+  NetworkConfig(size_t networkSize, int maxRoundsInB, int maxRoundsInC,
+                int maxRoundsTotal);
 
-        // CONST METHODS
-        size_t networkSize() const;
+  // CONST METHODS
+  size_t networkSize() const;
 
-        int maxRoundsInB() const;
+  int maxRoundsInB() const;
 
-        int maxRoundsInC() const;
+  int maxRoundsInC() const;
 
-        int maxRoundsTotal() const;
-    };
+  int maxRoundsTotal() const;
+};
 
-} // project namespace
+}  // namespace RRS
 
-#endif //__NETWORKSTATE_H__
+#endif  //__NETWORKSTATE_H__

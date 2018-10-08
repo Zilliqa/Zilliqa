@@ -22,11 +22,11 @@
 
 #include <boost/algorithm/hex.hpp>
 
-class ShardSizeCalculator
-{
-public:
-    /// Calculate and return the min size of required each shard for a specifc number of total nodes
-    static uint32_t CalculateShardSize(const uint32_t numberOfNodes);
+class ShardSizeCalculator {
+ public:
+  /// Calculate and return the min size of required each shard for a specifc
+  /// number of total nodes
+  static uint32_t CalculateShardSize(const uint32_t numberOfNodes);
 };
 
-#endif // __SHARD_SIZE_CALCULATOR_H__
+#endif  // __SHARD_SIZE_CALCULATOR_H__

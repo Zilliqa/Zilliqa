@@ -32,25 +32,24 @@
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE(testTransaction)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testTransaction) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    std::string hash;
+  std::string hash;
 
-    std::cout << "Enter tx hash: ";
-    std::cin >> hash;
+  std::cout << "Enter tx hash: ";
+  std::cin >> hash;
 
-    TxBodySharedPtr tx;
+  TxBodySharedPtr tx;
 
-    BlockStorage::GetBlockStorage().GetTxBody(hash, tx);
+  BlockStorage::GetBlockStorage().GetTxBody(hash, tx);
 
-    LOG_GENERAL(INFO, "Transaction amount: " << tx->GetAmount());
-    LOG_GENERAL(INFO, "Transaction from address: " << tx->GetFromAddr());
-    LOG_GENERAL(INFO, "Transaction to address: " << tx->GetToAddr());
-    LOG_GENERAL(INFO, "Transaction nonce: " << tx->GetNonce());
+  LOG_GENERAL(INFO, "Transaction amount: " << tx->GetAmount());
+  LOG_GENERAL(INFO, "Transaction from address: " << tx->GetFromAddr());
+  LOG_GENERAL(INFO, "Transaction to address: " << tx->GetToAddr());
+  LOG_GENERAL(INFO, "Transaction nonce: " << tx->GetNonce());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

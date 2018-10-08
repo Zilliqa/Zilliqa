@@ -17,23 +17,19 @@
  * program files.
  */
 
-#include "BaseDB.h"
 #include <json/json.h>
 #include <vector>
+#include "BaseDB.h"
 
-class ExplorerDB : public BaseDB
-{
-public:
-    ExplorerDB(std::string dbname, std::string txn, std::string txBlock,
-               std::string dsBlock, std::string accountState)
-        : BaseDB(dbname, txn, txBlock, dsBlock, accountState)
-    {
-    }
-    bool InsertTxn(const TransactionWithReceipt& txn) override;
-    bool InsertTxBlock(const TxBlock& txblock) override;
-    bool InsertDSBlock(const DSBlock& dsblock) override;
-    bool InsertJson(const Json::Value& _json,
-                    const std::string& collectionName);
-    bool InsertAccount(const Address& addr, const Account& acc) override;
-    void Init(unsigned int port = 27017) override;
+class ExplorerDB : public BaseDB {
+ public:
+  ExplorerDB(std::string dbname, std::string txn, std::string txBlock,
+             std::string dsBlock, std::string accountState)
+      : BaseDB(dbname, txn, txBlock, dsBlock, accountState) {}
+  bool InsertTxn(const TransactionWithReceipt& txn) override;
+  bool InsertTxBlock(const TxBlock& txblock) override;
+  bool InsertDSBlock(const DSBlock& dsblock) override;
+  bool InsertJson(const Json::Value& _json, const std::string& collectionName);
+  bool InsertAccount(const Address& addr, const Account& acc) override;
+  void Init(unsigned int port = 27017) override;
 };

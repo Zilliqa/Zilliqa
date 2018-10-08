@@ -23,70 +23,59 @@
 
 using boost::property_tree::ptree;
 
-struct PTree
-{
-    static ptree& GetInstance()
-    {
-        static ptree pt;
-        read_xml("constants.xml", pt);
+struct PTree {
+  static ptree& GetInstance() {
+    static ptree pt;
+    read_xml("constants.xml", pt);
 
-        return pt;
-    }
-    PTree() = delete;
-    ~PTree() = delete;
+    return pt;
+  }
+  PTree() = delete;
+  ~PTree() = delete;
 };
 
-unsigned int ReadFromConstantsFile(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<unsigned int>("node.constants." + propertyName);
+unsigned int ReadFromConstantsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
-std::string ReadFromOptionsFile(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.options." + propertyName);
+std::string ReadFromOptionsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.options." + propertyName);
 }
 
-std::string ReadSmartContractConstants(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.smart_contract." + propertyName);
+std::string ReadSmartContractConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
-std::string ReadDispatcherConstants(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.dispatcher." + propertyName);
+std::string ReadDispatcherConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.dispatcher." + propertyName);
 }
 
-std::string ReadArchivalConstants(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.archival." + propertyName);
+std::string ReadArchivalConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.archival." + propertyName);
 }
 
-const std::vector<std::string>
-ReadAccountsFromConstantsFile(std::string propName)
-{
-    auto pt = PTree::GetInstance();
-    std::vector<std::string> result;
-    for (auto& acc : pt.get_child("node.accounts"))
-    {
-        auto child = acc.second.get_optional<std::string>(propName);
-        if (child)
-        {
-            // LOG_GENERAL("constants " << child.get());
-            result.push_back(child.get());
-        }
+const std::vector<std::string> ReadAccountsFromConstantsFile(
+    std::string propName) {
+  auto pt = PTree::GetInstance();
+  std::vector<std::string> result;
+  for (auto& acc : pt.get_child("node.accounts")) {
+    auto child = acc.second.get_optional<std::string>(propName);
+    if (child) {
+      // LOG_GENERAL("constants " << child.get());
+      result.push_back(child.get());
     }
-    return result;
+  }
+  return result;
 }
 
-unsigned int ReadGpuConstants(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<unsigned int>("node.gpu." + propertyName);
+unsigned int ReadGpuConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.gpu." + propertyName);
 }
 
 const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
@@ -203,13 +192,13 @@ const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
 const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
-const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE")
-                             == "true"};
+const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE") ==
+                             "true"};
 const bool OPENCL_GPU_MINE{ReadFromOptionsFile("OPENCL_GPU_MINE") == "true"};
 const bool CUDA_GPU_MINE{ReadFromOptionsFile("CUDA_GPU_MINE") == "true"};
 const bool LOOKUP_NODE_MODE{ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true"};
-const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE")
-                                 == "true"};
+const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE") ==
+                                 "true"};
 const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS{
     ReadFromOptionsFile("GOSSIP_CUSTOM_ROUNDS_SETTINGS") == "true"};
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{
@@ -219,24 +208,24 @@ const std::vector<std::string> GENESIS_WALLETS{
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
 const std::string SCILLA_ROOT{ReadSmartContractConstants("SCILLA_ROOT")};
-const std::string SCILLA_BINARY{SCILLA_ROOT + '/'
-                                + ReadSmartContractConstants("SCILLA_BINARY")};
+const std::string SCILLA_BINARY{SCILLA_ROOT + '/' +
+                                ReadSmartContractConstants("SCILLA_BINARY")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
-const std::string SCILLA_LIB{SCILLA_ROOT + '/'
-                             + ReadSmartContractConstants("SCILLA_LIB")};
-const std::string INIT_JSON{SCILLA_FILES + '/'
-                            + ReadSmartContractConstants("INIT_JSON")};
+const std::string SCILLA_LIB{SCILLA_ROOT + '/' +
+                             ReadSmartContractConstants("SCILLA_LIB")};
+const std::string INIT_JSON{SCILLA_FILES + '/' +
+                            ReadSmartContractConstants("INIT_JSON")};
 const std::string INPUT_STATE_JSON{
     SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_STATE_JSON")};
 const std::string INPUT_BLOCKCHAIN_JSON{
     SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
 const std::string INPUT_MESSAGE_JSON{
     SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
-const std::string OUTPUT_JSON{SCILLA_FILES + '/'
-                              + ReadSmartContractConstants("OUTPUT_JSON")};
-const std::string INPUT_CODE{SCILLA_FILES + '/'
-                             + ReadSmartContractConstants("INPUT_CODE")};
+const std::string OUTPUT_JSON{SCILLA_FILES + '/' +
+                              ReadSmartContractConstants("OUTPUT_JSON")};
+const std::string INPUT_CODE{SCILLA_FILES + '/' +
+                             ReadSmartContractConstants("INPUT_CODE")};
 
 const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
 const std::string DB_HOST{ReadArchivalConstants("DB_HOST")};
