@@ -971,9 +971,7 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta) {
 
     AccountStore::GetInstance().SerializeDelta();
 
-    if (m_mediator.GetIsVacuousEpoch()) {
-      AccountStore::GetInstance().CommitTempReversible();
-    }
+    AccountStore::GetInstance().CommitTempReversible();
 
     // Upon consensus object creation failure, one should not return from the
     // function, but rather wait for view change.

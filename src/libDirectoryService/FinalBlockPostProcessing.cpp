@@ -554,10 +554,8 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
             ConsensusCommon::INITIAL);
 
         auto rerunconsensus = [this, message, offset, from]() {
-          if (m_mediator.GetIsVacuousEpoch()) {
-            AccountStore::GetInstance().RevertCommitTemp();
-            AccountStore::GetInstance().CommitTempReversible();
-          }
+          AccountStore::GetInstance().RevertCommitTemp();
+          AccountStore::GetInstance().CommitTempReversible();
 
           ProcessFinalBlockConsensusCore(message, offset, from);
         };
