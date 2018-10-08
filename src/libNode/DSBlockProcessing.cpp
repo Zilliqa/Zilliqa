@@ -217,6 +217,7 @@ bool Node::LoadShardingStructure() {
 
   // All nodes; first entry is leader
   unsigned int index = 0;
+  bool foundMe = false;
   for (const auto& shardNode : my_shard) {
     m_myShardMembers->emplace_back(std::get<SHARD_NODE_PUBKEY>(shardNode),
                                    std::get<SHARD_NODE_PEER>(shardNode));
@@ -225,6 +226,7 @@ bool Node::LoadShardingStructure() {
     if (m_mediator.m_selfPeer == m_myShardMembers->back().second) {
       m_consensusMyID = index;  // Set my ID
       m_myShardMembers->back().second = Peer();
+      foundMe = true;
     }
 
     LOG_EPOCH(
@@ -237,6 +239,13 @@ bool Node::LoadShardingStructure() {
                     << m_myShardMembers->back().second.m_listenPortHost);
 
     index++;
+  }
+
+  if (!foundMe)
+  {
+    LOG_GENERAL(WARNING, "I'm not in the sharding structure, why?");
+    RejoinAsNormal();
+    return false;
   }
 
   return true;
