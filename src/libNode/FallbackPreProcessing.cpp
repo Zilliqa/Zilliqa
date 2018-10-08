@@ -331,8 +331,7 @@ void Node::FallbackTimerPulse() {
   m_fallbackStarted = false;
 }
 
-void Node::FallbackStop()
-{
+void Node::FallbackStop() {
   lock_guard<mutex> g(m_mutexFallbackTimer);
   m_runFallback = false;
 }
