@@ -17,6 +17,9 @@
  * program files.
  */
 
+#include <array>
+#include <string>
+#include <vector>
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
@@ -24,9 +27,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
-#include <array>
-#include <string>
-#include <vector>
 
 #define BOOST_TEST_MODULE transactiontest
 #define BOOST_TEST_DYN_LINK
@@ -76,7 +76,8 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //     return txns;
 // }
 
-// decltype(auto) GenWithoutSigning(const KeyPair& sender, const KeyPair& receiver,
+// decltype(auto) GenWithoutSigning(const KeyPair& sender, const KeyPair&
+// receiver,
 //                                  size_t n)
 // {
 //     LOG_MARKER();
@@ -152,84 +153,80 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 // }
 
 decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
-                                 size_t n)
-{
-    LOG_MARKER();
-    std::vector<Transaction> txns;
+                                 size_t n) {
+  LOG_MARKER();
+  std::vector<Transaction> txns;
 
-    // Generate to account
-    uint256_t version = 1;
-    uint256_t nonce = 0;
-    Address toAddr = Account::GetAddressFromPublicKey(receiver.second);
-    uint256_t amount = 123;
-    uint256_t gasPrice = 456;
-    uint256_t gasLimit = 789;
+  // Generate to account
+  uint256_t version = 1;
+  uint256_t nonce = 0;
+  Address toAddr = Account::GetAddressFromPublicKey(receiver.second);
+  uint256_t amount = 123;
+  uint256_t gasPrice = 456;
+  uint256_t gasLimit = 789;
 
-    for (unsigned i = 0; i < n; i++)
-    {
-        Transaction txn(version, nonce, toAddr, sender, amount, gasPrice,
-                        gasLimit, {}, {});
+  for (unsigned i = 0; i < n; i++) {
+    Transaction txn(version, nonce, toAddr, sender, amount, gasPrice, gasLimit,
+                    {}, {});
 
-        // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
-        // "Created txns: " << txn.GetTranID())
-        // LOG_MESSAGE(txn.GetSerializedSize());
+    // LOG_MESSAGE2(to_string(m_mediator.m_currentEpochNum).c_str(),
+    // "Created txns: " << txn.GetTranID())
+    // LOG_MESSAGE(txn.GetSerializedSize());
 
-        txns.emplace_back(txn);
-        nonce++;
-        amount++;
-        gasPrice++;
-        gasLimit++;
-    }
+    txns.emplace_back(txn);
+    nonce++;
+    amount++;
+    gasPrice++;
+    gasLimit++;
+  }
 
-    return txns;
+  return txns;
 }
 
-BOOST_AUTO_TEST_CASE(GenTxn1000)
-{
-    INIT_STDOUT_LOGGER();
-    auto n = 1000u;
-    auto sender = Schnorr::GetInstance().GenKeyPair();
-    auto receiver = Schnorr::GetInstance().GenKeyPair();
+BOOST_AUTO_TEST_CASE(GenTxn1000) {
+  INIT_STDOUT_LOGGER();
+  auto n = 1000u;
+  auto sender = Schnorr::GetInstance().GenKeyPair();
+  auto receiver = Schnorr::GetInstance().GenKeyPair();
 
-    //LOG_GENERAL(INFO, "Generating " << n << " txns with multiple methods");
+  // LOG_GENERAL(INFO, "Generating " << n << " txns with multiple methods");
 
-    // auto t_start = std::chrono::high_resolution_clock::now();
-    // auto txns1 = GenWithSigning(sender, receiver, n);
-    // auto t_end = std::chrono::high_resolution_clock::now();
+  // auto t_start = std::chrono::high_resolution_clock::now();
+  // auto txns1 = GenWithSigning(sender, receiver, n);
+  // auto t_end = std::chrono::high_resolution_clock::now();
 
-    // LOG_GENERAL(
-    //     INFO,
-    //     (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-    //         << " ms");
+  // LOG_GENERAL(
+  //     INFO,
+  //     (std::chrono::duration<double, std::milli>(t_end - t_start).count())
+  //         << " ms");
 
-    // t_start = std::chrono::high_resolution_clock::now();
-    // auto txns2 = GenWithoutSigning(sender, receiver, n);
-    // t_end = std::chrono::high_resolution_clock::now();
+  // t_start = std::chrono::high_resolution_clock::now();
+  // auto txns2 = GenWithoutSigning(sender, receiver, n);
+  // t_end = std::chrono::high_resolution_clock::now();
 
-    // LOG_GENERAL(
-    //     INFO,
-    //     (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-    //         << " ms");
+  // LOG_GENERAL(
+  //     INFO,
+  //     (std::chrono::duration<double, std::milli>(t_end - t_start).count())
+  //         << " ms");
 
-    // t_start = std::chrono::high_resolution_clock::now();
-    // auto txns3 = GenWithoutSigningAndSerializing(sender, receiver, n);
-    // t_end = std::chrono::high_resolution_clock::now();
+  // t_start = std::chrono::high_resolution_clock::now();
+  // auto txns3 = GenWithoutSigningAndSerializing(sender, receiver, n);
+  // t_end = std::chrono::high_resolution_clock::now();
 
-    // LOG_GENERAL(
-    //     INFO,
-    //     (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-    //         << " ms");
+  // LOG_GENERAL(
+  //     INFO,
+  //     (std::chrono::duration<double, std::milli>(t_end - t_start).count())
+  //         << " ms");
 
-    LOG_GENERAL(INFO, "Generating " << n << " txns with dummy values");
+  LOG_GENERAL(INFO, "Generating " << n << " txns with dummy values");
 
-    auto t_start = std::chrono::high_resolution_clock::now();
-    auto txns4 = GenWithDummyValue(sender, receiver, n);
-    auto t_end = std::chrono::high_resolution_clock::now();
+  auto t_start = std::chrono::high_resolution_clock::now();
+  auto txns4 = GenWithDummyValue(sender, receiver, n);
+  auto t_end = std::chrono::high_resolution_clock::now();
 
-    LOG_GENERAL(
-        INFO,
-        (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-            << " ms");
+  LOG_GENERAL(
+      INFO, (std::chrono::duration<double, std::milli>(t_end - t_start).count())
+                << " ms");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

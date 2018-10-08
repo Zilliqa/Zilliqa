@@ -32,33 +32,29 @@
 
 #include "depends/libTrie/TrieDB.h"
 
-class ContractStorage : public Singleton<ContractStorage>
-{
-    dev::OverlayDB m_stateDB;
-    LevelDB m_codeDB;
+class ContractStorage : public Singleton<ContractStorage> {
+  dev::OverlayDB m_stateDB;
+  LevelDB m_codeDB;
 
-    ContractStorage()
-        : m_stateDB("contractState")
-        , m_codeDB("contractCode"){};
+  ContractStorage() : m_stateDB("contractState"), m_codeDB("contractCode"){};
 
-    ~ContractStorage() = default;
+  ~ContractStorage() = default;
 
-public:
-    /// Returns the singleton ContractStorage instance.
-    static ContractStorage& GetContractStorage()
-    {
-        static ContractStorage cs;
-        return cs;
-    }
+ public:
+  /// Returns the singleton ContractStorage instance.
+  static ContractStorage& GetContractStorage() {
+    static ContractStorage cs;
+    return cs;
+  }
 
-    dev::OverlayDB& GetStateDB() { return m_stateDB; }
+  dev::OverlayDB& GetStateDB() { return m_stateDB; }
 
-    /// Adds a contract code to persistence
-    bool PutContractCode(const dev::h160& address,
-                         const std::vector<unsigned char>& code);
+  /// Adds a contract code to persistence
+  bool PutContractCode(const dev::h160& address,
+                       const std::vector<unsigned char>& code);
 
-    /// Get the desired code from persistence
-    const std::vector<unsigned char> GetContractCode(const dev::h160& address);
+  /// Get the desired code from persistence
+  const std::vector<unsigned char> GetContractCode(const dev::h160& address);
 };
 
-#endif // CONTRACTSTORAGE_H
+#endif  // CONTRACTSTORAGE_H

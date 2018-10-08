@@ -18,10 +18,10 @@
  */
 
 #include "Transaction.h"
+#include <algorithm>
 #include "Account.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
-#include <algorithm>
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -32,67 +32,64 @@ unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
 unsigned int Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
-                                              unsigned int offset) const
-{
-    unsigned int size_needed = UINT256_SIZE /*m_version*/
-        + UINT256_SIZE /*m_nonce*/ + ACC_ADDR_SIZE /*m_toAddr*/
-        + PUB_KEY_SIZE /*m_senderPubKey*/ + UINT256_SIZE /*m_amount*/
-        + UINT256_SIZE /*m_gasPrice*/ + UINT256_SIZE /*m_gasLimit*/
-        + sizeof(uint32_t) + m_code.size() /*m_code*/
-        + sizeof(uint32_t) + m_data.size(); /*m_data*/
+                                              unsigned int offset) const {
+  unsigned int size_needed =
+      UINT256_SIZE                                     /*m_version*/
+      + UINT256_SIZE /*m_nonce*/ + ACC_ADDR_SIZE       /*m_toAddr*/
+      + PUB_KEY_SIZE /*m_senderPubKey*/ + UINT256_SIZE /*m_amount*/
+      + UINT256_SIZE /*m_gasPrice*/ + UINT256_SIZE     /*m_gasLimit*/
+      + sizeof(uint32_t) + m_code.size()               /*m_code*/
+      + sizeof(uint32_t) + m_data.size();              /*m_data*/
 
-    if (dst.size() < size_needed + offset)
-    {
-        dst.resize(size_needed + offset);
-    }
+  if (dst.size() < size_needed + offset) {
+    dst.resize(size_needed + offset);
+  }
 
-    SetNumber<uint256_t>(dst, offset, m_version, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    SetNumber<uint256_t>(dst, offset, m_nonce, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(),
-         dst.begin() + offset);
-    offset += ACC_ADDR_SIZE;
-    m_senderPubKey.Serialize(dst, offset);
-    offset += PUB_KEY_SIZE;
-    SetNumber<uint256_t>(dst, offset, m_amount, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    SetNumber<uint256_t>(dst, offset, m_gasPrice, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    SetNumber<uint256_t>(dst, offset, m_gasLimit, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    SetNumber<uint32_t>(dst, offset, (uint32_t)m_code.size(), sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    copy(m_code.begin(), m_code.end(), dst.begin() + offset);
-    offset += m_code.size();
-    SetNumber<uint32_t>(dst, offset, (uint32_t)m_data.size(), sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    copy(m_data.begin(), m_data.end(), dst.begin() + offset);
-    offset += m_data.size();
+  SetNumber<uint256_t>(dst, offset, m_version, UINT256_SIZE);
+  offset += UINT256_SIZE;
+  SetNumber<uint256_t>(dst, offset, m_nonce, UINT256_SIZE);
+  offset += UINT256_SIZE;
+  copy(m_toAddr.asArray().begin(), m_toAddr.asArray().end(),
+       dst.begin() + offset);
+  offset += ACC_ADDR_SIZE;
+  m_senderPubKey.Serialize(dst, offset);
+  offset += PUB_KEY_SIZE;
+  SetNumber<uint256_t>(dst, offset, m_amount, UINT256_SIZE);
+  offset += UINT256_SIZE;
+  SetNumber<uint256_t>(dst, offset, m_gasPrice, UINT256_SIZE);
+  offset += UINT256_SIZE;
+  SetNumber<uint256_t>(dst, offset, m_gasLimit, UINT256_SIZE);
+  offset += UINT256_SIZE;
+  SetNumber<uint32_t>(dst, offset, (uint32_t)m_code.size(), sizeof(uint32_t));
+  offset += sizeof(uint32_t);
+  copy(m_code.begin(), m_code.end(), dst.begin() + offset);
+  offset += m_code.size();
+  SetNumber<uint32_t>(dst, offset, (uint32_t)m_data.size(), sizeof(uint32_t));
+  offset += sizeof(uint32_t);
+  copy(m_data.begin(), m_data.end(), dst.begin() + offset);
+  offset += m_data.size();
 
-    return size_needed;
+  return size_needed;
 }
 
 Transaction::Transaction() {}
 
 Transaction::Transaction(const Transaction& src)
-    : m_tranID(src.m_tranID)
-    , m_version(src.m_version)
-    , m_nonce(src.m_nonce)
-    , m_toAddr(src.m_toAddr)
-    , m_senderPubKey(src.m_senderPubKey)
-    , m_amount(src.m_amount)
-    , m_gasPrice(src.m_gasPrice)
-    , m_gasLimit(src.m_gasLimit)
-    , m_code(src.m_code)
-    , m_data(src.m_data)
-    , m_signature(src.m_signature)
-{
-}
+    : m_tranID(src.m_tranID),
+      m_version(src.m_version),
+      m_nonce(src.m_nonce),
+      m_toAddr(src.m_toAddr),
+      m_senderPubKey(src.m_senderPubKey),
+      m_amount(src.m_amount),
+      m_gasPrice(src.m_gasPrice),
+      m_gasLimit(src.m_gasLimit),
+      m_code(src.m_code),
+      m_data(src.m_data),
+      m_signature(src.m_signature) {}
 
-Transaction::Transaction(const vector<unsigned char>& src, unsigned int offset)
-{
-    Deserialize(src, offset);
+Transaction::Transaction(const vector<unsigned char>& src,
+                         unsigned int offset) {
+  Deserialize(src, offset);
 }
 
 Transaction::Transaction(uint256_t version, const uint256_t& nonce,
@@ -101,36 +98,33 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
                          const uint256_t& gasLimit,
                          const vector<unsigned char>& code,
                          const vector<unsigned char>& data)
-    : m_version(version)
-    , m_nonce(nonce)
-    , m_toAddr(toAddr)
-    , m_senderPubKey(senderKeyPair.second)
-    , m_amount(amount)
-    , m_gasPrice(gasPrice)
-    , m_gasLimit(gasLimit)
-    , m_code(code)
-    , m_data(data)
-{
-    vector<unsigned char> txnData;
-    SerializeCoreFields(txnData, 0);
+    : m_version(version),
+      m_nonce(nonce),
+      m_toAddr(toAddr),
+      m_senderPubKey(senderKeyPair.second),
+      m_amount(amount),
+      m_gasPrice(gasPrice),
+      m_gasLimit(gasLimit),
+      m_code(code),
+      m_data(data) {
+  vector<unsigned char> txnData;
+  SerializeCoreFields(txnData, 0);
 
-    // Generate the transaction ID
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(txnData);
-    const vector<unsigned char>& output = sha2.Finalize();
-    if (output.size() != TRAN_HASH_SIZE)
-    {
-        LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-        return;
-    }
-    copy(output.begin(), output.end(), m_tranID.asArray().begin());
+  // Generate the transaction ID
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(txnData);
+  const vector<unsigned char>& output = sha2.Finalize();
+  if (output.size() != TRAN_HASH_SIZE) {
+    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    return;
+  }
+  copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
-    // Generate the signature
-    if (!Schnorr::GetInstance().Sign(txnData, senderKeyPair.first,
-                                     m_senderPubKey, m_signature))
-    {
-        LOG_GENERAL(WARNING, "We failed to generate m_signature.");
-    }
+  // Generate the signature
+  if (!Schnorr::GetInstance().Sign(txnData, senderKeyPair.first, m_senderPubKey,
+                                   m_signature)) {
+    LOG_GENERAL(WARNING, "We failed to generate m_signature.");
+  }
 }
 
 Transaction::Transaction(uint256_t version, const uint256_t& nonce,
@@ -140,120 +134,107 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
                          const std::vector<unsigned char>& code,
                          const std::vector<unsigned char>& data,
                          const Signature& signature)
-    : m_version(version)
-    , m_nonce(nonce)
-    , m_toAddr(toAddr)
-    , m_senderPubKey(senderPubKey)
-    , m_amount(amount)
-    , m_gasPrice(gasPrice)
-    , m_gasLimit(gasLimit)
-    , m_code(code)
-    , m_data(data)
-    , m_signature(signature)
-{
-    vector<unsigned char> txnData;
-    SerializeCoreFields(txnData, 0);
+    : m_version(version),
+      m_nonce(nonce),
+      m_toAddr(toAddr),
+      m_senderPubKey(senderPubKey),
+      m_amount(amount),
+      m_gasPrice(gasPrice),
+      m_gasLimit(gasLimit),
+      m_code(code),
+      m_data(data),
+      m_signature(signature) {
+  vector<unsigned char> txnData;
+  SerializeCoreFields(txnData, 0);
 
-    // Generate the transaction ID
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(txnData);
-    const vector<unsigned char>& output = sha2.Finalize();
-    if (output.size() != TRAN_HASH_SIZE)
-    {
-        LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-        return;
-    }
-    copy(output.begin(), output.end(), m_tranID.asArray().begin());
+  // Generate the transaction ID
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(txnData);
+  const vector<unsigned char>& output = sha2.Finalize();
+  if (output.size() != TRAN_HASH_SIZE) {
+    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    return;
+  }
+  copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
-    // Verify the signature
-    if (!Schnorr::GetInstance().Verify(txnData, m_signature, m_senderPubKey))
-    {
-        LOG_GENERAL(WARNING, "We failed to verify the input signature.");
-    }
+  // Verify the signature
+  if (!Schnorr::GetInstance().Verify(txnData, m_signature, m_senderPubKey)) {
+    LOG_GENERAL(WARNING, "We failed to verify the input signature.");
+  }
 }
 
 unsigned int Transaction::Serialize(vector<unsigned char>& dst,
-                                    unsigned int offset) const
-{
-    // LOG_MARKER();
+                                    unsigned int offset) const {
+  // LOG_MARKER();
 
-    if ((dst.size() - offset) < TRAN_HASH_SIZE)
-    {
-        dst.resize(TRAN_HASH_SIZE + offset);
-    }
+  if ((dst.size() - offset) < TRAN_HASH_SIZE) {
+    dst.resize(TRAN_HASH_SIZE + offset);
+  }
 
-    copy(m_tranID.asArray().begin(), m_tranID.asArray().end(),
-         dst.begin() + offset);
-    offset += TRAN_HASH_SIZE;
-    offset += m_signature.Serialize(dst, offset);
-    offset += SerializeCoreFields(dst, offset);
+  copy(m_tranID.asArray().begin(), m_tranID.asArray().end(),
+       dst.begin() + offset);
+  offset += TRAN_HASH_SIZE;
+  offset += m_signature.Serialize(dst, offset);
+  offset += SerializeCoreFields(dst, offset);
 
-    return offset;
+  return offset;
 }
 
 int Transaction::Deserialize(const vector<unsigned char>& src,
-                             unsigned int offset)
-{
-    // LOG_MARKER();
+                             unsigned int offset) {
+  // LOG_MARKER();
 
-    try
-    {
-        copy(src.begin() + offset, src.begin() + offset + TRAN_HASH_SIZE,
-             m_tranID.asArray().begin());
-        offset += TRAN_HASH_SIZE;
-        if (m_signature.Deserialize(src, offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to init m_signature.");
-            return -1;
-        }
-        offset += TRAN_SIG_SIZE;
-        m_version = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-        offset += UINT256_SIZE;
-        m_nonce = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-        offset += UINT256_SIZE;
-        copy(src.begin() + offset, src.begin() + offset + ACC_ADDR_SIZE,
-             m_toAddr.asArray().begin());
-        offset += ACC_ADDR_SIZE;
-        if (m_senderPubKey.Deserialize(src, offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to init m_senderPubKey.");
-            return -1;
-        }
-        offset += PUB_KEY_SIZE;
-        m_amount = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-        offset += UINT256_SIZE;
-        m_gasPrice = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-        offset += UINT256_SIZE;
-        m_gasLimit = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-        offset += UINT256_SIZE;
-        uint32_t codeSize = GetNumber<uint32_t>(src, offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-        m_code.clear();
-        if (codeSize > 0)
-        {
-            m_code.resize(codeSize);
-            copy(src.begin() + offset, src.begin() + offset + codeSize,
-                 m_code.begin());
-        }
-        offset += codeSize;
-        uint32_t dataSize = GetNumber<uint32_t>(src, offset, sizeof(uint32_t));
-        offset += sizeof(uint32_t);
-        m_data.clear();
-        if (dataSize > 0)
-        {
-            m_data.resize(dataSize);
-            copy(src.begin() + offset, src.begin() + offset + dataSize,
-                 m_data.begin());
-        }
-        offset += dataSize;
+  try {
+    copy(src.begin() + offset, src.begin() + offset + TRAN_HASH_SIZE,
+         m_tranID.asArray().begin());
+    offset += TRAN_HASH_SIZE;
+    if (m_signature.Deserialize(src, offset) != 0) {
+      LOG_GENERAL(WARNING, "We failed to init m_signature.");
+      return -1;
     }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING,
-                    "Error with Transaction::Deserialize." << ' ' << e.what());
-        return -1;
+    offset += TRAN_SIG_SIZE;
+    m_version = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+    offset += UINT256_SIZE;
+    m_nonce = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+    offset += UINT256_SIZE;
+    copy(src.begin() + offset, src.begin() + offset + ACC_ADDR_SIZE,
+         m_toAddr.asArray().begin());
+    offset += ACC_ADDR_SIZE;
+    if (m_senderPubKey.Deserialize(src, offset) != 0) {
+      LOG_GENERAL(WARNING, "We failed to init m_senderPubKey.");
+      return -1;
     }
-    return 0;
+    offset += PUB_KEY_SIZE;
+    m_amount = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+    offset += UINT256_SIZE;
+    m_gasPrice = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+    offset += UINT256_SIZE;
+    m_gasLimit = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
+    offset += UINT256_SIZE;
+    uint32_t codeSize = GetNumber<uint32_t>(src, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    m_code.clear();
+    if (codeSize > 0) {
+      m_code.resize(codeSize);
+      copy(src.begin() + offset, src.begin() + offset + codeSize,
+           m_code.begin());
+    }
+    offset += codeSize;
+    uint32_t dataSize = GetNumber<uint32_t>(src, offset, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    m_data.clear();
+    if (dataSize > 0) {
+      m_data.resize(dataSize);
+      copy(src.begin() + offset, src.begin() + offset + dataSize,
+           m_data.begin());
+    }
+    offset += dataSize;
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Error with Transaction::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
 }
 
 const TxnHash& Transaction::GetTranID() const { return m_tranID; }
@@ -266,9 +247,8 @@ const Address& Transaction::GetToAddr() const { return m_toAddr; }
 
 const PubKey& Transaction::GetSenderPubKey() const { return m_senderPubKey; }
 
-Address Transaction::GetSenderAddr() const
-{
-    return Account::GetAddressFromPublicKey(GetSenderPubKey());
+Address Transaction::GetSenderAddr() const {
+  return Account::GetAddressFromPublicKey(GetSenderPubKey());
 }
 
 const uint256_t& Transaction::GetAmount() const { return m_amount; }
@@ -283,84 +263,73 @@ const vector<unsigned char>& Transaction::GetData() const { return m_data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 
-void Transaction::SetSignature(const Signature& signature)
-{
-    m_signature = signature;
+void Transaction::SetSignature(const Signature& signature) {
+  m_signature = signature;
 }
 
 unsigned int Transaction::GetShardIndex(const Address& fromAddr,
-                                        unsigned int numShards)
-{
-    unsigned int target_shard = 0;
-    unsigned int numbits = log2(numShards);
-    unsigned int numbytes = numbits / 8;
-    unsigned int extrabits = numbits % 8;
+                                        unsigned int numShards) {
+  unsigned int target_shard = 0;
+  unsigned int numbits = log2(numShards);
+  unsigned int numbytes = numbits / 8;
+  unsigned int extrabits = numbits % 8;
 
-    if (extrabits > 0)
-    {
-        unsigned char msb_mask = 0;
-        for (unsigned int i = 0; i < extrabits; i++)
-        {
-            msb_mask |= 1 << i;
-        }
-        target_shard
-            = fromAddr.asArray().at(ACC_ADDR_SIZE - numbytes - 1) & msb_mask;
+  if (extrabits > 0) {
+    unsigned char msb_mask = 0;
+    for (unsigned int i = 0; i < extrabits; i++) {
+      msb_mask |= 1 << i;
     }
+    target_shard =
+        fromAddr.asArray().at(ACC_ADDR_SIZE - numbytes - 1) & msb_mask;
+  }
 
-    for (unsigned int i = ACC_ADDR_SIZE - numbytes; i < ACC_ADDR_SIZE; i++)
-    {
-        target_shard = (target_shard << 8) + fromAddr.asArray().at(i);
-    }
+  for (unsigned int i = ACC_ADDR_SIZE - numbytes; i < ACC_ADDR_SIZE; i++) {
+    target_shard = (target_shard << 8) + fromAddr.asArray().at(i);
+  }
 
-    return target_shard;
+  return target_shard;
 }
 
-unsigned int Transaction::GetSerializedSize() const
-{
-    return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
-        + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
-        + UINT256_SIZE + sizeof(uint32_t) + m_code.size() + sizeof(uint32_t)
-        + m_data.size();
+unsigned int Transaction::GetSerializedSize() const {
+  return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE +
+         ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE +
+         UINT256_SIZE + sizeof(uint32_t) + m_code.size() + sizeof(uint32_t) +
+         m_data.size();
 }
 
-unsigned int Transaction::GetMinSerializedSize()
-{
-    return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE
-        + ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE
-        + UINT256_SIZE + sizeof(uint32_t) + sizeof(uint32_t);
+unsigned int Transaction::GetMinSerializedSize() {
+  return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE +
+         ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE +
+         UINT256_SIZE + sizeof(uint32_t) + sizeof(uint32_t);
 }
 
-bool Transaction::operator==(const Transaction& tran) const
-{
-    return ((m_tranID == tran.m_tranID) && (m_signature == tran.m_signature));
+bool Transaction::operator==(const Transaction& tran) const {
+  return ((m_tranID == tran.m_tranID) && (m_signature == tran.m_signature));
 }
 
-bool Transaction::operator<(const Transaction& tran) const
-{
-    return (m_tranID < tran.m_tranID);
+bool Transaction::operator<(const Transaction& tran) const {
+  return (m_tranID < tran.m_tranID);
 }
 
-bool Transaction::operator>(const Transaction& tran) const
-{
-    return !((*this == tran) || (*this < tran));
+bool Transaction::operator>(const Transaction& tran) const {
+  return !((*this == tran) || (*this < tran));
 }
 
-Transaction& Transaction::operator=(const Transaction& src)
-{
-    copy(src.m_tranID.asArray().begin(), src.m_tranID.asArray().end(),
-         m_tranID.asArray().begin());
-    m_signature = src.m_signature;
-    m_version = src.m_version;
-    m_nonce = src.m_nonce;
-    copy(src.m_toAddr.begin(), src.m_toAddr.end(), m_toAddr.asArray().begin());
-    m_senderPubKey = src.m_senderPubKey;
-    m_amount = src.m_amount;
-    m_gasPrice = src.m_gasPrice;
-    m_gasLimit = src.m_gasLimit;
-    m_code = src.m_code;
-    m_data = src.m_data;
+Transaction& Transaction::operator=(const Transaction& src) {
+  copy(src.m_tranID.asArray().begin(), src.m_tranID.asArray().end(),
+       m_tranID.asArray().begin());
+  m_signature = src.m_signature;
+  m_version = src.m_version;
+  m_nonce = src.m_nonce;
+  copy(src.m_toAddr.begin(), src.m_toAddr.end(), m_toAddr.asArray().begin());
+  m_senderPubKey = src.m_senderPubKey;
+  m_amount = src.m_amount;
+  m_gasPrice = src.m_gasPrice;
+  m_gasLimit = src.m_gasLimit;
+  m_code = src.m_code;
+  m_data = src.m_data;
 
-    return *this;
+  return *this;
 }
 
 #if 0

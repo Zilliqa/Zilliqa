@@ -25,36 +25,31 @@ Blacklist::Blacklist() {}
 
 Blacklist::~Blacklist() {}
 
-Blacklist& Blacklist::GetInstance()
-{
-    static Blacklist blacklist;
-    return blacklist;
+Blacklist& Blacklist::GetInstance() {
+  static Blacklist blacklist;
+  return blacklist;
 }
 
 /// P2PComm may use this function
-bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip)
-{
-    lock_guard<mutex> g(m_mutexBlacklistIP);
-    return (m_blacklistIP.end() != m_blacklistIP.find(ip));
+bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip) {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  return (m_blacklistIP.end() != m_blacklistIP.find(ip));
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Add(const boost::multiprecision::uint128_t& ip)
-{
-    lock_guard<mutex> g(m_mutexBlacklistIP);
-    m_blacklistIP.emplace(ip, true);
+void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  m_blacklistIP.emplace(ip, true);
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Remove(const boost::multiprecision::uint128_t& ip)
-{
-    lock_guard<mutex> g(m_mutexBlacklistIP);
-    m_blacklistIP.erase(ip);
+void Blacklist::Remove(const boost::multiprecision::uint128_t& ip) {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  m_blacklistIP.erase(ip);
 }
 
 /// Reputation Manager may use this function
-void Blacklist::Clear()
-{
-    lock_guard<mutex> g(m_mutexBlacklistIP);
-    m_blacklistIP.clear();
+void Blacklist::Clear() {
+  lock_guard<mutex> g(m_mutexBlacklistIP);
+  m_blacklistIP.clear();
 }

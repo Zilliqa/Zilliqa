@@ -19,9 +19,8 @@
 
 #include "RumorSpreadingInterface.h"
 
-namespace RRS
-{
+namespace RRS {
 
-    RumorSpreadingInterface::~RumorSpreadingInterface() {}
+RumorSpreadingInterface::~RumorSpreadingInterface() {}
 
-} // project namespace
+}  // namespace RRS

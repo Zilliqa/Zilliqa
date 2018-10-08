@@ -25,11 +25,10 @@
 #include "libCrypto/Schnorr.h"
 #include "libNetwork/Peer.h"
 
-enum ShardData
-{
-    SHARD_NODE_PUBKEY,
-    SHARD_NODE_PEER,
-    SHARD_NODE_REP,
+enum ShardData {
+  SHARD_NODE_PUBKEY,
+  SHARD_NODE_PEER,
+  SHARD_NODE_REP,
 };
 
 using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;

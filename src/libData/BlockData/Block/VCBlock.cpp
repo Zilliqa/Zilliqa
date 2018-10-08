@@ -27,86 +27,71 @@ using namespace boost::multiprecision;
 VCBlock::VCBlock() {}
 
 // To-do: handle exceptions. Will be deprecated.
-VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset)
-{
-    if (Deserialize(src, offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "Error. We failed to initialize VCBlock.");
-    }
+VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset) {
+  if (Deserialize(src, offset) != 0) {
+    LOG_GENERAL(WARNING, "Error. We failed to initialize VCBlock.");
+  }
 }
 
 VCBlock::VCBlock(VCBlockHeader&& header, CoSignatures&& cosigs)
-    : m_header(move(header))
-{
-    m_cosigs = move(cosigs);
+    : m_header(move(header)) {
+  m_cosigs = move(cosigs);
 }
 
 unsigned int VCBlock::Serialize(vector<unsigned char>& dst,
-                                unsigned int offset) const
-{
-    unsigned int size_needed = GetSerializedSize();
-    unsigned int size_remaining = dst.size() - offset;
+                                unsigned int offset) const {
+  unsigned int size_needed = GetSerializedSize();
+  unsigned int size_remaining = dst.size() - offset;
 
-    if (size_remaining < size_needed)
-    {
-        dst.resize(size_needed + offset);
-    }
+  if (size_remaining < size_needed) {
+    dst.resize(size_needed + offset);
+  }
 
-    m_header.Serialize(dst, offset);
+  m_header.Serialize(dst, offset);
 
-    BlockBase::Serialize(dst, offset + VCBlockHeader::SIZE);
+  BlockBase::Serialize(dst, offset + VCBlockHeader::SIZE);
 
-    return size_needed;
+  return size_needed;
 }
 
-int VCBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
-{
-    LOG_MARKER();
-    try
-    {
-        VCBlockHeader header;
-        if (header.Deserialize(src, offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
-            return -1;
-        }
-        m_header = move(header);
+int VCBlock::Deserialize(const vector<unsigned char>& src,
+                         unsigned int offset) {
+  LOG_MARKER();
+  try {
+    VCBlockHeader header;
+    if (header.Deserialize(src, offset) != 0) {
+      LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
+      return -1;
+    }
+    m_header = move(header);
 
-        BlockBase::Deserialize(src, offset + VCBlockHeader::SIZE);
-    }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING,
-                    "ERROR: Error with VCBlock::Deserialize." << ' '
-                                                              << e.what());
-        return -1;
-    }
-    return 0;
+    BlockBase::Deserialize(src, offset + VCBlockHeader::SIZE);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "ERROR: Error with VCBlock::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
 }
 
-unsigned int VCBlock::GetSerializedSize() const
-{
-    return VCBlockHeader::SIZE + BlockBase::GetSerializedSize();
+unsigned int VCBlock::GetSerializedSize() const {
+  return VCBlockHeader::SIZE + BlockBase::GetSerializedSize();
 }
 
-unsigned int VCBlock::GetMinSize()
-{
-    return VCBlockHeader::SIZE + BlockBase::GetMinSize();
+unsigned int VCBlock::GetMinSize() {
+  return VCBlockHeader::SIZE + BlockBase::GetMinSize();
 }
 
 const VCBlockHeader& VCBlock::GetHeader() const { return m_header; }
 
-bool VCBlock::operator==(const VCBlock& block) const
-{
-    return (m_header == block.m_header);
+bool VCBlock::operator==(const VCBlock& block) const {
+  return (m_header == block.m_header);
 }
 
-bool VCBlock::operator<(const VCBlock& block) const
-{
-    return m_header < block.m_header;
+bool VCBlock::operator<(const VCBlock& block) const {
+  return m_header < block.m_header;
 }
 
-bool VCBlock::operator>(const VCBlock& block) const
-{
-    return !((*this == block) || (*this < block));
+bool VCBlock::operator>(const VCBlock& block) const {
+  return !((*this == block) || (*this < block));
 }

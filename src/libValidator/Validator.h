@@ -27,40 +27,38 @@
 
 class Mediator;
 
-class ValidatorBase
-{
-public:
-    virtual ~ValidatorBase() {}
-    virtual std::string name() const = 0;
+class ValidatorBase {
+ public:
+  virtual ~ValidatorBase() {}
+  virtual std::string name() const = 0;
 
-    /// Verifies the transaction w.r.t given pubKey and signature
-    virtual bool VerifyTransaction(const Transaction& tran) const = 0;
+  /// Verifies the transaction w.r.t given pubKey and signature
+  virtual bool VerifyTransaction(const Transaction& tran) const = 0;
 
-    virtual bool CheckCreatedTransaction(const Transaction& tx,
-                                         TransactionReceipt& receipt) const = 0;
+  virtual bool CheckCreatedTransaction(const Transaction& tx,
+                                       TransactionReceipt& receipt) const = 0;
 
-    virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
+  virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
 };
 
-class Validator : public ValidatorBase
-{
+class Validator : public ValidatorBase {
+  // Nonce information
+  // std::mutex m_mutexTxnNonceMap;
+  // std::unordered_map<Address, boost::multiprecision::uint256_t>
+  // m_txnNonceMap;
 
-    // Nonce information
-    // std::mutex m_mutexTxnNonceMap;
-    // std::unordered_map<Address, boost::multiprecision::uint256_t> m_txnNonceMap;
+ public:
+  Validator(Mediator& mediator);
+  ~Validator();
+  std::string name() const override { return "Validator"; }
+  bool VerifyTransaction(const Transaction& tran) const override;
 
-public:
-    Validator(Mediator& mediator);
-    ~Validator();
-    std::string name() const override { return "Validator"; }
-    bool VerifyTransaction(const Transaction& tran) const override;
+  bool CheckCreatedTransaction(const Transaction& tx,
+                               TransactionReceipt& receipt) const override;
 
-    bool CheckCreatedTransaction(const Transaction& tx,
-                                 TransactionReceipt& receipt) const override;
+  bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
 
-    bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
-
-    Mediator& m_mediator;
+  Mediator& m_mediator;
 };
 
-#endif // __VALIDATOR_H__
+#endif  // __VALIDATOR_H__

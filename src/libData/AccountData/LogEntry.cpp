@@ -22,38 +22,35 @@
 using namespace std;
 
 bool LogEntry::Install(const Json::Value& eventObj,
-                       const Address& address) //, unsigned int& numIndexed)
+                       const Address& address)  //, unsigned int& numIndexed)
 {
-    m_eventObj = eventObj;
-    if (!m_eventObj.isMember("_eventname") || !m_eventObj.isMember("params"))
-    {
-        LOG_GENERAL(WARNING,
-                    "Address: " << address.hex()
-                                << ", The json object of events is corrupted");
-        return false;
-    }
+  m_eventObj = eventObj;
+  if (!m_eventObj.isMember("_eventname") || !m_eventObj.isMember("params")) {
+    LOG_GENERAL(WARNING,
+                "Address: " << address.hex()
+                            << ", The json object of events is corrupted");
+    return false;
+  }
 
-    for (auto& p : m_eventObj["params"])
+  for (auto& p : m_eventObj["params"]) {
+    if (!p.isMember("vname") || !p.isMember("type") ||
+        !p.isMember("value"))  // || !p.isMember("indexed"))
     {
-        if (!p.isMember("vname") || !p.isMember("type")
-            || !p.isMember("value")) // || !p.isMember("indexed"))
-        {
-            LOG_GENERAL(WARNING,
-                        "Address: " << address.hex() << " EventName: "
-                                    << m_eventObj["_eventname"].asString()
-                                    << ", The params is corrupted");
-            return false;
-        }
-        // if (p["indexed"].asString() == "True")
-        // {
-        // 	numIndexed++;
-        // 	if (numIndexed > MAX_INDEXES_PER_TXN)
-        // 	{
-        // 		return false;
-        // 	}
-        // }
+      LOG_GENERAL(WARNING, "Address: " << address.hex() << " EventName: "
+                                       << m_eventObj["_eventname"].asString()
+                                       << ", The params is corrupted");
+      return false;
     }
+    // if (p["indexed"].asString() == "True")
+    // {
+    // 	numIndexed++;
+    // 	if (numIndexed > MAX_INDEXES_PER_TXN)
+    // 	{
+    // 		return false;
+    // 	}
+    // }
+  }
 
-    m_eventObj["address"] = "0x" + address.hex();
-    return true;
+  m_eventObj["address"] = "0x" + address.hex();
+  return true;
 }

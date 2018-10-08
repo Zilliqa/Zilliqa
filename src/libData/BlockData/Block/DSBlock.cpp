@@ -29,94 +29,74 @@ using namespace boost::multiprecision;
 DSBlock::DSBlock() {}
 
 // To-do: handle exceptions. Will be deprecated.
-DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset)
-{
-    if (Deserialize(src, offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to init DSBlock.");
-    }
+DSBlock::DSBlock(const vector<unsigned char>& src, unsigned int offset) {
+  if (Deserialize(src, offset) != 0) {
+    LOG_GENERAL(WARNING, "We failed to init DSBlock.");
+  }
 }
 
 DSBlock::DSBlock(DSBlockHeader&& header, CoSignatures&& cosigs)
-    : m_header(move(header))
-{
-    m_cosigs = move(cosigs);
+    : m_header(move(header)) {
+  m_cosigs = move(cosigs);
 }
 
 unsigned int DSBlock::Serialize(vector<unsigned char>& dst,
-                                unsigned int offset) const
-{
-    unsigned int size_needed = GetSerializedSize();
-    unsigned int size_remaining = dst.size() - offset;
+                                unsigned int offset) const {
+  unsigned int size_needed = GetSerializedSize();
+  unsigned int size_remaining = dst.size() - offset;
 
-    if (size_remaining < size_needed)
-    {
-        dst.resize(size_needed + offset);
-    }
-    m_header.Serialize(dst, offset);
+  if (size_remaining < size_needed) {
+    dst.resize(size_needed + offset);
+  }
+  m_header.Serialize(dst, offset);
 
-    BlockBase::Serialize(dst, offset + m_header.GetSize());
+  BlockBase::Serialize(dst, offset + m_header.GetSize());
 
-    return size_needed;
+  return size_needed;
 }
 
-int DSBlock::Deserialize(const vector<unsigned char>& src, unsigned int offset)
-{
-    try
-    {
-        DSBlockHeader header;
-        if (header.Deserialize(src, offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
-            return -1;
-        }
-        m_header = move(header);
+int DSBlock::Deserialize(const vector<unsigned char>& src,
+                         unsigned int offset) {
+  try {
+    DSBlockHeader header;
+    if (header.Deserialize(src, offset) != 0) {
+      LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
+      return -1;
+    }
+    m_header = move(header);
 
-        BlockBase::Deserialize(src, offset + header.GetSize());
-    }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING,
-                    "Error with DSBlock::Deserialize." << ' ' << e.what());
-        return -1;
-    }
-    return 0;
+    BlockBase::Deserialize(src, offset + header.GetSize());
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Error with DSBlock::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
 }
 
-unsigned int DSBlock::GetSerializedSize() const
-{
-    return m_header.GetSize() + BlockBase::GetSerializedSize();
+unsigned int DSBlock::GetSerializedSize() const {
+  return m_header.GetSize() + BlockBase::GetSerializedSize();
 }
 
-unsigned int DSBlock::GetMinSize()
-{
-    return m_header.GetSize() + BlockBase::GetMinSize();
+unsigned int DSBlock::GetMinSize() {
+  return m_header.GetSize() + BlockBase::GetMinSize();
 }
 
 const DSBlockHeader& DSBlock::GetHeader() const { return m_header; }
 
-bool DSBlock::operator==(const DSBlock& block) const
-{
-    return (m_header == block.m_header);
+bool DSBlock::operator==(const DSBlock& block) const {
+  return (m_header == block.m_header);
 }
 
-bool DSBlock::operator<(const DSBlock& block) const
-{
-    if (m_header < block.m_header)
-    {
-        return true;
-    }
-    else if (m_header > block.m_header)
-    {
-        return false;
-    }
-    else
-    {
-        return false;
-    }
+bool DSBlock::operator<(const DSBlock& block) const {
+  if (m_header < block.m_header) {
+    return true;
+  } else if (m_header > block.m_header) {
+    return false;
+  } else {
+    return false;
+  }
 }
 
-bool DSBlock::operator>(const DSBlock& block) const
-{
-    return !((*this == block) || (*this < block));
+bool DSBlock::operator>(const DSBlock& block) const {
+  return !((*this == block) || (*this < block));
 }

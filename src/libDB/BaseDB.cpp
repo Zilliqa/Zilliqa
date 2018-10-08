@@ -18,39 +18,34 @@
  */
 
 #include "BaseDB.h"
-#include "common/Constants.h"
 #include <bsoncxx/stdx/make_unique.hpp>
 #include <bsoncxx/types.hpp>
 #include <mongocxx/client.hpp>
 #include <mongocxx/logger.hpp>
 #include <mongocxx/stdx.hpp>
 #include <mongocxx/uri.hpp>
+#include "common/Constants.h"
 
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
 
 using namespace std;
 
-void BaseDB::Init(unsigned int port)
-{
-    auto instance = bsoncxx::stdx::make_unique<mongocxx::instance>();
-    try
-    {
-
-        m_inst = move(instance);
-        string uri = "mongodb://" + DB_HOST + ":" + to_string(port);
-        mongocxx::uri URI(uri);
-        //mongocxx::client client(URI);
-        mongocxx::pool pool(URI);
-        m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(URI);
-        auto c = m_pool->acquire();
-        (*c)[m_dbname].drop();
-        //m_client = move(client);
-        //m_client[m_dbname].drop();
-        m_isInitialized = true;
-    }
-    catch (exception& e)
-    {
-        LOG_GENERAL(WARNING, "Failed to initialized DB " << e.what());
-    }
+void BaseDB::Init(unsigned int port) {
+  auto instance = bsoncxx::stdx::make_unique<mongocxx::instance>();
+  try {
+    m_inst = move(instance);
+    string uri = "mongodb://" + DB_HOST + ":" + to_string(port);
+    mongocxx::uri URI(uri);
+    // mongocxx::client client(URI);
+    mongocxx::pool pool(URI);
+    m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(URI);
+    auto c = m_pool->acquire();
+    (*c)[m_dbname].drop();
+    // m_client = move(client);
+    // m_client[m_dbname].drop();
+    m_isInitialized = true;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed to initialized DB " << e.what());
+  }
 }

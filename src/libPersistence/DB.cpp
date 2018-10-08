@@ -22,75 +22,57 @@
 
 using namespace std;
 
-DB::DB(const string& name)
-{
-    this->m_db_name = name;
-    leveldb::Options options;
-    options.create_if_missing = true;
-    leveldb::Status status
-        = leveldb::DB::Open(options, this->m_db_name, &this->m_db);
-    if (!status.ok())
-    {
-        LOG_GENERAL(WARNING, "Cannot init DB.");
-        // throw exception();
-    }
+DB::DB(const string& name) {
+  this->m_db_name = name;
+  leveldb::Options options;
+  options.create_if_missing = true;
+  leveldb::Status status =
+      leveldb::DB::Open(options, this->m_db_name, &this->m_db);
+  if (!status.ok()) {
+    LOG_GENERAL(WARNING, "Cannot init DB.");
+    // throw exception();
+  }
 }
 
 DB::~DB() { delete m_db; }
 
-string DB::ReadFromDB(const string& key)
-{
-    string value;
-    leveldb::Status s = m_db->Get(leveldb::ReadOptions(), key, &value);
-    if (!s.ok())
-    {
-        return "DB_ERROR";
-    }
-    else
-    {
-        return value;
-    }
+string DB::ReadFromDB(const string& key) {
+  string value;
+  leveldb::Status s = m_db->Get(leveldb::ReadOptions(), key, &value);
+  if (!s.ok()) {
+    return "DB_ERROR";
+  } else {
+    return value;
+  }
 }
 
 leveldb::DB* DB::GetDB() { return this->m_db; }
 
-int DB::WriteToDB(const string& key, const string& value)
-{
-    leveldb::Status s = m_db->Put(leveldb::WriteOptions(), key, value);
-    if (!s.ok())
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
+int DB::WriteToDB(const string& key, const string& value) {
+  leveldb::Status s = m_db->Put(leveldb::WriteOptions(), key, value);
+  if (!s.ok()) {
+    return -1;
+  } else {
+    return 0;
+  }
 }
 
-int DB::DeleteFromDB(const string& key)
-{
-    leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), key);
-    if (!s.ok())
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
+int DB::DeleteFromDB(const string& key) {
+  leveldb::Status s = m_db->Delete(leveldb::WriteOptions(), key);
+  if (!s.ok()) {
+    return -1;
+  } else {
+    return 0;
+  }
 }
 
-int DB::DeleteDB()
-{
-    delete m_db;
-    leveldb::Status s = leveldb::DestroyDB(this->m_db_name, leveldb::Options());
-    if (!s.ok())
-    {
-        LOG_GENERAL(INFO, "Status: " << s.ToString());
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
+int DB::DeleteDB() {
+  delete m_db;
+  leveldb::Status s = leveldb::DestroyDB(this->m_db_name, leveldb::Options());
+  if (!s.ok()) {
+    LOG_GENERAL(INFO, "Status: " << s.ToString());
+    return -1;
+  } else {
+    return 0;
+  }
 }

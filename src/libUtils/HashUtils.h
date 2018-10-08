@@ -20,40 +20,36 @@
 #ifndef __HASH_UTILS__
 #define __HASH_UTILS__
 
-#include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include <string>
 #include <vector>
+#include "common/Serializable.h"
+#include "libCrypto/Sha2.h"
 
-class HashUtils
-{
-public:
-    static const std::vector<unsigned char>
-    SerializableToHash(const Serializable& sz)
-    {
-        std::vector<unsigned char> vec;
-        sz.Serialize(vec, 0);
-        return BytesToHash(vec);
-    }
+class HashUtils {
+ public:
+  static const std::vector<unsigned char> SerializableToHash(
+      const Serializable& sz) {
+    std::vector<unsigned char> vec;
+    sz.Serialize(vec, 0);
+    return BytesToHash(vec);
+  }
 
-    static const std::vector<unsigned char>
-    BytesToHash(const std::vector<unsigned char>& vec)
-    {
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  static const std::vector<unsigned char> BytesToHash(
+      const std::vector<unsigned char>& vec) {
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
-        sha2.Update(vec);
-        const std::vector<unsigned char>& resVec = sha2.Finalize();
+    sha2.Update(vec);
+    const std::vector<unsigned char>& resVec = sha2.Finalize();
 
-        return resVec;
-    }
-    static uint16_t SerializableToHash16Bits(const Serializable& sz)
-    {
-        const std::vector<unsigned char>& vec = SerializableToHash(sz);
+    return resVec;
+  }
+  static uint16_t SerializableToHash16Bits(const Serializable& sz) {
+    const std::vector<unsigned char>& vec = SerializableToHash(sz);
 
-        uint32_t lsb = vec.size() - 1;
+    uint32_t lsb = vec.size() - 1;
 
-        return (vec.at(lsb - 1) << 8) | vec.at(lsb);
-    }
+    return (vec.at(lsb - 1) << 8) | vec.at(lsb);
+  }
 };
 
-#endif //__HASH_UTILS__
+#endif  //__HASH_UTILS__

@@ -20,44 +20,42 @@
 #ifndef __BASEDB_H__
 #define __BASEDB_H__
 
-#include "libData/AccountData/Account.h"
-#include "libData/AccountData/Transaction.h"
-#include "libData/BlockData/Block/DSBlock.h"
-#include "libData/BlockData/Block/TxBlock.h"
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
 #include <mongocxx/pool.hpp>
 #include <string>
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block/DSBlock.h"
+#include "libData/BlockData/Block/TxBlock.h"
 
-class BaseDB
-{
-protected:
-    std::unique_ptr<mongocxx::pool> m_pool;
-    std::unique_ptr<mongocxx::instance> m_inst;
-    bool m_isInitialized;
-    const std::string m_dbname;
-    const std::string m_txCollectionName;
-    const std::string m_txBlockCollectionName;
-    const std::string m_dsBlockCollectionName;
-    const std::string m_accountStateCollectionName;
+class BaseDB {
+ protected:
+  std::unique_ptr<mongocxx::pool> m_pool;
+  std::unique_ptr<mongocxx::instance> m_inst;
+  bool m_isInitialized;
+  const std::string m_dbname;
+  const std::string m_txCollectionName;
+  const std::string m_txBlockCollectionName;
+  const std::string m_dsBlockCollectionName;
+  const std::string m_accountStateCollectionName;
 
-public:
-    BaseDB(std::string dbname, std::string txn, std::string txBlock,
-           std::string dsBlock, std::string accountState)
-        : m_isInitialized(false)
-        , m_dbname(dbname)
-        , m_txCollectionName(txn)
-        , m_txBlockCollectionName(txBlock)
-        , m_dsBlockCollectionName(dsBlock)
-        , m_accountStateCollectionName(accountState)
+ public:
+  BaseDB(std::string dbname, std::string txn, std::string txBlock,
+         std::string dsBlock, std::string accountState)
+      : m_isInitialized(false),
+        m_dbname(dbname),
+        m_txCollectionName(txn),
+        m_txBlockCollectionName(txBlock),
+        m_dsBlockCollectionName(dsBlock),
+        m_accountStateCollectionName(accountState)
 
-    {
-    }
-    virtual void Init(unsigned int port = 27017);
-    virtual bool InsertTxn(const TransactionWithReceipt& txn) = 0;
-    virtual bool InsertTxBlock(const TxBlock& txblock) = 0;
-    virtual bool InsertDSBlock(const DSBlock& dsblock) = 0;
-    virtual bool InsertAccount(const Address& addr, const Account& acc) = 0;
+  {}
+  virtual void Init(unsigned int port = 27017);
+  virtual bool InsertTxn(const TransactionWithReceipt& txn) = 0;
+  virtual bool InsertTxBlock(const TxBlock& txblock) = 0;
+  virtual bool InsertDSBlock(const DSBlock& dsblock) = 0;
+  virtual bool InsertAccount(const Address& addr, const Account& acc) = 0;
 };
 
-#endif //__BASEDB_H__
+#endif  //__BASEDB_H__

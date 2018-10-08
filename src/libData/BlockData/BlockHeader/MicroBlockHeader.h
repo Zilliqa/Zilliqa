@@ -30,80 +30,80 @@
 #include "libCrypto/Schnorr.h"
 
 /// Stores information on the header part of the microblock.
-class MicroBlockHeader : public BlockHeaderBase
-{
-    uint8_t m_type; // 0: microblock proposed by a committee, 1: final tx block
-    uint32_t m_version;
-    uint32_t m_shardId;
-    boost::multiprecision::uint256_t m_gasLimit;
-    boost::multiprecision::uint256_t m_gasUsed;
-    BlockHash m_prevHash; // Hash of the previous block
-    uint64_t m_blockNum; // Block index, starting from 0 in the genesis block
-    boost::multiprecision::uint256_t m_timestamp;
-    // TxnHash m_txRootHash; // Tx merkle tree root hash
-    // StateHash m_stateDeltaHash; // State Delta merkle tree root hash
-    MicroBlockHashSet m_hash;
-    uint32_t m_numTxs; // Total number of txs included in the block
-    PubKey m_minerPubKey; // Leader of the committee who proposed this block
-    uint64_t
-        m_dsBlockNum; // DS Block index at the time this Tx Block was proposed
-    BlockHash m_dsBlockHeader; // DS Block hash
+class MicroBlockHeader : public BlockHeaderBase {
+  uint8_t m_type;  // 0: microblock proposed by a committee, 1: final tx block
+  uint32_t m_version;
+  uint32_t m_shardId;
+  boost::multiprecision::uint256_t m_gasLimit;
+  boost::multiprecision::uint256_t m_gasUsed;
+  BlockHash m_prevHash;  // Hash of the previous block
+  uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
+  boost::multiprecision::uint256_t m_timestamp;
+  // TxnHash m_txRootHash; // Tx merkle tree root hash
+  // StateHash m_stateDeltaHash; // State Delta merkle tree root hash
+  MicroBlockHashSet m_hash;
+  uint32_t m_numTxs;     // Total number of txs included in the block
+  PubKey m_minerPubKey;  // Leader of the committee who proposed this block
+  uint64_t
+      m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
+  BlockHash m_dsBlockHeader;  // DS Block hash
 
-public:
-    static const unsigned int SIZE = sizeof(uint8_t) + sizeof(uint32_t)
-        + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE + BLOCK_HASH_SIZE
-        + sizeof(uint64_t) + UINT256_SIZE + MicroBlockHashSet::size()
-        + sizeof(uint32_t) + PUB_KEY_SIZE + sizeof(uint64_t) + BLOCK_HASH_SIZE;
+ public:
+  static const unsigned int SIZE =
+      sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + UINT256_SIZE +
+      UINT256_SIZE + BLOCK_HASH_SIZE + sizeof(uint64_t) + UINT256_SIZE +
+      MicroBlockHashSet::size() + sizeof(uint32_t) + PUB_KEY_SIZE +
+      sizeof(uint64_t) + BLOCK_HASH_SIZE;
 
-    /// Default constructor.
-    MicroBlockHeader();
+  /// Default constructor.
+  MicroBlockHeader();
 
-    /// Constructor for loading existing microblock header from a byte stream.
-    MicroBlockHeader(const std::vector<unsigned char>& src,
-                     unsigned int offset);
+  /// Constructor for loading existing microblock header from a byte stream.
+  MicroBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Constructor with predefined member values.
-    MicroBlockHeader(const uint8_t type, const uint32_t version,
-                     const uint32_t shardId,
-                     const boost::multiprecision::uint256_t& gasLimit,
-                     const boost::multiprecision::uint256_t& gasUsed,
-                     const BlockHash& prevHash, const uint64_t& blockNum,
-                     const boost::multiprecision::uint256_t& timestamp,
-                     const TxnHash& txRootHash, const uint32_t numTxs,
-                     const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                     const BlockHash& dsBlockHeader,
-                     const StateHash& stateDeltaHash,
-                     const TxnHash& tranReceiptHash);
+  /// Constructor with predefined member values.
+  MicroBlockHeader(const uint8_t type, const uint32_t version,
+                   const uint32_t shardId,
+                   const boost::multiprecision::uint256_t& gasLimit,
+                   const boost::multiprecision::uint256_t& gasUsed,
+                   const BlockHash& prevHash, const uint64_t& blockNum,
+                   const boost::multiprecision::uint256_t& timestamp,
+                   const TxnHash& txRootHash, const uint32_t numTxs,
+                   const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+                   const BlockHash& dsBlockHeader,
+                   const StateHash& stateDeltaHash,
+                   const TxnHash& tranReceiptHash);
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so no need to add Doxygen tags for now
-    const uint8_t& GetType() const;
-    const uint32_t& GetVersion() const;
-    const uint32_t& GetShardId() const;
-    const boost::multiprecision::uint256_t& GetGasLimit() const;
-    const boost::multiprecision::uint256_t& GetGasUsed() const;
-    const BlockHash& GetPrevHash() const;
-    const uint64_t& GetBlockNum() const;
-    const boost::multiprecision::uint256_t& GetTimestamp() const;
-    const uint32_t& GetNumTxs() const;
-    const PubKey& GetMinerPubKey() const;
-    const uint64_t& GetDSBlockNum() const;
-    const BlockHash& GetDSBlockHeader() const;
-    const TxnHash& GetTxRootHash() const;
-    const StateHash& GetStateDeltaHash() const;
-    const TxnHash& GetTranReceiptHash() const;
-    const MicroBlockHashSet& GetHash() const;
+  // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so
+  // no need to add Doxygen tags for now
+  const uint8_t& GetType() const;
+  const uint32_t& GetVersion() const;
+  const uint32_t& GetShardId() const;
+  const boost::multiprecision::uint256_t& GetGasLimit() const;
+  const boost::multiprecision::uint256_t& GetGasUsed() const;
+  const BlockHash& GetPrevHash() const;
+  const uint64_t& GetBlockNum() const;
+  const boost::multiprecision::uint256_t& GetTimestamp() const;
+  const uint32_t& GetNumTxs() const;
+  const PubKey& GetMinerPubKey() const;
+  const uint64_t& GetDSBlockNum() const;
+  const BlockHash& GetDSBlockHeader() const;
+  const TxnHash& GetTxRootHash() const;
+  const StateHash& GetStateDeltaHash() const;
+  const TxnHash& GetTranReceiptHash() const;
+  const MicroBlockHashSet& GetHash() const;
 
-    // Operators
-    bool operator==(const MicroBlockHeader& header) const;
-    bool operator<(const MicroBlockHeader& header) const;
-    bool operator>(const MicroBlockHeader& header) const;
+  // Operators
+  bool operator==(const MicroBlockHeader& header) const;
+  bool operator<(const MicroBlockHeader& header) const;
+  bool operator>(const MicroBlockHeader& header) const;
 };
 
-#endif // __MICROBLOCKHEADER_H__
+#endif  // __MICROBLOCKHEADER_H__

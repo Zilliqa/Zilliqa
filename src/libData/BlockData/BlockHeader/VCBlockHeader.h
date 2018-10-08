@@ -31,76 +31,80 @@
 #include "libNetwork/PeerStore.h"
 
 /// Stores information on the header part of the VC block.
-class VCBlockHeader : public BlockHeaderBase
-{
-    uint64_t m_VieWChangeDSEpochNo;
-    uint64_t m_VieWChangeEpochNo;
-    unsigned char m_ViewChangeState;
-    uint32_t m_CandidateLeaderIndex;
-    Peer m_CandidateLeaderNetworkInfo;
-    PubKey m_CandidateLeaderPubKey;
-    uint32_t m_VCCounter;
-    boost::multiprecision::uint256_t m_Timestamp;
+class VCBlockHeader : public BlockHeaderBase {
+  uint64_t m_VieWChangeDSEpochNo;
+  uint64_t m_VieWChangeEpochNo;
+  unsigned char m_ViewChangeState;
+  uint32_t m_CandidateLeaderIndex;
+  Peer m_CandidateLeaderNetworkInfo;
+  PubKey m_CandidateLeaderPubKey;
+  uint32_t m_VCCounter;
+  boost::multiprecision::uint256_t m_Timestamp;
 
-public:
-    static const unsigned int SIZE = sizeof(uint64_t) + sizeof(uint64_t)
-        + sizeof(unsigned char) + sizeof(uint32_t) + IP_SIZE + PORT_SIZE
-        + PUB_KEY_SIZE + sizeof(uint32_t) + UINT256_SIZE;
+ public:
+  static const unsigned int SIZE = sizeof(uint64_t) + sizeof(uint64_t) +
+                                   sizeof(unsigned char) + sizeof(uint32_t) +
+                                   IP_SIZE + PORT_SIZE + PUB_KEY_SIZE +
+                                   sizeof(uint32_t) + UINT256_SIZE;
 
-    /// Default constructor.
-    VCBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
+  /// Default constructor.
+  VCBlockHeader();  // creates a dummy invalid placeholder BlockHeader --
+                    // blocknum is maxsize of uint256
 
-    /// Constructor for loading VC block header information from a byte stream.
-    VCBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Constructor for loading VC block header information from a byte stream.
+  VCBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Constructor with specified VC block header parameters.
-    VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
-                  const uint64_t& viewChangeEpochNo,
-                  const unsigned char viewChangeState,
-                  const uint32_t expectedCandidateLeaderIndex,
-                  const Peer& candidateLeaderNetworkInfo,
-                  const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
-                  const boost::multiprecision::uint256_t& timestamp);
+  /// Constructor with specified VC block header parameters.
+  VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
+                const uint64_t& viewChangeEpochNo,
+                const unsigned char viewChangeState,
+                const uint32_t expectedCandidateLeaderIndex,
+                const Peer& candidateLeaderNetworkInfo,
+                const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
+                const boost::multiprecision::uint256_t& timestamp);
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Returns the DS Epoch number where view change happen
-    const uint64_t& GetVieWChangeDSEpochNo() const;
+  /// Returns the DS Epoch number where view change happen
+  const uint64_t& GetVieWChangeDSEpochNo() const;
 
-    /// Returns the Epoch number (Total nums of final block) where view change happen
-    const uint64_t& GetViewChangeEpochNo() const;
+  /// Returns the Epoch number (Total nums of final block) where view change
+  /// happen
+  const uint64_t& GetViewChangeEpochNo() const;
 
-    /// Return the candidate leader ds state when view change happen
-    unsigned char GetViewChangeState() const;
+  /// Return the candidate leader ds state when view change happen
+  unsigned char GetViewChangeState() const;
 
-    /// Return index of candidate leader
-    uint32_t GetCandidateLeaderIndex() const;
+  /// Return index of candidate leader
+  uint32_t GetCandidateLeaderIndex() const;
 
-    /// Return the IP and port of candidate (at the point where view change happen)
-    const Peer& GetCandidateLeaderNetworkInfo() const;
+  /// Return the IP and port of candidate (at the point where view change
+  /// happen)
+  const Peer& GetCandidateLeaderNetworkInfo() const;
 
-    /// Return pub key of candidate leader
-    const PubKey& GetCandidateLeaderPubKey() const;
+  /// Return pub key of candidate leader
+  const PubKey& GetCandidateLeaderPubKey() const;
 
-    /// Return the number of times view change has happened for the particular epoch and state
-    uint32_t GetViewChangeCounter() const;
+  /// Return the number of times view change has happened for the particular
+  /// epoch and state
+  uint32_t GetViewChangeCounter() const;
 
-    /// Return the timestamp when this VC block is generated by the proposer
-    const boost::multiprecision::uint256_t& GetTimeStamp() const;
+  /// Return the timestamp when this VC block is generated by the proposer
+  const boost::multiprecision::uint256_t& GetTimeStamp() const;
 
-    /// Equality operator.
-    bool operator==(const VCBlockHeader& header) const;
+  /// Equality operator.
+  bool operator==(const VCBlockHeader& header) const;
 
-    /// Less-than comparison operator.
-    bool operator<(const VCBlockHeader& header) const;
+  /// Less-than comparison operator.
+  bool operator<(const VCBlockHeader& header) const;
 
-    /// Greater-than comparison operator.
-    bool operator>(const VCBlockHeader& header) const;
+  /// Greater-than comparison operator.
+  bool operator>(const VCBlockHeader& header) const;
 };
 
-#endif // __VCBLOCKHEADER_H__
+#endif  // __VCBLOCKHEADER_H__

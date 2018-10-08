@@ -17,6 +17,8 @@
  * program files.
  */
 
+#include <array>
+#include <string>
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
@@ -24,8 +26,6 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
-#include <array>
-#include <string>
 
 #define BOOST_TEST_MODULE accounttest
 #define BOOST_TEST_DYN_LINK
@@ -33,57 +33,57 @@
 
 BOOST_AUTO_TEST_SUITE(accounttest)
 
-BOOST_AUTO_TEST_CASE(test1)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test1) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
 
-    ContractStorage::GetContractStorage().GetStateDB().ResetDB();
+  ContractStorage::GetContractStorage().GetStateDB().ResetDB();
 
-    Account acc1(100, 0);
+  Account acc1(100, 0);
 
-    std::vector<unsigned char> code = dev::h256::random().asBytes();
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    sha2.Update(code);
-    dev::h256 hash = dev::h256(sha2.Finalize());
-    acc1.SetCode(code);
-    // (void)hash;
+  std::vector<unsigned char> code = dev::h256::random().asBytes();
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(code);
+  dev::h256 hash = dev::h256(sha2.Finalize());
+  acc1.SetCode(code);
+  // (void)hash;
 
-    acc1.IncreaseBalance(10);
-    acc1.DecreaseBalance(120);
-    LOG_GENERAL(INFO, "Account1 balance: " << acc1.GetBalance());
+  acc1.IncreaseBalance(10);
+  acc1.DecreaseBalance(120);
+  LOG_GENERAL(INFO, "Account1 balance: " << acc1.GetBalance());
 
-    std::vector<unsigned char> message1;
-    acc1.Serialize(message1, 0);
+  std::vector<unsigned char> message1;
+  acc1.Serialize(message1, 0);
 
-    LOG_PAYLOAD(INFO, "Account1 serialized", message1,
-                Logger::MAX_BYTES_TO_DISPLAY)
+  LOG_PAYLOAD(INFO, "Account1 serialized", message1,
+              Logger::MAX_BYTES_TO_DISPLAY)
 
-    Account acc2(message1, 0);
+  Account acc2(message1, 0);
 
-    std::vector<unsigned char> message2;
-    acc2.Serialize(message2, 0);
-    LOG_PAYLOAD(INFO, "Account2 serialized", message2,
-                Logger::MAX_BYTES_TO_DISPLAY);
+  std::vector<unsigned char> message2;
+  acc2.Serialize(message2, 0);
+  LOG_PAYLOAD(INFO, "Account2 serialized", message2,
+              Logger::MAX_BYTES_TO_DISPLAY);
 
-    boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
-    LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
-    BOOST_CHECK_MESSAGE(acc2Balance == 110,
-                        "expected: " << 100 << " actual: " << acc2Balance
-                                     << "\n");
-    // BOOST_CHECK_MESSAGE(acc2.GetStorageRoot()
-    //                         == dev::h256("57136f0a3d87e187624c0adb30ff2fbdcf47a"
-    //                                      "c9613b1ba46b870e57fa3b5f89c"),
-    //                     "expected: "
-    //                         << "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
-    //                            "6b870e57fa3b5f89c"
-    //                         << " actual: " << acc2.GetStorageRoot() << "\n");
-    BOOST_CHECK_MESSAGE(
-        acc2.GetCodeHash() == hash,
-        "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
+  boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
+  LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
+  BOOST_CHECK_MESSAGE(acc2Balance == 110, "expected: " << 100 << " actual: "
+                                                       << acc2Balance << "\n");
+  // BOOST_CHECK_MESSAGE(acc2.GetStorageRoot()
+  //                         ==
+  //                         dev::h256("57136f0a3d87e187624c0adb30ff2fbdcf47a"
+  //                                      "c9613b1ba46b870e57fa3b5f89c"),
+  //                     "expected: "
+  //                         <<
+  //                         "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
+  //                            "6b870e57fa3b5f89c"
+  //                         << " actual: " << acc2.GetStorageRoot() << "\n");
+  BOOST_CHECK_MESSAGE(
+      acc2.GetCodeHash() == hash,
+      "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -20,55 +20,55 @@
 #ifndef __SWINFO_H__
 #define __SWINFO_H__
 
-#include "common/Serializable.h"
 #include <stdint.h>
+#include "common/Serializable.h"
 
-class SWInfo : public Serializable
-{
-    uint32_t m_major;
-    uint32_t m_minor;
-    uint32_t m_fix;
-    uint64_t m_upgradeDS;
-    uint32_t m_commit;
+class SWInfo : public Serializable {
+  uint32_t m_major;
+  uint32_t m_minor;
+  uint32_t m_fix;
+  uint64_t m_upgradeDS;
+  uint32_t m_commit;
 
-public:
-    static const unsigned int SIZE = sizeof(uint32_t) + sizeof(uint32_t)
-        + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t);
+ public:
+  static const unsigned int SIZE = sizeof(uint32_t) + sizeof(uint32_t) +
+                                   sizeof(uint32_t) + sizeof(uint64_t) +
+                                   sizeof(uint32_t);
 
-    /// Default constructor for uninitialized version information.
-    SWInfo();
+  /// Default constructor for uninitialized version information.
+  SWInfo();
 
-    /// Constructor.
-    SWInfo(const uint32_t& major, const uint32_t& minor, const uint32_t& fix,
-           const uint64_t& upgradeDS, const uint32_t& commit);
+  /// Constructor.
+  SWInfo(const uint32_t& major, const uint32_t& minor, const uint32_t& fix,
+         const uint64_t& upgradeDS, const uint32_t& commit);
 
-    /// Destructor.
-    ~SWInfo();
+  /// Destructor.
+  ~SWInfo();
 
-    /// Copy constructor.
-    SWInfo(const SWInfo&);
+  /// Copy constructor.
+  SWInfo(const SWInfo&);
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Less-than comparison operator.
-    bool operator<(const SWInfo& r) const;
+  /// Less-than comparison operator.
+  bool operator<(const SWInfo& r) const;
 
-    /// Greater-than comparison operator.
-    bool operator>(const SWInfo& r) const;
+  /// Greater-than comparison operator.
+  bool operator>(const SWInfo& r) const;
 
-    /// Equality operator.
-    bool operator==(const SWInfo& r) const;
+  /// Equality operator.
+  bool operator==(const SWInfo& r) const;
 
-    /// Unequality operator.
-    bool operator!=(const SWInfo& r) const;
+  /// Unequality operator.
+  bool operator!=(const SWInfo& r) const;
 
-    /// Returns the upgrade DS block number.
-    const uint64_t& GetUpgradeDS() const;
+  /// Returns the upgrade DS block number.
+  const uint64_t& GetUpgradeDS() const;
 };
 
-#endif // __SWINFO_H__
+#endif  // __SWINFO_H__

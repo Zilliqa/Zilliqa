@@ -17,25 +17,22 @@
  * program files.
  */
 
+#include <vector>
 #include "BaseDB.h"
 #include "common/Serializable.h"
-#include <vector>
 
-class ArchiveDB : public BaseDB
-{
-public:
-    ArchiveDB(std::string dbname, std::string txn, std::string txBlock,
-              std::string dsBlock, std::string accountState)
-        : BaseDB(dbname, txn, txBlock, dsBlock, accountState)
-    {
-    }
-    bool InsertTxn(const TransactionWithReceipt& txn);
-    bool InsertTxBlock(const TxBlock& txblock);
-    bool InsertDSBlock(const DSBlock& dsblock);
-    bool InsertSerializable(const Serializable& sz, const std::string& index,
-                            const std::string& collectionName);
-    bool InsertAccount(const Address& addr, const Account& acc);
-    bool GetSerializable(std::vector<unsigned char>& retVec,
-                         const std::string& index,
-                         const std::string& collectionName);
+class ArchiveDB : public BaseDB {
+ public:
+  ArchiveDB(std::string dbname, std::string txn, std::string txBlock,
+            std::string dsBlock, std::string accountState)
+      : BaseDB(dbname, txn, txBlock, dsBlock, accountState) {}
+  bool InsertTxn(const TransactionWithReceipt& txn);
+  bool InsertTxBlock(const TxBlock& txblock);
+  bool InsertDSBlock(const DSBlock& dsblock);
+  bool InsertSerializable(const Serializable& sz, const std::string& index,
+                          const std::string& collectionName);
+  bool InsertAccount(const Address& addr, const Account& acc);
+  bool GetSerializable(std::vector<unsigned char>& retVec,
+                       const std::string& index,
+                       const std::string& collectionName);
 };

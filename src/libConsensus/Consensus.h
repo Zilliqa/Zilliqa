@@ -24,4 +24,4 @@
 #include "ConsensusCommon.h"
 #include "ConsensusLeader.h"
 
-#endif // __CONSENSUS_H__
+#endif  // __CONSENSUS_H__

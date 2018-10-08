@@ -20,52 +20,42 @@
 #ifndef __DETACHEDFUNCTION_H__
 #define __DETACHEDFUNCTION_H__
 
-#include "libUtils/Logger.h"
 #include <functional>
 #include <thread>
+#include "libUtils/Logger.h"
 
-/// Utility class for executing a function in one or more separate detached threads.
-class DetachedFunction
-{
-public:
-    /// Retry limit for launching the detached threads.
-    const static int MaxAttempt = 3;
+/// Utility class for executing a function in one or more separate detached
+/// threads.
+class DetachedFunction {
+ public:
+  /// Retry limit for launching the detached threads.
+  const static int MaxAttempt = 3;
 
-    /// Template constructor.
-    template<class callable, class... arguments>
-    DetachedFunction(int num_threads, callable&& f, arguments&&... args)
-    {
-        std::function<typename std::result_of<callable(arguments...)>::type()>
-            task(std::bind(std::forward<callable>(f),
-                           std::forward<arguments>(args)...));
+  /// Template constructor.
+  template <class callable, class... arguments>
+  DetachedFunction(int num_threads, callable&& f, arguments&&... args) {
+    std::function<typename std::result_of<callable(arguments...)>::type()> task(
+        std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
 
-        bool attemp_flag = false;
+    bool attemp_flag = false;
 
-        for (int i = 0; i < num_threads; i++)
-        {
-            for (int j = 0; j < MaxAttempt; j++)
-            {
-                try
-                {
-                    if (!attemp_flag)
-                    {
-                        std::thread(task)
-                            .detach(); // attempt to detach a non-thread
-                        attemp_flag = true;
-                    }
-                }
-                catch (const std::system_error& e)
-                {
-                    LOG_GENERAL(
-                        WARNING,
-                        j << " times tried. Caught system_error with code "
-                          << e.code() << " meaning " << e.what() << '\n');
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                }
-            }
-            attemp_flag = false;
+    for (int i = 0; i < num_threads; i++) {
+      for (int j = 0; j < MaxAttempt; j++) {
+        try {
+          if (!attemp_flag) {
+            std::thread(task).detach();  // attempt to detach a non-thread
+            attemp_flag = true;
+          }
+        } catch (const std::system_error& e) {
+          LOG_GENERAL(WARNING,
+                      j << " times tried. Caught system_error with code "
+                        << e.code() << " meaning " << e.what() << '\n');
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
+      }
+      attemp_flag = false;
     }
+  }
 };
 
-#endif // __DETACHEDFUNCTION_H__
+#endif  // __DETACHEDFUNCTION_H__

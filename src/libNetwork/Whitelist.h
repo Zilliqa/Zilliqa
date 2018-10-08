@@ -35,50 +35,49 @@
 #include "Peer.h"
 #include "libCrypto/Schnorr.h"
 
-class Whitelist
-{
-    Whitelist();
-    ~Whitelist();
+class Whitelist {
+  Whitelist();
+  ~Whitelist();
 
-    // Singleton should not implement these
-    Whitelist(Whitelist const&) = delete;
-    void operator=(Whitelist const&) = delete;
+  // Singleton should not implement these
+  Whitelist(Whitelist const&) = delete;
+  void operator=(Whitelist const&) = delete;
 
-    // DS whitelist
-    std::mutex m_mutexDSWhiteList;
-    std::unordered_map<Peer, PubKey> m_DSWhiteList;
+  // DS whitelist
+  std::mutex m_mutexDSWhiteList;
+  std::unordered_map<Peer, PubKey> m_DSWhiteList;
 
-    // Shard whitelist
-    std::mutex m_mutexShardWhiteList;
-    std::vector<PubKey> m_ShardWhiteList;
+  // Shard whitelist
+  std::mutex m_mutexShardWhiteList;
+  std::vector<PubKey> m_ShardWhiteList;
 
-    //IPFilter
-    std::mutex m_mutexIPExclusion;
-    std::vector<std::pair<boost::multiprecision::uint128_t,
-                          boost::multiprecision::uint128_t>>
-        m_IPExclusionRange;
+  // IPFilter
+  std::mutex m_mutexIPExclusion;
+  std::vector<std::pair<boost::multiprecision::uint128_t,
+                        boost::multiprecision::uint128_t>>
+      m_IPExclusionRange;
 
-public:
-    /// Returns the singleton Whitelist instance.
-    static Whitelist& GetInstance();
-    void UpdateDSWhitelist();
-    void UpdateShardWhitelist();
+ public:
+  /// Returns the singleton Whitelist instance.
+  static Whitelist& GetInstance();
+  void UpdateDSWhitelist();
+  void UpdateShardWhitelist();
 
-    void AddToDSWhitelist(const Peer& whiteListPeer,
-                          const PubKey& whiteListPubKey);
-    bool IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
-                             const PubKey& nodePubKey);
-    bool IsPubkeyInShardWhiteList(const PubKey& nodePubKey);
+  void AddToDSWhitelist(const Peer& whiteListPeer,
+                        const PubKey& whiteListPubKey);
+  bool IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
+                           const PubKey& nodePubKey);
+  bool IsPubkeyInShardWhiteList(const PubKey& nodePubKey);
 
-    //To check if IP is a valid v4 IP and not belongs to exclusion list
-    bool IsValidIP(const boost::multiprecision::uint128_t& ip_addr);
+  // To check if IP is a valid v4 IP and not belongs to exclusion list
+  bool IsValidIP(const boost::multiprecision::uint128_t& ip_addr);
 
-    //To add limits to the exclusion list
-    void AddToExclusionList(const boost::multiprecision::uint128_t& ft,
-                            const boost::multiprecision::uint128_t& sd);
-    void AddToExclusionList(const std::string& ft, const std::string& sd);
-    //Intialize
-    void Init();
+  // To add limits to the exclusion list
+  void AddToExclusionList(const boost::multiprecision::uint128_t& ft,
+                          const boost::multiprecision::uint128_t& sd);
+  void AddToExclusionList(const std::string& ft, const std::string& sd);
+  // Intialize
+  void Init();
 };
 
-#endif // __WHITELIST_H__
+#endif  // __WHITELIST_H__

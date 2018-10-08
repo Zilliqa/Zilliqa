@@ -28,22 +28,21 @@
 #include "libData/AccountData/Address.h"
 #include "libMediator/Mediator.h"
 
-class Retriever
-{
-public:
-    Retriever(Mediator& mediator);
+class Retriever {
+ public:
+  Retriever(Mediator& mediator);
 
-    void RetrieveDSBlocks(bool& result);
-    void RetrieveTxBlocks(bool& result);
-    bool RetrieveStates();
-    bool ValidateStates();
-    bool CleanExtraTxBodies();
-    void CleanAll();
+  void RetrieveDSBlocks(bool& result);
+  void RetrieveTxBlocks(bool& result);
+  bool RetrieveStates();
+  bool ValidateStates();
+  bool CleanExtraTxBodies();
+  void CleanAll();
 
-private:
-    Mediator& m_mediator;
+ private:
+  Mediator& m_mediator;
 
-    bool hasIncompletedDS = false;
+  bool hasIncompletedDS = false;
 };
 
-#endif // __RETRIEVER_H__
+#endif  // __RETRIEVER_H__
