@@ -988,15 +988,39 @@ bool Node::ProcessForwardTransactionCore(const ForwardedTxnEntry& entry) {
 
   LOG_GENERAL(INFO, entry);
 
-  vector<TxnHash> txnHashesInForwardedMessage;
+  vector<TxnHash> txns_order;
+  unordered_map<TxnHash, TransactionWithReceipt> txns_map;
+  TxnHash txRootHash;
+  TxnHash txReceiptHash;
 
   for (const auto& txr : entry.m_transactions) {
-    txnHashesInForwardedMessage.emplace_back(txr.GetTransaction().GetTranID());
+    txns_order.emplace_back(txr.GetTransaction().GetTranID());
+    txns_map.emplace(txr.GetTransaction().GetTranID(), txr);
   }
 
-  if (ComputeTransactionsRoot(txnHashesInForwardedMessage) !=
-      entry.m_hash.m_txRootHash) {
-    LOG_GENERAL(WARNING, "ComputeTransactionsRoot FAILED");
+  txRootHash = ComputeTransactionsRoot(txns_order);
+
+  if (txRootHash != entry.m_hash.m_txRootHash) {
+    LOG_GENERAL(WARNING, "TxRoot computed doesn't match"
+                             << endl
+                             << "received: " << entry.m_hash.m_txRootHash
+                             << endl
+                             << "calculated: " << txRootHash);
+    return false;
+  }
+
+  if (!TransactionWithReceipt::ComputeTransactionReceiptsHash(
+          txns_order, txns_map, txReceiptHash)) {
+    LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
+    return false;
+  }
+
+  if (txReceiptHash != entry.m_hash.m_tranReceiptHash) {
+    LOG_GENERAL(WARNING, "TxRoot computed doesn't match"
+                             << endl
+                             << "received: " << entry.m_hash.m_tranReceiptHash
+                             << endl
+                             << "calculated: " << txReceiptHash);
     return false;
   }
 
