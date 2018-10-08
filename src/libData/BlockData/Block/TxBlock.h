@@ -49,9 +49,9 @@ class TxBlock : public BlockBase {
   TxBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Constructor with specified Tx block parameters.
-  TxBlock(TxBlockHeader&& header, std::vector<bool>&& isMicroBlockEmpty,
-          std::vector<MicroBlockHashSet>&& microBlockHashes,
-          std::vector<uint32_t>&& shardIds, CoSignatures&& cosigs);
+  TxBlock(TxBlockHeader&& header, const std::vector<bool>& isMicroBlockEmpty,
+          const std::vector<MicroBlockHashSet>& microBlockHashes,
+          const std::vector<uint32_t>& shardIds, CoSignatures&& cosigs);
 
   uint32_t SerializeIsMicroBlockEmpty() const;
 
