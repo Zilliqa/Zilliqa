@@ -110,22 +110,27 @@
         <peer>
             <ip>127.0.0.1</ip>
             <port>4001</port>
+            <pubkey/>
         </peer>
         <peer>
             <ip>127.0.0.1</ip>
             <port>4002</port>
+            <pubkey/>
         </peer>
         <peer>
             <ip>127.0.0.1</ip>
             <port>4003</port>
+            <pubkey/>
         </peer>
         <peer>
             <ip>127.0.0.1</ip>
             <port>4004</port>
+            <pubkey/>
         </peer>
         <peer>
             <ip>127.0.0.1</ip>
             <port>4005</port>
+            <pubkey/>
         </peer>
     </lookups>
     <gpu>

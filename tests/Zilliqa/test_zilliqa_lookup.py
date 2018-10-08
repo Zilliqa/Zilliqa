@@ -28,6 +28,7 @@ import xml.etree.cElementTree as ET
 
 NODE_LISTEN_PORT = 4001
 LOCAL_RUN_FOLDER = './lookup_local_run/'
+LOCAL_FOLDER = "./"
 
 GENTXN_WORKING_DIR = os.path.join(LOCAL_RUN_FOLDER, 'gentxn')
 
@@ -124,6 +125,16 @@ def run_gentxn(batch=100):
         print("Waiting gentxn for creating {} batches".format(batch))
         os.system('cd ' + GENTXN_WORKING_DIR + '; ./gentxn 0 {}'.format(batch))
 
+def patch_lookup_pubkey(filepath, keypairs, count):
+        root = ET.parse(filepath).getroot()
+        td = root.find('lookups')
+        elems = td.findall('peer/pubkey')
+        for x in range(0, count):
+            keypair = keypairs[x].split(" ")
+            elems[x].text = keypair[0]
+        tree = ET.ElementTree(root)
+        tree.write(filepath)
+
 def run_start():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
@@ -137,6 +148,7 @@ def run_start():
 		keypairs.append(output)
 	keypairs.sort()
 
+	patch_lookup_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
 	nodes = ET.Element("nodes")
 
 	# Store sorted keys list in text file

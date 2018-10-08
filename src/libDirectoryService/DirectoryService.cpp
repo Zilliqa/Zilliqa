@@ -206,9 +206,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     vector<unsigned char> setDSBootstrapNodeMessage = {
         MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
-    if (!Messenger::SetLookupSetDSInfoFromSeed(setDSBootstrapNodeMessage,
-                                               MessageOffset::BODY,
-                                               *m_mediator.m_DSCommittee)) {
+    if (!Messenger::SetLookupSetDSInfoFromSeed(
+            setDSBootstrapNodeMessage, MessageOffset::BODY,
+            m_mediator.m_selfKey, *m_mediator.m_DSCommittee)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
