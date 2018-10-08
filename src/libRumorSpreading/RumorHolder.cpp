@@ -285,6 +285,12 @@ std::pair<std::vector<int>, std::vector<Message>> RumorHolder::advanceRound() {
   std::vector<Message> pushMessages;
   for (auto& r : m_rumors) {
     RumorStateMachine& stateMach = r.second;
+
+    if (stateMach.isOld())
+    {
+      continue;
+    }
+
     stateMach.advanceRound(m_peersInCurrentRound);
     if (!stateMach.isOld()) {
       pushMessages.emplace_back(
