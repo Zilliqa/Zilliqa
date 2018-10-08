@@ -213,7 +213,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         {
             if (!this->TransferBalance(fromAddr, toAddr, amount))
             {
-                this->IncreaseNonce(fromAddr);
+                if (transaction.GetGasLimit() < gasRemained)
+                {
+                    LOG_GENERAL(
+                        WARNING,
+                        "Cumulative Gas calculated Underflow, gasLimit: "
+                            << transaction.GetGasLimit() << " gasRemained: "
+                            << gasRemained << " Must be something wrong!");
+                    return false;
+                }
                 receipt.SetResult(false);
                 receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
                 receipt.update();
@@ -333,10 +341,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
     }
 
-    this->IncreaseNonce(fromAddr);
-
     receipt.SetResult(true);
     receipt.update();
+
+    this->IncreaseNonce(fromAddr);
 
     return true;
 }
