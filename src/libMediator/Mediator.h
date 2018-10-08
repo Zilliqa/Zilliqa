@@ -132,7 +132,7 @@ class Mediator {
 
   bool GetIsVacuousEpoch();
 
-  uint32_t GetShardSize(const bool& useShardStr) const;
+  uint32_t GetShardSize(const bool& useShardStructure) const;
 };
 
 #endif  // __MEDIATOR_H__
