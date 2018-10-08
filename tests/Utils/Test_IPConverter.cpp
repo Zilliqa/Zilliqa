@@ -17,9 +17,9 @@
  * program files.
  */
 
+#include <string>
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
-#include <string>
 
 #define BOOST_TEST_MODULE ipconverter
 #define BOOST_TEST_DYN_LINK
@@ -30,24 +30,22 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(ipconverter)
 
-BOOST_AUTO_TEST_CASE(test_IPNumericaltoString)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test_IPNumericaltoString) {
+  INIT_STDOUT_LOGGER();
 
-    std::string result = IPConverter::ToStrFromNumericalIP(
-        (boost::multiprecision::uint128_t)16777343);
-    BOOST_CHECK_MESSAGE(result == "127.0.0.1",
-                        "Expected: 127.0.0.1. Result: " + result);
+  std::string result = IPConverter::ToStrFromNumericalIP(
+      (boost::multiprecision::uint128_t)16777343);
+  BOOST_CHECK_MESSAGE(result == "127.0.0.1",
+                      "Expected: 127.0.0.1. Result: " + result);
 }
 
-BOOST_AUTO_TEST_CASE(test_IPStringToNumerical)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test_IPStringToNumerical) {
+  INIT_STDOUT_LOGGER();
 
-    boost::multiprecision::uint128_t result
-        = IPConverter::ToNumericalIPFromStr("127.0.0.1");
-    BOOST_CHECK_MESSAGE(result == 16777343,
-                        "Expected: 16777343. Result: " + string(result));
+  boost::multiprecision::uint128_t result =
+      IPConverter::ToNumericalIPFromStr("127.0.0.1");
+  BOOST_CHECK_MESSAGE(result == 16777343,
+                      "Expected: 16777343. Result: " + string(result));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

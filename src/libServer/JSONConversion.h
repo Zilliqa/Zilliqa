@@ -20,37 +20,37 @@
 #ifndef __JSONCONVERSION_H__
 #define __JSONCONVERSION_H__
 
-#include <array>
 #include <json/json.h>
+#include <array>
 #include <vector>
 
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
-class JSONConversion
-{
-public:
-    //converts an bool array to JSON array containing 1 and 0
-    static const Json::Value convertBoolArraytoJson(const std::vector<bool>& v);
-    //converts a TxnHash array to JSON array containing TxnHash strings
-    static const Json::Value
-    convertTxnHashArraytoJson(const std::vector<TxnHash>& v);
-    static const Json::Value
-    convertTxnHashArraytoJson(const std::vector<MicroBlockHashSet>& v);
-    //converts a MicroBlockHashSet to JSON array containing TxnHash and StateDeltaHash strings
-    //do consider replacing convertTxnHashArraytoJson with this
-    static const Json::Value
-    convertMicroBlockHashSettoJson(const std::vector<MicroBlockHashSet>& v);
-    //converts a TxBlock to JSON object
-    static const Json::Value convertTxBlocktoJson(const TxBlock& txblock);
-    //converts a DSBlocck to JSON object
-    static const Json::Value convertDSblocktoJson(const DSBlock& dsblock);
-    //converts a JSON to Tx
-    static const Transaction convertJsontoTx(const Json::Value& _json);
-    //check if a Json is a valid Tx
-    static bool checkJsonTx(const Json::Value& _json);
-    //Convert a Tx to JSON object
-    static const Json::Value convertTxtoJson(const TransactionWithReceipt& twr);
+class JSONConversion {
+ public:
+  // converts an bool array to JSON array containing 1 and 0
+  static const Json::Value convertBoolArraytoJson(const std::vector<bool>& v);
+  // converts a TxnHash array to JSON array containing TxnHash strings
+  static const Json::Value convertTxnHashArraytoJson(
+      const std::vector<TxnHash>& v);
+  static const Json::Value convertTxnHashArraytoJson(
+      const std::vector<MicroBlockHashSet>& v);
+  // converts a MicroBlockHashSet to JSON array containing TxnHash and
+  // StateDeltaHash strings do consider replacing convertTxnHashArraytoJson with
+  // this
+  static const Json::Value convertMicroBlockHashSettoJson(
+      const std::vector<MicroBlockHashSet>& v);
+  // converts a TxBlock to JSON object
+  static const Json::Value convertTxBlocktoJson(const TxBlock& txblock);
+  // converts a DSBlocck to JSON object
+  static const Json::Value convertDSblocktoJson(const DSBlock& dsblock);
+  // converts a JSON to Tx
+  static const Transaction convertJsontoTx(const Json::Value& _json);
+  // check if a Json is a valid Tx
+  static bool checkJsonTx(const Json::Value& _json);
+  // Convert a Tx to JSON object
+  static const Json::Value convertTxtoJson(const TransactionWithReceipt& twr);
 };
 
-#endif // __JSONCONVERSION_H__
+#endif  // __JSONCONVERSION_H__

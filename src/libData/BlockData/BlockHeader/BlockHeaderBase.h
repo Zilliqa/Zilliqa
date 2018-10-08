@@ -30,17 +30,16 @@
 #include "libData/AccountData/Transaction.h"
 
 /// [TODO] Base class for all supported block header types
-class BlockHeaderBase : public Serializable
-{
-protected:
-    // TODO: pull out all common code from ds, micro and tx block header
+class BlockHeaderBase : public Serializable {
+ protected:
+  // TODO: pull out all common code from ds, micro and tx block header
 
-public:
-    // Constructors
-    BlockHeaderBase();
+ public:
+  // Constructors
+  BlockHeaderBase();
 
-    /// Calculate my hash
-    BlockHash GetMyHash() const;
+  /// Calculate my hash
+  BlockHash GetMyHash() const;
 };
 
-#endif // __BLOCKHEADERBASE_H__
+#endif  // __BLOCKHEADERBASE_H__

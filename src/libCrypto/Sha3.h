@@ -20,8 +20,8 @@
 #ifndef __SHA3_H__
 #define __SHA3_H__
 
-#include "libUtils/Logger.h"
 #include <vector>
+#include "libUtils/Logger.h"
 
 extern void FIPS202_SHA3_256(const unsigned char* input,
                              unsigned int inputByteLen, unsigned char* output);
@@ -29,83 +29,70 @@ extern void FIPS202_SHA3_512(const unsigned char* input,
                              unsigned int inputByteLen, unsigned char* output);
 
 /// List of supported hash variants.
-class HASH_TYPE
-{
-public:
-    static const unsigned int HASH_VARIANT_256 = 256;
-    static const unsigned int HASH_VARIANT_512 = 512;
+class HASH_TYPE {
+ public:
+  static const unsigned int HASH_VARIANT_256 = 256;
+  static const unsigned int HASH_VARIANT_512 = 512;
 };
 
 /// Implements SHA3 hash algorithm.
-template<unsigned int SIZE> class SHA3
-{
-    static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
-    std::vector<unsigned char> output, message;
+template <unsigned int SIZE>
+class SHA3 {
+  static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
+  std::vector<unsigned char> output, message;
 
-public:
-    /// Constructor.
-    SHA3()
-        : output(HASH_OUTPUT_SIZE)
-    {
-        if ((SIZE != HASH_TYPE::HASH_VARIANT_256)
-            && (SIZE != HASH_TYPE::HASH_VARIANT_512))
-        {
-            LOG_GENERAL(WARNING,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
+ public:
+  /// Constructor.
+  SHA3() : output(HASH_OUTPUT_SIZE) {
+    if ((SIZE != HASH_TYPE::HASH_VARIANT_256) &&
+        (SIZE != HASH_TYPE::HASH_VARIANT_512)) {
+      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                                << ": " << __FUNCTION__ << ")");
+    }
+  }
+
+  /// Destructor.
+  ~SHA3() {}
+
+  /// Hash update function.
+  void Update(const std::vector<unsigned char>& input) {
+    if (input.size() <= 0) {
+      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                                << ": " << __FUNCTION__ << ")");
     }
 
-    /// Destructor.
-    ~SHA3() {}
+    message.insert(message.end(), input.begin(), input.end());
+  }
 
-    /// Hash update function.
-    void Update(const std::vector<unsigned char>& input)
-    {
-        if (input.size() <= 0)
-        {
-            LOG_GENERAL(WARNING,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
-
-        message.insert(message.end(), input.begin(), input.end());
+  /// Hash update function.
+  void Update(const std::vector<unsigned char>& input, unsigned int offset,
+              unsigned int size) {
+    if ((offset + size) > input.size()) {
+      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                                << ": " << __FUNCTION__ << ")");
     }
 
-    /// Hash update function.
-    void Update(const std::vector<unsigned char>& input, unsigned int offset,
-                unsigned int size)
-    {
-        if ((offset + size) > input.size())
-        {
-            LOG_GENERAL(WARNING,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__
-                                             << ": " << __FUNCTION__ << ")");
-        }
+    message.insert(message.end(), input.begin() + offset,
+                   input.begin() + offset + size);
+  }
 
-        message.insert(message.end(), input.begin() + offset,
-                       input.begin() + offset + size);
+  /// Resets the algorithm.
+  void Reset() { message.clear(); }
+
+  /// Hash finalize function.
+  std::vector<unsigned char> Finalize() {
+    switch (SIZE) {
+      case 256:
+        FIPS202_SHA3_256(message.data(), message.size(), output.data());
+        break;
+      case 512:
+        FIPS202_SHA3_512(message.data(), message.size(), output.data());
+        break;
+      default:
+        break;
     }
-
-    /// Resets the algorithm.
-    void Reset() { message.clear(); }
-
-    /// Hash finalize function.
-    std::vector<unsigned char> Finalize()
-    {
-        switch (SIZE)
-        {
-        case 256:
-            FIPS202_SHA3_256(message.data(), message.size(), output.data());
-            break;
-        case 512:
-            FIPS202_SHA3_512(message.data(), message.size(), output.data());
-            break;
-        default:
-            break;
-        }
-        return output;
-    }
+    return output;
+  }
 };
 
-#endif // __SHA3_H__
+#endif  // __SHA3_H__

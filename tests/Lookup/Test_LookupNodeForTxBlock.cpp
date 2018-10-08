@@ -45,130 +45,119 @@ using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_SUITE(lookupnodetxblocktest)
 
-void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node)
-{
-    LOG_MARKER();
+void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
+  LOG_MARKER();
 
-    vector<unsigned char> dsblockmsg
-        = {MessageType::NODE, NodeInstructionType::DSBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
+  vector<unsigned char> dsblockmsg = {MessageType::NODE,
+                                      NodeInstructionType::DSBLOCK};
+  unsigned int curr_offset = MessageOffset::BODY;
 
-    BlockHash prevHash1;
+  BlockHash prevHash1;
 
-    for (unsigned int i = 0; i < prevHash1.asArray().size(); i++)
-    {
-        prevHash1.asArray().at(i) = i + 1;
-    }
+  for (unsigned int i = 0; i < prevHash1.asArray().size(); i++) {
+    prevHash1.asArray().at(i) = i + 1;
+  }
 
-    std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
-    std::map<PubKey, Peer> powDSWinners;
-    DSBlock dsblock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0,
-                                  SWInfo(), powDSWinners),
-                    CoSignatures());
+  std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  std::map<PubKey, Peer> powDSWinners;
+  DSBlock dsblock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0,
+                                SWInfo(), powDSWinners),
+                  CoSignatures());
 
-    curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
+  curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
-    dsblockmsg.resize(curr_offset + 32);
-    Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+  dsblockmsg.resize(curr_offset + 32);
+  Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
+  curr_offset += UINT256_SIZE;
 
-    struct sockaddr_in localhost;
-    inet_aton("127.0.0.1", &localhost.sin_addr);
+  struct sockaddr_in localhost;
+  inet_aton("127.0.0.1", &localhost.sin_addr);
 
-    dsblockmsg.resize(curr_offset + 16);
-    Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset,
-                                       (uint128_t)localhost.sin_addr.s_addr,
-                                       UINT128_SIZE);
-    curr_offset += UINT128_SIZE;
+  dsblockmsg.resize(curr_offset + 16);
+  Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset,
+                                     (uint128_t)localhost.sin_addr.s_addr,
+                                     UINT128_SIZE);
+  curr_offset += UINT128_SIZE;
 
-    dsblockmsg.resize(curr_offset + 4);
-    Serializable::SetNumber<uint32_t>(dsblockmsg, curr_offset, (uint32_t)5001,
-                                      4);
-    curr_offset += 4;
+  dsblockmsg.resize(curr_offset + 4);
+  Serializable::SetNumber<uint32_t>(dsblockmsg, curr_offset, (uint32_t)5001, 4);
+  curr_offset += 4;
 
-    P2PComm::GetInstance().SendMessage(lookup_node, dsblockmsg);
+  P2PComm::GetInstance().SendMessage(lookup_node, dsblockmsg);
 }
 
-BOOST_AUTO_TEST_CASE(testTxBlockStoring)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    uint32_t listen_port = 5000;
-    struct in_addr ip_addr;
-    inet_aton("127.0.0.1", &ip_addr);
-    Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
+  uint32_t listen_port = 5000;
+  struct in_addr ip_addr;
+  inet_aton("127.0.0.1", &ip_addr);
+  Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-    SendDSBlockFirstToMatchDSBlockNum(lookup_node);
+  SendDSBlockFirstToMatchDSBlockNum(lookup_node);
 
-    vector<unsigned char> txblockmsg
-        = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
-    unsigned int curr_offset = MessageOffset::BODY;
+  vector<unsigned char> txblockmsg = {MessageType::NODE,
+                                      NodeInstructionType::FINALBLOCK};
+  unsigned int curr_offset = MessageOffset::BODY;
 
-    // 32-byte DS blocknum
-    Serializable::SetNumber<uint256_t>(txblockmsg, curr_offset, 0,
-                                       UINT256_SIZE);
-    curr_offset += UINT256_SIZE;
+  // 32-byte DS blocknum
+  Serializable::SetNumber<uint256_t>(txblockmsg, curr_offset, 0, UINT256_SIZE);
+  curr_offset += UINT256_SIZE;
 
-    // 4-byte consensusid
-    Serializable::SetNumber<uint32_t>(txblockmsg, curr_offset, 0,
-                                      sizeof(uint32_t));
-    curr_offset += sizeof(uint32_t);
+  // 4-byte consensusid
+  Serializable::SetNumber<uint32_t>(txblockmsg, curr_offset, 0,
+                                    sizeof(uint32_t));
+  curr_offset += sizeof(uint32_t);
 
-    // shard-id
-    txblockmsg.resize(curr_offset + 1);
-    Serializable::SetNumber<uint8_t>(txblockmsg, curr_offset, (uint8_t)0, 1);
-    curr_offset += 1;
+  // shard-id
+  txblockmsg.resize(curr_offset + 1);
+  Serializable::SetNumber<uint8_t>(txblockmsg, curr_offset, (uint8_t)0, 1);
+  curr_offset += 1;
 
-    // std::array<unsigned char, TRAN_HASH_SIZE> emptyHash = {0};
+  // std::array<unsigned char, TRAN_HASH_SIZE> emptyHash = {0};
 
-    std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-    TxBlock txblock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
-                                  1, BlockHash(), 0, get_time_as_int(),
-                                  TxnHash(), StateHash(), StateHash(),
-                                  StateHash(), TxnHash(), 0, 5, pubKey1.second,
-                                  0, BlockHash()),
-                    vector<bool>(1), vector<MicroBlockHashSet>(5),
-                    vector<uint32_t>(5), CoSignatures());
+  TxBlock txblock(
+      TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
+                    BlockHash(), 0, get_time_as_int(), TxnHash(), StateHash(),
+                    StateHash(), StateHash(), TxnHash(), 0, 5, pubKey1.second,
+                    0, BlockHash()),
+      vector<bool>(1), vector<MicroBlockHashSet>(5), vector<uint32_t>(5),
+      CoSignatures());
 
-    curr_offset += txblock.Serialize(txblockmsg, curr_offset);
+  curr_offset += txblock.Serialize(txblockmsg, curr_offset);
 
-    P2PComm::GetInstance().SendMessage(lookup_node, txblockmsg);
+  P2PComm::GetInstance().SendMessage(lookup_node, txblockmsg);
 }
 
-BOOST_AUTO_TEST_CASE(testTxBlockRetrieval)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testTxBlockRetrieval) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    long long i = 0;
-    for (; i < 1000000000; i++)
-    {
-        ;
-    }
-    LOG_GENERAL(INFO, i);
+  long long i = 0;
+  for (; i < 1000000000; i++) {
+    ;
+  }
+  LOG_GENERAL(INFO, i);
 
-    uint32_t listen_port = 5000;
-    struct in_addr ip_addr;
-    inet_aton("127.0.0.1", &ip_addr);
-    Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
+  uint32_t listen_port = 5000;
+  struct in_addr ip_addr;
+  inet_aton("127.0.0.1", &ip_addr);
+  Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-    vector<unsigned char> getTxBlockMessage
-        = {MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
+  vector<unsigned char> getTxBlockMessage = {
+      MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
 
-    if (!Messenger::SetLookupGetTxBlockFromSeed(
-            getTxBlockMessage, MessageOffset::BODY, 0, 1, 5000))
-    {
-        LOG_GENERAL(WARNING, "Messenger::SetLookupGetTxBlockFromSeed failed.");
-    }
-    else
-    {
-        P2PComm::GetInstance().SendMessage(lookup_node, getTxBlockMessage);
-    }
+  if (!Messenger::SetLookupGetTxBlockFromSeed(
+          getTxBlockMessage, MessageOffset::BODY, 0, 1, 5000)) {
+    LOG_GENERAL(WARNING, "Messenger::SetLookupGetTxBlockFromSeed failed.");
+  } else {
+    P2PComm::GetInstance().SendMessage(lookup_node, getTxBlockMessage);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

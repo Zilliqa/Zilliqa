@@ -41,410 +41,353 @@
 
 using namespace std;
 
-void DirectoryService::ProcessViewChangeConsensusWhenDone()
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::ProcessViewChangeConsensusWhenDone not "
-                    "expected to be called from LookUp node.");
-        return;
+void DirectoryService::ProcessViewChangeConsensusWhenDone() {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessViewChangeConsensusWhenDone not "
+                "expected to be called from LookUp node.");
+    return;
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "View change consensus is DONE!!!");
+  m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
+
+  unsigned int index = 0;
+  unsigned int count = 0;
+
+  vector<PubKey> keys;
+  for (auto const& kv : *m_mediator.m_DSCommittee) {
+    if (m_pendingVCBlock->GetB2().at(index)) {
+      keys.emplace_back(kv.first);
+      count++;
+    }
+    index++;
+  }
+
+  // Verify cosig against vcblock
+  shared_ptr<PubKey> aggregatedKey = MultiSig::AggregatePubKeys(keys);
+  if (aggregatedKey == nullptr) {
+    LOG_GENERAL(WARNING, "Aggregated key generation failed");
+  }
+
+  vector<unsigned char> message;
+  m_pendingVCBlock->GetHeader().Serialize(message, 0);
+  m_pendingVCBlock->GetCS1().Serialize(message, VCBlockHeader::SIZE);
+  BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
+                          m_pendingVCBlock->GetB1());
+  if (not Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                        m_pendingVCBlock->GetCS2(),
+                                        *aggregatedKey)) {
+    LOG_GENERAL(WARNING, "cosig verification fail");
+    for (auto& kv : keys) {
+      LOG_GENERAL(WARNING, kv);
+    }
+    return;
+  }
+
+  Peer newLeaderNetworkInfo;
+  unsigned char viewChangeState;
+  {
+    lock_guard<mutex> g(m_mutexPendingVCBlock);
+
+    newLeaderNetworkInfo =
+        m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo();
+    viewChangeState = m_pendingVCBlock->GetHeader().GetViewChangeState();
+  }
+
+  // StoreVCBlockToStorage(); TODO
+
+  Peer expectedLeader;
+  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer()) {
+    // I am 0.0.0.0
+    expectedLeader = m_mediator.m_selfPeer;
+  } else {
+    expectedLeader = m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
+  }
+
+  if (expectedLeader == newLeaderNetworkInfo) {
+    if (newLeaderNetworkInfo == m_mediator.m_selfPeer) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "After view change, I am the new leader!");
+      m_mode = PRIMARY_DS;
+    } else {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "After view change, I am ds backup");
+      m_mode = BACKUP_DS;
     }
 
+    // Kick ousted leader and/or faulty candidate leader to the back of the
+    // queue, waiting to be eject at the next ds epoch Suppose X1 - X3 are
+    // faulty ds nodes [X1][X2][X3][N1][N2] View change happen 3 times The view
+    // change will restructure the ds committee into this [X2][X3][N1][N2][X1]
+    // first vc. vc counter = 1 [X3][N1][N2][X1][X2] second vc. vc counter = 2
+    // [N1][N2][X1][X2][X3] third vc. vc counter = 3
+    // X1 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex
+    // (original)
+    //                    = 5 - 1 - 0 = 2
+    // X2 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex
+    // (original)
+    //                    = 5 - 1 - 1 = 3
+    // X3 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex
+    // (original)
+    //                    = 5 - 1 - 2 = 4
+
+    bool isCurrentNodeFaulty = false;
+    {
+      lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
+
+      for (unsigned int faultyLeaderIndex = 0;
+           faultyLeaderIndex < m_viewChangeCounter; faultyLeaderIndex++) {
+        LOG_GENERAL(INFO,
+                    "Ejecting " << m_mediator.m_DSCommittee->front().second);
+
+        // Adjust ds commiteee
+        m_mediator.m_DSCommittee->push_back(m_mediator.m_DSCommittee->front());
+        m_mediator.m_DSCommittee->pop_front();
+
+        // Adjust faulty DS leader and/or faulty ds candidate leader
+        if (m_consensusMyID == faultyLeaderIndex) {
+          if (m_consensusMyID == 0) {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Current node is a faulty DS leader and got ousted "
+                      "by the DS "
+                      "Committee");
+          } else {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Current node is a faulty DS candidate leader and "
+                      "got ousted by the DS "
+                      "Committee");
+          }
+
+          // calculate (new) my consensus id for faulty ds nodes.
+          // Good ds nodes adjustment have already been done previously.
+          // m_consensusMyID = last index - num of time vc occur + faulty index
+          // Need to add +1 at the end as vc counter begin at 1.
+          m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1) -
+                            m_viewChangeCounter + faultyLeaderIndex + 1;
+          isCurrentNodeFaulty = true;
+          LOG_GENERAL(INFO, "new m_consensusMyID  is " << m_consensusMyID);
+        }
+      }
+
+      // Faulty node already adjusted. Hence, only adjust current node here if
+      // it is not faultu.
+      if (!isCurrentNodeFaulty) {
+        LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
+        m_consensusMyID -= m_viewChangeCounter;
+        LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
+      }
+    }
+    m_consensusLeaderID =
+        0;  // Hotfix. https://github.com/Zilliqa/Issues/issues/212
+    LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
+    LOG_GENERAL(INFO, "New view of ds committee: ");
+    for (auto& i : *m_mediator.m_DSCommittee) {
+      LOG_GENERAL(INFO, i.second);
+    }
+
+    auto func = [this, viewChangeState]() -> void {
+      ProcessNextConsensus(viewChangeState);
+    };
+    DetachedFunction(1, func);
+  } else {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "View change completed but it seems wrong to me."
+                  << "expectedLeader: " << expectedLeader
+                  << "newLeaderNetworkInfo: " << newLeaderNetworkInfo);
+  }
+
+  // TODO: Refine this
+  // Broadcasting vcblock to lookup nodes
+
+  vector<unsigned char> vcblock_message = {MessageType::NODE,
+                                           NodeInstructionType::VCBLOCK};
+
+  if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
+                                 *m_pendingVCBlock)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeVCBlock failed.");
+    return;
+  }
+
+  unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
+  unsigned int nodeToSendToLookUpHi =
+      nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+  if (m_consensusMyID > nodeToSendToLookUpLo &&
+      m_consensusMyID < nodeToSendToLookUpHi) {
+    m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "View change consensus is DONE!!!");
-    m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
+              "I the part of the subset of DS committee that have sent the "
+              "VCBlock to the lookup nodes");
+  }
 
-    unsigned int index = 0;
-    unsigned int count = 0;
+  // Broadcasting vcblock to lookup nodes
+  unsigned int my_DS_cluster_num;
+  unsigned int my_shards_lo;
+  unsigned int my_shards_hi;
 
-    vector<PubKey> keys;
-    for (auto const& kv : *m_mediator.m_DSCommittee)
-    {
-        if (m_pendingVCBlock->GetB2().at(index))
-        {
-            keys.emplace_back(kv.first);
-            count++;
-        }
-        index++;
-    }
-
-    // Verify cosig against vcblock
-    shared_ptr<PubKey> aggregatedKey = MultiSig::AggregatePubKeys(keys);
-    if (aggregatedKey == nullptr)
-    {
-        LOG_GENERAL(WARNING, "Aggregated key generation failed");
-    }
-
-    vector<unsigned char> message;
-    m_pendingVCBlock->GetHeader().Serialize(message, 0);
-    m_pendingVCBlock->GetCS1().Serialize(message, VCBlockHeader::SIZE);
-    BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                            m_pendingVCBlock->GetB1());
-    if (not Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                          m_pendingVCBlock->GetCS2(),
-                                          *aggregatedKey))
-    {
-        LOG_GENERAL(WARNING, "cosig verification fail");
-        for (auto& kv : keys)
-        {
-            LOG_GENERAL(WARNING, kv);
-        }
-        return;
-    }
-
-    Peer newLeaderNetworkInfo;
-    unsigned char viewChangeState;
-    {
-        lock_guard<mutex> g(m_mutexPendingVCBlock);
-
-        newLeaderNetworkInfo
-            = m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo();
-        viewChangeState = m_pendingVCBlock->GetHeader().GetViewChangeState();
-    }
-
-    // StoreVCBlockToStorage(); TODO
-
-    Peer expectedLeader;
-    if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer())
-    {
-        // I am 0.0.0.0
-        expectedLeader = m_mediator.m_selfPeer;
-    }
-    else
-    {
-        expectedLeader
-            = m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
-    }
-
-    if (expectedLeader == newLeaderNetworkInfo)
-    {
-        if (newLeaderNetworkInfo == m_mediator.m_selfPeer)
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "After view change, I am the new leader!");
-            m_mode = PRIMARY_DS;
-        }
-        else
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "After view change, I am ds backup");
-            m_mode = BACKUP_DS;
-        }
-
-        // Kick ousted leader and/or faulty candidate leader to the back of the queue, waiting to be eject at
-        // the next ds epoch
-        // Suppose X1 - X3 are faulty ds nodes
-        // [X1][X2][X3][N1][N2]
-        // View change happen 3 times
-        // The view change will restructure the ds committee into this
-        // [X2][X3][N1][N2][X1] first vc. vc counter = 1
-        // [X3][N1][N2][X1][X2] second vc. vc counter = 2
-        // [N1][N2][X1][X2][X3] third vc. vc counter = 3
-        // X1 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex (original)
-        //                    = 5 - 1 - 0 = 2
-        // X2 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex (original)
-        //                    = 5 - 1 - 1 = 3
-        // X3 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex (original)
-        //                    = 5 - 1 - 2 = 4
-
-        bool isCurrentNodeFaulty = false;
-        {
-            lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
-
-            for (unsigned int faultyLeaderIndex = 0;
-                 faultyLeaderIndex < m_viewChangeCounter; faultyLeaderIndex++)
-            {
-                LOG_GENERAL(INFO,
-                            "Ejecting "
-                                << m_mediator.m_DSCommittee->front().second);
-
-                // Adjust ds commiteee
-                m_mediator.m_DSCommittee->push_back(
-                    m_mediator.m_DSCommittee->front());
-                m_mediator.m_DSCommittee->pop_front();
-
-                // Adjust faulty DS leader and/or faulty ds candidate leader
-                if (m_consensusMyID == faultyLeaderIndex)
-                {
-                    if (m_consensusMyID == 0)
-                    {
-                        LOG_EPOCH(
-                            INFO,
-                            to_string(m_mediator.m_currentEpochNum).c_str(),
-                            "Current node is a faulty DS leader and got ousted "
-                            "by the DS "
-                            "Committee");
-                    }
-                    else
-                    {
-                        LOG_EPOCH(
-                            INFO,
-                            to_string(m_mediator.m_currentEpochNum).c_str(),
-                            "Current node is a faulty DS candidate leader and "
-                            "got ousted by the DS "
-                            "Committee");
-                    }
-
-                    // calculate (new) my consensus id for faulty ds nodes.
-                    // Good ds nodes adjustment have already been done previously.
-                    // m_consensusMyID = last index - num of time vc occur + faulty index
-                    // Need to add +1 at the end as vc counter begin at 1.
-                    m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1)
-                        - m_viewChangeCounter + faultyLeaderIndex + 1;
-                    isCurrentNodeFaulty = true;
-                    LOG_GENERAL(INFO,
-                                "new m_consensusMyID  is " << m_consensusMyID);
-                }
-            }
-
-            // Faulty node already adjusted. Hence, only adjust current node here if it is not faultu.
-            if (!isCurrentNodeFaulty)
-            {
-                LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
-                m_consensusMyID -= m_viewChangeCounter;
-                LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
-            }
-        }
-        m_consensusLeaderID
-            = 0; // Hotfix. https://github.com/Zilliqa/Issues/issues/212
-        LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
-        LOG_GENERAL(INFO, "New view of ds committee: ");
-        for (auto& i : *m_mediator.m_DSCommittee)
-        {
-            LOG_GENERAL(INFO, i.second);
-        }
-
-        auto func = [this, viewChangeState]() -> void {
-            ProcessNextConsensus(viewChangeState);
-        };
-        DetachedFunction(1, func);
-    }
-    else
-    {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "View change completed but it seems wrong to me."
-                      << "expectedLeader: " << expectedLeader
-                      << "newLeaderNetworkInfo: " << newLeaderNetworkInfo);
-    }
-
-    // TODO: Refine this
-    // Broadcasting vcblock to lookup nodes
-
-    vector<unsigned char> vcblock_message
-        = {MessageType::NODE, NodeInstructionType::VCBLOCK};
-
-    if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
-                                   *m_pendingVCBlock))
-    {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Messenger::SetNodeVCBlock failed.");
-        return;
-    }
-
-    unsigned int nodeToSendToLookUpLo = COMM_SIZE / 4;
-    unsigned int nodeToSendToLookUpHi
-        = nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
-
-    if (m_consensusMyID > nodeToSendToLookUpLo
-        && m_consensusMyID < nodeToSendToLookUpHi)
-    {
-        m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "I the part of the subset of DS committee that have sent the "
-                  "VCBlock to the lookup nodes");
-    }
-
-    // Broadcasting vcblock to lookup nodes
-    unsigned int my_DS_cluster_num;
-    unsigned int my_shards_lo;
-    unsigned int my_shards_hi;
-
-    switch (viewChangeState)
-    {
+  switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
-    case DSBLOCK_CONSENSUS_PREP:
-    {
-        vector<Peer> allPowSubmitter;
-        for (auto& nodeNetwork : m_allPoWConns)
-        {
-            allPowSubmitter.emplace_back(nodeNetwork.second);
-        }
+    case DSBLOCK_CONSENSUS_PREP: {
+      vector<Peer> allPowSubmitter;
+      for (auto& nodeNetwork : m_allPoWConns) {
+        allPowSubmitter.emplace_back(nodeNetwork.second);
+      }
 
-        P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
-                                                    vcblock_message);
-        break;
+      P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
+                                                  vcblock_message);
+      break;
     }
     case FINALBLOCK_CONSENSUS:
-    case FINALBLOCK_CONSENSUS_PREP:
-    {
-        DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo,
-                                     my_shards_hi);
-        SendBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
-                              vcblock_message);
-        break;
+    case FINALBLOCK_CONSENSUS_PREP: {
+      DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo,
+                                   my_shards_hi);
+      SendBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
+                            vcblock_message);
+      break;
     }
     case VIEWCHANGE_CONSENSUS:
     case VIEWCHANGE_CONSENSUS_PREP:
     default:
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "illegal view change state. state: " << to_string(viewChangeState));
-    }
+      LOG_EPOCH(
+          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          "illegal view change state. state: " << to_string(viewChangeState));
+  }
 }
 
-void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::ProcessNextConsensus not expected to be "
-                    "called from LookUp node.");
-        return;
-    }
+void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessNextConsensus not expected to be "
+                "called from LookUp node.");
+    return;
+  }
 
-    this_thread::sleep_for(chrono::seconds(POST_VIEWCHANGE_BUFFER));
+  this_thread::sleep_for(chrono::seconds(POST_VIEWCHANGE_BUFFER));
 
-    switch (viewChangeState)
-    {
+  switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Re-running dsblock consensus");
-        RunConsensusOnDSBlock();
-        break;
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Re-running dsblock consensus");
+      RunConsensusOnDSBlock();
+      break;
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Re-running finalblock consensus");
-        RunConsensusOnFinalBlock();
-        break;
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Re-running finalblock consensus");
+      RunConsensusOnFinalBlock();
+      break;
     case VIEWCHANGE_CONSENSUS:
     case VIEWCHANGE_CONSENSUS_PREP:
     default:
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "illegal view change state. state: " << to_string(viewChangeState));
-    }
+      LOG_EPOCH(
+          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          "illegal view change state. state: " << to_string(viewChangeState));
+  }
 }
 
 bool DirectoryService::ProcessViewChangeConsensus(
-    const vector<unsigned char>& message, unsigned int offset, const Peer& from)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "DirectoryService::ProcessViewChangeConsensus not expected "
-                    "to be called from LookUp node.");
-        return true;
-    }
+    const vector<unsigned char>& message, unsigned int offset,
+    const Peer& from) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessViewChangeConsensus not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
 
-    LOG_MARKER();
-    // Consensus messages must be processed in correct sequence as they come in
-    // It is possible for ANNOUNCE to arrive before correct DS state
-    // In that case, ANNOUNCE will sleep for a second below
-    // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be processed before ANNOUNCE!
-    // So, ANNOUNCE should acquire a lock here
+  LOG_MARKER();
+  // Consensus messages must be processed in correct sequence as they come in
+  // It is possible for ANNOUNCE to arrive before correct DS state
+  // In that case, ANNOUNCE will sleep for a second below
+  // If COLLECTIVESIG also comes in, it's then possible COLLECTIVESIG will be
+  // processed before ANNOUNCE! So, ANNOUNCE should acquire a lock here
 
-    {
-        lock_guard<mutex> g(m_mutexConsensus);
-
-        if (!CheckState(PROCESS_VIEWCHANGECONSENSUS))
-        {
-            std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
-            if (cv_ViewChangeConsensusObj.wait_for(
-                    cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
-                    [this] { return CheckState(PROCESS_VIEWCHANGECONSENSUS); }))
-            {
-                LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                          "Successfully transit to viewchange consensus or I "
-                          "am in the "
-                          "correct state.");
-            }
-            else
-            {
-                LOG_EPOCH(
-                    WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Time out while waiting for state transition to view "
-                    "change "
-                    "consensus and "
-                    "consensus object creation. Most likely view change "
-                    "didn't "
-                    "occur. A malicious node may be trying to initate view "
-                    "change.");
-                return false;
-            }
-        }
-    }
-
-    // Consensus messages must be processed in correct sequence as they come in
-    // It is possible for ANNOUNCE to arrive before correct DS state
-    // In that case, state transition will occurs and ANNOUNCE will be processed.
-    std::unique_lock<mutex> cv_lk_con_msg(m_mutexProcessConsensusMessage);
-    if (cv_processConsensusMessage.wait_for(
-            cv_lk_con_msg,
-            std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
-            [this, message, offset]() -> bool {
-                lock_guard<mutex> g(m_mutexConsensus);
-                if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-                {
-                    LOG_GENERAL(WARNING,
-                                "The node started the process of rejoining, "
-                                "Ignore rest of "
-                                "consensus msg.")
-                    return false;
-                }
-
-                if (m_consensusObject == nullptr)
-                {
-                    LOG_GENERAL(WARNING,
-                                "m_consensusObject is a nullptr. It has not "
-                                "been initialized.")
-                    return false;
-                }
-                return m_consensusObject->CanProcessMessage(message, offset);
-            }))
-    {
-        // Correct order preserved
-    }
-    else
-    {
-        LOG_GENERAL(WARNING,
-                    "Timeout while waiting for correct order of View Change "
-                    "Block consensus "
-                    "messages");
-        return false;
-    }
-
+  {
     lock_guard<mutex> g(m_mutexConsensus);
 
-    if (!m_consensusObject->ProcessMessage(message, offset, from))
-    {
-        return false;
-    }
-
-    ConsensusCommon::State state = m_consensusObject->GetState();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Consensus state = " << m_consensusObject->GetStateString());
-
-    if (state == ConsensusCommon::State::DONE)
-    {
-        cv_ViewChangeVCBlock.notify_all();
-        ProcessViewChangeConsensusWhenDone();
+    if (!CheckState(PROCESS_VIEWCHANGECONSENSUS)) {
+      std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeConsensusObj);
+      if (cv_ViewChangeConsensusObj.wait_for(
+              cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
+              [this] { return CheckState(PROCESS_VIEWCHANGECONSENSUS); })) {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "View change consensus is DONE!!!");
-    }
-    else if (state == ConsensusCommon::State::ERROR)
-    {
+                  "Successfully transit to viewchange consensus or I "
+                  "am in the "
+                  "correct state.");
+      } else {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "No consensus reached. Will attempt to do view change again");
+                  "Time out while waiting for state transition to view "
+                  "change "
+                  "consensus and "
+                  "consensus object creation. Most likely view change "
+                  "didn't "
+                  "occur. A malicious node may be trying to initate view "
+                  "change.");
         return false;
+      }
     }
-    else
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Consensus state = " << state);
-        cv_processConsensusMessage.notify_all();
-    }
-    return true;
+  }
+
+  // Consensus messages must be processed in correct sequence as they come in
+  // It is possible for ANNOUNCE to arrive before correct DS state
+  // In that case, state transition will occurs and ANNOUNCE will be processed.
+  std::unique_lock<mutex> cv_lk_con_msg(m_mutexProcessConsensusMessage);
+  if (cv_processConsensusMessage.wait_for(
+          cv_lk_con_msg, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
+          [this, message, offset]() -> bool {
+            lock_guard<mutex> g(m_mutexConsensus);
+            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+              LOG_GENERAL(WARNING,
+                          "The node started the process of rejoining, "
+                          "Ignore rest of "
+                          "consensus msg.")
+              return false;
+            }
+
+            if (m_consensusObject == nullptr) {
+              LOG_GENERAL(WARNING,
+                          "m_consensusObject is a nullptr. It has not "
+                          "been initialized.")
+              return false;
+            }
+            return m_consensusObject->CanProcessMessage(message, offset);
+          })) {
+    // Correct order preserved
+  } else {
+    LOG_GENERAL(WARNING,
+                "Timeout while waiting for correct order of View Change "
+                "Block consensus "
+                "messages");
+    return false;
+  }
+
+  lock_guard<mutex> g(m_mutexConsensus);
+
+  if (!m_consensusObject->ProcessMessage(message, offset, from)) {
+    return false;
+  }
+
+  ConsensusCommon::State state = m_consensusObject->GetState();
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Consensus state = " << m_consensusObject->GetStateString());
+
+  if (state == ConsensusCommon::State::DONE) {
+    cv_ViewChangeVCBlock.notify_all();
+    ProcessViewChangeConsensusWhenDone();
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "View change consensus is DONE!!!");
+  } else if (state == ConsensusCommon::State::ERROR) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "No consensus reached. Will attempt to do view change again");
+    return false;
+  } else {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Consensus state = " << state);
+    cv_processConsensusMessage.notify_all();
+  }
+  return true;
 }

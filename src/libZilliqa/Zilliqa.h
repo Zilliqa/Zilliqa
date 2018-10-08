@@ -37,46 +37,46 @@
 #include "libUtils/ThreadPool.h"
 
 /// Main Zilliqa class.
-class Zilliqa
-{
-    PeerManager m_pm;
-    Mediator m_mediator;
-    DirectoryService m_ds;
-    Lookup m_lookup;
-    std::shared_ptr<ValidatorBase> m_validator;
-    Node m_n;
-    ArchiveDB m_db;
-    Archival m_arch;
-    //ConsensusUser m_cu; // Note: This is just a test class to demo Consensus usage
-    boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
-        m_msgQueue;
+class Zilliqa {
+  PeerManager m_pm;
+  Mediator m_mediator;
+  DirectoryService m_ds;
+  Lookup m_lookup;
+  std::shared_ptr<ValidatorBase> m_validator;
+  Node m_n;
+  ArchiveDB m_db;
+  Archival m_arch;
+  // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
+  // usage
+  boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
+      m_msgQueue;
 
-    jsonrpc::HttpServer m_httpserver;
-    Server m_server;
+  jsonrpc::HttpServer m_httpserver;
+  Server m_server;
 
-    ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
+  ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
-    void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
+  void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
 
-public:
-    /// Constructor.
-    Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-            bool loadConfig, unsigned int syncType = SyncType::NO_SYNC,
-            bool toRetrieveHistory = false);
+ public:
+  /// Constructor.
+  Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
+          bool loadConfig, unsigned int syncType = SyncType::NO_SYNC,
+          bool toRetrieveHistory = false);
 
-    /// Destructor.
-    ~Zilliqa();
+  /// Destructor.
+  ~Zilliqa();
 
-    void LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
-                         const Peer& peer);
+  void LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
 
-    /// Forwards an incoming message for processing by the appropriate subclass.
-    void Dispatch(std::pair<std::vector<unsigned char>, Peer>* message);
+  /// Forwards an incoming message for processing by the appropriate subclass.
+  void Dispatch(std::pair<std::vector<unsigned char>, Peer>* message);
 
-    /// Returns a list of broadcast peers based on the specified message and instruction types.
-    std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type,
-                                            unsigned char ins_type,
-                                            const Peer& from);
+  /// Returns a list of broadcast peers based on the specified message and
+  /// instruction types.
+  std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type,
+                                          unsigned char ins_type,
+                                          const Peer& from);
 };
 
-#endif // __ZILLIQA_H__
+#endif  // __ZILLIQA_H__

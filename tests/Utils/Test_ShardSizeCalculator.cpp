@@ -29,135 +29,119 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 
-BOOST_AUTO_TEST_CASE(test_lower_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(100);
-    BOOST_CHECK_MESSAGE(result == 651,
-                        "Expected: 651. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_lower_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(100);
+  BOOST_CHECK_MESSAGE(result == 651,
+                      "Expected: 651. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_one_shard_normal)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(700);
-    BOOST_CHECK_MESSAGE(result == 651,
-                        "Expected: 651. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_one_shard_normal) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(700);
+  BOOST_CHECK_MESSAGE(result == 651,
+                      "Expected: 651. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_one_shard_lower_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(651);
-    BOOST_CHECK_MESSAGE(result == 651,
-                        "Expected: 651. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_one_shard_lower_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(651);
+  BOOST_CHECK_MESSAGE(result == 651,
+                      "Expected: 651. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_one_shard_upper_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(1367);
-    BOOST_CHECK_MESSAGE(result == 651,
-                        "Expected: 651. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_one_shard_upper_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(1367);
+  BOOST_CHECK_MESSAGE(result == 651,
+                      "Expected: 651. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_two_shards_lower_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(1368);
-    BOOST_CHECK_MESSAGE(result == 684,
-                        "Expected: 684. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_two_shards_lower_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(1368);
+  BOOST_CHECK_MESSAGE(result == 684,
+                      "Expected: 684. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_two_shards_upper_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(2131);
-    BOOST_CHECK_MESSAGE(result == 684,
-                        "Expected: 651. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_two_shards_upper_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(2131);
+  BOOST_CHECK_MESSAGE(result == 684,
+                      "Expected: 651. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_ten_shards)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(8000);
-    BOOST_CHECK_MESSAGE(result == 771,
-                        "Expected: 771. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_ten_shards) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(8000);
+  BOOST_CHECK_MESSAGE(result == 771,
+                      "Expected: 771. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_ten_shards_lower_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(7710);
-    BOOST_CHECK_MESSAGE(result == 771,
-                        "Expected: 771. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_ten_shards_lower_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(7710);
+  BOOST_CHECK_MESSAGE(result == 771,
+                      "Expected: 771. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_ten_shards_upper_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(8579);
-    BOOST_CHECK_MESSAGE(result == 771,
-                        "Expected: 771. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_ten_shards_upper_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(8579);
+  BOOST_CHECK_MESSAGE(result == 771,
+                      "Expected: 771. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_max_shards_normal)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(20000);
-    BOOST_CHECK_MESSAGE(result == 816,
-                        "Expected: 816. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_max_shards_normal) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(20000);
+  BOOST_CHECK_MESSAGE(result == 816,
+                      "Expected: 816. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_max_shards_lower_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(19584);
-    BOOST_CHECK_MESSAGE(result == 816,
-                        "Expected: 816. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_max_shards_lower_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(19584);
+  BOOST_CHECK_MESSAGE(result == 816,
+                      "Expected: 816. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_max_shards_upper_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(20399);
-    BOOST_CHECK_MESSAGE(result == 816,
-                        "Expected: 816. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_max_shards_upper_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(20399);
+  BOOST_CHECK_MESSAGE(result == 816,
+                      "Expected: 816. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_lower_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(20400);
-    BOOST_CHECK_MESSAGE(result == 819,
-                        "Expected: 816. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_max_shards_exceed_lower_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(20400);
+  BOOST_CHECK_MESSAGE(result == 819,
+                      "Expected: 816. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_normal)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(1000000);
-    BOOST_CHECK_MESSAGE(result == 819,
-                        "Expected: 816. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_max_shards_exceed_normal) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(1000000);
+  BOOST_CHECK_MESSAGE(result == 819,
+                      "Expected: 816. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound_minus_one)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(
-        std::numeric_limits<uint32_t>::max() - 1);
-    BOOST_CHECK_MESSAGE(result == 819,
-                        "Expected: 816. Result: " + to_string(result));
+BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound_minus_one) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(
+      std::numeric_limits<uint32_t>::max() - 1);
+  BOOST_CHECK_MESSAGE(result == 819,
+                      "Expected: 816. Result: " + to_string(result));
 }
 
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound)
-{
-    INIT_STDOUT_LOGGER();
-    uint32_t result = ShardSizeCalculator::CalculateShardSize(
-        std::numeric_limits<uint32_t>::max());
-    BOOST_CHECK_MESSAGE(result == 819,
-                        "Expected: 816. Result: " + to_string(result) + " "
-                            + to_string(std::numeric_limits<uint32_t>::max()));
+BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound) {
+  INIT_STDOUT_LOGGER();
+  uint32_t result = ShardSizeCalculator::CalculateShardSize(
+      std::numeric_limits<uint32_t>::max());
+  BOOST_CHECK_MESSAGE(result == 819,
+                      "Expected: 816. Result: " + to_string(result) + " " +
+                          to_string(std::numeric_limits<uint32_t>::max()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

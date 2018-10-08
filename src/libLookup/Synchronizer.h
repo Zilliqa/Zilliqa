@@ -25,28 +25,27 @@
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 
-class Synchronizer
-{
-    DSBlock ConstructGenesisDSBlock();
-    bool AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
-                                       const DSBlock& dsBlock);
-    bool InitializeGenesisDSBlock(DSBlockChain& dsBlockChain);
+class Synchronizer {
+  DSBlock ConstructGenesisDSBlock();
+  bool AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
+                                     const DSBlock& dsBlock);
+  bool InitializeGenesisDSBlock(DSBlockChain& dsBlockChain);
 
-    TxBlock ConstructGenesisTxBlock();
-    bool AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
-                                       const TxBlock& txBlock);
-    bool InitializeGenesisTxBlock(TxBlockChain& txBlockChain);
+  TxBlock ConstructGenesisTxBlock();
+  bool AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
+                                     const TxBlock& txBlock);
+  bool InitializeGenesisTxBlock(TxBlockChain& txBlockChain);
 
-public:
-    bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
-                                 TxBlockChain& txBlockChain);
+ public:
+  bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
+                               TxBlockChain& txBlockChain);
 
-    bool FetchDSInfo(Lookup* lookup);
-    bool FetchLatestDSBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
-    bool FetchLatestTxBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
-    bool FetchLatestState(Lookup* lookup);
-    bool AttemptPoW(Lookup* lookup);
-    bool FetchOfflineLookups(Lookup* lookup);
+  bool FetchDSInfo(Lookup* lookup);
+  bool FetchLatestDSBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
+  bool FetchLatestTxBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
+  bool FetchLatestState(Lookup* lookup);
+  bool AttemptPoW(Lookup* lookup);
+  bool FetchOfflineLookups(Lookup* lookup);
 };
 
-#endif // __SYNCHRONIZER_H__
+#endif  // __SYNCHRONIZER_H__

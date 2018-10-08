@@ -31,203 +31,179 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-DSBlock Synchronizer::ConstructGenesisDSBlock()
-{
-    BlockHash prevHash;
+DSBlock Synchronizer::ConstructGenesisDSBlock() {
+  BlockHash prevHash;
 
-    for (unsigned int i = 0; i < prevHash.asArray().size(); i++)
-    {
-        prevHash.asArray().at(i) = i + 1;
-    }
+  for (unsigned int i = 0; i < prevHash.asArray().size(); i++) {
+    prevHash.asArray().at(i) = i + 1;
+  }
 
-    vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(
-        "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-    vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(
-        "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
-    // FIXME: Handle exceptions.
-    PrivKey privKey(tmpprivkey, 0);
-    PubKey pubKey(tmppubkey, 0);
-    std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
-    uint64_t genesisBlockNumer = 0;
-    uint256_t genesisTimestamp = 0;
-    std::map<PubKey, Peer> powDSWinners;
+  vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(
+      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
+  vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(
+      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+  // FIXME: Handle exceptions.
+  PrivKey privKey(tmpprivkey, 0);
+  PubKey pubKey(tmppubkey, 0);
+  std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
+  uint64_t genesisBlockNumer = 0;
+  uint256_t genesisTimestamp = 0;
+  std::map<PubKey, Peer> powDSWinners;
 
-    // FIXME: Handle exceptions.
-    return DSBlock(DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash,
-                                 keypair.second, genesisBlockNumer,
-                                 genesisTimestamp, SWInfo(), powDSWinners),
-                   CoSignatures());
+  // FIXME: Handle exceptions.
+  return DSBlock(DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash,
+                               keypair.second, genesisBlockNumer,
+                               genesisTimestamp, SWInfo(), powDSWinners),
+                 CoSignatures());
 }
 
 bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
-                                                 const DSBlock& dsBlock)
-{
-    dsBlockChain.AddBlock(dsBlock);
+                                                 const DSBlock& dsBlock) {
+  dsBlockChain.AddBlock(dsBlock);
 
-    // Store DS Block to disk
-    vector<unsigned char> serializedDSBlock;
-    dsBlock.Serialize(serializedDSBlock, 0);
-    BlockStorage::GetBlockStorage().PutDSBlock(
-        dsBlock.GetHeader().GetBlockNum(), serializedDSBlock);
+  // Store DS Block to disk
+  vector<unsigned char> serializedDSBlock;
+  dsBlock.Serialize(serializedDSBlock, 0);
+  BlockStorage::GetBlockStorage().PutDSBlock(dsBlock.GetHeader().GetBlockNum(),
+                                             serializedDSBlock);
 
-    return true;
+  return true;
 }
 
-bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain)
-{
-    DSBlock dsBlock = ConstructGenesisDSBlock();
-    AddGenesisDSBlockToBlockChain(dsBlockChain, dsBlock);
+bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
+  DSBlock dsBlock = ConstructGenesisDSBlock();
+  AddGenesisDSBlockToBlockChain(dsBlockChain, dsBlock);
 
-    return true;
+  return true;
 }
 
-TxBlock Synchronizer::ConstructGenesisTxBlock()
-{
-    vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(
-        "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-    vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(
-        "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
-    // FIXME: Handle exceptions.
-    PrivKey privKey(tmpprivkey, 0);
-    PubKey pubKey(tmppubkey, 0);
+TxBlock Synchronizer::ConstructGenesisTxBlock() {
+  vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(
+      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
+  vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(
+      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+  // FIXME: Handle exceptions.
+  PrivKey privKey(tmpprivkey, 0);
+  PubKey pubKey(tmppubkey, 0);
 
-    std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
+  std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
-    return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
-                                 1, BlockHash(), 0, 151384616955606, TxnHash(),
-                                 StateHash(), StateHash(), StateHash(),
-                                 TxnHash(), 0, 5, keypair.second, 0,
-                                 BlockHash()),
-                   vector<bool>(1), vector<MicroBlockHashSet>(5),
-                   vector<uint32_t>(5), CoSignatures());
+  return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
+                               BlockHash(), 0, 151384616955606, TxnHash(),
+                               StateHash(), StateHash(), StateHash(), TxnHash(),
+                               0, 5, keypair.second, 0, BlockHash()),
+                 vector<bool>(1), vector<MicroBlockHashSet>(5),
+                 vector<uint32_t>(5), CoSignatures());
 }
 
 bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
-                                                 const TxBlock& txBlock)
-{
-    txBlockChain.AddBlock(txBlock);
+                                                 const TxBlock& txBlock) {
+  txBlockChain.AddBlock(txBlock);
 
-    // Store Tx Block to disk
-    vector<unsigned char> serializedTxBlock;
-    txBlock.Serialize(serializedTxBlock, 0);
-    BlockStorage::GetBlockStorage().PutTxBlock(
-        txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+  // Store Tx Block to disk
+  vector<unsigned char> serializedTxBlock;
+  txBlock.Serialize(serializedTxBlock, 0);
+  BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
+                                             serializedTxBlock);
 
-    return true;
+  return true;
 }
 
-bool Synchronizer::InitializeGenesisTxBlock(TxBlockChain& txBlockChain)
-{
-    TxBlock txBlock = ConstructGenesisTxBlock();
-    AddGenesisTxBlockToBlockChain(txBlockChain, txBlock);
+bool Synchronizer::InitializeGenesisTxBlock(TxBlockChain& txBlockChain) {
+  TxBlock txBlock = ConstructGenesisTxBlock();
+  AddGenesisTxBlockToBlockChain(txBlockChain, txBlock);
 
-    return true;
+  return true;
 }
 
 bool Synchronizer::InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
-                                           TxBlockChain& txBlockChain)
-{
-    LOG_MARKER();
-    InitializeGenesisDSBlock(dsBlockChain);
-    InitializeGenesisTxBlock(txBlockChain);
+                                           TxBlockChain& txBlockChain) {
+  LOG_MARKER();
+  InitializeGenesisDSBlock(dsBlockChain);
+  InitializeGenesisTxBlock(txBlockChain);
 
-    return true;
+  return true;
 }
 
-bool Synchronizer::FetchDSInfo(Lookup* lookup)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Synchronizer::FetchDSInfo not expected to be called from "
-                    "LookUp node.");
-        return true;
-    }
-
-    lookup->GetDSInfoFromLookupNodes();
-    // lookup->GetDSInfoFromSeedNodes();
+bool Synchronizer::FetchDSInfo(Lookup* lookup) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchDSInfo not expected to be called from "
+                "LookUp node.");
     return true;
+  }
+
+  lookup->GetDSInfoFromLookupNodes();
+  // lookup->GetDSInfoFromSeedNodes();
+  return true;
 }
 
 bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
-                                       uint64_t currentBlockChainSize)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Synchronizer::FetchLatestDSBlocks not expected to be "
-                    "called from LookUp node.");
-        return true;
-    }
-
-    lookup->GetDSBlockFromLookupNodes(currentBlockChainSize, 0);
-    // lookup->GetDSBlockFromSeedNodes(currentBlockChainSize, 0);
+                                       uint64_t currentBlockChainSize) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestDSBlocks not expected to be "
+                "called from LookUp node.");
     return true;
+  }
+
+  lookup->GetDSBlockFromLookupNodes(currentBlockChainSize, 0);
+  // lookup->GetDSBlockFromSeedNodes(currentBlockChainSize, 0);
+  return true;
 }
 
 bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
-                                       uint64_t currentBlockChainSize)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Synchronizer::FetchLatestTxBlocks not expected to be "
-                    "called from LookUp node.");
-        return true;
-    }
-
-    lookup->GetTxBlockFromLookupNodes(currentBlockChainSize, 0);
-    // lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
+                                       uint64_t currentBlockChainSize) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestTxBlocks not expected to be "
+                "called from LookUp node.");
     return true;
+  }
+
+  lookup->GetTxBlockFromLookupNodes(currentBlockChainSize, 0);
+  // lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
+  return true;
 }
 
-bool Synchronizer::FetchLatestState(Lookup* lookup)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Synchronizer::FetchLatestState not expected to be called "
-                    "from LookUp node.");
-        return true;
-    }
-
-    lookup->GetStateFromLookupNodes();
-    // lookup->GetStateFromSeedNodes(currentBlockChainSize, 0);
+bool Synchronizer::FetchLatestState(Lookup* lookup) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestState not expected to be called "
+                "from LookUp node.");
     return true;
+  }
+
+  lookup->GetStateFromLookupNodes();
+  // lookup->GetStateFromSeedNodes(currentBlockChainSize, 0);
+  return true;
 }
 
-bool Synchronizer::AttemptPoW(Lookup* lookup)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Synchronizer::AttemptPoW not expected to be called from "
-                    "LookUp node.");
-        return true;
-    }
+bool Synchronizer::AttemptPoW(Lookup* lookup) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::AttemptPoW not expected to be called from "
+                "LookUp node.");
+    return true;
+  }
 
-    if (lookup->InitMining())
-    {
-        LOG_GENERAL(INFO, "new node attempted pow");
-        return true;
-    }
-    else
-    {
-        LOG_GENERAL(INFO, "new node did not attempt pow")
-        return false;
-    }
+  if (lookup->InitMining()) {
+    LOG_GENERAL(INFO, "new node attempted pow");
+    return true;
+  } else {
+    LOG_GENERAL(INFO, "new node did not attempt pow")
+    return false;
+  }
 }
 
-bool Synchronizer::FetchOfflineLookups(Lookup* lookup)
-{
-    if (LOOKUP_NODE_MODE)
-    {
-        LOG_GENERAL(WARNING,
-                    "Synchronizer::FetchOfflineLookups not expected to be "
-                    "called from LookUp node.");
-        return true;
-    }
-
-    lookup->GetOfflineLookupNodes();
+bool Synchronizer::FetchOfflineLookups(Lookup* lookup) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchOfflineLookups not expected to be "
+                "called from LookUp node.");
     return true;
+  }
+
+  lookup->GetOfflineLookupNodes();
+  return true;
 }

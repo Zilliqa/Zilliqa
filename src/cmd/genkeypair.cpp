@@ -17,44 +17,41 @@
  * program files.
  */
 
-#include "libCrypto/Schnorr.h"
 #include <iostream>
+#include "libCrypto/Schnorr.h"
 
 using namespace std;
 
-void Print(const vector<unsigned char>& payload)
-{
-    static const char* hex_table = "0123456789ABCDEF";
+void Print(const vector<unsigned char>& payload) {
+  static const char* hex_table = "0123456789ABCDEF";
 
-    size_t payload_string_len = (payload.size() * 2) + 1;
-    unique_ptr<char[]> payload_string = make_unique<char[]>(payload_string_len);
-    for (unsigned int payload_idx = 0, payload_string_idx = 0;
-         (payload_idx < payload.size())
-         && ((payload_string_idx + 2) < payload_string_len);
-         payload_idx++)
-    {
-        payload_string.get()[payload_string_idx++]
-            = hex_table[(payload.at(payload_idx) >> 4) & 0xF];
-        payload_string.get()[payload_string_idx++]
-            = hex_table[payload.at(payload_idx) & 0xF];
-    }
-    payload_string.get()[payload_string_len - 1] = '\0';
-    cout << payload_string.get();
+  size_t payload_string_len = (payload.size() * 2) + 1;
+  unique_ptr<char[]> payload_string = make_unique<char[]>(payload_string_len);
+  for (unsigned int payload_idx = 0, payload_string_idx = 0;
+       (payload_idx < payload.size()) &&
+       ((payload_string_idx + 2) < payload_string_len);
+       payload_idx++) {
+    payload_string.get()[payload_string_idx++] =
+        hex_table[(payload.at(payload_idx) >> 4) & 0xF];
+    payload_string.get()[payload_string_idx++] =
+        hex_table[payload.at(payload_idx) & 0xF];
+  }
+  payload_string.get()[payload_string_len - 1] = '\0';
+  cout << payload_string.get();
 }
 
-int main([[gnu::unused]] int argc, [[gnu::unused]] const char* argv[])
-{
-    pair<PrivKey, PubKey> keypair = Schnorr::GetInstance().GenKeyPair();
+int main([[gnu::unused]] int argc, [[gnu::unused]] const char* argv[]) {
+  pair<PrivKey, PubKey> keypair = Schnorr::GetInstance().GenKeyPair();
 
-    vector<unsigned char> privkey, pubkey;
-    keypair.first.Serialize(privkey, 0);
-    keypair.second.Serialize(pubkey, 0);
+  vector<unsigned char> privkey, pubkey;
+  keypair.first.Serialize(privkey, 0);
+  keypair.second.Serialize(pubkey, 0);
 
-    Print(pubkey);
-    cout << " ";
-    Print(privkey);
-    //FIXME: add '\n' back
-    // cout << '\n';
+  Print(pubkey);
+  cout << " ";
+  Print(privkey);
+  // FIXME: add '\n' back
+  // cout << '\n';
 
-    return 0;
+  return 0;
 }

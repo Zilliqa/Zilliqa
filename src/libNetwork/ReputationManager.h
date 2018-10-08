@@ -29,68 +29,64 @@
 #include <unordered_map>
 #include <vector>
 
-class ReputationManager
-{
+class ReputationManager {
+  // Custom hasher
+  // Ref:
+  // https://stackoverflow.com/questions/32082786/why-i-cannot-use-neither-stdunordered-map-nor-boostunordered-map-with-boost
+  template <typename T>
+  struct hash_str {
+    size_t operator()(const T& t) const {
+      return std::hash<std::string>()(t.str());
+    }
+  };
 
-    // Custom hasher
-    // Ref: https://stackoverflow.com/questions/32082786/why-i-cannot-use-neither-stdunordered-map-nor-boostunordered-map-with-boost
-    template<typename T> struct hash_str
-    {
-        size_t operator()(const T& t) const
-        {
-            return std::hash<std::string>()(t.str());
-        }
-    };
+  ReputationManager();
+  ~ReputationManager();
 
-    ReputationManager();
-    ~ReputationManager();
+  // Singleton should not implement these
+  ReputationManager(ReputationManager const&) = delete;
+  void operator=(ReputationManager const&) = delete;
 
-    // Singleton should not implement these
-    ReputationManager(ReputationManager const&) = delete;
-    void operator=(ReputationManager const&) = delete;
+ public:
+  /// Returns the singleton P2PComm instance.
+  static ReputationManager& GetInstance();
+  void AddNodeIfNotKnown(const boost::multiprecision::uint128_t& IPAddress);
+  bool IsNodeBanned(const boost::multiprecision::uint128_t& IPAddress);
+  void PunishNode(const boost::multiprecision::uint128_t& IPAddress,
+                  const int32_t Penalty);
+  void AwardAllNodes();
+  int32_t GetReputation(const boost::multiprecision::uint128_t& IPAddress);
+  void Clear();
 
-public:
-    /// Returns the singleton P2PComm instance.
-    static ReputationManager& GetInstance();
-    void AddNodeIfNotKnown(const boost::multiprecision::uint128_t& IPAddress);
-    bool IsNodeBanned(const boost::multiprecision::uint128_t& IPAddress);
-    void PunishNode(const boost::multiprecision::uint128_t& IPAddress,
-                    const int32_t Penalty);
-    void AwardAllNodes();
-    int32_t GetReputation(const boost::multiprecision::uint128_t& IPAddress);
-    void Clear();
+  // To be use once hooked into core protocol
+  enum PenaltyType : int32_t {
+    PENALTY_CONN_REFUSE = -5,
+    PENALTY_INVALID_MESSAGE = -50
+  };
 
-    // To be use once hooked into core protocol
-    enum PenaltyType : int32_t
-    {
-        PENALTY_CONN_REFUSE = -5,
-        PENALTY_INVALID_MESSAGE = -50
-    };
+  enum ScoreType : int32_t {
+    UPPERREPTHRESHOLD = 500,
+    REPTHRESHOLD = -500,
+    GOOD = 0,
+    BAN_MULTIPLIER = 24,
+    AWARD_FOR_GOOD_NODES = 50
+  };
 
-    enum ScoreType : int32_t
-    {
-        UPPERREPTHRESHOLD = 500,
-        REPTHRESHOLD = -500,
-        GOOD = 0,
-        BAN_MULTIPLIER = 24,
-        AWARD_FOR_GOOD_NODES = 50
-    };
+  std::mutex m_mutexReputations;
 
-    std::mutex m_mutexReputations;
+ private:
+  std::unordered_map<boost::multiprecision::uint128_t, int32_t,
+                     hash_str<boost::multiprecision::uint128_t>>
+      m_Reputations;
 
-private:
-    std::unordered_map<boost::multiprecision::uint128_t, int32_t,
-                       hash_str<boost::multiprecision::uint128_t>>
-        m_Reputations;
-
-    void AddNodeIfNotKnownInternal(
-        const boost::multiprecision::uint128_t& IPAddress);
-    void SetReputation(const boost::multiprecision::uint128_t& IPAddress,
-                       const int32_t ReputationScore);
-    void UpdateReputation(const boost::multiprecision::uint128_t& IPAddress,
-                          const int32_t ReputationScoreDelta);
-    std::vector<boost::multiprecision::uint128_t> GetAllKnownIP();
-    void AwardNode(const boost::multiprecision::uint128_t& IPAddress);
+  void AddNodeIfNotKnownInternal(
+      const boost::multiprecision::uint128_t& IPAddress);
+  void SetReputation(const boost::multiprecision::uint128_t& IPAddress,
+                     const int32_t ReputationScore);
+  void UpdateReputation(const boost::multiprecision::uint128_t& IPAddress,
+                        const int32_t ReputationScoreDelta);
+  std::vector<boost::multiprecision::uint128_t> GetAllKnownIP();
+  void AwardNode(const boost::multiprecision::uint128_t& IPAddress);
 };
 
-#endif // __REPUTATION_MANAGER_H__
+#endif  // __REPUTATION_MANAGER_H__

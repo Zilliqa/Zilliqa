@@ -28,117 +28,109 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(upgradeManager)
 
-BOOST_AUTO_TEST_CASE(test_downloadFile_Integrity)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test_downloadFile_Integrity) {
+  INIT_STDOUT_LOGGER();
 
-    if (2 != boost::unit_test::framework::master_test_suite().argc)
-    {
-        LOG_GENERAL(WARNING,
-                    "Please provide test repo name! ex: ./Test_UpgradeManager "
-                    "https://api.github.com/repos/ckyang/Zilliqa/"
-                    "releases/latest");
-        return;
-    }
+  if (2 != boost::unit_test::framework::master_test_suite().argc) {
+    LOG_GENERAL(WARNING,
+                "Please provide test repo name! ex: ./Test_UpgradeManager "
+                "https://api.github.com/repos/ckyang/Zilliqa/"
+                "releases/latest");
+    return;
+  }
 
-    LOG_GENERAL(INFO, "Running test_downloadFile_Integrity...");
+  LOG_GENERAL(INFO, "Running test_downloadFile_Integrity...");
 
-    string expectedFileName = "NotExistedFile";
-    remove(expectedFileName.data());
-    BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
-                        "File still exists, cannot test!");
-    string fileName = UpgradeManager::GetInstance().DownloadFile(
-        "NotExistedFile",
-        boost::unit_test::framework::master_test_suite().argv[1]);
-    BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
-                        "Some abnormal file downloaded!");
-    BOOST_CHECK_MESSAGE(fileName.empty(), "Some abnormal file downloaded!");
+  string expectedFileName = "NotExistedFile";
+  remove(expectedFileName.data());
+  BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
+                      "File still exists, cannot test!");
+  string fileName = UpgradeManager::GetInstance().DownloadFile(
+      "NotExistedFile",
+      boost::unit_test::framework::master_test_suite().argv[1]);
+  BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
+                      "Some abnormal file downloaded!");
+  BOOST_CHECK_MESSAGE(fileName.empty(), "Some abnormal file downloaded!");
 
-    LOG_GENERAL(INFO, "Verify test_downloadFile_Integrity completed.");
+  LOG_GENERAL(INFO, "Verify test_downloadFile_Integrity completed.");
 }
 
-BOOST_AUTO_TEST_CASE(test_downloadFile_VERSION)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test_downloadFile_VERSION) {
+  INIT_STDOUT_LOGGER();
 
-    if (2 != boost::unit_test::framework::master_test_suite().argc)
-    {
-        LOG_GENERAL(WARNING,
-                    "Please provide test repo name! ex: ./Test_UpgradeManager "
-                    "https://api.github.com/repos/ckyang/Zilliqa/"
-                    "releases/latest");
-        return;
-    }
+  if (2 != boost::unit_test::framework::master_test_suite().argc) {
+    LOG_GENERAL(WARNING,
+                "Please provide test repo name! ex: ./Test_UpgradeManager "
+                "https://api.github.com/repos/ckyang/Zilliqa/"
+                "releases/latest");
+    return;
+  }
 
-    LOG_GENERAL(INFO, "Running test_downloadFile_VERSION...");
+  LOG_GENERAL(INFO, "Running test_downloadFile_VERSION...");
 
-    string expectedFileName = "VERSION";
-    remove(expectedFileName.data());
-    BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
-                        "File still exists, cannot test!");
-    string fileName = UpgradeManager::GetInstance().DownloadFile(
-        "VERSION", boost::unit_test::framework::master_test_suite().argv[1]);
-    BOOST_CHECK_MESSAGE(ifstream(expectedFileName.data()).good(),
-                        "File not downloaded!");
-    BOOST_CHECK_MESSAGE(fileName == expectedFileName, "Download wrong file!");
+  string expectedFileName = "VERSION";
+  remove(expectedFileName.data());
+  BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
+                      "File still exists, cannot test!");
+  string fileName = UpgradeManager::GetInstance().DownloadFile(
+      "VERSION", boost::unit_test::framework::master_test_suite().argv[1]);
+  BOOST_CHECK_MESSAGE(ifstream(expectedFileName.data()).good(),
+                      "File not downloaded!");
+  BOOST_CHECK_MESSAGE(fileName == expectedFileName, "Download wrong file!");
 
-    LOG_GENERAL(INFO, "Verify test_downloadFile_VERSION completed.");
+  LOG_GENERAL(INFO, "Verify test_downloadFile_VERSION completed.");
 }
 
-BOOST_AUTO_TEST_CASE(test_downloadFile_pubKeyFile)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test_downloadFile_pubKeyFile) {
+  INIT_STDOUT_LOGGER();
 
-    if (2 != boost::unit_test::framework::master_test_suite().argc)
-    {
-        LOG_GENERAL(WARNING,
-                    "Please provide test repo name! ex: ./Test_UpgradeManager "
-                    "https://api.github.com/repos/ckyang/Zilliqa/"
-                    "releases/latest");
-        return;
-    }
+  if (2 != boost::unit_test::framework::master_test_suite().argc) {
+    LOG_GENERAL(WARNING,
+                "Please provide test repo name! ex: ./Test_UpgradeManager "
+                "https://api.github.com/repos/ckyang/Zilliqa/"
+                "releases/latest");
+    return;
+  }
 
-    LOG_GENERAL(INFO, "Running test_downloadFile_pubKeyFile...");
+  LOG_GENERAL(INFO, "Running test_downloadFile_pubKeyFile...");
 
-    string expectedFileName = "pubKeyFile";
-    remove(expectedFileName.data());
-    BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
-                        "File still exists, cannot test!");
-    string fileName = UpgradeManager::GetInstance().DownloadFile(
-        "pubKeyFile", boost::unit_test::framework::master_test_suite().argv[1]);
-    BOOST_CHECK_MESSAGE(ifstream(expectedFileName.data()).good(),
-                        "File not downloaded!");
-    BOOST_CHECK_MESSAGE(fileName == expectedFileName, "Download wrong file!");
+  string expectedFileName = "pubKeyFile";
+  remove(expectedFileName.data());
+  BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
+                      "File still exists, cannot test!");
+  string fileName = UpgradeManager::GetInstance().DownloadFile(
+      "pubKeyFile", boost::unit_test::framework::master_test_suite().argv[1]);
+  BOOST_CHECK_MESSAGE(ifstream(expectedFileName.data()).good(),
+                      "File not downloaded!");
+  BOOST_CHECK_MESSAGE(fileName == expectedFileName, "Download wrong file!");
 
-    LOG_GENERAL(INFO, "Verify test_downloadFile_pubKeyFile completed.");
+  LOG_GENERAL(INFO, "Verify test_downloadFile_pubKeyFile completed.");
 }
 
-BOOST_AUTO_TEST_CASE(test_downloadFile_deb)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test_downloadFile_deb) {
+  INIT_STDOUT_LOGGER();
 
-    if (2 != boost::unit_test::framework::master_test_suite().argc)
-    {
-        LOG_GENERAL(WARNING,
-                    "Please provide test repo name! ex: ./Test_UpgradeManager "
-                    "https://api.github.com/repos/ckyang/Zilliqa/"
-                    "releases/latest");
-        return;
-    }
+  if (2 != boost::unit_test::framework::master_test_suite().argc) {
+    LOG_GENERAL(WARNING,
+                "Please provide test repo name! ex: ./Test_UpgradeManager "
+                "https://api.github.com/repos/ckyang/Zilliqa/"
+                "releases/latest");
+    return;
+  }
 
-    LOG_GENERAL(INFO, "Running test_downloadFile_deb...");
+  LOG_GENERAL(INFO, "Running test_downloadFile_deb...");
 
-    string expectedFileName = "D24-1.0.0.5.a9a4c93-Linux.deb";
-    remove(expectedFileName.data());
-    BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
-                        "File still exists, cannot test!");
-    string fileName = UpgradeManager::GetInstance().DownloadFile(
-        "deb", boost::unit_test::framework::master_test_suite().argv[1]);
-    BOOST_CHECK_MESSAGE(ifstream(expectedFileName.data()).good(),
-                        "File not downloaded!");
-    BOOST_CHECK_MESSAGE(fileName == expectedFileName, "Download wrong file!");
+  string expectedFileName = "D24-1.0.0.5.a9a4c93-Linux.deb";
+  remove(expectedFileName.data());
+  BOOST_CHECK_MESSAGE(!ifstream(expectedFileName.data()).good(),
+                      "File still exists, cannot test!");
+  string fileName = UpgradeManager::GetInstance().DownloadFile(
+      "deb", boost::unit_test::framework::master_test_suite().argv[1]);
+  BOOST_CHECK_MESSAGE(ifstream(expectedFileName.data()).good(),
+                      "File not downloaded!");
+  BOOST_CHECK_MESSAGE(fileName == expectedFileName, "Download wrong file!");
 
-    LOG_GENERAL(INFO, "Verify test_downloadFile_deb completed.");
+  LOG_GENERAL(INFO, "Verify test_downloadFile_deb completed.");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

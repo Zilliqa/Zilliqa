@@ -17,11 +17,11 @@
  * program files.
  */
 
+#include <memory>
+#include <mutex>
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
-#include <memory>
-#include <mutex>
 
 #define BOOST_TEST_MODULE utils
 #include <boost/test/included/unit_test.hpp>
@@ -32,39 +32,37 @@ BOOST_AUTO_TEST_SUITE(utils)
 
 mutex m;
 
-void test2(shared_ptr<vector<string>> s)
-{
-    LOG_MARKER();
+void test2(shared_ptr<vector<string>> s) {
+  LOG_MARKER();
 
-    lock_guard<mutex> guard(m);
-    LOG_GENERAL(INFO, s->back().c_str());
-    s->pop_back();
+  lock_guard<mutex> guard(m);
+  LOG_GENERAL(INFO, s->back().c_str());
+  s->pop_back();
 }
 
-void test1()
-{
-    LOG_MARKER();
+void test1() {
+  LOG_MARKER();
 
-    shared_ptr<vector<string>> s = make_shared<vector<string>>();
-    s->emplace_back("one");
-    s->emplace_back("two");
-    s->emplace_back("three");
+  shared_ptr<vector<string>> s = make_shared<vector<string>>();
+  s->emplace_back("one");
+  s->emplace_back("two");
+  s->emplace_back("three");
 
-    DetachedFunction(3, test2, s);
+  DetachedFunction(3, test2, s);
 }
 
-BOOST_AUTO_TEST_CASE(testDetachedFunction)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testDetachedFunction) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    JoinableFunction(
-        1,
-        test1); // check that test1 can terminate even while test2 threads are still running
+  JoinableFunction(1,
+                   test1);  // check that test1 can terminate even while test2
+                            // threads are still running
 
-    this_thread::sleep_for(chrono::seconds(
-        2)); // just a short delay so test2 threads can finish before program terminates
+  this_thread::sleep_for(
+      chrono::seconds(2));  // just a short delay so test2 threads can finish
+                            // before program terminates
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -27,28 +27,26 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(utils)
 
-void test()
-{
-    LOG_MARKER();
-    LOG_GENERAL(INFO, "Hello world");
+void test() {
+  LOG_MARKER();
+  LOG_GENERAL(INFO, "Hello world");
 }
 
-BOOST_AUTO_TEST_CASE(testLogger3)
-{
-    // Write to stdout
-    INIT_STDOUT_LOGGER();
-    vector<unsigned char> bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
+BOOST_AUTO_TEST_CASE(testLogger3) {
+  // Write to stdout
+  INIT_STDOUT_LOGGER();
+  vector<unsigned char> bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
 
-    LOG_GENERAL(INFO, "Hello world");
-    LOG_PAYLOAD(INFO, "Hello world", bytestream,
-                Logger::MAX_BYTES_TO_DISPLAY); // use default max payload length
-    LOG_PAYLOAD(INFO, "Hello world", bytestream,
-                5); // use max payload length = payload length
-    LOG_PAYLOAD(INFO, "Hello world", bytestream,
-                4); // use max payload length < payload length
+  LOG_GENERAL(INFO, "Hello world");
+  LOG_PAYLOAD(INFO, "Hello world", bytestream,
+              Logger::MAX_BYTES_TO_DISPLAY);  // use default max payload length
+  LOG_PAYLOAD(INFO, "Hello world", bytestream,
+              5);  // use max payload length = payload length
+  LOG_PAYLOAD(INFO, "Hello world", bytestream,
+              4);  // use max payload length < payload length
 
-    // Try in different thread
-    JoinableFunction(1, test);
+  // Try in different thread
+  JoinableFunction(1, test);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

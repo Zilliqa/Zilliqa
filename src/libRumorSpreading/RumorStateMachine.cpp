@@ -21,168 +21,137 @@
 
 #define LITERAL(s) #s
 
-namespace RRS
-{
+namespace RRS {
 
-    // STATIC MEMBERS
-    std::map<RumorStateMachine::State, std::string>
-        RumorStateMachine::s_enumKeyToString
-        = {{State::UNKNOWN, LITERAL(UNKNOWN)},
-           {State::NEW, LITERAL(NEW)},
-           {State::KNOWN, LITERAL(KNOWN)},
-           {State::OLD, LITERAL(OLD)},
-           {State::NUM_STATES, LITERAL(NUM_STATES)}};
+// STATIC MEMBERS
+std::map<RumorStateMachine::State, std::string>
+    RumorStateMachine::s_enumKeyToString = {
+        {State::UNKNOWN, LITERAL(UNKNOWN)},
+        {State::NEW, LITERAL(NEW)},
+        {State::KNOWN, LITERAL(KNOWN)},
+        {State::OLD, LITERAL(OLD)},
+        {State::NUM_STATES, LITERAL(NUM_STATES)}};
 
-    // PRIVATE METHODS
-    void RumorStateMachine::advanceFromNew(
-        const std::unordered_set<int>& membersInRound)
-    {
-        ++m_roundsInB;
-        if (m_rounds > m_networkConfigPtr->maxRoundsTotal())
-        {
-            advanceToOld();
-            return;
-        }
+// PRIVATE METHODS
+void RumorStateMachine::advanceFromNew(
+    const std::unordered_set<int>& membersInRound) {
+  ++m_roundsInB;
+  if (m_rounds > m_networkConfigPtr->maxRoundsTotal()) {
+    advanceToOld();
+    return;
+  }
 
-        for (auto id : membersInRound)
-        {
-            if (m_memberRounds.count(id) <= 0)
-            {
-                m_memberRounds[id] = 0;
-            }
-        }
-
-        // Compare our round to the majority of rounds
-        int numLess = 0;
-        int numGreaterOrEqual = 0;
-        for (const auto& entry : m_memberRounds)
-        {
-            int theirRound = entry.second;
-            if (theirRound < m_rounds)
-            {
-                ++numLess;
-            }
-            else if (theirRound > m_networkConfigPtr->maxRoundsInB())
-            {
-                m_state = State::KNOWN;
-            }
-            else
-            {
-                ++numGreaterOrEqual;
-            }
-        }
-
-        if (numGreaterOrEqual > numLess)
-        {
-            ++m_roundsInB;
-        }
-
-        if (m_roundsInB > m_networkConfigPtr->maxRoundsInB())
-        {
-            m_state = State::KNOWN;
-        }
-        m_memberRounds.clear();
+  for (auto id : membersInRound) {
+    if (m_memberRounds.count(id) <= 0) {
+      m_memberRounds[id] = 0;
     }
+  }
 
-    void RumorStateMachine::advanceFromKnown()
-    {
-        ++m_roundsInC;
-        if (m_rounds > m_networkConfigPtr->maxRoundsTotal()
-            || m_roundsInC > m_networkConfigPtr->maxRoundsInC())
-        {
-            advanceToOld();
-        }
+  // Compare our round to the majority of rounds
+  int numLess = 0;
+  int numGreaterOrEqual = 0;
+  for (const auto& entry : m_memberRounds) {
+    int theirRound = entry.second;
+    if (theirRound < m_rounds) {
+      ++numLess;
+    } else if (theirRound > m_networkConfigPtr->maxRoundsInB()) {
+      m_state = State::KNOWN;
+    } else {
+      ++numGreaterOrEqual;
     }
+  }
 
-    void RumorStateMachine::advanceToOld()
-    {
-        m_state = State::OLD;
-        m_memberRounds.clear();
+  if (numGreaterOrEqual > numLess) {
+    ++m_roundsInB;
+  }
+
+  if (m_roundsInB > m_networkConfigPtr->maxRoundsInB()) {
+    m_state = State::KNOWN;
+  }
+  m_memberRounds.clear();
+}
+
+void RumorStateMachine::advanceFromKnown() {
+  ++m_roundsInC;
+  if (m_rounds > m_networkConfigPtr->maxRoundsTotal() ||
+      m_roundsInC > m_networkConfigPtr->maxRoundsInC()) {
+    advanceToOld();
+  }
+}
+
+void RumorStateMachine::advanceToOld() {
+  m_state = State::OLD;
+  m_memberRounds.clear();
+}
+
+// CONSTRUCTORS
+
+RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr)
+    : m_state(State::NEW),
+      m_networkConfigPtr(networkConfigPtr),
+      m_rounds(0),
+      m_roundsInB(0),
+      m_roundsInC(0),
+      m_memberRounds() {}
+
+RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr,
+                                     int fromMember, int theirRound)
+    : m_state(State::NEW),
+      m_networkConfigPtr(networkConfigPtr),
+      m_rounds(0),
+      m_roundsInB(0),
+      m_roundsInC(0),
+      m_memberRounds() {
+  // Maximum number of rounds reached
+  if (theirRound > m_networkConfigPtr->maxRoundsTotal()) {
+    advanceToOld();
+    return;
+  }
+
+  // Stay in B-m state
+  m_memberRounds[fromMember] = theirRound;
+}
+
+void RumorStateMachine::rumorReceived(int memberId, int theirRound) {
+  // Only care about other members when the rumor is NEW
+  if (m_state == State::NEW) {
+    if (m_memberRounds[memberId] < theirRound) {
+      m_memberRounds[memberId] = theirRound;
     }
+  }
+}
 
-    // CONSTRUCTORS
+void RumorStateMachine::advanceRound(
+    const std::unordered_set<int>& peersInCurrentRound) {
+  ++m_rounds;
+  switch (m_state) {
+    case State::NEW:
+      advanceFromNew(peersInCurrentRound);
+      return;
+    case State::KNOWN:
+      advanceFromKnown();
+      return;
+    case State::OLD:
+      ++m_rounds;
+      return;
+    case State::UNKNOWN:
+    default:
+      throw std::logic_error("Unexpected state: " + s_enumKeyToString[m_state]);
+  }
+}
 
-    RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr)
-        : m_state(State::NEW)
-        , m_networkConfigPtr(networkConfigPtr)
-        , m_rounds(0)
-        , m_roundsInB(0)
-        , m_roundsInC(0)
-        , m_memberRounds()
-    {
-    }
+RumorStateMachine::State RumorStateMachine::state() const { return m_state; }
 
-    RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr,
-                                         int fromMember, int theirRound)
-        : m_state(State::NEW)
-        , m_networkConfigPtr(networkConfigPtr)
-        , m_rounds(0)
-        , m_roundsInB(0)
-        , m_roundsInC(0)
-        , m_memberRounds()
-    {
-        // Maximum number of rounds reached
-        if (theirRound > m_networkConfigPtr->maxRoundsTotal())
-        {
-            advanceToOld();
-            return;
-        }
+int RumorStateMachine::rounds() const { return m_rounds; }
 
-        // Stay in B-m state
-        m_memberRounds[fromMember] = theirRound;
-    }
+bool RumorStateMachine::isOld() const { return m_state == State::OLD; }
 
-    void RumorStateMachine::rumorReceived(int memberId, int theirRound)
-    {
-        // Only care about other members when the rumor is NEW
-        if (m_state == State::NEW)
-        {
-            if (m_memberRounds[memberId] < theirRound)
-            {
-                m_memberRounds[memberId] = theirRound;
-            }
-        }
-    }
+std::ostream& operator<<(std::ostream& os, const RumorStateMachine& machine) {
+  os << "{ state: " << RumorStateMachine::s_enumKeyToString[machine.m_state]
+     << ", currentRound: " << machine.m_rounds
+     << ", roundsInB: " << machine.m_roundsInB
+     << ", roundsInC: " << machine.m_roundsInC << "}";
+  return os;
+}
 
-    void RumorStateMachine::advanceRound(
-        const std::unordered_set<int>& peersInCurrentRound)
-    {
-        ++m_rounds;
-        switch (m_state)
-        {
-        case State::NEW:
-            advanceFromNew(peersInCurrentRound);
-            return;
-        case State::KNOWN:
-            advanceFromKnown();
-            return;
-        case State::OLD:
-            ++m_rounds;
-            return;
-        case State::UNKNOWN:
-        default:
-            throw std::logic_error("Unexpected state: "
-                                   + s_enumKeyToString[m_state]);
-        }
-    }
-
-    RumorStateMachine::State RumorStateMachine::state() const
-    {
-        return m_state;
-    }
-
-    int RumorStateMachine::rounds() const { return m_rounds; }
-
-    bool RumorStateMachine::isOld() const { return m_state == State::OLD; }
-
-    std::ostream& operator<<(std::ostream& os, const RumorStateMachine& machine)
-    {
-        os << "{ state: "
-           << RumorStateMachine::s_enumKeyToString[machine.m_state]
-           << ", currentRound: " << machine.m_rounds
-           << ", roundsInB: " << machine.m_roundsInB
-           << ", roundsInC: " << machine.m_roundsInC << "}";
-        return os;
-    }
-
-} // project namespace
+}  // namespace RRS

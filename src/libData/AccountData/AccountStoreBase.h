@@ -31,61 +31,62 @@
 #include "depends/common/FixedHash.h"
 #include "libCrypto/Schnorr.h"
 
-template<class MAP> class AccountStoreBase : public Serializable
-{
-protected:
-    std::shared_ptr<MAP> m_addressToAccount;
+template <class MAP>
+class AccountStoreBase : public Serializable {
+ protected:
+  std::shared_ptr<MAP> m_addressToAccount;
 
-    AccountStoreBase();
+  AccountStoreBase();
 
-    bool CalculateGasRefund(const boost::multiprecision::uint256_t& gasDeposit,
-                            const boost::multiprecision::uint256_t& gasUnit,
-                            const boost::multiprecision::uint256_t& gasPrice,
-                            boost::multiprecision::uint256_t& gasRefund);
+  bool CalculateGasRefund(const boost::multiprecision::uint256_t& gasDeposit,
+                          const boost::multiprecision::uint256_t& gasUnit,
+                          const boost::multiprecision::uint256_t& gasPrice,
+                          boost::multiprecision::uint256_t& gasRefund);
 
-public:
-    virtual void Init();
+ public:
+  virtual void Init();
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    virtual int Deserialize(const std::vector<unsigned char>& src,
-                            unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  virtual int Deserialize(const std::vector<unsigned char>& src,
+                          unsigned int offset);
 
-    virtual Account* GetAccount(const Address& address);
+  virtual Account* GetAccount(const Address& address);
 
-    bool UpdateAccounts(const Transaction& transaction,
-                        TransactionReceipt& receipt);
+  bool UpdateAccounts(const Transaction& transaction,
+                      TransactionReceipt& receipt);
 
-    /// Verifies existence of Account in the list.
-    bool IsAccountExist(const Address& address);
+  /// Verifies existence of Account in the list.
+  bool IsAccountExist(const Address& address);
 
-    /// Adds an Account to the list.
-    void AddAccount(const Address& address, const Account& account);
-    void AddAccount(const PubKey& pubKey, const Account& account);
+  /// Adds an Account to the list.
+  void AddAccount(const Address& address, const Account& account);
+  void AddAccount(const PubKey& pubKey, const Account& account);
 
-    void RemoveAccount(const Address& address);
+  void RemoveAccount(const Address& address);
 
-    boost::multiprecision::uint256_t GetNumOfAccounts() const;
+  boost::multiprecision::uint256_t GetNumOfAccounts() const;
 
-    bool IncreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
-    bool DecreaseBalance(const Address& address,
-                         const boost::multiprecision::uint256_t& delta);
+  bool IncreaseBalance(const Address& address,
+                       const boost::multiprecision::uint256_t& delta);
+  bool DecreaseBalance(const Address& address,
+                       const boost::multiprecision::uint256_t& delta);
 
-    /// Updates the source and destination accounts included in the specified Transaction.
-    bool TransferBalance(const Address& from, const Address& to,
-                         const boost::multiprecision::uint256_t& delta);
-    boost::multiprecision::uint256_t GetBalance(const Address& address);
+  /// Updates the source and destination accounts included in the specified
+  /// Transaction.
+  bool TransferBalance(const Address& from, const Address& to,
+                       const boost::multiprecision::uint256_t& delta);
+  boost::multiprecision::uint256_t GetBalance(const Address& address);
 
-    bool IncreaseNonce(const Address& address);
-    boost::multiprecision::uint256_t GetNonce(const Address& address);
+  bool IncreaseNonce(const Address& address);
+  boost::multiprecision::uint256_t GetNonce(const Address& address);
 
-    virtual void PrintAccountState();
+  virtual void PrintAccountState();
 };
 
 #include "AccountStoreBase.tpp"
 
-#endif // __ACCOUNTSTOREBASE_H__
+#endif  // __ACCOUNTSTOREBASE_H__

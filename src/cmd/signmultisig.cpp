@@ -17,59 +17,52 @@
  * program files.
  */
 
-#include "libCrypto/Schnorr.h"
 #include <iostream>
+#include "libCrypto/Schnorr.h"
 
 using namespace std;
 
-int main(int argc, const char* argv[])
-{
-    if (4 != argc)
-    {
-        cout << "Input format: ./sign message privateKeyFileName "
-                "publicKeyFileName";
-        return -1;
+int main(int argc, const char* argv[]) {
+  if (4 != argc) {
+    cout << "Input format: ./sign message privateKeyFileName "
+            "publicKeyFileName";
+    return -1;
+  }
+
+  const vector<unsigned char> message =
+      DataConversion::HexStrToUint8Vec(string(argv[1]));
+
+  string line;
+  vector<PrivKey> privKeys;
+  {
+    fstream privFile(argv[2], ios::in);
+
+    while (getline(privFile, line)) {
+      privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
     }
+  }
 
-    const vector<unsigned char> message
-        = DataConversion::HexStrToUint8Vec(string(argv[1]));
+  vector<PubKey> pubKeys;
+  {
+    fstream pubFile(argv[3], ios::in);
 
-    string line;
-    vector<PrivKey> privKeys;
-    {
-        fstream privFile(argv[2], ios::in);
-
-        while (getline(privFile, line))
-        {
-            privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
-        }
+    while (getline(pubFile, line)) {
+      pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
     }
+  }
 
-    vector<PubKey> pubKeys;
-    {
-        fstream pubFile(argv[3], ios::in);
+  if (privKeys.size() != pubKeys.size()) {
+    cout << "Private key number must equal to public key number!";
+    return -1;
+  }
 
-        while (getline(pubFile, line))
-        {
-            pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
-        }
-    }
+  for (unsigned int i = 0; i < privKeys.size(); ++i) {
+    Signature sig;
+    Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
+    vector<unsigned char> result;
+    sig.Serialize(result, 0);
+    cout << DataConversion::Uint8VecToHexStr(result);
+  }
 
-    if (privKeys.size() != pubKeys.size())
-    {
-        cout << "Private key number must equal to public key number!";
-        return -1;
-    }
-
-    for (unsigned int i = 0; i < privKeys.size(); ++i)
-    {
-        Signature sig;
-        Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i),
-                                    sig);
-        vector<unsigned char> result;
-        sig.Serialize(result, 0);
-        cout << DataConversion::Uint8VecToHexStr(result);
-    }
-
-    return 0;
+  return 0;
 }

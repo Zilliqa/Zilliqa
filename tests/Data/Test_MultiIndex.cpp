@@ -30,65 +30,62 @@ using namespace boost::multi_index;
 
 BOOST_AUTO_TEST_SUITE(multiindextest)
 
-BOOST_AUTO_TEST_CASE(MultiIndex_test)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(MultiIndex_test) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    Address toAddr;
+  Address toAddr;
 
-    for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
-    {
-        toAddr.asArray().at(i) = i + 4;
-    }
+  for (unsigned int i = 0; i < toAddr.asArray().size(); i++) {
+    toAddr.asArray().at(i) = i + 4;
+  }
 
-    KeyPair sender = Schnorr::GetInstance().GenKeyPair();
+  KeyPair sender = Schnorr::GetInstance().GenKeyPair();
 
-    gas_txnid_comp_txns container;
+  gas_txnid_comp_txns container;
 
-    auto& listIdx = container.get<MULTI_INDEX_KEY::GAS_PRICE>();
+  auto& listIdx = container.get<MULTI_INDEX_KEY::GAS_PRICE>();
 
-    // version, nonce, toAddr, senderKeyPair, amount, gasPrice, gasLimit, code, data
-    Transaction tx1(1, 1, toAddr, sender, 50, 5, 5, {}, {}),
-        tx2(1, 2, toAddr, sender, 100, 4, 4, {}, {}),
-        tx3(1, 3, toAddr, sender, 150, 3, 3, {}, {});
+  // version, nonce, toAddr, senderKeyPair, amount, gasPrice, gasLimit, code,
+  // data
+  Transaction tx1(1, 1, toAddr, sender, 50, 5, 5, {}, {}),
+      tx2(1, 2, toAddr, sender, 100, 4, 4, {}, {}),
+      tx3(1, 3, toAddr, sender, 150, 3, 3, {}, {});
 
-    LOG_GENERAL(INFO, "mark1");
+  LOG_GENERAL(INFO, "mark1");
 
-    // container.insert(tx1);
-    listIdx.insert(tx1);
-    listIdx.insert(tx2);
-    listIdx.insert(tx3);
+  // container.insert(tx1);
+  listIdx.insert(tx1);
+  listIdx.insert(tx2);
+  listIdx.insert(tx3);
 
-    BOOST_CHECK_MESSAGE(listIdx.size() == 3, "listIdx size doesn't match");
+  BOOST_CHECK_MESSAGE(listIdx.size() == 3, "listIdx size doesn't match");
 
-    uint256_t index = 1;
+  uint256_t index = 1;
 
-    for (Transaction tx : listIdx)
-    {
-        LOG_GENERAL(INFO, "Tx nonce: " << tx.GetNonce());
-        BOOST_CHECK_MESSAGE(tx.GetNonce() == index,
-                            "transaction got from listIdx is not correctly "
-                            "ordered by gasPrice, current nonce: "
-                                << tx.GetNonce()
-                                << " desired nonce: " << index);
-        index++;
-    }
+  for (Transaction tx : listIdx) {
+    LOG_GENERAL(INFO, "Tx nonce: " << tx.GetNonce());
+    BOOST_CHECK_MESSAGE(tx.GetNonce() == index,
+                        "transaction got from listIdx is not correctly "
+                        "ordered by gasPrice, current nonce: "
+                            << tx.GetNonce() << " desired nonce: " << index);
+    index++;
+  }
 
-    auto& hashIdx = container.get<MULTI_INDEX_KEY::TXN_ID>();
-    BOOST_CHECK_MESSAGE(hashIdx.size() == 3, "hashIdx size doesn't match");
+  auto& hashIdx = container.get<MULTI_INDEX_KEY::TXN_ID>();
+  BOOST_CHECK_MESSAGE(hashIdx.size() == 3, "hashIdx size doesn't match");
 
-    auto it = hashIdx.find(tx1.GetTranID());
+  auto it = hashIdx.find(tx1.GetTranID());
 
-    BOOST_CHECK_MESSAGE(hashIdx.end() != it, "txn is not found");
+  BOOST_CHECK_MESSAGE(hashIdx.end() != it, "txn is not found");
 
-    BOOST_CHECK_MESSAGE(*it == tx1, "txn found in hashIdx is not identical");
+  BOOST_CHECK_MESSAGE(*it == tx1, "txn found in hashIdx is not identical");
 
-    auto& compIdx = container.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-    auto it2 = compIdx.find(make_tuple(tx2.GetSenderPubKey(), tx2.GetNonce()));
-    BOOST_CHECK_MESSAGE(compIdx.end() != it2, "txn is not found");
-    BOOST_CHECK_MESSAGE(*it2 == tx2, "txn found in compIdx is not identical");
+  auto& compIdx = container.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
+  auto it2 = compIdx.find(make_tuple(tx2.GetSenderPubKey(), tx2.GetNonce()));
+  BOOST_CHECK_MESSAGE(compIdx.end() != it2, "txn is not found");
+  BOOST_CHECK_MESSAGE(*it2 == tx2, "txn found in compIdx is not identical");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

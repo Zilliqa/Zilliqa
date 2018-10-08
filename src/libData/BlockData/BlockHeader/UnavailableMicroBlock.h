@@ -22,54 +22,45 @@
 
 #include "BlockHashSet.h"
 
-struct UnavailableMicroBlock
-{
-    MicroBlockHashSet m_hash;
-    uint32_t m_shardId;
+struct UnavailableMicroBlock {
+  MicroBlockHashSet m_hash;
+  uint32_t m_shardId;
 
-    bool operator==(const UnavailableMicroBlock& umb) const
-    {
-        return std::tie(m_hash, m_shardId)
-            == std::tie(umb.m_hash, umb.m_shardId);
-    }
+  bool operator==(const UnavailableMicroBlock& umb) const {
+    return std::tie(m_hash, m_shardId) == std::tie(umb.m_hash, umb.m_shardId);
+  }
 
-    bool operator>(const UnavailableMicroBlock& umb) const
-    {
-        return std::tie(m_hash, m_shardId)
-            > std::tie(umb.m_hash, umb.m_shardId);
-    }
+  bool operator>(const UnavailableMicroBlock& umb) const {
+    return std::tie(m_hash, m_shardId) > std::tie(umb.m_hash, umb.m_shardId);
+  }
 
-    bool operator<(const UnavailableMicroBlock& umb) const
-    {
-        return (umb > *this);
-    }
+  bool operator<(const UnavailableMicroBlock& umb) const {
+    return (umb > *this);
+  }
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const UnavailableMicroBlock& t);
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const UnavailableMicroBlock& t);
 };
 
 inline std::ostream& operator<<(std::ostream& os,
-                                const UnavailableMicroBlock& t)
-{
-    os << "<UnavailableMicroBlock>" << std::endl
-       << "m_txRootHash : " << t.m_hash.m_txRootHash.hex() << std::endl
-       << "m_stateDeltaHash : " << t.m_hash.m_stateDeltaHash.hex() << std::endl
-       << "m_shardId : " << t.m_shardId;
-    return os;
+                                const UnavailableMicroBlock& t) {
+  os << "<UnavailableMicroBlock>" << std::endl
+     << "m_txRootHash : " << t.m_hash.m_txRootHash.hex() << std::endl
+     << "m_stateDeltaHash : " << t.m_hash.m_stateDeltaHash.hex() << std::endl
+     << "m_shardId : " << t.m_shardId;
+  return os;
 }
 
 // define its hash function in order to used as key in map
-namespace std
-{
-    template<> struct hash<UnavailableMicroBlock>
-    {
-        size_t operator()(UnavailableMicroBlock const& umb) const noexcept
-        {
-            size_t const h1(std::hash<MicroBlockHashSet>{}(umb.m_hash));
-            size_t const h2(std::hash<uint32_t>{}(umb.m_shardId));
-            return h1 ^ (h2 << 1);
-        }
-    };
-}
+namespace std {
+template <>
+struct hash<UnavailableMicroBlock> {
+  size_t operator()(UnavailableMicroBlock const& umb) const noexcept {
+    size_t const h1(std::hash<MicroBlockHashSet>{}(umb.m_hash));
+    size_t const h2(std::hash<uint32_t>{}(umb.m_shardId));
+    return h1 ^ (h2 << 1);
+  }
+};
+}  // namespace std
 
-#endif // __UNAVAILABLEMICROBLOCK_H__
+#endif  // __UNAVAILABLEMICROBLOCK_H__
