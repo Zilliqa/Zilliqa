@@ -69,17 +69,19 @@ To run Zilliqa, we recommend the following minimum system requirements:
 
     ```bash
     sudo apt-get update
-    sudo apt-get install git clang-format-5.0 clang-tidy-5.0 clang-5.0 libboost-system-dev \
-        libboost-filesystem-dev libboost-test-dev libssl-dev libleveldb-dev libjsoncpp-dev \
-        libsnappy-dev cmake libmicrohttpd-dev libjsonrpccpp-dev build-essential pkg-config \
-        libevent-dev libminiupnpc-dev libprotobuf-dev protobuf-compiler libcurl4-openssl-dev
+    sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
+        libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
+        libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
+        libprotobuf-dev protobuf-compiler libcurl4-openssl-dev
     ```
+    ```sudo ./scripts/install_mongo.sh```
 
 * macOS (experimental):
 
     ```bash
-    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc
+    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
     ```
+    ```sudo ./scripts/install_mongo.sh```
 
 ## Running Zilliqa locally
 

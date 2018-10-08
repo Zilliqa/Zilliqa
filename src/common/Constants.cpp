@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa
-* This source code is being disclosed to you solely for the purpose of your participation in
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
-* the protocols and algorithms that are programmed into, and intended by, the code. You may
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
-* including modifying or publishing the code (or any part of it), and developing or forming
-* another public or private blockchain network. This source code is provided ‘as is’ and no
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 #include "Constants.h"
 
 #include <boost/property_tree/ptree.hpp>
@@ -20,70 +23,66 @@
 
 using boost::property_tree::ptree;
 
-struct PTree
-{
-    static ptree& GetInstance()
-    {
-        static ptree pt;
-        read_xml("constants.xml", pt);
+struct PTree {
+  static ptree& GetInstance() {
+    static ptree pt;
+    read_xml("constants.xml", pt);
 
-        return pt;
-    }
-    PTree() = delete;
-    ~PTree() = delete;
+    return pt;
+  }
+  PTree() = delete;
+  ~PTree() = delete;
 };
 
-unsigned int ReadFromConstantsFile(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<unsigned int>("node.constants." + propertyName);
+unsigned int ReadFromConstantsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
-std::string ReadFromOptionsFile(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.options." + propertyName);
+std::string ReadFromOptionsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.options." + propertyName);
 }
 
-std::string ReadSmartContractConstants(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.smart_contract." + propertyName);
+std::string ReadSmartContractConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.smart_contract." + propertyName);
 }
 
-std::string ReadDispatcherConstants(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<std::string>("node.dispatcher." + propertyName);
+std::string ReadDispatcherConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.dispatcher." + propertyName);
 }
 
-const std::vector<std::string>
-ReadAccountsFromConstantsFile(std::string propName)
-{
-    auto pt = PTree::GetInstance();
-    std::vector<std::string> result;
-    for (auto& acc : pt.get_child("node.accounts"))
-    {
-        auto child = acc.second.get_optional<std::string>(propName);
-        if (child)
-        {
-            // LOG_GENERAL("constants " << child.get());
-            result.push_back(child.get());
-        }
+std::string ReadArchivalConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.archival." + propertyName);
+}
+
+const std::vector<std::string> ReadAccountsFromConstantsFile(
+    std::string propName) {
+  auto pt = PTree::GetInstance();
+  std::vector<std::string> result;
+  for (auto& acc : pt.get_child("node.accounts")) {
+    auto child = acc.second.get_optional<std::string>(propName);
+    if (child) {
+      // LOG_GENERAL("constants " << child.get());
+      result.push_back(child.get());
     }
-    return result;
+  }
+  return result;
 }
 
-unsigned int ReadGpuConstants(std::string propertyName)
-{
-    auto pt = PTree::GetInstance();
-    return pt.get<unsigned int>("node.gpu." + propertyName);
+unsigned int ReadGpuConstants(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.gpu." + propertyName);
 }
 
 const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
+const unsigned int NUM_DS_ELECTION{ReadFromConstantsFile("NUM_DS_ELECTION")};
 const unsigned int POW_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("POW_WINDOW_IN_SECONDS")};
 const unsigned int POW_BACKUP_WINDOW_IN_SECONDS{
@@ -185,46 +184,54 @@ const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
     ReadFromConstantsFile("DS_DELAY_WAKEUP_IN_SECONDS")};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
     ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
+const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD{
+    ReadFromConstantsFile("NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD")};
+const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{
+    ReadFromConstantsFile("NUM_OF_TREEBASED_CHILD_CLUSTERS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
 const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
-const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE")
-                             == "true"};
+const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE") ==
+                             "true"};
 const bool OPENCL_GPU_MINE{ReadFromOptionsFile("OPENCL_GPU_MINE") == "true"};
 const bool CUDA_GPU_MINE{ReadFromOptionsFile("CUDA_GPU_MINE") == "true"};
 const bool LOOKUP_NODE_MODE{ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true"};
-const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE")
-                                 == "true"};
+const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE") ==
+                                 "true"};
 const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS{
     ReadFromOptionsFile("GOSSIP_CUSTOM_ROUNDS_SETTINGS") == "true"};
+const bool BROADCAST_TREEBASED_CLUSTER_MODE{
+    ReadFromOptionsFile("BROADCAST_TREEBASED_CLUSTER_MODE") == "true"};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
 const std::string SCILLA_ROOT{ReadSmartContractConstants("SCILLA_ROOT")};
-const std::string SCILLA_BINARY{SCILLA_ROOT + '/'
-                                + ReadSmartContractConstants("SCILLA_BINARY")};
+const std::string SCILLA_BINARY{SCILLA_ROOT + '/' +
+                                ReadSmartContractConstants("SCILLA_BINARY")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
 const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
-const std::string SCILLA_LIB{SCILLA_ROOT + '/'
-                             + ReadSmartContractConstants("SCILLA_LIB")};
-const std::string INIT_JSON{SCILLA_FILES + '/'
-                            + ReadSmartContractConstants("INIT_JSON")};
+const std::string SCILLA_LIB{SCILLA_ROOT + '/' +
+                             ReadSmartContractConstants("SCILLA_LIB")};
+const std::string INIT_JSON{SCILLA_FILES + '/' +
+                            ReadSmartContractConstants("INIT_JSON")};
 const std::string INPUT_STATE_JSON{
     SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_STATE_JSON")};
 const std::string INPUT_BLOCKCHAIN_JSON{
     SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
 const std::string INPUT_MESSAGE_JSON{
     SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
-const std::string OUTPUT_JSON{SCILLA_FILES + '/'
-                              + ReadSmartContractConstants("OUTPUT_JSON")};
-const std::string INPUT_CODE{SCILLA_FILES + '/'
-                             + ReadSmartContractConstants("INPUT_CODE")};
+const std::string OUTPUT_JSON{SCILLA_FILES + '/' +
+                              ReadSmartContractConstants("OUTPUT_JSON")};
+const std::string INPUT_CODE{SCILLA_FILES + '/' +
+                             ReadSmartContractConstants("INPUT_CODE")};
 
 const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
+const std::string DB_HOST{ReadArchivalConstants("DB_HOST")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
+const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 
 const unsigned int NUM_DEVICE_TO_USE{ReadGpuConstants("NUM_DEVICE_TO_USE")};
 const unsigned int OPENCL_LOCAL_WORK_SIZE{

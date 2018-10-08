@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #ifndef __CONSTANTS_H__
 #define __CONSTANTS_H__
@@ -68,27 +71,25 @@ const unsigned int INIT_DS_EPOCH_NUM = 2;
 // Testing parameters
 
 // Metadata type
-enum MetaType : unsigned char
-{
-    STATEROOT = 0x00,
-    DSINCOMPLETED,
-    LATESTACTIVEDSBLOCKNUM,
+enum MetaType : unsigned char {
+  STATEROOT = 0x00,
+  DSINCOMPLETED,
+  LATESTACTIVEDSBLOCKNUM,
 };
 
 // Sync Type
-enum SyncType : unsigned int
-{
-    NO_SYNC = 0,
-    NEW_SYNC,
-    NORMAL_SYNC,
-    DS_SYNC,
-    LOOKUP_SYNC,
+enum SyncType : unsigned int {
+  NO_SYNC = 0,
+  NEW_SYNC,
+  NORMAL_SYNC,
+  DS_SYNC,
+  LOOKUP_SYNC,
 };
 
-const std::string RAND1_GENESIS
-    = "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
-const std::string RAND2_GENESIS
-    = "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
+const std::string RAND1_GENESIS =
+    "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
+const std::string RAND2_GENESIS =
+    "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
 const std::string REMOTE_TEST_DIR = "zilliqa-test";
 const std::string PERSISTENCE_PATH = "persistence";
@@ -110,10 +111,12 @@ extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
 extern const std::string TXN_PATH;
+extern const std::string DB_HOST;
 
 extern const unsigned int MSG_VERSION;
 extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
+extern const unsigned int NUM_DS_ELECTION;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int POW_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
@@ -171,6 +174,8 @@ extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
 extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
+extern const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
@@ -180,8 +185,10 @@ extern const bool OPENCL_GPU_MINE;
 extern const bool CUDA_GPU_MINE;
 extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
+extern const bool ARCHIVAL_NODE;
 extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
+extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
@@ -195,4 +202,4 @@ extern const unsigned int CUDA_GRID_SIZE;
 extern const unsigned int CUDA_STREAM_NUM;
 extern const unsigned int CUDA_SCHEDULE_FLAG;
 
-#endif // __CONSTANTS_H__
+#endif  // __CONSTANTS_H__
