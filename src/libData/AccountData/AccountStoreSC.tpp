@@ -189,10 +189,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   if (!callContract) {
     if (transaction.GetGasLimit() < gasRemained) {
-        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                << transaction.GetGasLimit() << " gasRemained: "
-                                << gasRemained << ". Must be something wrong!");
-        return false;
+      LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
+                              << transaction.GetGasLimit() << " gasRemained: "
+                              << gasRemained << ". Must be something wrong!");
+      return false;
     }
 
     if (validToTransferBalance) {
@@ -290,10 +290,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     receipt = m_curTranReceipt;
 
     if (transaction.GetGasLimit() < gasRemained) {
-        LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                << transaction.GetGasLimit() << " gasRemained: "
-                                << gasRemained << ". Must be something wrong!");
-        return false;
+      LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
+                              << transaction.GetGasLimit() << " gasRemained: "
+                              << gasRemained << ". Must be something wrong!");
+      return false;
     }
 
     receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);

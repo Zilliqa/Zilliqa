@@ -241,8 +241,7 @@ bool Node::LoadShardingStructure() {
     index++;
   }
 
-  if (!foundMe)
-  {
+  if (!foundMe) {
     LOG_GENERAL(WARNING, "I'm not in the sharding structure, why?");
     RejoinAsNormal();
     return false;
