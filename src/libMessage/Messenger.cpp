@@ -298,6 +298,203 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
                  tranHashes, CoSignatures(cosigs));
 }
 
+void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
+  // Serialize header
+
+  ZilliqaMessage::ProtoTxBlock::TxBlockHeader* protoHeader =
+      protoTxBlock.mutable_header();
+
+  const TxBlockHeader& header = txBlock.GetHeader();
+
+  protoHeader->set_type(header.GetType());
+  protoHeader->set_version(header.GetVersion());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      header.GetGasLimit(), *protoHeader->mutable_gaslimit());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      header.GetGasUsed(), *protoHeader->mutable_gasused());
+  protoHeader->set_prevhash(header.GetPrevHash().data(),
+                            header.GetPrevHash().size);
+  protoHeader->set_blocknum(header.GetBlockNum());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      header.GetTimestamp(), *protoHeader->mutable_timestamp());
+
+  ZilliqaMessage::ProtoTxBlock::TxBlockHashSet* protoHeaderHash =
+      protoHeader->mutable_hash();
+  protoHeaderHash->set_txroothash(header.GetTxRootHash().data(),
+                                  header.GetTxRootHash().size);
+  protoHeaderHash->set_stateroothash(header.GetStateRootHash().data(),
+                                     header.GetStateRootHash().size);
+  protoHeaderHash->set_deltaroothash(header.GetDeltaRootHash().data(),
+                                     header.GetDeltaRootHash().size);
+  protoHeaderHash->set_statedeltahash(header.GetStateDeltaHash().data(),
+                                      header.GetStateDeltaHash().size);
+  protoHeaderHash->set_tranreceiptroothash(
+      header.GetTranReceiptRootHash().data(),
+      header.GetTranReceiptRootHash().size);
+
+  protoHeader->set_numtxs(header.GetNumTxs());
+  protoHeader->set_nummicroblockhashes(header.GetNumMicroBlockHashes());
+  SerializableToProtobufByteArray(header.GetMinerPubKey(),
+                                  *protoHeader->mutable_minerpubkey());
+  protoHeader->set_dsblocknum(header.GetDSBlockNum());
+  protoHeader->set_dsblockheader(header.GetDSBlockHeader().data(),
+                                 header.GetDSBlockHeader().size);
+
+  // Serialize body
+
+  for (const auto& i : txBlock.GetIsMicroBlockEmpty()) {
+    protoTxBlock.add_ismicroblockempty(i);
+  }
+
+  for (const auto& i : txBlock.GetMicroBlockHashes()) {
+    ZilliqaMessage::ProtoTxBlock::MicroBlockHashSet* protoHashes =
+        protoTxBlock.add_microblockhashes();
+    protoHashes->set_txroothash(i.m_txRootHash.data(), i.m_txRootHash.size);
+    protoHashes->set_statedeltahash(i.m_stateDeltaHash.data(),
+                                    i.m_stateDeltaHash.size);
+    protoHashes->set_tranreceipthash(i.m_tranReceiptHash.data(),
+                                     i.m_tranReceiptHash.size);
+  }
+
+  for (const auto& i : txBlock.GetShardIds()) {
+    protoTxBlock.add_shardids(i);
+  }
+
+  // Serialize cosigs
+
+  ZilliqaMessage::ProtoTxBlock::CoSignatures* cosigs =
+      protoTxBlock.mutable_cosigs();
+
+  SerializableToProtobufByteArray(txBlock.GetCS1(), *cosigs->mutable_cs1());
+  for (const auto& i : txBlock.GetB1()) {
+    cosigs->add_b1(i);
+  }
+  SerializableToProtobufByteArray(txBlock.GetCS2(), *cosigs->mutable_cs2());
+  for (const auto& i : txBlock.GetB2()) {
+    cosigs->add_b2(i);
+  }
+}
+
+void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
+  // Deserialize header
+
+  const ZilliqaMessage::ProtoTxBlock::TxBlockHeader& protoHeader =
+      protoTxBlock.header();
+
+  uint256_t gasLimit;
+  uint256_t gasUsed;
+  BlockHash prevHash;
+  uint256_t timestamp;
+  TxBlockHashSet hash;
+  PubKey minerPubKey;
+  BlockHash dsBlockHeader;
+
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoHeader.gaslimit(),
+                                                     gasLimit);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoHeader.gasused(),
+                                                     gasUsed);
+  copy(protoHeader.prevhash().begin(),
+       protoHeader.prevhash().begin() +
+           min((unsigned int)protoHeader.prevhash().size(),
+               (unsigned int)prevHash.size),
+       prevHash.asArray().begin());
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoHeader.timestamp(),
+                                                     timestamp);
+
+  const ZilliqaMessage::ProtoTxBlock::TxBlockHashSet& protoHeaderHash =
+      protoHeader.hash();
+  copy(protoHeaderHash.txroothash().begin(),
+       protoHeaderHash.txroothash().begin() +
+           min((unsigned int)protoHeaderHash.txroothash().size(),
+               (unsigned int)hash.m_txRootHash.size),
+       hash.m_txRootHash.asArray().begin());
+  copy(protoHeaderHash.stateroothash().begin(),
+       protoHeaderHash.stateroothash().begin() +
+           min((unsigned int)protoHeaderHash.stateroothash().size(),
+               (unsigned int)hash.m_stateRootHash.size),
+       hash.m_stateRootHash.asArray().begin());
+  copy(protoHeaderHash.deltaroothash().begin(),
+       protoHeaderHash.deltaroothash().begin() +
+           min((unsigned int)protoHeaderHash.deltaroothash().size(),
+               (unsigned int)hash.m_deltaRootHash.size),
+       hash.m_deltaRootHash.asArray().begin());
+  copy(protoHeaderHash.statedeltahash().begin(),
+       protoHeaderHash.statedeltahash().begin() +
+           min((unsigned int)protoHeaderHash.statedeltahash().size(),
+               (unsigned int)hash.m_stateDeltaHash.size),
+       hash.m_stateDeltaHash.asArray().begin());
+  copy(protoHeaderHash.tranreceiptroothash().begin(),
+       protoHeaderHash.tranreceiptroothash().begin() +
+           min((unsigned int)protoHeaderHash.tranreceiptroothash().size(),
+               (unsigned int)hash.m_tranReceiptRootHash.size),
+       hash.m_tranReceiptRootHash.asArray().begin());
+
+  ProtobufByteArrayToSerializable(protoHeader.minerpubkey(), minerPubKey);
+  copy(protoHeader.dsblockheader().begin(),
+       protoHeader.dsblockheader().begin() +
+           min((unsigned int)protoHeader.dsblockheader().size(),
+               (unsigned int)dsBlockHeader.size),
+       dsBlockHeader.asArray().begin());
+
+  // Deserialize body
+
+  vector<bool> isMicroBlockEmpty;
+  vector<MicroBlockHashSet> microBlockHashes;
+  vector<uint32_t> shardIds;
+
+  for (const auto& i : protoTxBlock.ismicroblockempty()) {
+    isMicroBlockEmpty.emplace_back(i);
+  }
+
+  for (const auto& i : protoTxBlock.microblockhashes()) {
+    microBlockHashes.emplace_back();
+    copy(i.txroothash().begin(),
+         i.txroothash().begin() +
+             min((unsigned int)i.txroothash().size(),
+                 (unsigned int)microBlockHashes.back().m_txRootHash.size),
+         microBlockHashes.back().m_txRootHash.asArray().begin());
+    copy(i.statedeltahash().begin(),
+         i.statedeltahash().begin() +
+             min((unsigned int)i.statedeltahash().size(),
+                 (unsigned int)microBlockHashes.back().m_stateDeltaHash.size),
+         microBlockHashes.back().m_stateDeltaHash.asArray().begin());
+    copy(i.tranreceipthash().begin(),
+         i.tranreceipthash().begin() +
+             min((unsigned int)i.tranreceipthash().size(),
+                 (unsigned int)microBlockHashes.back().m_tranReceiptHash.size),
+         microBlockHashes.back().m_tranReceiptHash.asArray().begin());
+  }
+
+  for (const auto& i : protoTxBlock.shardids()) {
+    shardIds.emplace_back(i);
+  }
+
+  // Deserialize cosigs
+
+  CoSignatures cosigs;
+  cosigs.m_B1.resize(protoTxBlock.cosigs().b1().size());
+  cosigs.m_B2.resize(protoTxBlock.cosigs().b2().size());
+
+  ProtobufByteArrayToSerializable(protoTxBlock.cosigs().cs1(), cosigs.m_CS1);
+  copy(protoTxBlock.cosigs().b1().begin(), protoTxBlock.cosigs().b1().end(),
+       cosigs.m_B1.begin());
+  ProtobufByteArrayToSerializable(protoTxBlock.cosigs().cs2(), cosigs.m_CS2);
+  copy(protoTxBlock.cosigs().b2().begin(), protoTxBlock.cosigs().b2().end(),
+       cosigs.m_B2.begin());
+
+  // Generate the new TxBlock
+
+  txBlock = TxBlock(
+      TxBlockHeader(protoHeader.type(), protoHeader.version(), gasLimit,
+                    gasUsed, prevHash, protoHeader.blocknum(), timestamp,
+                    hash.m_txRootHash, hash.m_stateRootHash,
+                    hash.m_deltaRootHash, hash.m_stateDeltaHash,
+                    hash.m_tranReceiptRootHash, protoHeader.numtxs(),
+                    protoHeader.nummicroblockhashes(), minerPubKey,
+                    protoHeader.dsblocknum(), dsBlockHeader),
+      isMicroBlockEmpty, microBlockHashes, shardIds, CoSignatures(cosigs));
+}
+
 void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
   // Serialize header
 
@@ -1043,7 +1240,7 @@ bool Messenger::SetDSFinalBlockAnnouncement(
   // Set the FinalBlock announcement parameters
 
   DSFinalBlockAnnouncement* finalblock = announcement.mutable_finalblock();
-  SerializableToProtobufByteArray(txBlock, *finalblock->mutable_txblock());
+  TxBlockToProtobuf(txBlock, *finalblock->mutable_txblock());
 
   if (!finalblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "DSFinalBlockAnnouncement initialization failed.");
@@ -1106,7 +1303,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
   // Get the FinalBlock announcement parameters
 
   const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
-  ProtobufByteArrayToSerializable(finalblock.txblock(), txBlock);
+  ProtobufToTxBlock(finalblock.txblock(), txBlock);
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus
@@ -1348,7 +1545,7 @@ bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
   result.set_shardid(shardId);
   result.set_dsblocknumber(dsBlockNumber);
   result.set_consensusid(consensusID);
-  SerializableToProtobufByteArray(txBlock, *result.mutable_txblock());
+  TxBlockToProtobuf(txBlock, *result.mutable_txblock());
   result.set_statedelta(stateDelta.data(), stateDelta.size());
 
   if (!result.IsInitialized()) {
@@ -1378,7 +1575,7 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
   shardId = result.shardid();
   dsBlockNumber = result.dsblocknumber();
   consensusID = result.consensusid();
-  ProtobufByteArrayToSerializable(result.txblock(), txBlock);
+  ProtobufToTxBlock(result.txblock(), txBlock);
   stateDelta.resize(result.statedelta().size());
   copy(result.statedelta().begin(), result.statedelta().end(),
        stateDelta.begin());
@@ -2132,8 +2329,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(vector<unsigned char>& dst,
   result.set_highblocknum(highBlockNum);
 
   for (const auto& txblock : txBlocks) {
-    SerializableToProtobufByteArray(txblock,
-                                    *result.add_txblocks()->mutable_txblock());
+    TxBlockToProtobuf(txblock, *result.add_txblocks());
   }
 
   if (!result.IsInitialized()) {
@@ -2165,7 +2361,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
 
   for (const auto& txblock : result.txblocks()) {
     TxBlock block;
-    ProtobufByteArrayToSerializable(txblock.txblock(), block);
+    ProtobufToTxBlock(txblock, block);
     txBlocks.emplace_back(block);
   }
 
