@@ -732,7 +732,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   if (!isVacuousEpoch) {
-
     if (!LoadUnavailableMicroBlockHashes(
             txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
       return false;
