@@ -24,6 +24,8 @@
 
 #include "P2PComm.h"
 #include "common/Messages.h"
+#include "libCrypto/Sha2.h"
+#include "libUtils/DataConversion.h"
 
 namespace {
 RRS::Message::Type convertType(uint8_t type) {
@@ -120,6 +122,11 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
 
   std::lock_guard<std::mutex> guard(m_mutex);  // critical section
 
+  if (m_rumorIdGenerator)
+  {
+    PrintStatistics();
+  }
+
   m_rumorIdGenerator = 0;
   m_peerIdPeerBimap.clear();
   m_rumorIdRumorBimap.clear();
@@ -169,10 +176,15 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
     m_rumorIdRumorBimap.insert(
         RumorIdRumorBimap::value_type(++m_rumorIdGenerator, message));
 
-    LOG_PAYLOAD(INFO,
-                "New Gossip message (RumorId :"
-                    << m_rumorIdGenerator << ") initiated by me:" << m_selfPeer,
-                message, Logger::MAX_BYTES_TO_DISPLAY);
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(message); // raw_message hash
+        std::vector<unsigned char> this_msg_hash = sha256.Finalize();
+
+        LOG_PAYLOAD(INFO,
+                    "New Gossip message initiated by me ("
+                                                    << m_selfPeer <<"): [ RumorId: " << m_rumorIdGenerator
+                                                    << ", Current Round: 0, Gossip_Message_Hash: " << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << " ]",
+                    message, Logger::MAX_BYTES_TO_DISPLAY);    
 
     return m_rumorHolder->addRumor(m_rumorIdGenerator);
   } else {
@@ -282,16 +294,24 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     auto it = m_rumorIdRumorBimap.right.find(message);
     if (it == m_rumorIdRumorBimap.right.end()) {
       recvdRumorId = ++m_rumorIdGenerator;
-      LOG_GENERAL(INFO, "New Gossip message received from: "
-                            << from << ". And new RumorId is " << recvdRumorId);
+      
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+      sha256.Update(message); // raw_message hash
+      std::vector<unsigned char> this_msg_hash = sha256.Finalize();
+
+      LOG_PAYLOAD(INFO,
+                 "New Gossip message received from Peer: "
+                                                    << from <<". [ RumorId: " << recvdRumorId
+                                                    << ", Current Round: " << round << ", Gossip_Message_Hash: " << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << " ]",
+                    message, Logger::MAX_BYTES_TO_DISPLAY);      
       m_rumorIdRumorBimap.insert(
           RumorIdRumorBimap::value_type(recvdRumorId, message));
       toBeDispatched = true;
     } else  // already received , pass it on to member for state calculations
     {
       recvdRumorId = it->second;
-      LOG_GENERAL(INFO, "Old Gossip message from "
-                            << from << ". And old RumorId is " << recvdRumorId);
+      LOG_GENERAL(INFO, "Old Gossip message received from "
+                            << from << ". [ RumorId: " << recvdRumorId << ", Current Round: " << round);
     }
   }
 
@@ -327,17 +347,36 @@ void RumorManager::SendMessages(const Peer& toPeer,
     if (m != m_rumorIdRumorBimap.left.end()) {
       // Add raw message to outgoing message
       cmd.insert(cmd.end(), m->second.begin(), m->second.end());
-      LOG_GENERAL(INFO, "Sending Non Empty - Gossip Message (RumorID:"
-                            << k.rumorId() << ") " << k
+      LOG_GENERAL(INFO, "Sending Non Empty - Gossip Message: " << k
                             << " To Peer : " << toPeer);
     }
 
     // Send the message to peer .
-    P2PComm::GetInstance().SendMessageNoQueue(toPeer, cmd, START_BYTE_GOSSIP);
+    P2PComm::GetInstance().SendMessage(toPeer, cmd, START_BYTE_GOSSIP);
   }
 }
 
 // PUBLIC CONST METHODS
 const RumorManager::RumorIdRumorBimap& RumorManager::rumors() const {
   return m_rumorIdRumorBimap;
+}
+
+void RumorManager::PrintStatistics()
+{
+    LOG_MARKER();
+    // we use hash of message to uniquely identify message across different nodes in network.
+    for (const auto& i : m_rumorHolder->rumorsMap())
+    {
+        uint32_t rumorId = i.first;
+        auto it = m_rumorIdRumorBimap.left.find(rumorId);
+        if (it != m_rumorIdRumorBimap.left.end())
+        {
+            SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+            sha256.Update(it->second); // raw_message hash
+            std::vector<unsigned char> this_msg_hash = sha256.Finalize();
+            
+            const RRS::RumorStateMachine &state = i.second;
+            LOG_GENERAL(INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: " << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << " ], " << state);
+        }
+    }
 }
