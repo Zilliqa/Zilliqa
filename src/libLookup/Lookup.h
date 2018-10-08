@@ -46,13 +46,15 @@
 class Mediator;
 class Synchronizer;
 
+using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
+
 /// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable, public Broadcastable {
   Mediator& m_mediator;
 
   // Info about lookup node
-  std::vector<Peer> m_lookupNodes;
-  std::vector<Peer> m_lookupNodesOffline;
+  VectorOfLookupNode m_lookupNodes;
+  VectorOfLookupNode m_lookupNodesOffline;
   std::vector<Peer> m_seedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
@@ -135,7 +137,7 @@ class Lookup : public Executable, public Broadcastable {
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
-  std::vector<Peer> GetLookupNodes();
+  const VectorOfLookupNode& GetLookupNodes() const;
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
@@ -160,7 +162,6 @@ class Lookup : public Executable, public Broadcastable {
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
-  bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetDSInfoFromLookupNodes();
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);

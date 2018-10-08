@@ -706,12 +706,26 @@ bool Node::ProcessTxnPacketFromLookup(
 
   uint64_t epochNumber = 0;
   uint32_t shardId = 0;
+  PubKey lookupPubKey;
   vector<Transaction> transactions;
 
   if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber, shardId,
-                                         transactions)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                                         lookupPubKey, transactions)) {
+    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeForwardTxnBlock failed.");
+    return false;
+  }
+
+  auto lookupNodes = m_mediator.m_lookup->GetLookupNodes();
+  auto iter =
+      std::find_if(lookupNodes.cbegin(), lookupNodes.cend(),
+                   [&lookupPubKey](const std::pair<PubKey, Peer>& node) {
+                     return node.first == lookupPubKey;
+                   });
+  if (lookupNodes.end() == iter) {
+    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
     return false;
   }
 
@@ -736,9 +750,7 @@ bool Node::ProcessTxnPacketFromLookup(
         ((m_mediator.m_currentEpochNum == 1) &&
          ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() ==
            0) ||
-          m_justDidFallback)))
-
-    {
+          m_justDidFallback))) {
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
       m_txnPacketBuffer.emplace(epochNumber, message);
       return true;
@@ -857,10 +869,11 @@ void Node::CommitTxnPacketBuffer() {
   if (it != m_txnPacketBuffer.end()) {
     uint64_t epochNumber = 0;
     uint32_t shardId = 0;
+    PubKey lookupPubKey;
     vector<Transaction> transactions;
 
     if (!Messenger::GetNodeForwardTxnBlock(it->second, MessageOffset::BODY,
-                                           epochNumber, shardId,
+                                           epochNumber, shardId, lookupPubKey,
                                            transactions)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::GetNodeForwardTxnBlock failed.");

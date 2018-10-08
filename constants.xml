@@ -111,22 +111,27 @@
         <peer>
             <ip></ip>
             <port>30303</port>
+            <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
             <port>30303</port>
+            <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
             <port>30303</port>
+            <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
             <port>30303</port>
+            <pubkey></pubkey>
         </peer>
         <peer>
             <ip></ip>
             <port>30303</port>
+            <pubkey></pubkey>
         </peer>
     -->
     </lookups>
