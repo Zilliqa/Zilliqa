@@ -64,6 +64,4 @@ done
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
 cmake --build ${dir} -- -j4
 ./scripts/copyright_checker.sh
-./scripts/ci_xml_checker.sh constants.xml
-./scripts/ci_xml_checker.sh constants_local.xml
 [ ${run_clang_format_fix} -ne 0 ] && cmake --build ${dir} --target clang-format-fix
