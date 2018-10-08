@@ -30,4 +30,4 @@ formatted=/tmp/$(basename $1).formatted
 
 xmllint $1 --format > $formatted
 
-diff $1 $formatted
+diff -u $1 $formatted
