@@ -188,9 +188,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   }
 
   if (!callContract) {
+    if (transaction.GetGasLimit() < gasRemained)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Cumulative Gas calculated Underflow, gasLimit: "
+                << transaction.GetGasLimit() << " gasRemained: "
+                << gasRemained << ". Must be something wrong!");
+        return false;
+    }
+
     if (validToTransferBalance) {
       if (!this->TransferBalance(fromAddr, toAddr, amount)) {
-        this->IncreaseNonce(fromAddr);
         receipt.SetResult(false);
         receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
         receipt.update();
@@ -248,7 +257,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
     m_curGasLimit = transaction.GetGasLimit();
     m_curGasPrice = transaction.GetGasPrice();
-
     m_curContractAddr = toAddr;
     m_curAmount = amount;
     m_curNumShards = numShards;
@@ -283,6 +291,17 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     this->IncreaseBalance(fromAddr, gasRefund);
     receipt = m_curTranReceipt;
+
+    if (transaction.GetGasLimit() < gasRemained)
+    {
+        LOG_GENERAL(
+            WARNING,
+            "Cumulative Gas calculated Underflow, gasLimit: "
+                << transaction.GetGasLimit() << " gasRemained: "
+                << gasRemained << ". Must be something wrong!");
+        return false;
+    }
+
     receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
     if (!ret) {
       receipt.SetResult(false);
