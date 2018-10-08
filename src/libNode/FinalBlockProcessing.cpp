@@ -971,17 +971,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     m_forwardedTxnBuffer[entry.m_blockNum].push_back(entry);
 
     return true;
-  } else {
-    return ProcessForwardTransactionCore(entry);
   }
 
-  LOG_GENERAL(
-      WARNING,
-      "Current block num: "
-          << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-          << " this forwarded delta msg is too late");
-
-  return false;
+  return ProcessForwardTransactionCore(entry);
 }
 
 bool Node::ProcessForwardTransactionCore(const ForwardedTxnEntry& entry) {
