@@ -99,6 +99,52 @@ message ProtoMicroBlock
     required CoSignatures cosigs       = 3;
 }
 
+message ProtoTxBlock
+{
+    message TxBlockHashSet
+    {
+        required bytes txroothash               = 1;
+        required bytes stateroothash            = 2;
+        required bytes deltaroothash            = 3;
+        required bytes statedeltahash           = 4;
+        required bytes tranreceiptroothash      = 5;
+    }
+    message TxBlockHeader
+    {
+        required uint32 type                    = 1; // only LSB used
+        required uint32 version                 = 2;
+        required ByteArray gaslimit             = 3;
+        required ByteArray gasused              = 4;
+        required bytes prevhash                 = 5;
+        required uint64 blocknum                = 6;
+        required ByteArray timestamp            = 7;
+        required TxBlockHashSet hash            = 8;
+        required uint32 numtxs                  = 9;
+        required uint32 nummicroblockhashes     = 10;
+        required ByteArray minerpubkey          = 11;
+        required uint64 dsblocknum              = 12;
+        required bytes dsblockheader            = 13;
+    }
+    message MicroBlockHashSet
+    {
+        required bytes txroothash               = 1;
+        required bytes statedeltahash           = 2;
+        required bytes tranreceipthash          = 3;
+    }
+    message CoSignatures
+    {
+        required ByteArray cs1                  = 1;
+        repeated bool b1                        = 2 [packed=true];
+        required ByteArray cs2                  = 3;
+        repeated bool b2                        = 4 [packed=true];
+    }
+    required TxBlockHeader header               = 1;
+    repeated bool ismicroblockempty             = 2 [packed=true];
+    repeated MicroBlockHashSet microblockhashes = 3;
+    repeated uint32 shardids                    = 4;
+    required CoSignatures cosigs                = 5;
+}
+
 message ProtoVCBlock
 {
     message VCBlockHeader
@@ -185,7 +231,7 @@ message DSDSBlockAnnouncement
 
 message DSFinalBlockAnnouncement
 {
-    required ByteArray txblock = 1;
+    required ProtoTxBlock txblock = 1;
 }
 
 message DSVCBlockAnnouncement
@@ -210,7 +256,7 @@ message NodeFinalBlock
     required uint32 shardid       = 1;
     required uint64 dsblocknumber = 2;
     required uint32 consensusid   = 3;
-    required ByteArray txblock    = 4;
+    required ProtoTxBlock txblock = 4;
     required bytes statedelta     = 5;
 }
 
@@ -303,13 +349,9 @@ message LookupGetTxBlockFromSeed
 
 message LookupSetTxBlockFromSeed
 {
-    message TxBlock
-    {
-        required ByteArray txblock = 1;
-    }
     required uint64 lowblocknum    = 1;
     required uint64 highblocknum   = 2;
-    repeated TxBlock txblocks      = 3;
+    repeated ProtoTxBlock txblocks = 3;
 }
 
 message LookupGetTxBodyFromSeed
