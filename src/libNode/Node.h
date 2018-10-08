@@ -163,6 +163,7 @@ class Node : public Executable, public Broadcastable {
   std::condition_variable cv_fallbackBlock;
   std::mutex m_MutexCVFallbackConsensusObj;
   std::condition_variable cv_fallbackConsensusObj;
+  bool m_runFallback;
 
   bool CheckState(Action action);
 
@@ -321,6 +322,7 @@ class Node : public Executable, public Broadcastable {
   // Fallback Consensus
   void FallbackTimerLaunch();
   void FallbackTimerPulse();
+  void FallbackStop();
   bool FallbackValidator(const std::vector<unsigned char>& message,
                          unsigned int offset,
                          std::vector<unsigned char>& errorMsg,
