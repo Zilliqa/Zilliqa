@@ -41,6 +41,9 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
+find_package(libmongocxx REQUIRED)
+include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
+
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
 endif()
@@ -123,12 +126,6 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j2;--output-on-failure")
 endif()
 
-find_package(libmongocxx REQUIRED)
-find_package(libbsoncxx REQUIRED)
-include_directories(${LIBMONGOCXX_INCLUDE_DIR})
-include_directories(${LIBBSONCXX_INCLUDE_DIR})
-include_directories("/usr/local/include/mongocxx/v_noabi")
-include_directories("/usr/local/include/bsoncxx/v_noabi")
 add_subdirectory (src)
 
 if(TESTS)
