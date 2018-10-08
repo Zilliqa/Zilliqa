@@ -136,13 +136,13 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset) {
   }
 }
 
-TxBlock::TxBlock(TxBlockHeader&& header, vector<bool>&& isMicroBlockEmpty,
-                 vector<MicroBlockHashSet>&& microBlockHashes,
-                 vector<uint32_t>&& shardIds, CoSignatures&& cosigs)
+TxBlock::TxBlock(TxBlockHeader&& header, const vector<bool>& isMicroBlockEmpty,
+                 const vector<MicroBlockHashSet>& microBlockHashes,
+                 const vector<uint32_t>& shardIds, CoSignatures&& cosigs)
     : m_header(move(header)),
-      m_isMicroBlockEmpty(move(isMicroBlockEmpty)),
-      m_microBlockHashes(move(microBlockHashes)),
-      m_shardIds(move(shardIds)) {
+      m_isMicroBlockEmpty(isMicroBlockEmpty),
+      m_microBlockHashes(microBlockHashes),
+      m_shardIds(shardIds) {
   if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size() &&
       m_header.GetNumMicroBlockHashes() != m_shardIds.size()) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
