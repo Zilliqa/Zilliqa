@@ -162,11 +162,7 @@ void DirectoryService::ComposeFinalBlock() {
   BlockHash dsBlockHeader;
   copy(hashVec.begin(), hashVec.end(), dsBlockHeader.asArray().begin());
 
-  StateHash stateRoot = StateHash();
-
-  if (m_mediator.GetIsVacuousEpoch()) {
-    stateRoot = AccountStore::GetInstance().GetStateRootHash();
-  }
+  StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash, blockNum,
@@ -749,14 +745,7 @@ bool DirectoryService::CheckStateRoot() {
 
   LOG_MARKER();
 
-  StateHash stateRoot;
-
-  if (m_mediator.GetIsVacuousEpoch()) {
-    stateRoot = AccountStore::GetInstance().GetStateRootHash();
-    // AccountStore::GetInstance().PrintAccountState();
-  } else {
-    stateRoot = StateHash();
-  }
+  StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
   if (stateRoot != m_finalBlock->GetHeader().GetStateRootHash()) {
     LOG_GENERAL(WARNING, "State root doesn't match. Expected = "

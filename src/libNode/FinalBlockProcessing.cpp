@@ -720,9 +720,18 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
+  ProcessStateDeltaFromFinalBlock(stateDelta,
+                                  txBlock.GetHeader().GetStateDeltaHash());
+
+  if (!LOOKUP_NODE_MODE &&
+      (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
+    RejoinAsNormal();
+    return false;
+  } else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock)) {
+    return false;
+  }
+
   if (!isVacuousEpoch) {
-    ProcessStateDeltaFromFinalBlock(stateDelta,
-                                    txBlock.GetHeader().GetStateDeltaHash());
 
     if (!LoadUnavailableMicroBlockHashes(
             txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
@@ -734,19 +743,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     // Remove because shard nodes will be shuffled in next epoch.
     CleanCreatedTransaction();
-
     CleanMicroblockConsensusBuffer();
-
-    ProcessStateDeltaFromFinalBlock(stateDelta,
-                                    txBlock.GetHeader().GetStateDeltaHash());
-
-    if (!LOOKUP_NODE_MODE &&
-        (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
-      RejoinAsNormal();
-      return false;
-    } else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock)) {
-      return false;
-    }
 
     StoreState();
     StoreFinalBlock(txBlock);
