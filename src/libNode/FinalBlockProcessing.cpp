@@ -390,7 +390,7 @@ void Node::UpdateStateForNextConsensusRound() {
 
   m_mediator.m_consensusID++;
   m_consensusLeaderID++;
-  m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
+  m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
 
   if (m_consensusMyID == m_consensusLeaderID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -802,7 +802,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     if (!isVacuousEpoch) {
       m_mediator.m_consensusID++;
       m_consensusLeaderID++;
-      m_consensusLeaderID = m_consensusLeaderID % COMM_SIZE;
+      m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
     }
 
     // Now only forwarded txn are left, so only call in lookup

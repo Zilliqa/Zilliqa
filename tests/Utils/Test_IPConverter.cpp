@@ -24,7 +24,7 @@
 #define BOOST_TEST_MODULE ipconverter
 #define BOOST_TEST_DYN_LINK
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 using namespace std;
 

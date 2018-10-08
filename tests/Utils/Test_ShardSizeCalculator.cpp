@@ -17,13 +17,14 @@
  * program files.
  */
 
+#include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ShardSizeCalculator.h"
 
 #define BOOST_TEST_MODULE ShardSizeCalculator
 #define BOOST_TEST_DYN_LINK
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 using namespace std;
 
@@ -32,8 +33,9 @@ BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 BOOST_AUTO_TEST_CASE(test_lower_bound) {
   INIT_STDOUT_LOGGER();
   uint32_t result = ShardSizeCalculator::CalculateShardSize(100);
-  BOOST_CHECK_MESSAGE(result == 651,
-                      "Expected: 651. Result: " + to_string(result));
+  BOOST_CHECK_MESSAGE(
+      result == COMM_SIZE,
+      "Expected: " + to_string(COMM_SIZE) + ". Result: " + to_string(result));
 }
 
 BOOST_AUTO_TEST_CASE(test_one_shard_normal) {
