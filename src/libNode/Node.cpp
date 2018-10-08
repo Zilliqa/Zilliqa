@@ -930,6 +930,7 @@ bool Node::CleanVariables() {
     return true;
   }
 
+  FallbackStop();
   AccountStore::GetInstance().InitSoft();
   m_myShardMembers->clear();
   m_isPrimary = false;
