@@ -25,54 +25,50 @@
 #include <ostream>
 #include <vector>
 
-namespace RRS
-{
+namespace RRS {
 
-    class Message
-    {
-    public:
-        // ENUMS
-        enum class Type
-        {
-            UNDEFINED = 0x00,
-            PUSH = 0x01,
-            PULL = 0x02,
-            EMPTY_PUSH = 0x03,
-            EMPTY_PULL = 0x04,
-            FORWARD = 0x05,
-            NUM_TYPES
-        };
+class Message {
+ public:
+  // ENUMS
+  enum class Type {
+    UNDEFINED = 0x00,
+    PUSH = 0x01,
+    PULL = 0x02,
+    EMPTY_PUSH = 0x03,
+    EMPTY_PULL = 0x04,
+    FORWARD = 0x05,
+    NUM_TYPES
+  };
 
-        static std::map<Type, std::string> s_enumKeyToString;
+  static std::map<Type, std::string> s_enumKeyToString;
 
-    private:
-        // MEMBERS
-        Type m_type;
-        int m_rumorId;
-        int m_rounds;
+ private:
+  // MEMBERS
+  Type m_type;
+  int m_rumorId;
+  int m_rounds;
 
-    public:
-        // CONSTRUCTORS
-        Message();
+ public:
+  // CONSTRUCTORS
+  Message();
 
-        Message(Type type, int rumorId, int rounds);
+  Message(Type type, int rumorId, int rounds);
 
-        // OPERATORS
-        bool operator==(const Message& other) const;
+  // OPERATORS
+  bool operator==(const Message& other) const;
 
-        bool operator!=(const Message& other) const;
+  bool operator!=(const Message& other) const;
 
-        friend std::ostream& operator<<(std::ostream& os,
-                                        const Message& message);
+  friend std::ostream& operator<<(std::ostream& os, const Message& message);
 
-        // CONST METHODS
-        Type type() const;
+  // CONST METHODS
+  Type type() const;
 
-        int rumorId() const;
+  int rumorId() const;
 
-        int rounds() const;
-    };
+  int rounds() const;
+};
 
-} // project namespace
+}  // namespace RRS
 
-#endif //__MESSAGE_H__
+#endif  //__MESSAGE_H__

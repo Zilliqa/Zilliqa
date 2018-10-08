@@ -26,47 +26,39 @@
 #include <vector>
 
 /// Utility class for executing a function in separate join-able threads.
-class JoinableFunction
-{
-    std::vector<std::future<void>> futures;
-    bool joined;
+class JoinableFunction {
+  std::vector<std::future<void>> futures;
+  bool joined;
 
-public:
-    /// Template constructor.
-    template<class callable, class... arguments>
-    JoinableFunction(int num_threads, callable&& f, arguments&&... args)
-    {
-        std::function<typename std::result_of<callable(arguments...)>::type()>
-            task(std::bind(std::forward<callable>(f),
-                           std::forward<arguments>(args)...));
+ public:
+  /// Template constructor.
+  template <class callable, class... arguments>
+  JoinableFunction(int num_threads, callable&& f, arguments&&... args) {
+    std::function<typename std::result_of<callable(arguments...)>::type()> task(
+        std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
 
-        for (int i = 0; i < num_threads; i++)
-        {
-            futures.push_back(std::async(std::launch::async, task));
-        }
-
-        joined = false;
+    for (int i = 0; i < num_threads; i++) {
+      futures.push_back(std::async(std::launch::async, task));
     }
 
-    /// Destructor. Calls join if it has not been called manually.
-    ~JoinableFunction()
-    {
-        if (!joined)
-        {
-            join();
-        }
+    joined = false;
+  }
+
+  /// Destructor. Calls join if it has not been called manually.
+  ~JoinableFunction() {
+    if (!joined) {
+      join();
+    }
+  }
+
+  /// Joins all the launched threads.
+  void join() {
+    for (auto& e : futures) {
+      e.get();
     }
 
-    /// Joins all the launched threads.
-    void join()
-    {
-        for (auto& e : futures)
-        {
-            e.get();
-        }
-
-        joined = true;
-    }
+    joined = true;
+  }
 };
 
-#endif // __JOINABLEFUNCTION_H__
+#endif  // __JOINABLEFUNCTION_H__

@@ -20,19 +20,18 @@
 #ifndef __LOGENTRY_H__
 #define __LOGENTRY_H__
 
-#include "Address.h"
 #include <json/json.h>
+#include "Address.h"
 
-class LogEntry
-{
-    Json::Value m_eventObj;
-    // unsigned int m_numIndexed;
+class LogEntry {
+  Json::Value m_eventObj;
+  // unsigned int m_numIndexed;
 
-public:
-    LogEntry() = default;
-    bool Install(const Json::Value& eventObj,
-                 const Address& address); //, unsigned int& numIndexed);
-    const Json::Value& GetJsonObject() const { return m_eventObj; }
+ public:
+  LogEntry() = default;
+  bool Install(const Json::Value& eventObj,
+               const Address& address);  //, unsigned int& numIndexed);
+  const Json::Value& GetJsonObject() const { return m_eventObj; }
 };
 
-#endif // __LOGENTRY_H__
+#endif  // __LOGENTRY_H__

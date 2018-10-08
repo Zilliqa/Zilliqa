@@ -24,44 +24,40 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace std
-{
-    template<> struct hash<boost::multiprecision::uint128_t>
-    {
-        std::size_t
-        operator()(const boost::multiprecision::uint128_t& key) const
-        {
-            return std::hash<std::string>()(key.convert_to<std::string>());
-        }
-    };
-}
+namespace std {
+template <>
+struct hash<boost::multiprecision::uint128_t> {
+  std::size_t operator()(const boost::multiprecision::uint128_t& key) const {
+    return std::hash<std::string>()(key.convert_to<std::string>());
+  }
+};
+}  // namespace std
 
-class Blacklist
-{
-    Blacklist();
-    ~Blacklist();
+class Blacklist {
+  Blacklist();
+  ~Blacklist();
 
-    // Singleton should not implement these
-    Blacklist(Blacklist const&) = delete;
-    void operator=(Blacklist const&) = delete;
+  // Singleton should not implement these
+  Blacklist(Blacklist const&) = delete;
+  void operator=(Blacklist const&) = delete;
 
-    std::mutex m_mutexBlacklistIP;
-    std::unordered_map<boost::multiprecision::uint128_t, bool> m_blacklistIP;
+  std::mutex m_mutexBlacklistIP;
+  std::unordered_map<boost::multiprecision::uint128_t, bool> m_blacklistIP;
 
-public:
-    static Blacklist& GetInstance();
+ public:
+  static Blacklist& GetInstance();
 
-    /// P2PComm may use this function
-    bool Exist(const boost::multiprecision::uint128_t& ip);
+  /// P2PComm may use this function
+  bool Exist(const boost::multiprecision::uint128_t& ip);
 
-    /// Reputation Manager may use this function
-    void Add(const boost::multiprecision::uint128_t& ip);
+  /// Reputation Manager may use this function
+  void Add(const boost::multiprecision::uint128_t& ip);
 
-    /// Reputation Manager may use this function
-    void Remove(const boost::multiprecision::uint128_t& ip);
+  /// Reputation Manager may use this function
+  void Remove(const boost::multiprecision::uint128_t& ip);
 
-    /// Reputation Manager may use this function
-    void Clear();
+  /// Reputation Manager may use this function
+  void Clear();
 };
 
-#endif // __BLACKLIST_H__
+#endif  // __BLACKLIST_H__

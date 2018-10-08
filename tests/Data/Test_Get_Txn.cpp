@@ -29,40 +29,36 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(DispacthTxnTest)
 
-BOOST_AUTO_TEST_CASE(test1)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test1) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    vector<unsigned char> vec;
+  vector<unsigned char> vec;
 
-    for (auto& i : GENESIS_KEYS)
-    {
-        auto privKeyBytes{DataConversion::HexStrToUint8Vec(i)};
-        auto privKey = PrivKey{privKeyBytes, 0};
-        auto pubKey = PubKey{privKey};
-        auto addr = Account::GetAddressFromPublicKey(pubKey);
+  for (auto& i : GENESIS_KEYS) {
+    auto privKeyBytes{DataConversion::HexStrToUint8Vec(i)};
+    auto privKey = PrivKey{privKeyBytes, 0};
+    auto pubKey = PubKey{privKey};
+    auto addr = Account::GetAddressFromPublicKey(pubKey);
 
-        bool b = GetTxnFromFile::GetFromFile(addr, 56, 90, vec);
+    bool b = GetTxnFromFile::GetFromFile(addr, 56, 90, vec);
 
-        LOG_GENERAL(INFO, "Size: " << vec.size());
-        BOOST_CHECK_MESSAGE(b, "Failed");
+    LOG_GENERAL(INFO, "Size: " << vec.size());
+    BOOST_CHECK_MESSAGE(b, "Failed");
 
-        Transaction tx;
-        unsigned int curr_offset = 0;
-        for (unsigned int j = 0; j < 90; j++)
-        {
-            if (tx.Deserialize(vec, curr_offset) != 0)
-            {
-                LOG_GENERAL(WARNING, "Failed to Deserialize");
-                break;
-            }
-            LOG_GENERAL(INFO, "Nonce of " << i << " " << tx.GetNonce());
+    Transaction tx;
+    unsigned int curr_offset = 0;
+    for (unsigned int j = 0; j < 90; j++) {
+      if (tx.Deserialize(vec, curr_offset) != 0) {
+        LOG_GENERAL(WARNING, "Failed to Deserialize");
+        break;
+      }
+      LOG_GENERAL(INFO, "Nonce of " << i << " " << tx.GetNonce());
 
-            curr_offset += tx.GetSerializedSize();
-        }
+      curr_offset += tx.GetSerializedSize();
     }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

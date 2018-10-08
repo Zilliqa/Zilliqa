@@ -30,142 +30,118 @@
 #include "libPersistence/BlockStorage.h"
 
 /// Transient storage for DS/Tx/VC blocks.
-template<class T> class BlockChain
-{
-    std::mutex m_mutexBlocks;
-    CircularArray<T> m_blocks;
+template <class T>
+class BlockChain {
+  std::mutex m_mutexBlocks;
+  CircularArray<T> m_blocks;
 
-protected:
-    /// Constructor.
-    BlockChain() { Reset(); }
+ protected:
+  /// Constructor.
+  BlockChain() { Reset(); }
 
-    virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
+  virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
 
-public:
-    /// Destructor.
-    ~BlockChain() {}
+ public:
+  /// Destructor.
+  ~BlockChain() {}
 
-    /// Reset
-    void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
+  /// Reset
+  void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
 
-    /// Returns the number of blocks.
-    uint64_t GetBlockCount()
-    {
-        std::lock_guard<std::mutex> g(m_mutexBlocks);
-        return m_blocks.size();
+  /// Returns the number of blocks.
+  uint64_t GetBlockCount() {
+    std::lock_guard<std::mutex> g(m_mutexBlocks);
+    return m_blocks.size();
+  }
+
+  /// Returns the last stored block.
+  T GetLastBlock() {
+    std::lock_guard<std::mutex> g(m_mutexBlocks);
+    try {
+      return m_blocks.back();
+    } catch (...) {
+      return T();
+    }
+  }
+
+  /// Returns the block at the specified block number.
+  T GetBlock(const uint64_t& blockNum) {
+    std::lock_guard<std::mutex> g(m_mutexBlocks);
+
+    if (blockNum >= m_blocks.size()) {
+      LOG_GENERAL(WARNING, "Block number "
+                               << blockNum
+                               << " absent, a dummy block will be used and "
+                                  "abnormal behavior may happen!");
+      return T();
+    } else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
+      return GetBlockFromPersistentStorage(blockNum);
     }
 
-    /// Returns the last stored block.
-    T GetLastBlock()
-    {
-        std::lock_guard<std::mutex> g(m_mutexBlocks);
-        try
-        {
-            return m_blocks.back();
-        }
-        catch (...)
-        {
-            return T();
-        }
+    if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum) {
+      LOG_GENERAL(WARNING,
+                  "BlockNum : " << blockNum << " != GetBlockNum() : "
+                                << m_blocks[blockNum].GetHeader().GetBlockNum()
+                                << ", a dummy block will be used and abnormal "
+                                   "behavior may happen!");
+      return T();
     }
 
-    /// Returns the block at the specified block number.
-    T GetBlock(const uint64_t& blockNum)
-    {
-        std::lock_guard<std::mutex> g(m_mutexBlocks);
+    return m_blocks[blockNum];
+  }
 
-        if (blockNum >= m_blocks.size())
-        {
-            LOG_GENERAL(WARNING,
-                        "Block number "
-                            << blockNum
-                            << " absent, a dummy block will be used and "
-                               "abnormal behavior may happen!");
-            return T();
-        }
-        else if (blockNum + m_blocks.capacity() < m_blocks.size())
-        {
-            return GetBlockFromPersistentStorage(blockNum);
-        }
+  /// Adds a block to the chain.
+  int AddBlock(const T& block) {
+    uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
 
-        if (m_blocks[blockNum].GetHeader().GetBlockNum() != blockNum)
-        {
-            LOG_GENERAL(WARNING,
-                        "BlockNum : "
-                            << blockNum << " != GetBlockNum() : "
-                            << m_blocks[blockNum].GetHeader().GetBlockNum()
-                            << ", a dummy block will be used and abnormal "
-                               "behavior may happen!");
-            return T();
-        }
+    std::lock_guard<std::mutex> g(m_mutexBlocks);
 
-        return m_blocks[blockNum];
+    uint64_t blockNumOfExistingBlock =
+        m_blocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
+
+    if (blockNumOfExistingBlock < blockNumOfNewBlock ||
+        blockNumOfExistingBlock == (uint64_t)-1) {
+      m_blocks.insert_new(blockNumOfNewBlock, block);
+    } else {
+      return -1;
     }
 
-    /// Adds a block to the chain.
-    int AddBlock(const T& block)
-    {
-        uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
-
-        std::lock_guard<std::mutex> g(m_mutexBlocks);
-
-        uint64_t blockNumOfExistingBlock
-            = m_blocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
-
-        if (blockNumOfExistingBlock < blockNumOfNewBlock
-            || blockNumOfExistingBlock == (uint64_t)-1)
-        {
-            m_blocks.insert_new(blockNumOfNewBlock, block);
-        }
-        else
-        {
-            return -1;
-        }
-
-        return 1;
-    }
+    return 1;
+  }
 };
 
-class DSBlockChain : public BlockChain<DSBlock>
-{
-public:
-    DSBlock GetBlockFromPersistentStorage(const uint64_t& blockNum)
-    {
-        DSBlockSharedPtr block;
-        BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
-        return *block;
-    }
+class DSBlockChain : public BlockChain<DSBlock> {
+ public:
+  DSBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) {
+    DSBlockSharedPtr block;
+    BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block);
+    return *block;
+  }
 };
 
-class TxBlockChain : public BlockChain<TxBlock>
-{
-public:
-    TxBlock GetBlockFromPersistentStorage(const uint64_t& blockNum)
-    {
-        TxBlockSharedPtr block;
-        BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block);
-        return *block;
-    }
+class TxBlockChain : public BlockChain<TxBlock> {
+ public:
+  TxBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) {
+    TxBlockSharedPtr block;
+    BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block);
+    return *block;
+  }
 };
 
-class VCBlockChain : public BlockChain<VCBlock>
-{
-public:
-    VCBlock GetBlockFromPersistentStorage([
-        [gnu::unused]] const uint64_t& blockNum)
-    {
-        throw "vc block persistent storage not supported";
-    }
+class VCBlockChain : public BlockChain<VCBlock> {
+ public:
+  VCBlock GetBlockFromPersistentStorage([
+      [gnu::unused]] const uint64_t& blockNum) {
+    throw "vc block persistent storage not supported";
+  }
 };
 
-class FallbackBlockChain : public BlockChain<FallbackBlock>
-{
-public:
-    FallbackBlock GetBlockFromPersistentStorage([
-        [gnu::unused]] const uint64_t& blockNum)
-    {
-        throw "fallback block persistent storage not supported";
-    }
+class FallbackBlockChain : public BlockChain<FallbackBlock> {
+ public:
+  FallbackBlock GetBlockFromPersistentStorage([
+      [gnu::unused]] const uint64_t& blockNum) {
+    throw "fallback block persistent storage not supported";
+  }
 };
 
-#endif // __BLOCKCHAIN_H__
+#endif  // __BLOCKCHAIN_H__

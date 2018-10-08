@@ -28,48 +28,46 @@
 #include "common/Executable.h"
 
 /// Processes messages related to PeerStore management.
-class PeerManager : public Executable, public Broadcastable
-{
-    std::pair<PrivKey, PubKey> m_selfKey;
-    Peer m_selfPeer;
+class PeerManager : public Executable, public Broadcastable {
+  std::pair<PrivKey, PubKey> m_selfKey;
+  Peer m_selfPeer;
 
-    bool ProcessHello(const std::vector<unsigned char>& message,
+  bool ProcessHello(const std::vector<unsigned char>& message,
+                    unsigned int offset, const Peer& from);
+  bool ProcessAddPeer(const std::vector<unsigned char>& message,
                       unsigned int offset, const Peer& from);
-    bool ProcessAddPeer(const std::vector<unsigned char>& message,
+  bool ProcessPing(const std::vector<unsigned char>& message,
+                   unsigned int offset, const Peer& from);
+  bool ProcessPingAll(const std::vector<unsigned char>& message,
+                      unsigned int offset, const Peer& from);
+  bool ProcessBroadcast(const std::vector<unsigned char>& message,
                         unsigned int offset, const Peer& from);
-    bool ProcessPing(const std::vector<unsigned char>& message,
-                     unsigned int offset, const Peer& from);
-    bool ProcessPingAll(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
-    bool ProcessBroadcast(const std::vector<unsigned char>& message,
-                          unsigned int offset, const Peer& from);
 
-    void SetupLogLevel();
+  void SetupLogLevel();
 
-public:
-    enum InstructionType : unsigned char
-    {
-        HELLO = 0x00,
-        ADDPEER = 0x01,
-        PING = 0x02,
-        PINGALL = 0x03,
-        BROADCAST = 0x04,
-    };
+ public:
+  enum InstructionType : unsigned char {
+    HELLO = 0x00,
+    ADDPEER = 0x01,
+    PING = 0x02,
+    PINGALL = 0x03,
+    BROADCAST = 0x04,
+  };
 
-    /// Constructor.
-    PeerManager(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                bool loadConfig);
+  /// Constructor.
+  PeerManager(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
+              bool loadConfig);
 
-    /// Destructor.
-    ~PeerManager();
+  /// Destructor.
+  ~PeerManager();
 
-    /// Implements the Execute function inherited from Executable.
-    bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-                 const Peer& from);
+  /// Implements the Execute function inherited from Executable.
+  bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
+               const Peer& from);
 
-    /// Implements the GetBroadcastList function inherited from Broadcastable.
-    std::vector<Peer> GetBroadcastList(unsigned char ins_type,
-                                       const Peer& broadcast_originator);
+  /// Implements the GetBroadcastList function inherited from Broadcastable.
+  std::vector<Peer> GetBroadcastList(unsigned char ins_type,
+                                     const Peer& broadcast_originator);
 };
 
-#endif // __PEERMANAGER_H__
+#endif  // __PEERMANAGER_H__

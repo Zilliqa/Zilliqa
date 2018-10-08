@@ -20,39 +20,35 @@
 #ifndef __BROADCASTABLE_H__
 #define __BROADCASTABLE_H__
 
+#include <vector>
 #include "libNetwork/PeerStore.h"
 #include "libUtils/Logger.h"
-#include <vector>
 
 /// Specifies the interface required for classes that maintain broadcast lists.
-class Broadcastable
-{
-public:
-    /// Returns the list of destination peers for a message with the specified instruction type.
-    virtual std::vector<Peer>
-        GetBroadcastList([[gnu::unused]] unsigned char ins_type,
-                         const Peer& broadcast_originator)
-    {
-        LOG_MARKER();
-        std::vector<Peer> peers = PeerStore::GetStore().GetAllPeers();
-        for (std::vector<Peer>::iterator peer = peers.begin();
-             peer != peers.end(); peer++)
-        {
-            if ((peer->m_ipAddress == broadcast_originator.m_ipAddress)
-                && (peer->m_listenPortHost
-                    == broadcast_originator.m_listenPortHost))
-            {
-                *peer = std::move(peers.back());
-                peers.pop_back();
-                break;
-            }
-        }
-        LOG_GENERAL(INFO, "Number of peers to broadcast = " << peers.size());
-        return peers;
+class Broadcastable {
+ public:
+  /// Returns the list of destination peers for a message with the specified
+  /// instruction type.
+  virtual std::vector<Peer> GetBroadcastList(
+      [[gnu::unused]] unsigned char ins_type,
+      const Peer& broadcast_originator) {
+    LOG_MARKER();
+    std::vector<Peer> peers = PeerStore::GetStore().GetAllPeers();
+    for (std::vector<Peer>::iterator peer = peers.begin(); peer != peers.end();
+         peer++) {
+      if ((peer->m_ipAddress == broadcast_originator.m_ipAddress) &&
+          (peer->m_listenPortHost == broadcast_originator.m_listenPortHost)) {
+        *peer = std::move(peers.back());
+        peers.pop_back();
+        break;
+      }
     }
+    LOG_GENERAL(INFO, "Number of peers to broadcast = " << peers.size());
+    return peers;
+  }
 
-    /// Virtual destructor.
-    virtual ~Broadcastable() {}
+  /// Virtual destructor.
+  virtual ~Broadcastable() {}
 };
 
-#endif // __BROADCASTABLE_H__
+#endif  // __BROADCASTABLE_H__

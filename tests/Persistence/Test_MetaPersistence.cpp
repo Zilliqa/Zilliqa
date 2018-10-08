@@ -30,40 +30,38 @@
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    DB db("test.db");
+  DB db("test.db");
 
-    db.WriteToDB("fruit", "vegetable");
+  db.WriteToDB("fruit", "vegetable");
 
-    std::string ret = db.ReadFromDB("fruit");
+  std::string ret = db.ReadFromDB("fruit");
 
-    BOOST_CHECK_MESSAGE(
-        ret == "vegetable",
-        "ERROR: return value from DB not equal to inserted value");
+  BOOST_CHECK_MESSAGE(
+      ret == "vegetable",
+      "ERROR: return value from DB not equal to inserted value");
 }
 
-BOOST_AUTO_TEST_CASE(testWriteAndReadSTATEROOT)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testWriteAndReadSTATEROOT) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    dev::h256 in_root;
-    std::fill(in_root.asArray().begin(), in_root.asArray().end(), 0x77);
-    BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, in_root.asBytes());
+  dev::h256 in_root;
+  std::fill(in_root.asArray().begin(), in_root.asArray().end(), 0x77);
+  BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, in_root.asBytes());
 
-    std::vector<unsigned char> rootBytes;
-    BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes);
-    dev::h256 out_root(rootBytes);
+  std::vector<unsigned char> rootBytes;
+  BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes);
+  dev::h256 out_root(rootBytes);
 
-    BOOST_CHECK_MESSAGE(
-        in_root == out_root,
-        "STATEROOT hash shouldn't change after writing to /reading from disk");
+  BOOST_CHECK_MESSAGE(
+      in_root == out_root,
+      "STATEROOT hash shouldn't change after writing to /reading from disk");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

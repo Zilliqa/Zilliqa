@@ -34,58 +34,51 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(utils)
 
-Transaction createDummyTransaction()
-{
-    Address toAddr;
-    for (unsigned int i = 0; i < toAddr.asArray().size(); i++)
-    {
-        toAddr.asArray().at(i) = i + 4;
-    }
+Transaction createDummyTransaction() {
+  Address toAddr;
+  for (unsigned int i = 0; i < toAddr.asArray().size(); i++) {
+    toAddr.asArray().at(i) = i + 4;
+  }
 
-    Transaction tx(1, 5, toAddr, Schnorr::GetInstance().GenKeyPair(), 55, 11,
-                   22, {0x33}, {0x44});
-    return tx;
+  Transaction tx(1, 5, toAddr, Schnorr::GetInstance().GenKeyPair(), 55, 11, 22,
+                 {0x33}, {0x44});
+  return tx;
 }
 
-decltype(auto) generateDummyTransactions(size_t n)
-{
-    std::unordered_map<TxnHash, Transaction> txns;
+decltype(auto) generateDummyTransactions(size_t n) {
+  std::unordered_map<TxnHash, Transaction> txns;
 
-    for (auto i = 0u; i != n; i++)
-    {
-        auto txn = createDummyTransaction();
-        txns.emplace(txn.GetTranID(), txn);
-    }
+  for (auto i = 0u; i != n; i++) {
+    auto txn = createDummyTransaction();
+    txns.emplace(txn.GetTranID(), txn);
+  }
 
-    return txns;
+  return txns;
 }
 
-BOOST_AUTO_TEST_CASE(compareAllThreeVersions)
-{
-    auto txnMap1 = generateDummyTransactions(100);
-    auto txnMap2 = generateDummyTransactions(100);
+BOOST_AUTO_TEST_CASE(compareAllThreeVersions) {
+  auto txnMap1 = generateDummyTransactions(100);
+  auto txnMap2 = generateDummyTransactions(100);
 
-    std::vector<TxnHash> txnHashVec; // join the hashes of two lists;
-    std::list<Transaction> txnList1, txnList2;
+  std::vector<TxnHash> txnHashVec;  // join the hashes of two lists;
+  std::list<Transaction> txnList1, txnList2;
 
-    for (auto& txnPair : txnMap1)
-    {
-        txnHashVec.emplace_back(txnPair.first);
-        txnList1.emplace_back(txnPair.second);
-    }
+  for (auto& txnPair : txnMap1) {
+    txnHashVec.emplace_back(txnPair.first);
+    txnList1.emplace_back(txnPair.second);
+  }
 
-    for (auto& txnPair : txnMap2)
-    {
-        txnHashVec.emplace_back(txnPair.first);
-        txnList2.emplace_back(txnPair.second);
-    }
+  for (auto& txnPair : txnMap2) {
+    txnHashVec.emplace_back(txnPair.first);
+    txnList2.emplace_back(txnPair.second);
+  }
 
-    auto hashRoot1 = ComputeTransactionsRoot(txnHashVec);
-    auto hashRoot2 = ComputeTransactionsRoot(txnList1, txnList2);
-    auto hashRoot3 = ComputeTransactionsRoot(txnMap1, txnMap2);
+  auto hashRoot1 = ComputeTransactionsRoot(txnHashVec);
+  auto hashRoot2 = ComputeTransactionsRoot(txnList1, txnList2);
+  auto hashRoot3 = ComputeTransactionsRoot(txnMap1, txnMap2);
 
-    BOOST_CHECK_EQUAL(hashRoot1, hashRoot2);
-    BOOST_CHECK_EQUAL(hashRoot1, hashRoot3);
+  BOOST_CHECK_EQUAL(hashRoot1, hashRoot2);
+  BOOST_CHECK_EQUAL(hashRoot1, hashRoot3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

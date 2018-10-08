@@ -31,32 +31,27 @@
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE(testBlockStorage)
-{
-    INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(testBlockStorage) {
+  INIT_STDOUT_LOGGER();
 
-    LOG_MARKER();
+  LOG_MARKER();
 
-    int blocknumber;
+  int blocknumber;
 
-    std::cout << "Enter block number: ";
-    std::cin >> blocknumber;
+  std::cout << "Enter block number: ";
+  std::cin >> blocknumber;
 
-    TxBlockSharedPtr block2;
-    BlockStorage::GetBlockStorage().GetTxBlock(blocknumber, block2);
+  TxBlockSharedPtr block2;
+  BlockStorage::GetBlockStorage().GetTxBlock(blocknumber, block2);
 
-    LOG_GENERAL(
-        INFO,
-        "Block type value retrieved: " << (*block2).GetHeader().GetType());
-    LOG_GENERAL(INFO,
-                "Block version value retrieved: "
-                    << (*block2).GetHeader().GetVersion());
-    LOG_GENERAL(INFO,
-                "Block timestamp value retrieved: "
-                    << (*block2).GetHeader().GetTimestamp());
-    LOG_GENERAL(
-        INFO,
-        "Block num txs value retrieved: " << (*block2).GetHeader().GetNumTxs());
+  LOG_GENERAL(
+      INFO, "Block type value retrieved: " << (*block2).GetHeader().GetType());
+  LOG_GENERAL(INFO, "Block version value retrieved: "
+                        << (*block2).GetHeader().GetVersion());
+  LOG_GENERAL(INFO, "Block timestamp value retrieved: "
+                        << (*block2).GetHeader().GetTimestamp());
+  LOG_GENERAL(INFO, "Block num txs value retrieved: "
+                        << (*block2).GetHeader().GetNumTxs());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

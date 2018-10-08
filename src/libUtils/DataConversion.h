@@ -28,49 +28,47 @@
 #include "common/Serializable.h"
 
 /// Utility class for data conversion operations.
-class DataConversion
-{
-public:
-    /// Converts alphanumeric hex string to byte vector.
-    static const std::vector<unsigned char>
-    HexStrToUint8Vec(const std::string& hex_input);
+class DataConversion {
+ public:
+  /// Converts alphanumeric hex string to byte vector.
+  static const std::vector<unsigned char> HexStrToUint8Vec(
+      const std::string& hex_input);
 
-    /// Converts alphanumeric hex string to 32-byte array.
-    static const std::array<unsigned char, 32>
-    HexStrToStdArray(const std::string& hex_input);
+  /// Converts alphanumeric hex string to 32-byte array.
+  static const std::array<unsigned char, 32> HexStrToStdArray(
+      const std::string& hex_input);
 
-    /// Converts alphanumeric hex string to 64-byte array.
-    static const std::array<unsigned char, 64>
-    HexStrToStdArray64(const std::string& hex_input);
+  /// Converts alphanumeric hex string to 64-byte array.
+  static const std::array<unsigned char, 64> HexStrToStdArray64(
+      const std::string& hex_input);
 
-    /// Converts byte vector to alphanumeric hex string.
-    static const std::string
-    Uint8VecToHexStr(const std::vector<unsigned char>& hex_vec);
+  /// Converts byte vector to alphanumeric hex string.
+  static const std::string Uint8VecToHexStr(
+      const std::vector<unsigned char>& hex_vec);
 
-    /// Converts byte vector to alphanumeric hex string.
-    static const std::string
-    Uint8VecToHexStr(const std::vector<unsigned char>& hex_vec,
-                     unsigned int offset, unsigned int len);
+  /// Converts byte vector to alphanumeric hex string.
+  static const std::string Uint8VecToHexStr(
+      const std::vector<unsigned char>& hex_vec, unsigned int offset,
+      unsigned int len);
 
-    /// Converts fixed-sized byte array to alphanumeric hex string.
-    template<size_t SIZE>
-    static std::string
-    charArrToHexStr(const std::array<unsigned char, SIZE>& hex_arr)
-    {
-        std::string str;
-        boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
-                              std::back_inserter(str));
-        return str;
-    }
+  /// Converts fixed-sized byte array to alphanumeric hex string.
+  template <size_t SIZE>
+  static std::string charArrToHexStr(
+      const std::array<unsigned char, SIZE>& hex_arr) {
+    std::string str;
+    boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
+                          std::back_inserter(str));
+    return str;
+  }
 
-    /// Converts a serializable object to alphanumeric hex string.
-    static std::string SerializableToHexStr(const Serializable& input);
+  /// Converts a serializable object to alphanumeric hex string.
+  static std::string SerializableToHexStr(const Serializable& input);
 
-    static const std::string
-    CharArrayToString(const std::vector<unsigned char>& v);
+  static const std::string CharArrayToString(
+      const std::vector<unsigned char>& v);
 
-    static const std::vector<unsigned char>
-    StringToCharArray(const std::string& input);
+  static const std::vector<unsigned char> StringToCharArray(
+      const std::string& input);
 };
 
-#endif // __DATACONVERSION_H__
+#endif  // __DATACONVERSION_H__

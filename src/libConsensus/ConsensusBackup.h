@@ -41,101 +41,99 @@ typedef std::function<bool(
     MsgContentValidatorFunc;
 
 /// Implements the functionality for the consensus committee backup.
-class ConsensusBackup : public ConsensusCommon
-{
-private:
-    enum Action
-    {
-        PROCESS_ANNOUNCE = 0x00,
-        PROCESS_CHALLENGE,
-        PROCESS_COLLECTIVESIG,
-        PROCESS_FINALCHALLENGE,
-        PROCESS_FINALCOLLECTIVESIG
-    };
+class ConsensusBackup : public ConsensusCommon {
+ private:
+  enum Action {
+    PROCESS_ANNOUNCE = 0x00,
+    PROCESS_CHALLENGE,
+    PROCESS_COLLECTIVESIG,
+    PROCESS_FINALCHALLENGE,
+    PROCESS_FINALCOLLECTIVESIG
+  };
 
-    // Consensus session settings
-    uint16_t m_leaderID;
+  // Consensus session settings
+  uint16_t m_leaderID;
 
-    // Received challenge
-    Challenge m_challenge;
+  // Received challenge
+  Challenge m_challenge;
 
-    // Function handler for validating message content
-    MsgContentValidatorFunc m_msgContentValidator;
+  // Function handler for validating message content
+  MsgContentValidatorFunc m_msgContentValidator;
 
-    // Announcement State block
-    std::condition_variable cv_announcementBlock;
-    std::mutex m_MutexCVAnnouncementBlock;
+  // Announcement State block
+  std::condition_variable cv_announcementBlock;
+  std::mutex m_MutexCVAnnouncementBlock;
 
-    // Cosig1 State block
-    std::condition_variable cv_cosig1Block;
-    std::mutex m_MutexCVCosig1Block;
+  // Cosig1 State block
+  std::condition_variable cv_cosig1Block;
+  std::mutex m_MutexCVCosig1Block;
 
-    // Internal functions
-    bool CheckState(Action action);
+  // Internal functions
+  bool CheckState(Action action);
 
-    bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
-                                unsigned int offset);
-    bool
-    GenerateCommitFailureMessage(std::vector<unsigned char>& commitFailure,
-                                 unsigned int offset,
-                                 const std::vector<unsigned char>& errorMsg);
-    bool ProcessMessageConsensusFailure(
-        [[gnu::unused]] const std::vector<unsigned char>& announcement,
-        [[gnu::unused]] unsigned int offset);
-    bool GenerateCommitMessage(std::vector<unsigned char>& commit,
+  bool ProcessMessageAnnounce(const std::vector<unsigned char>& announcement,
+                              unsigned int offset);
+  bool GenerateCommitFailureMessage(std::vector<unsigned char>& commitFailure,
+                                    unsigned int offset,
+                                    const std::vector<unsigned char>& errorMsg);
+  bool ProcessMessageConsensusFailure(
+      [[gnu::unused]] const std::vector<unsigned char>& announcement,
+      [[gnu::unused]] unsigned int offset);
+  bool GenerateCommitMessage(std::vector<unsigned char>& commit,
+                             unsigned int offset);
+  bool ProcessMessageChallengeCore(const std::vector<unsigned char>& challenge,
+                                   unsigned int offset, Action action,
+                                   ConsensusMessageType returnmsgtype,
+                                   State nextstate);
+  bool ProcessMessageChallenge(const std::vector<unsigned char>& challenge,
                                unsigned int offset);
-    bool ProcessMessageChallengeCore(
-        const std::vector<unsigned char>& challenge, unsigned int offset,
-        Action action, ConsensusMessageType returnmsgtype, State nextstate);
-    bool ProcessMessageChallenge(const std::vector<unsigned char>& challenge,
-                                 unsigned int offset);
-    bool GenerateResponseMessage(std::vector<unsigned char>& response,
-                                 unsigned int offset);
-    bool ProcessMessageCollectiveSigCore(
-        const std::vector<unsigned char>& collectivesig, unsigned int offset,
-        Action action, State nextstate);
-    bool
-    ProcessMessageCollectiveSig(const std::vector<unsigned char>& collectivesig,
-                                unsigned int offset);
-    bool
-    ProcessMessageFinalChallenge(const std::vector<unsigned char>& challenge,
-                                 unsigned int offset);
-    bool ProcessMessageFinalCollectiveSig(
-        const std::vector<unsigned char>& finalcollectivesig,
-        unsigned int offset);
+  bool GenerateResponseMessage(std::vector<unsigned char>& response,
+                               unsigned int offset);
+  bool ProcessMessageCollectiveSigCore(
+      const std::vector<unsigned char>& collectivesig, unsigned int offset,
+      Action action, State nextstate);
+  bool ProcessMessageCollectiveSig(
+      const std::vector<unsigned char>& collectivesig, unsigned int offset);
+  bool ProcessMessageFinalChallenge(const std::vector<unsigned char>& challenge,
+                                    unsigned int offset);
+  bool ProcessMessageFinalCollectiveSig(
+      const std::vector<unsigned char>& finalcollectivesig,
+      unsigned int offset);
 
-public:
-    /// Constructor.
-    ConsensusBackup(
-        uint32_t consensus_id, // unique identifier for this consensus session
-        uint64_t block_number, // latest final block number
-        const std::vector<unsigned char>&
-            block_hash, // unique identifier for this consensus session
-        uint16_t
-            node_id, // backup's identifier (= index in some ordered lookup table shared by all nodes)
-        uint16_t
-            leader_id, // leader's identifier (= index in some ordered lookup table shared by all nodes)
-        const PrivKey& privkey, // backup's private key
-        const std::deque<std::pair<PubKey, Peer>>&
-            committee, // ordered lookup table of pubkeys for this committee (includes leader)
-        unsigned char
-            class_byte, // class byte representing Executable class using this instance of ConsensusBackup
-        unsigned char
-            ins_byte, // instruction byte representing consensus messages for the Executable class
-        MsgContentValidatorFunc
-            msg_validator // function handler for validating the content of message for consensus (e.g., Tx block)
-    );
+ public:
+  /// Constructor.
+  ConsensusBackup(
+      uint32_t consensus_id,  // unique identifier for this consensus session
+      uint64_t block_number,  // latest final block number
+      const std::vector<unsigned char>&
+          block_hash,    // unique identifier for this consensus session
+      uint16_t node_id,  // backup's identifier (= index in some ordered lookup
+                         // table shared by all nodes)
+      uint16_t leader_id,      // leader's identifier (= index in some ordered
+                               // lookup table shared by all nodes)
+      const PrivKey& privkey,  // backup's private key
+      const std::deque<std::pair<PubKey, Peer>>&
+          committee,  // ordered lookup table of pubkeys for this committee
+                      // (includes leader)
+      unsigned char class_byte,  // class byte representing Executable class
+                                 // using this instance of ConsensusBackup
+      unsigned char ins_byte,    // instruction byte representing consensus
+                                 // messages for the Executable class
+      MsgContentValidatorFunc
+          msg_validator  // function handler for validating the content of
+                         // message for consensus (e.g., Tx block)
+  );
 
-    /// Destructor.
-    ~ConsensusBackup();
+  /// Destructor.
+  ~ConsensusBackup();
 
-    /// Function to process any consensus message received.
-    bool ProcessMessage(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
+  /// Function to process any consensus message received.
+  bool ProcessMessage(const std::vector<unsigned char>& message,
+                      unsigned int offset, const Peer& from);
 
-private:
-    static std::map<Action, std::string> ActionStrings;
-    std::string GetActionString(Action action) const;
+ private:
+  static std::map<Action, std::string> ActionStrings;
+  std::string GetActionString(Action action) const;
 };
 
-#endif // __CONSENSUSBACKUP_H__
+#endif  // __CONSENSUSBACKUP_H__

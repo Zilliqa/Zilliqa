@@ -17,11 +17,11 @@
  * program files.
  */
 
-#include <fstream>
 #include <limits.h>
 #include <stdio.h>
-#include <string>
 #include <unistd.h>
+#include <fstream>
+#include <string>
 #include <vector>
 
 #ifndef __GetTxnFromFile_H__
@@ -34,110 +34,95 @@ unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
 
 bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
                              unsigned int totalNum,
-                             std::vector<unsigned char>& vec)
-{
-    f.seekg(startNum * TXN_SIZE, std::ios::beg);
-    //vec.resize(TXN_SIZE * totalNum);
-    for (unsigned int i = 0; i < TXN_SIZE * totalNum; i++)
-    {
-        if (!f.good())
-        {
-            LOG_GENERAL(WARNING, "Bad byte accessed");
-            return false;
-        }
-        vec.emplace_back(f.get());
+                             std::vector<unsigned char>& vec) {
+  f.seekg(startNum * TXN_SIZE, std::ios::beg);
+  // vec.resize(TXN_SIZE * totalNum);
+  for (unsigned int i = 0; i < TXN_SIZE * totalNum; i++) {
+    if (!f.good()) {
+      LOG_GENERAL(WARNING, "Bad byte accessed");
+      return false;
     }
-    return true;
+    vec.emplace_back(f.get());
+  }
+  return true;
 }
 
-class GetTxnFromFile
-{
-public:
-    //clears vec
-    static bool GetFromFile(Address addr, unsigned int startNum,
-                            unsigned int totalNum,
-                            std::vector<unsigned char>& vec)
-    {
-        if (NUM_TXN_TO_SEND_PER_ACCOUNT == 0)
-        {
-            return true;
-        }
-
-        const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
-        std::fstream file;
-        vec.clear();
-
-        if (totalNum > num_txn)
-        {
-            LOG_GENERAL(WARNING,
-                        "A single file is holding too many txns ("
-                            << totalNum << " > " << num_txn);
-            return false;
-        }
-
-        auto getFile = [&addr](const unsigned int& num, std::fstream& file,
-                               const auto num_txn) {
-            std::string fileString = TXN_PATH + "/" + addr.hex() + "_"
-                + std::to_string(num * num_txn) + ".zil";
-
-            file.open(fileString, std::ios::binary | std::ios::in);
-
-            if (!file.is_open())
-            {
-                LOG_GENERAL(WARNING, "File failed to open " << fileString);
-                return false;
-            }
-
-            return true;
-        };
-
-        unsigned int fileNum = (startNum - 1) / num_txn;
-        bool breakCall = false;
-        bool b = false;
-        std::vector<unsigned char> remainTxn;
-        unsigned int startNumInFile = (startNum - 1) % num_txn;
-        if (startNumInFile + totalNum > num_txn)
-        {
-            breakCall = true;
-            unsigned int remainNum = totalNum + startNumInFile - num_txn;
-            if (!getFile(fileNum + 1, file, num_txn))
-            {
-                return false;
-            }
-
-            b = getTransactionsFromFile(file, 0, remainNum, remainTxn);
-
-            file.close();
-
-            if (!b)
-            {
-                return false;
-            }
-
-            totalNum -= remainNum;
-        }
-
-        if (!getFile(fileNum, file, num_txn))
-        {
-            return false;
-        }
-
-        b = getTransactionsFromFile(file, startNumInFile, totalNum, vec);
-
-        file.close();
-
-        if (!b)
-        {
-            return false;
-        }
-
-        if (breakCall)
-        {
-            copy(remainTxn.begin(), remainTxn.end(), back_inserter(vec));
-        }
-
-        return true;
+class GetTxnFromFile {
+ public:
+  // clears vec
+  static bool GetFromFile(Address addr, unsigned int startNum,
+                          unsigned int totalNum,
+                          std::vector<unsigned char>& vec) {
+    if (NUM_TXN_TO_SEND_PER_ACCOUNT == 0) {
+      return true;
     }
+
+    const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
+    std::fstream file;
+    vec.clear();
+
+    if (totalNum > num_txn) {
+      LOG_GENERAL(WARNING, "A single file is holding too many txns ("
+                               << totalNum << " > " << num_txn);
+      return false;
+    }
+
+    auto getFile = [&addr](const unsigned int& num, std::fstream& file,
+                           const auto num_txn) {
+      std::string fileString = TXN_PATH + "/" + addr.hex() + "_" +
+                               std::to_string(num * num_txn) + ".zil";
+
+      file.open(fileString, std::ios::binary | std::ios::in);
+
+      if (!file.is_open()) {
+        LOG_GENERAL(WARNING, "File failed to open " << fileString);
+        return false;
+      }
+
+      return true;
+    };
+
+    unsigned int fileNum = (startNum - 1) / num_txn;
+    bool breakCall = false;
+    bool b = false;
+    std::vector<unsigned char> remainTxn;
+    unsigned int startNumInFile = (startNum - 1) % num_txn;
+    if (startNumInFile + totalNum > num_txn) {
+      breakCall = true;
+      unsigned int remainNum = totalNum + startNumInFile - num_txn;
+      if (!getFile(fileNum + 1, file, num_txn)) {
+        return false;
+      }
+
+      b = getTransactionsFromFile(file, 0, remainNum, remainTxn);
+
+      file.close();
+
+      if (!b) {
+        return false;
+      }
+
+      totalNum -= remainNum;
+    }
+
+    if (!getFile(fileNum, file, num_txn)) {
+      return false;
+    }
+
+    b = getTransactionsFromFile(file, startNumInFile, totalNum, vec);
+
+    file.close();
+
+    if (!b) {
+      return false;
+    }
+
+    if (breakCall) {
+      copy(remainTxn.begin(), remainTxn.end(), back_inserter(vec));
+    }
+
+    return true;
+  }
 };
 
 #endif

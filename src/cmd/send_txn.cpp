@@ -33,31 +33,29 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-int main(int argc, const char* argv[])
-{
+int main(int argc, const char* argv[]) {
+  // To use ./sendtxn [port]
+  if (argc < 2) {
+    cout << "[USAGE] " << argv[0] << " <local node listen_port> <command>"
+         << endl;
+    cout << "Available commands: cmd " << endl;
+  }
 
-    // To use ./sendtxn [port]
-    if (argc < 2)
-    {
-        cout << "[USAGE] " << argv[0] << " <local node listen_port> <command>"
-             << endl;
-        cout << "Available commands: cmd " << endl;
-    }
+  uint32_t listen_port = static_cast<unsigned int>(atoi(argv[1]));
+  struct in_addr ip_addr;
+  inet_aton("127.0.0.1", &ip_addr);
+  Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
-    uint32_t listen_port = static_cast<unsigned int>(atoi(argv[1]));
-    struct in_addr ip_addr;
-    inet_aton("127.0.0.1", &ip_addr);
-    Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
+  // Send the generic message to the local node
+  std::string dummyTxn =
+      "02020202AAB3EFF78CC0D5854AC5F3DCF2A7C372E9162340999"
+      "BB8032F7B7277D698A802A523F019D0BE0E008108C012716414"
+      "F6249DA59ECFF9597CC83AA4C0D825FD7500000000000000000"
+      "00000000000000000000000000000000000000000000064";
+  vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(dummyTxn);
 
-    // Send the generic message to the local node
-    std::string dummyTxn = "02020202AAB3EFF78CC0D5854AC5F3DCF2A7C372E9162340999"
-                           "BB8032F7B7277D698A802A523F019D0BE0E008108C012716414"
-                           "F6249DA59ECFF9597CC83AA4C0D825FD7500000000000000000"
-                           "00000000000000000000000000000000000000000000064";
-    vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(dummyTxn);
+  P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
+  this_thread::sleep_for(chrono::milliseconds(50));
 
-    P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
-    this_thread::sleep_for(chrono::milliseconds(50));
-
-    return 0;
+  return 0;
 }

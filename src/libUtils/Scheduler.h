@@ -28,33 +28,34 @@
 #include <thread>
 
 // should be initialized this way
-// CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue, &scheduler);
-// threadGroup.create_thread(boost::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
+// CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue,
+// &scheduler);
+// threadGroup.create_thread(boost::bind(&TraceThread<CScheduler::Function>,
+// "scheduler", serviceLoop));
 
 /// [TODO] Currently unused
-class Scheduler
-{
-public:
-    Scheduler();
-    ~Scheduler();
+class Scheduler {
+ public:
+  Scheduler();
+  ~Scheduler();
 
-    void ScheduleAt(std::function<void(void)> f,
-                    std::chrono::time_point<std::chrono::system_clock> t
-                    = std::chrono::system_clock::now());
+  void ScheduleAt(std::function<void(void)> f,
+                  std::chrono::time_point<std::chrono::system_clock> t =
+                      std::chrono::system_clock::now());
 
-    void ScheduleAfter(std::function<void(void)> f, int64_t deltaMilliSeconds);
+  void ScheduleAfter(std::function<void(void)> f, int64_t deltaMilliSeconds);
 
-    void SchedulePeriodically(std::function<void(void)> f,
-                              int64_t deltaMilliSeconds);
+  void SchedulePeriodically(std::function<void(void)> f,
+                            int64_t deltaMilliSeconds);
 
-    void ServiceQueue();
+  void ServiceQueue();
 
-private:
-    std::multimap<std::chrono::time_point<std::chrono::system_clock>,
-                  std::function<void(void)>>
-        taskQueue;
-    std::condition_variable newTaskScheduled;
-    mutable std::mutex newTaskMutex;
+ private:
+  std::multimap<std::chrono::time_point<std::chrono::system_clock>,
+                std::function<void(void)>>
+      taskQueue;
+  std::condition_variable newTaskScheduled;
+  mutable std::mutex newTaskMutex;
 };
 
-#endif // __SCHEDULER_H__
+#endif  // __SCHEDULER_H__

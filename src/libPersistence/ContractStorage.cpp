@@ -24,13 +24,11 @@
 using namespace dev;
 
 bool ContractStorage::PutContractCode(const h160& address,
-                                      const std::vector<unsigned char>& code)
-{
-    return m_codeDB.Insert(address.hex(), code) == 0;
+                                      const std::vector<unsigned char>& code) {
+  return m_codeDB.Insert(address.hex(), code) == 0;
 }
 
-const std::vector<unsigned char>
-ContractStorage::GetContractCode(const h160& address)
-{
-    return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
+const std::vector<unsigned char> ContractStorage::GetContractCode(
+    const h160& address) {
+  return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
 }

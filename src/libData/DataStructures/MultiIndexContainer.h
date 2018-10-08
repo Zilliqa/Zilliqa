@@ -26,12 +26,7 @@
 
 #include "libData/AccountData/Transaction.h"
 
-enum MULTI_INDEX_KEY : unsigned int
-{
-    GAS_PRICE = 0,
-    TXN_ID,
-    PUBKEY_NONCE
-};
+enum MULTI_INDEX_KEY : unsigned int { GAS_PRICE = 0, TXN_ID, PUBKEY_NONCE };
 
 typedef boost::multi_index::ordered_non_unique<
     boost::multi_index::const_mem_fun<Transaction,
@@ -53,22 +48,18 @@ typedef boost::multi_index::ordered_unique<boost::multi_index::composite_key<
                                       &Transaction::GetNonce>>>
     ordered_unique_comp_pubkey_nonce_key;
 
-namespace boost
-{
-    namespace multiprecision
-    {
-        static std::size_t hash_value(const uint256_t& value)
-        {
-            std::size_t seed = 0;
-            boost::hash_combine(seed, value);
-            return seed;
-        }
-    }
+namespace boost {
+namespace multiprecision {
+static std::size_t hash_value(const uint256_t& value) {
+  std::size_t seed = 0;
+  boost::hash_combine(seed, value);
+  return seed;
 }
+}  // namespace multiprecision
+}  // namespace boost
 
 typedef boost::multi_index::multi_index_container<
-    Transaction,
-    boost::multi_index::indexed_by<ordered_non_unique_gas_key,
-                                   hashed_unique_txnid_key,
-                                   ordered_unique_comp_pubkey_nonce_key>>
+    Transaction, boost::multi_index::indexed_by<
+                     ordered_non_unique_gas_key, hashed_unique_txnid_key,
+                     ordered_unique_comp_pubkey_nonce_key>>
     gas_txnid_comp_txns;

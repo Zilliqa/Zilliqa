@@ -20,28 +20,27 @@
 #ifndef __SINGLETON_H__
 #define __SINGLETON_H__
 
-template<typename T> class Singleton
-{
-protected:
-    Singleton() noexcept = default;
+template <typename T>
+class Singleton {
+ protected:
+  Singleton() noexcept = default;
 
-    Singleton(const Singleton&) = delete;
+  Singleton(const Singleton&) = delete;
 
-    Singleton& operator=(const Singleton&) = delete;
+  Singleton& operator=(const Singleton&) = delete;
 
-    virtual ~Singleton() = default; // to silence base class Singleton<T> has a
-    // non-virtual destructor [-Weffc++]
+  virtual ~Singleton() = default;  // to silence base class Singleton<T> has a
+                                   // non-virtual destructor [-Weffc++]
 
-public:
-    static T& GetInstance() noexcept(std::is_nothrow_constructible<T>::value)
-    {
-        // Guaranteed to be destroyed.
-        // Instantiated on first use.
-        // Thread safe in C++11
-        static T instance;
+ public:
+  static T& GetInstance() noexcept(std::is_nothrow_constructible<T>::value) {
+    // Guaranteed to be destroyed.
+    // Instantiated on first use.
+    // Thread safe in C++11
+    static T instance;
 
-        return instance;
-    }
+    return instance;
+  }
 };
 
-#endif // __SINGLETON_H__
+#endif  // __SINGLETON_H__

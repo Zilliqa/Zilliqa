@@ -32,263 +32,253 @@
 #include "common/Serializable.h"
 #include "libUtils/DataConversion.h"
 
-/// Stores the NID_secp256k1 curve parameters for the elliptic curve scheme used in Zilliqa.
-struct Curve
-{
-    /// EC group.
-    std::shared_ptr<EC_GROUP> m_group;
+/// Stores the NID_secp256k1 curve parameters for the elliptic curve scheme used
+/// in Zilliqa.
+struct Curve {
+  /// EC group.
+  std::shared_ptr<EC_GROUP> m_group;
 
-    /// Order of the group.
-    std::shared_ptr<BIGNUM> m_order;
+  /// Order of the group.
+  std::shared_ptr<BIGNUM> m_order;
 
-    /// Constructor.
-    Curve();
+  /// Constructor.
+  Curve();
 
-    /// Destructor.
-    ~Curve();
+  /// Destructor.
+  ~Curve();
 };
 
 /// EC-Schnorr utility for serializing BIGNUM data type.
-struct BIGNUMSerialize
-{
-    static std::mutex m_mutexBIGNUM;
+struct BIGNUMSerialize {
+  static std::mutex m_mutexBIGNUM;
 
-    /// Deserializes a BIGNUM from specified byte stream.
-    static std::shared_ptr<BIGNUM>
-    GetNumber(const std::vector<unsigned char>& src, unsigned int offset,
-              unsigned int size);
+  /// Deserializes a BIGNUM from specified byte stream.
+  static std::shared_ptr<BIGNUM> GetNumber(
+      const std::vector<unsigned char>& src, unsigned int offset,
+      unsigned int size);
 
-    /// Serializes a BIGNUM into specified byte stream.
-    static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
-                          unsigned int size, std::shared_ptr<BIGNUM> value);
+  /// Serializes a BIGNUM into specified byte stream.
+  static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
+                        unsigned int size, std::shared_ptr<BIGNUM> value);
 };
 
 /// EC-Schnorr utility for serializing ECPOINT data type.
-struct ECPOINTSerialize
-{
-    static std::mutex m_mutexECPOINT;
+struct ECPOINTSerialize {
+  static std::mutex m_mutexECPOINT;
 
-    /// Deserializes an ECPOINT from specified byte stream.
-    static std::shared_ptr<EC_POINT>
-    GetNumber(const std::vector<unsigned char>& src, unsigned int offset,
-              unsigned int size);
+  /// Deserializes an ECPOINT from specified byte stream.
+  static std::shared_ptr<EC_POINT> GetNumber(
+      const std::vector<unsigned char>& src, unsigned int offset,
+      unsigned int size);
 
-    /// Serializes an ECPOINT into specified byte stream.
-    static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
-                          unsigned int size, std::shared_ptr<EC_POINT> value);
+  /// Serializes an ECPOINT into specified byte stream.
+  static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
+                        unsigned int size, std::shared_ptr<EC_POINT> value);
 };
 
 /// Stores information on an EC-Schnorr private key.
-struct PrivKey : public Serializable
-{
-    /// The scalar in the underlying field.
-    std::shared_ptr<BIGNUM> m_d;
+struct PrivKey : public Serializable {
+  /// The scalar in the underlying field.
+  std::shared_ptr<BIGNUM> m_d;
 
-    /// Flag to indicate if parameters have been initialized.
-    bool m_initialized;
+  /// Flag to indicate if parameters have been initialized.
+  bool m_initialized;
 
-    /// Default constructor for generating a new key.
-    PrivKey();
+  /// Default constructor for generating a new key.
+  PrivKey();
 
-    /// Constructor for loading existing key from a byte stream.
-    PrivKey(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Constructor for loading existing key from a byte stream.
+  PrivKey(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Copy constructor.
-    PrivKey(const PrivKey& src);
+  /// Copy constructor.
+  PrivKey(const PrivKey& src);
 
-    /// Destructor.
-    ~PrivKey();
+  /// Destructor.
+  ~PrivKey();
 
-    /// Indicates if key parameters have been initialized.
-    bool Initialized() const;
+  /// Indicates if key parameters have been initialized.
+  bool Initialized() const;
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Assignment operator.
-    PrivKey& operator=(const PrivKey&);
+  /// Assignment operator.
+  PrivKey& operator=(const PrivKey&);
 
-    /// Utility std::string conversion function for private key info.
-    explicit operator std::string() const
-    {
-        return "0x" + DataConversion::SerializableToHexStr(*this);
-    }
+  /// Utility std::string conversion function for private key info.
+  explicit operator std::string() const {
+    return "0x" + DataConversion::SerializableToHexStr(*this);
+  }
 
-    /// Equality comparison operator.
-    bool operator==(const PrivKey& r) const;
+  /// Equality comparison operator.
+  bool operator==(const PrivKey& r) const;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const PrivKey& p)
-{
-    os << "0x" << DataConversion::SerializableToHexStr(p);
-    return os;
+inline std::ostream& operator<<(std::ostream& os, const PrivKey& p) {
+  os << "0x" << DataConversion::SerializableToHexStr(p);
+  return os;
 }
 
 /// Stores information on an EC-Schnorr public key.
-struct PubKey : public Serializable
-{
-    /// The point on the curve.
-    std::shared_ptr<EC_POINT> m_P;
+struct PubKey : public Serializable {
+  /// The point on the curve.
+  std::shared_ptr<EC_POINT> m_P;
 
-    /// Flag to indicate if parameters have been initialized.
-    bool m_initialized;
+  /// Flag to indicate if parameters have been initialized.
+  bool m_initialized;
 
-    /// Default constructor for an uninitialized key.
-    PubKey();
+  /// Default constructor for an uninitialized key.
+  PubKey();
 
-    /// Constructor for generating a new key from specified PrivKey.
-    PubKey(const PrivKey& privkey);
+  /// Constructor for generating a new key from specified PrivKey.
+  PubKey(const PrivKey& privkey);
 
-    /// Constructor for loading existing key from a byte stream.
-    PubKey(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Constructor for loading existing key from a byte stream.
+  PubKey(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Copy constructor.
-    PubKey(const PubKey&);
+  /// Copy constructor.
+  PubKey(const PubKey&);
 
-    /// Destructor.
-    ~PubKey();
+  /// Destructor.
+  ~PubKey();
 
-    /// Indicates if key parameters have been initialized.
-    bool Initialized() const;
+  /// Indicates if key parameters have been initialized.
+  bool Initialized() const;
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Assignment operator.
-    PubKey& operator=(const PubKey& src);
+  /// Assignment operator.
+  PubKey& operator=(const PubKey& src);
 
-    /// Less-than comparison operator (for sorting keys in lookup table).
-    bool operator<(const PubKey& r) const;
+  /// Less-than comparison operator (for sorting keys in lookup table).
+  bool operator<(const PubKey& r) const;
 
-    /// Greater-than comparison operator.
-    bool operator>(const PubKey& r) const;
+  /// Greater-than comparison operator.
+  bool operator>(const PubKey& r) const;
 
-    /// Equality operator.
-    bool operator==(const PubKey& r) const;
+  /// Equality operator.
+  bool operator==(const PubKey& r) const;
 
-    /// Utility std::string conversion function for public key info.
-    explicit operator std::string() const
-    {
-        return "0x" + DataConversion::SerializableToHexStr(*this);
-    }
+  /// Utility std::string conversion function for public key info.
+  explicit operator std::string() const {
+    return "0x" + DataConversion::SerializableToHexStr(*this);
+  }
 };
 
-inline std::ostream& operator<<(std::ostream& os, const PubKey& p)
-{
-    os << "0x" << DataConversion::SerializableToHexStr(p);
-    return os;
+inline std::ostream& operator<<(std::ostream& os, const PubKey& p) {
+  os << "0x" << DataConversion::SerializableToHexStr(p);
+  return os;
 }
 
 /// Stores information on an EC-Schnorr signature.
-struct Signature : public Serializable
-{
-    /// Challenge scalar.
-    std::shared_ptr<BIGNUM> m_r;
+struct Signature : public Serializable {
+  /// Challenge scalar.
+  std::shared_ptr<BIGNUM> m_r;
 
-    /// Response scalar.
-    std::shared_ptr<BIGNUM> m_s;
+  /// Response scalar.
+  std::shared_ptr<BIGNUM> m_s;
 
-    /// Flag to indicate if parameters have been initialized.
-    bool m_initialized;
+  /// Flag to indicate if parameters have been initialized.
+  bool m_initialized;
 
-    /// Default constructor.
-    Signature();
+  /// Default constructor.
+  Signature();
 
-    /// Constructor for loading existing signature from a byte stream.
-    Signature(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Constructor for loading existing signature from a byte stream.
+  Signature(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Copy constructor.
-    Signature(const Signature&);
+  /// Copy constructor.
+  Signature(const Signature&);
 
-    /// Destructor.
-    ~Signature();
+  /// Destructor.
+  ~Signature();
 
-    /// Indicates if signature parameters have been initialized.
-    bool Initialized() const;
+  /// Indicates if signature parameters have been initialized.
+  bool Initialized() const;
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Serialize function inherited from Serializable.
+  unsigned int Serialize(std::vector<unsigned char>& dst,
+                         unsigned int offset) const;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Implements the Deserialize function inherited from Serializable.
+  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Assignment operator.
-    Signature& operator=(const Signature&);
+  /// Assignment operator.
+  Signature& operator=(const Signature&);
 
-    /// Equality comparison operator.
-    bool operator==(const Signature& r) const;
+  /// Equality comparison operator.
+  bool operator==(const Signature& r) const;
 
-    /// Utility std::string conversion function for signature info.
-    explicit operator std::string() const
-    {
-        return "0x" + DataConversion::SerializableToHexStr(*this);
-    }
+  /// Utility std::string conversion function for signature info.
+  explicit operator std::string() const {
+    return "0x" + DataConversion::SerializableToHexStr(*this);
+  }
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Signature& s)
-{
-    os << "0x" << DataConversion::SerializableToHexStr(s);
-    return os;
+inline std::ostream& operator<<(std::ostream& os, const Signature& s) {
+  os << "0x" << DataConversion::SerializableToHexStr(s);
+  return os;
 }
 
 /// Implements the Elliptic Curve Based Schnorr Signature algorithm.
-class Schnorr
-{
-    Curve m_curve;
+class Schnorr {
+  Curve m_curve;
 
-    Schnorr();
-    ~Schnorr();
+  Schnorr();
+  ~Schnorr();
 
-    Schnorr(Schnorr const&) = delete;
-    void operator=(Schnorr const&) = delete;
+  Schnorr(Schnorr const&) = delete;
+  void operator=(Schnorr const&) = delete;
 
-public:
-    /// Public key is a point (x, y) on the curve.
-    /// Each coordinate requires 32 bytes.
-    /// In its compressed form it suffices to store the x co-ordinate and the sign for y.
-    /// Hence a total of 33 bytes.
-    static const unsigned int PUBKEY_COMPRESSED_SIZE_BYTES = 33;
+ public:
+  /// Public key is a point (x, y) on the curve.
+  /// Each coordinate requires 32 bytes.
+  /// In its compressed form it suffices to store the x co-ordinate and the sign
+  /// for y. Hence a total of 33 bytes.
+  static const unsigned int PUBKEY_COMPRESSED_SIZE_BYTES = 33;
 
-    std::mutex m_mutexSchnorr;
+  std::mutex m_mutexSchnorr;
 
-    /// Returns the singleton Schnorr instance.
-    static Schnorr& GetInstance();
+  /// Returns the singleton Schnorr instance.
+  static Schnorr& GetInstance();
 
-    /// Returns the EC curve used.
-    const Curve& GetCurve() const;
+  /// Returns the EC curve used.
+  const Curve& GetCurve() const;
 
-    /// Generates a new PrivKey and PubKey pair.
-    std::pair<PrivKey, PubKey> GenKeyPair();
+  /// Generates a new PrivKey and PubKey pair.
+  std::pair<PrivKey, PubKey> GenKeyPair();
 
-    /// Signs a message using the EC curve parameters and the specified key pair.
-    bool Sign(const std::vector<unsigned char>& message, const PrivKey& privkey,
-              const PubKey& pubkey, Signature& result);
+  /// Signs a message using the EC curve parameters and the specified key pair.
+  bool Sign(const std::vector<unsigned char>& message, const PrivKey& privkey,
+            const PubKey& pubkey, Signature& result);
 
-    /// Signs a message using the EC curve parameters and the specified key pair.
-    bool Sign(const std::vector<unsigned char>& message, unsigned int offset,
-              unsigned int size, const PrivKey& privkey, const PubKey& pubkey,
-              Signature& result);
+  /// Signs a message using the EC curve parameters and the specified key pair.
+  bool Sign(const std::vector<unsigned char>& message, unsigned int offset,
+            unsigned int size, const PrivKey& privkey, const PubKey& pubkey,
+            Signature& result);
 
-    /// Checks the signature validity using the EC curve parameters and the specified PubKey.
-    bool Verify(const std::vector<unsigned char>& message,
-                const Signature& toverify, const PubKey& pubkey);
+  /// Checks the signature validity using the EC curve parameters and the
+  /// specified PubKey.
+  bool Verify(const std::vector<unsigned char>& message,
+              const Signature& toverify, const PubKey& pubkey);
 
-    /// Checks the signature validity using the EC curve parameters and the specified PubKey.
-    bool Verify(const std::vector<unsigned char>& message, unsigned int offset,
-                unsigned int size, const Signature& toverify,
-                const PubKey& pubkey);
+  /// Checks the signature validity using the EC curve parameters and the
+  /// specified PubKey.
+  bool Verify(const std::vector<unsigned char>& message, unsigned int offset,
+              unsigned int size, const Signature& toverify,
+              const PubKey& pubkey);
 
-    /// Utility function for printing EC_POINT coordinates.
-    void PrintPoint(const EC_POINT* point);
+  /// Utility function for printing EC_POINT coordinates.
+  void PrintPoint(const EC_POINT* point);
 };
 
-#endif // __SCHNORR_H__
+#endif  // __SCHNORR_H__

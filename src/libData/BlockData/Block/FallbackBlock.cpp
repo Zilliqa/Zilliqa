@@ -28,91 +28,75 @@ using namespace boost::multiprecision;
 FallbackBlock::FallbackBlock() {}
 
 FallbackBlock::FallbackBlock(const vector<unsigned char>& src,
-                             unsigned int offset)
-{
-    if (Deserialize(src, offset) != 0)
-    {
-        LOG_GENERAL(WARNING, "We failed to init FallbackBlock");
-    }
+                             unsigned int offset) {
+  if (Deserialize(src, offset) != 0) {
+    LOG_GENERAL(WARNING, "We failed to init FallbackBlock");
+  }
 }
 
 FallbackBlock::FallbackBlock(FallbackBlockHeader&& header,
                              CoSignatures&& cosigs)
-    : m_header(move(header))
-{
-    m_cosigs = move(cosigs);
+    : m_header(move(header)) {
+  m_cosigs = move(cosigs);
 }
 
 unsigned int FallbackBlock::Serialize(vector<unsigned char>& dst,
-                                      unsigned int offset) const
-{
-    unsigned int size_needed = GetSerializedSize();
-    unsigned int size_remaining = dst.size() - offset;
+                                      unsigned int offset) const {
+  unsigned int size_needed = GetSerializedSize();
+  unsigned int size_remaining = dst.size() - offset;
 
-    if (size_remaining < size_needed)
-    {
-        dst.resize(size_needed + offset);
-    }
+  if (size_remaining < size_needed) {
+    dst.resize(size_needed + offset);
+  }
 
-    m_header.Serialize(dst, offset);
+  m_header.Serialize(dst, offset);
 
-    unsigned int curOffset = offset + FallbackBlockHeader::SIZE;
+  unsigned int curOffset = offset + FallbackBlockHeader::SIZE;
 
-    BlockBase::Serialize(dst, curOffset);
+  BlockBase::Serialize(dst, curOffset);
 
-    return size_needed;
+  return size_needed;
 }
 
 int FallbackBlock::Deserialize(const vector<unsigned char>& src,
-                               unsigned int offset)
-{
-    try
-    {
-        FallbackBlockHeader header;
-        if (header.Deserialize(src, offset) != 0)
-        {
-            LOG_GENERAL(WARNING, "We failed to deserialize header.");
-            return -1;
-        }
-        m_header = header;
-
-        unsigned int curOffset = offset + FallbackBlockHeader::SIZE;
-
-        BlockBase::Deserialize(src, curOffset);
+                               unsigned int offset) {
+  try {
+    FallbackBlockHeader header;
+    if (header.Deserialize(src, offset) != 0) {
+      LOG_GENERAL(WARNING, "We failed to deserialize header.");
+      return -1;
     }
-    catch (const std::exception& e)
-    {
-        LOG_GENERAL(WARNING,
-                    "Error with FallbackBlock::Deserialize." << ' '
-                                                             << e.what());
-        return -1;
-    }
-    return 0;
+    m_header = header;
+
+    unsigned int curOffset = offset + FallbackBlockHeader::SIZE;
+
+    BlockBase::Deserialize(src, curOffset);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Error with FallbackBlock::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
 }
 
-unsigned int FallbackBlock::GetSerializedSize() const
-{
-    return FallbackBlockHeader::SIZE + BlockBase::GetSerializedSize();
+unsigned int FallbackBlock::GetSerializedSize() const {
+  return FallbackBlockHeader::SIZE + BlockBase::GetSerializedSize();
 }
 
-unsigned int FallbackBlock::GetMinSize()
-{
-    return FallbackBlockHeader::SIZE + BlockBase::GetMinSize();
+unsigned int FallbackBlock::GetMinSize() {
+  return FallbackBlockHeader::SIZE + BlockBase::GetMinSize();
 }
 
 const FallbackBlockHeader& FallbackBlock::GetHeader() const { return m_header; }
 
-bool FallbackBlock::operator==(const FallbackBlock& block) const
-{
-    return (m_header == block.m_header);
+bool FallbackBlock::operator==(const FallbackBlock& block) const {
+  return (m_header == block.m_header);
 }
 
-bool FallbackBlock::operator<(const FallbackBlock& block) const
-{
-    return m_header < block.m_header;
+bool FallbackBlock::operator<(const FallbackBlock& block) const {
+  return m_header < block.m_header;
 }
 
-bool FallbackBlock::operator>(const FallbackBlock& block) const
-{
-    return !((*this == block) || (*this < block));
+bool FallbackBlock::operator>(const FallbackBlock& block) const {
+  return !((*this == block) || (*this < block));
 }
