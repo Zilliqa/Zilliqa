@@ -44,41 +44,15 @@ class MicroBlock : public BlockBase {
   /// Constructor for loading existing microblock from a byte stream.
   MicroBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
-  /// Constructor with predefined member values.
-  MicroBlock(MicroBlockHeader&& header, const std::vector<TxnHash>& tranHashes,
-             CoSignatures&& cosigs);
-
-  /// Constructor with predefined member values (moveable tranHashes)
-  MicroBlock(MicroBlockHeader&& header, std::vector<TxnHash>&& tranHashes,
-             CoSignatures&& cosigs);
+  /// Constructor with predefined member values
+  MicroBlock(const MicroBlockHeader& header,
+             const std::vector<TxnHash>& tranHashes, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-
-  /// Returns the expected size of m_header and BlockBase when serialized into a
-  /// byte stream.
-  unsigned int GetSerializedCoreSize() const;
-
-  /// Returns the expected size of m_tranHashes when serialized into a byte
-  /// stream.
-  unsigned int GetSerializedTxnHashesSize() const;
-
-  /// Serialize function used for sending MB to DS Committee where tranHashes is
-  /// not needed
-  unsigned int SerializeCore(std::vector<unsigned char>& dst,
-                             unsigned int offset) const;
-
-  /// Deserialize function used in DS Committee where tranHashes is not needed
-  int DeserializeCore(const std::vector<unsigned char>& src,
-                      unsigned int offset);
-
-  /// Returns the minimum required size in bytes for obtaining a microblock from
-  /// a byte stream.
-  static unsigned int GetMinSize();
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Returns the header component of the microblock.
   const MicroBlockHeader& GetHeader() const;

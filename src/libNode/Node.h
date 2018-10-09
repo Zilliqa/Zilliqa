@@ -112,7 +112,7 @@ class Node : public Executable, public Broadcastable {
 
   std::vector<unsigned char> m_consensusBlockHash;
   std::shared_ptr<MicroBlock> m_microblock;
-  std::pair<uint64_t, BlockBase> m_lastMicroBlockCoSig;
+  std::pair<uint64_t, CoSignatures> m_lastMicroBlockCoSig;
   std::mutex m_mutexMicroBlock;
 
   const static uint32_t RECVTXNDELAY_MILLISECONDS = 3000;

@@ -84,6 +84,32 @@ bool ArchiveDB::InsertSerializable(const Serializable& sz, const string& index,
   }
 }
 
+// Temporary function for use by data blocks
+bool ArchiveDB::InsertSerializable(const Serializable2& sz, const string& index,
+                                   const string& collectionName) {
+  if (!m_isInitialized) {
+    return false;
+  }
+  vector<unsigned char> vec;
+  sz.Serialize(vec, 0);
+  try {
+    auto MongoClient = (m_pool->acquire());
+    bsoncxx::types::b_binary bin_data;
+    bin_data.size = vec.size();
+    bin_data.bytes = vec.data();
+    bsoncxx::document::value doc_val =
+        make_document(kvp("_id", index), kvp("Value", bin_data));
+
+    auto res = MongoClient->database(m_dbname)[collectionName].insert_one(
+        move(doc_val));
+    return true;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING,
+                "Failed to insert in DB " << collectionName << " " << e.what());
+    return false;
+  }
+}
+
 bool ArchiveDB::GetSerializable(vector<unsigned char>& retVec,
                                 const string& index,
                                 const string& collectionName) {
