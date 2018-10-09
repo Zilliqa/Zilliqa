@@ -30,6 +30,68 @@
 class Messenger {
  public:
   // ============================================================================
+  // Primitives
+  // ============================================================================
+
+  static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const DSBlockHeader& dsBlockHeader);
+  static bool GetDSBlockHeader(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               DSBlockHeader& dsBlockHeader);
+  static bool SetDSBlock(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const DSBlock& dsBlock);
+  static bool GetDSBlock(const std::vector<unsigned char>& src,
+                         const unsigned int offset, DSBlock& dsBlock);
+
+  static bool SetMicroBlockHeader(std::vector<unsigned char>& dst,
+                                  const unsigned int offset,
+                                  const MicroBlockHeader& microBlockHeader);
+  static bool GetMicroBlockHeader(const std::vector<unsigned char>& src,
+                                  const unsigned int offset,
+                                  MicroBlockHeader& microBlockHeader);
+  static bool SetMicroBlock(std::vector<unsigned char>& dst,
+                            const unsigned int offset,
+                            const MicroBlock& microBlock);
+  static bool GetMicroBlock(const std::vector<unsigned char>& src,
+                            const unsigned int offset, MicroBlock& microBlock);
+
+  static bool SetTxBlockHeader(std::vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const TxBlockHeader& txBlockHeader);
+  static bool GetTxBlockHeader(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               TxBlockHeader& txBlockHeader);
+  static bool SetTxBlock(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const TxBlock& txBlock);
+  static bool GetTxBlock(const std::vector<unsigned char>& src,
+                         const unsigned int offset, TxBlock& txBlock);
+
+  static bool SetVCBlockHeader(std::vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const VCBlockHeader& vcBlockHeader);
+  static bool GetVCBlockHeader(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               VCBlockHeader& vcBlockHeader);
+  static bool SetVCBlock(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const VCBlock& vcBlock);
+  static bool GetVCBlock(const std::vector<unsigned char>& src,
+                         const unsigned int offset, VCBlock& vcBlock);
+
+  static bool SetFallbackBlockHeader(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const FallbackBlockHeader& fallbackBlockHeader);
+  static bool GetFallbackBlockHeader(const std::vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     FallbackBlockHeader& fallbackBlockHeader);
+  static bool SetFallbackBlock(std::vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const FallbackBlock& fallbackBlock);
+  static bool GetFallbackBlock(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               FallbackBlock& fallbackBlock);
+
+  // ============================================================================
   // Directory Service messages
   // ============================================================================
 

@@ -1340,8 +1340,6 @@ bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
   curr_offset += sizeof(uint64_t);
 
   MicroBlock microblock(message, curr_offset);
-  curr_offset += microblock.GetSerializedCoreSize() +
-                 microblock.GetSerializedTxnHashesSize();
 
   uint32_t id = microblock.GetHeader().GetShardId();
 

@@ -240,7 +240,9 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
                   << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
                   << ")");
     m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
-    m_lastMicroBlockCoSig.second.SetCoSignatures(*m_consensusObject);
+    m_lastMicroBlockCoSig.second = move(
+        CoSignatures(m_consensusObject->GetCS1(), m_consensusObject->GetB1(),
+                     m_consensusObject->GetCS2(), m_consensusObject->GetB2()));
 
     SetState(WAITING_FINALBLOCK);
 
