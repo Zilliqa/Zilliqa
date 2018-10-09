@@ -70,20 +70,9 @@ void DirectoryService::StartSynchronization() {
   this->CleanVariables();
 
   auto func = [this]() -> void {
-    m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
-
-    {
-      unique_lock<mutex> lock(
-          m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
-      while (!m_mediator.m_lookup->m_fetchedOfflineLookups) {
-        if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
-                lock, chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
-          return;
-        }
-      }
-      m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+    if (!m_mediator.m_node->GetOfflineLookups()) {
+      LOG_GENERAL(WARNING, "Cannot rejoin currently");
+      return;
     }
 
     m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
