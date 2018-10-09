@@ -104,8 +104,10 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
 
       if (LOOKUP_NODE_MODE) {
         LOG_GENERAL(INFO, "Lookup node, wakeup immediately.");
+#if 1  // clark
         BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                     {'1'});
+#endif
         return;
       }
 
