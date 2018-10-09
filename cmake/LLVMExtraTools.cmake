@@ -1,7 +1,5 @@
 # Additional targets to perform clang-format/clang-tidy
-# It requires clang-format/clang-tidy 5.0.0+
-
-set(BREW_LLVM5_PATH /usr/local/opt/llvm@5/bin)
+# It requires clang-format/clang-tidy 7.0.0+
 
 # Get all project files
 file(GLOB_RECURSE ALL_CXX_SOURCES
@@ -32,8 +30,7 @@ endif()
 
 find_program(
     CLANG_FORMAT
-    NAMES clang-format-5.0 clang-format
-    PATHS ${BREW_LLVM5_PATH} # The brew version on MacOS
+    NAMES clang-format-7 clang-format
 )
 
 find_program(
@@ -52,7 +49,7 @@ if(CLANG_FORMAT AND RUN_CLANG_FORMAT)
 
     string(REGEX REPLACE "^.*version ([^ ]*) .*$" "\\1" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION_OUTPUT}")
 
-    if("${CLANG_FORMAT_VERSION}" VERSION_EQUAL "5.0.0" OR "${CLANG_FORMAT_VERSION}" VERSION_GREATER "5.0.0")
+    if("${CLANG_FORMAT_VERSION}" VERSION_EQUAL "7.0.0" OR "${CLANG_FORMAT_VERSION}" VERSION_GREATER "7.0.0")
         # message(${CLANG_FORMAT_VERSION})
         add_custom_target(
             clang-format
@@ -69,7 +66,7 @@ if(CLANG_FORMAT AND RUN_CLANG_FORMAT)
             ${ALL_CXX_SOURCES}
         )
     else()
-        message(AUTHOR_WARNING "clang-format version (${CLANG_FORMAT_VERSION}) not satisify (>5.0.0)")
+        message(AUTHOR_WARNING "clang-format version (${CLANG_FORMAT_VERSION}) does not satisify (>=7.0.0)")
     endif()
 endif()
 
@@ -81,14 +78,12 @@ endif()
 
 find_program(
     CLANG_TIDY
-    NAMES clang-tidy-5.0 clang-tidy
-    PATHS ${BREW_LLVM5_PATH} # The brew version on MacOS
+    NAMES clang-tidy-7 clang-tidy
 )
 
 find_program(
     CLANG_APPLY_REPLACEMENTS
-    NAMES clang-apply-replacements-5.0 clang-apply-replacements
-    PATHS ${BREW_LLVM5_PATH} # The brew version on MacOS
+    NAMES clang-apply-replacements-7 clang-apply-replacements
 )
 
 find_program(
@@ -111,7 +106,7 @@ if(CLANG_TIDY)
 
     string(REGEX REPLACE "^.*version ([^ ]*).*$" "\\1" CLANG_TIDY_VERSION ${CLANG_TIDY_VERSION_OUTPUT})
 
-    if("${CLANG_TIDY_VERSION}" VERSION_EQUAL "5.0.0" OR "${CLANG_TIDY_VERSION}" VERSION_GREATER "5.0.0")
+    if("${CLANG_TIDY_VERSION}" VERSION_EQUAL "7.0.0" OR "${CLANG_TIDY_VERSION}" VERSION_GREATER "7.0.0")
         # message(${CLANG_TIDY_VERSION})
         add_custom_target(
             clang-tidy
@@ -122,6 +117,7 @@ if(CLANG_TIDY)
             -header-filter ${HEADER_DIR_REGEX}
             -style='file'
             -warnings-as-errors='*'
+            -extra-arg='-Wno-error'
             ${ALL_CXX_SOURCES}
         )
         if(CLANG_APPLY_REPLACEMENTS)
@@ -136,10 +132,11 @@ if(CLANG_TIDY)
                 -config=''
                 -header-filter ${HEADER_DIR_REGEX}
                 -style='file'
+                -extra-arg='-Wno-error'
                 ${ALL_CXX_SOURCES}
             )
         endif()
     else()
-        message(AUTHOR_WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) not satisify (>5.0.0)")
+        message(AUTHOR_WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) does not satisify (>=7.0.0)")
     endif()
 endif()
