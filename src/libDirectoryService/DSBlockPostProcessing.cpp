@@ -628,6 +628,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING DSBLOCK");
 
+  ClearVCBlockVector();
   UpdateDSCommiteeComposition();
   UpdateMyDSModeAndConsensusId();
 

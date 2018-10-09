@@ -249,13 +249,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP: {
-      vector<Peer> allPowSubmitter;
-      for (auto& nodeNetwork : m_allPoWConns) {
-        allPowSubmitter.emplace_back(nodeNetwork.second);
-      }
-
-      P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
-                                                  vcblock_message);
+      lock_guard<mutex> g(m_mutexVCBlockVector);
+      m_VCBlockVector.emplace_back(*m_pendingVCBlock.get());
       break;
     }
     case FINALBLOCK_CONSENSUS:
@@ -408,4 +403,18 @@ bool DirectoryService::ProcessViewChangeConsensus(
     cv_processConsensusMessage.notify_all();
   }
   return true;
+}
+
+// Exposing this function so that libNode can use it to check state
+bool DirectoryService::IsDSBlockVCState(unsigned char vcBlockState) {
+  if ((DirState)vcBlockState == DSBLOCK_CONSENSUS_PREP ||
+      (DirState)vcBlockState == DSBLOCK_CONSENSUS) {
+    return true;
+  }
+  return false;
+}
+
+void DirectoryService::ClearVCBlockVector() {
+  lock_guard<mutex> g(m_mutexVCBlockVector);
+  m_VCBlockVector.clear();
 }
