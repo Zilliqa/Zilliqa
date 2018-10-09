@@ -797,10 +797,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     StoreState();
     StoreFinalBlock(txBlock);
 
+#if 0  // clark
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
+#else
     if (!LOOKUP_NODE_MODE) {
       BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
                                                   {'0'});
     }
+#endif
   }
 
   m_mediator.HeartBeatPulse();
