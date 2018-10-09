@@ -110,36 +110,6 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   return true;
 }
 
-/**  TODO
-void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
-{
-#ifdef IS_LOOKUP_NODE
-        LOG_GENERAL(
-            INFO,
-            "m_VieWChangeDSEpochNo "
-                << to_string(vcblock.GetHeader().GetVieWChangeDSEpochNo())
-                       .c_str()
-                << "\n"
-                << "m_VieWChangeEpochNo: "
-                << to_string(vcblock.GetHeader().GetViewChangeEpochNo()).c_str()
-                << "\n"
-                << "m_ViewChangeState: "
-                << vcblock.GetHeader().GetViewChangeState() << "\n"
-                << "m_CandidateLeaderIndex: "
-                << to_string(vcblock.GetHeader().GetCandidateLeaderIndex())
-                << "\n"
-                << "m_CandidateLeaderNetworkInfo: "
-                << vcblock.GetHeader().GetCandidateLeaderNetworkInfo() << "\n"
-                << "m_CandidateLeaderPubKey: "
-                << vcblock.GetHeader().GetCandidateLeaderPubKey() << "\n"
-                << "m_VCCounter: "
-                << to_string(vcblock.GetHeader().GetViewChangeCounter()).c_str()
-                << "\n"
-                << "m_Timestamp: " << vcblock.GetHeader().GetTimeStamp());
-#endif // IS_LOOKUP_NODE
-}
-**/
-
 bool Node::ProcessVCBlock(const vector<unsigned char>& message,
                           unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from) {
@@ -155,6 +125,13 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
 
   if (vcblock.GetHeader().GetViewChangeEpochNo() !=
       m_mediator.m_currentEpochNum) {
+    LOG_GENERAL(WARNING,
+                "Node should received individual vc block for ds block ");
+    return false;
+  }
+
+  if (m_mediator.m_ds->IsDSBlockVCState(
+          vcblock.GetHeader().GetViewChangeState())) {
     LOG_GENERAL(WARNING, "Received wrong vcblock. cur epoch: "
                              << m_mediator.m_currentEpochNum << "vc epoch: "
                              << vcblock.GetHeader().GetViewChangeEpochNo());
@@ -186,8 +163,6 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
                     << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
     return false;
   }
-  // TODO
-  // LogReceivedVSBlockDetails(vcblock);
 
   // Check the signature of this VC block
   if (!VerifyVCBlockCoSignature(vcblock)) {
