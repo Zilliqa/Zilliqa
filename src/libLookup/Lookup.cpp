@@ -1444,8 +1444,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I already have the block");
   } else {
-    if (m_syncType == SyncType::NO_SYNC 
-      && m_mediator.m_node->m_stillMiningPrimary) {
+    if (m_syncType == SyncType::NO_SYNC &&
+        m_mediator.m_node->m_stillMiningPrimary) {
       m_fetchedLatestDSBlock = true;
       cv_latestDSBlock.notify_all();
       return true;
@@ -1879,7 +1879,7 @@ bool Lookup::InitMining() {
 
   // Check whether is the new node connected to the network. Else, initiate
   // re-sync process again.
-  this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS));
+  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
   m_startedPoW = false;
   if (m_syncType != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
