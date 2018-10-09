@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa
-* This source code is being disclosed to you solely for the purpose of your participation in
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
-* the protocols and algorithms that are programmed into, and intended by, the code. You may
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
-* including modifying or publishing the code (or any part of it), and developing or forming
-* another public or private blockchain network. This source code is provided ‘as is’ and no
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #ifndef __ACCOUNTSTORETRIE_H__
 #define __ACCOUNTSTORETRIE_H__
@@ -21,31 +24,30 @@
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 
-template<class DB, class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP>
-{
-protected:
-    DB m_db;
-    dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
-    dev::h256 m_prevRoot;
+template <class DB, class MAP>
+class AccountStoreTrie : public AccountStoreSC<MAP> {
+ protected:
+  DB m_db;
+  dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
+  dev::h256 m_prevRoot;
 
-    AccountStoreTrie();
+  AccountStoreTrie();
 
-    bool UpdateStateTrie(const Address& address, const Account& account);
-    bool RemoveFromTrie(const Address& address);
+  bool UpdateStateTrie(const Address& address, const Account& account);
+  bool RemoveFromTrie(const Address& address);
 
-public:
-    virtual void Init() override;
+ public:
+  virtual void Init() override;
 
-    Account* GetAccount(const Address& address) override;
+  Account* GetAccount(const Address& address) override;
 
-    dev::h256 GetStateRootHash() const;
-    bool UpdateStateTrieAll();
-    void RepopulateStateTrie();
+  dev::h256 GetStateRootHash() const;
+  bool UpdateStateTrieAll();
+  void RepopulateStateTrie();
 
-    void PrintAccountState() override;
+  void PrintAccountState() override;
 };
 
 #include "AccountStoreTrie.tpp"
 
-#endif // __ACCOUNTSTORETRIE_H__
+#endif  // __ACCOUNTSTORETRIE_H__
