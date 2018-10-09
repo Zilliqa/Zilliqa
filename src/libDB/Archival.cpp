@@ -31,8 +31,8 @@ unsigned int REFRESH_DELAY = 5;
 
 void Archival::InitSync() {
   auto func = [this]() -> void {
-    if (!m_mediator.m_node->GetOfflineLookups()) {
-      LOG_GENERAL(WARNING, "Cannot rejoin currently");
+    if (!m_mediator.m_node->GetOfflineLookups(true)) {
+      LOG_GENERAL(WARNING, "Cannot sync currently");
       return;
     }
 

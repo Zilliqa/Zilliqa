@@ -71,7 +71,7 @@ void DirectoryService::StartSynchronization() {
 
   auto func = [this]() -> void {
     if (!m_mediator.m_node->GetOfflineLookups()) {
-      LOG_GENERAL(WARNING, "Cannot rejoin currently");
+      LOG_GENERAL(WARNING, "Cannot sync currently");
       return;
     }
 

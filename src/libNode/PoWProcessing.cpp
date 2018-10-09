@@ -116,8 +116,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       if (m_stillMiningPrimary) {
         if (!GetOfflineLookups()) {
           LOG_GENERAL(WARNING,
-                      "Cannot fetch latest DSBlock "
-                      "to determine rejoining or not");
+                      "Cannot sync currently");
           return;
         }
 

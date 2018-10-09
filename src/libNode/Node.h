@@ -538,7 +538,7 @@ class Node : public Executable, public Broadcastable {
   void ResetConsensusId();
 
   /// Fetch offline lookups with a counter for retrying
-  bool GetOfflineLookups();
+  bool GetOfflineLookups(bool endless = false);
 
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
