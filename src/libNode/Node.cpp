@@ -290,10 +290,10 @@ bool Node::StartRetrieveHistory() {
   return res;
 }
 
-bool Node::GetOfflineLookups() {
+bool Node::GetOfflineLookups(bool endless) {
   unsigned int counter = 1;
   while (!m_mediator.m_lookup->m_fetchedOfflineLookups &&
-         counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+         (counter <= FETCH_LOOKUP_MSG_MAX_RETRY || endless)) {
     m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
     {
@@ -302,10 +302,12 @@ bool Node::GetOfflineLookups() {
       if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
               lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout... tried "
-                                 << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
-                                 << " times");
-        counter++;
+        if (!endless) {
+          LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout... tried "
+                                   << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
+                                   << " times");
+          counter++;
+        }
       } else {
         break;
       }
