@@ -290,11 +290,10 @@ bool Node::StartRetrieveHistory() {
   return res;
 }
 
-bool Node::GetOfflineLookups()
-{
+bool Node::GetOfflineLookups() {
   unsigned int counter = 1;
-  while (!m_mediator.m_lookup->m_fetchedOfflineLookups 
-    && counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+  while (!m_mediator.m_lookup->m_fetchedOfflineLookups &&
+         counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
     m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
 
     {
@@ -303,19 +302,16 @@ bool Node::GetOfflineLookups()
       if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
               lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout... tried " 
-          << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
-          << " times");
+        LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout... tried "
+                                 << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
+                                 << " times");
         counter++;
-      }
-      else
-      {
+      } else {
         break;
       }
     }
   }
-  if (!m_mediator.m_lookup->m_fetchedOfflineLookups)
-  {
+  if (!m_mediator.m_lookup->m_fetchedOfflineLookups) {
     LOG_GENERAL(WARNING, "Fetch offline lookup nodes failed");
     return false;
   }
@@ -334,8 +330,7 @@ void Node::StartSynchronization() {
 
   SetState(SYNC);
   auto func = [this]() -> void {
-    if (!GetOfflineLookups())
-    {
+    if (!GetOfflineLookups()) {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
       return;
     }
@@ -352,7 +347,7 @@ void Node::StartSynchronization() {
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
       this_thread::sleep_for(chrono::seconds(m_mediator.m_lookup->m_startedPoW
-                                                 ? POW_BACKUP_WINDOW_IN_SECONDS
+                                                 ? POW_WINDOW_IN_SECONDS
                                                  : NEW_NODE_SYNC_INTERVAL));
     }
   };

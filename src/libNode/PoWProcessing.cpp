@@ -51,34 +51,30 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool Node::GetLatestDSBlock()
-{
+bool Node::GetLatestDSBlock() {
   unsigned int counter = 1;
-  while (!m_mediator.m_lookup->m_fetchedLatestDSBlock
-    && counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
-      m_synchronizer.FetchLatestDSBlocks(
+  while (!m_mediator.m_lookup->m_fetchedLatestDSBlock &&
+         counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+    m_synchronizer.FetchLatestDSBlocks(
         m_mediator.m_lookup,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-            1);
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
     {
-      unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexLatestDSBlockUpdation);
+      unique_lock<mutex> lock(
+          m_mediator.m_lookup->m_mutexLatestDSBlockUpdation);
       if (m_mediator.m_lookup->cv_latestDSBlock.wait_for(
-              lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) == 
+              lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "FetchLatestDSBlocks Timeout... tried " 
-          << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
-          << " times");
+        LOG_GENERAL(WARNING, "FetchLatestDSBlocks Timeout... tried "
+                                 << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
+                                 << " times");
         counter++;
-      }
-      else
-      {
+      } else {
         break;
       }
     }
   }
-  if (!m_mediator.m_lookup->m_fetchedLatestDSBlock)
-  {
+  if (!m_mediator.m_lookup->m_fetchedLatestDSBlock) {
     LOG_GENERAL(WARNING, "Fetch latest DS Block failed");
     return false;
   }
@@ -114,25 +110,24 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     isNoSync = true;
 
     auto func = [this]() mutable -> void {
-      this_thread::sleep_for(
-          chrono::milliseconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS + 
-                               FALLBACK_EXTRA_TIME));
+      this_thread::sleep_for(chrono::milliseconds(NEW_NODE_SYNC_INTERVAL +
+                                                  POW_WINDOW_IN_SECONDS +
+                                                  FALLBACK_EXTRA_TIME));
       if (m_stillMiningPrimary) {
-        if (!GetOfflineLookups())
-        {
-          LOG_GENERAL(WARNING, "Cannot fetch latest DSBlock "
-                               "to determine rejoining or not");
+        if (!GetOfflineLookups()) {
+          LOG_GENERAL(WARNING,
+                      "Cannot fetch latest DSBlock "
+                      "to determine rejoining or not");
           return;
         }
 
-        if (GetLatestDSBlock())
-        {
-          LOG_GENERAL(INFO, "New DS Block mined but I'm still mining and didn't receive it,"
-            " rejoin");
+        if (GetLatestDSBlock()) {
+          LOG_GENERAL(
+              INFO,
+              "New DS Block mined but I'm still mining and didn't receive it,"
+              " rejoin");
           RejoinAsNormal();
-        }
-        else
-        {
+        } else {
           LOG_GENERAL(INFO, "Didn't get the latest DSBlock, what to do???");
         }
       }
@@ -155,9 +150,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
     m_stillMiningPrimary = false;
 
-    if (isNoSync && m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
-    {
-      LOG_GENERAL(WARNING, "It's too late, the node has already started rejoining");
+    if (isNoSync && m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+      LOG_GENERAL(WARNING,
+                  "It's too late, the node has already started rejoining");
       return false;
     }
 
