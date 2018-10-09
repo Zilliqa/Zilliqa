@@ -174,8 +174,7 @@ void DirectoryService::ComposeFinalBlock() {
                     microblockDeltaTrieRoot, stateDeltaHash,
                     microblockTranReceiptRoot, numTxs, numMicroBlocks,
                     m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader),
-      vector<bool>(isMicroBlockEmpty),
-      vector<MicroBlockHashSet>(microBlockHashes), vector<uint32_t>(shardIds),
+      isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
 
   LOG_STATE(
