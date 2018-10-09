@@ -149,7 +149,7 @@ void DirectoryService::ComputeSharding(
   m_shards.clear();
   m_publicKeyToshardIdMap.clear();
 
-  if (sortedPoWSolns.size() < COMM_SIZE) {
+  if (sortedPoWSolns.size() < m_mediator.GetShardSize(false)) {
     LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
   }
 
@@ -165,7 +165,7 @@ void DirectoryService::ComputeSharding(
                            ? MAX_SHARD_NODE_NUM
                            : sortedPoWSolns.size();
 
-  uint32_t numOfComms = numShardNodes / COMM_SIZE;
+  uint32_t numOfComms = numShardNodes / m_mediator.GetShardSize(false);
   uint32_t max_shard = numOfComms - 1;
 
   if (numOfComms == 0) {
@@ -216,9 +216,11 @@ void DirectoryService::ComputeSharding(
                                   << DataConversion::charArrToHexStr(kv.first)
                                   << endl);
     const PubKey& key = kv.second;
-    auto& shard = m_shards.at(min(i / COMM_SIZE, max_shard));
+    auto& shard =
+        m_shards.at(min(i / m_mediator.GetShardSize(false), max_shard));
     shard.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
-    m_publicKeyToshardIdMap.emplace(key, min(i / COMM_SIZE, max_shard));
+    m_publicKeyToshardIdMap.emplace(
+        key, min(i / m_mediator.GetShardSize(false), max_shard));
     i++;
   }
 }
