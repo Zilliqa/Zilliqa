@@ -493,6 +493,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
   if (!LOOKUP_NODE_MODE) {
     uint32_t ds_size = m_mediator.m_DSCommittee->size();
     POW::GetInstance().StopMining();
+    m_stillMiningPrimary = false;
 
     // Assign from size -1 as it will get pop and push into ds committee data
     // structure, Hence, the ordering is reverse.

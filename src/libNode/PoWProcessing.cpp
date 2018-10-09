@@ -51,6 +51,41 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+bool Node::GetLatestDSBlock()
+{
+  unsigned int counter = 1;
+  while (!m_mediator.m_lookup->m_fetchedLatestDSBlock
+    && counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+      m_synchronizer.FetchLatestDSBlocks(
+        m_mediator.m_lookup,
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+            1);
+
+    {
+      unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexLatestDSBlockUpdation);
+      if (m_mediator.m_lookup->cv_latestDSBlock.wait_for(
+              lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) == 
+          std::cv_status::timeout) {
+        LOG_GENERAL(WARNING, "FetchLatestDSBlocks Timeout... tried " 
+          << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
+          << " times");
+        counter++;
+      }
+      else
+      {
+        break;
+      }
+    }
+  }
+  if (!m_mediator.m_lookup->m_fetchedLatestDSBlock)
+  {
+    LOG_GENERAL(WARNING, "Fetch latest DS Block failed");
+    return false;
+  }
+  m_mediator.m_lookup->m_fetchedLatestDSBlock = false;
+  return true;
+}
+
 bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand1,
@@ -72,6 +107,40 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Current dsblock is " << block_num);
 
+  bool isNoSync;
+
+  if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
+    m_stillMiningPrimary = true;
+    isNoSync = true;
+
+    auto func = [this]() mutable -> void {
+      this_thread::sleep_for(
+          chrono::milliseconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS + 
+                               FALLBACK_EXTRA_TIME));
+      if (m_stillMiningPrimary) {
+        if (!GetOfflineLookups())
+        {
+          LOG_GENERAL(WARNING, "Cannot fetch latest DSBlock "
+                               "to determine rejoining or not");
+          return;
+        }
+
+        if (GetLatestDSBlock())
+        {
+          LOG_GENERAL(INFO, "New DS Block mined but I'm still mining and didn't receive it,"
+            " rejoin");
+          RejoinAsNormal();
+        }
+        else
+        {
+          LOG_GENERAL(INFO, "Didn't get the latest DSBlock, what to do???");
+        }
+      }
+    };
+
+    DetachedFunction(1, func);
+  }
+
   ethash_mining_result winning_result = POW::GetInstance().PoWMine(
       block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
       m_mediator.m_selfKey.second, FULL_DATASET_MINE);
@@ -84,10 +153,18 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning mixhash = 0x" << hex << winning_result.mix_hash);
 
+    m_stillMiningPrimary = false;
+
+    if (isNoSync && m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC)
+    {
+      LOG_GENERAL(WARNING, "It's too late, the node has already started rejoining");
+      return false;
+    }
+
     // Possible scenarios
     // 1. Found solution that meets ds difficulty and difficulty
     // - Submit solution
-    // 2. Found solution that meets only diffiulty
+    // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
     if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
@@ -99,7 +176,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       if (!SendPoWResultToDSComm(
               block_num, ds_difficulty, winning_result.winning_nonce,
               winning_result.result, winning_result.mix_hash)) {
-        RejoinAsNormal();
         return false;
       }
     } else {
