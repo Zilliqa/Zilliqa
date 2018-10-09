@@ -286,8 +286,7 @@ std::pair<std::vector<int>, std::vector<Message>> RumorHolder::advanceRound() {
   for (auto& r : m_rumors) {
     RumorStateMachine& stateMach = r.second;
 
-    if (stateMach.isOld())
-    {
+    if (stateMach.isOld()) {
       continue;
     }
 
