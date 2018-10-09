@@ -41,6 +41,9 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
+find_package(libmongocxx REQUIRED)
+include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
+
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
 endif()
@@ -152,6 +155,8 @@ install(
 )
 
 # add clang-format and clang-tidy targets lastly
-include(LLVMExtraTools)
+if(LLVM_EXTRA_TOOLS)
+    include(LLVMExtraTools)
+endif()
 
 include(CPack)
