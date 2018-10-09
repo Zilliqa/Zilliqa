@@ -108,7 +108,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       if (!SendPoWResultToDSComm(
               block_num, difficulty, winning_result.winning_nonce,
               winning_result.result, winning_result.mix_hash)) {
-        RejoinAsNormal();
         return false;
       }
 
@@ -131,15 +130,12 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         if (!SendPoWResultToDSComm(
                 block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
                 ds_pow_winning_result.result, ds_pow_winning_result.mix_hash)) {
-          RejoinAsNormal();
           return false;
         }
       } else {
         LOG_GENERAL(INFO,
                     "Unable to find PoW solution that meet ds commitee "
                     "requirement");
-        RejoinAsNormal();
-        return false;
       }
     }
   }
