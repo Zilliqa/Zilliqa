@@ -116,6 +116,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
           ret["Info"] = "Contract Creation txn, sent to shard";
           ret["TranID"] = tx.GetTranID().hex();
+          ret["ContractAddress"] =
+              Account::GetAddressForContract(fromAddr, tx.GetNonce()).hex();
         } else {
           ret["Error"] = "Code is empty and To addr is null";
         }
