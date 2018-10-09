@@ -85,8 +85,6 @@ const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
 const unsigned int NUM_DS_ELECTION{ReadFromConstantsFile("NUM_DS_ELECTION")};
 const unsigned int POW_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("POW_WINDOW_IN_SECONDS")};
-const unsigned int POW_BACKUP_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("POW_BACKUP_WINDOW_IN_SECONDS")};
 const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
