@@ -1444,6 +1444,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I already have the block");
   } else {
+    if (m_syncType == SyncType::NO_SYNC 
+      && m_mediator.m_node->m_stillMiningPrimary) {
+      m_fetchedLatestDSBlock = true;
+      cv_latestDSBlock.notify_all();
+      return true;
+    }
+
     for (const auto& dsblock : dsBlocks) {
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
       // Store DS Block to disk
@@ -1465,8 +1472,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         m_isFirstLoop = false;
       }
     }
+    m_mediator.UpdateDSBlockRand();
   }
-  m_mediator.UpdateDSBlockRand();
 
   return true;
 }
@@ -2051,7 +2058,7 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
   {
     unique_lock<mutex> lock(m_mutexOfflineLookupsUpdation);
     m_fetchedOfflineLookups = true;
-    cv_offlineLookups.notify_one();
+    cv_offlineLookups.notify_all();
   }
   return true;
 }

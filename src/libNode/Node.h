@@ -423,6 +423,10 @@ class Node : public Executable, public Broadcastable {
   // StoreFinalBlock
   std::atomic<bool> m_isVacuousEpochBuffer;
 
+  // an indicator that whether the non-sync node is still doing mining
+  // at standard difficulty
+  std::atomic<bool> m_stillMiningPrimary;
+
   // a indicator of whether recovered from fallback just now
   bool m_justDidFallback = false;
 
@@ -532,6 +536,12 @@ class Node : public Executable, public Broadcastable {
 
   /// Reset Consensus ID
   void ResetConsensusId();
+
+  /// Fetch offline lookups with a counter for retrying
+  bool GetOfflineLookups();
+
+  /// Fetch latest ds block with a counter for retrying
+  bool GetLatestDSBlock();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
