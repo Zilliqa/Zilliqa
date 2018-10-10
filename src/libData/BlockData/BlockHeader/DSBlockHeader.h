@@ -106,7 +106,8 @@ class DSBlockHeader : public BlockHeaderBase {
   const TxSharingHash& GetTxSharingHash() const;
 
   /// Returns a reference to the reserved field in the hash set
-  const std::array<unsigned char, 128>& GetHashSetReservedField() const;
+  const std::array<unsigned char, RESERVED_FIELD_SIZE>&
+  GetHashSetReservedField() const;
 
   /// Equality operator.
   bool operator==(const DSBlockHeader& header) const;

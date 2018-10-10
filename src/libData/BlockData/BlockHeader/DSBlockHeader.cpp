@@ -98,8 +98,8 @@ const TxSharingHash& DSBlockHeader::GetTxSharingHash() const {
   return m_hash.m_txSharingHash;
 }
 
-const array<unsigned char, 128>& DSBlockHeader::GetHashSetReservedField()
-    const {
+const array<unsigned char, RESERVED_FIELD_SIZE>&
+DSBlockHeader::GetHashSetReservedField() const {
   return m_hash.m_reservedField;
 }
 

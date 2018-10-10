@@ -122,11 +122,11 @@ unsigned int DirectoryService::ComposeDSBlock(
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  get_time_as_int(), SWInfo(), powDSWinners, DSBlockHashSet()),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
+                      SWInfo(), powDSWinners, DSBlockHashSet()),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
     m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

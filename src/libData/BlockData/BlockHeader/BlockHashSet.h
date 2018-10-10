@@ -32,7 +32,7 @@ struct DSBlockHashSet {
   DSCommHash m_dsCommHash;        // Hash of DS committee composition
   ShardingHash m_shardingHash;    // Hash of sharding structure
   TxSharingHash m_txSharingHash;  // Hash of transaction sharing assignments
-  std::array<unsigned char, 128>
+  std::array<unsigned char, RESERVED_FIELD_SIZE>
       m_reservedField;  // Reserved storage for extra hashes
 
   bool operator==(const DSBlockHashSet& hashSet) const {
