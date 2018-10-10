@@ -1103,27 +1103,37 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
 
   uint32_t nodes_lo, nodes_hi;
 
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+  sha256.Update(message);  // raw_message hash
+  std::vector<unsigned char> this_msg_hash = sha256.Finalize();
+
   GetNodesToBroadCastUsingTreeBasedClustering(
       cluster_size, num_of_child_clusters, nodes_lo, nodes_hi);
 
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
-    LOG_GENERAL(INFO,
-                "I am at last level in tree. And not supposed to broadcast "
-                "message further");
+    LOG_GENERAL(
+        INFO,
+        "I am at last level in tree. And not supposed to broadcast "
+        "message with hash: ["
+            << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+            << "] further");
     return;
   }
 
   // set to max valid node index, if upperbound is invalid.
   nodes_hi = std::min(nodes_hi, (uint32_t)m_myShardMembers->size() - 1);
 
-  LOG_GENERAL(INFO, "I am broadcasting message further to following "
-                        << nodes_hi - nodes_lo + 1 << " peers."
-                        << "(" << nodes_lo << "~" << nodes_hi << ")");
-  std::vector<Peer> shardVCBlockReceivers;
+  LOG_GENERAL(
+      INFO, "I am broadcasting message with hash: ["
+                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+                << "] further to following " << nodes_hi - nodes_lo + 1
+                << " peers."
+                << "(" << nodes_lo << "~" << nodes_hi << ")");
+  std::vector<Peer> shardBlockReceivers;
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);
-    shardVCBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+    shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         " PubKey: " << DataConversion::SerializableToHexStr(
@@ -1133,7 +1143,7 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
                     << " Port: "
                     << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
   }
-  P2PComm::GetInstance().SendBroadcastMessage(shardVCBlockReceivers, message);
+  P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
 
 bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
