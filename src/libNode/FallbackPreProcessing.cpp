@@ -260,11 +260,12 @@ void Node::FallbackTimerLaunch() {
     return;
   }
 
+  m_runFallback = true;
   m_fallbackTimer = 0;
   m_fallbackStarted = false;
 
   auto func = [this]() -> void {
-    while (true) {
+    while (m_runFallback) {
       this_thread::sleep_for(chrono::seconds(FALLBACK_CHECK_INTERVAL));
 
       if (m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
@@ -328,6 +329,11 @@ void Node::FallbackTimerPulse() {
   lock_guard<mutex> g(m_mutexFallbackTimer);
   m_fallbackTimer = 0;
   m_fallbackStarted = false;
+}
+
+void Node::FallbackStop() {
+  lock_guard<mutex> g(m_mutexFallbackTimer);
+  m_runFallback = false;
 }
 
 void Node::ComposeFallbackBlock() {

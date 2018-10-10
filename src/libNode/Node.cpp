@@ -290,6 +290,37 @@ bool Node::StartRetrieveHistory() {
   return res;
 }
 
+bool Node::GetOfflineLookups(bool endless) {
+  unsigned int counter = 1;
+  while (!m_mediator.m_lookup->m_fetchedOfflineLookups &&
+         (counter <= FETCH_LOOKUP_MSG_MAX_RETRY || endless)) {
+    m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+
+    {
+      unique_lock<mutex> lock(
+          m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
+      if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
+              lock, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
+          std::cv_status::timeout) {
+        if (!endless) {
+          LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout... tried "
+                                   << counter << "/"
+                                   << FETCH_LOOKUP_MSG_MAX_RETRY << " times");
+          counter++;
+        }
+      } else {
+        break;
+      }
+    }
+  }
+  if (!m_mediator.m_lookup->m_fetchedOfflineLookups) {
+    LOG_GENERAL(WARNING, "Fetch offline lookup nodes failed");
+    return false;
+  }
+  m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+  return true;
+}
+
 void Node::StartSynchronization() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -301,21 +332,11 @@ void Node::StartSynchronization() {
 
   SetState(SYNC);
   auto func = [this]() -> void {
-    m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
-
-    {
-      unique_lock<mutex> lock(
-          m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
-      while (!m_mediator.m_lookup->m_fetchedOfflineLookups) {
-        if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
-                lock, chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
-          return;
-        }
-      }
-      m_mediator.m_lookup->m_fetchedOfflineLookups = false;
+    if (!GetOfflineLookups()) {
+      LOG_GENERAL(WARNING, "Cannot rejoin currently");
+      return;
     }
+
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
       m_synchronizer.FetchLatestDSBlocks(
           m_mediator.m_lookup,
@@ -328,7 +349,7 @@ void Node::StartSynchronization() {
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1);
       this_thread::sleep_for(chrono::seconds(m_mediator.m_lookup->m_startedPoW
-                                                 ? POW_BACKUP_WINDOW_IN_SECONDS
+                                                 ? POW_WINDOW_IN_SECONDS
                                                  : NEW_NODE_SYNC_INTERVAL));
     }
   };
@@ -930,10 +951,12 @@ bool Node::CleanVariables() {
     return true;
   }
 
+  FallbackStop();
   AccountStore::GetInstance().InitSoft();
   m_myShardMembers->clear();
   m_isPrimary = false;
   m_isMBSender = false;
+  m_stillMiningPrimary = false;
   m_myshardId = 0;
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
