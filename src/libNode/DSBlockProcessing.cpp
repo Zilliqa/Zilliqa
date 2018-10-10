@@ -482,7 +482,15 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                                << expectedViewChangeCounter << " Received: "
                                << vcBlock.GetHeader().GetViewChangeCounter());
     }
-    ProcessVCBlockCore(vcBlock);
+
+    if (!ProcessVCBlockCore(vcBlock)) {
+      LOG_GENERAL(WARNING, "Checking for error when processing vc blocknum "
+                               << vcBlock.GetHeader().GetViewChangeCounter());
+      return false;
+    }
+
+    LOG_GENERAL(INFO, "view change completed for vc blocknum "
+                          << vcBlock.GetHeader().GetViewChangeCounter());
     expectedViewChangeCounter++;
   }
 
