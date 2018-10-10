@@ -439,20 +439,19 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  auto func = [this, dsblock]() mutable -> void {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo()) {
-      if (UpgradeManager::GetInstance().DownloadSW()) {
-        m_mediator.m_curSWInfo =
-            *UpgradeManager::GetInstance().GetLatestSWInfo();
-      }
-    }
-  };
-  DetachedFunction(1, func);
-
   m_myshardId = shardId;
 
   LogReceivedDSBlockDetails(dsblock);
+
+  BlockHash temp_blockHash = dsblock.GetHeader().GetMyHash();
+  if (temp_blockHash != dsblock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received DS Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << dsblock.GetBlockHash().hex());
+    return false;
+  }
 
   // Checking for freshness of incoming DS Block
   if (!CheckWhetherDSBlockNumIsLatest(dsblock.GetHeader().GetBlockNum())) {
@@ -465,6 +464,17 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
               "DSBlock co-sig verification failed");
     return false;
   }
+
+  auto func = [this, dsblock]() mutable -> void {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo()) {
+      if (UpgradeManager::GetInstance().DownloadSW()) {
+        m_mediator.m_curSWInfo =
+            *UpgradeManager::GetInstance().GetLatestSWInfo();
+      }
+    }
+  };
+  DetachedFunction(1, func);
 
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);

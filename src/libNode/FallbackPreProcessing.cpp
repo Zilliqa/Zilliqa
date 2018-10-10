@@ -59,6 +59,16 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     return false;
   }
 
+  BlockHash temp_blockHash = m_pendingFallbackBlock->GetHeader().GetMyHash();
+  if (temp_blockHash != m_pendingFallbackBlock->GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received FB Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash << " Received: "
+                    << m_pendingFallbackBlock->GetBlockHash().hex());
+    return false;
+  }
+
   // ds epoch No
   if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 !=
       m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo()) {
@@ -366,6 +376,8 @@ void Node::ComposeFallbackBlock() {
             leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
             m_myshardId, get_time_as_int()),
         CoSignatures()));
+    m_pendingFallbackBlock->SetBlockHash(
+        m_pendingFallbackBlock->GetHeader().GetMyHash());
   }
 }
 
@@ -421,8 +433,8 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
   ComposeFallbackBlock();
 
   // Create new consensus object
-  m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-  fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+  m_consensusBlockHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   m_consensusObject.reset(new ConsensusLeader(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
@@ -477,10 +489,8 @@ bool Node::RunConsensusOnFallbackWhenBackup() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am a fallback backup node. Waiting for Fallback announcement.");
 
-  m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
+  m_consensusBlockHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                      vector<unsigned char>& errorMsg,
