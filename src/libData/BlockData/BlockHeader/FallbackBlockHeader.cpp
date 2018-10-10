@@ -18,6 +18,7 @@
  */
 
 #include "FallbackBlockHeader.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -27,7 +28,7 @@ FallbackBlockHeader::FallbackBlockHeader() : m_leaderConsensusId(0) {}
 
 FallbackBlockHeader::FallbackBlockHeader(const vector<unsigned char>& src,
                                          unsigned int offset) {
-  if (Deserialize(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(INFO, "Error. We failed to initialize FallbackBlockHeader.");
   }
 }
@@ -48,76 +49,24 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_shardId(shardId),
       m_timestamp(timestamp) {}
 
-unsigned int FallbackBlockHeader::Serialize(vector<unsigned char>& dst,
-                                            unsigned int offset) const {
-  unsigned int size_needed = FallbackBlockHeader::SIZE;
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+bool FallbackBlockHeader::Serialize(vector<unsigned char>& dst,
+                                    unsigned int offset) const {
+  if (!Messenger::SetFallbackBlockHeader(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetFallbackBlockHeader failed.");
+    return false;
   }
 
-  unsigned int curOffset = offset;
-  SetNumber<uint64_t>(dst, curOffset, m_fallbackDSEpochNo, sizeof(uint64_t));
-  curOffset += sizeof(uint64_t);
-  SetNumber<uint64_t>(dst, curOffset, m_fallbackEpochNo, sizeof(uint64_t));
-  curOffset += sizeof(uint64_t);
-  SetNumber<unsigned char>(dst, curOffset, m_fallbackState,
-                           sizeof(unsigned char));
-  curOffset += sizeof(unsigned char);
-  curOffset = m_hash.Serialize(dst, curOffset);
-  SetNumber<uint32_t>(dst, curOffset, m_leaderConsensusId, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-  curOffset += m_leaderNetworkInfo.Serialize(dst, curOffset);
-  curOffset += m_leaderPubKey.Serialize(dst, curOffset);
-  SetNumber<uint32_t>(dst, curOffset, m_shardId, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-  SetNumber<uint256_t>(dst, curOffset, m_timestamp, UINT256_SIZE);
-  curOffset += UINT256_SIZE;
-  return size_needed;
+  return true;
 }
 
-int FallbackBlockHeader::Deserialize(const vector<unsigned char>& src,
-                                     unsigned int offset) {
-  unsigned int curOffset = offset;
-  try {
-    m_fallbackDSEpochNo = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
-    curOffset += sizeof(uint64_t);
-    m_fallbackEpochNo = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
-    curOffset += sizeof(uint64_t);
-    m_fallbackState =
-        GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
-    curOffset += sizeof(unsigned char);
-    if (m_hash.Deserialize(src, curOffset)) {
-      LOG_GENERAL(WARNING, "We failed to extract TxBlockHeader::m_hash.");
-      return -1;
-    }
-    curOffset += m_hash.size();
-    m_leaderConsensusId = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    if (m_leaderNetworkInfo.Deserialize(src, curOffset) != 0) {
-      LOG_GENERAL(WARNING,
-                  "Error. We failed to deserialize m_leaderNetworkInfo.");
-      return -1;
-    }
-    curOffset += IP_SIZE + PORT_SIZE;
-    if (m_leaderPubKey.Deserialize(src, curOffset) != 0) {
-      LOG_GENERAL(WARNING, "Error. We failed to deserialize m_leaderPubKey.");
-      return -1;
-    }
-    curOffset += PUB_KEY_SIZE;
-
-    m_shardId = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "ERROR: Error with VCBlockHeader::Deserialize."
-                             << ' ' << e.what());
-    return -1;
+bool FallbackBlockHeader::Deserialize(const vector<unsigned char>& src,
+                                      unsigned int offset) {
+  if (!Messenger::GetFallbackBlockHeader(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetFallbackBlockHeader failed.");
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
 const uint64_t& FallbackBlockHeader::GetFallbackDSEpochNo() const {

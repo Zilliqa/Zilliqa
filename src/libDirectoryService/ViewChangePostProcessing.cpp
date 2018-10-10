@@ -72,10 +72,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   vector<unsigned char> message;
-  m_pendingVCBlock->GetHeader().Serialize(message, 0);
-  m_pendingVCBlock->GetCS1().Serialize(message, VCBlockHeader::SIZE);
-  BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                          m_pendingVCBlock->GetB1());
+  if (!m_pendingVCBlock->GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "VCBlockHeader serialization failed");
+    return;
+  }
+  m_pendingVCBlock->GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), m_pendingVCBlock->GetB1());
   if (not Schnorr::GetInstance().Verify(message, 0, message.size(),
                                         m_pendingVCBlock->GetCS2(),
                                         *aggregatedKey)) {

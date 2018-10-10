@@ -157,10 +157,12 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
 
   // Verify the collective signature
   vector<unsigned char> message;
-  dsblock.GetHeader().Serialize(message, 0);
-  dsblock.GetCS1().Serialize(message, dsblock.GetHeader().GetSize());
-  BitVector::SetBitVector(
-      message, dsblock.GetHeader().GetSize() + BLOCK_SIG_SIZE, dsblock.GetB1());
+  if (!dsblock.GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "DSBlockHeader serialization failed");
+    return false;
+  }
+  dsblock.GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), dsblock.GetB1());
   if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                      dsblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");

@@ -70,14 +70,16 @@ void Node::ProcessFallbackConsensusWhenDone() {
   }
 
   vector<unsigned char> message;
-  m_pendingFallbackBlock->GetHeader().Serialize(message, 0);
-  m_pendingFallbackBlock->GetCS1().Serialize(message,
-                                             FallbackBlockHeader::SIZE);
-  BitVector::SetBitVector(message, FallbackBlockHeader::SIZE + BLOCK_SIG_SIZE,
+  if (!m_pendingFallbackBlock->GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed");
+    return;
+  }
+  m_pendingFallbackBlock->GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(),
                           m_pendingFallbackBlock->GetB1());
-  if (not Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                        m_pendingFallbackBlock->GetCS2(),
-                                        *aggregatetdKey)) {
+  if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                     m_pendingFallbackBlock->GetCS2(),
+                                     *aggregatetdKey)) {
     LOG_GENERAL(WARNING, "cosig verification fail");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

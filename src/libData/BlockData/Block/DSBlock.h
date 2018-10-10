@@ -43,21 +43,13 @@ class DSBlock : public BlockBase {
   DSBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Constructor with specified DS block parameters.
-  DSBlock(DSBlockHeader&& header, CoSignatures&& cosigs);
+  DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-
-  /// Returns the size in bytes when serializing the DS block.
-  unsigned int GetSerializedSize() const;
-
-  /// Returns the minimum required size in bytes for obtaining a DS block from a
-  /// byte stream.
-  unsigned int GetMinSize();
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Returns the reference to the DSBlockHeader part of the DS block.
   const DSBlockHeader& GetHeader() const;

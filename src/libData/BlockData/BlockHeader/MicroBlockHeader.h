@@ -49,12 +49,6 @@ class MicroBlockHeader : public BlockHeaderBase {
   BlockHash m_dsBlockHeader;  // DS Block hash
 
  public:
-  static const unsigned int SIZE =
-      sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + UINT256_SIZE +
-      UINT256_SIZE + BLOCK_HASH_SIZE + sizeof(uint64_t) + UINT256_SIZE +
-      MicroBlockHashSet::size() + sizeof(uint32_t) + PUB_KEY_SIZE +
-      sizeof(uint64_t) + BLOCK_HASH_SIZE;
-
   /// Default constructor.
   MicroBlockHeader();
 
@@ -75,11 +69,10 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const TxnHash& tranReceiptHash);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so
   // no need to add Doxygen tags for now
