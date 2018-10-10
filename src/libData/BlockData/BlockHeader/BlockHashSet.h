@@ -62,6 +62,23 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHashSet& t) {
   return os;
 }
 
+// define its hash function in order to used as key in map
+namespace std {
+template <>
+struct hash<DSBlockHashSet> {
+  size_t operator()(DSBlockHashSet const& hashSet) const noexcept {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, hashSet.m_dsCommHash.hex());
+    boost::hash_combine(seed, hashSet.m_shardingHash.hex());
+    boost::hash_combine(seed, hashSet.m_txSharingHash.hex());
+    boost::hash_combine(
+        seed, DataConversion::charArrToHexStr(hashSet.m_reservedField));
+
+    return seed;
+  }
+};
+}  // namespace std
+
 struct MicroBlockHashSet {
   TxnHash m_txRootHash;        // Tx merkle tree root hash
   StateHash m_stateDeltaHash;  // State Delta hash
