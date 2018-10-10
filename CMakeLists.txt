@@ -16,6 +16,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # check dependencies
 #
 include(InstallG3log)
+include(InstallMongo)
 
 find_package(PkgConfig REQUIRED)
 
