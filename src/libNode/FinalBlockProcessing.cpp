@@ -258,10 +258,12 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
 
   // Verify the collective signature
   vector<unsigned char> message;
-  txblock.GetHeader().Serialize(message, 0);
-  txblock.GetCS1().Serialize(message, TxBlockHeader::SIZE);
-  BitVector::SetBitVector(message, TxBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                          txblock.GetB1());
+  if (!txblock.GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "TxBlockHeader serialization failed");
+    return false;
+  }
+  txblock.GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), txblock.GetB1());
   if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                      txblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");

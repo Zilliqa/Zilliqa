@@ -30,7 +30,7 @@
 #include "libData/AccountData/Transaction.h"
 
 /// [TODO] Base class for all supported block header types
-class BlockHeaderBase : public Serializable {
+class BlockHeaderBase : public SerializableDataBlock {
  protected:
   // TODO: pull out all common code from ds, micro and tx block header
 

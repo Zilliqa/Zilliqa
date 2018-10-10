@@ -42,11 +42,6 @@ class FallbackBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint256_t m_timestamp;
 
  public:
-  static const unsigned int SIZE =
-      sizeof(uint64_t) + sizeof(uint64_t) + sizeof(unsigned char) +
-      FallbackBlockHashSet::size() + sizeof(uint32_t) + IP_SIZE + PORT_SIZE +
-      PUB_KEY_SIZE + sizeof(uint32_t) + UINT256_SIZE;
-
   /// Default constructor.
   FallbackBlockHeader();  // creates a dummy invalid placeholder BlockHeader
 
@@ -66,11 +61,10 @@ class FallbackBlockHeader : public BlockHeaderBase {
                       const boost::multiprecision::uint256_t& timestamp);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Returns the DS Epoch number where view change happen
   const uint64_t& GetFallbackDSEpochNo() const;

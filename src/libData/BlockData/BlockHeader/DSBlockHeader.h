@@ -59,12 +59,12 @@ class DSBlockHeader : public BlockHeaderBase {
                 const std::map<PubKey, Peer>& powDSWinners);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const override;
+  bool Serialize(std::vector<unsigned char>& dst,
+                 unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src,
-                  unsigned int offset) override;
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
 
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDSDifficulty() const;
@@ -81,9 +81,6 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Returns the number of ancestor blocks.
   const uint64_t& GetBlockNum() const;
-
-  /// Return size of this DS block
-  uint32_t GetSize() const;
 
   /// Returns the Unix time at the time of creation of this block.
   const boost::multiprecision::uint256_t& GetTimestamp() const;
