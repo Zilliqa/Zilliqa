@@ -283,6 +283,10 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_mutexOfflineLookupsUpdation;
   std::condition_variable cv_offlineLookups;
 
+  bool m_fetchedLatestDSBlock = false;
+  std::mutex m_mutexLatestDSBlockUpdation;
+  std::condition_variable cv_latestDSBlock;
+
   bool InitMining();
 
   /// To indicate which type of synchronization is using
