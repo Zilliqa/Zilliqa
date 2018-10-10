@@ -18,6 +18,7 @@
  */
 
 #include "VCBlockHeader.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -27,7 +28,7 @@ VCBlockHeader::VCBlockHeader() : m_CandidateLeaderIndex(1) {}
 
 VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {
-  if (Deserialize(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(INFO, "Error. We failed to initialize VCBlockHeader.");
   }
 }
@@ -49,76 +50,24 @@ VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
       m_VCCounter(vcCounter),
       m_Timestamp(timestamp) {}
 
-unsigned int VCBlockHeader::Serialize(vector<unsigned char>& dst,
-                                      unsigned int offset) const {
-  LOG_MARKER();
-
-  unsigned int size_needed = VCBlockHeader::SIZE;
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+bool VCBlockHeader::Serialize(vector<unsigned char>& dst,
+                              unsigned int offset) const {
+  if (!Messenger::SetVCBlockHeader(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetVCBlockHeader failed.");
+    return false;
   }
 
-  unsigned int curOffset = offset;
-  SetNumber<uint64_t>(dst, curOffset, m_VieWChangeDSEpochNo, sizeof(uint64_t));
-  curOffset += sizeof(uint64_t);
-  SetNumber<uint64_t>(dst, curOffset, m_VieWChangeEpochNo, sizeof(uint64_t));
-  curOffset += sizeof(uint64_t);
-  SetNumber<unsigned char>(dst, curOffset, m_ViewChangeState,
-                           sizeof(unsigned char));
-  curOffset += sizeof(unsigned char);
-  SetNumber<uint32_t>(dst, curOffset, m_CandidateLeaderIndex, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-  curOffset += m_CandidateLeaderNetworkInfo.Serialize(dst, curOffset);
-  curOffset += m_CandidateLeaderPubKey.Serialize(dst, curOffset);
-  SetNumber<uint32_t>(dst, curOffset, m_VCCounter, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-  SetNumber<uint256_t>(dst, curOffset, m_Timestamp, UINT256_SIZE);
-  curOffset += UINT256_SIZE;
-  return size_needed;
+  return true;
 }
 
-int VCBlockHeader::Deserialize(const vector<unsigned char>& src,
-                               unsigned int offset) {
-  unsigned int curOffset = offset;
-  try {
-    m_VieWChangeDSEpochNo =
-        GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
-    curOffset += sizeof(uint64_t);
-    m_VieWChangeEpochNo = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
-    curOffset += sizeof(uint64_t);
-    m_ViewChangeState =
-        GetNumber<unsigned char>(src, curOffset, sizeof(unsigned char));
-    curOffset += sizeof(unsigned char);
-    m_CandidateLeaderIndex =
-        GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    if (m_CandidateLeaderNetworkInfo.Deserialize(src, curOffset) != 0) {
-      LOG_GENERAL(
-          WARNING,
-          "Error. We failed to deserialize CandidateLeaderNetworkInfo.");
-      return -1;
-    }
-    curOffset += IP_SIZE + PORT_SIZE;
-    if (m_CandidateLeaderPubKey.Deserialize(src, curOffset) != 0) {
-      LOG_GENERAL(WARNING,
-                  "Error. We failed to deserialize m_CandidateLeaderPubKey.");
-      return -1;
-    }
-    curOffset += PUB_KEY_SIZE;
-
-    m_VCCounter = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_Timestamp = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "ERROR: Error with VCBlockHeader::Deserialize."
-                             << ' ' << e.what());
-    return -1;
+bool VCBlockHeader::Deserialize(const vector<unsigned char>& src,
+                                unsigned int offset) {
+  if (!Messenger::GetVCBlockHeader(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetVCBlockHeader failed.");
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
 const uint64_t& VCBlockHeader::GetVieWChangeDSEpochNo() const {

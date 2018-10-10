@@ -43,21 +43,13 @@ class FallbackBlock : public BlockBase {
   FallbackBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Constructor with specified fallback block parameters.
-  FallbackBlock(FallbackBlockHeader&& header, CoSignatures&& cosigs);
+  FallbackBlock(const FallbackBlockHeader& header, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-
-  /// Returns the size in bytes when serializing the block.
-  unsigned int GetSerializedSize() const;
-
-  /// Returns the minimum required size in bytes for obtaining a fallback block
-  /// from a byte stream.
-  static unsigned int GetMinSize();
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Returns the reference to the FallbackBlockHeader part of the fallback
   /// block.

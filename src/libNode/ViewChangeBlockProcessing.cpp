@@ -92,10 +92,12 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
 
   // Verify the collective signature
   vector<unsigned char> message;
-  vcblock.GetHeader().Serialize(message, 0);
-  vcblock.GetCS1().Serialize(message, VCBlockHeader::SIZE);
-  BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                          vcblock.GetB1());
+  if (!vcblock.GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "VCBlockHeader serialization failed");
+    return false;
+  }
+  vcblock.GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), vcblock.GetB1());
   if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                      vcblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");

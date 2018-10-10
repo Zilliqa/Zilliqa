@@ -100,10 +100,12 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock) {
 
   // Verify the collective signature
   vector<unsigned char> message;
-  fallbackblock.GetHeader().Serialize(message, 0);
-  fallbackblock.GetCS1().Serialize(message, FallbackBlockHeader::SIZE);
-  BitVector::SetBitVector(message, FallbackBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                          fallbackblock.GetB1());
+  if (!fallbackblock.GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed");
+    return false;
+  }
+  fallbackblock.GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), fallbackblock.GetB1());
   if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                      fallbackblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");

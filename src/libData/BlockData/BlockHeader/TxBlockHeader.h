@@ -48,12 +48,6 @@ class TxBlockHeader : public BlockHeaderBase {
   BlockHash m_dsBlockHeader;  // DS Block hash
 
  public:
-  static const unsigned int SIZE =
-      sizeof(uint8_t) + sizeof(uint32_t) + UINT256_SIZE + UINT256_SIZE +
-      BLOCK_HASH_SIZE + sizeof(uint64_t) + UINT256_SIZE +
-      TxBlockHashSet::size() + sizeof(uint32_t) + sizeof(uint32_t) +
-      PUB_KEY_SIZE + sizeof(uint64_t) + BLOCK_HASH_SIZE;
-
   /// Default constructor.
   TxBlockHeader();
 
@@ -73,12 +67,12 @@ class TxBlockHeader : public BlockHeaderBase {
                 const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const override;
+  bool Serialize(std::vector<unsigned char>& dst,
+                 unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src,
-                  unsigned int offset) override;
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
 
   /// Returns the type of the block.
   const uint8_t& GetType() const;
