@@ -34,6 +34,7 @@
 
 class FallbackBlock : public BlockBase {
   FallbackBlockHeader m_header;
+  BlockHash m_blockHash;
 
  public:
   /// Default constructor.
@@ -63,6 +64,15 @@ class FallbackBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const FallbackBlock& block) const;
+
+  /// Calculate the block hash from header
+  BlockHash CalculateBlockHash() const;
+
+  /// Returns the block hash
+  const BlockHash& GetBlockHash() const;
+
+  /// Set the block hash
+  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __FALLBACKBLOCK_H__

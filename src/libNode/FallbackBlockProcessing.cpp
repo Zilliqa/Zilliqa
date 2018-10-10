@@ -150,6 +150,16 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  BlockHash temp_blockHash = fallbackblock.GetHeader().GetMyHash();
+  if (temp_blockHash != fallbackblock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received FB Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << fallbackblock.GetBlockHash().hex());
+    return false;
+  }
+
   if (fallbackblock.GetHeader().GetFallbackEpochNo() !=
       m_mediator.m_currentEpochNum) {
     LOG_GENERAL(WARNING,

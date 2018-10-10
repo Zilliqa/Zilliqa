@@ -71,3 +71,9 @@ bool VCBlock::operator<(const VCBlock& block) const {
 bool VCBlock::operator>(const VCBlock& block) const {
   return !((*this == block) || (*this < block));
 }
+
+const BlockHash& VCBlock::GetBlockHash() const { return m_blockHash; }
+
+void VCBlock::SetBlockHash(const BlockHash& blockHash) {
+  m_blockHash = blockHash;
+}

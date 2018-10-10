@@ -83,7 +83,7 @@ unsigned int DirectoryService::ComposeDSBlock(
   if (m_mediator.m_dsBlockChain.GetBlockCount() > 0) {
     DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
     blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
-    prevHash = lastBlock.GetHeader().GetMyHash();
+    prevHash = lastBlock.GetBlockHash();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Prev DS block hash as per leader " << prevHash.hex());
@@ -122,11 +122,12 @@ unsigned int DirectoryService::ComposeDSBlock(
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
-                      SWInfo(), powDSWinners, DSBlockHashSet()),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(
+        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  get_time_as_int(), SWInfo(), powDSWinners, DSBlockHashSet()),
+                    CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "New DSBlock created with ds difficulty "
@@ -524,10 +525,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   // Create new consensus object
   uint32_t consensusID = 0;
-  m_consensusBlockHash = m_mediator.m_dsBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
+  m_consensusBlockHash =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   // kill first ds leader (used for view change testing)
   // Either do killing of ds leader or make ds leader do nothing.
@@ -655,17 +654,6 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  auto func = [this]() mutable -> void {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo()) {
-      if (UpgradeManager::GetInstance().DownloadSW()) {
-        m_mediator.m_curSWInfo =
-            *UpgradeManager::GetInstance().GetLatestSWInfo();
-      }
-    }
-  };
-  DetachedFunction(1, func);
-
   // To-do: Put in the logic here for checking the proposed DS block
   const map<PubKey, Peer> NewDSMembers =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
@@ -681,6 +669,16 @@ bool DirectoryService::DSBlockValidator(
       // I don't know the winner -> store the IP given by the leader
       m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
     }
+  }
+
+  BlockHash temp_blockHash = m_pendingDSBlock->GetHeader().GetMyHash();
+  if (temp_blockHash != m_pendingDSBlock->GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received DS Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << m_pendingDSBlock->GetBlockHash().hex());
+    return false;
   }
 
   // Start to adjust difficulty from second DS block.
@@ -732,6 +730,17 @@ bool DirectoryService::DSBlockValidator(
   }
   // ProcessTxnBodySharingAssignment();
 
+  auto func = [this]() mutable -> void {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo()) {
+      if (UpgradeManager::GetInstance().DownloadSW()) {
+        m_mediator.m_curSWInfo =
+            *UpgradeManager::GetInstance().GetLatestSWInfo();
+      }
+    }
+  };
+  DetachedFunction(1, func);
+
   return true;
 }
 
@@ -753,10 +762,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
 
   // Dummy values for now
   uint32_t consensusID = 0x0;
-  m_consensusBlockHash = m_mediator.m_dsBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
+  m_consensusBlockHash =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                      vector<unsigned char>& errorMsg,
