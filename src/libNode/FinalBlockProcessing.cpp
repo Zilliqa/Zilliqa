@@ -732,10 +732,18 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
-  if (!isVacuousEpoch) {
-    ProcessStateDeltaFromFinalBlock(stateDelta,
-                                    txBlock.GetHeader().GetStateDeltaHash());
+  ProcessStateDeltaFromFinalBlock(stateDelta,
+                                  txBlock.GetHeader().GetStateDeltaHash());
 
+  if (!LOOKUP_NODE_MODE &&
+      (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
+    RejoinAsNormal();
+    return false;
+  } else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock)) {
+    return false;
+  }
+
+  if (!isVacuousEpoch) {
     if (!LoadUnavailableMicroBlockHashes(
             txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
       return false;
@@ -746,19 +754,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     // Remove because shard nodes will be shuffled in next epoch.
     CleanCreatedTransaction();
-
     CleanMicroblockConsensusBuffer();
-
-    ProcessStateDeltaFromFinalBlock(stateDelta,
-                                    txBlock.GetHeader().GetStateDeltaHash());
-
-    if (!LOOKUP_NODE_MODE &&
-        (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
-      RejoinAsNormal();
-      return false;
-    } else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock)) {
-      return false;
-    }
 
     StoreState();
     StoreFinalBlock(txBlock);
@@ -983,17 +979,9 @@ bool Node::ProcessForwardTransaction(const vector<unsigned char>& message,
     m_forwardedTxnBuffer[entry.m_blockNum].push_back(entry);
 
     return true;
-  } else {
-    return ProcessForwardTransactionCore(entry);
   }
 
-  LOG_GENERAL(
-      WARNING,
-      "Current block num: "
-          << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-          << " this forwarded delta msg is too late");
-
-  return false;
+  return ProcessForwardTransactionCore(entry);
 }
 
 bool Node::ProcessForwardTransactionCore(const ForwardedTxnEntry& entry) {
@@ -1008,15 +996,39 @@ bool Node::ProcessForwardTransactionCore(const ForwardedTxnEntry& entry) {
 
   LOG_GENERAL(INFO, entry);
 
-  vector<TxnHash> txnHashesInForwardedMessage;
+  vector<TxnHash> txns_order;
+  unordered_map<TxnHash, TransactionWithReceipt> txns_map;
+  TxnHash txRootHash;
+  TxnHash txReceiptHash;
 
   for (const auto& txr : entry.m_transactions) {
-    txnHashesInForwardedMessage.emplace_back(txr.GetTransaction().GetTranID());
+    txns_order.emplace_back(txr.GetTransaction().GetTranID());
+    txns_map.emplace(txr.GetTransaction().GetTranID(), txr);
   }
 
-  if (ComputeTransactionsRoot(txnHashesInForwardedMessage) !=
-      entry.m_hash.m_txRootHash) {
-    LOG_GENERAL(WARNING, "ComputeTransactionsRoot FAILED");
+  txRootHash = ComputeTransactionsRoot(txns_order);
+
+  if (txRootHash != entry.m_hash.m_txRootHash) {
+    LOG_GENERAL(WARNING, "TxRoot computed doesn't match"
+                             << endl
+                             << "received: " << entry.m_hash.m_txRootHash
+                             << endl
+                             << "calculated: " << txRootHash);
+    return false;
+  }
+
+  if (!TransactionWithReceipt::ComputeTransactionReceiptsHash(
+          txns_order, txns_map, txReceiptHash)) {
+    LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
+    return false;
+  }
+
+  if (txReceiptHash != entry.m_hash.m_tranReceiptHash) {
+    LOG_GENERAL(WARNING, "TxRoot computed doesn't match"
+                             << endl
+                             << "received: " << entry.m_hash.m_tranReceiptHash
+                             << endl
+                             << "calculated: " << txReceiptHash);
     return false;
   }
 
