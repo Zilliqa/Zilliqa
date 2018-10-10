@@ -712,7 +712,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
 
   deque<pair<PubKey, Peer>> peerList;
 
-  for (auto& it : *m_myShardMembers) {
+  for (const auto& it : *m_myShardMembers) {
     peerList.emplace_back(it);
   }
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
