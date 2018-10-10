@@ -48,7 +48,7 @@ void ProtobufByteArrayToSerializable(const ByteArray& byteArray,
 }
 
 // Temporary function for use by data blocks
-void SerializableToProtobufByteArray(const Serializable2& serializable,
+void SerializableToProtobufByteArray(const SerializableDataBlock& serializable,
                                      ByteArray& byteArray) {
   vector<unsigned char> tmp;
   serializable.Serialize(tmp, 0);
@@ -57,7 +57,7 @@ void SerializableToProtobufByteArray(const Serializable2& serializable,
 
 // Temporary function for use by data blocks
 void ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     Serializable2& serializable) {
+                                     SerializableDataBlock& serializable) {
   vector<unsigned char> tmp;
   copy(byteArray.data().begin(), byteArray.data().end(), back_inserter(tmp));
   serializable.Deserialize(tmp, 0);

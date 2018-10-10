@@ -44,7 +44,7 @@ struct CoSignatures {
 };
 
 /// [TODO] Base class for all supported block data types
-class BlockBase : public Serializable2 {
+class BlockBase : public SerializableDataBlock {
   // TODO: pull out all common code from ds, micro and tx block
  protected:
   CoSignatures m_cosigs;

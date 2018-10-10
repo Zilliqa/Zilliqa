@@ -35,7 +35,7 @@ class HashUtils {
   }
   // Temporary function for use by data blocks
   static const std::vector<unsigned char> SerializableToHash(
-      const Serializable2& sz) {
+      const SerializableDataBlock& sz) {
     std::vector<unsigned char> vec;
     sz.Serialize(vec, 0);
     return BytesToHash(vec);
@@ -57,7 +57,7 @@ class HashUtils {
     return (vec.at(lsb - 1) << 8) | vec.at(lsb);
   }
   // Temporary function for use by data blocks
-  static uint16_t SerializableToHash16Bits(const Serializable2& sz) {
+  static uint16_t SerializableToHash16Bits(const SerializableDataBlock& sz) {
     const std::vector<unsigned char>& vec = SerializableToHash(sz);
 
     uint32_t lsb = vec.size() - 1;

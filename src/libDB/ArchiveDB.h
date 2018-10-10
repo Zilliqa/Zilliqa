@@ -32,7 +32,8 @@ class ArchiveDB : public BaseDB {
   bool InsertSerializable(const Serializable& sz, const std::string& index,
                           const std::string& collectionName);
   // Temporary function for use by data blocks
-  bool InsertSerializable(const Serializable2& sz, const std::string& index,
+  bool InsertSerializable(const SerializableDataBlock& sz,
+                          const std::string& index,
                           const std::string& collectionName);
   bool InsertAccount(const Address& addr, const Account& acc);
   bool GetSerializable(std::vector<unsigned char>& retVec,
