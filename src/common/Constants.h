@@ -32,6 +32,7 @@ const unsigned int TRAN_SIG_SIZE = 64;
 const unsigned int BLOCK_HASH_SIZE = 32;
 const unsigned int BLOCK_SIG_SIZE = 64;
 const unsigned int STATE_HASH_SIZE = 32;
+const unsigned int RESERVED_FIELD_SIZE = 128;
 
 // Numeric types sizes
 const unsigned int UINT256_SIZE = 32;
