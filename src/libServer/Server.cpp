@@ -102,11 +102,11 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
     // unsigned int curr_offset = 0;
 
     if (num_shards > 0) {
       unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-
       if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
         if (tx.GetData().empty() && tx.GetCode().empty()) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
@@ -117,7 +117,7 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           ret["Info"] = "Contract Creation txn, sent to shard";
           ret["TranID"] = tx.GetTranID().hex();
           ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, tx.GetNonce()).hex();
+              Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
         } else {
           ret["Error"] = "Code is empty and To addr is null";
         }
@@ -132,14 +132,14 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
               "and reciever";
           ret["TranID"] = tx.GetTranID().hex();
           ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, tx.GetNonce()).hex();
+              Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
           return ret;
         } else {
           m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
           ret["Info"] = "Contract Txn, Sent To Ds";
           ret["TranID"] = tx.GetTranID().hex();
           ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, tx.GetNonce()).hex();
+              Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
           return ret;
         }
       }
