@@ -280,7 +280,7 @@ class Node : public Executable, public Broadcastable {
   bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
   bool ProcessVCBlock(const std::vector<unsigned char>& message,
                       unsigned int cur_offset, const Peer& from);
-
+  bool ProcessVCBlockCore(const VCBlock& vcblock);
   // Transaction functions
   bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                          const Peer& from);

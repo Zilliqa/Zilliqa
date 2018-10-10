@@ -123,18 +123,43 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  // Check whether is this function called before ds block. VC block before ds
+  // block should be processed seperately.
+  if (m_mediator.m_ds->IsDSBlockVCState(
+          vcblock.GetHeader().GetViewChangeState())) {
+    LOG_GENERAL(WARNING,
+                "Shard node shouldn't process vc block before ds block. It "
+                "should process it together with ds block. cur epoch: "
+                    << m_mediator.m_currentEpochNum << "vc epoch: "
+                    << vcblock.GetHeader().GetViewChangeEpochNo());
+    return false;
+  }
+
+  if (!ProcessVCBlockCore(vcblock)) {
+    return false;
+  }
+
+  // TDOO
+  // Add to block chain and Store the VC block to disk.
+  // StoreVCBlockToDisk(dsblock);
+
+  if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
+    SendVCBlockToOtherShardNodes(message);
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I am a node and my view of leader is successfully changed.");
+  return true;
+}
+
+// VC Core function to process 1 vc block
+bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
+  LOG_MARKER();
+
   if (vcblock.GetHeader().GetViewChangeEpochNo() !=
       m_mediator.m_currentEpochNum) {
     LOG_GENERAL(WARNING,
                 "Node should received individual vc block for ds block ");
-    return false;
-  }
-
-  if (m_mediator.m_ds->IsDSBlockVCState(
-          vcblock.GetHeader().GetViewChangeState())) {
-    LOG_GENERAL(WARNING, "Received wrong vcblock. cur epoch: "
-                             << m_mediator.m_currentEpochNum << "vc epoch: "
-                             << vcblock.GetHeader().GetViewChangeEpochNo());
     return false;
   }
 
@@ -172,21 +197,12 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
   }
 
   for (unsigned int x = 0; x < newCandidateLeader; x++) {
-    UpdateDSCommiteeCompositionAfterVC();  // TODO: If VC select a random
-                                           // leader, we need to change the way
-                                           // we update ds composition.
+    // TODO: If VC select a random
+    // leader, we need to change the way
+    // we update ds composition.
+    UpdateDSCommiteeCompositionAfterVC();
   }
 
-  // TDOO
-  // Add to block chain and Store the VC block to disk.
-  // StoreVCBlockToDisk(dsblock);
-
-  if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
-    SendVCBlockToOtherShardNodes(message);
-  }
-
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am a node and my view of leader is successfully changed.");
   return true;
 }
 
