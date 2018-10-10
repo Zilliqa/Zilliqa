@@ -78,7 +78,7 @@ class Serializable {
 };
 
 // This is a temporary class for use with data blocks
-class Serializable2 {
+class SerializableDataBlock {
  public:
   /// Serializes internal state to destination byte stream.
   virtual bool Serialize(std::vector<unsigned char>& dst,
@@ -89,7 +89,7 @@ class Serializable2 {
                            unsigned int offset) = 0;
 
   /// Virtual destructor.
-  virtual ~Serializable2() {}
+  virtual ~SerializableDataBlock() {}
 
   /// Template function for extracting a number from the source byte stream at
   /// the specified offset. Returns 0 if there are not enough bytes to read from

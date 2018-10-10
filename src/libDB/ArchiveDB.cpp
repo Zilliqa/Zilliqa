@@ -85,7 +85,8 @@ bool ArchiveDB::InsertSerializable(const Serializable& sz, const string& index,
 }
 
 // Temporary function for use by data blocks
-bool ArchiveDB::InsertSerializable(const Serializable2& sz, const string& index,
+bool ArchiveDB::InsertSerializable(const SerializableDataBlock& sz,
+                                   const string& index,
                                    const string& collectionName) {
   if (!m_isInitialized) {
     return false;
