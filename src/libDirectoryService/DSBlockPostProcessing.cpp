@@ -391,12 +391,12 @@ void DirectoryService::StartFirstTxEpoch() {
         m_mediator.m_node->m_myShardMembers->front().first) {
       m_mediator.m_node->m_isPrimary = true;
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am leader of the DS sharded committee");
+                "I am leader of the DS shard");
     } else {
       m_mediator.m_node->m_isPrimary = false;
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am backup member of the DS sharded committee");
+                "I am backup member of the DS shard");
     }
 
     m_mediator.m_node->m_consensusLeaderID = 0;
@@ -418,7 +418,7 @@ void DirectoryService::StartFirstTxEpoch() {
     if (BROADCAST_GOSSIP_MODE) {
       std::vector<Peer> peers;
       for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
-        if (i.second.m_listenPortHost != 0) {
+        if (i.second != Peer()) {
           peers.emplace_back(i.second);
         }
       }
@@ -491,7 +491,7 @@ void DirectoryService::StartFirstTxEpoch() {
     if (BROADCAST_GOSSIP_MODE) {
       std::vector<Peer> peers;
       for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
-        if (i.second.m_listenPortHost != 0) {
+        if (i.second != Peer()) {
           peers.emplace_back(i.second);
         }
       }

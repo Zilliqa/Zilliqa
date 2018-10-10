@@ -20,126 +20,61 @@
 #include <utility>
 
 #include "TxBlock.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-uint32_t TxBlock::SerializeIsMicroBlockEmpty() const {
-  int ret = 0;
-  for (int i = m_isMicroBlockEmpty.size() - 1; i >= 0; --i) {
-    ret = 2 * ret + m_isMicroBlockEmpty[i];
-  }
-  return ret;
-}
-
-unsigned int TxBlock::Serialize(vector<unsigned char>& dst,
-                                unsigned int offset) const {
+bool TxBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+    LOG_GENERAL(WARNING, "Header microblock hash count ("
+                             << m_header.GetNumMicroBlockHashes()
+                             << ") != actual count ("
+                             << m_microBlockHashes.size() << ")");
+    return false;
   }
 
-  unsigned int size_needed = GetSerializedSize();
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+  if (!Messenger::SetTxBlock(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetTxBlock failed.");
+    return false;
   }
 
-  m_header.Serialize(dst, offset);
-
-  unsigned int curOffset = offset + TxBlockHeader::SIZE;
-
-  SetNumber<uint32_t>(dst, curOffset, SerializeIsMicroBlockEmpty(),
-                      sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-
-  for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++) {
-    const uint32_t& shardId = m_shardIds[i];
-    SetNumber<uint32_t>(dst, curOffset, shardId, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-
-    curOffset = m_microBlockHashes.at(i).Serialize(dst, curOffset);
-  }
-
-  BlockBase::Serialize(dst, curOffset);
-
-  return size_needed;
+  return true;
 }
 
-vector<bool> TxBlock::DeserializeIsMicroBlockEmpty(uint32_t arg) {
-  vector<bool> ret;
-  for (uint i = 0; i < m_header.GetNumMicroBlockHashes(); ++i) {
-    ret.push_back(arg % 2);
-    arg /= 2;
+bool TxBlock::Deserialize(const vector<unsigned char>& src,
+                          unsigned int offset) {
+  if (!Messenger::GetTxBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTxBlock failed.");
+    return false;
   }
-  return ret;
-}
 
-int TxBlock::Deserialize(const vector<unsigned char>& src,
-                         unsigned int offset) {
-  try {
-    TxBlockHeader header;
-    if (header.Deserialize(src, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to deserialize header.");
-      return -1;
-    }
-    m_header = header;
-
-    unsigned int curOffset = offset + TxBlockHeader::SIZE;
-
-    m_isMicroBlockEmpty = DeserializeIsMicroBlockEmpty(
-        GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t)));
-    curOffset += sizeof(uint32_t);
-
-    for (unsigned int i = 0; i < m_header.GetNumMicroBlockHashes(); i++) {
-      uint32_t shardId = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-      curOffset += sizeof(uint32_t);
-
-      m_shardIds.push_back(shardId);
-
-      MicroBlockHashSet microBlockHash;
-      microBlockHash.Deserialize(src, curOffset);
-      curOffset += microBlockHash.size();
-
-      m_microBlockHashes.emplace_back(microBlockHash);
-    }
-    if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()) {
-      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                                << ": " << __FUNCTION__ << ")");
-    }
-
-    BlockBase::Deserialize(src, curOffset);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Error with TxBlock::Deserialize." << ' ' << e.what());
-    return -1;
+  if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()) {
+    LOG_GENERAL(WARNING, "Header microblock hash count ("
+                             << m_header.GetNumMicroBlockHashes()
+                             << ") != actual count ("
+                             << m_microBlockHashes.size() << ")");
+    return false;
   }
-  return 0;
-}
 
-unsigned int TxBlock::GetSerializedSize() const {
-  return TxBlockHeader::SIZE + sizeof(uint32_t) +
-         (m_microBlockHashes.size() *
-          (MicroBlockHashSet::size() + sizeof(uint32_t))) +
-         BlockBase::GetSerializedSize();
+  return true;
 }
-
-unsigned int TxBlock::GetMinSize() { return TxBlockHeader::SIZE; }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 TxBlock::TxBlock() {}
 
 TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset) {
-  if (Deserialize(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init TxBlock.");
   }
 }
 
-TxBlock::TxBlock(TxBlockHeader&& header, const vector<bool>& isMicroBlockEmpty,
+TxBlock::TxBlock(const TxBlockHeader& header,
+                 const vector<bool>& isMicroBlockEmpty,
                  const vector<MicroBlockHashSet>& microBlockHashes,
                  const vector<uint32_t>& shardIds, CoSignatures&& cosigs)
-    : m_header(move(header)),
+    : m_header(header),
       m_isMicroBlockEmpty(isMicroBlockEmpty),
       m_microBlockHashes(microBlockHashes),
       m_shardIds(shardIds) {
@@ -185,4 +120,10 @@ bool TxBlock::operator<(const TxBlock& block) const {
 
 bool TxBlock::operator>(const TxBlock& block) const {
   return !((*this == block) || (*this < block));
+}
+
+const BlockHash& TxBlock::GetBlockHash() const { return m_blockHash; }
+
+void TxBlock::SetBlockHash(const BlockHash& blockHash) {
+  m_blockHash = blockHash;
 }

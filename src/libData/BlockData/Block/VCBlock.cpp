@@ -18,6 +18,7 @@
  */
 
 #include "VCBlock.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -28,58 +29,33 @@ VCBlock::VCBlock() {}
 
 // To-do: handle exceptions. Will be deprecated.
 VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset) {
-  if (Deserialize(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "Error. We failed to initialize VCBlock.");
   }
 }
 
-VCBlock::VCBlock(VCBlockHeader&& header, CoSignatures&& cosigs)
-    : m_header(move(header)) {
+VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
+    : m_header(header) {
   m_cosigs = move(cosigs);
 }
 
-unsigned int VCBlock::Serialize(vector<unsigned char>& dst,
-                                unsigned int offset) const {
-  unsigned int size_needed = GetSerializedSize();
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+bool VCBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
+  if (!Messenger::SetVCBlock(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetVCBlock failed.");
+    return false;
   }
 
-  m_header.Serialize(dst, offset);
-
-  BlockBase::Serialize(dst, offset + VCBlockHeader::SIZE);
-
-  return size_needed;
+  return true;
 }
 
-int VCBlock::Deserialize(const vector<unsigned char>& src,
-                         unsigned int offset) {
-  LOG_MARKER();
-  try {
-    VCBlockHeader header;
-    if (header.Deserialize(src, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
-      return -1;
-    }
-    m_header = move(header);
-
-    BlockBase::Deserialize(src, offset + VCBlockHeader::SIZE);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "ERROR: Error with VCBlock::Deserialize." << ' ' << e.what());
-    return -1;
+bool VCBlock::Deserialize(const vector<unsigned char>& src,
+                          unsigned int offset) {
+  if (!Messenger::GetVCBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetVCBlock failed.");
+    return false;
   }
-  return 0;
-}
 
-unsigned int VCBlock::GetSerializedSize() const {
-  return VCBlockHeader::SIZE + BlockBase::GetSerializedSize();
-}
-
-unsigned int VCBlock::GetMinSize() {
-  return VCBlockHeader::SIZE + BlockBase::GetMinSize();
+  return true;
 }
 
 const VCBlockHeader& VCBlock::GetHeader() const { return m_header; }
@@ -94,4 +70,10 @@ bool VCBlock::operator<(const VCBlock& block) const {
 
 bool VCBlock::operator>(const VCBlock& block) const {
   return !((*this == block) || (*this < block));
+}
+
+const BlockHash& VCBlock::GetBlockHash() const { return m_blockHash; }
+
+void VCBlock::SetBlockHash(const BlockHash& blockHash) {
+  m_blockHash = blockHash;
 }

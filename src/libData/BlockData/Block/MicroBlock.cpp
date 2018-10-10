@@ -20,150 +20,59 @@
 #include <utility>
 
 #include "MicroBlock.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-unsigned int MicroBlock::Serialize(vector<unsigned char>& dst,
-                                   unsigned int offset) const {
+bool MicroBlock::Serialize(vector<unsigned char>& dst,
+                           unsigned int offset) const {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    return 0;
+    LOG_GENERAL(WARNING, "Header txn count (" << m_header.GetNumTxs()
+                                              << ") != txn hash count ("
+                                              << m_tranHashes.size() << ")");
+    return false;
   }
 
-  unsigned int size_core = SerializeCore(dst, offset);
-
-  offset += size_core;
-
-  unsigned int size_needed = GetSerializedTxnHashesSize();
-
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+  if (!Messenger::SetMicroBlock(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetMicroBlock failed.");
+    return false;
   }
 
-  unsigned int curOffset = offset;
+  return true;
+}
 
-  for (unsigned int i = 0; i < m_header.GetNumTxs(); i++) {
-    const TxnHash& tran_hash = m_tranHashes.at(i);
-    copy(tran_hash.asArray().begin(), tran_hash.asArray().end(),
-         dst.begin() + curOffset);
-    curOffset += TRAN_HASH_SIZE;
+bool MicroBlock::Deserialize(const vector<unsigned char>& src,
+                             unsigned int offset) {
+  if (!Messenger::GetMicroBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetMicroBlock failed.");
+    return false;
   }
 
-  // BlockBase::Serialize(dst, curOffset);
-
-  return size_core + GetSerializedTxnHashesSize();
-}
-
-int MicroBlock::Deserialize(const vector<unsigned char>& src,
-                            unsigned int offset) {
-  try {
-    if (DeserializeCore(src, offset) == -1) {
-      return -1;
-    }
-
-    unsigned int curOffset = offset + GetSerializedCoreSize();
-
-    for (unsigned int i = 0; i < m_header.GetNumTxs(); i++) {
-      TxnHash tranHash;
-      copy(src.begin() + curOffset, src.begin() + curOffset + TRAN_HASH_SIZE,
-           tranHash.asArray().begin());
-      curOffset += TRAN_HASH_SIZE;
-      m_tranHashes.emplace_back(tranHash);
-    }
-
-    if (m_header.GetNumTxs() != m_tranHashes.size()) {
-      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                                << ": " << __FUNCTION__ << ")");
-      return -1;
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with MicroBlock::Deserialize." << ' ' << e.what());
-    return -1;
-  }
-  return 0;
-}
-
-unsigned int MicroBlock::GetSerializedCoreSize() const {
-  return MicroBlockHeader::SIZE + BlockBase::GetSerializedSize();
-}
-
-unsigned int MicroBlock::GetSerializedTxnHashesSize() const {
-  return m_tranHashes.size() * TRAN_HASH_SIZE;
-}
-
-unsigned int MicroBlock::SerializeCore(vector<unsigned char>& dst,
-                                       unsigned int offset) const {
-  unsigned int size_needed = GetSerializedCoreSize();
-
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+  if (m_header.GetNumTxs() != m_tranHashes.size()) {
+    LOG_GENERAL(WARNING, "Header txn count (" << m_header.GetNumTxs()
+                                              << ") != txn hash count ("
+                                              << m_tranHashes.size() << ")");
+    return false;
   }
 
-  m_header.Serialize(dst, offset);
-
-  unsigned int curOffset = offset + MicroBlockHeader::SIZE;
-
-  BlockBase::Serialize(dst, curOffset);
-
-  return size_needed;
+  return true;
 }
-
-int MicroBlock::DeserializeCore(const vector<unsigned char>& src,
-                                unsigned int offset) {
-  try {
-    // MicroBlockHeader header(src, offset);
-    MicroBlockHeader header;
-    if (header.Deserialize(src, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to deserialize MicroBlockHeader.");
-      return -1;
-    }
-    m_header = header;
-
-    unsigned int curOffset = offset + MicroBlockHeader::SIZE;
-
-    BlockBase::Deserialize(src, curOffset);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with MicroBlock::Deserialize." << ' ' << e.what());
-    return -1;
-  }
-  return 0;
-}
-
-unsigned int MicroBlock::GetMinSize() { return MicroBlockHeader::SIZE; }
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 MicroBlock::MicroBlock() {}
 
 MicroBlock::MicroBlock(const vector<unsigned char>& src, unsigned int offset) {
-  if (Deserialize(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init MicroBlock.");
   }
 }
 
-MicroBlock::MicroBlock(MicroBlockHeader&& header,
+MicroBlock::MicroBlock(const MicroBlockHeader& header,
                        const vector<TxnHash>& tranHashes, CoSignatures&& cosigs)
-    : m_header(move(header)), m_tranHashes(tranHashes) {
-  if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-  }
-
-  m_cosigs = move(cosigs);
-}
-
-MicroBlock::MicroBlock(MicroBlockHeader&& header, vector<TxnHash>&& tranHashes,
-                       CoSignatures&& cosigs)
-    : m_header(move(header)), m_tranHashes(move(tranHashes)) {
+    : m_header(header), m_tranHashes(tranHashes) {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");

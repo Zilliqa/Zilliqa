@@ -72,10 +72,12 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   vector<unsigned char> message;
-  m_pendingVCBlock->GetHeader().Serialize(message, 0);
-  m_pendingVCBlock->GetCS1().Serialize(message, VCBlockHeader::SIZE);
-  BitVector::SetBitVector(message, VCBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                          m_pendingVCBlock->GetB1());
+  if (!m_pendingVCBlock->GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "VCBlockHeader serialization failed");
+    return;
+  }
+  m_pendingVCBlock->GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), m_pendingVCBlock->GetB1());
   if (not Schnorr::GetInstance().Verify(message, 0, message.size(),
                                         m_pendingVCBlock->GetCS2(),
                                         *aggregatedKey)) {
@@ -167,7 +169,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
           m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1) -
                             m_viewChangeCounter + faultyLeaderIndex + 1;
           isCurrentNodeFaulty = true;
-          LOG_GENERAL(INFO, "new m_consensusMyID  is " << m_consensusMyID);
+          LOG_GENERAL(INFO, "New m_consensusMyID  is " << m_consensusMyID);
         }
       }
 
@@ -181,10 +183,26 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
     m_consensusLeaderID =
         0;  // Hotfix. https://github.com/Zilliqa/Issues/issues/212
+
     LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
     LOG_GENERAL(INFO, "New view of ds committee: ");
     for (auto& i : *m_mediator.m_DSCommittee) {
       LOG_GENERAL(INFO, i.second);
+    }
+
+    // Consensus update for DS shard
+    m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+    m_mediator.m_node->m_consensusMyID = m_consensusMyID;
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+    if (m_mediator.m_node->m_consensusMyID ==
+        m_mediator.m_node->m_consensusLeaderID) {
+      m_mediator.m_node->m_isPrimary = true;
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "I am leader of the DS shard");
+    } else {
+      m_mediator.m_node->m_isPrimary = false;
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "I am backup member of the DS shard");
     }
 
     auto func = [this, viewChangeState]() -> void {
