@@ -138,7 +138,7 @@ void DirectoryService::ComposeFinalBlock() {
   uint64_t blockNum = 0;
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
     TxBlock lastBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    prevHash = lastBlock.GetHeader().GetMyHash();
+    prevHash = lastBlock.GetBlockHash();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Prev block hash as per leader "
@@ -172,6 +172,7 @@ void DirectoryService::ComposeFinalBlock() {
                     m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader),
       isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
+  m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
 
   LOG_STATE(
       "[STATS]["
@@ -213,10 +214,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   **/
 
   // Create new consensus object
-  m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
+  m_consensusBlockHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto nodeMissingMicroBlocksFunc = [this](
                                         const vector<unsigned char>& errorMsg,
@@ -796,6 +795,28 @@ bool DirectoryService::CheckStateDeltaHash() {
   return true;
 }
 
+bool DirectoryService::CheckBlockHash() {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::CheckBlockHash not expected to be "
+                "called from LookUp node.");
+    return true;
+  }
+
+  LOG_MARKER();
+
+  BlockHash temp_blockHash = m_finalBlock->GetHeader().GetMyHash();
+  if (temp_blockHash != m_finalBlock->GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received Tx Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << m_finalBlock->GetBlockHash().hex());
+    return false;
+  }
+  return true;
+}
+
 bool DirectoryService::CheckFinalBlockValidity(
     vector<unsigned char>& errorMsg) {
   LOG_MARKER();
@@ -807,11 +828,12 @@ bool DirectoryService::CheckFinalBlockValidity(
     return true;
   }
 
-  if (!CheckBlockTypeIsFinal() || !CheckFinalBlockVersion() ||
-      !CheckFinalBlockNumber() || !CheckPreviousFinalBlockHash() ||
-      !CheckFinalBlockTimestamp() || !CheckMicroBlocks(errorMsg) ||
-      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() ||
-      !CheckStateRoot() || !CheckStateDeltaHash()) {
+  if (!CheckBlockHash() || !CheckBlockTypeIsFinal() ||
+      !CheckFinalBlockVersion() || !CheckFinalBlockNumber() ||
+      !CheckPreviousFinalBlockHash() || !CheckFinalBlockTimestamp() ||
+      !CheckMicroBlocks(errorMsg) || !CheckMicroBlockHashRoot() ||
+      !CheckIsMicroBlockEmpty() || !CheckStateRoot() ||
+      !CheckStateDeltaHash()) {
     Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
@@ -896,10 +918,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   // Create new consensus object
 
   // Dummy values for now
-  m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
+  m_consensusBlockHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                      vector<unsigned char>& errorMsg,

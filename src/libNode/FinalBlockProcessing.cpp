@@ -682,6 +682,16 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  BlockHash temp_blockHash = txBlock.GetHeader().GetMyHash();
+  if (temp_blockHash != txBlock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received Tx Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << txBlock.GetBlockHash().hex());
+    return false;
+  }
+
   // Check block number
   if (!CheckWhetherDSBlockNumIsLatest(dsBlockNumber + 1)) {
     return false;
