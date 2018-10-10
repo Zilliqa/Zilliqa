@@ -74,3 +74,9 @@ bool FallbackBlock::operator<(const FallbackBlock& block) const {
 bool FallbackBlock::operator>(const FallbackBlock& block) const {
   return !((*this == block) || (*this < block));
 }
+
+const BlockHash& FallbackBlock::GetBlockHash() const { return m_blockHash; }
+
+void FallbackBlock::SetBlockHash(const BlockHash& blockHash) {
+  m_blockHash = blockHash;
+}

@@ -124,6 +124,11 @@ void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
   for (const auto& i : dsBlock.GetB2()) {
     cosigs->add_b2(i);
   }
+
+  // Block hash
+
+  protoDSBlock.set_blockhash(dsBlock.GetBlockHash().data(),
+                             dsBlock.GetBlockHash().size);
 }
 
 void ProtobufToDSBlockHeader(
@@ -185,9 +190,19 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
   copy(protoDSBlock.cosigs().b2().begin(), protoDSBlock.cosigs().b2().end(),
        cosigs.m_B2.begin());
 
-  // Generate the new DSBlock
-
+  // Generate the new DSBloc
   dsBlock = DSBlock(header, CoSignatures(cosigs));
+
+  // Deserialize the block hash
+  BlockHash blockHash;
+
+  copy(protoDSBlock.blockhash().begin(),
+       protoDSBlock.blockhash().begin() +
+           min((unsigned int)protoDSBlock.blockhash().size(),
+               (unsigned int)blockHash.size),
+       blockHash.asArray().begin());
+
+  dsBlock.SetBlockHash(blockHash);
 }
 
 void MicroBlockHeaderToProtobuf(
@@ -433,6 +448,11 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
   for (const auto& i : txBlock.GetB2()) {
     cosigs->add_b2(i);
   }
+
+  // Block hash
+
+  protoTxBlock.set_blockhash(txBlock.GetBlockHash().data(),
+                             txBlock.GetBlockHash().size);
 }
 
 void ProtobufToTxBlockHeader(
@@ -564,6 +584,17 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
 
   txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds,
                     CoSignatures(cosigs));
+
+  // Deserialize the block hash
+  BlockHash blockHash;
+
+  copy(protoTxBlock.blockhash().begin(),
+       protoTxBlock.blockhash().begin() +
+           min((unsigned int)protoTxBlock.blockhash().size(),
+               (unsigned int)blockHash.size),
+       blockHash.asArray().begin());
+
+  txBlock.SetBlockHash(blockHash);
 }
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
@@ -609,6 +640,11 @@ void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
   for (const auto& i : vcBlock.GetB2()) {
     cosigs->add_b2(i);
   }
+
+  // Block hash
+
+  protoVCBlock.set_blockhash(vcBlock.GetBlockHash().data(),
+                             vcBlock.GetBlockHash().size);
 }
 
 void ProtobufToVCBlockHeader(
@@ -660,6 +696,17 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
   // Generate the new VCBlock
 
   vcBlock = VCBlock(header, CoSignatures(cosigs));
+
+  // Deserialize the block hash
+  BlockHash blockHash;
+
+  copy(protoVCBlock.blockhash().begin(),
+       protoVCBlock.blockhash().begin() +
+           min((unsigned int)protoVCBlock.blockhash().size(),
+               (unsigned int)blockHash.size),
+       blockHash.asArray().begin());
+
+  vcBlock.SetBlockHash(blockHash);
 }
 
 void FallbackBlockHeaderToProtobuf(
@@ -714,6 +761,11 @@ void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
   for (const auto& i : fallbackBlock.GetB2()) {
     cosigs->add_b2(i);
   }
+
+  // Block hash
+
+  protoFallbackBlock.set_blockhash(fallbackBlock.GetBlockHash().data(),
+                                   fallbackBlock.GetBlockHash().size);
 }
 
 void ProtobufToFallbackBlockHeader(
@@ -772,6 +824,17 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
 
   // Generate the new FallbackBlock
   fallbackBlock = FallbackBlock(header, CoSignatures(cosigs));
+
+  // Deserialize the block hash
+  BlockHash blockHash;
+
+  copy(protoFallbackBlock.blockhash().begin(),
+       protoFallbackBlock.blockhash().begin() +
+           min((unsigned int)protoFallbackBlock.blockhash().size(),
+               (unsigned int)blockHash.size),
+       blockHash.asArray().begin());
+
+  fallbackBlock.SetBlockHash(blockHash);
 }
 
 template <class T>
