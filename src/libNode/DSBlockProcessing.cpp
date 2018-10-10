@@ -474,6 +474,18 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  uint32_t expectedViewChangeCounter = 1;
+  for (const auto& vcBlock : vcBlocks) {
+    if (vcBlock.GetHeader().GetViewChangeCounter() !=
+        expectedViewChangeCounter) {
+      LOG_GENERAL(WARNING, "Unexpected VC block counter. Expected: "
+                               << expectedViewChangeCounter << " Received: "
+                               << vcBlock.GetHeader().GetViewChangeCounter());
+    }
+    ProcessVCBlockCore(vcBlock);
+    expectedViewChangeCounter++;
+  }
+
   auto func = [this, dsblock]() mutable -> void {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
     if (m_mediator.m_curSWInfo != dsblock.GetHeader().GetSWInfo()) {
