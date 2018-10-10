@@ -115,8 +115,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                                   FALLBACK_EXTRA_TIME));
       if (m_stillMiningPrimary) {
         if (!GetOfflineLookups()) {
-          LOG_GENERAL(WARNING,
-                      "Cannot sync currently");
+          LOG_GENERAL(WARNING, "Cannot sync currently");
           return;
         }
 

@@ -304,8 +304,8 @@ bool Node::GetOfflineLookups(bool endless) {
           std::cv_status::timeout) {
         if (!endless) {
           LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout... tried "
-                                   << counter << "/" << FETCH_LOOKUP_MSG_MAX_RETRY
-                                   << " times");
+                                   << counter << "/"
+                                   << FETCH_LOOKUP_MSG_MAX_RETRY << " times");
           counter++;
         }
       } else {
