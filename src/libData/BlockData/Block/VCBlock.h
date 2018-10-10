@@ -33,6 +33,7 @@
 /// Stores the VC header and signatures.
 class VCBlock : public BlockBase {
   VCBlockHeader m_header;
+  BlockHash m_blockHash;
 
  public:
   /// Default constructor.
@@ -63,6 +64,12 @@ class VCBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const VCBlock& block) const;
+
+  /// Returns the block hash
+  const BlockHash& GetBlockHash() const;
+
+  /// Set the block hash
+  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __VCBLOCK_H__
