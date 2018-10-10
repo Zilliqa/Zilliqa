@@ -265,12 +265,21 @@ message DSVCBlockAnnouncement
 // Node messages
 // ============================================================================
 
+// message NodeDSBlock
+// {
+//    required uint32 shardid                   = 1;
+//    required ProtoDSBlock dsblock             = 2;
+//    required ShardingStructure sharding       = 3;
+//    required TxSharingAssignments assignments = 4;
+// }
+
 message NodeDSBlock
 {
     required uint32 shardid                        = 1;
     required ProtoDSBlock dsblock                  = 2;
-    required ProtoShardingStructure sharding       = 3;
-    required ProtoTxSharingAssignments assignments = 4;
+    repeated ProtoVCBlock vcblocks                 = 3;
+    required ProtoShardingStructure sharding       = 4;
+    required ProtoTxSharingAssignments assignments = 5;
 }
 
 message NodeFinalBlock
