@@ -252,6 +252,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP: {
+      // Do not send to shard node as sharding structure is not yet formed.
+      // VC block(s) will concat with ds block and sharding structure to form
+      // vcdsmessage, which then will be send to shard node for processing.
       lock_guard<mutex> g(m_mutexVCBlockVector);
       m_VCBlockVector.emplace_back(*m_pendingVCBlock.get());
       break;
