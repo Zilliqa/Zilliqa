@@ -157,10 +157,17 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
-    if (!m_continueRound) {
-      // Seems logical error. Round should have started.
-      LOG_GENERAL(WARNING, "Round is not running.. So won't add the rumor.");
-      return true;
+    if (!m_continueRound) {  // Seems logical error. Round should have started.
+      if (message.size() > 0) {
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(message);  // raw_message hash
+        LOG_GENERAL(WARNING,
+                    "Round is not running. So won't initiate the rumor. MyIP:"
+                        << m_selfPeer << ". [Gossip_Message_Hash: "
+                        << DataConversion::Uint8VecToHexStr(sha256.Finalize())
+                               .substr(0, 6)
+                        << " ]");
+      }
     }
   }
 
@@ -175,18 +182,18 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
     m_rumorIdRumorBimap.insert(
         RumorIdRumorBimap::value_type(++m_rumorIdGenerator, message));
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-    sha256.Update(message);  // raw_message hash
-    std::vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-    LOG_PAYLOAD(
-        INFO,
-        "New Gossip message initiated by me ("
-            << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
-            << ", Current Round: 0, Gossip_Message_Hash: "
-            << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-            << " ]",
-        message, Logger::MAX_BYTES_TO_DISPLAY);
+    if (message.size() > 0) {
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+      sha256.Update(message);  // raw_message hash
+      LOG_PAYLOAD(INFO,
+                  "New Gossip message initiated by me ("
+                      << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
+                      << ", Current Round: 0, Gossip_Message_Hash: "
+                      << DataConversion::Uint8VecToHexStr(sha256.Finalize())
+                             .substr(0, 6)
+                      << " ]",
+                  message, Logger::MAX_BYTES_TO_DISPLAY);
+    }
 
     return m_rumorHolder->addRumor(m_rumorIdGenerator);
   } else {
@@ -266,9 +273,21 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
-      LOG_GENERAL(WARNING,
-                  "Round is not running.. Will accept the msg but not "
-                  "gossip it further..");
+      if (message.size() >
+          0)  // if we receive EMPTY_PULL/EMPTY_PUSH SHA will assert fail
+      {
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(message);  // raw_message hash
+        LOG_GENERAL(WARNING,
+                    "Round is not running. Will accept the msg received from "
+                        << from
+                        << ", but will not "
+                           "gossip it further. [Gossip_Message_Hash: "
+                        << DataConversion::Uint8VecToHexStr(sha256.Finalize())
+                               .substr(0, 6)
+                        << " ]");
+      }
+
       return true;
     }
   }
@@ -278,9 +297,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   auto p = m_peerIdPeerBimap.right.find(from);
   if (p == m_peerIdPeerBimap.right.end()) {
     // I dont know this peer, missing in my peerlist.
-    LOG_GENERAL(INFO,
-                "Received Rumor from peer which does not exist in my peerlist "
-                    << from);
+    LOG_GENERAL(INFO, "Received Rumor from peer : "
+                          << from << " which does not exist in my peerlist.");
     return false;
   }
 
@@ -297,20 +315,25 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     if (it == m_rumorIdRumorBimap.right.end()) {
       recvdRumorId = ++m_rumorIdGenerator;
 
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-      sha256.Update(message);  // raw_message hash
-      std::vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-      LOG_PAYLOAD(
-          INFO,
-          "New Gossip message received from Peer: "
-              << from << ". [ RumorId: " << recvdRumorId
-              << ", Current Round: " << round << ", Gossip_Message_Hash: "
-              << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-              << " ]",
-          message, Logger::MAX_BYTES_TO_DISPLAY);
       m_rumorIdRumorBimap.insert(
           RumorIdRumorBimap::value_type(recvdRumorId, message));
+
+      if (message.size() > 0)  // if someone malaciously sends empty message of
+                               // type PUSH/PULL),sha2 will assert fail
+      {
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(message);  // raw_message hash
+        LOG_PAYLOAD(INFO,
+                    "New Gossip message received from Peer: "
+                        << from << ". [ RumorId: " << recvdRumorId
+                        << ", Current Round: " << round
+                        << ", Gossip_Message_Hash: "
+                        << DataConversion::Uint8VecToHexStr(sha256.Finalize())
+                               .substr(0, 6)
+                        << " ]",
+                    message, Logger::MAX_BYTES_TO_DISPLAY);
+      }
+
       toBeDispatched = true;
     } else  // already received , pass it on to member for state calculations
     {
