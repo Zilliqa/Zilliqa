@@ -72,6 +72,7 @@ message ProtoDSBlock
     }
     required DSBlockHeader header       = 1;
     required CoSignatures cosigs        = 2;
+    required bytes blockhash            = 3;
 }
 
 message ProtoMicroBlock
@@ -150,6 +151,7 @@ message ProtoTxBlock
     repeated MicroBlockHashSet microblockhashes = 3;
     repeated uint32 shardids                    = 4;
     required CoSignatures cosigs                = 5;
+    required bytes blockhash                    = 6;
 }
 
 message ProtoVCBlock
@@ -174,6 +176,7 @@ message ProtoVCBlock
     }
     required VCBlockHeader header                     = 1;
     required CoSignatures cosigs                      = 2;
+    required bytes blockhash                          = 3;
 }
 
 message ProtoFallbackBlock
@@ -197,8 +200,9 @@ message ProtoFallbackBlock
         required ByteArray cs2                        = 3;
         repeated bool b2                              = 4 [packed=true];
     }
-    required FallbackBlockHeader header                     = 1;
+    required FallbackBlockHeader header               = 1;
     required CoSignatures cosigs                      = 2;
+    required bytes blockhash                          = 3;
 }
 
 // ============================================================================

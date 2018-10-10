@@ -79,3 +79,9 @@ bool DSBlock::operator<(const DSBlock& block) const {
 bool DSBlock::operator>(const DSBlock& block) const {
   return !((*this == block) || (*this < block));
 }
+
+const BlockHash& DSBlock::GetBlockHash() const { return m_blockHash; }
+
+void DSBlock::SetBlockHash(const BlockHash& blockHash) {
+  m_blockHash = blockHash;
+}
