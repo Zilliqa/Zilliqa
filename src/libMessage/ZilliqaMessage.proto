@@ -39,6 +39,13 @@ message TxSharingAssignments
 
 message ProtoDSBlock
 {
+    message DSBlockHashSet
+    {
+        required bytes dscommhash       = 1;
+        required bytes shardinghash     = 2;
+        required bytes txsharinghash    = 3;
+        required bytes reservedfield    = 4;
+    }
     message DSBlockHeader
     {
         required uint32 dsdifficulty    = 1; // only LSB used
@@ -54,8 +61,8 @@ message ProtoDSBlock
             required ByteArray val = 2;
         }
         repeated PowDSWinners dswinners = 8;
+        required DSBlockHashSet hash    = 9;
     }
-
     message CoSignatures
     {
         required ByteArray cs1          = 1;

@@ -99,6 +99,18 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
     SerializableToProtobufByteArray(winner.first, *powdswinner->mutable_key());
     SerializableToProtobufByteArray(winner.second, *powdswinner->mutable_val());
   }
+
+  ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
+      protoDSBlockHeader.mutable_hash();
+  protoHeaderHash->set_dscommhash(dsBlockHeader.GetDSCommHash().data(),
+                                  dsBlockHeader.GetDSCommHash().size);
+  protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
+                                    dsBlockHeader.GetShardingHash().size);
+  protoHeaderHash->set_txsharinghash(dsBlockHeader.GetTxSharingHash().data(),
+                                     dsBlockHeader.GetTxSharingHash().size);
+  protoHeaderHash->set_reservedfield(
+      dsBlockHeader.GetHashSetReservedField().data(),
+      dsBlockHeader.GetHashSetReservedField().size());
 }
 
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
@@ -155,12 +167,37 @@ void ProtobufToDSBlockHeader(
     powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
   }
 
+  // Deserialize DSBlockHashSet
+  DSBlockHashSet hash;
+  const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
+      protoDSBlockHeader.hash();
+  copy(protoDSBlockHeaderHash.dscommhash().begin(),
+       protoDSBlockHeaderHash.dscommhash().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.dscommhash().size(),
+               (unsigned int)hash.m_dsCommHash.size),
+       hash.m_dsCommHash.asArray().begin());
+  copy(protoDSBlockHeaderHash.shardinghash().begin(),
+       protoDSBlockHeaderHash.shardinghash().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
+               (unsigned int)hash.m_shardingHash.size),
+       hash.m_shardingHash.asArray().begin());
+  copy(protoDSBlockHeaderHash.txsharinghash().begin(),
+       protoDSBlockHeaderHash.txsharinghash().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.txsharinghash().size(),
+               (unsigned int)hash.m_txSharingHash.size),
+       hash.m_txSharingHash.asArray().begin());
+  copy(protoDSBlockHeaderHash.reservedfield().begin(),
+       protoDSBlockHeaderHash.reservedfield().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
+               (unsigned int)hash.m_reservedField.size()),
+       hash.m_reservedField.begin());
+
   // Generate the new DSBlock
 
   dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
                                 protoDSBlockHeader.difficulty(), prevHash,
                                 leaderPubKey, protoDSBlockHeader.blocknum(),
-                                timestamp, swInfo, powDSWinners);
+                                timestamp, swInfo, powDSWinners, hash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
