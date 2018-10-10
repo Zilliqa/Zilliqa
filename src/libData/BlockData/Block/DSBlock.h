@@ -33,6 +33,7 @@
 /// Stores the DS header and signature.
 class DSBlock : public BlockBase {
   DSBlockHeader m_header;
+  BlockHash m_blockHash;
 
  public:
   /// Default constructor.
@@ -62,6 +63,12 @@ class DSBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const DSBlock& block) const;
+
+  /// Returns the block hash
+  const BlockHash& GetBlockHash() const;
+
+  /// Set the block hash
+  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __DSBLOCK_H__

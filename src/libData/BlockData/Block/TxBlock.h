@@ -36,6 +36,7 @@
 
 class TxBlock : public BlockBase {
   TxBlockHeader m_header;
+  BlockHash m_blockHash;
   std::vector<bool> m_isMicroBlockEmpty;
   std::vector<MicroBlockHashSet> m_microBlockHashes;
   std::vector<uint32_t> m_shardIds;
@@ -80,6 +81,12 @@ class TxBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const TxBlock& block) const;
+
+  /// Returns the block hash
+  const BlockHash& GetBlockHash() const;
+
+  /// Set the block hash
+  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __TXBLOCK_H__

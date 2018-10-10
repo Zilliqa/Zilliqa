@@ -121,3 +121,9 @@ bool TxBlock::operator<(const TxBlock& block) const {
 bool TxBlock::operator>(const TxBlock& block) const {
   return !((*this == block) || (*this < block));
 }
+
+const BlockHash& TxBlock::GetBlockHash() const { return m_blockHash; }
+
+void TxBlock::SetBlockHash(const BlockHash& blockHash) {
+  m_blockHash = blockHash;
+}
