@@ -52,8 +52,8 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
 
   // FIXME: Handle exceptions.
   DSBlock dsBlock(DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash,
-                               keypair.second, genesisBlockNumer,
-                               genesisTimestamp, SWInfo(), powDSWinners),
+                                keypair.second, genesisBlockNumer,
+                                genesisTimestamp, SWInfo(), powDSWinners),
                   CoSignatures());
   dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;
@@ -90,12 +90,13 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
 
   std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
-  TxBlock txBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
-                               BlockHash(), 0, 151384616955606, TxnHash(),
-                               StateHash(), StateHash(), StateHash(), TxnHash(),
-                               0, 5, keypair.second, 0, BlockHash()),
-                 vector<bool>(1), vector<MicroBlockHashSet>(5),
-                 vector<uint32_t>(5), CoSignatures());
+  TxBlock txBlock(
+      TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
+                    BlockHash(), 0, 151384616955606, TxnHash(), StateHash(),
+                    StateHash(), StateHash(), TxnHash(), 0, 5, keypair.second,
+                    0, BlockHash()),
+      vector<bool>(1), vector<MicroBlockHashSet>(5), vector<uint32_t>(5),
+      CoSignatures());
   txBlock.SetBlockHash(txBlock.GetHeader().GetMyHash());
   return txBlock;
 }
