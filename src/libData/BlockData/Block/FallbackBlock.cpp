@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "FallbackBlock.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -29,62 +30,35 @@ FallbackBlock::FallbackBlock() {}
 
 FallbackBlock::FallbackBlock(const vector<unsigned char>& src,
                              unsigned int offset) {
-  if (Deserialize(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init FallbackBlock");
   }
 }
 
-FallbackBlock::FallbackBlock(FallbackBlockHeader&& header,
+FallbackBlock::FallbackBlock(const FallbackBlockHeader& header,
                              CoSignatures&& cosigs)
-    : m_header(move(header)) {
+    : m_header(header) {
   m_cosigs = move(cosigs);
 }
 
-unsigned int FallbackBlock::Serialize(vector<unsigned char>& dst,
-                                      unsigned int offset) const {
-  unsigned int size_needed = GetSerializedSize();
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+bool FallbackBlock::Serialize(vector<unsigned char>& dst,
+                              unsigned int offset) const {
+  if (!Messenger::SetFallbackBlock(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetFallbackBlock failed.");
+    return false;
   }
 
-  m_header.Serialize(dst, offset);
-
-  unsigned int curOffset = offset + FallbackBlockHeader::SIZE;
-
-  BlockBase::Serialize(dst, curOffset);
-
-  return size_needed;
+  return true;
 }
 
-int FallbackBlock::Deserialize(const vector<unsigned char>& src,
-                               unsigned int offset) {
-  try {
-    FallbackBlockHeader header;
-    if (header.Deserialize(src, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to deserialize header.");
-      return -1;
-    }
-    m_header = header;
-
-    unsigned int curOffset = offset + FallbackBlockHeader::SIZE;
-
-    BlockBase::Deserialize(src, curOffset);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with FallbackBlock::Deserialize." << ' ' << e.what());
-    return -1;
+bool FallbackBlock::Deserialize(const vector<unsigned char>& src,
+                                unsigned int offset) {
+  if (!Messenger::GetFallbackBlock(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetFallbackBlock failed.");
+    return false;
   }
-  return 0;
-}
 
-unsigned int FallbackBlock::GetSerializedSize() const {
-  return FallbackBlockHeader::SIZE + BlockBase::GetSerializedSize();
-}
-
-unsigned int FallbackBlock::GetMinSize() {
-  return FallbackBlockHeader::SIZE + BlockBase::GetMinSize();
+  return true;
 }
 
 const FallbackBlockHeader& FallbackBlock::GetHeader() const { return m_header; }
