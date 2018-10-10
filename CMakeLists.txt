@@ -15,12 +15,20 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
-include(InstallG3log)
-include(InstallMongo)
-
 find_package(PkgConfig REQUIRED)
 
-find_package(g3logger CONFIG REQUIRED)
+find_package(g3logger QUIET)
+if(NOT "${g3logger_FOUND}")
+    include(InstallG3log)
+    find_package(g3logger REQUIRED)
+endif()
+
+find_package(libmongocxx QUIET)
+if (NOT ${libmongocxx_FOUND})
+    include(InstallMongo)
+    find_package(libmongocxx REQUIRED)
+endif()
+include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
 
@@ -42,8 +50,6 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
-find_package(libmongocxx REQUIRED)
-include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
 
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
