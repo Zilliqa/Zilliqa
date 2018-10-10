@@ -413,11 +413,8 @@ bool DirectoryService::ProcessViewChangeConsensus(
 
 // Exposing this function so that libNode can use it to check state
 bool DirectoryService::IsDSBlockVCState(unsigned char vcBlockState) {
-  if ((DirState)vcBlockState == DSBLOCK_CONSENSUS_PREP ||
-      (DirState)vcBlockState == DSBLOCK_CONSENSUS) {
-    return true;
-  }
-  return false;
+  return ((DirState)vcBlockState == DSBLOCK_CONSENSUS_PREP ||
+          (DirState)vcBlockState == DSBLOCK_CONSENSUS);
 }
 
 void DirectoryService::ClearVCBlockVector() {
