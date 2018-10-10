@@ -1340,8 +1340,6 @@ bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
   curr_offset += sizeof(uint64_t);
 
   MicroBlock microblock(message, curr_offset);
-  curr_offset += microblock.GetSerializedCoreSize() +
-                 microblock.GetSerializedTxnHashesSize();
 
   uint32_t id = microblock.GetHeader().GetShardId();
 
@@ -1444,6 +1442,13 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I already have the block");
   } else {
+    if (m_syncType == SyncType::NO_SYNC &&
+        m_mediator.m_node->m_stillMiningPrimary) {
+      m_fetchedLatestDSBlock = true;
+      cv_latestDSBlock.notify_all();
+      return true;
+    }
+
     for (const auto& dsblock : dsBlocks) {
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
       // Store DS Block to disk
@@ -1465,8 +1470,8 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
         m_isFirstLoop = false;
       }
     }
+    m_mediator.UpdateDSBlockRand();
   }
-  m_mediator.UpdateDSBlockRand();
 
   return true;
 }
@@ -1872,7 +1877,7 @@ bool Lookup::InitMining() {
 
   // Check whether is the new node connected to the network. Else, initiate
   // re-sync process again.
-  this_thread::sleep_for(chrono::seconds(POW_BACKUP_WINDOW_IN_SECONDS));
+  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
   m_startedPoW = false;
   if (m_syncType != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -2051,7 +2056,7 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
   {
     unique_lock<mutex> lock(m_mutexOfflineLookupsUpdation);
     m_fetchedOfflineLookups = true;
-    cv_offlineLookups.notify_one();
+    cv_offlineLookups.notify_all();
   }
   return true;
 }

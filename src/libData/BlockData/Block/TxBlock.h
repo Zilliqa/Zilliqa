@@ -36,6 +36,7 @@
 
 class TxBlock : public BlockBase {
   TxBlockHeader m_header;
+  BlockHash m_blockHash;
   std::vector<bool> m_isMicroBlockEmpty;
   std::vector<MicroBlockHashSet> m_microBlockHashes;
   std::vector<uint32_t> m_shardIds;
@@ -49,26 +50,16 @@ class TxBlock : public BlockBase {
   TxBlock(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Constructor with specified Tx block parameters.
-  TxBlock(TxBlockHeader&& header, const std::vector<bool>& isMicroBlockEmpty,
+  TxBlock(const TxBlockHeader& header,
+          const std::vector<bool>& isMicroBlockEmpty,
           const std::vector<MicroBlockHashSet>& microBlockHashes,
           const std::vector<uint32_t>& shardIds, CoSignatures&& cosigs);
 
-  uint32_t SerializeIsMicroBlockEmpty() const;
-
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
-
-  std::vector<bool> DeserializeIsMicroBlockEmpty(uint32_t arg);
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-
-  /// Returns the size in bytes when serializing the block.
-  unsigned int GetSerializedSize() const;
-
-  /// Returns the minimum size required for storing a block.
-  static unsigned int GetMinSize();
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Returns the reference to the TxBlockHeader part of the Tx block.
   const TxBlockHeader& GetHeader() const;
@@ -90,6 +81,12 @@ class TxBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const TxBlock& block) const;
+
+  /// Returns the block hash
+  const BlockHash& GetBlockHash() const;
+
+  /// Set the block hash
+  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __TXBLOCK_H__

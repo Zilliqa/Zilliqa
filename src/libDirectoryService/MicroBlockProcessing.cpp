@@ -106,10 +106,12 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
 
   // Verify the collective signature
   vector<unsigned char> message;
-  microBlock.GetHeader().Serialize(message, 0);
-  microBlock.GetCS1().Serialize(message, MicroBlockHeader::SIZE);
-  BitVector::SetBitVector(message, MicroBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                          microBlock.GetB1());
+  if (!microBlock.GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "MicroBlockHeader serialization failed");
+    return false;
+  }
+  microBlock.GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), microBlock.GetB1());
   if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                      microBlock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");

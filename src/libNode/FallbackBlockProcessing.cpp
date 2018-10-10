@@ -100,10 +100,12 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock) {
 
   // Verify the collective signature
   vector<unsigned char> message;
-  fallbackblock.GetHeader().Serialize(message, 0);
-  fallbackblock.GetCS1().Serialize(message, FallbackBlockHeader::SIZE);
-  BitVector::SetBitVector(message, FallbackBlockHeader::SIZE + BLOCK_SIG_SIZE,
-                          fallbackblock.GetB1());
+  if (!fallbackblock.GetHeader().Serialize(message, 0)) {
+    LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed");
+    return false;
+  }
+  fallbackblock.GetCS1().Serialize(message, message.size());
+  BitVector::SetBitVector(message, message.size(), fallbackblock.GetB1());
   if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
                                      fallbackblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
@@ -145,6 +147,16 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
   if (!Messenger::GetNodeFallbackBlock(message, cur_offset, fallbackblock)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeFallbackBlock failed.");
+    return false;
+  }
+
+  BlockHash temp_blockHash = fallbackblock.GetHeader().GetMyHash();
+  if (temp_blockHash != fallbackblock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received FB Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << fallbackblock.GetBlockHash().hex());
     return false;
   }
 

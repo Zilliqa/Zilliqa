@@ -31,23 +31,13 @@ unsigned int REFRESH_DELAY = 5;
 
 void Archival::InitSync() {
   auto func = [this]() -> void {
-    m_synchronizer.FetchOfflineLookups(m_mediator.m_lookup);
+    if (!m_mediator.m_node->GetOfflineLookups(true)) {
+      LOG_GENERAL(WARNING, "Cannot sync currently");
+      return;
+    }
+
     uint64_t dsBlockNum = 0;
     uint64_t txBlockNum = 0;
-
-    {
-      unique_lock<mutex> lock(
-          m_mediator.m_lookup->m_mutexOfflineLookupsUpdation);
-      while (!m_mediator.m_lookup->m_fetchedOfflineLookups) {
-        if (m_mediator.m_lookup->cv_offlineLookups.wait_for(
-                lock, chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING, "FetchOfflineLookups Timeout...");
-          break;
-        }
-      }
-      m_mediator.m_lookup->m_fetchedOfflineLookups = false;
-    }
 
     while (true) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
@@ -74,10 +64,10 @@ void Archival::InitSync() {
         SendFetchTxn();
       }
       if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
-        LOG_GENERAL(
-            INFO, "Sleep for " << REFRESH_DELAY + POW_BACKUP_WINDOW_IN_SECONDS);
+        LOG_GENERAL(INFO,
+                    "Sleep for " << REFRESH_DELAY + POW_WINDOW_IN_SECONDS);
         this_thread::sleep_for(
-            chrono::seconds(REFRESH_DELAY + POW_BACKUP_WINDOW_IN_SECONDS));
+            chrono::seconds(REFRESH_DELAY + POW_WINDOW_IN_SECONDS));
       } else {
         this_thread::sleep_for(chrono::seconds(REFRESH_DELAY));
       }
