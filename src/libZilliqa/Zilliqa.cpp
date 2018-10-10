@@ -19,8 +19,6 @@
 
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
-#include <mongocxx/client.hpp>
-#include <mongocxx/instance.hpp>
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
