@@ -152,7 +152,7 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
   return true;
 }
 
-// VC Core function to process 1 vc block
+// VC Core function to process one vc block
 bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
   LOG_MARKER();
 
