@@ -1247,7 +1247,7 @@ bool Messenger::GetDSCommitteeHash(const deque<pair<PubKey, Peer>>& dsCommittee,
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
-  tmp = move(sha2.Finalize());
+  tmp = sha2.Finalize();
 
   copy(tmp.begin(), tmp.end(), dst.asArray().begin());
 
@@ -1274,7 +1274,7 @@ bool Messenger::GetShardingStructureHash(const DequeOfShard& shards,
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
-  tmp = move(sha2.Finalize());
+  tmp = sha2.Finalize();
 
   copy(tmp.begin(), tmp.end(), dst.asArray().begin());
 
@@ -1303,7 +1303,7 @@ bool Messenger::GetTxSharingAssignmentsHash(
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
-  tmp = move(sha2.Finalize());
+  tmp = sha2.Finalize();
 
   copy(tmp.begin(), tmp.end(), dst.asArray().begin());
 
