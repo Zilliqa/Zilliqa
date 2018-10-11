@@ -51,10 +51,11 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   std::map<PubKey, Peer> powDSWinners;
 
   // FIXME: Handle exceptions.
-  DSBlock dsBlock(DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash,
-                                keypair.second, genesisBlockNumer,
-                                genesisTimestamp, SWInfo(), powDSWinners),
-                  CoSignatures());
+  DSBlock dsBlock(
+      DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
+                    genesisBlockNumer, genesisTimestamp, SWInfo(), powDSWinners,
+                    DSBlockHashSet()),
+      CoSignatures());
   dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;
 }
