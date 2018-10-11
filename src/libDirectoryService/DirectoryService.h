@@ -252,6 +252,7 @@ class DirectoryService : public Executable, public Broadcastable {
                          const StateHash& microBlockStateDeltaHash);
 
   // FinalBlockValidator functions
+  bool CheckBlockHash();
   bool CheckFinalBlockValidity(std::vector<unsigned char>& errorMsg);
   bool CheckBlockTypeIsFinal();
   bool CheckFinalBlockVersion();

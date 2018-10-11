@@ -127,14 +127,8 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 
   Account* fromAccount = this->GetAccount(fromAddr);
   if (fromAccount == nullptr) {
-    // FIXME: remove this, temporary way to test transactions, should return
-    // false
-    LOG_GENERAL(WARNING,
-                "AddAccount... FIXME: remove this, temporary way to "
-                "test transactions, should return false in the future");
-    this->AddAccount(fromAddr, {10000000000, 0});
-    fromAccount = this->GetAccount(fromAddr);
-    // return false;
+    LOG_GENERAL(WARNING, "sender " << fromAddr.hex() << " not exist");
+    return false;
   }
 
   if (transaction.GetGasLimit() < NORMAL_TRAN_GAS) {
@@ -299,16 +293,9 @@ bool AccountStoreBase<MAP>::DecreaseBalance(
 
   Account* account = GetAccount(address);
 
-  // LOG_GENERAL(INFO, "address: " << address);
-  // LOG_GENERAL(INFO, "account: " << *account);
-
-  // FIXME: remove this, temporary way to test transactions, should return false
   if (nullptr == account) {
-    LOG_GENERAL(WARNING,
-                "AddAccount... FIXME: remove this, temporary way to test "
-                "transactions");
-    AddAccount(address, {10000000000, 0});
-    return true;
+    LOG_GENERAL(WARNING, "Account " << address.hex() << " not exist");
+    return false;
   }
 
   return account->DecreaseBalance(delta);

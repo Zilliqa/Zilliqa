@@ -67,6 +67,16 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
+  BlockHash temp_blockHash = m_pendingVCBlock->GetHeader().GetMyHash();
+  if (temp_blockHash != m_pendingVCBlock->GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received VC Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << m_pendingVCBlock->GetBlockHash().hex());
+    return false;
+  }
+
   if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second !=
       m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
     LOG_GENERAL(WARNING, "Candidate network info mismatched");
@@ -263,6 +273,7 @@ void DirectoryService::ComputeNewCandidateLeader() {
             m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
             m_viewChangeCounter, get_time_as_int()),
         CoSignatures()));
+    m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
 }
 
@@ -296,10 +307,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
 
   uint32_t consensusID = m_viewChangeCounter;
   // Create new consensus object
-  m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
+  m_consensusBlockHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   m_consensusObject.reset(new ConsensusLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
@@ -359,10 +368,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
                 << m_consensusLeaderID << " "
                 << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
-  m_consensusBlockHash = m_mediator.m_txBlockChain.GetLastBlock()
-                             .GetHeader()
-                             .GetMyHash()
-                             .asBytes();
+  m_consensusBlockHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                      vector<unsigned char>& errorMsg,

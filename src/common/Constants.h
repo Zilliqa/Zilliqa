@@ -32,6 +32,7 @@ const unsigned int TRAN_SIG_SIZE = 64;
 const unsigned int BLOCK_HASH_SIZE = 32;
 const unsigned int BLOCK_SIG_SIZE = 64;
 const unsigned int STATE_HASH_SIZE = 32;
+const unsigned int RESERVED_FIELD_SIZE = 128;
 
 // Numeric types sizes
 const unsigned int UINT256_SIZE = 32;
@@ -118,7 +119,6 @@ extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
-extern const unsigned int POW_BACKUP_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;
 extern const unsigned int DS_POW_DIFFICULTY;
@@ -176,6 +176,7 @@ extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
 extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
+extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
