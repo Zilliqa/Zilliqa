@@ -16,5 +16,5 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 
-killall ZilliqaDaemon_AWS
-./daemon/ZilliqaDaemon_AWS
+pkill ZilliqaDaemon_AWS
+ZilliqaDaemon_AWS

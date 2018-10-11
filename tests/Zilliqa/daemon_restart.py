@@ -29,11 +29,13 @@ from subprocess import Popen, PIPE
 IP_SITE = 'ifconfig.me'
 
 PORT_NUM = 30303
-PROJ_DIR = 'zilliqa-test'
+PROJ_DIR = '/run/zilliqa'
 
 def main():
 	if len(sys.argv) == 6:
-		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5])
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], sys.argv[5] + '/')
+	elif len(sys.argv) == 5:
+		run_restart(sys.argv[1],sys.argv[2],sys.argv[3], sys.argv[4], '')
 	else:
 		print "Not enough args"
 
@@ -43,10 +45,7 @@ def get_immediate_subdirectories(a_dir):
 	return subdirs
 
 def getIP():
-	process = Popen(["curl",IP_SITE], stdout = PIPE )
-	(output, err) = process.communicate()
-	exit_code = process.wait()
-	return output.strip('\n')
+	return socket.gethostbyname(socket.gethostname())
 
 def isPortOpen(port):
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -80,7 +79,7 @@ def run_restart(pubKey, privKey, port, typ, path):
 	for x in range(0, 1):
 		keypair = keypairs[x].split(" ")
 
-		os.system('cd ~/' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + '/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + nodeIP +' ' + str(PORT_NUM) + ' 0 '+typ+ ' 1 >> ./error_log_zilliqa 2>&1 &')
+		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + nodeIP +' ' + str(PORT_NUM) + ' 1 '+typ+ ' 1 >> ./error_log_zilliqa 2>&1 &')
 
 
 if __name__ == "__main__":
