@@ -1002,6 +1002,7 @@ bool RepeatableToArray(const T& repeatable, vector<unsigned char>& dst,
   int tempOffset = offset;
   for (const auto& element : repeatable) {
     if (!SerializeToArray(element, dst, tempOffset)) {
+      LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
       return false;
     }
     tempOffset += element.ByteSize();
@@ -2347,10 +2348,11 @@ bool Messenger::SetNodeForwardTxnBlock(
 
   Signature signature;
   if (result.transactions().size() > 0) {
-    // Serialize the transactions to temp buffer, later use it to calculate the
-    // signature.
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.transactions(), tmp, 0);
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
       LOG_GENERAL(WARNING, "Failed to sign transactions.");
@@ -2394,7 +2396,10 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
 
   if (result.transactions().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.transactions(), tmp, 0);
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
     Signature signature;
     ProtobufByteArrayToSerializable(result.signature(), signature);
 
@@ -2704,10 +2709,11 @@ bool Messenger::SetLookupSetSeedPeers(
 
   Signature signature;
   if (result.candidateseeds().size() > 0) {
-    // Serialize the candidate seeds to temp buffer, later use it to calculate
-    // the signature.
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.candidateseeds(), tmp, 0);
+    if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize candidate seeds.");
+      return false;
+    }
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
       LOG_GENERAL(WARNING, "Failed to sign candidate seeds.");
@@ -2752,10 +2758,11 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   if (result.candidateseeds().size() > 0) {
-    // Serialize the candidate seeds to temp buffer, later use it to verify the
-    // signature.
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.candidateseeds(), tmp, 0);
+    if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize candidate seeds.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in candidate seeds.");
@@ -2815,11 +2822,15 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
   SerializableToProtobufByteArray(senderKey.second, *result.mutable_pubkey());
 
   std::vector<unsigned char> tmp;
-  SerializeToArray(result.dscommittee(), tmp, 0);
+  if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize DS committee.");
+    return false;
+  }
+
   Signature signature;
   if (!Schnorr::GetInstance().Sign(tmp, senderKey.first, senderKey.second,
                                    signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign DS nodes info.");
+    LOG_GENERAL(WARNING, "Failed to sign DS committee.");
     return false;
   }
 
@@ -2855,7 +2866,10 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   std::vector<unsigned char> tmp;
-  SerializeToArray(result.dscommittee(), tmp, 0);
+  if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize DS committee.");
+    return false;
+  }
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in DS nodes info.");
@@ -2929,10 +2943,11 @@ bool Messenger::SetLookupSetDSBlockFromSeed(
 
   Signature signature;
   if (result.dsblocks().size() > 0) {
-    // Serialize the DS blocks to temp buffer, later use it to calculate the
-    // signature.
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.dsblocks(), tmp, 0);
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
@@ -2983,7 +2998,10 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
 
   if (result.dsblocks().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.dsblocks(), tmp, 0);
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in DS blocks.");
@@ -3059,7 +3077,10 @@ bool Messenger::SetLookupSetTxBlockFromSeed(
   Signature signature;
   if (result.txblocks().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.txblocks(), tmp, 0);
+    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
@@ -3110,7 +3131,10 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
 
   if (result.txblocks().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.txblocks(), tmp, 0);
+    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
@@ -3288,11 +3312,14 @@ bool Messenger::SetLookupSetStateFromSeed(
   Signature signature;
 
   std::vector<unsigned char> tmp;
-  SerializeToArray(result.accounts(), tmp, 0);
+  if (!SerializeToArray(result.accounts(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize accounts.");
+    return false;
+  }
 
   if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                    signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign transactions.");
+    LOG_GENERAL(WARNING, "Failed to sign accounts.");
     return false;
   }
 
@@ -3328,7 +3355,10 @@ bool Messenger::GetLookupSetStateFromSeed(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   std::vector<unsigned char> tmp;
-  SerializeToArray(result.accounts(), tmp, 0);
+  if (!SerializeToArray(result.accounts(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize accounts.");
+    return false;
+  }
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in accounts.");
@@ -3465,7 +3495,10 @@ bool Messenger::SetLookupSetOfflineLookups(
   Signature signature;
   if (result.nodes().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.nodes(), tmp, 0);
+    if (!RepeatableToArray(result.nodes(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
@@ -3511,7 +3544,10 @@ bool Messenger::GetLookupSetOfflineLookups(const vector<unsigned char>& src,
 
   if (result.nodes().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.nodes(), tmp, 0);
+    if (!RepeatableToArray(result.nodes(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in offline lookup nodes.");
@@ -3665,11 +3701,14 @@ bool Messenger::SetLookupSetShardsFromSeed(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   std::vector<unsigned char> tmp;
-  SerializeToArray(result.sharding(), tmp, 0);
+  if (!SerializeToArray(result.sharding(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize sharding structure.");
+    return false;
+  }
 
   if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                    signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign transactions.");
+    LOG_GENERAL(WARNING, "Failed to sign sharding structure.");
     return false;
   }
 
@@ -3705,7 +3744,10 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   std::vector<unsigned char> tmp;
-  SerializeToArray(result.sharding(), tmp, 0);
+  if (!SerializeToArray(result.sharding(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize sharding structure.");
+    return false;
+  }
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in sharding structure.");
@@ -3788,7 +3830,10 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   Signature signature;
   if (result.microblocks().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.microblocks(), tmp, 0);
+    if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize micro blocks.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
@@ -3821,7 +3866,10 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(
 
   if (result.microblocks().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.microblocks(), tmp, 0);
+    if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize micro blocks.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in micro blocks.");
@@ -3904,7 +3952,10 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   Signature signature;
   if (result.transactions().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.transactions(), tmp, 0);
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                      signature)) {
@@ -3943,7 +3994,10 @@ bool Messenger::GetLookupSetTxnsFromLookup(
 
   if (result.transactions().size() > 0) {
     std::vector<unsigned char> tmp;
-    RepeatableToArray(result.transactions(), tmp, 0);
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
 
     if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
       LOG_GENERAL(WARNING, "Invalid signature in transactions.");
