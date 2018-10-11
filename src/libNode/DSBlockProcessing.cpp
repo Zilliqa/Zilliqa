@@ -467,12 +467,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     return false;
   }
 
-  // Check the signature of this DS block
-  if (!VerifyDSBlockCoSignature(dsblock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "DSBlock co-sig verification failed");
-    return false;
-  }
 
   uint32_t expectedViewChangeCounter = 1;
   for (const auto& vcBlock : vcBlocks) {
@@ -493,6 +487,14 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
                           << vcBlock.GetHeader().GetViewChangeCounter());
     expectedViewChangeCounter++;
   }
+
+  // Check the signature of this DS block
+  if (!VerifyDSBlockCoSignature(dsblock)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DSBlock co-sig verification failed");
+    return false;
+  }
+
 
   auto func = [this, dsblock]() mutable -> void {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
