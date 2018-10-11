@@ -277,6 +277,9 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessSetStartPoWFromSeed(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
 
+  static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
+                               const PubKey& pubKeyToVerify);
+
   bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                const Peer& from);
 
