@@ -38,8 +38,10 @@ FallbackBlockHeader::FallbackBlockHeader(
     const unsigned char fallbackState, const StateHash& stateRootHash,
     const uint32_t leaderConsensusId, const Peer& leaderNetworkInfo,
     const PubKey& leaderPubKey, const uint32_t shardId,
-    const boost::multiprecision::uint256_t& timestamp)
-    : m_fallbackDSEpochNo(fallbackDSEpochNo),
+    const boost::multiprecision::uint256_t& timestamp,
+    const CommitteeHash& committeeHash)
+    : BlockHeaderBase(committeeHash),
+      m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
       m_fallbackState(fallbackState),
       m_hash{stateRootHash},

@@ -26,6 +26,9 @@ using namespace boost::multiprecision;
 
 BlockHeaderBase::BlockHeaderBase() {}
 
+BlockHeaderBase::BlockHeaderBase(const CommitteeHash& committeeHash)
+    : m_committeeHash(committeeHash) {}
+
 BlockHash BlockHeaderBase::GetMyHash() const {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   std::vector<unsigned char> vec;
@@ -35,4 +38,8 @@ BlockHash BlockHeaderBase::GetMyHash() const {
   BlockHash blockHash;
   std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
   return blockHash;
+}
+
+const CommitteeHash& BlockHeaderBase::GetCommitteeHash() const {
+  return m_committeeHash;
 }
