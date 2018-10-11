@@ -129,6 +129,19 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         }
         return ret;
       } else {
+        const Account* account =
+            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+        if (account == nullptr) {
+          ret["Error"] = "To Addr is null";
+          return ret;
+        }
+
+        else if (!account->isContract()) {
+          ret["Error"] = "Non - contract address called";
+          return ret;
+        }
+
         unsigned int to_shard =
             Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
         if (to_shard == shard) {
