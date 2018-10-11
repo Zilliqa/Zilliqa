@@ -332,8 +332,8 @@ message LookupGetSeedPeers
 
 message LookupSetSeedPeers
 {
-    required ByteArray pubkey         = 1;
-    repeated ByteArray candidateseeds = 2;
+    repeated ByteArray candidateseeds = 1;
+    required ByteArray pubkey         = 2;
     required ByteArray signature      = 3;
 }
 
@@ -456,7 +456,9 @@ message LookupGetStartPoWFromSeed
 
 message LookupSetStartPoWFromSeed
 {
-    required ByteArray pubkey  = 1;
+    required uint64 blocknumber  = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 // From archival node to lookup node.

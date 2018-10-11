@@ -716,13 +716,8 @@ bool Node::ProcessTxnPacketFromLookup(
     return false;
   }
 
-  auto lookupNodes = m_mediator.m_lookup->GetLookupNodes();
-  auto iter =
-      std::find_if(lookupNodes.cbegin(), lookupNodes.cend(),
-                   [&lookupPubKey](const std::pair<PubKey, Peer>& node) {
-                     return node.first == lookupPubKey;
-                   });
-  if (lookupNodes.end() == iter) {
+  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+                                lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");

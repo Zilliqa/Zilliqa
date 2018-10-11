@@ -415,7 +415,7 @@ class Messenger {
       uint32_t& listenPort);
   static bool SetLookupSetStartPoWFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& lookupKey);
+      const uint64_t blockNumber, const std::pair<PrivKey, PubKey>& lookupKey);
   static bool GetLookupSetStartPoWFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
       PubKey& lookupPubKey);
