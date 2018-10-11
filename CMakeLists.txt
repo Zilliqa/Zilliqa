@@ -17,11 +17,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 find_package(PkgConfig REQUIRED)
 
-find_package(g3logger QUIET)
-if(NOT "${g3logger_FOUND}")
-    include(InstallG3log)
-    find_package(g3logger REQUIRED)
-endif()
+include(InstallG3log)
+find_package(g3logger CONFIG REQUIRED)
 
 find_package(libmongocxx QUIET)
 if (NOT ${libmongocxx_FOUND})
