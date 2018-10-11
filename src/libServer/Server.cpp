@@ -102,11 +102,16 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+    const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+
+    if (sender == nullptr) {
+      ret["Error"] = "The sender of the txn is null";
+      return ret;
+    }
     // unsigned int curr_offset = 0;
 
     if (num_shards > 0) {
       unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-
       if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
         if (tx.GetData().empty() && tx.GetCode().empty()) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
@@ -117,12 +122,26 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           ret["Info"] = "Contract Creation txn, sent to shard";
           ret["TranID"] = tx.GetTranID().hex();
           ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, tx.GetNonce()).hex();
+              Account::GetAddressForContract(fromAddr, sender->GetNonce())
+                  .hex();
         } else {
           ret["Error"] = "Code is empty and To addr is null";
         }
         return ret;
       } else {
+        const Account* account =
+            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+        if (account == nullptr) {
+          ret["Error"] = "To Addr is null";
+          return ret;
+        }
+
+        else if (!account->isContract()) {
+          ret["Error"] = "Non - contract address called";
+          return ret;
+        }
+
         unsigned int to_shard =
             Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
         if (to_shard == shard) {
@@ -131,15 +150,11 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
               "Contract Txn, Shards Match of the sender "
               "and reciever";
           ret["TranID"] = tx.GetTranID().hex();
-          ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, tx.GetNonce()).hex();
           return ret;
         } else {
           m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
           ret["Info"] = "Contract Txn, Sent To Ds";
           ret["TranID"] = tx.GetTranID().hex();
-          ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, tx.GetNonce()).hex();
           return ret;
         }
       }
@@ -456,7 +471,7 @@ Json::Value Server::GetSmartContracts(const string& address) {
     boost::multiprecision::uint256_t nonce = account->GetNonce();
     //[TODO] find out a more efficient way (using storage)
 
-    for (boost::multiprecision::uint256_t i = 0; i <= nonce; i++) {
+    for (boost::multiprecision::uint256_t i = 0; i < nonce; i++) {
       Address contractAddr = Account::GetAddressForContract(addr, i);
       const Account* contractAccount =
           AccountStore::GetInstance().GetAccount(contractAddr);
@@ -502,7 +517,7 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
       return "ID not a contract txn";
     }
 
-    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce())
+    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
         .hex();
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
