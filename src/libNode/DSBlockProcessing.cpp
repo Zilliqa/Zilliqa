@@ -402,7 +402,7 @@ void Node::ResetConsensusId() {
   m_consensusLeaderID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 }
 
-bool Node::ProcessDSBlock(const vector<unsigned char>& message,
+bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
                           unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from) {
   LOG_MARKER();

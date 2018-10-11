@@ -1170,7 +1170,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 
   InstructionHandler ins_handlers[] = {
       &Node::ProcessStartPoW,
-      &Node::ProcessDSBlock,
+      &Node::ProcessVCDSBlocksMessage,
       &Node::ProcessSubmitTransaction,
       &Node::ProcessMicroblockConsensus,
       &Node::ProcessFinalBlock,
