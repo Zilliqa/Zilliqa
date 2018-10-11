@@ -403,8 +403,8 @@ void Node::ResetConsensusId() {
 }
 
 bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
-                          unsigned int cur_offset,
-                          [[gnu::unused]] const Peer& from) {
+                                    unsigned int cur_offset,
+                                    [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexDSBlock);
 
@@ -439,12 +439,12 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   m_mediator.m_ds->m_shardReceivers.clear();
   m_mediator.m_ds->m_shardSenders.clear();
 
-  if (!Messenger::GetNodeDSBlock(
+  if (!Messenger::GetNodeVCDSBlocksMessage(
           message, cur_offset, shardId, dsblock, vcBlocks,
           m_mediator.m_ds->m_shards, m_mediator.m_ds->m_DSReceivers,
           m_mediator.m_ds->m_shardReceivers, m_mediator.m_ds->m_shardSenders)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetNodeDSBlock failed.");
+              "Messenger::GetNodeVCDSBlocksMessage failed.");
     return false;
   }
 

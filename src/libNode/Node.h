@@ -266,7 +266,7 @@ class Node : public Executable, public Broadcastable {
   // bool ProcessCreateAccounts(const std::vector<unsigned char> & message,
   // unsigned int offset, const Peer & from);
   bool ProcessVCDSBlocksMessage(const std::vector<unsigned char>& message,
-                      unsigned int cur_offset, const Peer& from);
+                                unsigned int cur_offset, const Peer& from);
   bool ProcessDoRejoin(const std::vector<unsigned char>& message,
                        unsigned int offset, const Peer& from);
 
