@@ -467,7 +467,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     return false;
   }
 
-
   uint32_t expectedViewChangeCounter = 1;
   for (const auto& vcBlock : vcBlocks) {
     if (vcBlock.GetHeader().GetViewChangeCounter() !=
@@ -494,7 +493,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
               "DSBlock co-sig verification failed");
     return false;
   }
-
 
   auto func = [this, dsblock]() mutable -> void {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
