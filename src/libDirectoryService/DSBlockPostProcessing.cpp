@@ -91,12 +91,12 @@ void DirectoryService::SendDSBlockToLookupNodes() {
 
   vector<unsigned char> dsblock_message = {MessageType::NODE,
                                            NodeInstructionType::DSBLOCK};
-  if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY, 0,
-                                 *m_pendingDSBlock, m_VCBlockVector, m_shards,
-                                 m_DSReceivers, m_shardReceivers,
-                                 m_shardSenders)) {
+  if (!Messenger::SetNodeVCDSBlocksMessage(
+          dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
+          m_VCBlockVector, m_shards, m_DSReceivers, m_shardReceivers,
+          m_shardSenders)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetNodeDSBlock failed.");
+              "Messenger::SetNodeVCDSBlocksMessage failed.");
     return;
   }
 
@@ -116,12 +116,12 @@ void DirectoryService::SendDSBlockToNewDSLeader() {
 
   vector<unsigned char> dsblock_message = {MessageType::NODE,
                                            NodeInstructionType::DSBLOCK};
-  if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY, 0,
-                                 *m_pendingDSBlock, m_VCBlockVector, m_shards,
-                                 m_DSReceivers, m_shardReceivers,
-                                 m_shardSenders)) {
+  if (!Messenger::SetNodeVCDSBlocksMessage(
+          dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
+          m_VCBlockVector, m_shards, m_DSReceivers, m_shardReceivers,
+          m_shardSenders)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetNodeDSBlock failed.");
+              "Messenger::SetNodeVCDSBlocksMessage failed.");
     return;
   }
 
@@ -203,12 +203,12 @@ void DirectoryService::SendDSBlockToShardNodes(
     // Generate the message
     vector<unsigned char> dsblock_message = {MessageType::NODE,
                                              NodeInstructionType::DSBLOCK};
-    if (!Messenger::SetNodeDSBlock(dsblock_message, MessageOffset::BODY,
-                                   shardId, *m_pendingDSBlock, m_VCBlockVector,
-                                   m_shards, m_DSReceivers, m_shardReceivers,
-                                   m_shardSenders)) {
+    if (!Messenger::SetNodeVCDSBlocksMessage(
+            dsblock_message, MessageOffset::BODY, shardId, *m_pendingDSBlock,
+            m_VCBlockVector, m_shards, m_DSReceivers, m_shardReceivers,
+            m_shardSenders)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Messenger::SetNodeDSBlock failed.");
+                "Messenger::SetNodeVCDSBlocksMessage failed.");
       return;
     }
 

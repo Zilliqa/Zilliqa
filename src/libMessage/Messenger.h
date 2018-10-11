@@ -184,14 +184,7 @@ class Messenger {
   // Node messages
   // ============================================================================
 
-  //   static bool SetNodeDSBlock(
-  //       std::vector<unsigned char>& dst, const unsigned int offset,
-  //       const uint32_t shardId, const DSBlock& dsBlock,
-  //       const DequeOfShard& shards, const std::vector<Peer>& dsReceivers,
-  //       const std::vector<std::vector<Peer>>& shardReceivers,
-  //       const std::vector<std::vector<Peer>>& shardSenders);
-
-  static bool SetNodeDSBlock(
+  static bool SetNodeVCDSBlocksMessage(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t shardId, const DSBlock& dsBlock,
       const std::vector<VCBlock>& vcBlocks, const DequeOfShard& shards,
@@ -199,21 +192,12 @@ class Messenger {
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders);
 
-  //   static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
-  //                              const unsigned int offset, uint32_t& shardId,
-  //                              DSBlock& dsBlock, DequeOfShard& shards,
-  //                              std::vector<Peer>& dsReceivers,
-  //                              std::vector<std::vector<Peer>>&
-  //                              shardReceivers,
-  //                              std::vector<std::vector<Peer>>& shardSenders);
-
-  static bool GetNodeDSBlock(const std::vector<unsigned char>& src,
-                             const unsigned int offset, uint32_t& shardId,
-                             DSBlock& dsBlock, std::vector<VCBlock>& vcBlocks,
-                             DequeOfShard& shards,
-                             std::vector<Peer>& dsReceivers,
-                             std::vector<std::vector<Peer>>& shardReceivers,
-                             std::vector<std::vector<Peer>>& shardSenders);
+  static bool GetNodeVCDSBlocksMessage(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint32_t& shardId, DSBlock& dsBlock, std::vector<VCBlock>& vcBlocks,
+      DequeOfShard& shards, std::vector<Peer>& dsReceivers,
+      std::vector<std::vector<Peer>>& shardReceivers,
+      std::vector<std::vector<Peer>>& shardSenders);
 
   static bool SetNodeFinalBlock(std::vector<unsigned char>& dst,
                                 const unsigned int offset,

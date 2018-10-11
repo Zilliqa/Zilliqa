@@ -2073,14 +2073,12 @@ bool Messenger::GetDSVCBlockAnnouncement(
 // Node messages
 // ============================================================================
 
-bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
-                               const unsigned int offset,
-                               const uint32_t shardId, const DSBlock& dsBlock,
-                               const std::vector<VCBlock>& vcBlocks,
-                               const DequeOfShard& shards,
-                               const vector<Peer>& dsReceivers,
-                               const vector<vector<Peer>>& shardReceivers,
-                               const vector<vector<Peer>>& shardSenders) {
+bool Messenger::SetNodeVCDSBlocksMessage(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t shardId, const DSBlock& dsBlock,
+    const std::vector<VCBlock>& vcBlocks, const DequeOfShard& shards,
+    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
+    const vector<vector<Peer>>& shardSenders) {
   LOG_MARKER();
 
   NodeDSBlock result;
@@ -2104,12 +2102,11 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
-                               const unsigned int offset, uint32_t& shardId,
-                               DSBlock& dsBlock, std::vector<VCBlock>& vcBlocks,
-                               DequeOfShard& shards, vector<Peer>& dsReceivers,
-                               vector<vector<Peer>>& shardReceivers,
-                               vector<vector<Peer>>& shardSenders) {
+bool Messenger::GetNodeVCDSBlocksMessage(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint32_t& shardId, DSBlock& dsBlock, std::vector<VCBlock>& vcBlocks,
+    DequeOfShard& shards, vector<Peer>& dsReceivers,
+    vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders) {
   LOG_MARKER();
 
   NodeDSBlock result;
