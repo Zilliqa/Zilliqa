@@ -33,6 +33,16 @@ class Messenger {
   // Primitives
   // ============================================================================
 
+  static bool GetDSCommitteeHash(
+      const std::deque<std::pair<PubKey, Peer>>& dsCommittee, DSCommHash& dst);
+
+  static bool GetShardingStructureHash(const DequeOfShard& shards,
+                                       ShardingHash& dst);
+  static bool GetTxSharingAssignmentsHash(
+      const std::vector<Peer>& dsReceivers,
+      const std::vector<std::vector<Peer>>& shardReceivers,
+      const std::vector<std::vector<Peer>>& shardSenders, TxSharingHash& dst);
+
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
                                const DSBlockHeader& dsBlockHeader);
