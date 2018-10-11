@@ -1405,11 +1405,10 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    m_mediator.m_DSCommittee->clear();
     PubKey senderPubKey;
-
+    std::deque<std::pair<PubKey, Peer>> dsNodes;
     if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
-                                               *m_mediator.m_DSCommittee)) {
+                                               dsNodes)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::GetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -1428,6 +1427,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         return false;
       }
     }
+
+    *m_mediator.m_DSCommittee = std::move(dsNodes);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "ProcessSetDSInfoFromSeed sent by "
