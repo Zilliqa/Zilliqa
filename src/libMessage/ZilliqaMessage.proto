@@ -11,7 +11,18 @@ message ByteArray
     required bytes data = 1;
 }
 
-message ShardingStructure
+message ProtoDSNode
+{
+    required ByteArray pubkey = 1;
+    required ByteArray peer   = 2;
+}
+
+message ProtoDSCommittee
+{
+    repeated ProtoDSNode dsnodes = 1;
+}
+
+message ProtoShardingStructure
 {
     message Member
     {
@@ -26,7 +37,7 @@ message ShardingStructure
     repeated Shard shards           = 1;
 }
 
-message TxSharingAssignments
+message ProtoTxSharingAssignments
 {
     message AssignedNodes
     {
@@ -39,6 +50,13 @@ message TxSharingAssignments
 
 message ProtoDSBlock
 {
+    message DSBlockHashSet
+    {
+        required bytes dscommhash       = 1;
+        required bytes shardinghash     = 2;
+        required bytes txsharinghash    = 3;
+        required bytes reservedfield    = 4;
+    }
     message DSBlockHeader
     {
         required uint32 dsdifficulty    = 1; // only LSB used
@@ -54,8 +72,8 @@ message ProtoDSBlock
             required ByteArray val = 2;
         }
         repeated PowDSWinners dswinners = 8;
+        required DSBlockHashSet hash    = 9;
     }
-
     message CoSignatures
     {
         required ByteArray cs1          = 1;
@@ -228,9 +246,9 @@ message DSMicroBlockSubmission
 
 message DSDSBlockAnnouncement
 {
-    required ProtoDSBlock dsblock             = 1;
-    required ShardingStructure sharding       = 2;
-    required TxSharingAssignments assignments = 3;
+    required ProtoDSBlock dsblock                  = 1;
+    required ProtoShardingStructure sharding       = 2;
+    required ProtoTxSharingAssignments assignments = 3;
 }
 
 message DSFinalBlockAnnouncement
@@ -249,10 +267,10 @@ message DSVCBlockAnnouncement
 
 message NodeDSBlock
 {
-    required uint32 shardid                   = 1;
-    required ProtoDSBlock dsblock             = 2;
-    required ShardingStructure sharding       = 3;
-    required TxSharingAssignments assignments = 4;
+    required uint32 shardid                        = 1;
+    required ProtoDSBlock dsblock                  = 2;
+    required ProtoShardingStructure sharding       = 3;
+    required ProtoTxSharingAssignments assignments = 4;
 }
 
 message NodeFinalBlock
@@ -322,12 +340,7 @@ message LookupGetDSInfoFromSeed
 
 message LookupSetDSInfoFromSeed
 {
-    message DSNode
-    {
-        required ByteArray pubkey = 1;
-        required ByteArray peer   = 2;
-    }
-    repeated DSNode dsnodes       = 1;
+    required ProtoDSCommittee dscommittee = 1;
 }
 
 message LookupGetDSBlockFromSeed
@@ -432,7 +445,7 @@ message LookupGetShardsFromSeed
 
 message LookupSetShardsFromSeed
 {
-    required ShardingStructure sharding = 1;
+    required ProtoShardingStructure sharding = 1;
 }
 
 message MicroBlockInfo

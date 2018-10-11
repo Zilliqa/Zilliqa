@@ -17,11 +17,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 find_package(PkgConfig REQUIRED)
 
-find_package(g3logger QUIET)
-if(NOT "${g3logger_FOUND}")
-    include(InstallG3log)
-    find_package(g3logger REQUIRED)
-endif()
+include(InstallG3log)
+find_package(g3logger CONFIG REQUIRED)
 
 find_package(libmongocxx QUIET)
 if (NOT ${libmongocxx_FOUND})
@@ -134,6 +131,7 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 add_subdirectory (src)
+add_subdirectory (daemon)
 
 if(TESTS)
     enable_testing()
@@ -141,7 +139,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn signmultisig
+set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn signmultisig ZilliqaDaemon_AWS
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT

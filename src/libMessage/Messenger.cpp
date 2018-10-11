@@ -77,6 +77,115 @@ void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
   number = Serializable::GetNumber<T>(tmp, 0, S);
 }
 
+void DSCommitteeToProtobuf(const deque<pair<PubKey, Peer>>& dsCommittee,
+                           ProtoDSCommittee& protoDSCommittee) {
+  for (const auto& node : dsCommittee) {
+    ProtoDSNode* protodsnode = protoDSCommittee.add_dsnodes();
+    SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
+    SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
+  }
+}
+
+void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
+                           deque<pair<PubKey, Peer>>& dsCommittee) {
+  for (const auto& dsnode : protoDSCommittee.dsnodes()) {
+    PubKey pubkey;
+    Peer peer;
+
+    ProtobufByteArrayToSerializable(dsnode.pubkey(), pubkey);
+    ProtobufByteArrayToSerializable(dsnode.peer(), peer);
+    dsCommittee.emplace_back(pubkey, peer);
+  }
+}
+
+void ShardingStructureToProtobuf(
+    const DequeOfShard& shards,
+    ProtoShardingStructure& protoShardingStructure) {
+  for (const auto& shard : shards) {
+    ProtoShardingStructure::Shard* proto_shard =
+        protoShardingStructure.add_shards();
+
+    for (const auto& node : shard) {
+      ProtoShardingStructure::Member* proto_member = proto_shard->add_members();
+
+      SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
+                                      *proto_member->mutable_pubkey());
+      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
+                                      *proto_member->mutable_peerinfo());
+      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
+    }
+  }
+}
+
+void ProtobufToShardingStructure(
+    const ProtoShardingStructure& protoShardingStructure,
+    DequeOfShard& shards) {
+  for (const auto& proto_shard : protoShardingStructure.shards()) {
+    shards.emplace_back();
+
+    for (const auto& proto_member : proto_shard.members()) {
+      PubKey key;
+      Peer peer;
+
+      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
+      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
+
+      shards.back().emplace_back(key, peer, proto_member.reputation());
+    }
+  }
+}
+
+void TxSharingAssignmentsToProtobuf(
+    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
+    const vector<vector<Peer>>& shardSenders,
+    ProtoTxSharingAssignments& protoTxSharingAssignments) {
+  for (const auto& dsnode : dsReceivers) {
+    SerializableToProtobufByteArray(dsnode,
+                                    *protoTxSharingAssignments.add_dsnodes());
+  }
+
+  for (unsigned int i = 0; i < shardReceivers.size(); i++) {
+    ProtoTxSharingAssignments::AssignedNodes* proto_shard =
+        protoTxSharingAssignments.add_shardnodes();
+
+    for (const auto& receiver : shardReceivers.at(i)) {
+      SerializableToProtobufByteArray(receiver, *proto_shard->add_receivers());
+    }
+    for (const auto& sender : shardSenders.at(i)) {
+      SerializableToProtobufByteArray(sender, *proto_shard->add_senders());
+    }
+  }
+}
+
+void ProtobufToTxSharingAssignments(
+    const ProtoTxSharingAssignments& protoTxSharingAssignments,
+    vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
+    vector<vector<Peer>>& shardSenders) {
+  for (const auto& dsnode : protoTxSharingAssignments.dsnodes()) {
+    Peer peer;
+    ProtobufByteArrayToSerializable(dsnode, peer);
+    dsReceivers.emplace_back(peer);
+  }
+
+  for (const auto& proto_shard : protoTxSharingAssignments.shardnodes()) {
+    shardReceivers.emplace_back();
+
+    for (const auto& receiver : proto_shard.receivers()) {
+      Peer peer;
+      ProtobufByteArrayToSerializable(receiver, peer);
+      shardReceivers.back().emplace_back(peer);
+    }
+
+    shardSenders.emplace_back();
+
+    for (const auto& sender : proto_shard.senders()) {
+      Peer peer;
+      ProtobufByteArrayToSerializable(sender, peer);
+      shardSenders.back().emplace_back(peer);
+    }
+  }
+}
+
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
                              ProtoDSBlock::DSBlockHeader& protoDSBlockHeader) {
   protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
@@ -99,6 +208,18 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
     SerializableToProtobufByteArray(winner.first, *powdswinner->mutable_key());
     SerializableToProtobufByteArray(winner.second, *powdswinner->mutable_val());
   }
+
+  ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
+      protoDSBlockHeader.mutable_hash();
+  protoHeaderHash->set_dscommhash(dsBlockHeader.GetDSCommHash().data(),
+                                  dsBlockHeader.GetDSCommHash().size);
+  protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
+                                    dsBlockHeader.GetShardingHash().size);
+  protoHeaderHash->set_txsharinghash(dsBlockHeader.GetTxSharingHash().data(),
+                                     dsBlockHeader.GetTxSharingHash().size);
+  protoHeaderHash->set_reservedfield(
+      dsBlockHeader.GetHashSetReservedField().data(),
+      dsBlockHeader.GetHashSetReservedField().size());
 }
 
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
@@ -160,12 +281,37 @@ void ProtobufToDSBlockHeader(
     powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
   }
 
+  // Deserialize DSBlockHashSet
+  DSBlockHashSet hash;
+  const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
+      protoDSBlockHeader.hash();
+  copy(protoDSBlockHeaderHash.dscommhash().begin(),
+       protoDSBlockHeaderHash.dscommhash().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.dscommhash().size(),
+               (unsigned int)hash.m_dsCommHash.size),
+       hash.m_dsCommHash.asArray().begin());
+  copy(protoDSBlockHeaderHash.shardinghash().begin(),
+       protoDSBlockHeaderHash.shardinghash().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
+               (unsigned int)hash.m_shardingHash.size),
+       hash.m_shardingHash.asArray().begin());
+  copy(protoDSBlockHeaderHash.txsharinghash().begin(),
+       protoDSBlockHeaderHash.txsharinghash().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.txsharinghash().size(),
+               (unsigned int)hash.m_txSharingHash.size),
+       hash.m_txSharingHash.asArray().begin());
+  copy(protoDSBlockHeaderHash.reservedfield().begin(),
+       protoDSBlockHeaderHash.reservedfield().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
+               (unsigned int)hash.m_reservedField.size()),
+       hash.m_reservedField.begin());
+
   // Generate the new DSBlock
 
   dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
                                 protoDSBlockHeader.difficulty(), prevHash,
                                 leaderPubKey, protoDSBlockHeader.blocknum(),
-                                timestamp, swInfo, powDSWinners);
+                                timestamp, swInfo, powDSWinners, hash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -1081,6 +1227,89 @@ bool GetConsensusAnnouncementCore(
 // Primitives
 // ============================================================================
 
+bool Messenger::GetDSCommitteeHash(const deque<pair<PubKey, Peer>>& dsCommittee,
+                                   DSCommHash& dst) {
+  ProtoDSCommittee protoDSCommittee;
+
+  DSCommitteeToProtobuf(dsCommittee, protoDSCommittee);
+
+  if (!protoDSCommittee.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDSCommittee initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp;
+
+  if (!SerializeToArray(protoDSCommittee, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoDSCommittee serialization failed.");
+    return false;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(tmp);
+  tmp = sha2.Finalize();
+
+  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
+
+  return true;
+}
+
+bool Messenger::GetShardingStructureHash(const DequeOfShard& shards,
+                                         ShardingHash& dst) {
+  ProtoShardingStructure protoShardingStructure;
+
+  ShardingStructureToProtobuf(shards, protoShardingStructure);
+
+  if (!protoShardingStructure.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoShardingStructure initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp;
+
+  if (!SerializeToArray(protoShardingStructure, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoShardingStructure serialization failed.");
+    return false;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(tmp);
+  tmp = sha2.Finalize();
+
+  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
+
+  return true;
+}
+
+bool Messenger::GetTxSharingAssignmentsHash(
+    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
+    const vector<vector<Peer>>& shardSenders, TxSharingHash& dst) {
+  ProtoTxSharingAssignments protoTxSharingAssignments;
+
+  TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
+                                 protoTxSharingAssignments);
+
+  if (!protoTxSharingAssignments.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoTxSharingAssignments initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp;
+
+  if (!SerializeToArray(protoTxSharingAssignments, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoTxSharingAssignments serialization failed.");
+    return false;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(tmp);
+  tmp = sha2.Finalize();
+
+  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
+
+  return true;
+}
+
 bool Messenger::SetDSBlockHeader(vector<unsigned char>& dst,
                                  const unsigned int offset,
                                  const DSBlockHeader& dsBlockHeader) {
@@ -1569,38 +1798,10 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
   DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
 
-  for (const auto& shard : shards) {
-    ShardingStructure::Shard* proto_shard =
-        dsblock->mutable_sharding()->add_shards();
+  ShardingStructureToProtobuf(shards, *dsblock->mutable_sharding());
 
-    for (const auto& node : shard) {
-      ShardingStructure::Member* proto_member = proto_shard->add_members();
-
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
-                                      *proto_member->mutable_pubkey());
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
-                                      *proto_member->mutable_peerinfo());
-      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
-    }
-  }
-
-  TxSharingAssignments* proto_assignments = dsblock->mutable_assignments();
-
-  for (const auto& dsnode : dsReceivers) {
-    SerializableToProtobufByteArray(dsnode, *proto_assignments->add_dsnodes());
-  }
-
-  for (unsigned int i = 0; i < shardReceivers.size(); i++) {
-    TxSharingAssignments::AssignedNodes* proto_shard =
-        proto_assignments->add_shardnodes();
-
-    for (const auto& receiver : shardReceivers.at(i)) {
-      SerializableToProtobufByteArray(receiver, *proto_shard->add_receivers());
-    }
-    for (const auto& sender : shardSenders.at(i)) {
-      SerializableToProtobufByteArray(sender, *proto_shard->add_senders());
-    }
-  }
+  TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
+                                 *dsblock->mutable_assignments());
 
   if (!dsblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed. Debug: "
@@ -1673,45 +1874,10 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
 
-  for (const auto& proto_shard : dsblock.sharding().shards()) {
-    shards.emplace_back();
+  ProtobufToShardingStructure(dsblock.sharding(), shards);
 
-    for (const auto& proto_member : proto_shard.members()) {
-      PubKey key;
-      Peer peer;
-
-      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
-      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
-
-      shards.back().emplace_back(key, peer, proto_member.reputation());
-    }
-  }
-
-  const TxSharingAssignments& proto_assignments = dsblock.assignments();
-
-  for (const auto& dsnode : proto_assignments.dsnodes()) {
-    Peer peer;
-    ProtobufByteArrayToSerializable(dsnode, peer);
-    dsReceivers.emplace_back(peer);
-  }
-
-  for (const auto& proto_shard : proto_assignments.shardnodes()) {
-    shardReceivers.emplace_back();
-
-    for (const auto& receiver : proto_shard.receivers()) {
-      Peer peer;
-      ProtobufByteArrayToSerializable(receiver, peer);
-      shardReceivers.back().emplace_back(peer);
-    }
-
-    shardSenders.emplace_back();
-
-    for (const auto& sender : proto_shard.senders()) {
-      Peer peer;
-      ProtobufByteArrayToSerializable(sender, peer);
-      shardSenders.back().emplace_back(peer);
-    }
-  }
+  ProtobufToTxSharingAssignments(dsblock.assignments(), dsReceivers,
+                                 shardReceivers, shardSenders);
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus
@@ -1921,38 +2087,10 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
   result.set_shardid(shardId);
   DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
 
-  for (const auto& shard : shards) {
-    ShardingStructure::Shard* proto_shard =
-        result.mutable_sharding()->add_shards();
+  ShardingStructureToProtobuf(shards, *result.mutable_sharding());
 
-    for (const auto& node : shard) {
-      ShardingStructure::Member* proto_member = proto_shard->add_members();
-
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
-                                      *proto_member->mutable_pubkey());
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
-                                      *proto_member->mutable_peerinfo());
-      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
-    }
-  }
-
-  TxSharingAssignments* proto_assignments = result.mutable_assignments();
-
-  for (const auto& dsnode : dsReceivers) {
-    SerializableToProtobufByteArray(dsnode, *proto_assignments->add_dsnodes());
-  }
-
-  for (unsigned int i = 0; i < shardReceivers.size(); i++) {
-    TxSharingAssignments::AssignedNodes* proto_shard =
-        proto_assignments->add_shardnodes();
-
-    for (const auto& receiver : shardReceivers.at(i)) {
-      SerializableToProtobufByteArray(receiver, *proto_shard->add_receivers());
-    }
-    for (const auto& sender : shardSenders.at(i)) {
-      SerializableToProtobufByteArray(sender, *proto_shard->add_senders());
-    }
-  }
+  TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
+                                 *result.mutable_assignments());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeDSBlock initialization failed.");
@@ -1982,45 +2120,10 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
   shardId = result.shardid();
   ProtobufToDSBlock(result.dsblock(), dsBlock);
 
-  for (const auto& proto_shard : result.sharding().shards()) {
-    shards.emplace_back();
+  ProtobufToShardingStructure(result.sharding(), shards);
 
-    for (const auto& proto_member : proto_shard.members()) {
-      PubKey key;
-      Peer peer;
-
-      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
-      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
-
-      shards.back().emplace_back(key, peer, proto_member.reputation());
-    }
-  }
-
-  const TxSharingAssignments& proto_assignments = result.assignments();
-
-  for (const auto& dsnode : proto_assignments.dsnodes()) {
-    Peer peer;
-    ProtobufByteArrayToSerializable(dsnode, peer);
-    dsReceivers.emplace_back(peer);
-  }
-
-  for (const auto& proto_shard : proto_assignments.shardnodes()) {
-    shardReceivers.emplace_back();
-
-    for (const auto& receiver : proto_shard.receivers()) {
-      Peer peer;
-      ProtobufByteArrayToSerializable(receiver, peer);
-      shardReceivers.back().emplace_back(peer);
-    }
-
-    shardSenders.emplace_back();
-
-    for (const auto& sender : proto_shard.senders()) {
-      Peer peer;
-      ProtobufByteArrayToSerializable(sender, peer);
-      shardSenders.back().emplace_back(peer);
-    }
-  }
+  ProtobufToTxSharingAssignments(result.assignments(), dsReceivers,
+                                 shardReceivers, shardSenders);
 
   return true;
 }
@@ -2626,11 +2729,7 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
 
   LookupSetDSInfoFromSeed result;
 
-  for (const auto& node : dsNodes) {
-    LookupSetDSInfoFromSeed::DSNode* protodsnode = result.add_dsnodes();
-    SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
-    SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
-  }
+  DSCommitteeToProtobuf(dsNodes, *result.mutable_dscommittee());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
@@ -2654,14 +2753,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  for (const auto& dsnode : result.dsnodes()) {
-    PubKey pubkey;
-    Peer peer;
-
-    ProtobufByteArrayToSerializable(dsnode.pubkey(), pubkey);
-    ProtobufByteArrayToSerializable(dsnode.peer(), peer);
-    dsNodes.emplace_back(pubkey, peer);
-  }
+  ProtobufToDSCommittee(result.dscommittee(), dsNodes);
 
   return true;
 }
@@ -3276,20 +3368,7 @@ bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
 
   LookupSetShardsFromSeed result;
 
-  for (const auto& shard : shards) {
-    ShardingStructure::Shard* proto_shard =
-        result.mutable_sharding()->add_shards();
-
-    for (const auto& node : shard) {
-      ShardingStructure::Member* proto_member = proto_shard->add_members();
-
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
-                                      *proto_member->mutable_pubkey());
-      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
-                                      *proto_member->mutable_peerinfo());
-      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
-    }
-  }
+  ShardingStructureToProtobuf(shards, *result.mutable_sharding());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetShardsFromSeed initialization failed.");
@@ -3313,19 +3392,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  for (const auto& proto_shard : result.sharding().shards()) {
-    shards.emplace_back();
-
-    for (const auto& proto_member : proto_shard.members()) {
-      PubKey key;
-      Peer peer;
-
-      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
-      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
-
-      shards.back().emplace_back(key, peer, proto_member.reputation());
-    }
-  }
+  ProtobufToShardingStructure(result.sharding(), shards);
 
   return true;
 }
