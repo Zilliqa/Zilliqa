@@ -40,8 +40,10 @@ VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
                              const Peer& candidateLeaderNetworkInfo,
                              const PubKey& candidateLeaderPubKey,
                              const uint32_t vcCounter,
-                             const boost::multiprecision::uint256_t& timestamp)
-    : m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
+                             const boost::multiprecision::uint256_t& timestamp,
+                             const CommitteeHash& committeeHash)
+    : BlockHeaderBase(committeeHash),
+      m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
       m_VieWChangeEpochNo(viewChangeEpochNo),
       m_ViewChangeState(viewChangeState),
       m_CandidateLeaderIndex(expectedCandidateLeaderIndex),

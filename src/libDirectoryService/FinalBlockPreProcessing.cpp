@@ -169,7 +169,8 @@ void DirectoryService::ComposeFinalBlock() {
                     timestamp, microblockTxnTrieRoot, stateRoot,
                     microblockDeltaTrieRoot, stateDeltaHash,
                     microblockTranReceiptRoot, numTxs, numMicroBlocks,
-                    m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader),
+                    m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
+                    CommitteeHash()),
       isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
