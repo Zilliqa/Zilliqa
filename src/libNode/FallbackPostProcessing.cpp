@@ -182,6 +182,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
     return;
   }
 
+
   unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
   unsigned int nodeToSendToLookUpHi =
       nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
@@ -193,6 +194,10 @@ void Node::ProcessFallbackConsensusWhenDone() {
               "I the part of the subset of newly DS committee after fallback "
               "that have sent the FallbackBlock to the lookup nodes");
   }
+
+  //
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo(),BlockType::FB, m_pendingFallbackBlock->GetBlockHash());
 
   // Broadcasting fallback block to nodes in other shard
   unsigned int my_DS_cluster_num;
