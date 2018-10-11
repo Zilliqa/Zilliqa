@@ -9,6 +9,8 @@ file(GLOB_RECURSE ALL_CXX_SOURCES
     ${CMAKE_SOURCE_DIR}/tests/*.cpp
     ${CMAKE_SOURCE_DIR}/tests/*.h
     ${CMAKE_SOURCE_DIR}/tests/*.tpp
+    ${CMAKE_SOURCE_DIR}/daemon/*.cpp
+    ${CMAKE_SOURCE_DIR}/daemon/*.h
 )
 
 # Get vendored files

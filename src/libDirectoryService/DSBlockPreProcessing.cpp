@@ -47,14 +47,14 @@ unsigned int DirectoryService::ComposeDSBlock(
     const vector<pair<array<unsigned char, 32>, PubKey>>& sortedDSPoWSolns,
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
         sortedPoWSolns) {
+  LOG_MARKER();
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeDSBlock not expected to be "
                 "called from LookUp node.");
     return 0;
   }
-
-  LOG_MARKER();
 
   // Assemble DS block header
   unsigned int numOfElectedDSMembers =
@@ -122,11 +122,11 @@ unsigned int DirectoryService::ComposeDSBlock(
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  get_time_as_int(), SWInfo(), powDSWinners),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
+                      SWInfo(), powDSWinners, DSBlockHashSet()),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
     m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

@@ -90,6 +90,8 @@ class RumorManager {
   void SendRumorToForeignPeers(const std::vector<Peer>& toForeignPeers,
                                const RawBytes& message);
 
+  void PrintStatistics();
+
   // CONST METHODS
   const RumorIdRumorBimap& rumors() const;
 };

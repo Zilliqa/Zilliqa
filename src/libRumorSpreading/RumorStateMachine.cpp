@@ -37,6 +37,8 @@ void RumorStateMachine::advanceFromNew(
     const std::unordered_set<int>& membersInRound) {
   ++m_roundsInB;
   if (m_rounds > m_networkConfigPtr->maxRoundsTotal()) {
+    // correct the actual total rounds spent over-all before switching to OLD
+    --m_rounds;
     advanceToOld();
     return;
   }
@@ -68,13 +70,26 @@ void RumorStateMachine::advanceFromNew(
   if (m_roundsInB > m_networkConfigPtr->maxRoundsInB()) {
     m_state = State::KNOWN;
   }
+
+  if (m_state == State::KNOWN) {
+    // by now , rumor already moved to C-State
+    ++m_roundsInC;
+    // correct the actual rounds spent in B-State
+    --m_roundsInB;
+  }
+
   m_memberRounds.clear();
 }
 
 void RumorStateMachine::advanceFromKnown() {
   ++m_roundsInC;
+  m_state = State::KNOWN;
   if (m_rounds > m_networkConfigPtr->maxRoundsTotal() ||
       m_roundsInC > m_networkConfigPtr->maxRoundsInC()) {
+    // correct the actual rounds spent in C-State
+    --m_roundsInC;
+    // correct the actual total rounds spent over-all before switching to OLD
+    --m_rounds;
     advanceToOld();
   }
 }
@@ -106,6 +121,9 @@ RumorStateMachine::RumorStateMachine(const NetworkConfig* networkConfigPtr,
   if (theirRound > m_networkConfigPtr->maxRoundsTotal()) {
     advanceToOld();
     return;
+  } else if (theirRound > m_networkConfigPtr->maxRoundsInB()) {
+    advanceFromKnown();  // move directly to C-State
+    return;
   }
 
   // Stay in B-m state
@@ -132,7 +150,6 @@ void RumorStateMachine::advanceRound(
       advanceFromKnown();
       return;
     case State::OLD:
-      ++m_rounds;
       return;
     case State::UNKNOWN:
     default:

@@ -24,6 +24,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <map>
 
+#include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
@@ -42,6 +43,7 @@ class DSBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint256_t m_timestamp;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
+  DSBlockHashSet m_hash;
 
  public:
   /// Default constructor.
@@ -56,7 +58,8 @@ class DSBlockHeader : public BlockHeaderBase {
                 const uint64_t& blockNum,
                 const boost::multiprecision::uint256_t& timestamp,
                 const SWInfo& swInfo,
-                const std::map<PubKey, Peer>& powDSWinners);
+                const std::map<PubKey, Peer>& powDSWinners,
+                const DSBlockHashSet& hash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,
@@ -90,6 +93,21 @@ class DSBlockHeader : public BlockHeaderBase {
   const SWInfo& GetSWInfo() const;
 
   const std::map<PubKey, Peer>& GetDSPoWWinners() const;
+
+  /// Returns the digest that represents the hash of the DS committee
+  /// composition
+  const DSCommHash& GetDSCommHash() const;
+
+  /// Returns the digest that represents the hash of the sharding structure
+  const ShardingHash& GetShardingHash() const;
+
+  /// Returns the digest that represents the hash of the transaction sharing
+  /// assignments
+  const TxSharingHash& GetTxSharingHash() const;
+
+  /// Returns a reference to the reserved field in the hash set
+  const std::array<unsigned char, RESERVED_FIELD_SIZE>&
+  GetHashSetReservedField() const;
 
   /// Equality operator.
   bool operator==(const DSBlockHeader& header) const;
