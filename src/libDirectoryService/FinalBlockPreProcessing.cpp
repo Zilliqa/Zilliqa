@@ -204,14 +204,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   ComposeFinalBlock();  // stores it in m_finalBlock
 
   // kill first ds leader (used for view change testing)
-  /**
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-  {
-      LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
-      // throw exception();
-      return false;
-  }
-  **/
+
+  // if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
+  //   LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
+  //   // throw exception();
+  //   return false;
+  // }
 
   // Create new consensus object
   m_consensusBlockHash =
