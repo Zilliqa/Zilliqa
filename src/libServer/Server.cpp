@@ -103,6 +103,11 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     const PubKey& senderPubKey = tx.GetSenderPubKey();
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+
+    if (sender == nullptr) {
+      ret["Error"] = "The sender of the txn is null";
+      return ret;
+    }
     // unsigned int curr_offset = 0;
 
     if (num_shards > 0) {
@@ -117,7 +122,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           ret["Info"] = "Contract Creation txn, sent to shard";
           ret["TranID"] = tx.GetTranID().hex();
           ret["ContractAddress"] =
-              Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex();
+              Account::GetAddressForContract(fromAddr, sender->GetNonce())
+                  .hex();
         } else {
           ret["Error"] = "Code is empty and To addr is null";
         }
