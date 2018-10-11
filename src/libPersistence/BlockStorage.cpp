@@ -32,6 +32,7 @@
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
 
 using namespace std;
@@ -69,6 +70,29 @@ bool BlockStorage::PutDSBlock(const uint64_t& blockNum,
   }
   return ret;
 }
+
+bool BlockStorage::PutVCBlock(const BlockHash& blockhash,
+                              const vector<unsigned char>& body) {
+  int ret = -1;
+  ret = m_VCBlockDB->Insert(blockhash, body);
+  return (ret == 0);
+}
+
+bool BlockStorage::PutFallbackBlock(const BlockHash& blockhash,
+                              const vector<unsigned char>& body) {
+  int ret = -1;
+  ret = m_fallbackBlockDB->Insert(blockhash, body);
+  return (ret == 0);
+}
+
+bool BlockStorage::PutBlockLink(const uint64_t& index,
+                              const vector<unsigned char>& body) {
+  int ret = -1;
+  ret = m_blockLinkDB->Insert(index, body);
+  return (ret == 0);
+}
+
+
 
 bool BlockStorage::PutTxBlock(const uint64_t& blockNum,
                               const vector<unsigned char>& body) {
@@ -144,6 +168,59 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
   block = DSBlockSharedPtr(new DSBlock(
       std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
 
+  return true;
+}
+
+
+bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
+                            VCBlockSharedPtr& block) {
+  string blockString = m_VCBlockDB->Lookup(blockhash);
+
+  if (blockString.empty()) {
+    return false;
+  }
+
+  // LOG_GENERAL(INFO, blockString);
+  LOG_GENERAL(INFO, blockString.length());
+  block = VCBlockSharedPtr(new VCBlock(
+      std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
+  return true;
+}
+
+bool BlockStorage::GetFallbackBlock(const BlockHash& blockhash,
+                              FallbackBlockSharedPtr& block) {
+  string blockString = m_fallbackBlockDB->Lookup(blockhash);
+
+  if (blockString.empty()) {
+    return false;
+  }
+
+  // LOG_GENERAL(INFO, blockString);
+  LOG_GENERAL(INFO, blockString.length());
+  block = FallbackBlockSharedPtr(new FallbackBlock(
+      std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
+  return true;
+}
+
+bool BlockStorage::GetBlockLink(const uint64_t& index,
+                              BlockLinkSharedPtr& block) {
+  string blockString = m_blockLinkDB->Lookup(index);
+
+  if (blockString.empty()) {
+    return false;
+  }
+
+  // LOG_GENERAL(INFO, blockString);
+  LOG_GENERAL(INFO, blockString.length());
+  BlockLink blnk;
+  if(!Messenger::ProtoBufToBlockLink(blnk, vector<unsigned char>(blockString.begin(),blockString.end())))
+  {
+    LOG_GENERAL(WARNING,"Serialization of blockLink failed");
+    return false;
+  }
+  block = make_shared<BlockLink>(blnk);
   return true;
 }
 
@@ -422,6 +499,15 @@ bool BlockStorage::ResetDB(DBTYPE type) {
     case DS_COMMITTEE:
       ret = m_dsCommitteeDB->ResetDB();
       break;
+    case VC_BLOCK:
+      ret = m_VCBlockDB->ResetDB();
+      break;
+    case FB_BLOCK:
+      ret = m_fallbackBlockDB->ResetDB();
+      break;
+    case BLOCKLINK:
+      ret = m_blockLinkDB->ResetDB();
+      break;
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Reset DB " << type << " failed");
@@ -453,6 +539,15 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
     case DS_COMMITTEE:
       ret.push_back(m_dsCommitteeDB->GetDBName());
       break;
+    case VC_BLOCK:
+      ret.push_back(m_VCBlockDB->GetDBName());
+      break;
+    case FB_BLOCK:
+      ret.push_back(m_fallbackBlockDB->GetDBName());
+      break;
+    case BLOCKLINK:
+      ret.push_back(m_blockLinkDB->GetDBName());
+      break;
   }
 
   return ret;
@@ -461,11 +556,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
-           ResetDB(DS_COMMITTEE);
+           ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) && ResetDB(BLOCKLINK);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
            ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP) && ResetDB(MICROBLOCK) &&
-           ResetDB(DS_COMMITTEE);
+           ResetDB(DS_COMMITTEE)&& ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) && ResetDB(BLOCKLINK);
   }
 }

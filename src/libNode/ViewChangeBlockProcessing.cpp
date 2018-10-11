@@ -205,6 +205,8 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
   // TDOO
   // Add to block chain and Store the VC block to disk.
   // StoreVCBlockToDisk(dsblock);
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(),BlockType::VC, vcblock.GetBlockHash());
 
   if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
     SendVCBlockToOtherShardNodes(message);

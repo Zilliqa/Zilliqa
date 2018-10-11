@@ -219,6 +219,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   // TODO: Refine this
   // Broadcasting vcblock to lookup nodes
 
+  //Store to blockLink
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, m_pendingVCBlock->GetHeader().GetVieWChangeDSEpochNo(),BlockType::VC, m_pendingVCBlock->GetBlockHash());
+
   vector<unsigned char> vcblock_message = {MessageType::NODE,
                                            NodeInstructionType::VCBLOCK};
 

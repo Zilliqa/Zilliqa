@@ -22,6 +22,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
 
 #include <algorithm>
 #include <map>
@@ -4206,4 +4207,178 @@ bool Messenger::GetConsensusCommitFailure(
   }
 
   return true;
+}
+
+bool Messenger::BlockLinkToProtoBuf(const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink, std::vector<unsigned char>& dst)
+{
+    ProtoBlockLink result;
+
+    result.set_index(get<BlockLinkIndex::INDEX>(blocklink));
+    result.set_dsindex(get<BlockLinkIndex::DSINDEX>(blocklink));
+    result.set_blocktype(get<BlockLinkIndex::BLOCKTYPE>(blocklink));
+    BlockHash blkhash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+    result.set_blockhash(blkhash.data(), blkhash.size);
+
+    return SerializeToArray(result,dst,0);
+}
+
+bool Messenger::ProtoBufToBlockLink(std::tuple<uint64_t, uint64_t, BlockType, BlockHash> & blocklink, const vector<unsigned char> &src)
+{
+    ProtoBlockLink result;
+    BlockHash blkhash;
+    result.ParseFromArray(src.data(), src.size());
+
+    get<0>(blocklink) = result.index();
+    get<1>(blocklink) = result.dsindex();
+    copy(result.blockhash().begin(),
+       result.blockhash().begin() +
+           min((unsigned int)result.blockhash().size(),
+               (unsigned int)blkhash.size),
+       blkhash.asArray().begin());
+    get<BlockLinkIndex::BLOCKTYPE>(blocklink) = (BlockType)result.blocktype();
+    get<3>(blocklink) = blkhash;
+
+    return true;
+}
+
+bool Messenger::SetFallbackBlockWShardingStructure(vector<unsigned char>& dst, const unsigned int offset, const FallbackBlock& fallbackblock, const DequeOfShard& shards)
+{
+    ProtoFallbackBlockWShardingStructure result;
+
+    FallbackBlockToProtobuf(fallbackblock, *result.mutable_fallbackblock());
+
+    for (const auto& shard : shards) {
+    ShardingStructure::Shard* proto_shard =
+        result.mutable_sharding()->add_shards();
+
+    for (const auto& node : shard) {
+      ShardingStructure::Member* proto_member = proto_shard->add_members();
+
+      SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
+                                      *proto_member->mutable_pubkey());
+      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
+                                      *proto_member->mutable_peerinfo());
+      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
+    }
+  }
+  return SerializeToArray(result,dst,offset);
+}
+
+bool Messenger::GetFallbackBlockWShardingStructure(const vector<unsigned char>& src, const unsigned int offset, FallbackBlock& fallbackblock, DequeOfShard& shards )
+{
+    ProtoFallbackBlockWShardingStructure result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
+
+    for (const auto& proto_shard : result.sharding().shards()) {
+    shards.emplace_back();
+
+    for (const auto& proto_member : proto_shard.members()) {
+      PubKey key;
+      Peer peer;
+
+      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
+      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
+
+      shards.back().emplace_back(key, peer, proto_member.reputation());
+    }
+  }
+  return true;
+}
+
+bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const vector<unsigned char>& src, const unsigned int offset,uint32_t& portno, uint64_t& index_num)
+{
+    LookupGetDirectoryBlocksFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    portno = result.portno();
+
+    index_num = result.indexnum();
+
+    return true;
+}
+
+bool Messenger::SetLookupGetDirectoryBlocksFromSeed(vector<unsigned char> &dst, const unsigned int offset , const uint32_t portno, const uint64_t& index_num)
+{
+    LookupGetDirectoryBlocksFromSeed result;
+
+    result.set_portno(portno);
+    result.set_indexnum(index_num);
+
+    return SerializeToArray(result,dst, offset);
+}
+
+bool Messenger::SetLookupSetDirectoryBlocksFromSeed(vector<unsigned char> & dst, const unsigned int offset, const vector<boost::variant<DSBlock, VCBlock, FallbackBlock>> & directoryBlocks, const uint64_t& index_num)
+{
+    LookupSetDirectoryBlocksFromSeed result;
+
+    result.set_indexnum(index_num);
+
+    for(const auto& dirblock : directoryBlocks)
+    {
+        ProtoSingleDirectoryBlock* proto_dir_blocks = result.add_dirblocks();
+        if(dirblock.type() == typeid(DSBlock))
+        {
+            DSBlockToProtobuf(get<DSBlock>(dirblock),*proto_dir_blocks->mutable_dsblock());
+        }
+        else if(dirblock.type() == typeid(VCBlock))
+        {
+            VCBlockToProtobuf(get<VCBlock>(dirblock), *proto_dir_blocks->mutable_vcblock());
+        }
+        else if(dirblock.type() == typeid(FallbackBlock))
+        {
+            FallbackBlockToProtobuf(get<FallbackBlock>(dirblock),*proto_dir_blocks->mutable_fallbackblock());
+        }
+    }
+
+    return SerializeToArray(result, dst, offset);
+}
+
+
+bool Messenger::GetLookupSetDirectoryBlocksFromSeed(const vector<unsigned char>& src, const unsigned int offset, vector<boost::variant<DSBlock, VCBlock, FallbackBlock>>& directoryBlocks, uint64_t& index_num)
+{
+    LookupSetDirectoryBlocksFromSeed result;
+
+    result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    index_num = result.indexnum();
+
+    for(const auto& dirblock: result.dirblocks())
+    {
+        switch(dirblock.directoryblock_case())
+        {
+            case ProtoSingleDirectoryBlock::DirectoryblockCase::kDsblock:
+            {
+                DSBlock dsblock;
+                ProtobufToDSBlock(dirblock.dsblock(),dsblock);
+                directoryBlocks.emplace_back(dsblock);
+                break;
+            }
+            case ProtoSingleDirectoryBlock::DirectoryblockCase::kVcblock:
+            {
+                VCBlock vcblock;
+                ProtobufToVCBlock(dirblock.vcblock(), vcblock);
+                directoryBlocks.emplace_back(vcblock);
+                break;
+            }
+            case ProtoSingleDirectoryBlock::DirectoryblockCase::kFallbackblock:
+            {
+                FallbackBlock fallbackblock;
+                ProtobufToFallbackBlock(dirblock.fallbackblock(), fallbackblock);
+                directoryBlocks.emplace_back(fallbackblock);
+                break;
+            }
+            default:
+            {
+                LOG_GENERAL(WARNING,"Error in the blocktype");
+                return false;
+            }
+
+        }
+
+    }
+    return true;
 }

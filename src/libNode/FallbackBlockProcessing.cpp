@@ -238,6 +238,9 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 
   StoreState();
 
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, fallbackblock.GetHeader().GetFallbackDSEpochNo(),BlockType::FB, fallbackblock.GetBlockHash());
+
   if (!LOOKUP_NODE_MODE) {
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
       SendFallbackBlockToOtherShardNodes(message);
