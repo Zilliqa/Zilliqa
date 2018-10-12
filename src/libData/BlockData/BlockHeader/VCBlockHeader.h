@@ -56,7 +56,8 @@ class VCBlockHeader : public BlockHeaderBase {
                 const uint32_t expectedCandidateLeaderIndex,
                 const Peer& candidateLeaderNetworkInfo,
                 const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
-                const boost::multiprecision::uint256_t& timestamp);
+                const boost::multiprecision::uint256_t& timestamp,
+                const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
