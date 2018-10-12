@@ -314,10 +314,7 @@ void Node::ProcessTransactionWhenShardLeader() {
       // (*optional step)
       findSameNonceButHigherGasPrice(t);
 
-      if (m_mediator.m_validator->CheckCreatedTransaction(t, tr) ||
-          (!t.GetCode().empty() && t.GetToAddr() == NullAddress) ||
-          (!t.GetData().empty() && t.GetToAddr() != NullAddress &&
-           t.GetCode().empty())) {
+      if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         appendOne(t, tr);
         gasUsedTotal += tr.GetCumGas();
         continue;
@@ -363,10 +360,7 @@ void Node::ProcessTransactionWhenShardLeader() {
         //                 << " Found " << t.GetNonce());
       }
       // if nonce correct, process it
-      else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr) ||
-               (!t.GetCode().empty() && t.GetToAddr() == NullAddress) ||
-               (!t.GetData().empty() && t.GetToAddr() != NullAddress &&
-                t.GetCode().empty())) {
+      else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         appendOne(t, tr);
         gasUsedTotal += tr.GetCumGas();
       } else {
@@ -433,10 +427,7 @@ bool Node::ProcessTransactionWhenShardBackup(
 
   for (const auto& t : curTxns) {
     TransactionReceipt tr;
-    if (m_mediator.m_validator->CheckCreatedTransaction(t, tr) ||
-        (!t.GetCode().empty() && t.GetToAddr() == NullAddress) ||
-        (!t.GetData().empty() && t.GetToAddr() != NullAddress &&
-         t.GetCode().empty())) {
+    if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
       appendOne(t, tr);
     }
   }
@@ -518,10 +509,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
       // (*optional step)
       findSameNonceButHigherGasPrice(t);
 
-      if (m_mediator.m_validator->CheckCreatedTransaction(t, tr) ||
-          (!t.GetCode().empty() && t.GetToAddr() == NullAddress) ||
-          (!t.GetData().empty() && t.GetToAddr() != NullAddress &&
-           t.GetCode().empty())) {
+      if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         appendOne(t);
         gasUsedTotal += tr.GetCumGas();
         continue;
@@ -554,10 +542,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
                AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
       }
       // if nonce correct, process it
-      else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr) ||
-               (!t.GetCode().empty() && t.GetToAddr() == NullAddress) ||
-               (!t.GetData().empty() && t.GetToAddr() != NullAddress &&
-                t.GetCode().empty())) {
+      else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         appendOne(t);
         gasUsedTotal += tr.GetCumGas();
       }
