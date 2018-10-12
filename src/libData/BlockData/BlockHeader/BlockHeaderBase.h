@@ -23,23 +23,29 @@
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
 
-#include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 
+// Hash for the committee that generated the block
+using CommitteeHash = dev::h256;
+
 /// [TODO] Base class for all supported block header types
 class BlockHeaderBase : public SerializableDataBlock {
  protected:
   // TODO: pull out all common code from ds, micro and tx block header
+  CommitteeHash m_committeeHash;
 
  public:
   // Constructors
   BlockHeaderBase();
+  BlockHeaderBase(const CommitteeHash& committeeHash);
 
   /// Calculate my hash
   BlockHash GetMyHash() const;
+
+  const CommitteeHash& GetCommitteeHash() const;
 };
 
 #endif  // __BLOCKHEADERBASE_H__

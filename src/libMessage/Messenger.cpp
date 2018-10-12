@@ -98,6 +98,20 @@ void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
   }
 }
 
+void DSCommitteeToProtoCommittee(const deque<pair<PubKey, Peer>>& dsCommittee,
+                                 ProtoCommittee& protoCommittee) {
+  for (const auto& node : dsCommittee) {
+    SerializableToProtobufByteArray(node.first, *protoCommittee.add_members());
+  }
+}
+
+void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
+  for (const auto& node : shard) {
+    SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
+                                    *protoCommittee.add_members());
+  }
+}
+
 void ShardingStructureToProtobuf(
     const DequeOfShard& shards,
     ProtoShardingStructure& protoShardingStructure) {
@@ -211,8 +225,6 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
 
   ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
       protoDSBlockHeader.mutable_hash();
-  protoHeaderHash->set_dscommhash(dsBlockHeader.GetDSCommHash().data(),
-                                  dsBlockHeader.GetDSCommHash().size);
   protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
                                     dsBlockHeader.GetShardingHash().size);
   protoHeaderHash->set_txsharinghash(dsBlockHeader.GetTxSharingHash().data(),
@@ -220,6 +232,9 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
   protoHeaderHash->set_reservedfield(
       dsBlockHeader.GetHashSetReservedField().data(),
       dsBlockHeader.GetHashSetReservedField().size());
+
+  protoDSBlockHeader.set_committeehash(dsBlockHeader.GetCommitteeHash().data(),
+                                       dsBlockHeader.GetCommitteeHash().size);
 }
 
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
@@ -259,6 +274,7 @@ void ProtobufToDSBlockHeader(
   PubKey leaderPubKey;
   uint256_t timestamp;
   SWInfo swInfo;
+  CommitteeHash committeeHash;
 
   copy(protoDSBlockHeader.prevhash().begin(),
        protoDSBlockHeader.prevhash().begin() +
@@ -285,11 +301,6 @@ void ProtobufToDSBlockHeader(
   DSBlockHashSet hash;
   const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
       protoDSBlockHeader.hash();
-  copy(protoDSBlockHeaderHash.dscommhash().begin(),
-       protoDSBlockHeaderHash.dscommhash().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.dscommhash().size(),
-               (unsigned int)hash.m_dsCommHash.size),
-       hash.m_dsCommHash.asArray().begin());
   copy(protoDSBlockHeaderHash.shardinghash().begin(),
        protoDSBlockHeaderHash.shardinghash().begin() +
            min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
@@ -306,12 +317,18 @@ void ProtobufToDSBlockHeader(
                (unsigned int)hash.m_reservedField.size()),
        hash.m_reservedField.begin());
 
+  copy(protoDSBlockHeader.committeehash().begin(),
+       protoDSBlockHeader.committeehash().begin() +
+           min((unsigned int)protoDSBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
-                                protoDSBlockHeader.difficulty(), prevHash,
-                                leaderPubKey, protoDSBlockHeader.blocknum(),
-                                timestamp, swInfo, powDSWinners, hash);
+  dsBlockHeader = DSBlockHeader(
+      protoDSBlockHeader.dsdifficulty(), protoDSBlockHeader.difficulty(),
+      prevHash, leaderPubKey, protoDSBlockHeader.blocknum(), timestamp, swInfo,
+      powDSWinners, hash, committeeHash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -383,6 +400,10 @@ void MicroBlockHeaderToProtobuf(
   protoMicroBlockHeader.set_tranreceipthash(
       microBlockHeader.GetTranReceiptHash().data(),
       microBlockHeader.GetTranReceiptHash().size);
+
+  protoMicroBlockHeader.set_committeehash(
+      microBlockHeader.GetCommitteeHash().data(),
+      microBlockHeader.GetCommitteeHash().size);
 }
 
 void MicroBlockToProtobuf(const MicroBlock& microBlock,
@@ -429,6 +450,7 @@ void ProtobufToMicroBlockHeader(
   BlockHash dsBlockHeader;
   StateHash stateDeltaHash;
   TxnHash tranReceiptHash;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoMicroBlockHeader.gaslimit(), gasLimit);
@@ -464,13 +486,19 @@ void ProtobufToMicroBlockHeader(
                (unsigned int)tranReceiptHash.size),
        tranReceiptHash.asArray().begin());
 
+  copy(protoMicroBlockHeader.committeehash().begin(),
+       protoMicroBlockHeader.committeehash().begin() +
+           min((unsigned int)protoMicroBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
       protoMicroBlockHeader.shardid(), gasLimit, gasUsed, prevHash,
       protoMicroBlockHeader.blocknum(), timestamp, txRootHash,
       protoMicroBlockHeader.numtxs(), minerPubKey,
       protoMicroBlockHeader.dsblocknum(), dsBlockHeader, stateDeltaHash,
-      tranReceiptHash);
+      tranReceiptHash, committeeHash);
 }
 
 void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
@@ -549,6 +577,9 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
   protoTxBlockHeader.set_dsblocknum(txBlockHeader.GetDSBlockNum());
   protoTxBlockHeader.set_dsblockheader(txBlockHeader.GetDSBlockHeader().data(),
                                        txBlockHeader.GetDSBlockHeader().size);
+
+  protoTxBlockHeader.set_committeehash(txBlockHeader.GetCommitteeHash().data(),
+                                       txBlockHeader.GetCommitteeHash().size);
 }
 
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
@@ -611,6 +642,7 @@ void ProtobufToTxBlockHeader(
   TxBlockHashSet hash;
   PubKey minerPubKey;
   BlockHash dsBlockHeader;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoTxBlockHeader.gaslimit(), gasLimit);
@@ -661,13 +693,20 @@ void ProtobufToTxBlockHeader(
                (unsigned int)dsBlockHeader.size),
        dsBlockHeader.asArray().begin());
 
+  copy(protoTxBlockHeader.committeehash().begin(),
+       protoTxBlockHeader.committeehash().begin() +
+           min((unsigned int)protoTxBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   txBlockHeader = TxBlockHeader(
       protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
       gasUsed, prevHash, protoTxBlockHeader.blocknum(), timestamp,
       hash.m_txRootHash, hash.m_stateRootHash, hash.m_deltaRootHash,
       hash.m_stateDeltaHash, hash.m_tranReceiptRootHash,
       protoTxBlockHeader.numtxs(), protoTxBlockHeader.nummicroblockhashes(),
-      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHeader);
+      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHeader,
+      committeeHash);
 }
 
 void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
@@ -761,6 +800,9 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       vcBlockHeader.GetTimeStamp(), *protoVCBlockHeader.mutable_timestamp());
+
+  protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
+                                       vcBlockHeader.GetCommitteeHash().size);
 }
 
 void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
@@ -799,6 +841,7 @@ void ProtobufToVCBlockHeader(
   Peer candidateLeaderNetworkInfo;
   PubKey candidateLeaderPubKey;
   uint256_t timestamp;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToSerializable(
       protoVCBlockHeader.candidateleadernetworkinfo(),
@@ -808,12 +851,19 @@ void ProtobufToVCBlockHeader(
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoVCBlockHeader.timestamp(), timestamp);
 
-  vcBlockHeader = VCBlockHeader(
-      protoVCBlockHeader.viewchangedsepochno(),
-      protoVCBlockHeader.viewchangeepochno(),
-      protoVCBlockHeader.viewchangestate(),
-      protoVCBlockHeader.candidateleaderindex(), candidateLeaderNetworkInfo,
-      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), timestamp);
+  copy(protoVCBlockHeader.committeehash().begin(),
+       protoVCBlockHeader.committeehash().begin() +
+           min((unsigned int)protoVCBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
+  vcBlockHeader =
+      VCBlockHeader(protoVCBlockHeader.viewchangedsepochno(),
+                    protoVCBlockHeader.viewchangeepochno(),
+                    protoVCBlockHeader.viewchangestate(),
+                    protoVCBlockHeader.candidateleaderindex(),
+                    candidateLeaderNetworkInfo, candidateLeaderPubKey,
+                    protoVCBlockHeader.vccounter(), timestamp, committeeHash);
 }
 
 void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
@@ -879,6 +929,10 @@ void FallbackBlockHeaderToProtobuf(
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       fallbackBlockHeader.GetTimeStamp(),
       *protoFallbackBlockHeader.mutable_timestamp());
+
+  protoFallbackBlockHeader.set_committeehash(
+      fallbackBlockHeader.GetCommitteeHash().data(),
+      fallbackBlockHeader.GetCommitteeHash().size);
 }
 
 void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
@@ -921,6 +975,7 @@ void ProtobufToFallbackBlockHeader(
   PubKey leaderPubKey;
   uint256_t timestamp;
   StateHash stateRootHash;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leadernetworkinfo(),
                                   leaderNetworkInfo);
@@ -935,12 +990,19 @@ void ProtobufToFallbackBlockHeader(
                (unsigned int)stateRootHash.size),
        stateRootHash.asArray().begin());
 
+  copy(protoFallbackBlockHeader.committeehash().begin(),
+       protoFallbackBlockHeader.committeehash().begin() +
+           min((unsigned int)protoFallbackBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   fallbackBlockHeader = FallbackBlockHeader(
       protoFallbackBlockHeader.fallbackdsepochno(),
       protoFallbackBlockHeader.fallbackepochno(),
       protoFallbackBlockHeader.fallbackstate(), stateRootHash,
       protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
-      leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp);
+      leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp,
+      committeeHash);
 }
 
 void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
@@ -1248,20 +1310,46 @@ bool GetConsensusAnnouncementCore(
 // ============================================================================
 
 bool Messenger::GetDSCommitteeHash(const deque<pair<PubKey, Peer>>& dsCommittee,
-                                   DSCommHash& dst) {
-  ProtoDSCommittee protoDSCommittee;
+                                   CommitteeHash& dst) {
+  ProtoCommittee protoCommittee;
 
-  DSCommitteeToProtobuf(dsCommittee, protoDSCommittee);
+  DSCommitteeToProtoCommittee(dsCommittee, protoCommittee);
 
-  if (!protoDSCommittee.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSCommittee initialization failed.");
+  if (!protoCommittee.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoCommittee initialization failed.");
     return false;
   }
 
   vector<unsigned char> tmp;
 
-  if (!SerializeToArray(protoDSCommittee, tmp, 0)) {
-    LOG_GENERAL(WARNING, "ProtoDSCommittee serialization failed.");
+  if (!SerializeToArray(protoCommittee, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoCommittee serialization failed.");
+    return false;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(tmp);
+  tmp = sha2.Finalize();
+
+  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
+
+  return true;
+}
+
+bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
+  ProtoCommittee protoCommittee;
+
+  ShardToProtoCommittee(shard, protoCommittee);
+
+  if (!protoCommittee.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoCommittee initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp;
+
+  if (!SerializeToArray(protoCommittee, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoCommittee serialization failed.");
     return false;
   }
 
