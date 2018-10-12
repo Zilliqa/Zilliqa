@@ -206,7 +206,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // internal calls from ProcessDSBlockConsensus
   void StoreDSBlockToStorage();  // To further refactor
   void SendDSBlockToLookupNodes();
-  void SendDSBlockToNewDSLeader();
+  void SendDSBlockToNewDSMembers();
   void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                       unsigned int& my_shards_lo,
                                       unsigned int& my_shards_hi) const;
