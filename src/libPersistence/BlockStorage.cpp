@@ -216,9 +216,9 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   // LOG_GENERAL(INFO, blockString);
   LOG_GENERAL(INFO, blockString.length());
   BlockLink blnk;
-  if (!Messenger::ProtoBufToBlockLink(
-          blnk,
-          vector<unsigned char>(blockString.begin(), blockString.end()))) {
+  if (!Messenger::GetBlockLink(
+          vector<unsigned char>(blockString.begin(), blockString.end()), 0,
+          blnk)) {
     LOG_GENERAL(WARNING, "Serialization of blockLink failed");
     return false;
   }
