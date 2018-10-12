@@ -80,10 +80,12 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
       LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(to_string(
                                   m_mediator.m_ds->m_latestActiveDSBlockNum)));
 
-    LOG_GENERAL(INFO,"[DSVerif]"<<"Storing ds block in index chain");
-    uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
-    m_mediator.m_blocklinkchain.AddBlockLink(latestInd, dsblock.GetHeader().GetBlockNum(),BlockType::DS, dsblock.GetBlockHash());
-
+  LOG_GENERAL(INFO, "[DSVerif]"
+                        << "Storing ds block in index chain");
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, dsblock.GetHeader().GetBlockNum(), BlockType::DS,
+      dsblock.GetBlockHash());
 }
 
 void Node::UpdateDSCommiteeComposition() {

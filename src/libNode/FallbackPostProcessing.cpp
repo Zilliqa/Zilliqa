@@ -87,7 +87,23 @@ void Node::ProcessFallbackConsensusWhenDone() {
     return;
   }
 
-  // StoreFallbackBlockToStorage(); TODO
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo(),
+      BlockType::FB, m_pendingFallbackBlock->GetBlockHash());
+
+  vector<unsigned char> dst;
+  dst.clear();
+
+  if (!Messenger::SetFallbackBlockWShardingStructure(
+          dst, 0, *m_pendingFallbackBlock, m_mediator.m_ds->m_shards)) {
+    LOG_GENERAL(WARNING, "Unable to set FallbackBlock with sharding structure");
+  }
+
+  if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+          m_pendingFallbackBlock->GetBlockHash(), dst)) {
+    LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+  }
 
   Peer leaderNetworkInfo =
       m_pendingFallbackBlock->GetHeader().GetLeaderNetworkInfo();
@@ -182,7 +198,6 @@ void Node::ProcessFallbackConsensusWhenDone() {
     return;
   }
 
-
   unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
   unsigned int nodeToSendToLookUpHi =
       nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
@@ -196,8 +211,6 @@ void Node::ProcessFallbackConsensusWhenDone() {
   }
 
   //
-  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
-  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo(),BlockType::FB, m_pendingFallbackBlock->GetBlockHash());
 
   // Broadcasting fallback block to nodes in other shard
   unsigned int my_DS_cluster_num;

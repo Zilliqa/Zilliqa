@@ -586,7 +586,7 @@ message ProtoBlockLink
 message ProtoFallbackBlockWShardingStructure
 {
     required ProtoFallbackBlock fallbackblock = 1;
-    required ShardingStructure sharding = 2;
+    required ProtoShardingStructure sharding = 2;
 }
 
 
@@ -596,7 +596,7 @@ message ProtoSingleDirectoryBlock
     {
         ProtoDSBlock dsblock = 1;
         ProtoVCBlock vcblock = 2;
-        ProtoFallbackBlock fallbackblock = 3;
+        ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
     }
 }
     

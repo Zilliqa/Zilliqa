@@ -21,11 +21,11 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 
 #include <boost/variant.hpp>
-
 
 #ifndef __MESSENGER_H__
 #define __MESSENGER_H__
@@ -539,15 +539,35 @@ class Messenger {
       const std::vector<unsigned char>& blockHash, uint16_t& backupID,
       std::vector<unsigned char>& errorMsg,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
-  static bool BlockLinkToProtoBuf(const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink, std::vector<unsigned char>& dest);
-  static bool ProtoBufToBlockLink(std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink, const std::vector<unsigned char>& src);
-  static bool SetFallbackBlockWShardingStructure(std::vector<unsigned char>& dst, const unsigned int offset, const FallbackBlock& fallbackblock, const DequeOfShard& shards);
-  static bool GetFallbackBlockWShardingStructure(const std::vector<unsigned char>& src, const unsigned int offset, FallbackBlock& fallbackblock, DequeOfShard& shards);
-  static bool GetLookupGetDirectoryBlocksFromSeed(const std::vector<unsigned char>& src, const unsigned int offset,uint32_t& portno, uint64_t& index_num);
-  static bool SetLookupGetDirectoryBlocksFromSeed(std::vector<unsigned char> &dst, const unsigned int offset , const uint32_t portno, const uint64_t& index_num);
-  static bool SetLookupSetDirectoryBlocksFromSeed(std::vector<unsigned char> & dst, const unsigned int offset, const std::vector<boost::variant<DSBlock, VCBlock, FallbackBlock>> & directoryBlocks, const uint64_t& index_num);
-  static bool GetLookupSetDirectoryBlocksFromSeed(const std::vector<unsigned char>& src, const unsigned int offset, std::vector<boost::variant<DSBlock, VCBlock, FallbackBlock>>& directoryBlocks, uint64_t& index_num);
-
-  
+  static bool BlockLinkToProtoBuf(
+      const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink,
+      std::vector<unsigned char>& dest);
+  static bool ProtoBufToBlockLink(
+      std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink,
+      const std::vector<unsigned char>& src);
+  static bool SetFallbackBlockWShardingStructure(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const FallbackBlock& fallbackblock, const DequeOfShard& shards);
+  static bool GetFallbackBlockWShardingStructure(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      FallbackBlock& fallbackblock, DequeOfShard& shards);
+  static bool GetLookupGetDirectoryBlocksFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint32_t& portno, uint64_t& index_num);
+  static bool SetLookupGetDirectoryBlocksFromSeed(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint32_t portno, const uint64_t& index_num);
+  static bool SetLookupSetDirectoryBlocksFromSeed(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::vector<
+          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+          directoryBlocks,
+      const uint64_t& index_num);
+  static bool GetLookupSetDirectoryBlocksFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::vector<
+          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+          directoryBlocks,
+      uint64_t& index_num);
 };
 #endif  // __MESSENGER_H__
