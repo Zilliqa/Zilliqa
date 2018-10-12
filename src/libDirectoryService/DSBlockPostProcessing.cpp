@@ -231,8 +231,11 @@ void DirectoryService::SendDSBlockToShardNodes(
       std::vector<Peer> shardDSBlockReceivers;
 
       LOG_GENERAL(
-          INFO, "Sending to {NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD} peers : "
-                    << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
+          INFO,
+          "Sending message with hash: ["
+              << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+              << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
+              << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD << " shard peers");
 
       unsigned int numOfDSBlockReceivers = std::min(
           NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
