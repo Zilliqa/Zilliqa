@@ -43,15 +43,17 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-unsigned int DirectoryService::ComposeDSBlock(
+unsigned int DirectoryService::ComputeDSBlockParameters(
     const vector<pair<array<unsigned char, 32>, PubKey>>& sortedDSPoWSolns,
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
-        sortedPoWSolns) {
+        sortedPoWSolns,
+    map<PubKey, Peer>& powDSWinners, uint8_t& dsDifficulty, uint8_t& difficulty,
+    uint64_t& blockNum, BlockHash& prevHash) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::ComposeDSBlock not expected to be "
+                "DirectoryService::ComputeDSBlockParameters not expected to be "
                 "called from LookUp node.");
     return 0;
   }
@@ -60,7 +62,6 @@ unsigned int DirectoryService::ComposeDSBlock(
   unsigned int numOfElectedDSMembers =
       min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
   unsigned int counter = 0;
-  std::map<PubKey, Peer> powDSWinners;
   for (const auto& submitter : sortedDSPoWSolns) {
     if (counter >= numOfElectedDSMembers) {
       break;
@@ -76,10 +77,9 @@ unsigned int DirectoryService::ComposeDSBlock(
     // TODO: To handle if no PoW soln can meet DS difficulty level.
   }
 
-  uint64_t blockNum = 0;
-  BlockHash prevHash;
-  uint8_t dsDifficulty = DS_POW_DIFFICULTY;
-  uint8_t difficulty = POW_DIFFICULTY;
+  blockNum = 0;
+  dsDifficulty = DS_POW_DIFFICULTY;
+  difficulty = POW_DIFFICULTY;
   if (m_mediator.m_dsBlockChain.GetBlockCount() > 0) {
     DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
     blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
@@ -117,23 +117,6 @@ unsigned int DirectoryService::ComposeDSBlock(
     }
   }
 
-  // Assemble DS block
-  // To-do: Handle exceptions.
-  // TODO: Revise DS block structure
-  {
-    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  get_time_as_int(), SWInfo(), powDSWinners,
-                                  DSBlockHashSet(), CommitteeHash()),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
-    m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
-  }
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "New DSBlock created with ds difficulty "
-                << std::to_string(dsDifficulty) << " and difficulty "
-                << std::to_string(difficulty));
   return numOfElectedDSMembers;
 }
 
@@ -464,8 +447,15 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
   }
 
+  map<PubKey, Peer> powDSWinners;
+  uint8_t dsDifficulty = 0;
+  uint8_t difficulty = 0;
+  uint64_t blockNum = 0;
+  BlockHash prevHash;
+
   unsigned int numOfProposedDSMembers =
-      ComposeDSBlock(sortedDSPoWSolns, sortedPoWSolns);
+      ComputeDSBlockParameters(sortedDSPoWSolns, sortedPoWSolns, powDSWinners,
+                               dsDifficulty, difficulty, blockNum, prevHash);
 
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
@@ -523,6 +513,49 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 
   ComputeTxnSharingAssignments(proposedDSMembersInfo);
+
+  // Compute the DSBlockHashSet member of the DSBlockHeader
+  DSBlockHashSet dsBlockHashSet;
+  if (!Messenger::GetShardingStructureHash(m_shards,
+                                           dsBlockHashSet.m_shardingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardingStructureHash failed.");
+    return false;
+  }
+  if (!Messenger::GetTxSharingAssignmentsHash(m_DSReceivers, m_shardReceivers,
+                                              m_shardSenders,
+                                              dsBlockHashSet.m_txSharingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetTxSharingAssignmentsHash failed.");
+    return false;
+  }
+
+  // Compute the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+
+  // Assemble DS block
+  // To-do: Handle exceptions.
+  // TODO: Revise DS block structure
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
+                      SWInfo(), powDSWinners, dsBlockHashSet, committeeHash),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "New DSBlock created with ds difficulty "
+                << std::to_string(dsDifficulty) << " and difficulty "
+                << std::to_string(difficulty));
 
   // Create new consensus object
   uint32_t consensusID = 0;
@@ -678,6 +711,55 @@ bool DirectoryService::DSBlockValidator(
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << m_pendingDSBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Verify the DSBlockHashSet member of the DSBlockHeader
+  ShardingHash shardingHash;
+  if (!Messenger::GetShardingStructureHash(m_tempShards, shardingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardingStructureHash failed.");
+    return false;
+  }
+  if (shardingHash != m_pendingDSBlock->GetHeader().GetShardingHash()) {
+    LOG_GENERAL(WARNING,
+                "Sharding structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << shardingHash << " Received: "
+                    << m_pendingDSBlock->GetHeader().GetShardingHash());
+    return false;
+  }
+  TxSharingHash txSharingHash;
+  if (!Messenger::GetTxSharingAssignmentsHash(
+          m_tempDSReceivers, m_tempShardReceivers, m_tempShardSenders,
+          txSharingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetTxSharingAssignmentsHash failed.");
+    return false;
+  }
+  if (txSharingHash != m_pendingDSBlock->GetHeader().GetTxSharingHash()) {
+    LOG_GENERAL(WARNING,
+                "Tx sharing structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << txSharingHash << " Received: "
+                    << m_pendingDSBlock->GetHeader().GetTxSharingHash());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != m_pendingDSBlock->GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received DS Block doesn't match. "
+                "Calculated: "
+                    << committeeHash << " Received: "
+                    << m_pendingDSBlock->GetHeader().GetCommitteeHash());
     return false;
   }
 
