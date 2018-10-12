@@ -100,7 +100,7 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_mutexSetTxBlockFromSeed;
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
-  std::mutex m_mutexOfflineLookups;
+  std::mutex mutable m_mutexLookupNodes;
   std::mutex m_mutexMicroBlocksBuffer;
 
   std::vector<unsigned char> ComposeGetDSInfoMessage();
@@ -137,7 +137,7 @@ class Lookup : public Executable, public Broadcastable {
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
-  const VectorOfLookupNode& GetLookupNodes() const;
+  VectorOfLookupNode GetLookupNodes() const;
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
