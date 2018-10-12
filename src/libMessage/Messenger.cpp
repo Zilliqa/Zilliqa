@@ -1010,10 +1010,10 @@ bool RepeatableToArray(const T& repeatable, vector<unsigned char>& dst,
   return true;
 }
 
-template <class T>
+template <class T, size_t S>
 void NumberToArray(const T& number, vector<unsigned char>& dst,
                    const unsigned int offset) {
-  Serializable::SetNumber<T>(dst, offset, number, sizeof(T));
+  Serializable::SetNumber<T>(dst, offset, number, S);
 }
 
 bool SetConsensusAnnouncementCore(
@@ -3611,7 +3611,7 @@ bool Messenger::SetLookupSetStartPoWFromSeed(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   std::vector<unsigned char> tmp;
-  NumberToArray(blockNumber, tmp, 0);
+  NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, 0);
 
   Signature signature;
   if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
@@ -3645,7 +3645,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(
   }
 
   std::vector<unsigned char> tmp;
-  NumberToArray<uint64_t>(result.blocknumber(), tmp, 0);
+  NumberToArray<uint64_t, sizeof(uint64_t)>(result.blocknumber(), tmp, 0);
 
   Signature signature;
   if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
