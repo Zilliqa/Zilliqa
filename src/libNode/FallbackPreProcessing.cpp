@@ -195,7 +195,7 @@ void Node::UpdateFallbackConsensusLeader() {
   }
 
   m_consensusLeaderID++;
-  m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
+  m_consensusLeaderID = m_consensusLeaderID % m_myShardMembers->size();
 
   if (m_consensusMyID == m_consensusLeaderID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
