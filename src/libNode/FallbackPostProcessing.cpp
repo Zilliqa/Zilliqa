@@ -95,14 +95,14 @@ void Node::ProcessFallbackConsensusWhenDone() {
   vector<unsigned char> dst;
   dst.clear();
 
-  if (!Messenger::SetFallbackBlockWShardingStructure(
-          dst, 0, *m_pendingFallbackBlock, m_mediator.m_ds->m_shards)) {
-    LOG_GENERAL(WARNING, "Unable to set FallbackBlock with sharding structure");
-  }
-
-  if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
-          m_pendingFallbackBlock->GetBlockHash(), dst)) {
-    LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+  FallbackBlockWShardingStructure fbblockwshards(*m_pendingFallbackBlock,
+                                                 m_mediator.m_ds->m_shards);
+  if (!fbblockwshards.Serialize(dst, 0)) {
+    LOG_GENERAL(WARNING, "Failed to Serialize");
+    if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+            m_pendingFallbackBlock->GetBlockHash(), dst)) {
+      LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+    }
   }
 
   Peer leaderNetworkInfo =

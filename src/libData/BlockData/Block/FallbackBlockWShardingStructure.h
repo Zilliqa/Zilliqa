@@ -30,6 +30,8 @@ struct FallbackBlockWShardingStructure {
   FallbackBlockWShardingStructure();
   FallbackBlockWShardingStructure(const std::vector<unsigned char>& src,
                                   unsigned int offset);
+  FallbackBlockWShardingStructure(const FallbackBlock& fallbackblock,
+                                  const DequeOfShard& shards);
 
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset);
 

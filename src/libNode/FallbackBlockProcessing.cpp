@@ -240,14 +240,15 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
   vector<unsigned char> dst;
   dst.clear();
 
-  if (!Messenger::SetFallbackBlockWShardingStructure(
-          dst, 0, fallbackblock, m_mediator.m_ds->m_shards)) {
-    LOG_GENERAL(WARNING, "Unable to set FallbackBlock with sharding structure");
-  }
+  FallbackBlockWShardingStructure fbblockwshards(fallbackblock,
+                                                 m_mediator.m_ds->m_shards);
 
-  if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
-          fallbackblock.GetBlockHash(), dst)) {
-    LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+  if (!fbblockwshards.Serialize(dst, 0)) {
+    LOG_GENERAL(WARNING, "Failed to deserialize");
+    if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+            fallbackblock.GetBlockHash(), dst)) {
+      LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+    }
   }
 
   FallbackTimerPulse();

@@ -23,6 +23,12 @@
 FallbackBlockWShardingStructure::FallbackBlockWShardingStructure() {}
 
 FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
+    const FallbackBlock& fallbackblock, const DequeOfShard& shards) {
+  m_fallbackblock = fallbackblock;
+  m_shards = shards;
+}
+
+FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
     const std::vector<unsigned char>& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "Failed to initialize");
