@@ -1010,6 +1010,12 @@ bool RepeatableToArray(const T& repeatable, vector<unsigned char>& dst,
   return true;
 }
 
+template <class T>
+void NumberToArray(const T& number, vector<unsigned char>& dst,
+                   const unsigned int offset) {
+  Serializable::SetNumber<T>(dst, offset, number, sizeof(T));
+}
+
 bool SetConsensusAnnouncementCore(
     ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, uint64_t blockNumber,
@@ -3605,7 +3611,7 @@ bool Messenger::SetLookupSetStartPoWFromSeed(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   std::vector<unsigned char> tmp;
-  Serializable::SetNumber<uint64_t>(tmp, 0, blockNumber, sizeof(uint64_t));
+  NumberToArray(blockNumber, tmp, 0);
 
   Signature signature;
   if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
@@ -3639,8 +3645,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(
   }
 
   std::vector<unsigned char> tmp;
-  Serializable::SetNumber<uint64_t>(tmp, 0, result.blocknumber(),
-                                    sizeof(uint64_t));
+  NumberToArray<uint64_t>(result.blocknumber(), tmp, 0);
 
   Signature signature;
   if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
