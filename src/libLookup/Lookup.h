@@ -277,7 +277,6 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessSetStartPoWFromSeed(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
 
-
   bool ProcessGetDirectoryBlocksFromSeed(
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
