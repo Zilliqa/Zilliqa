@@ -99,6 +99,20 @@ void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
   }
 }
 
+void DSCommitteeToProtoCommittee(const deque<pair<PubKey, Peer>>& dsCommittee,
+                                 ProtoCommittee& protoCommittee) {
+  for (const auto& node : dsCommittee) {
+    SerializableToProtobufByteArray(node.first, *protoCommittee.add_members());
+  }
+}
+
+void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
+  for (const auto& node : shard) {
+    SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
+                                    *protoCommittee.add_members());
+  }
+}
+
 void ShardingStructureToProtobuf(
     const DequeOfShard& shards,
     ProtoShardingStructure& protoShardingStructure) {
@@ -212,8 +226,6 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
 
   ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
       protoDSBlockHeader.mutable_hash();
-  protoHeaderHash->set_dscommhash(dsBlockHeader.GetDSCommHash().data(),
-                                  dsBlockHeader.GetDSCommHash().size);
   protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
                                     dsBlockHeader.GetShardingHash().size);
   protoHeaderHash->set_txsharinghash(dsBlockHeader.GetTxSharingHash().data(),
@@ -221,6 +233,9 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
   protoHeaderHash->set_reservedfield(
       dsBlockHeader.GetHashSetReservedField().data(),
       dsBlockHeader.GetHashSetReservedField().size());
+
+  protoDSBlockHeader.set_committeehash(dsBlockHeader.GetCommitteeHash().data(),
+                                       dsBlockHeader.GetCommitteeHash().size);
 }
 
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
@@ -260,6 +275,7 @@ void ProtobufToDSBlockHeader(
   PubKey leaderPubKey;
   uint256_t timestamp;
   SWInfo swInfo;
+  CommitteeHash committeeHash;
 
   copy(protoDSBlockHeader.prevhash().begin(),
        protoDSBlockHeader.prevhash().begin() +
@@ -286,11 +302,6 @@ void ProtobufToDSBlockHeader(
   DSBlockHashSet hash;
   const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
       protoDSBlockHeader.hash();
-  copy(protoDSBlockHeaderHash.dscommhash().begin(),
-       protoDSBlockHeaderHash.dscommhash().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.dscommhash().size(),
-               (unsigned int)hash.m_dsCommHash.size),
-       hash.m_dsCommHash.asArray().begin());
   copy(protoDSBlockHeaderHash.shardinghash().begin(),
        protoDSBlockHeaderHash.shardinghash().begin() +
            min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
@@ -307,12 +318,18 @@ void ProtobufToDSBlockHeader(
                (unsigned int)hash.m_reservedField.size()),
        hash.m_reservedField.begin());
 
+  copy(protoDSBlockHeader.committeehash().begin(),
+       protoDSBlockHeader.committeehash().begin() +
+           min((unsigned int)protoDSBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
-                                protoDSBlockHeader.difficulty(), prevHash,
-                                leaderPubKey, protoDSBlockHeader.blocknum(),
-                                timestamp, swInfo, powDSWinners, hash);
+  dsBlockHeader = DSBlockHeader(
+      protoDSBlockHeader.dsdifficulty(), protoDSBlockHeader.difficulty(),
+      prevHash, leaderPubKey, protoDSBlockHeader.blocknum(), timestamp, swInfo,
+      powDSWinners, hash, committeeHash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -384,6 +401,10 @@ void MicroBlockHeaderToProtobuf(
   protoMicroBlockHeader.set_tranreceipthash(
       microBlockHeader.GetTranReceiptHash().data(),
       microBlockHeader.GetTranReceiptHash().size);
+
+  protoMicroBlockHeader.set_committeehash(
+      microBlockHeader.GetCommitteeHash().data(),
+      microBlockHeader.GetCommitteeHash().size);
 }
 
 void MicroBlockToProtobuf(const MicroBlock& microBlock,
@@ -430,6 +451,7 @@ void ProtobufToMicroBlockHeader(
   BlockHash dsBlockHeader;
   StateHash stateDeltaHash;
   TxnHash tranReceiptHash;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoMicroBlockHeader.gaslimit(), gasLimit);
@@ -465,13 +487,19 @@ void ProtobufToMicroBlockHeader(
                (unsigned int)tranReceiptHash.size),
        tranReceiptHash.asArray().begin());
 
+  copy(protoMicroBlockHeader.committeehash().begin(),
+       protoMicroBlockHeader.committeehash().begin() +
+           min((unsigned int)protoMicroBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
       protoMicroBlockHeader.shardid(), gasLimit, gasUsed, prevHash,
       protoMicroBlockHeader.blocknum(), timestamp, txRootHash,
       protoMicroBlockHeader.numtxs(), minerPubKey,
       protoMicroBlockHeader.dsblocknum(), dsBlockHeader, stateDeltaHash,
-      tranReceiptHash);
+      tranReceiptHash, committeeHash);
 }
 
 void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
@@ -550,6 +578,9 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
   protoTxBlockHeader.set_dsblocknum(txBlockHeader.GetDSBlockNum());
   protoTxBlockHeader.set_dsblockheader(txBlockHeader.GetDSBlockHeader().data(),
                                        txBlockHeader.GetDSBlockHeader().size);
+
+  protoTxBlockHeader.set_committeehash(txBlockHeader.GetCommitteeHash().data(),
+                                       txBlockHeader.GetCommitteeHash().size);
 }
 
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
@@ -612,6 +643,7 @@ void ProtobufToTxBlockHeader(
   TxBlockHashSet hash;
   PubKey minerPubKey;
   BlockHash dsBlockHeader;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoTxBlockHeader.gaslimit(), gasLimit);
@@ -662,13 +694,20 @@ void ProtobufToTxBlockHeader(
                (unsigned int)dsBlockHeader.size),
        dsBlockHeader.asArray().begin());
 
+  copy(protoTxBlockHeader.committeehash().begin(),
+       protoTxBlockHeader.committeehash().begin() +
+           min((unsigned int)protoTxBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   txBlockHeader = TxBlockHeader(
       protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
       gasUsed, prevHash, protoTxBlockHeader.blocknum(), timestamp,
       hash.m_txRootHash, hash.m_stateRootHash, hash.m_deltaRootHash,
       hash.m_stateDeltaHash, hash.m_tranReceiptRootHash,
       protoTxBlockHeader.numtxs(), protoTxBlockHeader.nummicroblockhashes(),
-      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHeader);
+      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHeader,
+      committeeHash);
 }
 
 void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
@@ -762,6 +801,9 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       vcBlockHeader.GetTimeStamp(), *protoVCBlockHeader.mutable_timestamp());
+
+  protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
+                                       vcBlockHeader.GetCommitteeHash().size);
 }
 
 void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
@@ -800,6 +842,7 @@ void ProtobufToVCBlockHeader(
   Peer candidateLeaderNetworkInfo;
   PubKey candidateLeaderPubKey;
   uint256_t timestamp;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToSerializable(
       protoVCBlockHeader.candidateleadernetworkinfo(),
@@ -809,12 +852,19 @@ void ProtobufToVCBlockHeader(
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoVCBlockHeader.timestamp(), timestamp);
 
-  vcBlockHeader = VCBlockHeader(
-      protoVCBlockHeader.viewchangedsepochno(),
-      protoVCBlockHeader.viewchangeepochno(),
-      protoVCBlockHeader.viewchangestate(),
-      protoVCBlockHeader.candidateleaderindex(), candidateLeaderNetworkInfo,
-      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), timestamp);
+  copy(protoVCBlockHeader.committeehash().begin(),
+       protoVCBlockHeader.committeehash().begin() +
+           min((unsigned int)protoVCBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
+  vcBlockHeader =
+      VCBlockHeader(protoVCBlockHeader.viewchangedsepochno(),
+                    protoVCBlockHeader.viewchangeepochno(),
+                    protoVCBlockHeader.viewchangestate(),
+                    protoVCBlockHeader.candidateleaderindex(),
+                    candidateLeaderNetworkInfo, candidateLeaderPubKey,
+                    protoVCBlockHeader.vccounter(), timestamp, committeeHash);
 }
 
 void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
@@ -880,6 +930,10 @@ void FallbackBlockHeaderToProtobuf(
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       fallbackBlockHeader.GetTimeStamp(),
       *protoFallbackBlockHeader.mutable_timestamp());
+
+  protoFallbackBlockHeader.set_committeehash(
+      fallbackBlockHeader.GetCommitteeHash().data(),
+      fallbackBlockHeader.GetCommitteeHash().size);
 }
 
 void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
@@ -922,6 +976,7 @@ void ProtobufToFallbackBlockHeader(
   PubKey leaderPubKey;
   uint256_t timestamp;
   StateHash stateRootHash;
+  CommitteeHash committeeHash;
 
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leadernetworkinfo(),
                                   leaderNetworkInfo);
@@ -936,12 +991,19 @@ void ProtobufToFallbackBlockHeader(
                (unsigned int)stateRootHash.size),
        stateRootHash.asArray().begin());
 
+  copy(protoFallbackBlockHeader.committeehash().begin(),
+       protoFallbackBlockHeader.committeehash().begin() +
+           min((unsigned int)protoFallbackBlockHeader.committeehash().size(),
+               (unsigned int)committeeHash.size),
+       committeeHash.asArray().begin());
+
   fallbackBlockHeader = FallbackBlockHeader(
       protoFallbackBlockHeader.fallbackdsepochno(),
       protoFallbackBlockHeader.fallbackepochno(),
       protoFallbackBlockHeader.fallbackstate(), stateRootHash,
       protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
-      leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp);
+      leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp,
+      committeeHash);
 }
 
 void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
@@ -995,6 +1057,26 @@ bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
 
   return protoMessage.SerializeToArray(dst.data() + offset,
                                        protoMessage.ByteSize());
+}
+
+template <class T>
+bool RepeatableToArray(const T& repeatable, vector<unsigned char>& dst,
+                       const unsigned int offset) {
+  int tempOffset = offset;
+  for (const auto& element : repeatable) {
+    if (!SerializeToArray(element, dst, tempOffset)) {
+      LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
+      return false;
+    }
+    tempOffset += element.ByteSize();
+  }
+  return true;
+}
+
+template <class T, size_t S>
+void NumberToArray(const T& number, vector<unsigned char>& dst,
+                   const unsigned int offset) {
+  Serializable::SetNumber<T>(dst, offset, number, S);
 }
 
 bool SetConsensusAnnouncementCore(
@@ -1229,20 +1311,46 @@ bool GetConsensusAnnouncementCore(
 // ============================================================================
 
 bool Messenger::GetDSCommitteeHash(const deque<pair<PubKey, Peer>>& dsCommittee,
-                                   DSCommHash& dst) {
-  ProtoDSCommittee protoDSCommittee;
+                                   CommitteeHash& dst) {
+  ProtoCommittee protoCommittee;
 
-  DSCommitteeToProtobuf(dsCommittee, protoDSCommittee);
+  DSCommitteeToProtoCommittee(dsCommittee, protoCommittee);
 
-  if (!protoDSCommittee.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSCommittee initialization failed.");
+  if (!protoCommittee.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoCommittee initialization failed.");
     return false;
   }
 
   vector<unsigned char> tmp;
 
-  if (!SerializeToArray(protoDSCommittee, tmp, 0)) {
-    LOG_GENERAL(WARNING, "ProtoDSCommittee serialization failed.");
+  if (!SerializeToArray(protoCommittee, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoCommittee serialization failed.");
+    return false;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(tmp);
+  tmp = sha2.Finalize();
+
+  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
+
+  return true;
+}
+
+bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
+  ProtoCommittee protoCommittee;
+
+  ShardToProtoCommittee(shard, protoCommittee);
+
+  if (!protoCommittee.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoCommittee initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp;
+
+  if (!SerializeToArray(protoCommittee, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoCommittee serialization failed.");
     return false;
   }
 
@@ -2074,13 +2182,12 @@ bool Messenger::GetDSVCBlockAnnouncement(
 // Node messages
 // ============================================================================
 
-bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
-                               const unsigned int offset,
-                               const uint32_t shardId, const DSBlock& dsBlock,
-                               const DequeOfShard& shards,
-                               const vector<Peer>& dsReceivers,
-                               const vector<vector<Peer>>& shardReceivers,
-                               const vector<vector<Peer>>& shardSenders) {
+bool Messenger::SetNodeVCDSBlocksMessage(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t shardId, const DSBlock& dsBlock,
+    const std::vector<VCBlock>& vcBlocks, const DequeOfShard& shards,
+    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
+    const vector<vector<Peer>>& shardSenders) {
   LOG_MARKER();
 
   NodeDSBlock result;
@@ -2088,6 +2195,9 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
   result.set_shardid(shardId);
   DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
 
+  for (const auto& vcblock : vcBlocks) {
+    VCBlockToProtobuf(vcblock, *result.add_vcblocks());
+  }
   ShardingStructureToProtobuf(shards, *result.mutable_sharding());
 
   TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
@@ -2101,12 +2211,11 @@ bool Messenger::SetNodeDSBlock(vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
-                               const unsigned int offset, uint32_t& shardId,
-                               DSBlock& dsBlock, DequeOfShard& shards,
-                               vector<Peer>& dsReceivers,
-                               vector<vector<Peer>>& shardReceivers,
-                               vector<vector<Peer>>& shardSenders) {
+bool Messenger::GetNodeVCDSBlocksMessage(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint32_t& shardId, DSBlock& dsBlock, std::vector<VCBlock>& vcBlocks,
+    DequeOfShard& shards, vector<Peer>& dsReceivers,
+    vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders) {
   LOG_MARKER();
 
   NodeDSBlock result;
@@ -2120,6 +2229,12 @@ bool Messenger::GetNodeDSBlock(const vector<unsigned char>& src,
 
   shardId = result.shardid();
   ProtobufToDSBlock(result.dsblock(), dsBlock);
+
+  for (const auto& proto_vcblock : result.vcblocks()) {
+    VCBlock vcblock;
+    ProtobufToVCBlock(proto_vcblock, vcblock);
+    vcBlocks.emplace_back(move(vcblock));
+  }
 
   ProtobufToShardingStructure(result.sharding(), shards);
 
@@ -2300,6 +2415,7 @@ bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
 bool Messenger::SetNodeForwardTxnBlock(
     std::vector<unsigned char>& dst, const unsigned int offset,
     const uint64_t epochNumber, const uint32_t shardId,
+    const std::pair<PrivKey, PubKey>& lookupKey,
     const std::vector<Transaction>& txnsCurrent,
     const std::vector<unsigned char>& txnsGenerated) {
   LOG_MARKER();
@@ -2308,6 +2424,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
   result.set_epochnumber(epochNumber);
   result.set_shardid(shardId);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   unsigned int txnsCurrentCount = 0;
   unsigned int txnsGeneratedCount = 0;
@@ -2331,6 +2448,22 @@ bool Messenger::SetNodeForwardTxnBlock(
     txnsGeneratedCount++;
   }
 
+  Signature signature;
+  if (result.transactions().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign transactions.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeForwardTxnBlock initialization failed.");
     return false;
@@ -2346,6 +2479,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                        const unsigned int offset,
                                        uint64_t& epochNumber, uint32_t& shardId,
+                                       PubKey& lookupPubKey,
                                        std::vector<Transaction>& txns) {
   LOG_MARKER();
 
@@ -2360,11 +2494,27 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
 
   epochNumber = result.epochnumber();
   shardId = result.shardid();
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
-  for (const auto& txn : result.transactions()) {
-    Transaction t;
-    ProtobufByteArrayToSerializable(txn, t);
-    txns.emplace_back(t);
+  if (result.transactions().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
+    Signature signature;
+    ProtobufByteArrayToSerializable(result.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in transactions.");
+      return false;
+    }
+
+    for (const auto& txn : result.transactions()) {
+      Transaction t;
+      ProtobufByteArrayToSerializable(txn, t);
+      txns.emplace_back(t);
+    }
   }
 
   LOG_GENERAL(INFO, "Epoch: " << epochNumber << " Shard: " << shardId
@@ -2632,9 +2782,10 @@ bool Messenger::GetLookupGetSeedPeers(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetLookupSetSeedPeers(vector<unsigned char>& dst,
-                                      const unsigned int offset,
-                                      const vector<Peer>& candidateSeeds) {
+bool Messenger::SetLookupSetSeedPeers(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey,
+    const vector<Peer>& candidateSeeds) {
   LOG_MARKER();
 
   LookupSetSeedPeers result;
@@ -2656,6 +2807,24 @@ bool Messenger::SetLookupSetSeedPeers(vector<unsigned char>& dst,
                                     *result.add_candidateseeds());
   }
 
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (result.candidateseeds().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize candidate seeds.");
+      return false;
+    }
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign candidate seeds.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetSeedPeers initialization failed.");
     return false;
@@ -2666,6 +2835,7 @@ bool Messenger::SetLookupSetSeedPeers(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
                                       const unsigned int offset,
+                                      PubKey& lookupPubKey,
                                       vector<Peer>& candidateSeeds) {
   LOG_MARKER();
 
@@ -2678,10 +2848,28 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
     return false;
   }
 
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+
   for (const auto& peer : result.candidateseeds()) {
     Peer seedPeer;
     ProtobufByteArrayToSerializable(peer, seedPeer);
     candidateSeeds.emplace_back(seedPeer);
+  }
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (result.candidateseeds().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize candidate seeds.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in candidate seeds.");
+      return false;
+    }
   }
 
   return true;
@@ -2725,12 +2913,30 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupSetDSInfoFromSeed(
     vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& senderKey,
     const deque<pair<PubKey, Peer>>& dsNodes) {
   LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;
 
   DSCommitteeToProtobuf(dsNodes, *result.mutable_dscommittee());
+
+  SerializableToProtobufByteArray(senderKey.second, *result.mutable_pubkey());
+
+  std::vector<unsigned char> tmp;
+  if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize DS committee.");
+    return false;
+  }
+
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, senderKey.first, senderKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign DS committee.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
@@ -2742,12 +2948,14 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
 
 bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
+                                           PubKey& senderPubKey,
                                            deque<pair<PubKey, Peer>>& dsNodes) {
   LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
+  ProtobufByteArrayToSerializable(result.pubkey(), senderPubKey);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
@@ -2755,6 +2963,20 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
   }
 
   ProtobufToDSCommittee(result.dscommittee(), dsNodes);
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  std::vector<unsigned char> tmp;
+  if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize DS committee.");
+    return false;
+  }
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in DS nodes info.");
+    return false;
+  }
 
   return true;
 }
@@ -2803,11 +3025,11 @@ bool Messenger::GetLookupGetDSBlockFromSeed(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetLookupSetDSBlockFromSeed(vector<unsigned char>& dst,
-                                            const unsigned int offset,
-                                            const uint64_t lowBlockNum,
-                                            const uint64_t highBlockNum,
-                                            const vector<DSBlock>& dsBlocks) {
+bool Messenger::SetLookupSetDSBlockFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t lowBlockNum, const uint64_t highBlockNum,
+    const std::pair<PrivKey, PubKey>& lookupKey,
+    const vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
   LookupSetDSBlockFromSeed result;
@@ -2815,9 +3037,28 @@ bool Messenger::SetLookupSetDSBlockFromSeed(vector<unsigned char>& dst,
   result.set_lowblocknum(lowBlockNum);
   result.set_highblocknum(highBlockNum);
 
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
   for (const auto& dsblock : dsBlocks) {
     DSBlockToProtobuf(dsblock, *result.add_dsblocks());
   }
+
+  Signature signature;
+  if (result.dsblocks().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign DS blocks.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed initialization failed.");
@@ -2831,6 +3072,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
                                             const unsigned int offset,
                                             uint64_t& lowBlockNum,
                                             uint64_t& highBlockNum,
+                                            PubKey& lookupPubKey,
                                             vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
@@ -2845,11 +3087,28 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
 
   lowBlockNum = result.lowblocknum();
   highBlockNum = result.highblocknum();
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
   for (const auto& proto_dsblock : result.dsblocks()) {
     DSBlock dsblock;
     ProtobufToDSBlock(proto_dsblock, dsblock);
     dsBlocks.emplace_back(dsblock);
+  }
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (result.dsblocks().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in DS blocks.");
+      return false;
+    }
   }
 
   return true;
@@ -2899,11 +3158,11 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetLookupSetTxBlockFromSeed(vector<unsigned char>& dst,
-                                            const unsigned int offset,
-                                            const uint64_t lowBlockNum,
-                                            const uint64_t highBlockNum,
-                                            const vector<TxBlock>& txBlocks) {
+bool Messenger::SetLookupSetTxBlockFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t lowBlockNum, const uint64_t highBlockNum,
+    const std::pair<PrivKey, PubKey>& lookupKey,
+    const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   LookupSetTxBlockFromSeed result;
@@ -2914,6 +3173,25 @@ bool Messenger::SetLookupSetTxBlockFromSeed(vector<unsigned char>& dst,
   for (const auto& txblock : txBlocks) {
     TxBlockToProtobuf(txblock, *result.add_txblocks());
   }
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (result.txblocks().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetTxBlockFromSeed initialization failed.");
@@ -2927,6 +3205,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
                                             const unsigned int offset,
                                             uint64_t& lowBlockNum,
                                             uint64_t& highBlockNum,
+                                            PubKey& lookupPubKey,
                                             vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
@@ -2946,6 +3225,23 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
     TxBlock block;
     ProtobufToTxBlock(txblock, block);
     txBlocks.emplace_back(block);
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (result.txblocks().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
+      return false;
+    }
   }
 
   return true;
@@ -3104,14 +3400,32 @@ bool Messenger::GetLookupGetStateFromSeed(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStateFromSeed(vector<unsigned char>& dst,
-                                          const unsigned int offset,
-                                          const AccountStore& accountStore) {
+bool Messenger::SetLookupSetStateFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey,
+    const AccountStore& accountStore) {
   LOG_MARKER();
 
   LookupSetStateFromSeed result;
 
   SerializableToProtobufByteArray(accountStore, *result.mutable_accounts());
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+  Signature signature;
+
+  std::vector<unsigned char> tmp;
+  if (!SerializeToArray(result.accounts(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize accounts.");
+    return false;
+  }
+
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign accounts.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetStateFromSeed initialization failed.");
@@ -3123,6 +3437,7 @@ bool Messenger::SetLookupSetStateFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupSetStateFromSeed(const vector<unsigned char>& src,
                                           const unsigned int offset,
+                                          PubKey& lookupPubKey,
                                           AccountStore& accountStore) {
   LOG_MARKER();
 
@@ -3136,6 +3451,21 @@ bool Messenger::GetLookupSetStateFromSeed(const vector<unsigned char>& src,
   }
 
   ProtobufByteArrayToSerializable(result.accounts(), accountStore);
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  std::vector<unsigned char> tmp;
+  if (!SerializeToArray(result.accounts(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize accounts.");
+    return false;
+  }
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in accounts.");
+    return false;
+  }
 
   return true;
 }
@@ -3178,12 +3508,14 @@ bool Messenger::GetLookupSetLookupOffline(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupSetLookupOnline(vector<unsigned char>& dst,
                                          const unsigned int offset,
-                                         const uint32_t listenPort) {
+                                         const uint32_t listenPort,
+                                         const PubKey& pubKey) {
   LOG_MARKER();
 
   LookupSetLookupOnline result;
 
   result.set_listenport(listenPort);
+  SerializableToProtobufByteArray(pubKey, *result.mutable_pubkey());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
@@ -3195,7 +3527,7 @@ bool Messenger::SetLookupSetLookupOnline(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupSetLookupOnline(const vector<unsigned char>& src,
                                          const unsigned int offset,
-                                         uint32_t& listenPort) {
+                                         uint32_t& listenPort, PubKey& pubKey) {
   LOG_MARKER();
 
   LookupSetLookupOnline result;
@@ -3208,6 +3540,8 @@ bool Messenger::GetLookupSetLookupOnline(const vector<unsigned char>& src,
   }
 
   listenPort = result.listenport();
+
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
 
   return true;
 }
@@ -3248,9 +3582,9 @@ bool Messenger::GetLookupGetOfflineLookups(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetLookupSetOfflineLookups(vector<unsigned char>& dst,
-                                           const unsigned int offset,
-                                           const vector<Peer>& nodes) {
+bool Messenger::SetLookupSetOfflineLookups(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey, const vector<Peer>& nodes) {
   LOG_MARKER();
 
   LookupSetOfflineLookups result;
@@ -3258,6 +3592,24 @@ bool Messenger::SetLookupSetOfflineLookups(vector<unsigned char>& dst,
   for (const auto& node : nodes) {
     SerializableToProtobufByteArray(node, *result.add_nodes());
   }
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+  Signature signature;
+  if (result.nodes().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.nodes(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign offline lookup nodes.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetOfflineLookups initialization failed.");
@@ -3269,6 +3621,7 @@ bool Messenger::SetLookupSetOfflineLookups(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupSetOfflineLookups(const vector<unsigned char>& src,
                                            const unsigned int offset,
+                                           PubKey& lookupPubKey,
                                            vector<Peer>& nodes) {
   LOG_MARKER();
 
@@ -3285,6 +3638,23 @@ bool Messenger::GetLookupSetOfflineLookups(const vector<unsigned char>& src,
     Peer node;
     ProtobufByteArrayToSerializable(lookup, node);
     nodes.emplace_back(node);
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (result.nodes().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.nodes(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in offline lookup nodes.");
+      return false;
+    }
   }
 
   return true;
@@ -3326,6 +3696,65 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const vector<unsigned char>& src,
   return true;
 }
 
+bool Messenger::SetLookupSetStartPoWFromSeed(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t blockNumber, const std::pair<PrivKey, PubKey>& lookupKey) {
+  LOG_MARKER();
+
+  LookupSetStartPoWFromSeed result;
+
+  result.set_blocknumber(blockNumber);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  std::vector<unsigned char> tmp;
+  NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, 0);
+
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign start PoW message.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetStartPoWFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetStartPoWFromSeed(
+    const std::vector<unsigned char>& src, const unsigned int offset,
+    PubKey& lookupPubKey) {
+  LOG_MARKER();
+
+  LookupSetStartPoWFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
+    return false;
+  }
+
+  std::vector<unsigned char> tmp;
+  NumberToArray<uint64_t, sizeof(uint64_t)>(result.blocknumber(), tmp, 0);
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in start PoW message.");
+    return false;
+  }
+
+  return true;
+}
+
 bool Messenger::SetLookupGetShardsFromSeed(vector<unsigned char>& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
@@ -3362,14 +3791,30 @@ bool Messenger::GetLookupGetShardsFromSeed(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
-                                           const unsigned int offset,
-                                           const DequeOfShard& shards) {
+bool Messenger::SetLookupSetShardsFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey, const DequeOfShard& shards) {
   LOG_MARKER();
 
   LookupSetShardsFromSeed result;
 
   ShardingStructureToProtobuf(shards, *result.mutable_sharding());
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+  Signature signature;
+  std::vector<unsigned char> tmp;
+  if (!SerializeToArray(result.sharding(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize sharding structure.");
+    return false;
+  }
+
+  if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign sharding structure.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetShardsFromSeed initialization failed.");
@@ -3381,6 +3826,7 @@ bool Messenger::SetLookupSetShardsFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
+                                           PubKey& lookupPubKey,
                                            DequeOfShard& shards) {
   LOG_MARKER();
 
@@ -3394,6 +3840,21 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
   }
 
   ProtobufToShardingStructure(result.sharding(), shards);
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  std::vector<unsigned char> tmp;
+  if (!SerializeToArray(result.sharding(), tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize sharding structure.");
+    return false;
+  }
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in sharding structure.");
+    return false;
+  }
 
   return true;
 }
@@ -3453,6 +3914,7 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
 
 bool Messenger::SetLookupSetMicroBlockFromLookup(
     vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey,
     const vector<MicroBlock>& mbs) {
   LOG_MARKER();
   LookupSetMicroBlockFromLookup result;
@@ -3466,12 +3928,30 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
     return false;
   }
 
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+  Signature signature;
+  if (result.microblocks().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize micro blocks.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign micro blocks.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
   return SerializeToArray(result, dst, offset);
 }
 
 bool Messenger::GetLookupSetMicroBlockFromLookup(
     const vector<unsigned char>& src, const unsigned int offset,
-    vector<MicroBlock>& mbs) {
+    PubKey& lookupPubKey, vector<MicroBlock>& mbs) {
   LOG_MARKER();
   LookupSetMicroBlockFromLookup result;
 
@@ -3480,6 +3960,23 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetMicroBlockFromLookup initialization failed");
     return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (result.microblocks().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize micro blocks.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in micro blocks.");
+      return false;
+    }
   }
 
   for (const auto& res_mb : result.microblocks()) {
@@ -3543,6 +4040,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupSetTxnsFromLookup(
     vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey,
     const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
@@ -3551,6 +4049,24 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   for (auto const& txn : txns) {
     SerializableToProtobufByteArray(txn, *result.add_transactions());
   }
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+  Signature signature;
+  if (result.transactions().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign transactions.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetTxnsFromLookup initialization failure");
@@ -3562,7 +4078,7 @@ bool Messenger::SetLookupSetTxnsFromLookup(
 
 bool Messenger::GetLookupSetTxnsFromLookup(
     const vector<unsigned char>& src, const unsigned int offset,
-    vector<TransactionWithReceipt>& txns) {
+    PubKey& lookupPubKey, vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
   LookupSetTxnsFromLookup result;
@@ -3572,6 +4088,23 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetTxnsFromLookup initialization failed");
     return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (result.transactions().size() > 0) {
+    std::vector<unsigned char> tmp;
+    if (!RepeatableToArray(result.transactions(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize transactions.");
+      return false;
+    }
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in transactions.");
+      return false;
+    }
   }
 
   for (auto const& protoTxn : result.transactions()) {
@@ -3742,7 +4275,7 @@ bool Messenger::SetConsensusChallenge(
 
   if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
                                    signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign commit.");
+    LOG_GENERAL(WARNING, "Failed to sign challenge.");
     return false;
   }
 

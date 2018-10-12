@@ -35,15 +35,13 @@ bool ExplorerDB::InsertTxn(const TransactionWithReceipt& txn) {
 
 bool ExplorerDB::InsertTxBlock(const TxBlock& txblock) {
   Json::Value txblock_json = JSONConversion::convertTxBlocktoJson(txblock);
-  txblock_json["hash"] =
-      DataConversion::Uint8VecToHexStr(HashUtils::SerializableToHash(txblock));
+  txblock_json["hash"] = txblock.GetBlockHash().hex();
   return InsertJson(txblock_json, m_txBlockCollectionName);
 }
 
 bool ExplorerDB::InsertDSBlock(const DSBlock& dsblock) {
   Json::Value dsblock_json = JSONConversion::convertDSblocktoJson(dsblock);
-  dsblock_json["hash"] =
-      DataConversion::Uint8VecToHexStr(HashUtils::SerializableToHash(dsblock));
+  dsblock_json["hash"] = dsblock.GetBlockHash().hex();
   return InsertJson(dsblock_json, m_dsBlockCollectionName);
 }
 

@@ -17,7 +17,6 @@
  * program files.
  */
 
-#include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ShardSizeCalculator.h"
 
@@ -33,9 +32,8 @@ BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 BOOST_AUTO_TEST_CASE(test_lower_bound) {
   INIT_STDOUT_LOGGER();
   uint32_t result = ShardSizeCalculator::CalculateShardSize(100);
-  BOOST_CHECK_MESSAGE(
-      result == COMM_SIZE,
-      "Expected: " + to_string(COMM_SIZE) + ". Result: " + to_string(result));
+  BOOST_CHECK_MESSAGE(result == 651,
+                      "Expected: 651. Result: " + to_string(result));
 }
 
 BOOST_AUTO_TEST_CASE(test_one_shard_normal) {
@@ -70,7 +68,7 @@ BOOST_AUTO_TEST_CASE(test_two_shards_upper_bound) {
   INIT_STDOUT_LOGGER();
   uint32_t result = ShardSizeCalculator::CalculateShardSize(2131);
   BOOST_CHECK_MESSAGE(result == 684,
-                      "Expected: 651. Result: " + to_string(result));
+                      "Expected: 684. Result: " + to_string(result));
 }
 
 BOOST_AUTO_TEST_CASE(test_ten_shards) {
@@ -119,14 +117,14 @@ BOOST_AUTO_TEST_CASE(test_max_shards_exceed_lower_bound) {
   INIT_STDOUT_LOGGER();
   uint32_t result = ShardSizeCalculator::CalculateShardSize(20400);
   BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 816. Result: " + to_string(result));
+                      "Expected: 819. Result: " + to_string(result));
 }
 
 BOOST_AUTO_TEST_CASE(test_max_shards_exceed_normal) {
   INIT_STDOUT_LOGGER();
   uint32_t result = ShardSizeCalculator::CalculateShardSize(1000000);
   BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 816. Result: " + to_string(result));
+                      "Expected: 819. Result: " + to_string(result));
 }
 
 BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound_minus_one) {
@@ -134,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound_minus_one) {
   uint32_t result = ShardSizeCalculator::CalculateShardSize(
       std::numeric_limits<uint32_t>::max() - 1);
   BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 816. Result: " + to_string(result));
+                      "Expected: 819. Result: " + to_string(result));
 }
 
 BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound) {
@@ -142,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound) {
   uint32_t result = ShardSizeCalculator::CalculateShardSize(
       std::numeric_limits<uint32_t>::max());
   BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 816. Result: " + to_string(result) + " " +
+                      "Expected: 819. Result: " + to_string(result) + " " +
                           to_string(std::numeric_limits<uint32_t>::max()));
 }
 
