@@ -77,9 +77,9 @@ int TransactionReceipt::Deserialize(const std::vector<unsigned char>& src,
 
 void TransactionReceipt::SetResult(const bool& result) {
   if (result) {
-    m_tranReceiptObj["success"] = "true";
+    m_tranReceiptObj["success"] = true;
   } else {
-    m_tranReceiptObj["success"] = "false";
+    m_tranReceiptObj["success"] = false;
   }
 }
 
