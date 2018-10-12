@@ -1,4 +1,4 @@
-/**
+/*
 * Copyright (c) 2018 Zilliqa
 * This source code is being disclosed to you solely for the purpose of your participation in
 * testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
@@ -14,7 +14,7 @@
 * and which include a reference to GPLv3 in their program files.
 *
 * Test cases obtained from https://www.di-mgt.com.au/sha_testvectors.html
-**/
+*/
 
 #include <iomanip>
 #include "libCrypto/Sha3.h"
@@ -28,6 +28,11 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(sha3test)
 
+/**
+* \brief SHA256_check_896bitsx3
+*
+* \details Test the SHA256 hash function
+*/
 BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
@@ -56,6 +61,11 @@ BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3) {
   BOOST_CHECK_EQUAL(is_equal, true);
 }
 
+/**
+* \brief SHA256_check_896bitsx3_updatewithoffset
+*
+* \param Test the SHA256 hash function
+*/
 BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3_updatewithoffset) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
@@ -84,6 +94,11 @@ BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3_updatewithoffset) {
   BOOST_CHECK_EQUAL(is_equal, true);
 }
 
+/**
+* \brief SHA512_check_896bitsx3
+*
+* \details Test the SHA512 hash function
+*/
 BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
@@ -114,6 +129,12 @@ BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3) {
   BOOST_CHECK_EQUAL(is_equal, true);
 }
 
+
+/**
+* \brief SHA512_check_896bitsx3_updatewithoffset
+*
+* \details Test the SHA512 hash function
+*/
 BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3_updatewithoffset) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
@@ -142,30 +163,6 @@ BOOST_AUTO_TEST_CASE(SHA512_check_896bitsx3_updatewithoffset) {
       "be0c985302ba1b0d8dc78c086346b533b49c030d99a27daf1139d6e75e");
   is_equal = std::equal(expected.begin(), expected.end(), output.begin());
   BOOST_CHECK_EQUAL(is_equal, true);
-}
-
-/**
-* \brief SHA256_003_update_causes_assert / assert triggered on purpose
-*
-* \param Test the update function by enforcing assertions
-*/
-BOOST_AUTO_TEST_CASE(SHA512_update_causes_assert)
-{
-    const unsigned char input[]
-        = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
-    unsigned int inputSize = strlen((const char*)input);
-    vector<unsigned char> vec;
-    copy(input, input + inputSize, back_inserter(vec));
-
-    SHA3<HASH_TYPE::HASH_VARIANT_512> sha3;
-    ///offset 1 instead of 0 causes assert
-    sha3.Update(vec, 1, inputSize);
-    ///empty input causes assert
-    vec.resize(0);
-    sha3.Update(vec);
-
-    bool result = true;
-    BOOST_CHECK_EQUAL(result, true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

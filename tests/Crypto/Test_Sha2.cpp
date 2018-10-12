@@ -1,25 +1,20 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
- */
-
-/*
- * Test cases obtained from https://www.di-mgt.com.au/sha_testvectors.html
- */
+* Copyright (c) 2018 Zilliqa
+* This source code is being disclosed to you solely for the purpose of your participation in
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
+* the protocols and algorithms that are programmed into, and intended by, the code. You may
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
+* including modifying or publishing the code (or any part of it), and developing or forming
+* another public or private blockchain network. This source code is provided ‘as is’ and no
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
+* and which include a reference to GPLv3 in their program files.
+*
+* Test cases obtained from https://www.di-mgt.com.au/sha_testvectors.html
+*/
 
 #include <iomanip>
 #include "libCrypto/Sha2.h"
@@ -31,16 +26,16 @@
 
 using namespace std;
 
-// Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in
-// windows consider replacing alloca calls with something better though!
+/// Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in
+/// windows consider replacing alloca calls with something better though!
 #define our_alloca(param__) alloca((size_t)(param__))
 
 BOOST_AUTO_TEST_SUITE(sha2test)
 
 /**
-* \brief SHA256_001_check_896bitsx3
+* \brief SHA256_check_896bitsx3
 *
-* \param Test the update function: void Update(const std::vector<unsigned char>& input)
+* \details Test the SHA256 hash function
 */
 BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3)
 {
@@ -72,9 +67,9 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3)
 }
 
 /**
-* \brief SHA256_002_check_896bitsx3_updatewithoffset
+* \brief SHA256_check_896bitsx3_updatewithoffset
 *
-* \param Test the update function: void Update(const std::vector<unsigned char>& input, unsigned int offset, unsigned int size)
+* \details Test the SHA256 hash function
 */
 BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset)
 {
@@ -103,30 +98,6 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset)
       "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1");
   is_equal = std::equal(expected.begin(), expected.end(), output.begin());
   BOOST_CHECK_EQUAL(is_equal, true);
-}
-
-/**
-* \brief SHA256_003_update_causes_assert / assert triggered on purpose
-*
-* \param Test the update function by enforcing assertions
-*/
-BOOST_AUTO_TEST_CASE(SHA256_003_update_causes_assert)
-{
-    const unsigned char input[]
-        = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
-    unsigned int inputSize = strlen((const char*)input);
-    vector<unsigned char> vec;
-    copy(input, input + inputSize, back_inserter(vec));
-
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    ///offset 1 instead of 0 causes assert
-    sha2.Update(vec, 1, inputSize);
-    ///empty input causes assert
-    vec.resize(0);
-    sha2.Update(vec);
-
-    bool result = true;
-    BOOST_CHECK_EQUAL(result, true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
