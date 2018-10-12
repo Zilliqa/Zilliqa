@@ -106,10 +106,11 @@ void DirectoryService::SendDSBlockToLookupNodes() {
             "DSBlock to the lookup nodes");
 }
 
-void DirectoryService::SendDSBlockToNewDSLeader() {
+void DirectoryService::SendDSBlockToNewDSMembers() {
+  LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::SendDSBlockToNewDSLeader not expected "
+                "DirectoryService::SendDSBlockToNewDSMembers not expected "
                 "to be called from LookUp node.");
     return;
   }
@@ -575,53 +576,59 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     ProcessTxnBodySharingAssignment();
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "DSBlock to be sent to the lookup nodes");
+  {
+    // USe mutex during the composition and sending of vcds block message
+    lock_guard<mutex> g(m_mutexVCBlockVector);
 
-  // TODO: Refine this
-  unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
-  unsigned int nodeToSendToLookUpHi =
-      nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
-
-  if (m_consensusMyID > nodeToSendToLookUpLo &&
-      m_consensusMyID < nodeToSendToLookUpHi) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the DS folks that will soon be sending the DSBlock to the "
-              "lookup nodes");
-    SendDSBlockToLookupNodes();
-  }
+              "DSBlock to be sent to the lookup nodes");
+    // TODO: Refine this
+    unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
+    unsigned int nodeToSendToLookUpHi =
+        nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
-  // Let's reuse the same DS nodes to send the DS Block to the new DS leader
-  // Why is this done separately?  Because the new DS leader is not part of
-  // m_shards. In multicast code below, we use m_shards as the basis for sending
-  // to all the shard nodes.
+    if (m_consensusMyID > nodeToSendToLookUpLo &&
+        m_consensusMyID < nodeToSendToLookUpHi) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "I the DS folks that will soon be sending the DSBlock to the "
+                "lookup nodes");
+      SendDSBlockToLookupNodes();
+    }
 
-  if (m_consensusMyID > nodeToSendToLookUpLo &&
-      m_consensusMyID < nodeToSendToLookUpHi) {
+    // Let's reuse the same DS nodes to send the DS Block to the new DS leader
+    // Why is this done separately?  Because the new DS leader is not part of
+    // m_shards. In multicast code below, we use m_shards as the basis for
+    // sending to all the shard nodes.
+
+    if (m_consensusMyID > nodeToSendToLookUpLo &&
+        m_consensusMyID < nodeToSendToLookUpHi) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Part of the DS Committee that will sending the DSBlock to the "
+                "new DS members");
+      SendDSBlockToNewDSMembers();
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the DS folks that will soon be sending the DSBlock to the "
-              "new DS leader");
-    SendDSBlockToNewDSLeader();
-  }
+              "New DSBlock hash is  = 0x"
+                  << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
+                  << "\n");
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "New DSBlock hash is                     = 0x"
-                << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-                << "\n");
+    unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;
+    SetupMulticastConfigForDSBlock(my_DS_cluster_num, my_shards_lo,
+                                   my_shards_hi);
 
-  unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;
-  SetupMulticastConfigForDSBlock(my_DS_cluster_num, my_shards_lo, my_shards_hi);
+    LOG_STATE(
+        "[DSBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] BEFORE SENDING DSBLOCK");
 
-  LOG_STATE(
-      "[DSBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BEFORE SENDING DSBLOCK");
-
-  // Too few target nodes - avoid asking all DS clusters to send
-  if ((my_DS_cluster_num + 1) <= m_shards.size()) {
-    SendDSBlockToShardNodes(my_shards_lo, my_shards_hi);
+    // Too few target nodes - avoid asking all DS clusters to send
+    if ((my_DS_cluster_num + 1) <= m_shards.size()) {
+      SendDSBlockToShardNodes(my_shards_lo, my_shards_hi);
+    }
   }
 
   LOG_STATE(
