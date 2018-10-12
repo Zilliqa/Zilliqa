@@ -58,7 +58,8 @@ class FallbackBlockHeader : public BlockHeaderBase {
                       const uint32_t leaderConsensusId,
                       const Peer& leaderNetworkInfo, const PubKey& leaderPubKey,
                       const uint32_t shardId,
-                      const boost::multiprecision::uint256_t& timestamp);
+                      const boost::multiprecision::uint256_t& timestamp,
+                      const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;

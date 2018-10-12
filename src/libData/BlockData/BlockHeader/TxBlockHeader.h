@@ -64,7 +64,8 @@ class TxBlockHeader : public BlockHeaderBase {
                 const StateHash& deltaRootHash, const StateHash& stateDeltaHash,
                 const TxnHash& tranReceiptRootHash, const uint32_t numTxs,
                 const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader);
+                const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader,
+                const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,
