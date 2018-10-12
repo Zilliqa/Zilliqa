@@ -16,7 +16,7 @@
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
  */
-
+#include <boost/variant.hpp>
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/ForwardedTxnEntry.h"
@@ -24,8 +24,6 @@
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
-
-#include <boost/variant.hpp>
 
 #ifndef __MESSENGER_H__
 #define __MESSENGER_H__

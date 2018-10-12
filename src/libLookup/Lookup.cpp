@@ -2511,22 +2511,14 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
       }
       dirBlocks.emplace_back(*vcblockptr);
     } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::FB) {
-      vector<unsigned char> fallbackwshardingserial;
-      FallbackBlockWShardingStructure fallbackwsharding;
+      FallbackBlockSharedPtr fallbackwsharding;
       if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
-              get<BlockLinkIndex::BLOCKHASH>(b), fallbackwshardingserial)) {
+              get<BlockLinkIndex::BLOCKHASH>(b), fallbackwsharding)) {
         LOG_GENERAL(WARNING, "could not get fb block "
                                  << get<BlockLinkIndex::BLOCKHASH>(b));
         continue;
       }
-      if (!Messenger::GetFallbackBlockWShardingStructure(
-              fallbackwshardingserial, 0, fallbackwsharding.m_fallbackblock,
-              fallbackwsharding.m_shards)) {
-        LOG_GENERAL(WARNING,
-                    "Could get FallbackBlockWShardingStructure from serialized")
-        continue;
-      }
-      dirBlocks.emplace_back(fallbackwsharding);
+      dirBlocks.emplace_back(*fallbackwsharding);
     }
   }
 
