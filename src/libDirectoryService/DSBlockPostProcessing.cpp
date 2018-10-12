@@ -271,8 +271,8 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
-    lastBlockHash = HashUtils::SerializableToHash16Bits(
-        m_mediator.m_txBlockChain.GetLastBlock());
+    lastBlockHash = DataConversion::charArrTo16Bits(
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
   // Check if I am the oldest backup DS (I will no longer be part of the DS
   // committee)
