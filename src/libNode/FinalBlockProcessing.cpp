@@ -45,6 +45,7 @@
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
@@ -391,8 +392,10 @@ void Node::UpdateStateForNextConsensusRound() {
   }
 
   m_mediator.m_consensusID++;
-  m_consensusLeaderID++;
-  m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
+
+  uint16_t lastBlockHash = HashUtils::SerializableToHash16Bits(
+      m_mediator.m_txBlockChain.GetLastBlock());
+  m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
 
   if (m_consensusMyID == m_consensusLeaderID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
