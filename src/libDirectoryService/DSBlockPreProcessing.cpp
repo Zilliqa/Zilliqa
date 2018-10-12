@@ -186,7 +186,7 @@ void DirectoryService::ComputeSharding(
 
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash =
-        HashUtils::SerializableToHash(m_mediator.m_txBlockChain.GetLastBlock());
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
   for (const auto& kv : sortedPoWSolns) {
     const PubKey& key = kv.second;
@@ -234,7 +234,7 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
 
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash =
-        HashUtils::SerializableToHash(m_mediator.m_txBlockChain.GetLastBlock());
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
   // Temporarily add the old ds to check ordering
   m_allPoWs[m_mediator.m_DSCommittee->back().first] =

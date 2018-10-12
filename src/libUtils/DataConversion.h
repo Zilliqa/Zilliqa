@@ -69,6 +69,8 @@ class DataConversion {
 
   static const std::vector<unsigned char> StringToCharArray(
       const std::string& input);
+
+  static uint16_t charArrTo16Bits(const std::vector<unsigned char>& hex_arr);
 };
 
 #endif  // __DATACONVERSION_H__
