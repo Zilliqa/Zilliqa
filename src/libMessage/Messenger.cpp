@@ -3742,13 +3742,14 @@ bool Messenger::GetLookupSetStartPoWFromSeed(
   std::vector<unsigned char> tmp;
   NumberToArray<uint64_t, sizeof(uint64_t)>(result.blocknumber(), tmp, 0);
 
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
   if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in start PoW message.");
     return false;
   }
-
-  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
   return true;
 }
