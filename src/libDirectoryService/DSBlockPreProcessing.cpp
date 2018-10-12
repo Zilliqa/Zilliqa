@@ -675,6 +675,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
+
+  BlockStorage::GetBlockStorage().PutShardStructure(
+      m_shards, m_mediator.m_node->m_myshardId);
+
   if (!Messenger::GetTxSharingAssignmentsHash(m_DSReceivers, m_shardReceivers,
                                               m_shardSenders,
                                               dsBlockHashSet.m_txSharingHash)) {
@@ -881,6 +885,10 @@ bool DirectoryService::DSBlockValidator(
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
+
+  BlockStorage::GetBlockStorage().PutShardStructure(
+      m_shards, m_mediator.m_node->m_myshardId);
+
   if (shardingHash != m_pendingDSBlock->GetHeader().GetShardingHash()) {
     LOG_GENERAL(WARNING,
                 "Sharding structure hash in newly received DS Block doesn't "

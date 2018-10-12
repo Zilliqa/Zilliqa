@@ -3098,6 +3098,35 @@ bool Messenger::GetNodeFallbackBlock(const vector<unsigned char>& src,
   return true;
 }
 
+bool Messenger::ShardStructureToArray(std::vector<unsigned char>& dst,
+                                      const unsigned int offset,
+                                      const DequeOfShard& shards) {
+  ProtoShardingStructure protoShardingStructure;
+  ShardingStructureToProtobuf(shards, protoShardingStructure);
+
+  if (!protoShardingStructure.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoShardingStructure initialization failed.");
+    return false;
+  }
+
+  if (!SerializeToArray(protoShardingStructure, dst, offset)) {
+    LOG_GENERAL(WARNING, "ProtoShardingStructure serialization failed.");
+    return false;
+  }
+
+  return true;
+}
+
+bool Messenger::ArrayToShardStructure(const std::vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      DequeOfShard& shards) {
+  ProtoShardingStructure protoShardingStructure;
+  protoShardingStructure.ParseFromArray(src.data() + offset,
+                                        src.size() - offset);
+  ProtobufToShardingStructure(protoShardingStructure, shards);
+  return true;
+}
+
 // ============================================================================
 // Lookup messages
 // ============================================================================

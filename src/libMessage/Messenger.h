@@ -318,6 +318,13 @@ class Messenger {
                                    const unsigned int offset,
                                    FallbackBlock& fallbackBlock);
 
+  static bool ShardStructureToArray(std::vector<unsigned char>& dst,
+                                    const unsigned int offset,
+                                    const DequeOfShard& shards);
+  static bool ArrayToShardStructure(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    DequeOfShard& shards);
+
   // ============================================================================
   // Lookup messages
   // ============================================================================
