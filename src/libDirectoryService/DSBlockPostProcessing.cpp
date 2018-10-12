@@ -689,10 +689,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     LOG_GENERAL(INFO, member.second);
   }
 
-#if 0  // clark
   BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
                                                  m_consensusLeaderID);
-#endif
 
   StartFirstTxEpoch();
 }

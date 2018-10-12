@@ -427,10 +427,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
                           TERMINATION_COUNTDOWN_OFFSET_DS_LEADER));
     }
   }
-#if 1  // clark
-  BlockStorage::GetBlockStorage().PutDSCommittee(
-      mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);
-#endif
+
   /// Deploy downloaded software
   /// TBD: The call of "dpkg" should be removed.
   /// (https://github.com/Zilliqa/Issues/issues/185)
