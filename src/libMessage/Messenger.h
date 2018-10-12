@@ -537,12 +537,12 @@ class Messenger {
       const std::vector<unsigned char>& blockHash, uint16_t& backupID,
       std::vector<unsigned char>& errorMsg,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
-  static bool BlockLinkToProtoBuf(
-      const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink,
-      std::vector<unsigned char>& dest);
-  static bool ProtoBufToBlockLink(
-      std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink,
-      const std::vector<unsigned char>& src);
+  static bool SetBlockLink(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
+  static bool GetBlockLink(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
   static bool SetFallbackBlockWShardingStructure(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const FallbackBlock& fallbackblock, const DequeOfShard& shards);

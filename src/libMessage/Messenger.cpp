@@ -4209,9 +4209,9 @@ bool Messenger::GetConsensusCommitFailure(
   return true;
 }
 
-bool Messenger::BlockLinkToProtoBuf(
-    const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink,
-    std::vector<unsigned char>& dst) {
+bool Messenger::SetBlockLink(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
   ProtoBlockLink result;
 
   result.set_index(get<BlockLinkIndex::INDEX>(blocklink));
@@ -4220,24 +4220,33 @@ bool Messenger::BlockLinkToProtoBuf(
   BlockHash blkhash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
   result.set_blockhash(blkhash.data(), blkhash.size);
 
-  return SerializeToArray(result, dst, 0);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Failed to intialize ProtoBlockLink");
+  }
+
+  return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::ProtoBufToBlockLink(
-    std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink,
-    const vector<unsigned char>& src) {
+bool Messenger::GetBlockLink(
+    const vector<unsigned char>& src, const unsigned int offset,
+    std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
   ProtoBlockLink result;
   BlockHash blkhash;
-  result.ParseFromArray(src.data(), src.size());
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  get<0>(blocklink) = result.index();
-  get<1>(blocklink) = result.dsindex();
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoBlockLink initialization failed");
+    return false;
+  }
+
+  get<BlockLinkIndex::INDEX>(blocklink) = result.index();
+  get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
   copy(result.blockhash().begin(),
        result.blockhash().begin() + min((unsigned int)result.blockhash().size(),
                                         (unsigned int)blkhash.size),
        blkhash.asArray().begin());
   get<BlockLinkIndex::BLOCKTYPE>(blocklink) = (BlockType)result.blocktype();
-  get<3>(blocklink) = blkhash;
+  get<BlockLinkIndex::BLOCKHASH>(blocklink) = blkhash;
 
   return true;
 }
@@ -4250,6 +4259,12 @@ bool Messenger::SetFallbackBlockWShardingStructure(
   FallbackBlockToProtobuf(fallbackblock, *result.mutable_fallbackblock());
   ShardingStructureToProtobuf(shards, *result.mutable_sharding());
 
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ProtoFallbackBlockWShardingStructure initialization failed");
+    return false;
+  }
+
   return SerializeToArray(result, dst, offset);
 }
 
@@ -4259,6 +4274,12 @@ bool Messenger::GetFallbackBlockWShardingStructure(
   ProtoFallbackBlockWShardingStructure result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ProtoFallbackBlockWShardingStructure initialization failed");
+    return false;
+  }
 
   ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
 
@@ -4273,6 +4294,12 @@ bool Messenger::GetLookupGetDirectoryBlocksFromSeed(
   LookupGetDirectoryBlocksFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
 
   portno = result.portno();
 
@@ -4289,6 +4316,12 @@ bool Messenger::SetLookupGetDirectoryBlocksFromSeed(vector<unsigned char>& dst,
 
   result.set_portno(portno);
   result.set_indexnum(index_num);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
 
   return SerializeToArray(result, dst, offset);
 }
@@ -4322,6 +4355,11 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     }
   }
 
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed initialization failed");
+  }
+
   return SerializeToArray(result, dst, offset);
 }
 
@@ -4333,6 +4371,12 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
   LookupSetDirectoryBlocksFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
 
   index_num = result.indexnum();
 
@@ -4362,7 +4406,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
       }
       default: {
         LOG_GENERAL(WARNING, "Error in the blocktype");
-        return false;
+        continue;
       }
     }
   }

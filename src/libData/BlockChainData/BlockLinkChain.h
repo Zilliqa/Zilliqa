@@ -79,8 +79,8 @@ class BlockLinkChain {
     std::vector<unsigned char> dst;
     dst.clear();
 
-    if (!Messenger::BlockLinkToProtoBuf(
-            std::make_tuple(index, dsindex, blocktype, blockhash), dst)) {
+    if (!Messenger::SetBlockLink(
+            dst, 0, std::make_tuple(index, dsindex, blocktype, blockhash))) {
       LOG_GENERAL(WARNING, "Could not set BlockLink " << index);
       return;
     }
