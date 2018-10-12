@@ -80,9 +80,11 @@ void DirectoryService::StoreDSBlockToStorage() {
       LATESTACTIVEDSBLOCKNUM,
       DataConversion::StringToCharArray(to_string(m_latestActiveDSBlockNum)));
 
-  //Store to blocklink
+  // Store to blocklink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
-  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(),BlockType::DS, m_pendingDSBlock->GetBlockHash());
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(), BlockType::DS,
+      m_pendingDSBlock->GetBlockHash());
 }
 
 void DirectoryService::SendDSBlockToLookupNodes() {

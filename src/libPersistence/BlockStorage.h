@@ -29,8 +29,7 @@
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 
-typedef std::tuple<uint64_t,uint64_t,BlockType,BlockHash> BlockLink;
-
+typedef std::tuple<uint64_t, uint64_t, BlockType, BlockHash> BlockLink;
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
@@ -60,8 +59,7 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
         m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks")),
-        m_blockLinkDB(std::make_shared<LevelDB>("blockLinks"))
-         {
+        m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
@@ -96,12 +94,12 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Adds a DS block to storage.
   bool PutDSBlock(const uint64_t& blockNum,
                   const std::vector<unsigned char>& body);
-  bool PutVCBlock(const BlockHash &blockhash,
+  bool PutVCBlock(const BlockHash& blockhash,
                   const std::vector<unsigned char>& body);
   bool PutFallbackBlock(const BlockHash& blockhash,
-                  const std::vector<unsigned char>& body);
+                        const std::vector<unsigned char>& body);
   bool PutBlockLink(const uint64_t& index,
-                  const std::vector<unsigned char>& body);
+                    const std::vector<unsigned char>& body);
 
   /// Adds a Tx block to storage.
   bool PutTxBlock(const uint64_t& blockNum,
@@ -118,7 +116,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
 
   bool GetVCBlock(const BlockHash& blockhash, VCBlockSharedPtr& block);
-  bool GetFallbackBlock(const BlockHash& blockhash, FallbackBlockSharedPtr& block);
+  bool GetFallbackBlock(const BlockHash& blockhash,
+                        std::vector<unsigned char>& blockwsharding);
   bool GetBlockLink(const uint64_t& index, BlockLinkSharedPtr& block);
   /// Retrieves the requested Tx block.
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);

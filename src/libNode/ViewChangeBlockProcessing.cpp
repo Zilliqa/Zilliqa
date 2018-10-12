@@ -206,7 +206,18 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
   // Add to block chain and Store the VC block to disk.
   // StoreVCBlockToDisk(dsblock);
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
-  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(),BlockType::VC, vcblock.GetBlockHash());
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(), BlockType::VC,
+      vcblock.GetBlockHash());
+
+  vector<unsigned char> dst;
+  vcblock.Serialize(dst, 0);
+
+  if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
+                                                  dst)) {
+    LOG_GENERAL(WARNING, "Failed to store VC Block");
+    return false;
+  }
 
   if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
     SendVCBlockToOtherShardNodes(message);

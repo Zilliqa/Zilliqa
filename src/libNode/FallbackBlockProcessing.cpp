@@ -232,14 +232,29 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, fallbackblock.GetHeader().GetFallbackDSEpochNo(),
+      BlockType::FB, fallbackblock.GetBlockHash());
+
+  vector<unsigned char> dst;
+  dst.clear();
+
+  if (!Messenger::SetFallbackBlockWShardingStructure(
+          dst, 0, fallbackblock, m_mediator.m_ds->m_shards)) {
+    LOG_GENERAL(WARNING, "Unable to set FallbackBlock with sharding structure");
+  }
+
+  if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+          fallbackblock.GetBlockHash(), dst)) {
+    LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+  }
+
   FallbackTimerPulse();
 
   UpdateDSCommittee(shard_id, leaderPubKey, leaderNetworkInfo);
 
   StoreState();
-
-  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
-  m_mediator.m_blocklinkchain.AddBlockLink(latestInd, fallbackblock.GetHeader().GetFallbackDSEpochNo(),BlockType::FB, fallbackblock.GetBlockHash());
 
   if (!LOOKUP_NODE_MODE) {
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {

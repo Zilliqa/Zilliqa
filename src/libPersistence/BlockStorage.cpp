@@ -79,20 +79,18 @@ bool BlockStorage::PutVCBlock(const BlockHash& blockhash,
 }
 
 bool BlockStorage::PutFallbackBlock(const BlockHash& blockhash,
-                              const vector<unsigned char>& body) {
+                                    const vector<unsigned char>& body) {
   int ret = -1;
   ret = m_fallbackBlockDB->Insert(blockhash, body);
   return (ret == 0);
 }
 
 bool BlockStorage::PutBlockLink(const uint64_t& index,
-                              const vector<unsigned char>& body) {
+                                const vector<unsigned char>& body) {
   int ret = -1;
   ret = m_blockLinkDB->Insert(index, body);
   return (ret == 0);
 }
-
-
 
 bool BlockStorage::PutTxBlock(const uint64_t& blockNum,
                               const vector<unsigned char>& body) {
@@ -171,9 +169,8 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
   return true;
 }
 
-
 bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
-                            VCBlockSharedPtr& block) {
+                              VCBlockSharedPtr& block) {
   string blockString = m_VCBlockDB->Lookup(blockhash);
 
   if (blockString.empty()) {
@@ -189,7 +186,7 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
 }
 
 bool BlockStorage::GetFallbackBlock(const BlockHash& blockhash,
-                              FallbackBlockSharedPtr& block) {
+                                    vector<unsigned char>& blockwsharding) {
   string blockString = m_fallbackBlockDB->Lookup(blockhash);
 
   if (blockString.empty()) {
@@ -198,14 +195,13 @@ bool BlockStorage::GetFallbackBlock(const BlockHash& blockhash,
 
   // LOG_GENERAL(INFO, blockString);
   LOG_GENERAL(INFO, blockString.length());
-  block = FallbackBlockSharedPtr(new FallbackBlock(
-      std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+  copy(blockString.begin(), blockString.end(), blockwsharding.begin());
 
   return true;
 }
 
 bool BlockStorage::GetBlockLink(const uint64_t& index,
-                              BlockLinkSharedPtr& block) {
+                                BlockLinkSharedPtr& block) {
   string blockString = m_blockLinkDB->Lookup(index);
 
   if (blockString.empty()) {
@@ -215,9 +211,10 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   // LOG_GENERAL(INFO, blockString);
   LOG_GENERAL(INFO, blockString.length());
   BlockLink blnk;
-  if(!Messenger::ProtoBufToBlockLink(blnk, vector<unsigned char>(blockString.begin(),blockString.end())))
-  {
-    LOG_GENERAL(WARNING,"Serialization of blockLink failed");
+  if (!Messenger::ProtoBufToBlockLink(
+          blnk,
+          vector<unsigned char>(blockString.begin(), blockString.end()))) {
+    LOG_GENERAL(WARNING, "Serialization of blockLink failed");
     return false;
   }
   block = make_shared<BlockLink>(blnk);
@@ -556,11 +553,13 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
-           ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) && ResetDB(BLOCKLINK);
+           ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) &&
+           ResetDB(BLOCKLINK);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
            ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP) && ResetDB(MICROBLOCK) &&
-           ResetDB(DS_COMMITTEE)&& ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) && ResetDB(BLOCKLINK);
+           ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) &&
+           ResetDB(BLOCKLINK);
   }
 }
