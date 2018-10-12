@@ -103,7 +103,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Current dsblock is " << block_num);
 
-  bool isNoSync;
+  bool isNoSync = false;
 
   if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
     m_stillMiningPrimary = true;

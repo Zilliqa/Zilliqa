@@ -37,8 +37,10 @@ DSBlockHeader::DSBlockHeader(
     const uint8_t dsDifficulty, const uint8_t difficulty,
     const BlockHash& prevHash, const PubKey& leaderPubKey,
     const uint64_t& blockNum, const uint256_t& timestamp, const SWInfo& swInfo,
-    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hash)
-    : m_dsDifficulty(dsDifficulty),
+    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hash,
+    const CommitteeHash& committeeHash)
+    : BlockHeaderBase(committeeHash),
+      m_dsDifficulty(dsDifficulty),
       m_difficulty(difficulty),
       m_prevHash(prevHash),
       m_leaderPubKey(leaderPubKey),
@@ -84,10 +86,6 @@ const SWInfo& DSBlockHeader::GetSWInfo() const { return m_swInfo; }
 
 const map<PubKey, Peer>& DSBlockHeader::GetDSPoWWinners() const {
   return m_PoWDSWinners;
-}
-
-const DSCommHash& DSBlockHeader::GetDSCommHash() const {
-  return m_hash.m_dsCommHash;
 }
 
 const ShardingHash& DSBlockHeader::GetShardingHash() const {

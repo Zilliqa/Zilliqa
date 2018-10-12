@@ -125,6 +125,10 @@ class DirectoryService : public Executable, public Broadcastable {
   std::condition_variable cv_ViewChangeVCBlock;
   std::mutex m_MutexCVViewChangeVCBlock;
 
+  // To be used to store vc block (ds block consensus) for "normal nodes"
+  std::mutex m_mutexVCBlockVector;
+  std::vector<VCBlock> m_VCBlockVector;
+
   // Consensus and consensus object
   std::condition_variable cv_DSBlockConsensus;
   std::mutex m_MutexCVDSBlockConsensus;
@@ -202,7 +206,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // internal calls from ProcessDSBlockConsensus
   void StoreDSBlockToStorage();  // To further refactor
   void SendDSBlockToLookupNodes();
-  void SendDSBlockToNewDSLeader();
+  void SendDSBlockToNewDSMembers();
   void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
                                       unsigned int& my_shards_lo,
                                       unsigned int& my_shards_hi) const;
@@ -501,6 +505,7 @@ class DirectoryService : public Executable, public Broadcastable {
 
   /// PoW (DS block) consensus functions
   void RunConsensusOnDSBlock(bool isRejoin = false);
+  bool IsDSBlockVCState(unsigned char vcBlockState);
 
  private:
   static std::map<DirState, std::string> DirStateStrings;
@@ -515,6 +520,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);
   bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
   uint32_t GetNumberOfDSPoWSolns();
+  void ClearVCBlockVector();
 };
 
 #endif  // __DIRECTORYSERVICE_H__

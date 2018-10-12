@@ -169,7 +169,8 @@ void DirectoryService::ComposeFinalBlock() {
                     timestamp, microblockTxnTrieRoot, stateRoot,
                     microblockDeltaTrieRoot, stateDeltaHash,
                     microblockTranReceiptRoot, numTxs, numMicroBlocks,
-                    m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader),
+                    m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
+                    CommitteeHash()),
       isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
@@ -204,14 +205,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   ComposeFinalBlock();  // stores it in m_finalBlock
 
   // kill first ds leader (used for view change testing)
-  /**
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-  {
-      LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
-      // throw exception();
-      return false;
-  }
-  **/
+
+  // if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
+  //   LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
+  //   // throw exception();
+  //   return false;
+  // }
 
   // Create new consensus object
   m_consensusBlockHash =

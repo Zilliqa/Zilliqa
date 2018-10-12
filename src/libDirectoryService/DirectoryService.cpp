@@ -206,9 +206,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     vector<unsigned char> setDSBootstrapNodeMessage = {
         MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
-    if (!Messenger::SetLookupSetDSInfoFromSeed(setDSBootstrapNodeMessage,
-                                               MessageOffset::BODY,
-                                               *m_mediator.m_DSCommittee)) {
+    if (!Messenger::SetLookupSetDSInfoFromSeed(
+            setDSBootstrapNodeMessage, MessageOffset::BODY,
+            m_mediator.m_selfKey, *m_mediator.m_DSCommittee)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -252,9 +252,10 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
                              << m_mediator.m_currentEpochNum);
-    m_consensusLeaderID = HashUtils::SerializableToHash16Bits(
-                              m_mediator.m_txBlockChain.GetLastBlock()) %
-                          m_mediator.m_DSCommittee->size();
+    m_consensusLeaderID =
+        DataConversion::charArrTo16Bits(
+            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        m_mediator.m_DSCommittee->size();
   }
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -578,10 +579,16 @@ void DirectoryService::SendBlockToShardNodes(
         // Choose N other Shard nodes to be recipient of block
         std::vector<Peer> shardBlockReceivers;
 
-        LOG_GENERAL(INFO,
-                    "Sending to "
-                    "{NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD} peers : "
-                        << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
+        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+        sha256.Update(block_message);
+        vector<unsigned char> this_msg_hash = sha256.Finalize();
+
+        LOG_GENERAL(
+            INFO,
+            "Sending message with hash: ["
+                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+                << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
+                << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD << " shard peers");
 
         unsigned int numOfBlockReceivers = std::min(
             NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());

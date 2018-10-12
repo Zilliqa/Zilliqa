@@ -243,16 +243,22 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     return;
   }
 
-  unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
-  unsigned int nodeToSendToLookUpHi =
-      nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+  // Broadcasting vcblock to lookup nodes iff view change do not occur before ds
+  // block consensus. This is to be consistent with how normal node process the
+  // vc block (before ds block).
+  if (viewChangeState != DSBLOCK_CONSENSUS &&
+      viewChangeState != DSBLOCK_CONSENSUS_PREP) {
+    unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
+    unsigned int nodeToSendToLookUpHi =
+        nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
-  if (m_consensusMyID > nodeToSendToLookUpLo &&
-      m_consensusMyID < nodeToSendToLookUpHi) {
-    m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the part of the subset of DS committee that have sent the "
-              "VCBlock to the lookup nodes");
+    if (m_consensusMyID > nodeToSendToLookUpLo &&
+        m_consensusMyID < nodeToSendToLookUpHi) {
+      m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "I the part of the subset of DS committee that have sent the "
+                "VCBlock to the lookup nodes");
+    }
   }
 
   // Broadcasting vcblock to lookup nodes
@@ -263,13 +269,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP: {
-      vector<Peer> allPowSubmitter;
-      for (auto& nodeNetwork : m_allPoWConns) {
-        allPowSubmitter.emplace_back(nodeNetwork.second);
-      }
-
-      P2PComm::GetInstance().SendBroadcastMessage(allPowSubmitter,
-                                                  vcblock_message);
+      // Do not send to shard node as sharding structure is not yet formed.
+      // VC block(s) will concat with ds block and sharding structure to form
+      // vcdsmessage, which then will be send to shard node for processing.
+      lock_guard<mutex> g(m_mutexVCBlockVector);
+      m_VCBlockVector.emplace_back(*m_pendingVCBlock.get());
       break;
     }
     case FINALBLOCK_CONSENSUS:
@@ -422,4 +426,15 @@ bool DirectoryService::ProcessViewChangeConsensus(
     cv_processConsensusMessage.notify_all();
   }
   return true;
+}
+
+// Exposing this function so that libNode can use it to check state
+bool DirectoryService::IsDSBlockVCState(unsigned char vcBlockState) {
+  return ((DirState)vcBlockState == DSBLOCK_CONSENSUS_PREP ||
+          (DirState)vcBlockState == DSBLOCK_CONSENSUS);
+}
+
+void DirectoryService::ClearVCBlockVector() {
+  lock_guard<mutex> g(m_mutexVCBlockVector);
+  m_VCBlockVector.clear();
 }

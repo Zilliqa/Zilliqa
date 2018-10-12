@@ -46,13 +46,15 @@
 class Mediator;
 class Synchronizer;
 
+using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
+
 /// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable, public Broadcastable {
   Mediator& m_mediator;
 
   // Info about lookup node
-  std::vector<Peer> m_lookupNodes;
-  std::vector<Peer> m_lookupNodesOffline;
+  VectorOfLookupNode m_lookupNodes;
+  VectorOfLookupNode m_lookupNodesOffline;
   std::vector<Peer> m_seedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
@@ -98,7 +100,7 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_mutexSetTxBlockFromSeed;
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
-  std::mutex m_mutexOfflineLookups;
+  std::mutex mutable m_mutexLookupNodes;
   std::mutex m_mutexMicroBlocksBuffer;
 
   std::vector<unsigned char> ComposeGetDSInfoMessage();
@@ -135,7 +137,7 @@ class Lookup : public Executable, public Broadcastable {
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
-  std::vector<Peer> GetLookupNodes();
+  VectorOfLookupNode GetLookupNodes() const;
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
@@ -160,7 +162,6 @@ class Lookup : public Executable, public Broadcastable {
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
-  bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetDSInfoFromLookupNodes();
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
@@ -276,6 +277,7 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessSetStartPoWFromSeed(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
 
+
   bool ProcessGetDirectoryBlocksFromSeed(
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
@@ -285,6 +287,9 @@ class Lookup : public Executable, public Broadcastable {
       const Peer& from);
 
   void ComposeGetDirectoryBlocksFromSeed(uint64_t& index_num);
+
+  static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
+                               const PubKey& pubKeyToVerify);
 
   bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                const Peer& from);
