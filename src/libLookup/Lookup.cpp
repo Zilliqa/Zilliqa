@@ -2590,7 +2590,7 @@ void Lookup::SenderTxnBatchThread() {
           numShards = m_mediator.m_ds->m_shards.size();
         }
         if (numShards == 0) {
-          this_thread::sleep_for(chrono::milliseconds(100));
+          this_thread::sleep_for(chrono::milliseconds(1000));
           continue;
         }
         SendTxnPacketToNodes(numShards);
