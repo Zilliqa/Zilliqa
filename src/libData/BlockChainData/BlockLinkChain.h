@@ -52,6 +52,11 @@ class BlockLinkChain {
     return *blnkshared;
   }
 
+  void Reset()
+  {
+    m_blocklinkchain.resize(BLOCKCHAIN_SIZE);
+  }
+
   BlockLink GetBlockLink(const uint64_t& blocknum) {
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
     if (m_blocklinkchain.size() <= blocknum) {
@@ -78,6 +83,8 @@ class BlockLinkChain {
 
     std::vector<unsigned char> dst;
     dst.clear();
+
+    LOG_GENERAL(INFO,"[DBS]"<<"Stored "<<index<<" "<<dsindex<<" "<<blocktype<<" "<<blockhash);
 
     if (!Messenger::SetBlockLink(
             dst, 0, std::make_tuple(index, dsindex, blocktype, blockhash))) {
