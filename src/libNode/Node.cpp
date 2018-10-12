@@ -231,6 +231,7 @@ void Node::Init() {
   m_retriever.reset();
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
+  m_mediator.m_blocklinkchain.Reset();
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     m_mediator.m_DSCommittee->clear();
