@@ -385,10 +385,13 @@ void DirectoryService::StartFirstTxEpoch() {
       index++;
     }
 
-    // Check if I am the leader or backup of the shard
+    m_mediator.m_node->ResetConsensusId();
 
-    if (m_mediator.m_selfKey.second ==
-        m_mediator.m_node->m_myShardMembers->front().first) {
+    // Check if I am the leader or backup of the shard
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+
+    if (m_mediator.m_node->m_consensusMyID ==
+        m_mediator.m_node->m_consensusLeaderID) {
       m_mediator.m_node->m_isPrimary = true;
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "I am leader of the DS shard");
@@ -399,7 +402,6 @@ void DirectoryService::StartFirstTxEpoch() {
                 "I am backup member of the DS shard");
     }
 
-    m_mediator.m_node->m_consensusLeaderID = 0;
     // m_mediator.m_node->m_myshardId = std::numeric_limits<uint32_t>::max();
     m_mediator.m_node->m_myshardId = m_shards.size();
     m_mediator.m_node->m_justDidFallback = false;
