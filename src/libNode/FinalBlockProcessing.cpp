@@ -393,8 +393,8 @@ void Node::UpdateStateForNextConsensusRound() {
 
   m_mediator.m_consensusID++;
 
-  uint16_t lastBlockHash = HashUtils::SerializableToHash16Bits(
-      m_mediator.m_txBlockChain.GetLastBlock());
+  uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
 
   if (m_consensusMyID == m_consensusLeaderID) {

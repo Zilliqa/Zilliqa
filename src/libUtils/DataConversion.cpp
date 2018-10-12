@@ -94,3 +94,10 @@ const std::string DataConversion::CharArrayToString(
 
   return ret;
 }
+
+uint16_t DataConversion::charArrTo16Bits(
+    const std::vector<unsigned char>& hex_arr) {
+  uint32_t lsb = hex_arr.size() - 1;
+
+  return (hex_arr.at(lsb - 1) << 8) | hex_arr.at(lsb);
+}
