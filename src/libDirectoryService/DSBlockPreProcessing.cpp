@@ -122,11 +122,12 @@ unsigned int DirectoryService::ComposeDSBlock(
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
-                      SWInfo(), powDSWinners, DSBlockHashSet()),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(
+        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  get_time_as_int(), SWInfo(), powDSWinners,
+                                  DSBlockHashSet(), CommitteeHash()),
+                    CoSignatures(m_mediator.m_DSCommittee->size())));
     m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -185,7 +186,7 @@ void DirectoryService::ComputeSharding(
 
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash =
-        HashUtils::SerializableToHash(m_mediator.m_txBlockChain.GetLastBlock());
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
   for (const auto& kv : sortedPoWSolns) {
     const PubKey& key = kv.second;
@@ -233,7 +234,7 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
 
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash =
-        HashUtils::SerializableToHash(m_mediator.m_txBlockChain.GetLastBlock());
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
   // Temporarily add the old ds to check ordering
   m_allPoWs[m_mediator.m_DSCommittee->back().first] =
@@ -530,14 +531,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   // kill first ds leader (used for view change testing)
   // Either do killing of ds leader or make ds leader do nothing.
-  /**
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-  {
-      LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
-      // throw exception();
-      return false;
-  }
-  **/
+  // if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+  // {
+  //     LOG_GENERAL(INFO, "I am killing/suspending myself to test view
+  //     change");
+  //     // throw exception();
+  //     return false;
+  // }
 
   m_consensusObject.reset(new ConsensusLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,

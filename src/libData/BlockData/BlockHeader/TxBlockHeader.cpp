@@ -41,8 +41,10 @@ TxBlockHeader::TxBlockHeader(
     const StateHash& deltaRootHash, const StateHash& stateDeltaHash,
     const TxnHash& tranReceiptRootHash, uint32_t numTxs,
     uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-    const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader)
-    : m_type(type),
+    const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader,
+    const CommitteeHash& committeeHash)
+    : BlockHeaderBase(committeeHash),
+      m_type(type),
       m_version(version),
       m_gasLimit(gasLimit),
       m_gasUsed(gasUsed),

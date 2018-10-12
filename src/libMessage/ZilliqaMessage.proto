@@ -22,6 +22,11 @@ message ProtoDSCommittee
     repeated ProtoDSNode dsnodes = 1;
 }
 
+message ProtoCommittee
+{
+    repeated ByteArray members = 1;
+}
+
 message ProtoShardingStructure
 {
     message Member
@@ -52,10 +57,9 @@ message ProtoDSBlock
 {
     message DSBlockHashSet
     {
-        required bytes dscommhash       = 1;
-        required bytes shardinghash     = 2;
-        required bytes txsharinghash    = 3;
-        required bytes reservedfield    = 4;
+        required bytes shardinghash     = 1;
+        required bytes txsharinghash    = 2;
+        required bytes reservedfield    = 3;
     }
     message DSBlockHeader
     {
@@ -68,11 +72,12 @@ message ProtoDSBlock
         required ByteArray swinfo       = 7;
         message PowDSWinners
         {
-            required ByteArray key = 1;
-            required ByteArray val = 2;
+            required ByteArray key      = 1;
+            required ByteArray val      = 2;
         }
         repeated PowDSWinners dswinners = 8;
         required DSBlockHashSet hash    = 9;
+        required bytes committeehash    = 10;
     }
     message CoSignatures
     {
@@ -105,6 +110,7 @@ message ProtoMicroBlock
         required bytes dsblockheader   = 13;
         required bytes statedeltahash  = 14;
         required bytes tranreceipthash = 15;
+        required bytes committeehash   = 16;
     }
     message CoSignatures
     {
@@ -143,6 +149,7 @@ message ProtoTxBlock
         required ByteArray minerpubkey          = 11;
         required uint64 dsblocknum              = 12;
         required bytes dsblockheader            = 13;
+        required bytes committeehash            = 14;
     }
     message MicroBlockHashSet
     {
@@ -177,6 +184,7 @@ message ProtoVCBlock
         required ByteArray candidateleaderpubkey      = 6;
         required uint32 vccounter                     = 7;
         required ByteArray timestamp                  = 8;
+        required bytes committeehash                  = 9;
     }
     message CoSignatures
     {
@@ -194,26 +202,27 @@ message ProtoFallbackBlock
 {
     message FallbackBlockHeader
     {
-        required uint64 fallbackdsepochno           = 1;
-        required uint64 fallbackepochno             = 2;
-        required uint32 fallbackstate               = 3; // only LSB used
-        required bytes stateroothash                = 4;
-        required uint32 leaderconsensusid           = 5;
-        required ByteArray leadernetworkinfo        = 6;
-        required ByteArray leaderpubkey             = 7;
-        required uint32 shardid                     = 8;
-        required ByteArray timestamp                = 9;
+        required uint64 fallbackdsepochno    = 1;
+        required uint64 fallbackepochno      = 2;
+        required uint32 fallbackstate        = 3; // only LSB used
+        required bytes stateroothash         = 4;
+        required uint32 leaderconsensusid    = 5;
+        required ByteArray leadernetworkinfo = 6;
+        required ByteArray leaderpubkey      = 7;
+        required uint32 shardid              = 8;
+        required ByteArray timestamp         = 9;
+        required bytes committeehash         = 10;
     }
     message CoSignatures
     {
-        required ByteArray cs1                      = 1;
-        repeated bool b1                            = 2 [packed=true];
-        required ByteArray cs2                      = 3;
-        repeated bool b2                            = 4 [packed=true];
+        required ByteArray cs1               = 1;
+        repeated bool b1                     = 2 [packed=true];
+        required ByteArray cs2               = 3;
+        repeated bool b2                     = 4 [packed=true];
     }
-    required FallbackBlockHeader header             = 1;
-    required CoSignatures cosigs                    = 2;
-    required bytes blockhash                        = 3;
+    required FallbackBlockHeader header      = 1;
+    required CoSignatures cosigs             = 2;
+    required bytes blockhash                 = 3;
 }
 
 // ============================================================================
@@ -269,8 +278,9 @@ message NodeDSBlock
 {
     required uint32 shardid                        = 1;
     required ProtoDSBlock dsblock                  = 2;
-    required ProtoShardingStructure sharding       = 3;
-    required ProtoTxSharingAssignments assignments = 4;
+    repeated ProtoVCBlock vcblocks                 = 3;
+    required ProtoShardingStructure sharding       = 4;
+    required ProtoTxSharingAssignments assignments = 5;
 }
 
 message NodeFinalBlock

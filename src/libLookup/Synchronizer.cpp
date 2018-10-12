@@ -54,7 +54,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   DSBlock dsBlock(
       DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
                     genesisBlockNumer, genesisTimestamp, SWInfo(), powDSWinners,
-                    DSBlockHashSet()),
+                    DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
   dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;
@@ -95,7 +95,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
                     BlockHash(), 0, 151384616955606, TxnHash(), StateHash(),
                     StateHash(), StateHash(), TxnHash(), 0, 5, keypair.second,
-                    0, BlockHash()),
+                    0, BlockHash(), CommitteeHash()),
       vector<bool>(1), vector<MicroBlockHashSet>(5), vector<uint32_t>(5),
       CoSignatures());
   txBlock.SetBlockHash(txBlock.GetHeader().GetMyHash());

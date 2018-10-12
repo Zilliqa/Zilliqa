@@ -195,7 +195,7 @@ void Node::UpdateFallbackConsensusLeader() {
   }
 
   m_consensusLeaderID++;
-  m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
+  m_consensusLeaderID = m_consensusLeaderID % m_myShardMembers->size();
 
   if (m_consensusMyID == m_consensusLeaderID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -380,7 +380,7 @@ void Node::ComposeFallbackBlock() {
             m_mediator.m_currentEpochNum, m_fallbackState,
             AccountStore::GetInstance().GetStateRootHash(), m_consensusLeaderID,
             leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
-            m_myshardId, get_time_as_int()),
+            m_myshardId, get_time_as_int(), CommitteeHash()),
         CoSignatures()));
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());
