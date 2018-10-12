@@ -290,7 +290,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   } else {
     m_consensusMyID += numOfIncomingDs;
     m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
-    LOG_GENERAL(INFO, " m_consensusLeaderID " << m_consensusLeaderID);
+    LOG_GENERAL(INFO, "m_consensusLeaderID " << m_consensusLeaderID);
 
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
         m_mediator.m_selfKey.second) {
