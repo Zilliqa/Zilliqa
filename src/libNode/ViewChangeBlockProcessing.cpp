@@ -196,7 +196,6 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
-
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
   m_mediator.m_blocklinkchain.AddBlockLink(
       latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(), BlockType::VC,
