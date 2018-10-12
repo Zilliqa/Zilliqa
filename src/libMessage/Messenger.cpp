@@ -2085,7 +2085,7 @@ bool Messenger::SetNodeVCDSBlocksMessage(
 
   result.set_shardid(shardId);
   DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
-  
+
   for (const auto& vcblock : vcBlocks) {
     VCBlockToProtobuf(vcblock, *result.add_vcblocks());
   }
@@ -2121,40 +2121,13 @@ bool Messenger::GetNodeVCDSBlocksMessage(
   shardId = result.shardid();
   ProtobufToDSBlock(result.dsblock(), dsBlock);
 
-<<<<<<< 56cb7559f329f57d04455e798dd7af6b57e7de1c
-  ProtobufToShardingStructure(result.sharding(), shards);
-=======
   for (const auto& proto_vcblock : result.vcblocks()) {
     VCBlock vcblock;
     ProtobufToVCBlock(proto_vcblock, vcblock);
     vcBlocks.emplace_back(move(vcblock));
   }
 
-  for (const auto& proto_shard : result.sharding().shards()) {
-    shards.emplace_back();
-
-    for (const auto& proto_member : proto_shard.members()) {
-      PubKey key;
-      Peer peer;
-
-      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
-      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
-
-      shards.back().emplace_back(key, peer, proto_member.reputation());
-    }
-  }
-
-  const TxSharingAssignments& proto_assignments = result.assignments();
-
-  for (const auto& dsnode : proto_assignments.dsnodes()) {
-    Peer peer;
-    ProtobufByteArrayToSerializable(dsnode, peer);
-    dsReceivers.emplace_back(peer);
-  }
-
-  for (const auto& proto_shard : proto_assignments.shardnodes()) {
-    shardReceivers.emplace_back();
->>>>>>> Update dsblock protobuf to dsvcmessage
+  ProtobufToShardingStructure(result.sharding(), shards);
 
   ProtobufToTxSharingAssignments(result.assignments(), dsReceivers,
                                  shardReceivers, shardSenders);
