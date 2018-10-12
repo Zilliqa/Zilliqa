@@ -240,6 +240,9 @@ void Node::Init() {
 
   m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                          m_mediator.m_txBlockChain);
+  const auto& dsBlock = m_mediator.m_dsBlockChain.GetBlock(0);
+  m_mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
+                                           dsBlock.GetBlockHash());
 }
 
 void Node::Prepare(bool runInitializeGenesisBlocks) {
