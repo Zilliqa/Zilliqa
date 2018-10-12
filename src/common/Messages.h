@@ -89,7 +89,6 @@ enum LookupInstructionType : unsigned char {
   SETMICROBLOCKFROMLOOKUP = 0x19,
   GETTXNFROMLOOKUP = 0x1A,
   SETTXNFROMLOOKUP = 0x1B,
-
 };
 
 enum TxSharingMode : unsigned char {
