@@ -28,13 +28,14 @@
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 
 typedef std::tuple<uint64_t, uint64_t, BlockType, BlockHash> BlockLink;
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
 typedef std::shared_ptr<VCBlock> VCBlockSharedPtr;
-typedef std::shared_ptr<FallbackBlock> FallbackBlockSharedPtr;
+typedef std::shared_ptr<FallbackBlockWShardingStructure> FallbackBlockSharedPtr;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
@@ -116,8 +117,9 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
 
   bool GetVCBlock(const BlockHash& blockhash, VCBlockSharedPtr& block);
-  bool GetFallbackBlock(const BlockHash& blockhash,
-                        std::vector<unsigned char>& blockwsharding);
+  bool GetFallbackBlock(
+      const BlockHash& blockhash,
+      FallbackBlockSharedPtr& fallbackblockwshardingstructure);
   bool GetBlockLink(const uint64_t& index, BlockLinkSharedPtr& block);
   /// Retrieves the requested Tx block.
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);

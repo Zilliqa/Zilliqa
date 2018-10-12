@@ -185,8 +185,9 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   return true;
 }
 
-bool BlockStorage::GetFallbackBlock(const BlockHash& blockhash,
-                                    vector<unsigned char>& blockwsharding) {
+bool BlockStorage::GetFallbackBlock(
+    const BlockHash& blockhash,
+    FallbackBlockSharedPtr& fallbackblockwsharding) {
   string blockString = m_fallbackBlockDB->Lookup(blockhash);
 
   if (blockString.empty()) {
@@ -195,7 +196,11 @@ bool BlockStorage::GetFallbackBlock(const BlockHash& blockhash,
 
   // LOG_GENERAL(INFO, blockString);
   LOG_GENERAL(INFO, blockString.length());
-  copy(blockString.begin(), blockString.end(), blockwsharding.begin());
+
+  fallbackblockwsharding =
+      FallbackBlockSharedPtr(new FallbackBlockWShardingStructure(
+          std::vector<unsigned char>(blockString.begin(), blockString.end()),
+          0));
 
   return true;
 }

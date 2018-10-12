@@ -17,23 +17,34 @@
  * program files.
  */
 
-#include "FallbackBlock.h"
-#include "libDirectoryService/ShardStruct.h"
+#include "FallbackBlockWShardingStructure.h"
+#include "libMessage/Messenger.h"
 
-#ifndef __FALLBACKBLOCKWSHARDINGSTRUCTURE__
-#define __FALLBACKBLOCKWSHARDINGSTRUCTURE__
+FallbackBlockWShardingStructure::FallbackBlockWShardingStructure() {}
 
-struct FallbackBlockWShardingStructure {
-  FallbackBlock m_fallbackblock;
-  DequeOfShard m_shards;
+FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
+    const std::vector<unsigned char>& src, unsigned int offset) {
+  if (!Deserialize(src, offset)) {
+    LOG_GENERAL(WARNING, "Failed to initialize");
+  }
+}
 
-  FallbackBlockWShardingStructure();
-  FallbackBlockWShardingStructure(const std::vector<unsigned char>& src,
-                                  unsigned int offset);
+bool FallbackBlockWShardingStructure::Serialize(std::vector<unsigned char>& dst,
+                                                unsigned int offset) {
+  if (!Messenger::SetFallbackBlockWShardingStructure(
+          dst, offset, m_fallbackblock, m_shards)) {
+    LOG_GENERAL(WARNING, "Unable to serialize");
+    return false;
+  }
+  return true;
+}
 
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset);
-
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-};
-
-#endif  // __FALLBACKBLOCKWSHARDINGSTRUCTURE__
+bool FallbackBlockWShardingStructure::Deserialize(
+    const std::vector<unsigned char>& src, unsigned int offset) {
+  if (!Messenger::GetFallbackBlockWShardingStructure(
+          src, offset, m_fallbackblock, m_shards)) {
+    LOG_GENERAL(WARNING, "Unable to Deserialize");
+    return false;
+  }
+  return true;
+}
