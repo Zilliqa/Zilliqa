@@ -25,6 +25,11 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(multisigtest)
 
+/**
+* \brief test_multisig
+*
+* \details Test multisig process and operators
+*/
 BOOST_AUTO_TEST_CASE(test_multisig)
 {
     INIT_STDOUT_LOGGER();
@@ -122,11 +127,16 @@ BOOST_AUTO_TEST_CASE(test_multisig)
                         "Response operator= failed");
 }
 
+/**
+* \brief test_serialization
+*
+* \details Test Response serialization
+*/
 BOOST_AUTO_TEST_CASE(test_serialization)
 {
     Schnorr& schnorr = Schnorr::GetInstance();
 
-    // Generate key pairs
+    /// Generate key pairs
     const unsigned int nbsigners = 80;
     vector<PrivKey> privkeys;
     vector<PubKey> pubkeys;
@@ -137,17 +147,17 @@ BOOST_AUTO_TEST_CASE(test_serialization)
         pubkeys.emplace_back(keypair.second);
     }
 
-    // 1 MB message
+    /// 1 MB message
     const unsigned int message_size = 1048576;
     vector<unsigned char> message_rand(message_size);
     vector<unsigned char> message_1(message_size, 0x01);
     generate(message_rand.begin(), message_rand.end(), std::rand);
 
-    // Aggregate public keys
+    /// Aggregate public keys
     shared_ptr<PubKey> aggregatedPubkey = MultiSig::AggregatePubKeys(pubkeys);
     BOOST_CHECK_MESSAGE(aggregatedPubkey != nullptr, "AggregatePubKeys failed");
 
-    // Generate individual commitments
+    /// Generate individual commitments
     vector<CommitSecret> secrets(nbsigners);
     vector<CommitPoint> points;
     vector<CommitSecret> secrets1;
@@ -162,13 +172,16 @@ BOOST_AUTO_TEST_CASE(test_serialization)
         points1.emplace_back(tmp2, 0);
     }
 
-    //Check CommitSecret operator =
+    ///Check PrintPoint function
+    schnorr.PrintPoint(aggregatedPubkey->m_P.get());
+
+    ///Check CommitSecret operator =
     CommitSecret dummy_secret;
     dummy_secret = secrets.at(0);
     BOOST_CHECK_MESSAGE(dummy_secret == secrets.at(0),
                         "The operator = failed for CommitSecret");
 
-    // Aggregate commits
+    /// Aggregate commits
     shared_ptr<CommitPoint> aggregatedCommit
         = MultiSig::AggregateCommits(points);
     BOOST_CHECK_MESSAGE(aggregatedCommit != nullptr, "AggregateCommits failed");
@@ -177,42 +190,58 @@ BOOST_AUTO_TEST_CASE(test_serialization)
     BOOST_CHECK_MESSAGE(*aggregatedCommit == *aggregatedCommit1,
                         "Commit serialization failed");
 
-    // Generate challenge
+    /// Generate challenge
     Challenge challenge(*aggregatedCommit, *aggregatedPubkey, message_rand);
     BOOST_CHECK_MESSAGE(challenge.Initialized() == true,
                         "Challenge generation failed");
     vector<unsigned char> tmp;
-    responses.back().Serialize(tmp, 0);
-    responses1.emplace_back(tmp, 0);
-    // Verify response
+    challenge.Serialize(tmp, 0);
+    Challenge challenge2(tmp, 0);
+    BOOST_CHECK_MESSAGE(challenge == challenge2,
+                        "Challenge serialization failed");
+    tmp.clear();
+
+    /// Generate responses
+    vector<Response> responses;
+    vector<Response> responses1;
+    for (unsigned int i = 0; i < nbsigners; i++)
+    {
+        responses.emplace_back(secrets.at(i), challenge, privkeys.at(i));
+        BOOST_CHECK_MESSAGE(responses.back().Initialized() == true,
+                            "Response generation failed");
+        vector<unsigned char> tmp;
+        responses.back().Serialize(tmp, 0);
+        responses1.emplace_back(tmp, 0);
+        // Verify response
+        BOOST_CHECK_MESSAGE(MultiSig::VerifyResponse(responses.at(i), challenge,
+                                                     pubkeys.at(i),
+                                                     points.at(i))
+                                == true,
+                            "Verify response failed");
+    }
+
+    /// Aggregate responses
+    shared_ptr<Response> aggregatedResponse
+        = MultiSig::AggregateResponses(responses);
+    BOOST_CHECK_MESSAGE(aggregatedResponse != nullptr,
+                        "AggregateResponses failed");
+    shared_ptr<Response> aggregatedResponse1
+        = MultiSig::AggregateResponses(responses1);
+    BOOST_CHECK_MESSAGE(*aggregatedResponse == *aggregatedResponse1,
+                        "Response serialization failed");
+
+    /// Generate the aggregated signature
+    shared_ptr<Signature> signature
+        = MultiSig::AggregateSign(challenge, *aggregatedResponse);
+    BOOST_CHECK_MESSAGE(signature != nullptr, "AggregateSign failed");
+
+    /// Verify the signature
     BOOST_CHECK_MESSAGE(
-        MultiSig::VerifyResponse(responses.at(i), challenge, pubkeys.at(i),
-                                 points.at(i)) == true,
-        "Verify response failed");
-  }
-
-  // Aggregate responses
-  shared_ptr<Response> aggregatedResponse =
-      MultiSig::AggregateResponses(responses);
-  BOOST_CHECK_MESSAGE(aggregatedResponse != nullptr,
-                      "AggregateResponses failed");
-  shared_ptr<Response> aggregatedResponse1 =
-      MultiSig::AggregateResponses(responses1);
-  BOOST_CHECK_MESSAGE(*aggregatedResponse == *aggregatedResponse1,
-                      "Response serialization failed");
-
-  // Generate the aggregated signature
-  shared_ptr<Signature> signature =
-      MultiSig::AggregateSign(challenge, *aggregatedResponse);
-  BOOST_CHECK_MESSAGE(signature != nullptr, "AggregateSign failed");
-
-  // Verify the signature
-  BOOST_CHECK_MESSAGE(
-      schnorr.Verify(message_rand, *signature, *aggregatedPubkey) == true,
-      "Signature verification (correct message) failed");
-  BOOST_CHECK_MESSAGE(
-      schnorr.Verify(message_1, *signature, *aggregatedPubkey) == false,
-      "Signature verification (wrong message) failed");
+        schnorr.Verify(message_rand, *signature, *aggregatedPubkey) == true,
+        "Signature verification (correct message) failed");
+    BOOST_CHECK_MESSAGE(schnorr.Verify(message_1, *signature, *aggregatedPubkey)
+                            == false,
+                        "Signature verification (wrong message) failed");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
