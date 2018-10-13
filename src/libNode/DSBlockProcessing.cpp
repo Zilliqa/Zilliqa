@@ -80,26 +80,24 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
       LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(to_string(
                                   m_mediator.m_ds->m_latestActiveDSBlockNum)));
 
-  LOG_GENERAL(INFO, "[DSVerif]"
-                        << "Storing ds block in index chain");
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
   m_mediator.m_blocklinkchain.AddBlockLink(
       latestInd, dsblock.GetHeader().GetBlockNum(), BlockType::DS,
       dsblock.GetBlockHash());
 }
 
-void Node::UpdateDSCommiteeComposition() {
+void Node::UpdateDSCommiteeComposition(deque<pair<PubKey,Peer>>& dsComm) {
   LOG_MARKER();
   const map<PubKey, Peer> NewDSMembers =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
-      m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
+      dsComm.emplace_front(m_mediator.m_selfKey.second,
                                               Peer());
     } else {
-      m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
+      dsComm.emplace_front(DSPowWinner);
     }
-    m_mediator.m_DSCommittee->pop_back();
+    dsComm.pop_back();
   }
 }
 
@@ -534,7 +532,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   m_mediator.UpdateDSBlockRand();  // Update the rand1 value for next PoW
-  UpdateDSCommiteeComposition();
+  UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee);
 
   if (!LOOKUP_NODE_MODE) {
     uint32_t ds_size = m_mediator.m_DSCommittee->size();

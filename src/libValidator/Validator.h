@@ -21,7 +21,10 @@
 #define __VALIDATOR_H__
 
 #include <string>
-
+#include <boost/variant.hpp>
+#include "libNetwork/Peer.h"
+#include "libData/BlockData/Block.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 
@@ -58,6 +61,11 @@ class Validator : public ValidatorBase {
 
   bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
 
+  template<class Container, class DirectoryBlock>
+  bool CheckBlockCosignature(const DirectoryBlock& block, const Container& commKeys);
+
+  bool CheckDirBlocks(const std::vector<boost::variant<DSBlock,VCBlock,FallbackBlockWShardingStructure>>& dirBlocks,
+  const std::deque<std::pair<PubKey, Peer>> & initDsComm );
   Mediator& m_mediator;
 };
 
