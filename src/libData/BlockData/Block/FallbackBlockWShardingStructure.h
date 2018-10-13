@@ -20,10 +20,10 @@
 #include "FallbackBlock.h"
 #include "libDirectoryService/ShardStruct.h"
 
-#ifndef __FALLBACKBLOCKWSHARDINGSTRUCTURE__
-#define __FALLBACKBLOCKWSHARDINGSTRUCTURE__
+#ifndef __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
+#define __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
 
-struct FallbackBlockWShardingStructure {
+struct FallbackBlockWShardingStructure : public SerializableDataBlock {
   FallbackBlock m_fallbackblock;
   DequeOfShard m_shards;
 
@@ -33,9 +33,9 @@ struct FallbackBlockWShardingStructure {
   FallbackBlockWShardingStructure(const FallbackBlock& fallbackblock,
                                   const DequeOfShard& shards);
 
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset);
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 };
 
-#endif  // __FALLBACKBLOCKWSHARDINGSTRUCTURE__
+#endif  // __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__

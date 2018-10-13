@@ -238,7 +238,6 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
       BlockType::FB, fallbackblock.GetBlockHash());
 
   vector<unsigned char> dst;
-  dst.clear();
 
   FallbackBlockWShardingStructure fbblockwshards(fallbackblock,
                                                  m_mediator.m_ds->m_shards);

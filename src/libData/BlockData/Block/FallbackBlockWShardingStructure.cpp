@@ -23,10 +23,8 @@
 FallbackBlockWShardingStructure::FallbackBlockWShardingStructure() {}
 
 FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
-    const FallbackBlock& fallbackblock, const DequeOfShard& shards) {
-  m_fallbackblock = fallbackblock;
-  m_shards = shards;
-}
+    const FallbackBlock& fallbackblock, const DequeOfShard& shards)
+    : m_fallbackblock(fallbackblock), m_shards(shards) {}
 
 FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
     const std::vector<unsigned char>& src, unsigned int offset) {
@@ -36,7 +34,7 @@ FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
 }
 
 bool FallbackBlockWShardingStructure::Serialize(std::vector<unsigned char>& dst,
-                                                unsigned int offset) {
+                                                unsigned int offset) const {
   if (!Messenger::SetFallbackBlockWShardingStructure(
           dst, offset, m_fallbackblock, m_shards)) {
     LOG_GENERAL(WARNING, "Unable to serialize");
