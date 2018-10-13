@@ -27,7 +27,6 @@
 #include <exception>
 #include <fstream>
 #include <random>
-#include <unordered_set>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -2602,14 +2601,13 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
 
   if (!Messenger::GetLookupGetDirectoryBlocksFromSeed(message, offset, portNo,
                                                       index_num)) {
-    LOG_GENERAL(WARNING, "Unable to set GetLookupGetDirectory");
+    LOG_GENERAL(WARNING,
+                "Messenger::GetLookupGetDirectoryBlocksFromSeed failed");
     return false;
   }
 
   vector<unsigned char> msg = {MessageType::LOOKUP,
                                LookupInstructionType::SETDIRBLOCKSFROMSEED};
-
-  unsigned int curr_offset = MessageOffset::BODY;
 
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
@@ -2650,9 +2648,10 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
   uint128_t ipAddr = from.m_ipAddress;
   Peer peer(ipAddr, portNo);
 
-  if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(msg, curr_offset,
+  if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(msg, MessageOffset::BODY,
                                                       dirBlocks, index_num)) {
-    LOG_GENERAL(WARNING, "Could not set Directory Blocks");
+    LOG_GENERAL(WARNING,
+                "Messenger::SetLookupSetDirectoryBlocksFromSeed failed");
     return false;
   }
 
@@ -2670,7 +2669,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
   if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(message, offset,
                                                       dirBlocks, index_num)) {
-    LOG_GENERAL(WARNING, "Could not Get SetDirectoryBlocksFromSeed");
+    LOG_GENERAL(WARNING,
+                "Messenger::GetLookupSetDirectoryBlocksFromSeed failed");
     return false;
   }
 
@@ -2679,19 +2679,19 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  // do something
+  //[ToDo]: Verify blocks and ds-info
 
   return true;
 }
 
-void Lookup::ComposeGetDirectoryBlocksFromSeed(uint64_t& index_num) {
+void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(uint64_t& index_num) {
   vector<unsigned char> message = {MessageType::LOOKUP,
-                                   LookupInstructionType::SETDIRBLOCKSFROMSEED};
+                                   LookupInstructionType::GETDIRBLOCKSFROMSEED};
 
   if (!Messenger::SetLookupGetDirectoryBlocksFromSeed(
           message, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost,
           index_num)) {
-    LOG_GENERAL(WARNING, "Could not set LookupGetDirectoryBlocksFromSeed");
+    LOG_GENERAL(WARNING, "Messenger::SetLookupGetDirectoryBlocksFromSeed");
     return;
   }
 

@@ -4914,33 +4914,42 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
   index_num = result.indexnum();
 
   for (const auto& dirblock : result.dirblocks()) {
+    DSBlock dsblock;
+    VCBlock vcblock;
+    FallbackBlockWShardingStructure fallbackblockwshard;
     switch (dirblock.directoryblock_case()) {
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::kDsblock: {
-        DSBlock dsblock;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kDsblock:
+        if (!dirblock.dsblock().IsInitialized()) {
+          LOG_GENERAL(WARNING, "DS block not initialized");
+          continue;
+        }
         ProtobufToDSBlock(dirblock.dsblock(), dsblock);
         directoryBlocks.emplace_back(dsblock);
         break;
-      }
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::kVcblock: {
-        VCBlock vcblock;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kVcblock:
+        if (!dirblock.vcblock().IsInitialized()) {
+          LOG_GENERAL(WARNING, "VC block not initialized");
+          continue;
+        }
         ProtobufToVCBlock(dirblock.vcblock(), vcblock);
         directoryBlocks.emplace_back(vcblock);
         break;
-      }
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::
-          kFallbackblockwshard: {
-        FallbackBlockWShardingStructure fallbackblockwshard;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kFallbackblockwshard:
+        if (!dirblock.fallbackblockwshard().IsInitialized()) {
+          LOG_GENERAL(WARNING, "FallbackBlock not initialized");
+          continue;
+        }
         ProtobufToFallbackBlock(dirblock.fallbackblockwshard().fallbackblock(),
                                 fallbackblockwshard.m_fallbackblock);
         ProtobufToShardingStructure(dirblock.fallbackblockwshard().sharding(),
                                     fallbackblockwshard.m_shards);
         directoryBlocks.emplace_back(fallbackblockwshard);
         break;
-      }
-      default: {
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::
+          DIRECTORYBLOCK_NOT_SET:
+      default:
         LOG_GENERAL(WARNING, "Error in the blocktype");
-        continue;
-      }
+        break;
     }
   }
   return true;

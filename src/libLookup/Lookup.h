@@ -285,7 +285,7 @@ class Lookup : public Executable, public Broadcastable {
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
 
-  void ComposeGetDirectoryBlocksFromSeed(uint64_t& index_num);
+  void ComposeAndSendGetDirectoryBlocksFromSeed(uint64_t& index_num);
 
   static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);

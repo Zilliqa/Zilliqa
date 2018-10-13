@@ -93,7 +93,6 @@ void Node::ProcessFallbackConsensusWhenDone() {
       BlockType::FB, m_pendingFallbackBlock->GetBlockHash());
 
   vector<unsigned char> dst;
-  dst.clear();
 
   FallbackBlockWShardingStructure fbblockwshards(*m_pendingFallbackBlock,
                                                  m_mediator.m_ds->m_shards);

@@ -22,8 +22,8 @@
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 
-#ifndef __BLOCKLINKCHAIN__
-#define __BLOCKLINKCHAIN__
+#ifndef __BLOCKLINKCHAIN_H__
+#define __BLOCKLINKCHAIN_H__
 
 typedef std::tuple<uint64_t, uint64_t, BlockType, BlockHash> BlockLink;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
@@ -36,11 +36,11 @@ enum BlockLinkIndex : unsigned char {
 };
 
 class BlockLinkChain {
-  CircularArray<BlockLink> m_blocklinkchain;
+  CircularArray<BlockLink> m_blockLinkChain;
   std::mutex m_mutexBlockLinkChain;
 
  public:
-  BlockLink GetFromPersistanceStorage(const uint64_t& index) {
+  BlockLink GetFromPersistentStorage(const uint64_t& index) {
     BlockLinkSharedPtr blnkshared;
 
     if (!BlockStorage::GetBlockStorage().GetBlockLink(index, blnkshared)) {
@@ -52,35 +52,33 @@ class BlockLinkChain {
     return *blnkshared;
   }
 
-  void Reset() { m_blocklinkchain.resize(BLOCKCHAIN_SIZE); }
+  void Reset() { m_blockLinkChain.resize(BLOCKCHAIN_SIZE); }
 
   BlockLink GetBlockLink(const uint64_t& blocknum) {
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
-    if (m_blocklinkchain.size() <= blocknum) {
+    if (m_blockLinkChain.size() <= blocknum) {
       LOG_GENERAL(WARNING, "Unable to find blocklink, returning dummy link "
                                << blocknum);
       return BlockLink();
-    } else if (blocknum + m_blocklinkchain.capacity() <
-               m_blocklinkchain.size()) {
-      return GetFromPersistanceStorage(blocknum);
+    } else if (blocknum + m_blockLinkChain.capacity() <
+               m_blockLinkChain.size()) {
+      return GetFromPersistentStorage(blocknum);
     }
-    if (std::get<BlockLinkIndex::INDEX>(m_blocklinkchain[blocknum]) !=
+    if (std::get<BlockLinkIndex::INDEX>(m_blockLinkChain[blocknum]) !=
         blocknum) {
       LOG_GENERAL(WARNING, "Does not match the given blocknum");
       return BlockLink();
     }
-    return m_blocklinkchain[blocknum];
+    return m_blockLinkChain[blocknum];
   }
 
   void AddBlockLink(const uint64_t& index, const uint64_t& dsindex,
                     const BlockType blocktype, const BlockHash& blockhash) {
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
-    m_blocklinkchain.insert_new(
+    m_blockLinkChain.insert_new(
         index, std::make_tuple(index, dsindex, blocktype, blockhash));
 
     std::vector<unsigned char> dst;
-    dst.clear();
-
     LOG_GENERAL(INFO, "[DBS]"
                           << "Stored " << index << " " << dsindex << " "
                           << blocktype << " " << blockhash);
@@ -97,11 +95,11 @@ class BlockLinkChain {
 
   uint64_t GetLatestIndex() {
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
-    if (m_blocklinkchain.size() == 0) {
+    if (m_blockLinkChain.size() == 0) {
       return 0;
     }
-    return std::get<BlockLinkIndex::INDEX>(m_blocklinkchain.back());
+    return std::get<BlockLinkIndex::INDEX>(m_blockLinkChain.back());
   }
 };
 
-#endif  //__BLOCKLINKCHAIN__
+#endif  //__BLOCKLINKCHAIN_H__
