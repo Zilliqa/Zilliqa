@@ -24,18 +24,18 @@
 
 #define BOOST_TEST_MODULE schnorrtest
 #define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
 #include <boost/test/output_test_stream.hpp>
+#include <boost/test/unit_test.hpp>
 
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(schnorrtest)
 
 /**
-* \brief test_multisig
-*
-* \details Test multisig process and operators
-*/
+ * \brief test_multisig
+ *
+ * \details Test multisig process and operators
+ */
 BOOST_AUTO_TEST_CASE(test_curve_setup) {
   INIT_STDOUT_LOGGER();
 
@@ -96,10 +96,10 @@ BOOST_AUTO_TEST_CASE(test_curve_setup) {
 }
 
 /**
-* \brief test_multisig
-*
-* \details Test multisig process and operators
-*/
+ * \brief test_multisig
+ *
+ * \details Test multisig process and operators
+ */
 BOOST_AUTO_TEST_CASE(test_keys) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
@@ -125,10 +125,10 @@ BOOST_AUTO_TEST_CASE(test_keys) {
 }
 
 /**
-* \brief test_sign_verif
-*
-* \details Test signature verification
-*/
+ * \brief test_sign_verif
+ *
+ * \details Test signature verification
+ */
 BOOST_AUTO_TEST_CASE(test_sign_verif) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
@@ -169,10 +169,10 @@ BOOST_AUTO_TEST_CASE(test_sign_verif) {
 }
 
 /**
-* \brief test_performance
-*
-* \details Test various message sizes
-*/
+ * \brief test_performance
+ *
+ * \details Test various message sizes
+ */
 BOOST_AUTO_TEST_CASE(test_performance) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
@@ -224,10 +224,10 @@ BOOST_AUTO_TEST_CASE(test_performance) {
 }
 
 /**
-* \brief test_serialization
-*
-* \details Test serialization both via function and via stream operator
-*/
+ * \brief test_serialization
+ *
+ * \details Test serialization both via function and via stream operator
+ */
 BOOST_AUTO_TEST_CASE(test_serialization) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
@@ -264,15 +264,14 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   BOOST_CHECK_MESSAGE(signature == signature1,
                       "Signature serialization check #1 failed");
 
-  ///Check PrivKey operator =
+  /// Check PrivKey operator =
   PrivKey privkey2;
   privkey2 = privkey1;
 
-  ///Check PubKey operator >
+  /// Check PubKey operator >
   PubKey pubkey2;
   pubkey2 = pubkey1;
-  BOOST_CHECK_MESSAGE(!(pubkey2>pubkey1),
-                      "Pubkey operator > failed");
+  BOOST_CHECK_MESSAGE(!(pubkey2 > pubkey1), "Pubkey operator > failed");
 
   /// Deserialize keys and signature using Deserialize functions (first,
   /// initialize the keys and sig with different values)
@@ -293,17 +292,17 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
                       "PrivKey serialization check #2 failed");
   boost::test_tools::output_test_stream PrivKeyOutput;
   PrivKeyOutput << keypair.first;
-  BOOST_CHECK( !PrivKeyOutput.is_empty( false ) );
+  BOOST_CHECK(!PrivKeyOutput.is_empty(false));
   BOOST_CHECK_MESSAGE(keypair.second == keypair2.second,
                       "PubKey serialization check #2 failed");
   boost::test_tools::output_test_stream PubKeyOutput;
   PubKeyOutput << keypair.second;
-  BOOST_CHECK( !PubKeyOutput.is_empty( false ) );
+  BOOST_CHECK(!PubKeyOutput.is_empty(false));
   BOOST_CHECK_MESSAGE(signature == signature2,
                       "Signature serialization check #2 failed");
   boost::test_tools::output_test_stream SignatureOutput;
   SignatureOutput << signature2;
-  BOOST_CHECK( !SignatureOutput.is_empty( false ) );
+  BOOST_CHECK(!SignatureOutput.is_empty(false));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
