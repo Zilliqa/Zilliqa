@@ -231,7 +231,6 @@ class Node : public Executable, public Broadcastable {
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
   void StoreDSBlockToDisk(const DSBlock& dsblock);
-  
 
   // Message handlers
   bool ProcessStartPoW(const std::vector<unsigned char>& message,
@@ -276,7 +275,7 @@ class Node : public Executable, public Broadcastable {
   bool CheckStateRoot(const TxBlock& finalBlock);
 
   // View change
-  
+
   bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
   bool ProcessVCBlock(const std::vector<unsigned char>& message,
                       unsigned int cur_offset, const Peer& from);
@@ -479,12 +478,15 @@ class Node : public Executable, public Broadcastable {
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
 
-  void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey,Peer>>& dsComm);
+  void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
 
-  void UpdateDSCommiteeCompositionAfterVC(std::deque<std::pair<PubKey,Peer>>& dsComm);
+  void UpdateDSCommiteeCompositionAfterVC(
+      std::deque<std::pair<PubKey, Peer>>& dsComm);
 
-  void UpdateDSCommitteeAfterFallback(const uint32_t& shard_id, const PubKey& leaderPubKey,
-                         const Peer& leaderNetworkInfo, std::deque<std::pair<PubKey,Peer>>& dsComm,const DequeOfShard& shards);
+  void UpdateDSCommitteeAfterFallback(
+      const uint32_t& shard_id, const PubKey& leaderPubKey,
+      const Peer& leaderNetworkInfo,
+      std::deque<std::pair<PubKey, Peer>>& dsComm, const DequeOfShard& shards);
 
   void CommitForwardedTransactionBuffer();
 

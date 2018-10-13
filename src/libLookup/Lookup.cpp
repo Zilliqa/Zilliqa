@@ -2679,7 +2679,13 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  //[ToDo]: Verify blocks and ds-info
+  // deque<pair<PubKey,Peer>>& initialDSCommittee =
+
+  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks,
+                                              deque<pair<PubKey, Peer>>())) {
+    LOG_GENERAL(WARNING, "Verification of ds information failed");
+    return false;
+  }
 
   return true;
 }
