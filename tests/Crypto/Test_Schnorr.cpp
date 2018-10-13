@@ -25,6 +25,7 @@
 #define BOOST_TEST_MODULE schnorrtest
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
+#include <boost/test/output_test_stream.hpp>
 
 using namespace std;
 
@@ -238,6 +239,16 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   BOOST_CHECK_MESSAGE(signature == signature1,
                       "Signature serialization check #1 failed");
 
+  ///Check PrivKey operator =
+  PrivKey privkey2;
+  privkey2 = privkey1;
+
+  ///Check PubKey operator >
+  PubKey pubkey2;
+  pubkey2 = pubkey1;
+  BOOST_CHECK_MESSAGE(!(pubkey2>pubkey1),
+                      "Pubkey operator > failed");
+
   // Deserialize keys and signature using Deserialize functions (first,
   // initialize the keys and sig with different values)
   pair<PrivKey, PubKey> keypair2 = schnorr.GenKeyPair();
@@ -255,10 +266,19 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   signature2.Deserialize(signature_bytes, 0);
   BOOST_CHECK_MESSAGE(keypair.first == keypair2.first,
                       "PrivKey serialization check #2 failed");
+  boost::test_tools::output_test_stream PrivKeyOutput;
+  PrivKeyOutput << keypair.first;
+  BOOST_CHECK( !PrivKeyOutput.is_empty( false ) );
   BOOST_CHECK_MESSAGE(keypair.second == keypair2.second,
                       "PubKey serialization check #2 failed");
+  boost::test_tools::output_test_stream PubKeyOutput;
+  PubKeyOutput << keypair.second;
+  BOOST_CHECK( !PubKeyOutput.is_empty( false ) );
   BOOST_CHECK_MESSAGE(signature == signature2,
                       "Signature serialization check #2 failed");
+  boost::test_tools::output_test_stream SignatureOutput;
+  SignatureOutput << signature2;
+  BOOST_CHECK( !SignatureOutput.is_empty( false ) );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
