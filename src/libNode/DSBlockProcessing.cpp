@@ -86,14 +86,13 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
       dsblock.GetBlockHash());
 }
 
-void Node::UpdateDSCommiteeComposition(deque<pair<PubKey,Peer>>& dsComm) {
+void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm) {
   LOG_MARKER();
   const map<PubKey, Peer> NewDSMembers =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
-      dsComm.emplace_front(m_mediator.m_selfKey.second,
-                                              Peer());
+      dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
     } else {
       dsComm.emplace_front(DSPowWinner);
     }

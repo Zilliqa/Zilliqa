@@ -46,7 +46,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::UpdateDSCommiteeCompositionAfterVC(deque<pair<PubKey,Peer>>& dsComm) {
+void Node::UpdateDSCommiteeCompositionAfterVC(
+    deque<pair<PubKey, Peer>>& dsComm) {
   LOG_MARKER();
 
   dsComm.emplace_back(dsComm.front());

@@ -20,13 +20,13 @@
 #ifndef __VALIDATOR_H__
 #define __VALIDATOR_H__
 
-#include <string>
 #include <boost/variant.hpp>
-#include "libNetwork/Peer.h"
-#include "libData/BlockData/Block.h"
-#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include <string>
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/BlockData/Block.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libNetwork/Peer.h"
 
 class Mediator;
 
@@ -42,6 +42,11 @@ class ValidatorBase {
                                        TransactionReceipt& receipt) const = 0;
 
   virtual bool CheckCreatedTransactionFromLookup(const Transaction& tx) = 0;
+
+  virtual bool CheckDirBlocks(
+      const std::vector<boost::variant<
+          DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
+      const std::deque<std::pair<PubKey, Peer>>& initDsComm) = 0;
 };
 
 class Validator : public ValidatorBase {
@@ -61,11 +66,14 @@ class Validator : public ValidatorBase {
 
   bool CheckCreatedTransactionFromLookup(const Transaction& tx) override;
 
-  template<class Container, class DirectoryBlock>
-  bool CheckBlockCosignature(const DirectoryBlock& block, const Container& commKeys);
+  template <class Container, class DirectoryBlock>
+  bool CheckBlockCosignature(const DirectoryBlock& block,
+                             const Container& commKeys);
 
-  bool CheckDirBlocks(const std::vector<boost::variant<DSBlock,VCBlock,FallbackBlockWShardingStructure>>& dirBlocks,
-  const std::deque<std::pair<PubKey, Peer>> & initDsComm );
+  bool CheckDirBlocks(
+      const std::vector<boost::variant<
+          DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
+      const std::deque<std::pair<PubKey, Peer>>& initDsComm);
   Mediator& m_mediator;
 };
 

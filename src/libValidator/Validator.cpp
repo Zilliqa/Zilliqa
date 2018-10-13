@@ -27,6 +27,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+using ShardingHash = dev::h256;
+
 Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 
 Validator::~Validator() {}
@@ -150,10 +152,10 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   return true;
 }
 
-template<class Container, class DirectoryBlock> 
-bool Validator::CheckBlockCosignature(const DirectoryBlock& block, const Container& commKeys)
-{
-    LOG_MARKER();
+template <class Container, class DirectoryBlock>
+bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
+                                      const Container& commKeys) {
+  LOG_MARKER();
 
   unsigned int index = 0;
   unsigned int count = 0;
@@ -189,11 +191,13 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block, const Contain
 
   // Verify the collective signature
   vector<unsigned char> serializedHeader;
-  block.GetHeader().Serialize(serializedHeader,0);
+  block.GetHeader().Serialize(serializedHeader, 0);
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
-  BitVector::SetBitVector(serializedHeader, serializedHeader.size(), block.GetB1());
-  if (!Schnorr::GetInstance().Verify(serializedHeader, 0, serializedHeader.size(),
-                                     block.GetCS2(), *aggregatedKey)) {
+  BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
+                          block.GetB1());
+  if (!Schnorr::GetInstance().Verify(serializedHeader, 0,
+                                     serializedHeader.size(), block.GetCS2(),
+                                     *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -204,85 +208,100 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block, const Contain
   return true;
 }
 
-bool Validator::CheckDirBlocks(const vector<boost::variant<DSBlock,VCBlock,FallbackBlockWShardingStructure>>& dirBlocks,
- const deque<pair<PubKey, Peer>>& initDsComm )
-{
-
-  deque<pair<PubKey,Peer>> mutable_ds_comm = initDsComm;
+bool Validator::CheckDirBlocks(
+    const vector<boost::variant<DSBlock, VCBlock,
+                                FallbackBlockWShardingStructure>>& dirBlocks,
+    const deque<pair<PubKey, Peer>>& initDsComm) {
+  deque<pair<PubKey, Peer>> mutable_ds_comm = initDsComm;
 
   uint64_t prevdsblocknum = 0;
   uint64_t totalIndex = 0;
-  for(const auto& dirBlock : dirBlocks)
-  {
-    if(typeid(DSBlock)==dirBlock.type())
-    {
+  ShardingHash prevShardingHash = ShardingHash();
+  for (const auto& dirBlock : dirBlocks) {
+    if (typeid(DSBlock) == dirBlock.type()) {
       const auto& dsblock = get<DSBlock>(dirBlock);
-      if(dsblock.GetHeader().GetBlockNum() != prevdsblocknum + 1)
-      {
-        LOG_GENERAL(WARNING,"DSblocks not in sequence "<<dsblock.GetHeader().GetBlockNum()<<" "<<prevdsblocknum);
+      if (dsblock.GetHeader().GetBlockNum() != prevdsblocknum + 1) {
+        LOG_GENERAL(WARNING, "DSblocks not in sequence "
+                                 << dsblock.GetHeader().GetBlockNum() << " "
+                                 << prevdsblocknum);
         return false;
       }
-      
-      if(!CheckBlockCosignature(dsblock,mutable_ds_comm))
-      {
-        LOG_GENERAL(WARNING,"Co-sig verification of ds block "<<prevdsblocknum + 1<<" failed");
+
+      if (!CheckBlockCosignature(dsblock, mutable_ds_comm)) {
+        LOG_GENERAL(WARNING, "Co-sig verification of ds block "
+                                 << prevdsblocknum + 1 << " failed");
         return false;
       }
       prevdsblocknum++;
+      prevShardingHash = dsblock.GetHeader().GetShardingHash();
       m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm);
       totalIndex++;
 
-    }
-    else if(typeid(VCBlock) == dirBlock.type())
-    {
+    } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
 
-      if(vcblock.GetHeader().GetVieWChangeDSEpochNo() != prevdsblocknum)
-      {
-        LOG_GENERAL(WARNING, "VC block ds epoch number does not match the number being processed "<<prevdsblocknum<<" "<<vcblock.GetHeader().GetVieWChangeDSEpochNo());
+      if (vcblock.GetHeader().GetVieWChangeDSEpochNo() != prevdsblocknum) {
+        LOG_GENERAL(WARNING,
+                    "VC block ds epoch number does not match the number being "
+                    "processed "
+                        << prevdsblocknum << " "
+                        << vcblock.GetHeader().GetVieWChangeDSEpochNo());
         return false;
       }
-      if(!CheckBlockCosignature(vcblock, mutable_ds_comm))
-      {
-        LOG_GENERAL(WARNING,"Co-sig verification of vc block in "<<prevdsblocknum<<" failed"<<totalIndex+1);
+      if (!CheckBlockCosignature(vcblock, mutable_ds_comm)) {
+        LOG_GENERAL(WARNING, "Co-sig verification of vc block in "
+                                 << prevdsblocknum << " failed"
+                                 << totalIndex + 1);
         return false;
       }
-      unsigned int newCandidateLeader = vcblock.GetHeader().GetViewChangeCounter();
-      for(unsigned int i = 0 ; i<newCandidateLeader; i++)
-      {
+      unsigned int newCandidateLeader =
+          vcblock.GetHeader().GetViewChangeCounter();
+      for (unsigned int i = 0; i < newCandidateLeader; i++) {
         m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(mutable_ds_comm);
       }
       totalIndex++;
-    }
-    else if(typeid(FallbackBlockWShardingStructure) == dirBlock.type())
-    {
-      const auto& fallbackblock = get<FallbackBlockWShardingStructure>(dirBlock).m_fallbackblock;
-      const DequeOfShard& shards = get<FallbackBlockWShardingStructure>(dirBlock).m_shards;
+    } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
+      const auto& fallbackblock =
+          get<FallbackBlockWShardingStructure>(dirBlock).m_fallbackblock;
+      const DequeOfShard& shards =
+          get<FallbackBlockWShardingStructure>(dirBlock).m_shards;
 
-      if(fallbackblock.GetHeader().GetFallbackDSEpochNo() != prevdsblocknum)
-      {
-        LOG_GENERAL(WARNING,"Fallback block ds epoch number does not match the number being processed "<<prevdsblocknum<<" "<<fallbackblock.GetHeader().GetFallbackDSEpochNo());
+      if (fallbackblock.GetHeader().GetFallbackDSEpochNo() != prevdsblocknum) {
+        LOG_GENERAL(WARNING,
+                    "Fallback block ds epoch number does not match the number "
+                    "being processed "
+                        << prevdsblocknum << " "
+                        << fallbackblock.GetHeader().GetFallbackDSEpochNo());
         return false;
       }
 
-      //Verify Sharding Structure Hash here
+      ShardingHash shardinghash;
+      if (!Messenger::GetShardingStructureHash(shards, shardinghash)) {
+        LOG_GENERAL(WARNING, "GetShardingStructureHash failed");
+        return false;
+      }
+
+      if (shardinghash != prevShardingHash) {
+        LOG_GENERAL(WARNING, "ShardingHash does not match ");
+        return false;
+      }
 
       uint32_t shard_id = fallbackblock.GetHeader().GetShardId();
 
-
-      if(!CheckBlockCosignature(fallbackblock, shards.at(shard_id)))
-      {
-        LOG_GENERAL(WARNING,"Co-sig verification of fallbackblock in "<<prevdsblocknum<<" failed"<<totalIndex+1);
+      if (!CheckBlockCosignature(fallbackblock, shards.at(shard_id))) {
+        LOG_GENERAL(WARNING, "Co-sig verification of fallbackblock in "
+                                 << prevdsblocknum << " failed"
+                                 << totalIndex + 1);
         return false;
       }
       const PubKey& leaderPubKey = fallbackblock.GetHeader().GetLeaderPubKey();
-      const Peer& leaderNetworkInfo = fallbackblock.GetHeader().GetLeaderNetworkInfo();
-      m_mediator.m_node->UpdateDSCommitteeAfterFallback(shard_id, leaderPubKey, leaderNetworkInfo, mutable_ds_comm, shards);
+      const Peer& leaderNetworkInfo =
+          fallbackblock.GetHeader().GetLeaderNetworkInfo();
+      m_mediator.m_node->UpdateDSCommitteeAfterFallback(
+          shard_id, leaderPubKey, leaderNetworkInfo, mutable_ds_comm, shards);
       totalIndex++;
-    }
-    else
-    {
-      LOG_GENERAL(WARNING,"dirBlock type unexpected ");
+    } else {
+      LOG_GENERAL(WARNING, "dirBlock type unexpected ");
     }
   }
   return true;

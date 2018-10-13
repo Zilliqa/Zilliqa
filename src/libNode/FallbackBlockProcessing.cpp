@@ -40,18 +40,18 @@
 using namespace std;
 
 void Node::UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
-                             const PubKey& leaderPubKey,
-                             const Peer& leaderNetworkInfo, deque<pair<PubKey,Peer>>& dsComm, const DequeOfShard& shards) {
-
+                                          const PubKey& leaderPubKey,
+                                          const Peer& leaderNetworkInfo,
+                                          deque<pair<PubKey, Peer>>& dsComm,
+                                          const DequeOfShard& shards) {
   dsComm.clear();
   for (auto const& shardNode : shards[shard_id]) {
     if (std::get<SHARD_NODE_PUBKEY>(shardNode) == leaderPubKey &&
         std::get<SHARD_NODE_PEER>(shardNode) == leaderNetworkInfo) {
       dsComm.push_front({leaderPubKey, leaderNetworkInfo});
     } else {
-      dsComm.push_back(
-          {std::get<SHARD_NODE_PUBKEY>(shardNode),
-           std::get<SHARD_NODE_PEER>(shardNode)});
+      dsComm.push_back({std::get<SHARD_NODE_PUBKEY>(shardNode),
+                        std::get<SHARD_NODE_PEER>(shardNode)});
     }
   }
 }
@@ -251,7 +251,9 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
   FallbackTimerPulse();
   {
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    UpdateDSCommitteeAfterFallback(shard_id, leaderPubKey, leaderNetworkInfo, *m_mediator.m_DSCommittee,m_mediator.m_ds->m_shards);
+    UpdateDSCommitteeAfterFallback(shard_id, leaderPubKey, leaderNetworkInfo,
+                                   *m_mediator.m_DSCommittee,
+                                   m_mediator.m_ds->m_shards);
   }
   StoreState();
 
