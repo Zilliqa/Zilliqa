@@ -186,11 +186,13 @@ class DirectoryService : public Executable, public Broadcastable {
   void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                unsigned int my_shards_hi);
 
-  unsigned int ComposeDSBlock(
+  unsigned int ComputeDSBlockParameters(
       const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
           sortedDSPoWSolns,
       std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
-          sortedPoWSolns);
+          sortedPoWSolns,
+      std::map<PubKey, Peer>& powDSWinners, uint8_t& dsDifficulty,
+      uint8_t& difficulty, uint64_t& blockNum, BlockHash& prevHash);
   void ComputeSharding(
       const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
           sortedPoWSolns);
