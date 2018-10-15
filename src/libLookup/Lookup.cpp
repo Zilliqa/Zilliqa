@@ -289,7 +289,7 @@ bool Lookup::GetSeedPeersFromLookup() {
   return true;
 }
 
-vector<unsigned char> Lookup::ComposeGetDSInfoMessage() {
+vector<unsigned char> Lookup::ComposeGetDSInfoMessage(bool initialDS) {
   LOG_MARKER();
 
   vector<unsigned char> getDSNodesMessage = {
@@ -297,7 +297,7 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage() {
 
   if (!Messenger::SetLookupGetDSInfoFromSeed(
           getDSNodesMessage, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost)) {
+          m_mediator.m_selfPeer.m_listenPortHost,initialDS)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetLookupGetDSInfoFromSeed failed.");
     return {};
@@ -329,9 +329,13 @@ bool Lookup::GetDSInfoFromSeedNodes() {
   return true;
 }
 
-bool Lookup::GetDSInfoFromLookupNodes() {
+bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
   LOG_MARKER();
-  SendMessageToRandomLookupNode(ComposeGetDSInfoMessage());
+  if(initialDS)
+  {
+    LOG_GENERAL(INFO,"[DSINFOVERIF]");
+  }
+  SendMessageToRandomLookupNode(ComposeGetDSInfoMessage(initialDS));
   return true;
 }
 
@@ -430,6 +434,9 @@ bool Lookup::SetDSCommitteInfo() {
     return true;
   }
   // Populate tree structure pt
+
+  LOG_MARKER();
+
   using boost::property_tree::ptree;
   ptree pt;
   read_xml("config.xml", pt);
@@ -639,8 +646,9 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
   LOG_MARKER();
 
   uint32_t portNo = 0;
+  bool initialDS;
 
-  if (!Messenger::GetLookupGetDSInfoFromSeed(message, offset, portNo)) {
+  if (!Messenger::GetLookupGetDSInfoFromSeed(message, offset, portNo, initialDS)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetLookupGetDSInfoFromSeed failed.");
     return false;
@@ -649,7 +657,26 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
   vector<unsigned char> dsInfoMessage = {
       MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
+  if(initialDS)
   {
+    lock_guard <mutex> g(m_mediator.m_mutexInitialDSCommittee);
+
+    LOG_GENERAL(INFO,"[DSINFOVERIF]"<<"Recvd call to send initial ds");
+
+    if (!Messenger::SetLookupSetDSInfoFromSeed(
+            dsInfoMessage, MessageOffset::BODY, m_mediator.m_selfKey,
+            *m_mediator.m_initialDSCommittee,true)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::SetLookupSetDSInfoFromSeed failed.");
+      return false;
+    }
+
+
+  }
+
+  else
+  {
+
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
     for (const auto& ds : *m_mediator.m_DSCommittee) {
@@ -659,7 +686,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
 
     if (!Messenger::SetLookupSetDSInfoFromSeed(
             dsInfoMessage, MessageOffset::BODY, m_mediator.m_selfKey,
-            *m_mediator.m_DSCommittee)) {
+            *m_mediator.m_DSCommittee,false)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -1389,12 +1416,14 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
   LOG_MARKER();
 
+  bool initialDS;
+
   {
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    
     PubKey senderPubKey;
     std::deque<std::pair<PubKey, Peer>> dsNodes;
     if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
-                                               dsNodes)) {
+                                               dsNodes, initialDS)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::GetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -1409,23 +1438,42 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
       }
     }
 
-    *m_mediator.m_DSCommittee = std::move(dsNodes);
+    if(initialDS)
+    {
+      lock_guard<mutex> h(m_mediator.m_mutexDSCommittee);
+      LOG_GENERAL(INFO,"[DSINFOVERIF]"<<"Recvd inital ds config");
+      *m_mediator.m_initialDSCommittee = move(dsNodes);
+    }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "ProcessSetDSInfoFromSeed sent by "
-                  << from << " for numPeers "
-                  << m_mediator.m_DSCommittee->size());
+    else
+    {
 
-    unsigned int i = 0;
-    for (auto& ds : *m_mediator.m_DSCommittee) {
-      if (m_syncType == SyncType::DS_SYNC &&
-          ds.second == m_mediator.m_selfPeer) {
-        ds.second = Peer();
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+      *m_mediator.m_DSCommittee = std::move(dsNodes);
+
+      if(m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE)
+      {
+        lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
+        LOG_GENERAL(INFO,"[DSINFOVERIF]"<<"Recvd initial ds config");
+        *m_mediator.m_initialDSCommittee = *m_mediator.m_DSCommittee;
       }
 
-      LOG_EPOCH(
-          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-          "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "ProcessSetDSInfoFromSeed sent by "
+                    << from << " for numPeers "
+                    << m_mediator.m_DSCommittee->size());
+
+      unsigned int i = 0;
+      for (auto& ds : *m_mediator.m_DSCommittee) {
+        if (m_syncType == SyncType::DS_SYNC &&
+            ds.second == m_mediator.m_selfPeer) {
+          ds.second = Peer();
+        }
+
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
+      }
     }
   }
   //    Data::GetInstance().SetDSPeers(dsPeers);
@@ -2679,18 +2727,52 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  // deque<pair<PubKey,Peer>>& initialDSCommittee =
+  deque<pair<PubKey,Peer>> newDScomm;
 
-  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks,
-                                              deque<pair<PubKey, Peer>>())) {
-    LOG_GENERAL(WARNING, "Verification of ds information failed");
+  LOG_GENERAL(INFO,"[DSINFOVERIF]"<<"Recvd "<<dirBlocks.size()<<" from lookup");
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
+
+    if(m_mediator.m_initialDSCommittee->size() == 0)
+    {
+      LOG_GENERAL(WARNING,"Initial DS comm size 0, it is unset")
+      GetDSInfoFromLookupNodes(true);
+      return true;
+    }
+
+    
+
+    if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks,
+                                                *m_mediator.m_initialDSCommittee, newDScomm)) {
+      LOG_GENERAL(WARNING, "Verification of ds information failed");
+      return false;
+    }
+  }
+
+
+  lock_guard<mutex> h(m_mediator.m_mutexDSCommittee);
+
+  if(newDScomm.size()!=m_mediator.m_DSCommittee->size())
+  {
+    LOG_GENERAL(WARNING,"Size of "<<newDScomm.size()<<" "<<m_mediator.m_DSCommittee->size()<<" does not match");
     return false;
   }
+
+  for(unsigned int i = 0 ; i<newDScomm.size() ; i++)
+  {
+    if(m_mediator.m_DSCommittee->at(i) != newDScomm.at(i))
+    {
+      LOG_GENERAL(WARNING,"Mis-match of ds comm at" <<i);
+      return false;
+    }
+  }
+
+  LOG_GENERAL(INFO,"[DSINFOVERIF]"<<"Verified successfully");
 
   return true;
 }
 
-void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(uint64_t& index_num) {
+void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num) {
   vector<unsigned char> message = {MessageType::LOOKUP,
                                    LookupInstructionType::GETDIRBLOCKSFROMSEED};
 

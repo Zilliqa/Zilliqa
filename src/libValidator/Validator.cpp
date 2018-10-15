@@ -211,7 +211,7 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
 bool Validator::CheckDirBlocks(
     const vector<boost::variant<DSBlock, VCBlock,
                                 FallbackBlockWShardingStructure>>& dirBlocks,
-    const deque<pair<PubKey, Peer>>& initDsComm) {
+    const deque<pair<PubKey, Peer>>& initDsComm, deque<pair<PubKey,Peer>>& newDSComm) {
   deque<pair<PubKey, Peer>> mutable_ds_comm = initDsComm;
 
   uint64_t prevdsblocknum = 0;
@@ -304,5 +304,7 @@ bool Validator::CheckDirBlocks(
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");
     }
   }
+
+  newDSComm = move(mutable_ds_comm);
   return true;
 }

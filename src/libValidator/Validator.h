@@ -46,7 +46,7 @@ class ValidatorBase {
   virtual bool CheckDirBlocks(
       const std::vector<boost::variant<
           DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
-      const std::deque<std::pair<PubKey, Peer>>& initDsComm) = 0;
+      const std::deque<std::pair<PubKey, Peer>>& initDsComm, std::deque<std::pair<PubKey, Peer>>& newDSComm) = 0;
 };
 
 class Validator : public ValidatorBase {
@@ -73,7 +73,7 @@ class Validator : public ValidatorBase {
   bool CheckDirBlocks(
       const std::vector<boost::variant<
           DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
-      const std::deque<std::pair<PubKey, Peer>>& initDsComm);
+      const std::deque<std::pair<PubKey, Peer>>& initDsComm, std::deque<std::pair<PubKey, Peer>>& newDSComm);
   Mediator& m_mediator;
 };
 
