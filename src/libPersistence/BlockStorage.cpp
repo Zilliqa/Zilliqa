@@ -507,6 +507,30 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards,
   return true;
 }
 
+bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
+                                 const std::vector<unsigned char>& stateDelta) {
+  LOG_MARKER();
+
+  if (0 != m_stateDeltaDB->Insert(finalBlockNum, stateDelta)) {
+    LOG_GENERAL(WARNING, "Failed to store state delta of final block: "
+                             << finalBlockNum);
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Stored state delta of final block: " << finalBlockNum);
+  return true;
+}
+
+bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
+                                 std::vector<unsigned char>& stateDelta) {
+  LOG_MARKER();
+
+  string dataStr = m_stateDeltaDB->Lookup(finalBlockNum);
+  stateDelta = vector<unsigned char>(dataStr.begin(), dataStr.end());
+  LOG_GENERAL(INFO, "Retrieved state delta of final block: " << finalBlockNum);
+  return true;
+}
+
 bool BlockStorage::ResetDB(DBTYPE type) {
   bool ret = false;
   switch (type) {
@@ -542,6 +566,9 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       break;
     case SHARD_STRUCTURE:
       ret = m_shardStructureDB->ResetDB();
+      break;
+    case STATE_DELTA:
+      ret = m_stateDeltaDB->ResetDB();
       break;
   }
   if (!ret) {
@@ -586,6 +613,9 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
     case SHARD_STRUCTURE:
       ret.push_back(m_shardStructureDB->GetDBName());
       break;
+    case STATE_DELTA:
+      ret.push_back(m_stateDeltaDB->GetDBName());
+      break;
   }
 
   return ret;
@@ -595,12 +625,14 @@ bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
            ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) &&
-           ResetDB(BLOCKLINK) && ResetDB(SHARD_STRUCTURE);
+           ResetDB(BLOCKLINK) && ResetDB(SHARD_STRUCTURE) &&
+           ResetDB(STATE_DELTA);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
            ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP) && ResetDB(MICROBLOCK) &&
            ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) &&
-           ResetDB(BLOCKLINK) && ResetDB(SHARD_STRUCTURE);
+           ResetDB(BLOCKLINK) && ResetDB(SHARD_STRUCTURE) &&
+           ResetDB(STATE_DELTA);
   }
 }
