@@ -146,8 +146,15 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
                     "Ejecting " << m_mediator.m_DSCommittee->front().second);
 
         // Adjust ds commiteee
-        m_mediator.m_DSCommittee->push_back(m_mediator.m_DSCommittee->front());
-        m_mediator.m_DSCommittee->pop_front();
+        // Push the faulty leader to the back of the deque
+        m_mediator.m_DSCommittee->push_back(
+            m_mediator.m_DSCommittee->at(m_consensusLeaderID));
+        m_mediator.m_DSCommittee->erase(m_mediator.m_DSCommittee->begin() +
+                                        (m_consensusLeaderID - 1));
+
+        // Old implementation. To be removed.
+        // m_mediator.m_DSCommittee->push_back(m_mediator.m_DSCommittee->front());
+        // m_mediator.m_DSCommittee->pop_front();
 
         // Adjust faulty DS leader and/or faulty ds candidate leader
         if (m_consensusMyID == faultyLeaderIndex) {
@@ -170,7 +177,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
           m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1) -
                             m_viewChangeCounter + faultyLeaderIndex + 1;
           isCurrentNodeFaulty = true;
-          LOG_GENERAL(INFO, "New m_consensusMyID  is " << m_consensusMyID);
+          LOG_GENERAL(INFO, "New m_consensusMyID  is "
+                                << m_consensusMyID
+                                << ". New m_consensusLeaderID is "
+                                << m_consensusLeaderID);
         }
       }
 
