@@ -569,8 +569,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                   << " , local: " << m_mediator.m_currentEpochNum);
   }
 
-  if (m_mediator.GetIsVacuousEpoch(msgBlockNum))
-  {
+  if (m_mediator.GetIsVacuousEpoch(msgBlockNum)) {
     LOG_GENERAL(WARNING, "Get missing txn from vacuous epoch, why?");
     return false;
   }

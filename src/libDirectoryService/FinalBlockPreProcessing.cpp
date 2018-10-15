@@ -131,8 +131,8 @@ void DirectoryService::ComposeFinalBlock() {
 
   ExtractDataFromMicroblocks(microblockTxnTrieRoot, microblockDeltaTrieRoot,
                              microblockTranReceiptRoot, microBlockHashes,
-                             shardIds, allGasLimit, allGasUsed, allRewards, numTxs,
-                             isMicroBlockEmpty, numMicroBlocks);
+                             shardIds, allGasLimit, allGasUsed, allRewards,
+                             numTxs, isMicroBlockEmpty, numMicroBlocks);
 
   BlockHash prevHash;
   uint256_t timestamp = get_time_as_int();
@@ -167,9 +167,9 @@ void DirectoryService::ComposeFinalBlock() {
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
   m_finalBlock.reset(new TxBlock(
-      TxBlockHeader(type, version, allGasLimit, allGasUsed, allRewards, prevHash, blockNum,
-                    timestamp, microblockTxnTrieRoot, stateRoot,
-                    microblockDeltaTrieRoot, stateDeltaHash,
+      TxBlockHeader(type, version, allGasLimit, allGasUsed, allRewards,
+                    prevHash, blockNum, timestamp, microblockTxnTrieRoot,
+                    stateRoot, microblockDeltaTrieRoot, stateDeltaHash,
                     microblockTranReceiptRoot, numTxs, numMicroBlocks,
                     m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
                     CommitteeHash()),
@@ -365,7 +365,8 @@ bool DirectoryService::CheckPreviousFinalBlockHash() {
   LOG_MARKER();
 
   const BlockHash& finalblockPrevHash = m_finalBlock->GetHeader().GetPrevHash();
-  BlockHash expectedPrevHash = m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash();
+  BlockHash expectedPrevHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash();
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Prev block hash recvd: "
@@ -539,8 +540,9 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   bool ret = true;
 
   if (allGasLimit != m_finalBlock->GetHeader().GetGasLimit()) {
-    LOG_GENERAL(WARNING, "Gas limit mismatched, expected: " << allGasLimit 
-                << " received: " << m_finalBlock->GetHeader().GetGasLimit());
+    LOG_GENERAL(WARNING, "Gas limit mismatched, expected: "
+                             << allGasLimit << " received: "
+                             << m_finalBlock->GetHeader().GetGasLimit());
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_GASLIMIT_MISMATCH);
     // return false;
@@ -548,35 +550,45 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   }
 
   if (ret && allGasUsed != m_finalBlock->GetHeader().GetGasUsed()) {
-    LOG_GENERAL(WARNING, "Gas used mismatched, expected: " << allGasUsed 
-                << " received: " << m_finalBlock->GetHeader().GetGasUsed());
+    LOG_GENERAL(WARNING, "Gas used mismatched, expected: "
+                             << allGasUsed << " received: "
+                             << m_finalBlock->GetHeader().GetGasUsed());
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_GASUSED_MISMATCH);
     // return false;
+    ret = false;
   }
 
   if (ret && allRewards != m_finalBlock->GetHeader().GetRewards()) {
-    LOG_GENERAL(WARNING, "Rewards mismatched, expected: " << allRewards 
-                << " received: " << m_finalBlock->GetHeader().GetRewards());
+    LOG_GENERAL(WARNING, "Rewards mismatched, expected: "
+                             << allRewards << " received: "
+                             << m_finalBlock->GetHeader().GetRewards());
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_REWARDS_MISMATCH);
     // return false;
+    ret = false;
   }
 
   if (ret && allNumTxns != m_finalBlock->GetHeader().GetNumTxs()) {
-    LOG_GENERAL(WARNING, "Txn num mismatched, expected: " << allNumTxns 
-                << " received: " << m_finalBlock->GetHeader().GetNumTxs());
+    LOG_GENERAL(WARNING, "Txn num mismatched, expected: "
+                             << allNumTxns << " received: "
+                             << m_finalBlock->GetHeader().GetNumTxs());
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_NUMTXNS_MISMATCH);
     // return false;
+    ret = false;
   }
 
-  if (ret && allNumMicroBlockHashes != m_finalBlock->GetHeader().GetNumMicroBlockHashes()) {
-    LOG_GENERAL(WARNING, "Num of MB hashes mismatched, expected: " << allNumMicroBlockHashes 
-                << " received: " << m_finalBlock->GetHeader().GetNumMicroBlockHashes());
+  if (ret && allNumMicroBlockHashes !=
+                 m_finalBlock->GetHeader().GetNumMicroBlockHashes()) {
+    LOG_GENERAL(WARNING,
+                "Num of MB hashes mismatched, expected: "
+                    << allNumMicroBlockHashes << " received: "
+                    << m_finalBlock->GetHeader().GetNumMicroBlockHashes());
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_MBNUM_MISMATCH);
     // return false;
+    ret = false;
   }
 
   if (!ret) {
@@ -907,8 +919,8 @@ bool DirectoryService::CheckFinalBlockValidity(
   if (!CheckBlockHash() || !CheckBlockTypeIsFinal() ||
       !CheckFinalBlockVersion() || !CheckFinalBlockNumber() ||
       !CheckPreviousFinalBlockHash() || !CheckFinalBlockTimestamp() ||
-      !CheckMicroBlocks(errorMsg) || CheckLegitimacyOfMicroBlocks() ||
-      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() || 
+      !CheckMicroBlocks(errorMsg) || !CheckLegitimacyOfMicroBlocks() ||
+      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() ||
       !CheckStateRoot() || !CheckStateDeltaHash()) {
     Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
                                       m_mediator.m_selfPeer.m_listenPortHost,

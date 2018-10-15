@@ -67,15 +67,13 @@ void Node::SubmitMicroblockToDSCommittee() const {
 
   vector<unsigned char> microblock = {MessageType::DIRECTORY,
                                       DSInstructionType::MICROBLOCKSUBMISSION};
-  const uint64_t& txBlockNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   vector<unsigned char> stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   if (!Messenger::SetDSMicroBlockSubmission(
           microblock, MessageOffset::BODY,
-          DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK, txBlockNum,
-          {*m_microblock}, stateDelta)) {
+          DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
+          m_mediator.m_currentEpochNum, {*m_microblock}, stateDelta)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return;
@@ -263,8 +261,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
           m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum].emplace(
               *m_microblock);
         }
-        if (!m_mediator.GetIsVacuousEpoch())
-        {
+        if (!m_mediator.GetIsVacuousEpoch()) {
           m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
                                         m_microblock->GetB2(),
                                         m_microblock->GetHeader().GetShardId());
