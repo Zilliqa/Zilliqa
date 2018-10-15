@@ -24,12 +24,18 @@
 
 #define BOOST_TEST_MODULE schnorrtest
 #define BOOST_TEST_DYN_LINK
+#include <boost/test/output_test_stream.hpp>
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(schnorrtest)
 
+/**
+ * \brief test_multisig
+ *
+ * \details Test multisig process and operators
+ */
 BOOST_AUTO_TEST_CASE(test_curve_setup) {
   INIT_STDOUT_LOGGER();
 
@@ -89,6 +95,11 @@ BOOST_AUTO_TEST_CASE(test_curve_setup) {
   }
 }
 
+/**
+ * \brief test_multisig
+ *
+ * \details Test multisig process and operators
+ */
 BOOST_AUTO_TEST_CASE(test_keys) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
@@ -113,12 +124,17 @@ BOOST_AUTO_TEST_CASE(test_keys) {
       "Key generation check #4 failed");
 }
 
+/**
+ * \brief test_sign_verif
+ *
+ * \details Test signature verification
+ */
 BOOST_AUTO_TEST_CASE(test_sign_verif) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
   pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
 
-  // 1 MB message
+  /// 1 MB message
   const unsigned int message_size = 1048576;
   vector<unsigned char> message_rand(message_size);
   vector<unsigned char> message_1(message_size, 0x01);
@@ -126,12 +142,12 @@ BOOST_AUTO_TEST_CASE(test_sign_verif) {
 
   Signature signature;
 
-  // Generate the signature
+  /// Generate the signature
   BOOST_CHECK_MESSAGE(schnorr.Sign(message_rand, keypair.first, keypair.second,
                                    signature) == true,
                       "Signing failed");
 
-  // Check the generated signature
+  /// Check the generated signature
   BOOST_CHECK_MESSAGE(
       BN_cmp(signature.m_r.get(), schnorr.GetCurve().m_order.get()) == -1,
       "Signature generation check #1 failed");
@@ -143,7 +159,7 @@ BOOST_AUTO_TEST_CASE(test_sign_verif) {
   BOOST_CHECK_MESSAGE(BN_is_zero(signature.m_s.get()) != 1,
                       "Signature generation check #4 failed");
 
-  // Verify the signature
+  /// Verify the signature
   BOOST_CHECK_MESSAGE(
       schnorr.Verify(message_rand, signature, keypair.second) == true,
       "Signature verification (correct message) failed");
@@ -152,6 +168,11 @@ BOOST_AUTO_TEST_CASE(test_sign_verif) {
       "Signature verification (wrong message) failed");
 }
 
+/**
+ * \brief test_performance
+ *
+ * \details Test various message sizes
+ */
 BOOST_AUTO_TEST_CASE(test_performance) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
@@ -172,7 +193,7 @@ BOOST_AUTO_TEST_CASE(test_performance) {
 
     Signature signature;
 
-    // Generate the signature
+    /// Generate the signature
     auto t = r_timer_start();
     BOOST_CHECK_MESSAGE(schnorr.Sign(message_rand, keypair.first,
                                      keypair.second, signature) == true,
@@ -180,7 +201,7 @@ BOOST_AUTO_TEST_CASE(test_performance) {
     LOG_GENERAL(INFO, "Message size  = " << printable_sizes[i]);
     LOG_GENERAL(INFO, "Sign (usec)   = " << r_timer_end(t));
 
-    // Check the generated signature
+    /// Check the generated signature
     BOOST_CHECK_MESSAGE(
         BN_cmp(signature.m_r.get(), schnorr.GetCurve().m_order.get()) == -1,
         "Signature generation check #1 failed");
@@ -192,7 +213,7 @@ BOOST_AUTO_TEST_CASE(test_performance) {
     BOOST_CHECK_MESSAGE(BN_is_zero(signature.m_s.get()) != 1,
                         "Signature generation check #4 failed");
 
-    // Verify the signature
+    /// Verify the signature
     t = r_timer_start();
     BOOST_CHECK_MESSAGE(
         schnorr.Verify(message_rand, signature, keypair.second) == true,
@@ -202,17 +223,22 @@ BOOST_AUTO_TEST_CASE(test_performance) {
   }
 }
 
+/**
+ * \brief test_serialization
+ *
+ * \details Test serialization both via function and via stream operator
+ */
 BOOST_AUTO_TEST_CASE(test_serialization) {
   Schnorr& schnorr = Schnorr::GetInstance();
 
   pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
 
-  // 1 MB message
+  /// 1 MB message
   const unsigned int message_size = 1048576;
   vector<unsigned char> message(message_size);
   generate(message.begin(), message.end(), std::rand);
 
-  // Generate and verify the signature
+  /// Generate and verify the signature
   Signature signature;
   BOOST_CHECK_MESSAGE(
       schnorr.Sign(message, keypair.first, keypair.second, signature) == true,
@@ -221,13 +247,13 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
       schnorr.Verify(message, signature, keypair.second) == true,
       "Signature verification failed");
 
-  // Serialize keys and signature
+  /// Serialize keys and signature
   vector<unsigned char> privkey_bytes, pubkey_bytes, signature_bytes;
   keypair.first.Serialize(privkey_bytes, 0);
   keypair.second.Serialize(pubkey_bytes, 0);
   signature.Serialize(signature_bytes, 0);
 
-  // Deserialize keys and signature using constructor functions
+  /// Deserialize keys and signature using constructor functions
   PrivKey privkey1(privkey_bytes, 0);
   PubKey pubkey1(pubkey_bytes, 0);
   Signature signature1(signature_bytes, 0);
@@ -238,8 +264,17 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   BOOST_CHECK_MESSAGE(signature == signature1,
                       "Signature serialization check #1 failed");
 
-  // Deserialize keys and signature using Deserialize functions (first,
-  // initialize the keys and sig with different values)
+  /// Check PrivKey operator =
+  PrivKey privkey2;
+  privkey2 = privkey1;
+
+  /// Check PubKey operator >
+  PubKey pubkey2;
+  pubkey2 = pubkey1;
+  BOOST_CHECK_MESSAGE(!(pubkey2 > pubkey1), "Pubkey operator > failed");
+
+  /// Deserialize keys and signature using Deserialize functions (first,
+  /// initialize the keys and sig with different values)
   pair<PrivKey, PubKey> keypair2 = schnorr.GenKeyPair();
   vector<unsigned char> message_rand(message_size);
   Signature signature2;
@@ -255,10 +290,19 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   signature2.Deserialize(signature_bytes, 0);
   BOOST_CHECK_MESSAGE(keypair.first == keypair2.first,
                       "PrivKey serialization check #2 failed");
+  boost::test_tools::output_test_stream PrivKeyOutput;
+  PrivKeyOutput << keypair.first;
+  BOOST_CHECK(!PrivKeyOutput.is_empty(false));
   BOOST_CHECK_MESSAGE(keypair.second == keypair2.second,
                       "PubKey serialization check #2 failed");
+  boost::test_tools::output_test_stream PubKeyOutput;
+  PubKeyOutput << keypair.second;
+  BOOST_CHECK(!PubKeyOutput.is_empty(false));
   BOOST_CHECK_MESSAGE(signature == signature2,
                       "Signature serialization check #2 failed");
+  boost::test_tools::output_test_stream SignatureOutput;
+  SignatureOutput << signature2;
+  BOOST_CHECK(!SignatureOutput.is_empty(false));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

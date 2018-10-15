@@ -110,36 +110,6 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   return true;
 }
 
-/**  TODO
-void Node::LogReceivedDSBlockDetails(const DSBlock& dsblock)
-{
-#ifdef IS_LOOKUP_NODE
-        LOG_GENERAL(
-            INFO,
-            "m_VieWChangeDSEpochNo "
-                << to_string(vcblock.GetHeader().GetVieWChangeDSEpochNo())
-                       .c_str()
-                << "\n"
-                << "m_VieWChangeEpochNo: "
-                << to_string(vcblock.GetHeader().GetViewChangeEpochNo()).c_str()
-                << "\n"
-                << "m_ViewChangeState: "
-                << vcblock.GetHeader().GetViewChangeState() << "\n"
-                << "m_CandidateLeaderIndex: "
-                << to_string(vcblock.GetHeader().GetCandidateLeaderIndex())
-                << "\n"
-                << "m_CandidateLeaderNetworkInfo: "
-                << vcblock.GetHeader().GetCandidateLeaderNetworkInfo() << "\n"
-                << "m_CandidateLeaderPubKey: "
-                << vcblock.GetHeader().GetCandidateLeaderPubKey() << "\n"
-                << "m_VCCounter: "
-                << to_string(vcblock.GetHeader().GetViewChangeCounter()).c_str()
-                << "\n"
-                << "m_Timestamp: " << vcblock.GetHeader().GetTimeStamp());
-#endif // IS_LOOKUP_NODE
-}
-**/
-
 bool Node::ProcessVCBlock(const vector<unsigned char>& message,
                           unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from) {
@@ -153,11 +123,43 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  // Check whether is this function called before ds block. VC block before ds
+  // block should be processed seperately.
+  if (m_mediator.m_ds->IsDSBlockVCState(
+          vcblock.GetHeader().GetViewChangeState())) {
+    LOG_GENERAL(WARNING,
+                "Shard node shouldn't process vc block before ds block. It "
+                "should process it together with ds block. cur epoch: "
+                    << m_mediator.m_currentEpochNum << "vc epoch: "
+                    << vcblock.GetHeader().GetViewChangeEpochNo());
+    return false;
+  }
+
+  if (!ProcessVCBlockCore(vcblock)) {
+    return false;
+  }
+
+  // TDOO
+  // Add to block chain and Store the VC block to disk.
+  // StoreVCBlockToDisk(dsblock);
+
+  if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
+    SendVCBlockToOtherShardNodes(message);
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I am a node and my view of leader is successfully changed.");
+  return true;
+}
+
+// VC Core function to process one vc block
+bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
+  LOG_MARKER();
+
   if (vcblock.GetHeader().GetViewChangeEpochNo() !=
       m_mediator.m_currentEpochNum) {
-    LOG_GENERAL(WARNING, "Received wrong vcblock. cur epoch: "
-                             << m_mediator.m_currentEpochNum << "vc epoch: "
-                             << vcblock.GetHeader().GetViewChangeEpochNo());
+    LOG_GENERAL(WARNING,
+                "Node should received individual vc block for ds block ");
     return false;
   }
 
@@ -186,8 +188,6 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
                     << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
     return false;
   }
-  // TODO
-  // LogReceivedVSBlockDetails(vcblock);
 
   // Check the signature of this VC block
   if (!VerifyVCBlockCoSignature(vcblock)) {
@@ -196,22 +196,26 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(), BlockType::VC,
+      vcblock.GetBlockHash());
+
+  vector<unsigned char> dst;
+  vcblock.Serialize(dst, 0);
+
+  if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
+                                                  dst)) {
+    LOG_GENERAL(WARNING, "Failed to store VC Block");
+    return false;
+  }
   for (unsigned int x = 0; x < newCandidateLeader; x++) {
-    UpdateDSCommiteeCompositionAfterVC();  // TODO: If VC select a random
-                                           // leader, we need to change the way
-                                           // we update ds composition.
+    // TODO: If VC select a random
+    // leader, we need to change the way
+    // we update ds composition.
+    UpdateDSCommiteeCompositionAfterVC();
   }
 
-  // TDOO
-  // Add to block chain and Store the VC block to disk.
-  // StoreVCBlockToDisk(dsblock);
-
-  if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
-    SendVCBlockToOtherShardNodes(message);
-  }
-
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am a node and my view of leader is successfully changed.");
   return true;
 }
 

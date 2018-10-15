@@ -79,6 +79,13 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   BlockStorage::GetBlockStorage().PutMetadata(
       LATESTACTIVEDSBLOCKNUM, DataConversion::StringToCharArray(to_string(
                                   m_mediator.m_ds->m_latestActiveDSBlockNum)));
+
+  LOG_GENERAL(INFO, "[DSVerif]"
+                        << "Storing ds block in index chain");
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, dsblock.GetHeader().GetBlockNum(), BlockType::DS,
+      dsblock.GetBlockHash());
 }
 
 void Node::UpdateDSCommiteeComposition() {
@@ -317,6 +324,13 @@ void Node::StartFirstTxEpoch() {
 
   ResetConsensusId();
 
+  uint16_t lastBlockHash = 0;
+  if (m_mediator.m_currentEpochNum > 1) {
+    lastBlockHash = DataConversion::charArrTo16Bits(
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+  }
+  m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+
   // Check if I am the leader or backup of the shard
   if (m_mediator.m_selfKey.second ==
       (*m_myShardMembers)[m_consensusLeaderID].first) {
@@ -399,12 +413,11 @@ void Node::StartFirstTxEpoch() {
 
 void Node::ResetConsensusId() {
   m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-  m_consensusLeaderID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 }
 
-bool Node::ProcessDSBlock(const vector<unsigned char>& message,
-                          unsigned int cur_offset,
-                          [[gnu::unused]] const Peer& from) {
+bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
+                                    unsigned int cur_offset,
+                                    [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexDSBlock);
 
@@ -430,6 +443,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
   }
 
   DSBlock dsblock;
+  vector<VCBlock> vcBlocks;
   uint32_t shardId;
   Peer newleaderIP;
 
@@ -438,12 +452,62 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
   m_mediator.m_ds->m_shardReceivers.clear();
   m_mediator.m_ds->m_shardSenders.clear();
 
-  if (!Messenger::GetNodeDSBlock(
-          message, cur_offset, shardId, dsblock, m_mediator.m_ds->m_shards,
-          m_mediator.m_ds->m_DSReceivers, m_mediator.m_ds->m_shardReceivers,
-          m_mediator.m_ds->m_shardSenders)) {
+  if (!Messenger::GetNodeVCDSBlocksMessage(
+          message, cur_offset, shardId, dsblock, vcBlocks,
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_DSReceivers,
+          m_mediator.m_ds->m_shardReceivers, m_mediator.m_ds->m_shardSenders)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetNodeDSBlock failed.");
+              "Messenger::GetNodeVCDSBlocksMessage failed.");
+    return false;
+  }
+
+  // Verify the DSBlockHashSet member of the DSBlockHeader
+  ShardingHash shardingHash;
+  if (!Messenger::GetShardingStructureHash(m_mediator.m_ds->m_shards,
+                                           shardingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardingStructureHash failed.");
+    return false;
+  }
+  if (shardingHash != dsblock.GetHeader().GetShardingHash()) {
+    LOG_GENERAL(WARNING,
+                "Sharding structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << shardingHash
+                    << " Received: " << dsblock.GetHeader().GetShardingHash());
+    return false;
+  }
+  TxSharingHash txSharingHash;
+  if (!Messenger::GetTxSharingAssignmentsHash(
+          m_mediator.m_ds->m_DSReceivers, m_mediator.m_ds->m_shardReceivers,
+          m_mediator.m_ds->m_shardSenders, txSharingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetTxSharingAssignmentsHash failed.");
+    return false;
+  }
+  if (txSharingHash != dsblock.GetHeader().GetTxSharingHash()) {
+    LOG_GENERAL(WARNING,
+                "Tx sharing structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << txSharingHash
+                    << " Received: " << dsblock.GetHeader().GetTxSharingHash());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != dsblock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received DS Block doesn't match. "
+                "Calculated: "
+                    << committeeHash
+                    << " Received: " << dsblock.GetHeader().GetCommitteeHash());
     return false;
   }
 
@@ -464,6 +528,26 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
   // Checking for freshness of incoming DS Block
   if (!CheckWhetherDSBlockNumIsLatest(dsblock.GetHeader().GetBlockNum())) {
     return false;
+  }
+
+  uint32_t expectedViewChangeCounter = 1;
+  for (const auto& vcBlock : vcBlocks) {
+    if (vcBlock.GetHeader().GetViewChangeCounter() !=
+        expectedViewChangeCounter) {
+      LOG_GENERAL(WARNING, "Unexpected VC block counter. Expected: "
+                               << expectedViewChangeCounter << " Received: "
+                               << vcBlock.GetHeader().GetViewChangeCounter());
+    }
+
+    if (!ProcessVCBlockCore(vcBlock)) {
+      LOG_GENERAL(WARNING, "Checking for error when processing vc blocknum "
+                               << vcBlock.GetHeader().GetViewChangeCounter());
+      return false;
+    }
+
+    LOG_GENERAL(INFO, "view change completed for vc blocknum "
+                          << vcBlock.GetHeader().GetViewChangeCounter());
+    expectedViewChangeCounter++;
   }
 
   // Check the signature of this DS block
@@ -526,6 +610,13 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
       newDSMemberIndex--;
     }
 
+    uint16_t lastBlockHash = 0;
+    if (m_mediator.m_currentEpochNum > 1) {
+      lastBlockHash = DataConversion::charArrTo16Bits(
+          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+    }
+    m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
+
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {
       // Process sharding structure as a DS node
@@ -539,22 +630,15 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
       // Process txn sharing assignments as a DS node
       m_mediator.m_ds->ProcessTxnBodySharingAssignment();
 
-      ResetConsensusId();
-
       //(We're getting rid of this eventually Clean up my txns coz I am DS)
       m_mediator.m_node->CleanCreatedTransaction();
 
-      uint16_t lastBlockHash = 0;
-      if (m_mediator.m_currentEpochNum > 1) {
-        lastBlockHash = HashUtils::SerializableToHash16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock());
-      }
-
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-        unsigned int ds_size = (m_mediator.m_DSCommittee)->size();
-        LOG_GENERAL(INFO, "DS leader is at " << (lastBlockHash % ds_size));
-        if (lastBlockHash % ds_size == m_mediator.m_ds->m_consensusMyID) {
+        LOG_GENERAL(INFO,
+                    "DS leader is at " << m_mediator.m_ds->m_consensusLeaderID);
+        if (m_mediator.m_ds->m_consensusLeaderID ==
+            m_mediator.m_ds->m_consensusMyID) {
           // I am the new DS committee leader
           m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
           LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -568,9 +652,7 @@ bool Node::ProcessDSBlock(const vector<unsigned char>& message,
                         DS_BACKUP_MSG);
         }
       }
-      m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
-      LOG_GENERAL(INFO, "DS consensus leader index is at "
-                            << m_mediator.m_ds->m_consensusLeaderID);
+
       m_mediator.m_ds->StartFirstTxEpoch();
       return true;
     } else {

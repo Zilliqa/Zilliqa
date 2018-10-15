@@ -26,6 +26,7 @@
 #include "libDB/Archival.h"
 #include "libDB/BaseDB.h"
 #include "libData/BlockChainData/BlockChain.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
@@ -66,6 +67,9 @@ class Mediator {
 
   /// The transient Tx blockchain.
   TxBlockChain m_txBlockChain;
+
+  /// IndexBlockChain for linking ds/vc/fb blocks
+  BlockLinkChain m_blocklinkchain;
 
   /// The current epoch.
   uint64_t m_currentEpochNum = 0;

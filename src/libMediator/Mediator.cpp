@@ -253,6 +253,10 @@ bool Mediator::GetIsVacuousEpoch(const uint64_t& epochNum)
 }
 
 uint32_t Mediator::GetShardSize(const bool& useShardStructure) const {
+  if (COMM_SIZE > 0) {
+    return COMM_SIZE;
+  }
+
   uint32_t shardNodeNum = 0;
 
   if (useShardStructure) {

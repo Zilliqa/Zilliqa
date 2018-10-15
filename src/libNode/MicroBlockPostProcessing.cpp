@@ -302,7 +302,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
             ConsensusCommon::INITIAL);
 
         auto rerunconsensus = [this, message, offset, from]() {
-          ProcessMicroblockConsensus(message, offset, from);
+          ProcessMicroblockConsensusCore(message, offset, from);
         };
         DetachedFunction(1, rerunconsensus);
         return true;

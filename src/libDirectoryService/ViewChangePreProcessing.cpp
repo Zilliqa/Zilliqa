@@ -271,7 +271,7 @@ void DirectoryService::ComputeNewCandidateLeader() {
             m_mediator.m_currentEpochNum, m_viewChangestate,
             m_viewChangeCounter, newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
-            m_viewChangeCounter, get_time_as_int()),
+            m_viewChangeCounter, get_time_as_int(), CommitteeHash()),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }

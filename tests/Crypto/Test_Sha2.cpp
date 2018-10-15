@@ -15,9 +15,7 @@
  * are governed by GPLv3.0 are those programs that are located in the folders
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
- */
-
-/*
+ *
  * Test cases obtained from https://www.di-mgt.com.au/sha_testvectors.html
  */
 
@@ -31,13 +29,18 @@
 
 using namespace std;
 
-// Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in
-// windows consider replacing alloca calls with something better though!
+/// Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings
+/// in windows consider replacing alloca calls with something better though!
 #define our_alloca(param__) alloca((size_t)(param__))
 
 BOOST_AUTO_TEST_SUITE(sha2test)
 
-BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3) {
+/**
+ * \brief SHA256_check_896bitsx3
+ *
+ * \details Test the SHA256 hash function
+ */
+BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
   unsigned int inputSize = strlen((const char*)input);
@@ -65,7 +68,12 @@ BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3) {
   BOOST_CHECK_EQUAL(is_equal, true);
 }
 
-BOOST_AUTO_TEST_CASE(SHA256_check_896bitsx3_updatewithoffset) {
+/**
+ * \brief SHA256_check_896bitsx3_updatewithoffset
+ *
+ * \details Test the SHA256 hash function
+ */
+BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
   unsigned int inputSize = strlen((const char*)input);

@@ -206,9 +206,9 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     vector<unsigned char> setDSBootstrapNodeMessage = {
         MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
-    if (!Messenger::SetLookupSetDSInfoFromSeed(setDSBootstrapNodeMessage,
-                                               MessageOffset::BODY,
-                                               *m_mediator.m_DSCommittee)) {
+    if (!Messenger::SetLookupSetDSInfoFromSeed(
+            setDSBootstrapNodeMessage, MessageOffset::BODY,
+            m_mediator.m_selfKey, *m_mediator.m_DSCommittee)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -252,9 +252,10 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
                              << m_mediator.m_currentEpochNum);
-    m_consensusLeaderID = HashUtils::SerializableToHash16Bits(
-                              m_mediator.m_txBlockChain.GetLastBlock()) %
-                          m_mediator.m_DSCommittee->size();
+    m_consensusLeaderID =
+        DataConversion::charArrTo16Bits(
+            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        m_mediator.m_DSCommittee->size();
   }
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
