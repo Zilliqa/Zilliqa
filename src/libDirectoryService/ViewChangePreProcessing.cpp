@@ -311,17 +311,37 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
 
   LOG_MARKER();
 
-  // view change testing code (for failure of candidate leader)
-  /**
-  if (true && m_viewChangeCounter < 2)
+#ifdef VC_TEST_VC_SUSPEND_1
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
   {
-      LOG_EPOCH(
-          WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-          "I am killing/suspending myself to test recursive view change.");
-      throw Exception();
-      // return false;
+      LOG_GENERAL(WARNING, "I am suspending myself to test viewchange");
+      return false;
   }
-  **/
+#endif  // VC_TEST_VC_SUSPEND_1
+
+#ifdef VC_TEST_VC_SUSPEND_3
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 3)
+  {
+      LOG_GENERAL(WARNING, "I am suspending myself to test viewchange");
+      return false;
+  }
+#endif  // VC_TEST_VC_SUSPEND_3
+
+#ifdef VC_TEST_VC_TERMINATE_1
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+  {
+      LOG_GENERAL(WARNING, "I am killing myself to test viewchange");
+      throw exception();
+  }
+#endif  // VC_TEST_VC_TERMINATE_1
+
+#ifdef VC_TEST_FB_TERMINATE_3
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 3)
+  {
+      LOG_GENERAL(WARNING, "I am killing myself to test viewchange");
+      throw exception();
+  }
+#endif  // VC_TEST_VC_TERMINATE_3
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the candidate leader DS node. Announcing to the rest.");
