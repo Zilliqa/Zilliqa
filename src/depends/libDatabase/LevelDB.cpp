@@ -14,7 +14,6 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
-#include <cassert>
 #include <string>
 
 #include <boost/filesystem.hpp>
@@ -27,13 +26,15 @@
 
 using namespace std;
 
-#ifndef IS_LOOKUP_NODE
 LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 {
     this->m_subdirectory = subdirectory;
     this->m_dbName = dbName;
     
-    boost::filesystem::create_directories("./" + PERSISTENCE_PATH);
+    if (!(boost::filesystem::exists("./" + PERSISTENCE_PATH)))
+    {
+        boost::filesystem::create_directories("./" + PERSISTENCE_PATH);
+    }
 
     leveldb::Options options;
     options.max_open_files = 256;
@@ -42,13 +43,16 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     leveldb::DB* db;
     leveldb::Status status;
 
-    if(!m_subdirectory.size())
+    if(m_subdirectory.empty())
     {
         status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
     }
     else
     {
-        boost::filesystem::create_directories("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory);
+        if (!(boost::filesystem::exists("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory)))
+        {
+            boost::filesystem::create_directories("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory);
+        }
         status = leveldb::DB::Open(options, 
             "./" + PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
             &db);
@@ -57,35 +61,11 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     if(!status.ok())
     {
         // throw exception();
-        LOG_GENERAL(WARNING, "LevelDS status is not OK.");
+        LOG_GENERAL(WARNING, "LevelDB status is not OK.");
     }
 
     m_db.reset(db);
 }
-#else // IS_LOOKUP_NODE
-LevelDB::LevelDB(const string & dbName)
-{
-    this->m_dbName = dbName;
-
-    string path = "./persistence";
-    boost::filesystem::create_directories(path);
-
-    leveldb::Options options;
-    options.max_open_files = 256;
-    options.create_if_missing = true;
-
-    leveldb::DB* db;
-
-    leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
-    if(!status.ok())
-    {
-        // throw exception();
-        LOG_GENERAL(WARNING, "LevelDS status is not OK.");
-    }
-
-    m_db.reset(db);
-}
-#endif // IS_LOOKUP_NODE
 
 leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
 {
@@ -93,6 +73,18 @@ leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
     dev::bytesRef ref(h.data(), 32);
     dev::toBigEndian(num, ref);
     return (leveldb::Slice)h.ref();
+}
+
+string LevelDB::GetDBName() 
+{
+        if (LOOKUP_NODE_MODE)
+        {
+            return m_dbName;
+        }
+        else
+        {
+            return m_dbName + (m_subdirectory.size() > 0 ? "/" : "") + m_subdirectory; 
+        }
 }
 
 string LevelDB::Lookup(const std::string & key) const
@@ -328,8 +320,31 @@ int LevelDB::DeleteKey(const std::string & key)
     return 0;
 }
 
-#ifndef IS_LOOKUP_NODE
 int LevelDB::DeleteDB()
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        return DeleteDBForLookupNode();
+    }
+    else
+    {
+        return DeleteDBForNormalNode();
+    }
+}
+
+bool LevelDB::ResetDB()
+{
+    if (LOOKUP_NODE_MODE)
+    {
+        return ResetDBForLookupNode();
+    }
+    else
+    {
+        return ResetDBForNormalNode();
+    }
+}
+
+int LevelDB::DeleteDBForNormalNode()
 {
     m_db.reset();
     leveldb::Status s = leveldb::DestroyDB("./" + PERSISTENCE_PATH + 
@@ -349,9 +364,9 @@ int LevelDB::DeleteDB()
     return 0;
 }
 
-bool LevelDB::ResetDB()
+bool LevelDB::ResetDBForNormalNode()
 {
-    if(DeleteDB()==0 && !this->m_subdirectory.size())
+    if(DeleteDBForNormalNode() == 0 && this->m_subdirectory.empty())
     {
         boost::filesystem::remove_all("./" + PERSISTENCE_PATH + "/" + this->m_dbName);
 
@@ -365,7 +380,7 @@ bool LevelDB::ResetDB()
         if(!status.ok())
         {
             // throw exception();
-            LOG_GENERAL(WARNING, "LevelDS status is not OK.");
+            LOG_GENERAL(WARNING, "LevelDB status is not OK.");
         }
 
         m_db.reset(db);
@@ -378,8 +393,8 @@ bool LevelDB::ResetDB()
     LOG_GENERAL(WARNING, "Didn't reset DB, investigate why!");
     return false;
 }
-#else // IS_LOOKUP_NODE
-int LevelDB::DeleteDB()
+
+int LevelDB::DeleteDBForLookupNode()
 {
     m_db.reset();
     leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
@@ -393,12 +408,11 @@ int LevelDB::DeleteDB()
 }
 
 
-bool LevelDB::ResetDB()
+bool LevelDB::ResetDBForLookupNode()
 {
-    if(DeleteDB()==0)
+    if(DeleteDBForLookupNode()==0)
     {
-        string path = "./persistence";
-        boost::filesystem::remove_all(path + "/" + this->m_dbName);
+        boost::filesystem::remove_all("./" + PERSISTENCE_PATH + "/" + this->m_dbName);
 
         leveldb::Options options;
         options.max_open_files = 256;
@@ -406,11 +420,11 @@ bool LevelDB::ResetDB()
 
         leveldb::DB* db;
 
-        leveldb::Status status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+        leveldb::Status status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
         if(!status.ok())
         {
             // throw exception();
-            LOG_GENERAL(WARNING, "LevelDS status is not OK.");
+            LOG_GENERAL(WARNING, "LevelDB status is not OK.");
         }
 
         m_db.reset(db);
@@ -418,4 +432,3 @@ bool LevelDB::ResetDB()
     }
     return false;
 }
-#endif // IS_LOOKUP_NODE

@@ -367,6 +367,28 @@ ethash_light_t ethash_light_new(uint64_t block_number)
 	return ret;
 }
 
+
+ethash_light_t ethash_light_renew(uint64_t block_number, ethash_light_t old_client)
+{
+	if (old_client) {
+        const uint64_t cache_size = ethash_get_cachesize(block_number);
+		if (cache_size == old_client->cache_size) {
+			node* nodes = (node*)old_client->cache;
+            const ethash_h256_t seedhash = ethash_get_seedhash(block_number);
+			if (!ethash_compute_cache_nodes(nodes, cache_size, &seedhash)) {
+				ethash_light_delete(old_client);
+				return NULL;
+			}
+            old_client->block_number = block_number;
+			return old_client;
+		}
+		else {
+			ethash_light_delete(old_client);
+		}
+	}
+	return ethash_light_new(block_number);
+}
+
 void ethash_light_delete(ethash_light_t light)
 {
 	if (light->cache) {

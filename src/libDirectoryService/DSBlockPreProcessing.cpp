@@ -1,18 +1,21 @@
-/**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #include <algorithm>
 #include <chrono>
@@ -28,265 +31,958 @@
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-#ifndef IS_LOOKUP_NODE
-void DirectoryService::ComposeDSBlock()
-{
-    LOG_MARKER();
+unsigned int DirectoryService::ComputeDSBlockParameters(
+    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedDSPoWSolns,
+    std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
+        sortedPoWSolns,
+    map<PubKey, Peer>& powDSWinners, uint8_t& dsDifficulty, uint8_t& difficulty,
+    uint64_t& blockNum, BlockHash& prevHash) {
+  LOG_MARKER();
 
-    // Compute hash of previous DS block header
-    BlockHash prevHash;
-    if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
-    {
-        DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-        vector<unsigned char> vec;
-        const DSBlockHeader& lastHeader = lastBlock.GetHeader();
-        lastHeader.Serialize(vec, 0);
-        sha2.Update(vec);
-        const vector<unsigned char>& resVec = sha2.Finalize();
-        copy(resVec.begin(), resVec.end(), prevHash.asArray().begin());
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ComputeDSBlockParameters not expected to be "
+                "called from LookUp node.");
+    return 0;
+  }
+
+  // Assemble DS block header
+  unsigned int numOfElectedDSMembers =
+      min(sortedDSPoWSolns.size(), (size_t)NUM_DS_ELECTION);
+  unsigned int counter = 0;
+  for (const auto& submitter : sortedDSPoWSolns) {
+    if (counter >= numOfElectedDSMembers) {
+      break;
     }
+    powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
+    sortedPoWSolns.erase(
+        remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
+        sortedPoWSolns.end());
+    counter++;
+  }
+  if (sortedDSPoWSolns.size() == 0) {
+    LOG_GENERAL(WARNING, "No soln met the DS difficulty level");
+    // TODO: To handle if no PoW soln can meet DS difficulty level.
+  }
 
-    // Assemble DS block header
-
-    lock_guard<mutex> g(m_mutexAllPOW1);
-    const PubKey& winnerKey = m_allPoW1s.front().first;
-    const uint256_t& winnerNonce = m_allPoW1s.front().second;
-
-    uint256_t blockNum = 0;
-    uint8_t difficulty = POW2_DIFFICULTY;
-    if (m_mediator.m_dsBlockChain.GetBlockCount() > 0)
-    {
-        DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-        blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
-        difficulty = lastBlock.GetHeader().GetDifficulty();
-    }
-
-    LOG_GENERAL(INFO,
-                "Composing new block with vc count at " << m_viewChangeCounter);
-
-    // Assemble DS block
-    {
-        lock_guard<mutex> g(m_mutexPendingDSBlock);
-        // To-do: Handle exceptions.
-        m_pendingDSBlock.reset(new DSBlock(
-            DSBlockHeader(difficulty, prevHash, winnerNonce, winnerKey,
-                          m_mediator.m_selfKey.second, blockNum,
-                          get_time_as_int(), m_viewChangeCounter),
-            CoSignatures()));
-    }
+  blockNum = 0;
+  dsDifficulty = DS_POW_DIFFICULTY;
+  difficulty = POW_DIFFICULTY;
+  if (m_mediator.m_dsBlockChain.GetBlockCount() > 0) {
+    DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
+    blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
+    prevHash = lastBlock.GetBlockHash();
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock created with chosen nonce = 0x" << hex
-                                                           << winnerNonce);
+              "Prev DS block hash as per leader " << prevHash.hex());
+  }
+
+  // Start to adjust difficulty from second DS block.
+  if (blockNum > 1) {
+    dsDifficulty = CalculateNewDSDifficulty(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Current DS difficulty "
+                  << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetDSDifficulty())
+                  << ", new DS difficulty " << std::to_string(dsDifficulty));
+
+    difficulty = CalculateNewDifficulty(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Current difficulty "
+                  << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                                        .GetHeader()
+                                        .GetDifficulty())
+                  << ", new difficulty " << std::to_string(difficulty));
+  }
+
+  if (UpgradeManager::GetInstance().HasNewSW()) {
+    if (UpgradeManager::GetInstance().DownloadSW()) {
+      lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+      m_mediator.m_curSWInfo = *UpgradeManager::GetInstance().GetLatestSWInfo();
+    }
+  }
+
+  return numOfElectedDSMembers;
 }
 
-bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary()
-{
-    LOG_MARKER();
+void DirectoryService::ComputeSharding(
+    const vector<pair<array<unsigned char, 32>, PubKey>>& sortedPoWSolns) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ComputeSharding not expected to be "
+                "called from LookUp node.");
+    return;
+  }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am the leader DS node. Creating DS block.");
+  LOG_MARKER();
 
-    ComposeDSBlock();
+  m_shards.clear();
+  m_publicKeyToshardIdMap.clear();
 
-    // Create new consensus object
-    // Dummy values for now
-    uint32_t consensusID = 0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
+  if (sortedPoWSolns.size() < m_mediator.GetShardSize(false)) {
+    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
+  }
 
-    // kill first ds leader
-    // if (m_consensusMyID == 0 && temp_todie)
-    // {
-    //    LOG_GENERAL(INFO, "I am killing myself to test view change");
-    //    throw exception();
-    // }
+  std::set<PubKey> setTopPriorityNodes;
+  if (sortedPoWSolns.size() > MAX_SHARD_NODE_NUM) {
+    LOG_GENERAL(INFO, "PoWs recvd " << sortedPoWSolns.size()
+                                    << " more than max node number "
+                                    << MAX_SHARD_NODE_NUM);
+    setTopPriorityNodes = FindTopPriorityNodes();
+  }
 
-    m_consensusObject.reset(new ConsensusLeader(
-        consensusID, m_consensusBlockHash, m_consensusMyID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
-        static_cast<unsigned char>(DIRECTORY),
-        static_cast<unsigned char>(DSBLOCKCONSENSUS),
-        std::function<bool(const vector<unsigned char>&, unsigned int,
-                           const Peer&)>(),
-        std::function<bool(map<unsigned int, vector<unsigned char>>)>()));
+  auto numShardNodes = sortedPoWSolns.size() > MAX_SHARD_NODE_NUM
+                           ? MAX_SHARD_NODE_NUM
+                           : sortedPoWSolns.size();
 
-    if (m_consensusObject == nullptr)
-    {
+  uint32_t numOfComms = numShardNodes / m_mediator.GetShardSize(false);
+  uint32_t max_shard = numOfComms - 1;
+
+  if (numOfComms == 0) {
+    LOG_GENERAL(WARNING, "Cannot form even one committee "
+                             << " number of Pows " << sortedPoWSolns.size()
+                             << " Setting numOfcomms to be 1");
+    numOfComms = 1;
+    max_shard = 0;
+  }
+
+  for (unsigned int i = 0; i < numOfComms; i++) {
+    m_shards.emplace_back();
+  }
+  map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
+  vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
+
+  if (m_mediator.m_currentEpochNum > 1) {
+    lastBlockHash =
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
+  }
+  for (const auto& kv : sortedPoWSolns) {
+    const PubKey& key = kv.second;
+    if (!setTopPriorityNodes.empty() &&
+        setTopPriorityNodes.find(key) == setTopPriorityNodes.end()) {
+      LOG_GENERAL(INFO, "Node "
+                            << key
+                            << " failed to join because priority not enough.");
+      continue;
+    }
+    const array<unsigned char, BLOCK_HASH_SIZE>& powHash = kv.first;
+
+    // sort all PoW submissions according to H(last_block_hash, pow_hash)
+    vector<unsigned char> hashVec;
+    hashVec.resize(BLOCK_HASH_SIZE + POW_SIZE);
+    copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
+    copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
+
+    const vector<unsigned char>& sortHashVec = HashUtils::BytesToHash(hashVec);
+    array<unsigned char, BLOCK_HASH_SIZE> sortHash;
+    copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
+    sortedPoWs.emplace(sortHash, key);
+  }
+
+  unsigned int i = 0;
+
+  for (const auto& kv : sortedPoWs) {
+    LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
+                                  << DataConversion::charArrToHexStr(kv.first)
+                                  << endl);
+    const PubKey& key = kv.second;
+    auto& shard =
+        m_shards.at(min(i / m_mediator.GetShardSize(false), max_shard));
+    shard.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
+    m_publicKeyToshardIdMap.emplace(
+        key, min(i / m_mediator.GetShardSize(false), max_shard));
+    i++;
+  }
+}
+
+bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
+  // Requires mutex for m_shards
+  vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
+  set<PubKey> keyset;
+
+  if (m_mediator.m_currentEpochNum > 1) {
+    lastBlockHash =
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
+  }
+  // Temporarily add the old ds to check ordering
+  m_allPoWs[m_mediator.m_DSCommittee->back().first] =
+      array<unsigned char, BLOCK_HASH_SIZE>();
+
+  vector<unsigned char> hashVec;
+  bool ret = true;
+  vector<unsigned char> vec(BLOCK_HASH_SIZE);
+  for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
+      auto it = m_allPoWs.find(toFind);
+
+      if (it == m_allPoWs.end()) {
+        LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
+                                 << toFind << " " << m_allPoWs.size());
+        ret = false;
+        break;
+      }
+      hashVec.clear();
+      hashVec.resize(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
+      copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
+      copy(it->second.begin(), it->second.end(),
+           hashVec.begin() + BLOCK_HASH_SIZE);
+      const vector<unsigned char>& sortHashVec =
+          HashUtils::BytesToHash(hashVec);
+      LOG_GENERAL(INFO, "[DSSORT]"
+                            << DataConversion::Uint8VecToHexStr(sortHashVec)
+                            << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
+      if (sortHashVec < vec) {
+        LOG_GENERAL(WARNING,
+                    "Failed to Verify due to bad PoW ordering "
+                        << DataConversion::Uint8VecToHexStr(vec) << " "
+                        << DataConversion::Uint8VecToHexStr(sortHashVec));
+        ret = false;
+        break;
+      }
+      auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
+      if (!r.second) {
+        LOG_GENERAL(WARNING, "The key is not unique in the sharding structure "
+                                 << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        ret = false;
+        break;
+      }
+      vec = sortHashVec;
+    }
+    if (!ret) {
+      break;
+    }
+  }
+  m_allPoWs.erase(m_mediator.m_DSCommittee->back().first);
+  return ret;
+}
+
+bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
+  // If the PoW submissions less than the max number of nodes, then all nodes
+  // can join, no need to verify.
+  if (m_allPoWs.size() <= MAX_SHARD_NODE_NUM) {
+    return true;
+  }
+
+  uint32_t numOutOfMyPriorityList = 0;
+  auto setTopPriorityNodes = FindTopPriorityNodes();
+  for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
+      if (setTopPriorityNodes.find(toFind) == setTopPriorityNodes.end()) {
+        ++numOutOfMyPriorityList;
+        LOG_GENERAL(WARNING,
+                    "Node " << toFind << " is not in my top priority list");
+      }
+    }
+  }
+
+  constexpr float tolerance = 0.02f;
+  const uint32_t MAX_NODE_OUT_OF_LIST =
+      std::ceil(MAX_SHARD_NODE_NUM * tolerance);
+  if (numOutOfMyPriorityList > MAX_NODE_OUT_OF_LIST) {
+    LOG_GENERAL(WARNING, "Number of node not in my priority "
+                             << numOutOfMyPriorityList << " exceed tolerance "
+                             << MAX_NODE_OUT_OF_LIST);
+    return false;
+  }
+  return true;
+}
+
+void DirectoryService::ComputeTxnSharingAssignments(
+    const vector<Peer>& proposedDSMembers) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ComputeTxnSharingAssignments not "
+                "expected to be called from LookUp node.");
+    return;
+  }
+
+  LOG_MARKER();
+
+  // PART 1
+  // First version: We just take the first X nodes in DS committee
+  // Take note that this is the OLD DS committee -> we must consider that
+  // winnerpeer is the new DS member (and the last node in the committee will no
+  // longer be a DS node)
+
+  m_DSReceivers.clear();
+
+  uint32_t num_ds_nodes =
+      (m_mediator.m_DSCommittee->size() < TX_SHARING_CLUSTER_SIZE)
+          ? m_mediator.m_DSCommittee->size()
+          : TX_SHARING_CLUSTER_SIZE;
+
+  // Add the new DS leader first
+  for (const auto& proposedMember : proposedDSMembers) {
+    m_DSReceivers.emplace_back(proposedMember);
+  }
+
+  m_mediator.m_node->m_txnSharingIAmSender = true;
+  num_ds_nodes--;
+
+  // Add the rest from the current DS committee
+  for (unsigned int i = 0; i < num_ds_nodes; i++) {
+    if (i != m_consensusMyID) {
+      m_DSReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
+    } else {
+      // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in
+      // m_mediator.m_DSCommittee->at(m_consensusMyID).second is zeroed out
+      m_DSReceivers.emplace_back(m_mediator.m_selfPeer);
+    }
+  }
+
+  // PART 2 and 3
+  // First version: We just take the first X nodes for receiving and next X
+  // nodes for sending
+
+  m_shardReceivers.clear();
+  m_shardSenders.clear();
+
+  for (const auto& shard : m_shards) {
+    // PART 2
+
+    m_shardReceivers.emplace_back();
+
+    uint32_t nodes_recv_lo = 0;
+    uint32_t nodes_recv_hi = nodes_recv_lo + TX_SHARING_CLUSTER_SIZE - 1;
+
+    if (nodes_recv_hi >= shard.size()) {
+      nodes_recv_hi = shard.size() - 1;
+    }
+
+    unsigned int num_nodes = nodes_recv_hi - nodes_recv_lo + 1;
+
+    auto node_peer = shard.begin();
+    for (unsigned int j = 0; j < num_nodes; j++) {
+      m_shardReceivers.back().emplace_back(
+          std::get<SHARD_NODE_PEER>(*node_peer));
+      node_peer++;
+    }
+
+    // PART 3
+
+    m_shardSenders.emplace_back();
+
+    uint32_t nodes_send_lo = 0;
+    uint32_t nodes_send_hi = 0;
+
+    if (shard.size() <= TX_SHARING_CLUSTER_SIZE) {
+      nodes_send_lo = nodes_recv_lo;
+      nodes_send_hi = nodes_recv_hi;
+    } else if (shard.size() < (2 * TX_SHARING_CLUSTER_SIZE)) {
+      nodes_send_lo = shard.size() - TX_SHARING_CLUSTER_SIZE;
+      nodes_send_hi = nodes_send_lo + TX_SHARING_CLUSTER_SIZE - 1;
+    } else {
+      nodes_send_lo = TX_SHARING_CLUSTER_SIZE;
+      nodes_send_hi = nodes_send_lo + TX_SHARING_CLUSTER_SIZE - 1;
+    }
+
+    num_nodes = nodes_send_hi - nodes_send_lo + 1;
+
+    node_peer = shard.begin();
+    advance(node_peer, nodes_send_lo);
+
+    for (unsigned int j = 0; j < num_nodes; j++) {
+      m_shardSenders.back().emplace_back(std::get<SHARD_NODE_PEER>(*node_peer));
+      node_peer++;
+    }
+  }
+}
+
+bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::RunConsensusOnDSBlockWhenDSPrimary not "
+                "expected to be called from LookUp node.");
+    return true;
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I am the leader DS node. Creating DS block.");
+
+  lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
+  lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
+  lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
+
+  // Use a map to sort the soln according to difficulty level
+  map<array<unsigned char, 32>, PubKey> DSPoWOrderSorter;
+  for (const auto& powsoln : m_allDSPoWs) {
+    DSPoWOrderSorter[powsoln.second] = powsoln.first;
+  }
+
+  // Put it back to vector for easy manipilation and adjustment of the ordering
+  vector<pair<array<unsigned char, 32>, PubKey>> sortedDSPoWSolns;
+  for (const auto& kv : DSPoWOrderSorter) {
+    sortedDSPoWSolns.emplace_back(kv);
+  }
+
+  // Use a map to sort the soln according to difficulty level
+  map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
+  for (const auto& powsoln : m_allPoWs) {
+    PoWOrderSorter[powsoln.second] = powsoln.first;
+  }
+
+  // Put it back to vector for easy manipilation and adjustment of the ordering
+  vector<pair<array<unsigned char, 32>, PubKey>> sortedPoWSolns;
+  for (const auto& kv : PoWOrderSorter) {
+    sortedPoWSolns.emplace_back(kv);
+    LOG_GENERAL(INFO, "0x" << DataConversion::charArrToHexStr(kv.first));
+  }
+
+  map<PubKey, Peer> powDSWinners;
+  uint8_t dsDifficulty = 0;
+  uint8_t difficulty = 0;
+  uint64_t blockNum = 0;
+  BlockHash prevHash;
+
+  unsigned int numOfProposedDSMembers =
+      ComputeDSBlockParameters(sortedDSPoWSolns, sortedPoWSolns, powDSWinners,
+                               dsDifficulty, difficulty, blockNum, prevHash);
+
+  // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
+  // gets included in sharding structure
+  if (numOfProposedDSMembers > m_mediator.m_DSCommittee->size()) {
+    LOG_GENERAL(FATAL,
+                "number of proposed ds member is larger than current ds "
+                "committee. numOfProposedDSMembers: "
+                    << numOfProposedDSMembers << " m_DSCommittee size: "
+                    << m_mediator.m_DSCommittee->size());
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  vector<unsigned char> serializedPubK;
+  for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
+    // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)
+    // to act as the PoW soln
+    // TODO: To determine how to include kicked out ds member (who did not do
+    // PoW) back into the shardding strcture
+    PubKey nodePubKey =
+        m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
+            .first;
+    nodePubKey.Serialize(serializedPubK, 0);
+    sha2.Update(serializedPubK);
+    vector<unsigned char> PubKeyHash;
+    PubKeyHash = sha2.Finalize();
+    array<unsigned char, 32> PubKeyHashArr;
+
+    // Injecting into sorted PoWs
+    copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
+    sortedPoWSolns.emplace_back(PubKeyHashArr, nodePubKey);
+    sha2.Reset();
+    serializedPubK.clear();
+
+    // Injecting into Pow Connections information
+    LOG_GENERAL(INFO, "Injecting into Pow Connections");
+    if (m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
+            .second == Peer()) {
+      m_allPoWConns.emplace(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
+      LOG_GENERAL(INFO, m_mediator.m_selfPeer);
+    } else {
+      m_allPoWConns.emplace(m_mediator.m_DSCommittee->at(
+          m_mediator.m_DSCommittee->size() - 1 - i));
+      LOG_GENERAL(INFO, m_mediator.m_DSCommittee
+                            ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                            .second);
+    }
+  }
+
+  ClearReputationOfNodeWithoutPoW();
+  ComputeSharding(sortedPoWSolns);
+
+  vector<Peer> proposedDSMembersInfo;
+  for (const auto& proposedMember : DSPoWOrderSorter) {
+    proposedDSMembersInfo.emplace_back(m_allPoWConns[proposedMember.second]);
+  }
+
+  ComputeTxnSharingAssignments(proposedDSMembersInfo);
+
+  // Compute the DSBlockHashSet member of the DSBlockHeader
+  DSBlockHashSet dsBlockHashSet;
+  if (!Messenger::GetShardingStructureHash(m_shards,
+                                           dsBlockHashSet.m_shardingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardingStructureHash failed.");
+    return false;
+  }
+  if (!Messenger::GetTxSharingAssignmentsHash(m_DSReceivers, m_shardReceivers,
+                                              m_shardSenders,
+                                              dsBlockHashSet.m_txSharingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetTxSharingAssignmentsHash failed.");
+    return false;
+  }
+
+  // Compute the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+
+  // Assemble DS block
+  // To-do: Handle exceptions.
+  // TODO: Revise DS block structure
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
+                      SWInfo(), powDSWinners, dsBlockHashSet, committeeHash),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "New DSBlock created with ds difficulty "
+                << std::to_string(dsDifficulty) << " and difficulty "
+                << std::to_string(difficulty));
+
+  // Create new consensus object
+  uint32_t consensusID = 0;
+  m_consensusBlockHash =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
+
+  // kill first ds leader (used for view change testing)
+  // Either do killing of ds leader or make ds leader do nothing.
+  // if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
+  // {
+  //     LOG_GENERAL(INFO, "I am killing/suspending myself to test view
+  //     change");
+  //     // throw exception();
+  //     return false;
+  // }
+
+  m_consensusObject.reset(new ConsensusLeader(
+      consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
+      m_consensusMyID, m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
+      static_cast<unsigned char>(DIRECTORY),
+      static_cast<unsigned char>(DSBLOCKCONSENSUS),
+      NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
+
+  if (m_consensusObject == nullptr) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "WARNING: Unable to create consensus object");
+    return false;
+  }
+
+  ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+
+  LOG_STATE(
+      "[DSCON]["
+      << std::setw(15) << std::left
+      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] BGIN");
+
+  auto announcementGeneratorFunc =
+      [this](vector<unsigned char>& dst, unsigned int offset,
+             const uint32_t consensusID, const uint64_t blockNumber,
+             const vector<unsigned char>& blockHash, const uint16_t leaderID,
+             const pair<PrivKey, PubKey>& leaderKey,
+             vector<unsigned char>& messageToCosign) mutable -> bool {
+    return Messenger::SetDSDSBlockAnnouncement(
+        dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
+        *m_pendingDSBlock, m_shards, m_DSReceivers, m_shardReceivers,
+        m_shardSenders, messageToCosign);
+  };
+
+  cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
+  return true;
+}
+
+void DirectoryService::ProcessTxnBodySharingAssignment() {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessTxnBodySharingAssignment not "
+                "expected to be called from LookUp node.");
+    return;
+  }
+
+  bool i_am_forwarder = false;
+  for (const auto& receiver : m_DSReceivers) {
+    if (receiver == m_mediator.m_selfPeer) {
+      m_mediator.m_node->m_txnSharingIAmSender = true;
+      i_am_forwarder = true;
+      break;
+    }
+  }
+
+  unsigned int num_ds_nodes = m_DSReceivers.size();
+
+  m_sharingAssignment.clear();
+
+  if ((i_am_forwarder) && (m_mediator.m_DSCommittee->size() > num_ds_nodes)) {
+    for (const auto& ds : *m_mediator.m_DSCommittee) {
+      bool is_a_receiver = false;
+
+      if (num_ds_nodes > 0) {
+        for (const auto& receiver : m_DSReceivers) {
+          if (ds.second == receiver) {
+            is_a_receiver = true;
+            break;
+          }
+        }
+        num_ds_nodes--;
+      }
+
+      if (!is_a_receiver) {
+        m_sharingAssignment.emplace_back(ds.second);
+      }
+    }
+  }
+}
+
+bool DirectoryService::DSBlockValidator(
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    vector<unsigned char>& messageToCosign) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::DSBlockValidator not "
+                "expected to be called from LookUp node.");
+    return true;
+  }
+
+  m_tempDSReceivers.clear();
+  m_tempShardReceivers.clear();
+  m_tempShardSenders.clear();
+  m_tempShards.clear();
+
+  lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
+  lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
+  lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
+
+  m_pendingDSBlock.reset(new DSBlock);
+
+  if (!Messenger::GetDSDSBlockAnnouncement(
+          message, offset, consensusID, blockNumber, blockHash, leaderID,
+          leaderKey, *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
+          m_tempShardReceivers, m_tempShardSenders, messageToCosign)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSDSBlockAnnouncement failed.");
+    return false;
+  }
+
+  // To-do: Put in the logic here for checking the proposed DS block
+  const map<PubKey, Peer> NewDSMembers =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
+  for (const auto& DSPowWinner : NewDSMembers) {
+    if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
+      if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second) {
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "WARNINGUnable to create consensus object");
+                  "WARNING: Why is the IP of the winner different from "
+                  "what I have in m_allPoWConns???");
         return false;
+      }
+    } else {
+      // I don't know the winner -> store the IP given by the leader
+      m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
+    }
+  }
+
+  BlockHash temp_blockHash = m_pendingDSBlock->GetHeader().GetMyHash();
+  if (temp_blockHash != m_pendingDSBlock->GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received DS Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << m_pendingDSBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Verify the DSBlockHashSet member of the DSBlockHeader
+  ShardingHash shardingHash;
+  if (!Messenger::GetShardingStructureHash(m_tempShards, shardingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardingStructureHash failed.");
+    return false;
+  }
+  if (shardingHash != m_pendingDSBlock->GetHeader().GetShardingHash()) {
+    LOG_GENERAL(WARNING,
+                "Sharding structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << shardingHash << " Received: "
+                    << m_pendingDSBlock->GetHeader().GetShardingHash());
+    return false;
+  }
+  TxSharingHash txSharingHash;
+  if (!Messenger::GetTxSharingAssignmentsHash(
+          m_tempDSReceivers, m_tempShardReceivers, m_tempShardSenders,
+          txSharingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetTxSharingAssignmentsHash failed.");
+    return false;
+  }
+  if (txSharingHash != m_pendingDSBlock->GetHeader().GetTxSharingHash()) {
+    LOG_GENERAL(WARNING,
+                "Tx sharing structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << txSharingHash << " Received: "
+                    << m_pendingDSBlock->GetHeader().GetTxSharingHash());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != m_pendingDSBlock->GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received DS Block doesn't match. "
+                "Calculated: "
+                    << committeeHash << " Received: "
+                    << m_pendingDSBlock->GetHeader().GetCommitteeHash());
+    return false;
+  }
+
+  // Start to adjust difficulty from second DS block.
+  if (m_pendingDSBlock->GetHeader().GetBlockNum() > 1) {
+    auto remoteDSDifficulty = m_pendingDSBlock->GetHeader().GetDSDifficulty();
+    auto localDSDifficulty = CalculateNewDSDifficulty(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty());
+    constexpr uint8_t DIFFICULTY_TOL = 1;
+    if (remoteDSDifficulty < localDSDifficulty ||
+        (remoteDSDifficulty - localDSDifficulty > DIFFICULTY_TOL)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "WARNING: The ds difficulty "
+                    << std::to_string(remoteDSDifficulty)
+                    << " from leader not match with local calculated "
+                       "result "
+                    << std::to_string(localDSDifficulty));
+      return false;
     }
 
-    ConsensusLeader* cl
-        = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
-
-    vector<unsigned char> m;
-    {
-        lock_guard<mutex> g(m_mutexPendingDSBlock);
-        m_pendingDSBlock->Serialize(m, 0);
+    auto remoteDifficulty = m_pendingDSBlock->GetHeader().GetDifficulty();
+    auto localDifficulty = CalculateNewDifficulty(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
+    if (remoteDifficulty < localDifficulty ||
+        (remoteDifficulty - localDifficulty > DIFFICULTY_TOL)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "WARNING: The difficulty "
+                    << std::to_string(remoteDifficulty)
+                    << " from leader not match with local calculated "
+                       "result "
+                    << std::to_string(localDifficulty));
+      return false;
     }
+  }
 
-    LOG_GENERAL(INFO,
-                "debug after compose ds block debug vc "
-                    << m_pendingDSBlock->GetHeader().GetViewChangeCount());
+  if (!ProcessShardingStructure(m_tempShards, m_tempPublicKeyToshardIdMap,
+                                m_tempMapNodeReputation)) {
+    return false;
+  }
 
-#ifdef STAT_TEST
-    LOG_STATE("[DSCON][" << std::setw(15) << std::left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_txBlockChain.GetBlockCount()
-                         << "] BGIN");
-#endif // STAT_TEST
+  if (!VerifyPoWOrdering(m_tempShards)) {
+    LOG_GENERAL(INFO, "Failed to verify ordering");
+    // return false; [TODO] Enable this check after fixing the PoW order issue.
+  }
 
-    cl->StartConsensus(m, DSBlockHeader::SIZE);
+  ClearReputationOfNodeWithoutPoW();
+  if (!VerifyNodePriority(m_tempShards)) {
+    LOG_GENERAL(WARNING, "Failed to verify node priority");
+    return false;
+  }
+  // ProcessTxnBodySharingAssignment();
 
-    return true;
+  auto func = [this]() mutable -> void {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.m_curSWInfo != m_pendingDSBlock->GetHeader().GetSWInfo()) {
+      if (UpgradeManager::GetInstance().DownloadSW()) {
+        m_mediator.m_curSWInfo =
+            *UpgradeManager::GetInstance().GetLatestSWInfo();
+      }
+    }
+  };
+  DetachedFunction(1, func);
+
+  return true;
 }
 
-bool DirectoryService::DSBlockValidator(const vector<unsigned char>& dsblock,
-                                        std::vector<unsigned char>& errorMsg)
-{
-    LOG_MARKER();
+bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
+  LOG_MARKER();
 
-    // To-do: Put in the logic here for checking the proposed DS block
-    lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
-    lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
-    lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::RunConsensusOnDSBlockWhenDSBackup not "
+                "expected to be called from LookUp node.");
+    return true;
+  }
 
-    m_pendingDSBlock.reset(new DSBlock(dsblock, 0));
-    LOG_GENERAL(INFO,
-                "debug dsblock validator "
-                    << m_pendingDSBlock->GetHeader().GetViewChangeCount());
-    if (m_allPoWConns.find(m_pendingDSBlock->GetHeader().GetMinerPubKey())
-        == m_allPoWConns.end())
-    {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Winning node of PoW1 not inside m_allPoWConns! Getting "
-                  "from ds leader");
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "I am a backup DS node. Waiting for DS block announcement. "
+            "Leader is at index  "
+                << m_consensusLeaderID << " "
+                << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
 
-        m_hasAllPoWconns = false;
-        std::unique_lock<std::mutex> lk(m_MutexCVAllPowConn);
+  // Dummy values for now
+  uint32_t consensusID = 0x0;
+  m_consensusBlockHash =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-        RequestAllPoWConn();
-        while (!m_hasAllPoWconns)
-        {
-            cv_allPowConns.wait(lk);
+  auto func = [this](const vector<unsigned char>& input, unsigned int offset,
+                     vector<unsigned char>& errorMsg,
+                     const uint32_t consensusID, const uint64_t blockNumber,
+                     const vector<unsigned char>& blockHash,
+                     const uint16_t leaderID, const PubKey& leaderKey,
+                     vector<unsigned char>& messageToCosign) mutable -> bool {
+    return DSBlockValidator(input, offset, errorMsg, consensusID, blockNumber,
+                            blockHash, leaderID, leaderKey, messageToCosign);
+  };
+
+  m_consensusObject.reset(new ConsensusBackup(
+      consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
+      m_consensusMyID, m_consensusLeaderID, m_mediator.m_selfKey.first,
+      *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
+      static_cast<unsigned char>(DSBLOCKCONSENSUS), func));
+
+  if (m_consensusObject == nullptr) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Unable to create consensus object");
+    return false;
+  }
+
+  return true;
+}
+
+bool DirectoryService::ProcessShardingStructure(
+    const DequeOfShard& shards,
+    std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
+    std::map<PubKey, uint16_t>& mapNodeReputation) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessShardingStructure not "
+                "expected to be called from LookUp node.");
+    return true;
+  }
+
+  publicKeyToshardIdMap.clear();
+  mapNodeReputation.clear();
+
+  for (unsigned int i = 0; i < shards.size(); i++) {
+    for (const auto& shardNode : shards.at(i)) {
+      const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardNode);
+
+      mapNodeReputation[pubKey] = std::get<SHARD_NODE_REP>(shardNode);
+
+      auto storedMember = m_allPoWConns.find(pubKey);
+
+      // I know the member but the member IP given by the leader is different!
+      if (storedMember != m_allPoWConns.end()) {
+        if (storedMember->second != std::get<SHARD_NODE_PEER>(shardNode)) {
+          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "IP of the member different "
+                    "from what was in m_allPoWConns???");
+          LOG_GENERAL(WARNING, "Stored  "
+                                   << storedMember->second << " Received"
+                                   << std::get<SHARD_NODE_PEER>(shardNode));
+          return false;
         }
+      }
+      // I don't know the member -> store the IP given by the leader
+      else {
+        m_allPoWConns.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode),
+                              std::get<SHARD_NODE_PEER>(shardNode));
+      }
+
+      publicKeyToshardIdMap.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode), i);
     }
-    return true;
+  }
+
+  return true;
 }
 
-bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup()
-{
-    LOG_MARKER();
+void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::RunConsensusOnDSBlock not "
+                "expected to be called from LookUp node.");
+    return;
+  }
 
+  LOG_GENERAL(INFO, "Number of PoW recvd " << m_allPoWs.size() << " "
+                                           << m_allDSPoWs.size());
+
+  LOG_MARKER();
+  SetState(DSBLOCK_CONSENSUS_PREP);
+
+  {
+    lock_guard<mutex> g(m_mutexAllPOW);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am a backup DS node. Waiting for DS block announcement.");
+              "Num of PoW sub rec: " << m_allPoWs.size());
+    LOG_STATE("[POWR][" << std::setw(15) << std::left
+                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                        << m_allPoWs.size() << "] ");
 
-    // Dummy values for now
-    uint32_t consensusID = 0x0;
-    m_consensusBlockHash.resize(BLOCK_HASH_SIZE);
-    fill(m_consensusBlockHash.begin(), m_consensusBlockHash.end(), 0x77);
-
-    auto func = [this](const vector<unsigned char>& message,
-                       vector<unsigned char>& errorMsg) mutable -> bool {
-        return DSBlockValidator(message, errorMsg);
-    };
-
-    m_consensusObject.reset(new ConsensusBackup(
-        consensusID, m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
-        m_mediator.m_selfKey.first, m_mediator.m_DSCommitteePubKeys,
-        m_mediator.m_DSCommitteeNetworkInfo,
-        static_cast<unsigned char>(DIRECTORY),
-        static_cast<unsigned char>(DSBLOCKCONSENSUS), func));
-
-    if (m_consensusObject == nullptr)
-    {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Unable to create consensus object");
-        return false;
+    if (m_allPoWs.size() == 0) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "To-do: Code up the logic for if we didn't get any "
+                "submissions at all");
+      // throw exception();
+      if (!isRejoin) {
+        return;
+      }
     }
+  }
 
-    return true;
-}
+  m_mediator.m_node->m_txnSharingIAmSender = false;
 
-void DirectoryService::RunConsensusOnDSBlock(bool isRejoin)
-{
-    LOG_MARKER();
-    SetState(DSBLOCK_CONSENSUS_PREP);
-    // unique_lock<shared_timed_mutex> lock(m_mutexProducerConsumer);
-
-    {
-        lock_guard<mutex> g(m_mutexAllPOW1);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Num of PoW1 sub rec: " << m_allPoW1s.size());
-        LOG_STATE("[POW1R][" << std::setw(15) << std::left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_allPoW1s.size() << "] ");
-
-        if (m_allPoW1s.size() == 0)
-        {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "To-do: Code up the logic for if we didn't get any "
-                      "submissions at all");
-            // throw exception();
-            if (!isRejoin)
-            {
-                return;
-            }
-        }
+  // Upon consensus object creation failure, one should not return from the
+  // function, but rather wait for view change.
+  bool ConsensusObjCreation = true;
+  if (m_mode == PRIMARY_DS) {
+    ConsensusObjCreation = RunConsensusOnDSBlockWhenDSPrimary();
+    if (!ConsensusObjCreation) {
+      LOG_GENERAL(WARNING, "Error after RunConsensusOnDSBlockWhenDSPrimary");
     }
-
-    if (m_mode == PRIMARY_DS)
-    {
-        if (!RunConsensusOnDSBlockWhenDSPrimary())
-        {
-            LOG_GENERAL(
-                INFO,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSPrimary");
-            // throw exception();
-            return;
-        }
+  } else {
+    ConsensusObjCreation = RunConsensusOnDSBlockWhenDSBackup();
+    if (!ConsensusObjCreation) {
+      LOG_GENERAL(WARNING, "Error after RunConsensusOnDSBlockWhenDSBackup");
     }
-    else
-    {
-        if (!RunConsensusOnDSBlockWhenDSBackup())
-        {
-            LOG_GENERAL(
-                INFO,
-                "Throwing exception after RunConsensusOnDSBlockWhenDSBackup");
-            // throw exception();
-            return;
-        }
-    }
+  }
 
+  if (ConsensusObjCreation) {
     SetState(DSBLOCK_CONSENSUS);
+    cv_DSBlockConsensusObject.notify_all();
+  }
 
-    if (m_mode != PRIMARY_DS)
-    {
-        std::unique_lock<std::mutex> cv_lk(m_mutexRecoveryDSBlockConsensus);
-        if (cv_RecoveryDSBlockConsensus.wait_for(
-                cv_lk, std::chrono::seconds(VIEWCHANGE_TIME))
-            == std::cv_status::timeout)
-        {
-            //View change.
-            //TODO: This is a simplified version and will be review again.
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Initiated DS block view change. ");
-            InitViewChange();
-        }
-    }
+  // View change will wait for timeout. If conditional variable is notified
+  // before timeout, the thread will return without triggering view change.
+  std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeDSBlock);
+  if (cv_viewChangeDSBlock.wait_for(cv_lk,
+                                    std::chrono::seconds(VIEWCHANGE_TIME)) ==
+      std::cv_status::timeout) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Initiated DS block view change. ");
+    auto func = [this]() -> void { RunConsensusOnViewChange(); };
+    DetachedFunction(1, func);
+  }
 }
-
-#endif // IS_LOOKUP_NODE

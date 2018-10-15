@@ -1,19 +1,20 @@
 #!/usr/bin/env python
-
-# Copyright (c) 2018 Zilliqa 
-# This source code is being disclosed to you solely for the purpose of your participation in 
-# testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-# the protocols and algorithms that are programmed into, and intended by, the code. You may 
-# not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-# including modifying or publishing the code (or any part of it), and developing or forming 
-# another public or private blockchain network. This source code is provided 'as is' and no 
-# warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-# and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-# Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-# https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that are governed by 
-# GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-# and which include a reference to GPLv3 in their program files.
-
+# Copyright (c) 2018 Zilliqa
+# This source code is being disclosed to you solely for the purpose of your
+# participation in testing Zilliqa. You may view, compile and run the code for
+# that purpose and pursuant to the protocols and algorithms that are programmed
+# into, and intended by, the code. You may not do anything else with the code
+# without express permission from Zilliqa Research Pte. Ltd., including
+# modifying or publishing the code (or any part of it), and developing or
+# forming another public or private blockchain network. This source code is
+# provided 'as is' and no warranties are given as to title or non-infringement,
+# merchantability or fitness for purpose and, to the extent permitted by law,
+# all liability for your use of the code is disclaimed. Some programs in this
+# code are governed by the GNU General Public License v3.0 (available at
+# https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+# are governed by GPLv3.0 are those programs that are located in the folders
+# src/depends and tests/depends and which include a reference to GPLv3 in their
+# program files.
 
 import subprocess
 import os
@@ -43,7 +44,7 @@ def print_usage():
 		"\t\tclean                       - Remove test output files (e.g., logs)\n"
 		"\t\tsendcmd [nodenum] [hex msg] - Send hex msg to port\n"
 		"\t\tsendcmdrandom [nodenum] [msgsize] - Send msg to port\n"
-		"\t\tstartpow1 [nodenum] [ds count] [blocknum] [diff] [rand1] [rand2] - Send STARTPOW1 to node\n"
+		"\t\tstartpow [nodenum] [ds count] [blocknum] [diff] [rand1] [rand2] - Send STARTPOW to node\n"
 		"\t\tcreatetx [nodenum] [from] [to] [amount] - Send CREATETRANSACTION to node\n"
 		"\t\tdelete                      - Delete the set-up nodes\n"
 		"\t\tsendtxn [port]              - Delete dummy txn at the interval of 1 per seconds\n")
@@ -73,8 +74,8 @@ def main():
 			print_usage() if (numargs != 4) else run_sendcmd(nodenum=int(sys.argv[2]), msg=sys.argv[3])
 		elif (command == 'sendcmdrandom'):
 			print_usage() if (numargs != 4) else run_sendcmdrandom(nodenum=int(sys.argv[2]), msg_size=sys.argv[3])
-		elif (command == 'startpow1'):
-			print_usage() if (numargs != 8) else run_startpow1(nodenum=int(sys.argv[2]), dscount=int(sys.argv[3]), blocknum=sys.argv[4], diff=sys.argv[5], rand1=sys.argv[6], rand2=sys.argv[7])
+		elif (command == 'startpow'):
+			print_usage() if (numargs != 9) else run_startpow(nodenum=int(sys.argv[2]), dscount=int(sys.argv[3]), blocknum=sys.argv[4], dsdiff=sys.argv[5], diff=sys.argv[6], rand1=sys.argv[7], rand2=sys.argv[8])
 		elif (command == 'createtx'):
 			print_usage() if (numargs != 6) else run_createtx(nodenum=int(sys.argv[2]), fromnode=int(sys.argv[3]), tonode=int(sys.argv[4]), amount=int(sys.argv[5]))
 		elif (command == 'delete'):
@@ -105,9 +106,9 @@ def run_setup(numnodes, printnodes):
 		testsubdir = LOCAL_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
 		if os.path.exists(testsubdir) != True :
 			os.makedirs(testsubdir)
-		shutil.copyfile('./build/tests/Zilliqa/zilliqa', testsubdir + '/zilliqa')
-		shutil.copyfile('./build/tests/Zilliqa/sendcmd', testsubdir + '/sendcmd')
-		shutil.copyfile('./build/tests/Zilliqa/sendtxn', testsubdir + '/sendtxn')
+		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/zilliqa')
+		shutil.copyfile('./tests/Zilliqa/sendcmd', testsubdir + '/sendcmd')
+		shutil.copyfile('./tests/Zilliqa/sendtxn', testsubdir + '/sendtxn')
 
 		st = os.stat(testsubdir + '/zilliqa')
 		os.chmod(testsubdir + '/zilliqa', st.st_mode | stat.S_IEXEC)
@@ -129,7 +130,7 @@ def run_start(numdsnodes):
 
 	# Generate keypairs (sort by public key)
 	for x in range(0, count):
-		process = Popen(["./build/tests/Zilliqa/genkeypair"], stdout=PIPE)
+		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
 		keypairs.append(output)
@@ -153,15 +154,51 @@ def run_start(numdsnodes):
 	tree = ET.ElementTree(nodes)
 	tree.write("config.xml")
 
+	# Clear the element tree 
+	nodes.clear()
+
+	# ds_whitelist.xml generation
+	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+	for x in range(0, count):
+		keys_file.write(keypairs[x] + '\n')
+		keypair = keypairs[x].split(" ")
+		peer = ET.SubElement(nodes, "peer")
+		ET.SubElement(peer, "pubk").text = keypair[0]
+		ET.SubElement(peer, "ip").text = '127.0.0.1'
+		ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
+	keys_file.close()
+
+	# Create ds_whitelist.xml with pubkey and IP info of all DS nodes
+	tree = ET.ElementTree(nodes)
+	tree.write("ds_whitelist.xml")
+
+	# clear from ds_whitelist
+	nodes.clear()
+
+	address_nodes = ET.Element("address")
+	# shard_whitelist.xml generation
+	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+	for x in range(0, count):
+		keys_file.write(keypairs[x] + '\n')
+		keypair = keypairs[x].split(" ")
+		ET.SubElement(address_nodes, "pubk").text = keypair[0]
+	keys_file.close()
+
+	# Create shard_whitelist.xml with pubkey
+	tree = ET.ElementTree(address_nodes)
+	tree.write("shard_whitelist.xml")
+
 	# Launch node Zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
+		shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/ds_whitelist.xml')
+		shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
+		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+
 		if (x < numdsnodes):
 			shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
-			shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 0 1 > ./error_log_zilliqa 2>&1 &')
 		else:
-			shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 1 > ./error_log_zilliqa 2>&1 &')
 
 def run_connect(numnodes):
@@ -219,14 +256,14 @@ def run_clean():
 	run_setup(count, False)
 
 def run_sendcmd(nodenum, msg):
-	os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
+	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
 	
 def run_sendcmdrandom(nodenum, msg_size):
 	# msg = "000400" + 'A' * msg_size * 2
-	# os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
-	os.system('build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
+	# os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
+	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
 
-def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
+def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
 
@@ -236,17 +273,17 @@ def run_startpow1(nodenum, dscount, blocknum, diff, rand1, rand2):
 		keypairs = f.readlines()
 	keypairs = [x.strip() for x in keypairs]
 
-	# Assemble the STARTPOW1 message
-	startpow1_cmd = 'build/tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + diff + rand1 + rand2
+	# Assemble the STARTPOW message
+	startpow_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + dsdiff + diff + rand1 + rand2
 	for x in range(0, dscount):
 		keypair = keypairs[x].split(" ")
-		startpow1_cmd = startpow1_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
+		startpow_cmd = startpow_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
 
 	# Send to node
-	os.system(startpow1_cmd)
+	os.system(startpow_cmd)
 
 def run_sendtxn(portnum):
-	os.system('build/tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
+	os.system('tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
 
 def run_delete():
 	if (os.path.exists(LOCAL_RUN_FOLDER)):

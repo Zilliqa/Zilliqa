@@ -1,477 +1,410 @@
-/**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
-#include <boost/filesystem.hpp>
 #include <leveldb/db.h>
 
 #include "AccountStore.h"
-#include "Address.h"
 #include "depends/common/RLP.h"
+#include "libCrypto/Sha2.h"
 #include "libPersistence/BlockStorage.h"
-#include "libUtils/DataConversion.h"
-#include "libUtils/Logger.h"
+#include "libPersistence/ContractStorage.h"
+#include "libUtils/SysCommand.h"
 
 using namespace std;
+using namespace dev;
 using namespace boost::multiprecision;
 
-AccountStore::AccountStore()
-    : m_db("state")
-{
-    m_state = SecureTrieDB<Address, dev::OverlayDB>(&m_db);
+AccountStore::AccountStore() {
+  m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
 }
 
-AccountStore::~AccountStore()
-{
-    // boost::filesystem::remove_all("./state");
+AccountStore::~AccountStore() {
+  // boost::filesystem::remove_all("./state");
 }
 
-void AccountStore::Init()
-{
-    LOG_MARKER();
-    m_addressToAccount.clear();
-    m_db.ResetDB();
-    m_state.init();
-    prevRoot = m_state.root();
+void AccountStore::Init() {
+  LOG_MARKER();
+
+  InitSoft();
+  ContractStorage::GetContractStorage().GetStateDB().ResetDB();
+  m_db.ResetDB();
 }
 
-unsigned int AccountStore::Serialize(vector<unsigned char>& dst,
-                                     unsigned int offset) const
-{
-    // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+void AccountStore::InitSoft() {
+  LOG_MARKER();
 
-    // LOG_MARKER();
+  AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
 
-    unsigned int size_needed = UINT256_SIZE;
-    unsigned int size_remaining = dst.size() - offset;
-    unsigned int totalSerializedSize = size_needed;
+  InitReversibles();
 
-    if (size_remaining < size_needed)
-    {
-        dst.resize(size_needed + offset);
-    }
+  InitTemp();
+}
 
-    unsigned int curOffset = offset;
-
-    // [Total number of accounts]
-    LOG_GENERAL(
-        INFO,
-        "Debug: Total number of accounts to serialize: " << GetNumOfAccounts());
-    uint256_t totalNumOfAccounts = GetNumOfAccounts();
-    SetNumber<uint256_t>(dst, curOffset, totalNumOfAccounts, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-
-    vector<unsigned char> address_vec;
-    // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    for (auto entry : m_addressToAccount)
-    {
-        // Address
-        address_vec = entry.first.asBytes();
-
-        copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
-        curOffset += ACC_ADDR_SIZE;
-        totalSerializedSize += ACC_ADDR_SIZE;
-
-        // Account
-        size_needed = entry.second.Serialize(dst, curOffset);
-        curOffset += size_needed;
-        totalSerializedSize += size_needed;
-    }
-
-    return totalSerializedSize;
+AccountStore& AccountStore::GetInstance() {
+  static AccountStore accountstore;
+  return accountstore;
 }
 
 int AccountStore::Deserialize(const vector<unsigned char>& src,
-                              unsigned int offset)
-{
-    // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-    // LOG_MARKER();
+                              unsigned int offset) {
+  // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] ....
+  // [Addr n] [Account n] LOG_MARKER();
 
-    try
-    {
-        unsigned int curOffset = offset;
-        uint256_t totalNumOfAccounts
-            = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-        curOffset += UINT256_SIZE;
+  try {
+    unsigned int curOffset = offset;
+    uint256_t totalNumOfAccounts =
+        GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+    curOffset += UINT256_SIZE;
 
-        Address address;
-        Account account;
-        unsigned int numberOfAccountDeserialze = 0;
-        this->Init();
-        while (numberOfAccountDeserialze < totalNumOfAccounts)
-        {
-            numberOfAccountDeserialze++;
+    Address address;
+    Account account;
+    unsigned int numberOfAccountDeserialze = 0;
+    this->Init();
+    while (numberOfAccountDeserialze < totalNumOfAccounts) {
+      numberOfAccountDeserialze++;
 
-            // Deserialize address
-            copy(src.begin() + curOffset,
-                 src.begin() + curOffset + ACC_ADDR_SIZE,
-                 address.asArray().begin());
-            curOffset += ACC_ADDR_SIZE;
+      // Deserialize address
+      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
+           address.asArray().begin());
+      curOffset += ACC_ADDR_SIZE;
 
-            // Deserialize account
-            // account.Deserialize(src, curOffset);
-            if (account.Deserialize(src, curOffset) != 0)
-            {
-                LOG_GENERAL(WARNING, "We failed to init account.");
-                return -1;
-            }
-            curOffset += ACCOUNT_SIZE;
-            m_addressToAccount[address] = account;
-            UpdateStateTrie(address, account);
-            // MoveUpdatesToDisk();
-        }
-        PrintAccountState();
+      // Deserialize account
+      if (account.DeserializeAddOffset(src, curOffset) < 0) {
+        LOG_GENERAL(WARNING, "failed to deserialize account: " << address);
+        continue;
+      }
+      (*m_addressToAccount)[address] = account;
+      UpdateStateTrie(address, account);
+      // MoveUpdatesToDisk();
     }
-    catch (const std::exception& e)
-    {
+    // PrintAccountState();
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Error with AccountStore::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
+}
+
+void AccountStore::SerializeDelta() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDelta);
+
+  m_stateDeltaSerialized.clear();
+  // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr
+  // 2] [Account 2] .... [Addr n] [Account n]
+  unsigned int curOffset = 0;
+
+  uint256_t totalNumOfAccounts = m_accountStoreTemp->GetNumOfAccounts();
+  LOG_GENERAL(INFO, "Debug: Total number of account deltas to serialize: "
+                        << totalNumOfAccounts);
+  SetNumber<uint256_t>(m_stateDeltaSerialized, curOffset, totalNumOfAccounts,
+                       UINT256_SIZE);
+  curOffset += UINT256_SIZE;
+
+  vector<unsigned char> address_vec;
+  // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
+  for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount()) {
+    // LOG_GENERAL(INFO, "Addr: " << entry.first);
+
+    // Address
+    address_vec = entry.first.asBytes();
+
+    copy(address_vec.begin(), address_vec.end(),
+         std::back_inserter(m_stateDeltaSerialized));
+    curOffset += ACC_ADDR_SIZE;
+
+    // Account
+    Account* account = GetAccount(entry.first);
+    unsigned int size_needed = Account::SerializeDelta(
+        m_stateDeltaSerialized, curOffset, account, entry.second);
+    curOffset += size_needed;
+  }
+}
+
+unsigned int AccountStore::GetSerializedDelta(vector<unsigned char>& dst) {
+  // LOG_MARKER();
+  lock_guard<mutex> g(m_mutexDelta);
+
+  copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
+       back_inserter(dst));
+
+  return m_stateDeltaSerialized.size();
+}
+
+int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
+                                   unsigned int offset, bool reversible) {
+  LOG_MARKER();
+  // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr
+  // 2] [Account 2] .... [Addr n] [Account n]
+
+  try {
+    lock_guard<mutex> g(m_mutexDelta);
+
+    unsigned int curOffset = offset;
+    uint256_t totalNumOfAccounts =
+        GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
+    LOG_GENERAL(INFO, "Total Number of Accounts Delta: " << totalNumOfAccounts);
+    curOffset += UINT256_SIZE;
+
+    Address address;
+    Account account;
+    unsigned int numberOfAccountDeserialze = 0;
+    while (numberOfAccountDeserialze < totalNumOfAccounts) {
+      numberOfAccountDeserialze++;
+
+      // Deserialize address
+      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
+           address.asArray().begin());
+      curOffset += ACC_ADDR_SIZE;
+
+      // Deserialize accountDelta
+      Account* oriAccount = GetAccount(address);
+      bool fullCopy = false;
+      if (oriAccount == nullptr) {
+        Account acc(0, 0);
+        // LOG_GENERAL(INFO, "Creating new account: " << address);
+        AddAccount(address, acc);
+        oriAccount = GetAccount(address);
+        fullCopy = true;
+      }
+
+      // LOG_GENERAL(INFO, "Diff account: " << address);
+      account = *oriAccount;
+      if (Account::DeserializeDelta(src, curOffset, account, fullCopy) < 0) {
         LOG_GENERAL(WARNING,
-                    "Error with AccountStore::Deserialize." << ' ' << e.what());
-        return -1;
-    }
-    return 0;
-}
+                    "We failed to parse accountDelta for account: " << address);
 
-AccountStore& AccountStore::GetInstance()
-{
-    static AccountStore accountstore;
-    return accountstore;
-}
+        continue;
+      }
+      (*m_addressToAccount)[address] = account;
 
-bool AccountStore::DoesAccountExist(const Address& address)
-{
-    LOG_MARKER();
-
-    if (GetAccount(address) != nullptr)
-    {
-        return true;
-    }
-
-    return false;
-}
-
-void AccountStore::AddAccount(const Address& address, const Account& account)
-{
-    LOG_MARKER();
-
-    if (!DoesAccountExist(address))
-    {
-        m_addressToAccount.insert(make_pair(address, account));
-        // UpdateStateTrie(address, account);
-    }
-}
-
-void AccountStore::AddAccount(const PubKey& pubKey, const Account& account)
-{
-    //LOG_MARKER();
-
-    Address address = Account::GetAddressFromPublicKey(pubKey);
-
-    if (!DoesAccountExist(address))
-    {
-        m_addressToAccount.insert(make_pair(address, account));
-        // UpdateStateTrie(address, account);
-    }
-}
-
-void AccountStore::AddAccount(const Address& address, const uint256_t& balance,
-                              const uint256_t& nonce)
-{
-    //LOG_MARKER();
-
-    if (!DoesAccountExist(address))
-    {
-        Account account(balance, nonce);
-        m_addressToAccount.insert(make_pair(address, account));
-        // UpdateStateTrie(address, account);
-
-        // LOG_GENERAL(INFO, "Account " << address << " with balance " << balance << ", nonce " << nonce <<
-        //              " created");
-    }
-}
-
-void AccountStore::AddAccount(const PubKey& pubKey, const uint256_t& balance,
-                              const uint256_t& nonce)
-{
-    //LOG_MARKER();
-
-    Address address = Account::GetAddressFromPublicKey(pubKey);
-
-    if (!DoesAccountExist(address))
-    {
-        Account account(balance, nonce);
-        m_addressToAccount.insert(make_pair(address, account));
-        // UpdateStateTrie(address, account);
-    }
-}
-
-void AccountStore::UpdateAccounts(const Transaction& transaction)
-{
-    //LOG_MARKER();
-
-    const PubKey& senderPubKey = transaction.GetSenderPubKey();
-    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    const Address& toAddr = transaction.GetToAddr();
-    const uint256_t& amount = transaction.GetAmount();
-
-    TransferBalance(fromAddr, toAddr, amount);
-    IncreaseNonce(fromAddr);
-}
-
-Account* AccountStore::GetAccount(const Address& address)
-{
-    //LOG_MARKER();
-
-    auto it = m_addressToAccount.find(address);
-    // LOG_GENERAL(INFO, (it != m_addressToAccount.end()));
-    if (it != m_addressToAccount.end())
-    {
-        return &it->second;
-    }
-
-    string accountDataString = m_state.at(address);
-    if (accountDataString.empty())
-    {
-        return nullptr;
-    }
-
-    dev::RLP accountDataRLP(accountDataString);
-    auto it2 = m_addressToAccount.emplace(
-        std::piecewise_construct, std::forward_as_tuple(address),
-        std::forward_as_tuple(
-            accountDataRLP[0].toInt<boost::multiprecision::uint256_t>(),
-            accountDataRLP[1].toInt<boost::multiprecision::uint256_t>()));
-
-    return &it2.first->second;
-}
-
-uint256_t AccountStore::GetNumOfAccounts() const
-{
-    LOG_MARKER();
-    return m_addressToAccount.size();
-}
-
-bool AccountStore::UpdateStateTrieAll()
-{
-    bool ret = true;
-    for (auto entry : m_addressToAccount)
-    {
-        if (!UpdateStateTrie(entry.first, entry.second))
-        {
-            ret = false;
-            break;
+      if (reversible) {
+        if (fullCopy) {
+          m_addressToAccountRevCreated[address] = account;
+        } else {
+          m_addressToAccountRevChanged[address] = account;
         }
+      }
+
+      UpdateStateTrie(address, account);
     }
-    return ret;
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Error with AccountStore::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
 }
 
-bool AccountStore::UpdateStateTrie(const Address& address,
-                                   const Account& account)
-{
-    //LOG_MARKER();
-
-    dev::RLPStream rlpStream(2);
-    rlpStream << account.GetBalance() << account.GetNonce();
-    m_state.insert(address, &rlpStream.out());
-
-    return true;
+int AccountStore::DeserializeDeltaTemp(const vector<unsigned char>& src,
+                                       unsigned int offset) {
+  lock_guard<mutex> g(m_mutexDelta);
+  return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
 
-bool AccountStore::IncreaseBalance(
-    const Address& address, const boost::multiprecision::uint256_t& delta)
-{
-    // LOG_MARKER();
-
-    if (delta == 0)
-    {
-        return true;
-    }
-
-    Account* account = GetAccount(address);
-
-    if (account != nullptr && account->IncreaseBalance(delta))
-    {
-        // UpdateStateTrie(address, *account);
-        return true;
-    }
-    else if (account == nullptr)
-    {
-        AddAccount(address, delta, 0);
-        return true;
-    }
-
-    return false;
+void AccountStore::MoveRootToDisk(const h256& root) {
+  // convert h256 to bytes
+  if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
+    LOG_GENERAL(INFO, "FAIL: Put metadata failed");
 }
 
-bool AccountStore::DecreaseBalance(
-    const Address& address, const boost::multiprecision::uint256_t& delta)
-{
-    // LOG_MARKER();
+void AccountStore::MoveUpdatesToDisk() {
+  LOG_MARKER();
 
-    if (delta == 0)
-    {
-        return true;
+  ContractStorage::GetContractStorage().GetStateDB().commit();
+  for (auto i : *m_addressToAccount) {
+    if (!ContractStorage::GetContractStorage().PutContractCode(
+            i.first, i.second.GetCode())) {
+      LOG_GENERAL(WARNING, "Write Contract Code to Disk Failed");
+      continue;
     }
+    i.second.Commit();
+  }
 
-    Account* account = GetAccount(address);
-
-    if (account != nullptr && account->DecreaseBalance(delta))
-    {
-        // UpdateStateTrie(address, *account);
-        return true;
-    }
-    // TODO: remove this, temporary way to test transactions
-    else if (account == nullptr)
-    {
-        AddAccount(address, 10000000000, 0);
-    }
-
-    return false;
-}
-
-bool AccountStore::TransferBalance(
-    const Address& from, const Address& to,
-    const boost::multiprecision::uint256_t& delta)
-{
-    // LOG_MARKER();
-
-    if (DecreaseBalance(from, delta) && IncreaseBalance(to, delta))
-    {
-        return true;
-    }
-
-    return false;
-}
-
-boost::multiprecision::uint256_t
-AccountStore::GetBalance(const Address& address)
-{
-    LOG_MARKER();
-
-    const Account* account = GetAccount(address);
-
-    if (account != nullptr)
-    {
-        return account->GetBalance();
-    }
-
-    return 0;
-}
-
-bool AccountStore::IncreaseNonce(const Address& address)
-{
-    //LOG_MARKER();
-
-    Account* account = GetAccount(address);
-
-    if (account != nullptr && account->IncreaseNonce())
-    {
-        // UpdateStateTrie(address, *account);
-        return true;
-    }
-
-    return false;
-}
-
-boost::multiprecision::uint256_t AccountStore::GetNonce(const Address& address)
-{
-    //LOG_MARKER();
-
-    Account* account = GetAccount(address);
-
-    if (account != nullptr)
-    {
-        return account->GetNonce();
-    }
-
-    return 0;
-}
-
-dev::h256 AccountStore::GetStateRootHash() const
-{
-    LOG_MARKER();
-
-    return m_state.root();
-}
-
-void AccountStore::MoveRootToDisk(const dev::h256& root)
-{
-    //convert h256 to bytes
-    if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
-        LOG_GENERAL(INFO, "FAIL: Put metadata failed");
-}
-
-void AccountStore::MoveUpdatesToDisk()
-{
-    LOG_MARKER();
-
+  try {
     m_state.db()->commit();
-    prevRoot = m_state.root();
-    MoveRootToDisk(prevRoot);
+    m_prevRoot = m_state.root();
+    MoveRootToDisk(m_prevRoot);
+  } catch (const boost::exception& e) {
+    LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
+                             << boost::diagnostic_information(e));
+  }
 }
 
-void AccountStore::DiscardUnsavedUpdates()
-{
-    LOG_MARKER();
+void AccountStore::DiscardUnsavedUpdates() {
+  LOG_MARKER();
 
+  ContractStorage::GetContractStorage().GetStateDB().rollback();
+  for (auto i : *m_addressToAccount) {
+    i.second.RollBack();
+  }
+
+  try {
     m_state.db()->rollback();
-    m_state.setRoot(prevRoot);
-    m_addressToAccount.clear();
+    m_state.setRoot(m_prevRoot);
+    m_addressToAccount->clear();
+  } catch (const boost::exception& e) {
+    LOG_GENERAL(WARNING, "Error with AccountStore::DiscardUnsavedUpdates. "
+                             << boost::diagnostic_information(e));
+  }
 }
 
-void AccountStore::PrintAccountState()
-{
-    LOG_MARKER();
+bool AccountStore::RetrieveFromDisk() {
+  LOG_MARKER();
+  vector<unsigned char> rootBytes;
+  if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
+    return false;
+  }
 
-    LOG_GENERAL(INFO, "Printing Account State");
-    for (auto entry : m_addressToAccount)
-    {
-        LOG_GENERAL(INFO, entry.first << " " << entry.second);
-    }
-    LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
-}
-
-bool AccountStore::RetrieveFromDisk()
-{
-    LOG_MARKER();
-    std::vector<unsigned char> rootBytes;
-    if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes))
-    {
-        return false;
-    }
-    dev::h256 root(rootBytes);
+  try {
+    h256 root(rootBytes);
     m_state.setRoot(root);
-    for (auto i : m_state)
-    {
-        Address address(i.first);
-        dev::RLP rlp(i.second);
-        std::vector<uint256_t> account_data = rlp.toVector<uint256_t>();
-        if (account_data.size() != 2)
-        {
-            LOG_GENERAL(WARNING, "Account data corrupted");
-            return false;
+    for (const auto& i : m_state) {
+      Address address(i.first);
+      LOG_GENERAL(INFO, "Address: " << address.hex());
+      dev::RLP rlp(i.second);
+      if (rlp.itemCount() != 4) {
+        LOG_GENERAL(WARNING, "Account data corrupted");
+        continue;
+      }
+      Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint256_t>());
+      // Code Hash
+      if (rlp[3].toHash<h256>() != h256()) {
+        // Extract Code Content
+        account.SetCode(
+            ContractStorage::GetContractStorage().GetContractCode(address));
+        if (rlp[3].toHash<h256>() != account.GetCodeHash()) {
+          LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")
+          continue;
         }
-        Account account(account_data[0], account_data[1]);
-        m_addressToAccount.insert({address, account});
+        // Storage Root
+        account.SetStorageRoot(rlp[2].toHash<h256>());
+      }
+      m_addressToAccount->insert({address, account});
     }
-    return true;
+  } catch (const boost::exception& e) {
+    LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
+                             << boost::diagnostic_information(e));
+    return false;
+  }
+  return true;
 }
 
-void AccountStore::RepopulateStateTrie()
-{
-    LOG_MARKER();
-    m_state.init();
-    prevRoot = m_state.root();
-    UpdateStateTrieAll();
+bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
+                                      const unsigned int& numShards,
+                                      const bool& isDS,
+                                      const Transaction& transaction,
+                                      TransactionReceipt& receipt) {
+  // LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDelta);
+
+  return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
+                                            transaction, receipt);
+}
+
+bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
+                                      const Address& genesisAddress,
+                                      const uint256_t& amount) {
+  // LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDelta);
+  if (m_accountStoreTemp->GetAccount(rewardee) == nullptr) {
+    m_accountStoreTemp->AddAccount(rewardee, {0, 0});
+  }
+  return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee, amount);
+  // Should the nonce increase ??
+}
+
+boost::multiprecision::uint256_t AccountStore::GetNonceTemp(
+    const Address& address) {
+  if (m_accountStoreTemp->GetAddressToAccount()->find(address) !=
+      m_accountStoreTemp->GetAddressToAccount()->end()) {
+    return m_accountStoreTemp->GetNonce(address);
+  } else {
+    return this->GetNonce(address);
+  }
+}
+
+StateHash AccountStore::GetStateDeltaHash() {
+  lock_guard<mutex> g(m_mutexDelta);
+
+  bool isEmpty = true;
+
+  for (unsigned char i : m_stateDeltaSerialized) {
+    if (i != 0) {
+      isEmpty = false;
+      break;
+    }
+  }
+
+  if (isEmpty) {
+    return StateHash();
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(m_stateDeltaSerialized);
+  return StateHash(sha2.Finalize());
+}
+
+void AccountStore::CommitTemp() {
+  LOG_MARKER();
+
+  DeserializeDelta(m_stateDeltaSerialized, 0);
+}
+
+void AccountStore::InitTemp() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDelta);
+
+  m_accountStoreTemp->Init();
+  m_stateDeltaSerialized.clear();
+}
+
+void AccountStore::CommitTempReversible() {
+  LOG_MARKER();
+
+  InitReversibles();
+
+  DeserializeDelta(m_stateDeltaSerialized, 0, true);
+}
+
+void AccountStore::RevertCommitTemp() {
+  LOG_MARKER();
+
+  // Revert changed
+  for (auto const entry : m_addressToAccountRevChanged) {
+    (*m_addressToAccount)[entry.first] = entry.second;
+    UpdateStateTrie(entry.first, entry.second);
+  }
+  for (auto const entry : m_addressToAccountRevCreated) {
+    RemoveAccount(entry.first);
+    RemoveFromTrie(entry.first);
+  }
+}
+
+void AccountStore::InitReversibles() {
+  LOG_MARKER();
+
+  m_addressToAccountRevChanged.clear();
+  m_addressToAccountRevCreated.clear();
 }

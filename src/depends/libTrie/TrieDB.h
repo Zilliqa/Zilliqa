@@ -78,7 +78,13 @@ namespace dev
         void init()
         {
             setRoot(forceInsertNode(&RLPNull));
-            assert(node(m_root).size());
+
+            if(node(m_root).size() == 0)
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")");
+            }
         }
 
         void setRoot(h256 const& _root, Verification _v = Verification::Normal)
@@ -566,10 +572,27 @@ namespace dev
 
     template <class DB> typename GenericTrieDB<DB>::iterator::value_type GenericTrieDB<DB>::iterator::at() const
     {
-        assert(m_trail.size());
+        if(m_trail.size() == 0)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         Node const& b = m_trail.back();
-        assert(b.key.size());
-        assert(!(b.key[0] & 0x10));	// should be an integer number of bytes (i.e. not an odd number of nibbles).
+        if(b.key.size() == 0)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
+        if((b.key[0] & 0x10) != 0)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
 
         RLP rlp(b.rlp);
         return std::make_pair(bytesConstRef(b.key).cropped(1), rlp[rlp.itemCount() == 2 ? 1 : 16].payload());
@@ -673,7 +696,13 @@ namespace dev
             }
 
             // ...here. should only get here if we're a list.
-            assert(rlp.isList() && rlp.itemCount() == 17);
+            if(!rlp.isList() || rlp.itemCount() != 17)
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")");
+            }
+
             for (;; m_trail.back().incrementChild())
                 if (m_trail.back().child == 17)
                 {
@@ -766,7 +795,13 @@ namespace dev
             }
 
             // ...here. should only get here if we're a list.
-            assert(rlp.isList() && rlp.itemCount() == 17);
+            if(!rlp.isList() || rlp.itemCount() != 17)
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")");
+            }
+
             for (;; m_trail.back().incrementChild())
                 if (m_trail.back().child == 17)
                 {
@@ -798,7 +833,14 @@ namespace dev
     {
         auto p = Super::at();
         value_type ret;
-        assert(p.first.size() == sizeof(KeyType));
+
+        if(p.first.size() != sizeof(KeyType))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         memcpy(&ret.first, p.first.data(), sizeof(KeyType));
         ret.second = p.second;
         return ret;
@@ -808,7 +850,14 @@ namespace dev
     {
 //        LOG_GENERAL(INFO, "Inserting to GenericTrieDB Key : Value = " << _key << " : " << _value);
         std::string rootValue = node(m_root);
-        assert(rootValue.size());
+
+        if(rootValue.size() == 0)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         bytes b = mergeAt(RLP(rootValue), m_root, NibbleSlice(_key), _value);
 
         // mergeAt won't attempt to delete the node if it's less than 32 bytes
@@ -830,7 +879,14 @@ namespace dev
             // not found.
             return std::string();
         unsigned itemCount = _here.itemCount();
-        assert(_here.isList() && (itemCount == 2 || itemCount == 17));
+
+        if(!_here.isList() || (itemCount != 2 && itemCount != 17))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         if (itemCount == 2)
         {
             auto k = keyOf(_here);
@@ -872,7 +928,14 @@ namespace dev
             return place(_orig, _k, _v);
 
         unsigned itemCount = _orig.itemCount();
-        assert(_orig.isList() && (itemCount == 2 || itemCount == 17));
+
+        if(!_orig.isList() || (itemCount != 2 && itemCount != 17))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         if (itemCount == 2)
         {
             // pair...
@@ -943,7 +1006,14 @@ namespace dev
         {
             s = node(_orig.toHash<h256>());
             r = RLP(s);
-            assert(!r.isNull());
+
+            if(r.isNull())
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")");
+            }
+
             isRemovable = true;
         }
         bytes b = mergeAt(r, _k, _v, !isRemovable);
@@ -983,7 +1053,13 @@ namespace dev
         if (_orig.isEmpty())
             return bytes();
 
-        assert(_orig.isList() && (_orig.itemCount() == 2 || _orig.itemCount() == 17));
+        if(!_orig.isList() || (_orig.itemCount() != 2 && _orig.itemCount() != 17))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         if (_orig.itemCount() == 2)
         {
             // pair...
@@ -1099,7 +1175,13 @@ namespace dev
         if (_orig.isEmpty())
             return rlpList(hexPrefixEncode(_k, true), _s);
 
-        assert(_orig.isList() && (_orig.itemCount() == 2 || _orig.itemCount() == 17));
+        if(!_orig.isList() || (_orig.itemCount() != 2 && _orig.itemCount() != 17))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         if (_orig.itemCount() == 2)
             return rlpList(_orig[0], _s);
 
@@ -1118,7 +1200,13 @@ namespace dev
     {
         killNode(_orig);
 
-        assert(_orig.isList() && (_orig.itemCount() == 2 || _orig.itemCount() == 17));
+        if(!_orig.isList() || (_orig.itemCount() != 2 && _orig.itemCount() != 17))
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         if (_orig.itemCount() == 2)
             return RLPNull;
         RLPStream r(17);
@@ -1140,9 +1228,22 @@ namespace dev
     template <class DB> bytes GenericTrieDB<DB>::cleve(RLP const& _orig, unsigned _s)
     {
         killNode(_orig);
-        assert(_orig.isList() && _orig.itemCount() == 2);
+
+        if(!_orig.isList() || _orig.itemCount() != 2)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         auto k = keyOf(_orig);
-        assert(_s && _s <= k.size());
+
+        if(!_s || _s > k.size())
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
 
         RLPStream bottom(2);
         bottom << hexPrefixEncode(k, isLeaf(_orig), /*ugh*/(int)_s) << _orig[1];
@@ -1156,7 +1257,13 @@ namespace dev
 
     template <class DB> bytes GenericTrieDB<DB>::graft(RLP const& _orig)
     {
-        assert(_orig.isList() && _orig.itemCount() == 2);
+        if(!_orig.isList() || _orig.itemCount() != 2)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         std::string s;
         RLP n;
         if (_orig[1].isList())
@@ -1169,7 +1276,13 @@ namespace dev
             forceKillNode(lh);
             n = RLP(s);
         }
-        assert(n.itemCount() == 2);
+
+        if(n.itemCount() != 2)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
 
         return rlpList(hexPrefixEncode(keyOf(_orig), keyOf(n), isLeaf(n)), n[1]);
 //	auto ret =
@@ -1179,11 +1292,23 @@ namespace dev
 
     template <class DB> bytes GenericTrieDB<DB>::merge(RLP const& _orig, byte _i)
     {
-        assert(_orig.isList() && _orig.itemCount() == 17);
+        if(!_orig.isList() || _orig.itemCount() != 17)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         RLPStream s(2);
         if (_i != 16)
         {
-            assert(!_orig[_i].isEmpty());
+            if(_orig[_i].isEmpty())
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")");
+            }
+
             s << hexPrefixEncode(bytesConstRef(&_i, 1), false, 1, 2, 0);
         }
         else
@@ -1194,14 +1319,26 @@ namespace dev
 
     template <class DB> bytes GenericTrieDB<DB>::branch(RLP const& _orig)
     {
-        assert(_orig.isList() && _orig.itemCount() == 2);
+        if(!_orig.isList() || _orig.itemCount() != 2)
+        {
+            LOG_GENERAL(FATAL,
+                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                             << __FUNCTION__ << ")");
+        }
+
         killNode(_orig);
 
         auto k = keyOf(_orig);
         RLPStream r(17);
         if (k.size() == 0)
         {
-            assert(isLeaf(_orig));
+            if(!isLeaf(_orig))
+            {
+                LOG_GENERAL(FATAL,
+                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
+                                                 << __FUNCTION__ << ")");
+            }
+
             for (unsigned i = 0; i < 16; ++i)
                 r << "";
             r << _orig[1];

@@ -1,103 +1,118 @@
-/**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
-* and which include a reference to GPLv3 in their program files.
-**/
+/*
+ * Copyright (c) 2018 Zilliqa
+ * This source code is being disclosed to you solely for the purpose of your
+ * participation in testing Zilliqa. You may view, compile and run the code for
+ * that purpose and pursuant to the protocols and algorithms that are programmed
+ * into, and intended by, the code. You may not do anything else with the code
+ * without express permission from Zilliqa Research Pte. Ltd., including
+ * modifying or publishing the code (or any part of it), and developing or
+ * forming another public or private blockchain network. This source code is
+ * provided 'as is' and no warranties are given as to title or non-infringement,
+ * merchantability or fitness for purpose and, to the extent permitted by law,
+ * all liability for your use of the code is disclaimed. Some programs in this
+ * code are governed by the GNU General Public License v3.0 (available at
+ * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
+ * are governed by GPLv3.0 are those programs that are located in the folders
+ * src/depends and tests/depends and which include a reference to GPLv3 in their
+ * program files.
+ */
 
 #ifndef __DSBLOCKHEADER_H__
 #define __DSBLOCKHEADER_H__
 
 #include <array>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <map>
 
+#include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libNetwork/Peer.h"
+#include "libUtils/SWInfo.h"
 
 /// Stores information on the header part of the DS block.
-class DSBlockHeader : public BlockHeaderBase
-{
-    uint8_t m_difficulty; // Number of PoW1 leading zeros
-    BlockHash m_prevHash; // Hash of the previous block
-    boost::multiprecision::uint256_t
-        m_nonce; // Nonce value of the winning miner for PoW1
-    PubKey m_minerPubKey; // Public key of the winning miner for PoW1
-    PubKey m_leaderPubKey; // The one who proposed this DS block
-    boost::multiprecision::uint256_t
-        m_blockNum; // Block index, starting from 0 in the genesis block
-    boost::multiprecision::uint256_t m_timestamp;
-    unsigned int m_viewChangeCounter;
+class DSBlockHeader : public BlockHeaderBase {
+  uint8_t m_dsDifficulty;  // Number of PoW leading zeros
+  uint8_t m_difficulty;    // Number of PoW leading zeros
+  BlockHash m_prevHash;    // Hash of the previous block
+  PubKey m_leaderPubKey;   // The one who proposed this DS block
+  uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
+  boost::multiprecision::uint256_t m_timestamp;
+  SWInfo m_swInfo;
+  std::map<PubKey, Peer> m_PoWDSWinners;
+  DSBlockHashSet m_hash;
 
-public:
-    static const unsigned int SIZE = sizeof(uint8_t) + BLOCK_HASH_SIZE
-        + UINT256_SIZE + PUB_KEY_SIZE + PUB_KEY_SIZE + UINT256_SIZE
-        + UINT256_SIZE + sizeof(unsigned int);
+ public:
+  /// Default constructor.
+  DSBlockHeader();  // creates a dummy invalid placeholder BlockHeader
 
-    /// Default constructor.
-    DSBlockHeader(); // creates a dummy invalid placeholder BlockHeader -- blocknum is maxsize of uint256
+  /// Constructor for loading DS block header information from a byte stream.
+  DSBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
 
-    /// Constructor for loading DS block header information from a byte stream.
-    DSBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Constructor with specified DS block header parameters.
+  DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
+                const BlockHash& prevHash, const PubKey& leaderPubKey,
+                const uint64_t& blockNum,
+                const boost::multiprecision::uint256_t& timestamp,
+                const SWInfo& swInfo,
+                const std::map<PubKey, Peer>& powDSWinners,
+                const DSBlockHashSet& hash, const CommitteeHash& committeeHash);
 
-    /// Constructor with specified DS block header parameters.
-    DSBlockHeader(const uint8_t difficulty, const BlockHash& prevHash,
-                  const boost::multiprecision::uint256_t& nonce,
-                  const PubKey& minerPubKey, const PubKey& leaderPubKey,
-                  const boost::multiprecision::uint256_t& blockNum,
-                  const boost::multiprecision::uint256_t& timestamp,
-                  unsigned int viewChangeCounter);
+  /// Implements the Serialize function inherited from Serializable.
+  bool Serialize(std::vector<unsigned char>& dst,
+                 unsigned int offset) const override;
 
-    /// Implements the Serialize function inherited from Serializable.
-    unsigned int Serialize(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  /// Implements the Deserialize function inherited from Serializable.
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
 
-    /// Implements the Deserialize function inherited from Serializable.
-    int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  /// Returns the difficulty of the PoW puzzle.
+  const uint8_t& GetDSDifficulty() const;
 
-    /// Returns the difficulty of the PoW puzzle.
-    const uint8_t& GetDifficulty() const;
+  /// Returns the difficulty of the PoW puzzle.
+  const uint8_t& GetDifficulty() const;
 
-    /// Returns the digest of the parent block header.
-    const BlockHash& GetPrevHash() const;
+  /// Returns the digest of the parent block header.
+  const BlockHash& GetPrevHash() const;
 
-    /// Returns the PoW solution nonce value.
-    const boost::multiprecision::uint256_t& GetNonce() const;
+  /// Returns the public key of the leader of the DS committee that composed
+  /// this block.
+  const PubKey& GetLeaderPubKey() const;
 
-    /// Returns the public key of the miner who did PoW on this header.
-    const PubKey& GetMinerPubKey() const;
+  /// Returns the number of ancestor blocks.
+  const uint64_t& GetBlockNum() const;
 
-    /// Returns the public key of the leader of the DS committee that composed this block.
-    const PubKey& GetLeaderPubKey() const;
+  /// Returns the Unix time at the time of creation of this block.
+  const boost::multiprecision::uint256_t& GetTimestamp() const;
 
-    /// Returns the number of ancestor blocks.
-    const boost::multiprecision::uint256_t& GetBlockNum() const;
+  /// Returns the software version information used during creation of this
+  /// block.
+  const SWInfo& GetSWInfo() const;
 
-    /// Returns the Unix time at the time of creation of this block.
-    const boost::multiprecision::uint256_t& GetTimestamp() const;
+  const std::map<PubKey, Peer>& GetDSPoWWinners() const;
 
-    /// Return the number of time DS view change has happen for DS block consensus
-    const unsigned int GetViewChangeCount() const;
+  /// Returns the digest that represents the hash of the sharding structure
+  const ShardingHash& GetShardingHash() const;
 
-    /// Equality operator.
-    bool operator==(const DSBlockHeader& header) const;
+  /// Returns the digest that represents the hash of the transaction sharing
+  /// assignments
+  const TxSharingHash& GetTxSharingHash() const;
 
-    /// Less-than comparison operator.
-    bool operator<(const DSBlockHeader& header) const;
+  /// Returns a reference to the reserved field in the hash set
+  const std::array<unsigned char, RESERVED_FIELD_SIZE>&
+  GetHashSetReservedField() const;
 
-    /// Greater-than comparison operator.
-    bool operator>(const DSBlockHeader& header) const;
+  /// Equality operator.
+  bool operator==(const DSBlockHeader& header) const;
+
+  /// Less-than comparison operator.
+  bool operator<(const DSBlockHeader& header) const;
+
+  /// Greater-than comparison operator.
+  bool operator>(const DSBlockHeader& header) const;
 };
 
-#endif // __DSBLOCKHEADER_H__
+#endif  // __DSBLOCKHEADER_H__
