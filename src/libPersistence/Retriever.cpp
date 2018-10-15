@@ -36,7 +36,7 @@ namespace filesys = boost::filesystem;
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
-void Retriever::RetrieveDSBlocks(bool& result) {
+void Retriever::RetrieveDSBlocks(bool& result, const bool& wakeupForUpgrade) {
   LOG_MARKER();
 
   std::list<DSBlockSharedPtr> blocks;
@@ -75,13 +75,16 @@ void Retriever::RetrieveDSBlocks(bool& result) {
   }
 
   if (isDSIncompleted[0] == '1') {
-    LOG_GENERAL(INFO, "Has incompleted DS Block");
-    if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1)) {
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
+    if (wakeupForUpgrade) {
+      LOG_GENERAL(INFO, "Has incompleted DS Block, remove it");
+      if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1)) {
+        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                    {'0'});
+      }
+      blocks.pop_back();
+    } else {
+      LOG_GENERAL(INFO, "Has incompleted DS Block, keep it");
     }
-    blocks.pop_back();
-    hasIncompletedDS = true;
   }
 
   for (const auto& block : blocks) {
@@ -91,7 +94,7 @@ void Retriever::RetrieveDSBlocks(bool& result) {
   result = true;
 }
 
-void Retriever::RetrieveTxBlocks(bool& result) {
+void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
   LOG_MARKER();
   std::list<TxBlockSharedPtr> blocks;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
@@ -104,12 +107,17 @@ void Retriever::RetrieveTxBlocks(bool& result) {
     return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
   });
 
-  // truncate the extra final blocks at last
-  int totalSize = blocks.size();
-  int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
-  for (int i = 0; i < extra_txblocks; ++i) {
-    BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
-    blocks.pop_back();
+  if (wakeupForUpgrade ||
+      (blocks.back()->GetHeader().GetBlockNum() + NUM_VACUOUS_EPOCHS) %
+              NUM_FINAL_BLOCK_PER_POW ==
+          0) {
+    // truncate the extra final blocks at last
+    int totalSize = blocks.size();
+    int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
+    for (int i = 0; i < extra_txblocks; ++i) {
+      BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
+      blocks.pop_back();
+    }
   }
 
   for (const auto& block : blocks) {
@@ -117,6 +125,16 @@ void Retriever::RetrieveTxBlocks(bool& result) {
   }
 
   result = true;
+
+  /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply re-join
+  /// process instead of node recovery
+  if (!wakeupForUpgrade &&
+      (blocks.back()->GetHeader().GetBlockNum() < NUM_FINAL_BLOCK_PER_POW ||
+       (blocks.back()->GetHeader().GetBlockNum() + NUM_VACUOUS_EPOCHS) %
+               NUM_FINAL_BLOCK_PER_POW ==
+           0)) {
+    result = false;
+  }
 }
 
 bool Retriever::CleanExtraTxBodies() {

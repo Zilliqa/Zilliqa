@@ -76,7 +76,7 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
 
 Node::~Node() {}
 
-void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
+bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
   LOG_MARKER();
 
   // m_state = IDLE;
@@ -92,23 +92,12 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
       m_mediator.m_consensusID = 0;
       m_consensusLeaderID = 0;
       runInitializeGenesisBlocks = false;
-
-      if (LOOKUP_NODE_MODE) {
-        m_mediator.m_DSCommittee->clear();
-      }
-
-      BlockStorage::GetBlockStorage().GetDSCommittee(
-          m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
       m_mediator.UpdateDSBlockRand();
       m_mediator.UpdateTxBlockRand();
 
       if (LOOKUP_NODE_MODE) {
         LOG_GENERAL(INFO, "Lookup node, wakeup immediately.");
-#if 1  // clark
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'1'});
-#endif
-        return;
+        return true;
       }
 
       /// If this node is inside ds committee, mark it as DS node
@@ -175,7 +164,7 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
             m_mediator.m_ds->RunConsensusOnDSBlock();
           };
           DetachedFunction(1, func);
-          return;
+          return true;
         }
       }
 
@@ -204,7 +193,12 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
       };
       DetachedFunction(1, func);
     } else {
-      LOG_GENERAL(INFO, "RetrieveHistory cancelled");
+      /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply
+      /// re-join process instead of node recovery
+      LOG_GENERAL(INFO,
+                  "Node recovery with vacuous epoch or too early, apply "
+                  "re-join process instead");
+      return false;
     }
   }
 
@@ -221,6 +215,7 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
   }
 
   this->Prepare(runInitializeGenesisBlocks);
+  return true;
 }
 
 void Node::Init() {
@@ -278,25 +273,40 @@ bool Node::StartRetrieveHistory() {
 
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_dsBlockChain.Reset();
-
   m_retriever = make_shared<Retriever>(m_mediator);
 
-  bool ds_result;
-  std::thread tDS(&Retriever::RetrieveDSBlocks, m_retriever.get(),
-                  std::ref(ds_result));
-  // retriever->RetrieveDSBlocks(ds_result);
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_DSCommittee->clear();
+  }
+
+  BlockStorage::GetBlockStorage().GetDSCommittee(
+      m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+
+  bool wakeupForUpgrade = false;
+  std::vector<unsigned char> metaRes;
+  if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::WAKEUPFORUPGRADE,
+                                                  metaRes)) {
+    if (metaRes[0] == '1') {
+      wakeupForUpgrade = true;
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
+                                                  {'0'});
+    }
+  }
 
   bool tx_result;
-  std::thread tTx(&Retriever::RetrieveTxBlocks, m_retriever.get(),
-                  std::ref(tx_result));
-  // retriever->RetrieveTxBlocks(tx_result);
+  m_retriever->RetrieveTxBlocks(tx_result, wakeupForUpgrade);
 
+  if (!tx_result) {
+    return false;
+  }
+
+  bool ds_result;
+  /// Removing incompleted DS for upgrading protocol
+  /// Keeping incompleted DS for node recovery
+  m_retriever->RetrieveDSBlocks(ds_result, wakeupForUpgrade);
   bool st_result = m_retriever->RetrieveStates();
-
-  tDS.join();
-  tTx.join();
-
   bool res = false;
+
   if (st_result && ds_result && tx_result) {
     if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates()) ||
         (LOOKUP_NODE_MODE && m_retriever->ValidateStates() &&

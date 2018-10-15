@@ -397,6 +397,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
     this_thread::sleep_for(
         chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
                         TERMINATION_COUNTDOWN_OFFSET_LOOKUP));
+
 #if 1  // clark
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
 #endif
@@ -427,6 +428,9 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
                           TERMINATION_COUNTDOWN_OFFSET_DS_LEADER));
     }
   }
+
+  BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
+                                              {'1'});
 
   /// Deploy downloaded software
   /// TBD: The call of "dpkg" should be removed.
