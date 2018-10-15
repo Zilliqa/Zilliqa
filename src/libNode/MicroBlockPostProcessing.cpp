@@ -257,16 +257,19 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         AccountStore::GetInstance().SerializeDelta();
         AccountStore::GetInstance().GetSerializedDelta(
             m_mediator.m_ds->m_stateDeltaFromShards);
-        m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
-                                      m_microblock->GetB2(),
-                                      m_microblock->GetHeader().GetShardId());
         m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
         {
           lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
           m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum].emplace(
               *m_microblock);
         }
-        m_mediator.m_ds->m_toSendTxnToLookup = true;
+        if (!m_mediator.GetIsVacuousEpoch())
+        {
+          m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
+                                        m_microblock->GetB2(),
+                                        m_microblock->GetHeader().GetShardId());
+          m_mediator.m_ds->m_toSendTxnToLookup = true;
+        }
       }
       m_mediator.m_ds->RunConsensusOnFinalBlock();
     }

@@ -68,7 +68,16 @@ bool Node::ComposeMicroBlock() {
   uint32_t version = BLOCKVERSION::VERSION1;
   uint32_t shardId = m_myshardId;
   uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
-  uint256_t gasUsed = 1;
+  uint256_t gasUsed = m_gasUsedTotal;
+  uint256_t rewards = 0;
+  if (m_mediator.GetIsVacuousEpoch() && m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
+    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees, COINBASE_REWARD, rewards))
+    {
+      LOG_GENERAL(WARNING, "rewards addition unsafe!");
+    }
+  } else {
+    rewards = m_txnFees;
+  }
   BlockHash prevHash;
   fill(prevHash.asArray().begin(), prevHash.asArray().end(), 0x77);
   uint64_t blockNum = m_mediator.m_currentEpochNum;
@@ -111,7 +120,7 @@ bool Node::ComposeMicroBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
-      MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, prevHash,
+      MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
                        blockNum, timestamp, txRootHash, numTxs, minerPubKey,
                        dsBlockNum, dsBlockHeader, stateDeltaHash,
                        txReceiptHash),
@@ -298,10 +307,8 @@ void Node::ProcessTransactionWhenShardLeader() {
     m_TxnOrder.push_back(t.GetTranID());
   };
 
-  uint256_t gasUsedTotal = 0;
-
   while (txn_sent_count < MAXSUBMITTXNPERNODE * m_myShardMembers->size() &&
-         gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+         m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
     Transaction t;
     TransactionReceipt tr;
 
@@ -315,8 +322,24 @@ void Node::ProcessTransactionWhenShardLeader() {
       findSameNonceButHigherGasPrice(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
+        {
+          LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
+          break;
+        }
+        uint256_t txnFee;
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
+        {
+          LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
+          continue;
+        }
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
+        {
+          LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
+          break;
+        }
         appendOne(t, tr);
-        gasUsedTotal += tr.GetCumGas();
+
         continue;
       }
     }
@@ -361,8 +384,23 @@ void Node::ProcessTransactionWhenShardLeader() {
       }
       // if nonce correct, process it
       else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
+        {
+          LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
+          break;
+        }
+        uint256_t txnFee;
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
+        {
+          LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
+          continue;
+        }
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
+        {
+          LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
+          break;
+        }
         appendOne(t, tr);
-        gasUsedTotal += tr.GetCumGas();
       } else {
         // LOG_GENERAL(WARNING, "CheckCreatedTransaction failed");
       }
@@ -405,38 +443,10 @@ bool Node::ProcessTransactionWhenShardBackup(
     return true;
   }
 
-  std::list<Transaction> curTxns;
-
-  if (!VerifyTxnsOrdering(tranHashes, curTxns)) {
-    return false;
-  }
-
-  auto appendOne = [this](const Transaction& t, const TransactionReceipt& tr) {
-    lock_guard<mutex> g(m_mutexProcessedTransactions);
-    auto& processedTransactions =
-        m_processedTransactions[m_mediator.m_currentEpochNum];
-    processedTransactions.insert(
-        make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
-  };
-
-  AccountStore::GetInstance().InitTemp();
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    AccountStore::GetInstance().DeserializeDeltaTemp(
-        m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
-  }
-
-  for (const auto& t : curTxns) {
-    TransactionReceipt tr;
-    if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-      appendOne(t, tr);
-    }
-  }
-
-  return true;
+  return VerifyTxnsOrdering(tranHashes);
 }
 
-bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
-                              list<Transaction>& curTxns) {
+bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   LOG_MARKER();
 
   std::unordered_map<Address,
@@ -444,6 +454,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
       t_addrNonceTxnMap = m_addrNonceTxnMap;
   gas_txnid_comp_txns t_createdTransactions = m_createdTransactions;
   vector<TxnHash> t_tranHashes;
+  std::unordered_map<TxnHash, TransactionWithReceipt> t_processedTransactions;
   unsigned int txn_sent_count = 0;
 
   auto findOneFromAddrNonceTxnMap =
@@ -488,15 +499,17 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
     return true;
   };
 
-  auto appendOne = [&t_tranHashes, &curTxns](const Transaction& t) {
+  auto appendOne = [&t_tranHashes, &t_processedTransactions](const Transaction& t, const TransactionReceipt& tr) {
     t_tranHashes.emplace_back(t.GetTranID());
-    curTxns.emplace_back(t);
+    t_processedTransactions.insert(
+        make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
   };
 
-  uint256_t gasUsedTotal = 0;
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
 
   while (txn_sent_count < MAXSUBMITTXNPERNODE * m_myShardMembers->size() &&
-         gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+         m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
     Transaction t;
     TransactionReceipt tr;
 
@@ -510,8 +523,23 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
       findSameNonceButHigherGasPrice(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        appendOne(t);
-        gasUsedTotal += tr.GetCumGas();
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
+        {
+          LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
+          break;
+        }
+        uint256_t txnFee;
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
+        {
+          LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
+          continue;
+        }
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
+        {
+          LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
+          break;
+        }
+        appendOne(t, tr);
         continue;
       }
     }
@@ -543,8 +571,23 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
       }
       // if nonce correct, process it
       else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        appendOne(t);
-        gasUsedTotal += tr.GetCumGas();
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
+        {
+          LOG_GENERAL(WARNING, "m_gasUsedTotal addition overflow!");
+          break;
+        }
+        uint256_t txnFee;
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
+        {
+          LOG_GENERAL(WARNING, "txnFee multiplication overflow!");
+          continue;
+        }
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
+        {
+          LOG_GENERAL(WARNING, "m_txnFees addition overflow!");
+          break;
+        }
+        appendOne(t, tr);
       }
     } else {
       break;
@@ -555,6 +598,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
   if (t_tranHashes == tranHashes) {
     m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
     m_createdTransactions = std::move(t_createdTransactions);
+    
+    lock_guard<mutex> g(m_mutexProcessedTransactions);
+    m_processedTransactions[m_mediator.m_currentEpochNum] = std::move(t_processedTransactions);
+
     return true;
   }
 
@@ -731,6 +778,9 @@ bool Node::RunConsensusOnMicroBlock() {
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
 
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
+
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
     m_mediator.m_ds->m_toSendTxnToLookup = false;
     m_mediator.m_ds->m_startedRunFinalblockConsensus = false;
@@ -749,6 +799,7 @@ bool Node::RunConsensusOnMicroBlock() {
           m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
     }
   }
+
   if (m_isPrimary) {
     if (!RunConsensusOnMicroBlockWhenShardLeader()) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -986,6 +1037,37 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg) {
       return false;
     default:
       return false;
+  }
+
+  // Check Gas Used
+  if (m_gasUsedTotal != m_microblock->GetHeader().GetGasUsed())
+  {
+    LOG_GENERAL(WARNING, "The total gas used mismatched, local: " << m_gasUsedTotal << " received: " << m_microblock->GetHeader().GetGasUsed());
+    m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_GASUSED);
+    return false;
+  }
+
+  // Check Rewards
+  if (m_mediator.GetIsVacuousEpoch() && m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
+    // Check COINBASE_REWARD + totalTxnFees
+    uint256_t rewards;
+    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees, COINBASE_REWARD, rewards)) {
+      LOG_GENERAL(WARNING, "total_reward addition unsafe!");
+    }
+    if (rewards != m_microblock->GetHeader().GetRewards())
+    {
+      LOG_GENERAL(WARNING, "The total rewards mismatched, local: " << rewards << " received: " << m_microblock->GetHeader().GetRewards());
+      m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_REWARDS);
+      return false;
+    }
+  } else {
+    // Check TxnFees
+    if (m_txnFees != m_microblock->GetHeader().GetRewards())
+    {
+      LOG_GENERAL(WARNING, "The txn fees mismatched, local: " << m_txnFees << " received: " << m_microblock->GetHeader().GetRewards());
+      m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_REWARDS);
+      return false;
+    }
   }
 
   LOG_GENERAL(INFO, "Hash legitimacy check passed");
