@@ -247,7 +247,10 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
             microBlocksAtEpoch.size()
                 << " of " << m_shards.size() << " microblocks received");
 
-  ProcessStateDelta(stateDelta, microBlock.GetHeader().GetStateDeltaHash());
+  if (!m_mediator.GetIsVacuousEpoch())
+  {
+    ProcessStateDelta(stateDelta, microBlock.GetHeader().GetStateDeltaHash());
+  }
 
   if (microBlocksAtEpoch.size() == m_shards.size()) {
     if (m_mode == PRIMARY_DS) {
@@ -313,12 +316,9 @@ void DirectoryService::CommitMBSubmissionMsgBuffer() {
 
   for (auto it = m_MBSubmissionBuffer.begin();
        it != m_MBSubmissionBuffer.end();) {
-    if (it->first <
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+    if (it->first < m_mediator.m_currentEpochNum) {
       it = m_MBSubmissionBuffer.erase(it);
-    } else if (it->first == m_mediator.m_txBlockChain.GetLastBlock()
-                                .GetHeader()
-                                .GetBlockNum()) {
+    } else if (it->first == m_mediator.m_currentEpochNum) {
       for (const auto& entry : it->second) {
         ProcessMicroblockSubmissionFromShardCore(entry.m_microBlocks,
                                                  entry.m_stateDelta);
@@ -347,15 +347,12 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   LOG_GENERAL(
       INFO, "Received microblock submission for block number " << blockNumber);
 
-  if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
-      blockNumber) {
+  if (m_mediator.m_currentEpochNum < blockNumber) {
     lock_guard<mutex> g(m_mutexMBSubmissionBuffer);
     m_MBSubmissionBuffer[blockNumber].emplace_back(microBlocks, stateDelta);
 
     return true;
-  } else if (m_mediator.m_txBlockChain.GetLastBlock()
-                 .GetHeader()
-                 .GetBlockNum() == blockNumber) {
+  } else if (m_mediator.m_currentEpochNum == blockNumber) {
     if (CheckState(PROCESS_MICROBLOCKSUBMISSION)) {
       return ProcessMicroblockSubmissionFromShardCore(microBlocks, stateDelta);
     } else {
@@ -471,6 +468,42 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Microblock co-sig verification failed");
         continue;
+      }
+
+      {
+        // Check whether the fetched microblock is in missing microblocks list
+        bool found = false;
+        const auto& _microBlocks = m_missingMicroBlocks[blockNumber];
+        for (const auto& _microBlock : _microBlocks) {
+          if (_microBlock.first == shardId &&
+              _microBlock.second == microBlock.GetHeader().GetHash()) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Microblock fetched is not in missing list");
+          continue;
+        }
+      }
+
+      {
+        // Check whether already have the microblock
+        bool found = false;
+        const auto& _microBlocks = m_microBlocks[blockNumber];
+        for (const auto& _microBlock : _microBlocks) {
+          if (_microBlock.GetHeader().GetShardId() == shardId &&
+              _microBlock.GetHeader().GetHash() == microBlock.GetHeader().GetHash()) {
+            found = true;
+            break;
+          }
+        }
+        if (found) {
+          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Microblock already exists in local");
+          continue;
+        }
       }
 
       LOG_GENERAL(INFO,
