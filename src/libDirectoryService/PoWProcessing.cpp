@@ -188,7 +188,17 @@ bool DirectoryService::ProcessPoWSubmission(
           DataConversion::HexStrToStdArray(resultingHash);
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
-      m_allPoWs[submitterPubKey] = winningHashArr;
+      if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
+        m_allPoWs[submitterPubKey] = winningHashArr;
+      } else if (m_allPoWs[submitterPubKey] > winningHashArr) {
+        LOG_EPOCH(
+            INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Harder PoW result: "
+                << DataConversion::charArrToHexStr(winningHashArr)
+                << " overwrite the old PoW: "
+                << DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey]));
+        m_allPoWs[submitterPubKey] = winningHashArr;
+      }
 
       uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
       if (blockNumber > 1) {
