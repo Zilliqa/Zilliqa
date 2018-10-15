@@ -430,7 +430,7 @@ class Node : public Executable, public Broadcastable {
   ~Node();
 
   /// Install the Node
-  void Install(unsigned int syncType, bool toRetrieveHistory = true);
+  bool Install(unsigned int syncType, bool toRetrieveHistory = true);
 
   /// Set initial state, variables, and clean-up storage
   void Init();

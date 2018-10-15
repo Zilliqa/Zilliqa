@@ -76,6 +76,7 @@ enum MetaType : unsigned char {
   STATEROOT = 0x00,
   DSINCOMPLETED,
   LATESTACTIVEDSBLOCKNUM,
+  WAKEUPFORUPGRADE,
 };
 
 // Sync Type

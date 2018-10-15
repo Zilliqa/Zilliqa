@@ -138,7 +138,20 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     }
   }
 
-  m_n.Install(syncType, toRetrieveHistory);
+  if (!m_n.Install(syncType, toRetrieveHistory)) {
+    if (LOOKUP_NODE_MODE) {
+      syncType = SyncType::LOOKUP_SYNC;
+    } else {
+      syncType = SyncType::NORMAL_SYNC;
+
+      for (const auto& ds : *m_mediator.m_DSCommittee) {
+        if (ds.first == m_mediator.m_selfKey.second) {
+          syncType = SyncType::DS_SYNC;
+          break;
+        }
+      }
+    }
+  }
 
   LogSelfNodeInfo(key, peer);
 
