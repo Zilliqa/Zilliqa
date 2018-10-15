@@ -53,6 +53,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_fallbackBlockDB;
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
+  std::shared_ptr<LevelDB> m_stateDeltaDB;
 
   BlockStorage()
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
@@ -62,7 +63,8 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
         m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks")),
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
-        m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")) {
+        m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
+        m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
@@ -86,7 +88,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     VC_BLOCK,
     FB_BLOCK,
     BLOCKLINK,
-    SHARD_STRUCTURE
+    SHARD_STRUCTURE,
+    STATE_DELTA
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -183,6 +186,14 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieve shard structure
   bool GetShardStructure(DequeOfShard& shards, std::atomic<uint32_t> myshardId);
+
+  /// Save state delta
+  bool PutStateDelta(const uint64_t& finalBlockNum,
+                     const std::vector<unsigned char>& stateDelta);
+
+  /// Retrieve state delta
+  bool GetStateDelta(const uint64_t& finalBlockNum,
+                     std::vector<unsigned char>& stateDelta);
 
   /// Clean a DB
   bool ResetDB(DBTYPE type);
