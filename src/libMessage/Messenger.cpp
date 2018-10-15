@@ -78,6 +78,39 @@ void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
   number = Serializable::GetNumber<T>(tmp, 0, S);
 }
 
+template <class T>
+bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
+                      const unsigned int offset) {
+  const int length_available = dst.size() - offset;
+
+  if (length_available < protoMessage.ByteSize()) {
+    dst.resize(dst.size() + protoMessage.ByteSize() - length_available);
+  }
+
+  return protoMessage.SerializeToArray(dst.data() + offset,
+                                       protoMessage.ByteSize());
+}
+
+template <class T>
+bool RepeatableToArray(const T& repeatable, vector<unsigned char>& dst,
+                       const unsigned int offset) {
+  int tempOffset = offset;
+  for (const auto& element : repeatable) {
+    if (!SerializeToArray(element, dst, tempOffset)) {
+      LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
+      return false;
+    }
+    tempOffset += element.ByteSize();
+  }
+  return true;
+}
+
+template <class T, size_t S>
+void NumberToArray(const T& number, vector<unsigned char>& dst,
+                   const unsigned int offset) {
+  Serializable::SetNumber<T>(dst, offset, number, S);
+}
+
 void DSCommitteeToProtobuf(const deque<pair<PubKey, Peer>>& dsCommittee,
                            ProtoDSCommittee& protoDSCommittee) {
   for (const auto& node : dsCommittee) {
@@ -199,6 +232,111 @@ void ProtobufToTxSharingAssignments(
       shardSenders.back().emplace_back(peer);
     }
   }
+}
+
+[[gnu::unused]] void TransactionToProtobuf(const Transaction& transaction,
+                                           ProtoTransaction& protoTransaction) {
+  protoTransaction.set_tranid(transaction.GetTranID().data(),
+                              transaction.GetTranID().size);
+
+  ProtoTransaction::CoreTransactionInfo* info = protoTransaction.mutable_info();
+
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetVersion(),
+                                                     *info->mutable_version());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetNonce(),
+                                                     *info->mutable_nonce());
+  info->set_toaddr(transaction.GetToAddr().data(),
+                   transaction.GetToAddr().size);
+  SerializableToProtobufByteArray(transaction.GetSenderPubKey(),
+                                  *info->mutable_senderpubkey());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetAmount(),
+                                                     *info->mutable_amount());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetGasPrice(),
+                                                     *info->mutable_gasprice());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetGasLimit(),
+                                                     *info->mutable_gaslimit());
+  info->set_code(transaction.GetCode().data(), transaction.GetCode().size());
+  info->set_data(transaction.GetData().data(), transaction.GetData().size());
+
+  SerializableToProtobufByteArray(transaction.GetSignature(),
+                                  *protoTransaction.mutable_signature());
+}
+
+[[gnu::unused]] void ProtobufToTransaction(
+    const ProtoTransaction& protoTransaction, Transaction& transaction) {
+  TxnHash tranID;
+  uint256_t version;
+  uint256_t nonce;
+  Address toAddr;
+  PubKey senderPubKey;
+  uint256_t amount;
+  uint256_t gasPrice;
+  uint256_t gasLimit;
+  vector<unsigned char> code;
+  vector<unsigned char> data;
+  Signature signature;
+
+  copy(protoTransaction.tranid().begin(),
+       protoTransaction.tranid().begin() +
+           min((unsigned int)protoTransaction.tranid().size(),
+               (unsigned int)tranID.size),
+       tranID.asArray().begin());
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTransaction.info().version(), version);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTransaction.info().nonce(), nonce);
+  copy(protoTransaction.info().toaddr().begin(),
+       protoTransaction.info().toaddr().begin() +
+           min((unsigned int)protoTransaction.info().toaddr().size(),
+               (unsigned int)toAddr.size),
+       toAddr.asArray().begin());
+  ProtobufByteArrayToSerializable(protoTransaction.info().senderpubkey(),
+                                  senderPubKey);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTransaction.info().amount(), amount);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTransaction.info().gasprice(), gasPrice);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTransaction.info().gaslimit(), gasLimit);
+  code.resize(protoTransaction.info().code().size());
+  copy(protoTransaction.info().code().begin(),
+       protoTransaction.info().code().end(), code.begin());
+  data.resize(protoTransaction.info().data().size());
+  copy(protoTransaction.info().data().begin(),
+       protoTransaction.info().data().end(), data.begin());
+  ProtobufByteArrayToSerializable(protoTransaction.signature(), signature);
+
+  // Verify transaction ID
+
+  vector<unsigned char> txData;
+
+  if (!SerializeToArray(protoTransaction.info(), txData, 0)) {
+    LOG_GENERAL(WARNING,
+                "ProtoTransaction::CoreTransactionInfo serialization failed.");
+    return;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(txData);
+  const vector<unsigned char>& hash = sha2.Finalize();
+
+  if (!equal(hash.begin(), hash.end(), tranID.begin())) {
+    TxnHash expected;
+    copy(hash.begin(), hash.end(), expected.asArray().begin());
+    LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
+                             << expected << " Actual: " << tranID);
+    return;
+  }
+
+  // Verify signature
+
+  if (!Schnorr::GetInstance().Verify(txData, signature, senderPubKey)) {
+    LOG_GENERAL(WARNING, "Signature verification failed.");
+    return;
+  }
+
+  transaction = Transaction(tranID, version, nonce, toAddr, senderPubKey,
+                            amount, gasPrice, gasLimit, code, data, signature);
 }
 
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
@@ -1044,39 +1182,6 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
        blockHash.asArray().begin());
 
   fallbackBlock.SetBlockHash(blockHash);
-}
-
-template <class T>
-bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
-                      const unsigned int offset) {
-  const int length_available = dst.size() - offset;
-
-  if (length_available < protoMessage.ByteSize()) {
-    dst.resize(dst.size() + protoMessage.ByteSize() - length_available);
-  }
-
-  return protoMessage.SerializeToArray(dst.data() + offset,
-                                       protoMessage.ByteSize());
-}
-
-template <class T>
-bool RepeatableToArray(const T& repeatable, vector<unsigned char>& dst,
-                       const unsigned int offset) {
-  int tempOffset = offset;
-  for (const auto& element : repeatable) {
-    if (!SerializeToArray(element, dst, tempOffset)) {
-      LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
-      return false;
-    }
-    tempOffset += element.ByteSize();
-  }
-  return true;
-}
-
-template <class T, size_t S>
-void NumberToArray(const T& number, vector<unsigned char>& dst,
-                   const unsigned int offset) {
-  Serializable::SetNumber<T>(dst, offset, number, S);
 }
 
 bool SetConsensusAnnouncementCore(
