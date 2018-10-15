@@ -69,17 +69,16 @@ bool Node::ComposeMicroBlock() {
   uint32_t shardId = m_myshardId;
   uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
   uint256_t gasUsed = 1;
-  BlockHash prevHash;
-  fill(prevHash.asArray().begin(), prevHash.asArray().end(), 0x77);
+  BlockHash prevHash =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetMyHash();
   uint64_t blockNum = m_mediator.m_currentEpochNum;
   uint256_t timestamp = get_time_as_int();
   TxnHash txRootHash, txReceiptHash;
   uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-  uint64_t dsBlockNum =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-  BlockHash dsBlockHeader;
-  fill(dsBlockHeader.asArray().begin(), dsBlockHeader.asArray().end(), 0x11);
+  const auto& lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
+  uint64_t dsBlockNum = lastDSBlock.GetHeader().GetBlockNum();
+  BlockHash dsBlockHash = lastDSBlock.GetHeader().GetMyHash();
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
   // TxBlock
@@ -113,7 +112,7 @@ bool Node::ComposeMicroBlock() {
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, prevHash,
                        blockNum, timestamp, txRootHash, numTxs, minerPubKey,
-                       dsBlockNum, dsBlockHeader, stateDeltaHash, txReceiptHash,
+                       dsBlockNum, dsBlockHash, stateDeltaHash, txReceiptHash,
                        CommitteeHash()),
       tranHashes, CoSignatures()));
 
