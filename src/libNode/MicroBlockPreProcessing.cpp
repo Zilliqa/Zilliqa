@@ -70,9 +70,10 @@ bool Node::ComposeMicroBlock() {
   uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
   uint256_t gasUsed = m_gasUsedTotal;
   uint256_t rewards = 0;
-  if (m_mediator.GetIsVacuousEpoch() && m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees, COINBASE_REWARD, rewards))
-    {
+  if (m_mediator.GetIsVacuousEpoch() &&
+      m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
+    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees,
+                                  COINBASE_REWARD, rewards)) {
       LOG_GENERAL(WARNING, "rewards addition unsafe!");
     }
   } else {
@@ -120,10 +121,10 @@ bool Node::ComposeMicroBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
-      MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
-                       blockNum, timestamp, txRootHash, numTxs, minerPubKey,
-                       dsBlockNum, dsBlockHeader, stateDeltaHash, txReceiptHash,
-                       CommitteeHash()),
+      MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards,
+                       prevHash, blockNum, timestamp, txRootHash, numTxs,
+                       minerPubKey, dsBlockNum, dsBlockHeader, stateDeltaHash,
+                       txReceiptHash, CommitteeHash()),
       tranHashes, CoSignatures()));
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -322,19 +323,18 @@ void Node::ProcessTransactionWhenShardLeader() {
       findSameNonceButHigherGasPrice(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
-        {
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                      m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
         uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
-        {
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+                                      txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
-        {
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
           break;
         }
@@ -384,19 +384,18 @@ void Node::ProcessTransactionWhenShardLeader() {
       }
       // if nonce correct, process it
       else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
-        {
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                      m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
         uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
-        {
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+                                      txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
-        {
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
           break;
         }
@@ -499,7 +498,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     return true;
   };
 
-  auto appendOne = [&t_tranHashes, &t_processedTransactions](const Transaction& t, const TransactionReceipt& tr) {
+  auto appendOne = [&t_tranHashes, &t_processedTransactions](
+                       const Transaction& t, const TransactionReceipt& tr) {
     t_tranHashes.emplace_back(t.GetTranID());
     t_processedTransactions.insert(
         make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
@@ -523,19 +523,18 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       findSameNonceButHigherGasPrice(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
-        {
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                      m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
         uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
-        {
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+                                      txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
-        {
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
           break;
         }
@@ -571,19 +570,18 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       }
       // if nonce correct, process it
       else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(), m_gasUsedTotal))
-        {
+        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                      m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition overflow!");
           break;
         }
         uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(), txnFee))
-        {
+        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+                                      txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication overflow!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees))
-        {
+        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition overflow!");
           break;
         }
@@ -598,9 +596,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   if (t_tranHashes == tranHashes) {
     m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
     m_createdTransactions = std::move(t_createdTransactions);
-    
+
     lock_guard<mutex> g(m_mutexProcessedTransactions);
-    m_processedTransactions[m_mediator.m_currentEpochNum] = std::move(t_processedTransactions);
+    m_processedTransactions[m_mediator.m_currentEpochNum] =
+        std::move(t_processedTransactions);
 
     return true;
   }
@@ -1040,31 +1039,36 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg) {
   }
 
   // Check Gas Used
-  if (m_gasUsedTotal != m_microblock->GetHeader().GetGasUsed())
-  {
-    LOG_GENERAL(WARNING, "The total gas used mismatched, local: " << m_gasUsedTotal << " received: " << m_microblock->GetHeader().GetGasUsed());
+  if (m_gasUsedTotal != m_microblock->GetHeader().GetGasUsed()) {
+    LOG_GENERAL(WARNING, "The total gas used mismatched, local: "
+                             << m_gasUsedTotal << " received: "
+                             << m_microblock->GetHeader().GetGasUsed());
     m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_GASUSED);
     return false;
   }
 
   // Check Rewards
-  if (m_mediator.GetIsVacuousEpoch() && m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
+  if (m_mediator.GetIsVacuousEpoch() &&
+      m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
     // Check COINBASE_REWARD + totalTxnFees
     uint256_t rewards;
-    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees, COINBASE_REWARD, rewards)) {
+    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees,
+                                  COINBASE_REWARD, rewards)) {
       LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     }
-    if (rewards != m_microblock->GetHeader().GetRewards())
-    {
-      LOG_GENERAL(WARNING, "The total rewards mismatched, local: " << rewards << " received: " << m_microblock->GetHeader().GetRewards());
+    if (rewards != m_microblock->GetHeader().GetRewards()) {
+      LOG_GENERAL(WARNING, "The total rewards mismatched, local: "
+                               << rewards << " received: "
+                               << m_microblock->GetHeader().GetRewards());
       m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_REWARDS);
       return false;
     }
   } else {
     // Check TxnFees
-    if (m_txnFees != m_microblock->GetHeader().GetRewards())
-    {
-      LOG_GENERAL(WARNING, "The txn fees mismatched, local: " << m_txnFees << " received: " << m_microblock->GetHeader().GetRewards());
+    if (m_txnFees != m_microblock->GetHeader().GetRewards()) {
+      LOG_GENERAL(WARNING, "The txn fees mismatched, local: "
+                               << m_txnFees << " received: "
+                               << m_microblock->GetHeader().GetRewards());
       m_consensusObject->SetConsensusErrorCode(ConsensusCommon::WRONG_REWARDS);
       return false;
     }
