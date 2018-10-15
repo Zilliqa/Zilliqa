@@ -264,6 +264,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   } else {
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
+    m_totalTxnFees += m_finalBlock->GetHeader().GetRewards();
   }
 
   m_mediator.UpdateDSBlockRand();
