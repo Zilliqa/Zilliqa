@@ -122,8 +122,8 @@ bool Node::ComposeMicroBlock() {
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
                        blockNum, timestamp, txRootHash, numTxs, minerPubKey,
-                       dsBlockNum, dsBlockHeader, stateDeltaHash,
-                       txReceiptHash),
+                       dsBlockNum, dsBlockHeader, stateDeltaHash, txReceiptHash,
+                       CommitteeHash()),
       tranHashes, CoSignatures()));
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

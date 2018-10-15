@@ -68,7 +68,8 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
                    const BlockHash& dsBlockHeader,
                    const StateHash& stateDeltaHash,
-                   const TxnHash& tranReceiptHash);
+                   const TxnHash& tranReceiptHash,
+                   const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;

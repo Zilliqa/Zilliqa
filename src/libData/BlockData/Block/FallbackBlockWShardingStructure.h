@@ -17,29 +17,25 @@
  * program files.
  */
 
-#include "BlockHeaderBase.h"
-#include "libCrypto/Sha2.h"
-#include "libUtils/Logger.h"
+#include "FallbackBlock.h"
+#include "libDirectoryService/ShardStruct.h"
 
-using namespace std;
-using namespace boost::multiprecision;
+#ifndef __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
+#define __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
 
-BlockHeaderBase::BlockHeaderBase() {}
+struct FallbackBlockWShardingStructure : public SerializableDataBlock {
+  FallbackBlock m_fallbackblock;
+  DequeOfShard m_shards;
 
-BlockHeaderBase::BlockHeaderBase(const CommitteeHash& committeeHash)
-    : m_committeeHash(committeeHash) {}
+  FallbackBlockWShardingStructure();
+  FallbackBlockWShardingStructure(const std::vector<unsigned char>& src,
+                                  unsigned int offset);
+  FallbackBlockWShardingStructure(const FallbackBlock& fallbackblock,
+                                  const DequeOfShard& shards);
 
-BlockHash BlockHeaderBase::GetMyHash() const {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  std::vector<unsigned char> vec;
-  Serialize(vec, 0);
-  sha2.Update(vec);
-  const std::vector<unsigned char>& resVec = sha2.Finalize();
-  BlockHash blockHash;
-  std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
-  return blockHash;
-}
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
-const CommitteeHash& BlockHeaderBase::GetCommitteeHash() const {
-  return m_committeeHash;
-}
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+};
+
+#endif  // __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__

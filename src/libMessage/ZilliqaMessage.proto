@@ -22,6 +22,11 @@ message ProtoDSCommittee
     repeated ProtoDSNode dsnodes = 1;
 }
 
+message ProtoCommittee
+{
+    repeated ByteArray members = 1;
+}
+
 message ProtoShardingStructure
 {
     message Member
@@ -52,10 +57,9 @@ message ProtoDSBlock
 {
     message DSBlockHashSet
     {
-        required bytes dscommhash       = 1;
-        required bytes shardinghash     = 2;
-        required bytes txsharinghash    = 3;
-        required bytes reservedfield    = 4;
+        required bytes shardinghash     = 1;
+        required bytes txsharinghash    = 2;
+        required bytes reservedfield    = 3;
     }
     message DSBlockHeader
     {
@@ -68,11 +72,12 @@ message ProtoDSBlock
         required ByteArray swinfo       = 7;
         message PowDSWinners
         {
-            required ByteArray key = 1;
-            required ByteArray val = 2;
+            required ByteArray key      = 1;
+            required ByteArray val      = 2;
         }
         repeated PowDSWinners dswinners = 8;
         required DSBlockHashSet hash    = 9;
+        required bytes committeehash    = 10;
     }
     message CoSignatures
     {
@@ -106,6 +111,7 @@ message ProtoMicroBlock
         required bytes dsblockheader   = 14;
         required bytes statedeltahash  = 15;
         required bytes tranreceipthash = 16;
+        required bytes committeehash   = 17;
     }
     message CoSignatures
     {
@@ -145,6 +151,7 @@ message ProtoTxBlock
         required ByteArray minerpubkey          = 12;
         required uint64 dsblocknum              = 13;
         required bytes dsblockheader            = 14;
+        required bytes committeehash            = 15;
     }
     message MicroBlockHashSet
     {
@@ -179,6 +186,7 @@ message ProtoVCBlock
         required ByteArray candidateleaderpubkey      = 6;
         required uint32 vccounter                     = 7;
         required ByteArray timestamp                  = 8;
+        required bytes committeehash                  = 9;
     }
     message CoSignatures
     {
@@ -196,26 +204,27 @@ message ProtoFallbackBlock
 {
     message FallbackBlockHeader
     {
-        required uint64 fallbackdsepochno           = 1;
-        required uint64 fallbackepochno             = 2;
-        required uint32 fallbackstate               = 3; // only LSB used
-        required bytes stateroothash                = 4;
-        required uint32 leaderconsensusid          = 5;
+        required uint64 fallbackdsepochno    = 1;
+        required uint64 fallbackepochno      = 2;
+        required uint32 fallbackstate        = 3; // only LSB used
+        required bytes stateroothash         = 4;
+        required uint32 leaderconsensusid    = 5;
         required ByteArray leadernetworkinfo = 6;
         required ByteArray leaderpubkey      = 7;
-        required uint32 shardid                     = 8;
-        required ByteArray timestamp                  = 9;
+        required uint32 shardid              = 8;
+        required ByteArray timestamp         = 9;
+        required bytes committeehash         = 10;
     }
     message CoSignatures
     {
-        required ByteArray cs1                        = 1;
-        repeated bool b1                              = 2 [packed=true];
-        required ByteArray cs2                        = 3;
-        repeated bool b2                              = 4 [packed=true];
+        required ByteArray cs1               = 1;
+        repeated bool b1                     = 2 [packed=true];
+        required ByteArray cs2               = 3;
+        repeated bool b2                     = 4 [packed=true];
     }
-    required FallbackBlockHeader header               = 1;
-    required CoSignatures cosigs                      = 2;
-    required bytes blockhash                          = 3;
+    required FallbackBlockHeader header      = 1;
+    required CoSignatures cosigs             = 2;
+    required bytes blockhash                 = 3;
 }
 
 // ============================================================================
@@ -271,8 +280,9 @@ message NodeDSBlock
 {
     required uint32 shardid                        = 1;
     required ProtoDSBlock dsblock                  = 2;
-    required ProtoShardingStructure sharding       = 3;
-    required ProtoTxSharingAssignments assignments = 4;
+    repeated ProtoVCBlock vcblocks                 = 3;
+    required ProtoShardingStructure sharding       = 4;
+    required ProtoTxSharingAssignments assignments = 5;
 }
 
 message NodeFinalBlock
@@ -303,7 +313,9 @@ message NodeForwardTxnBlock
 {
     required uint64 epochnumber     = 1;
     required uint32 shardid         = 2;
-    repeated ByteArray transactions = 3;
+    required ByteArray pubkey       = 3;
+    repeated ByteArray transactions = 4;
+    required ByteArray signature    = 5;
 }
 
 message NodeMicroBlockAnnouncement
@@ -333,18 +345,25 @@ message LookupGetSeedPeers
 message LookupSetSeedPeers
 {
     repeated ByteArray candidateseeds = 1;
+    required ByteArray pubkey         = 2;
+    required ByteArray signature      = 3;
 }
 
+// From normal node to lookup nodes.
 message LookupGetDSInfoFromSeed
 {
     required uint32 listenport = 1;
 }
 
+// From DS leader to lookup nodes and from lookup nodes to normal nodes.
 message LookupSetDSInfoFromSeed
 {
     required ProtoDSCommittee dscommittee = 1;
+    required ByteArray pubkey             = 2;
+    required ByteArray signature          = 3;
 }
 
+// From new join lookup node or new join normal node to existing lookup node.
 message LookupGetDSBlockFromSeed
 {
     required uint64 lowblocknum  = 1;
@@ -352,13 +371,17 @@ message LookupGetDSBlockFromSeed
     required uint32 listenport   = 3;
 }
 
+// From lookup nodes to new join lookup node or new join normal node.
 message LookupSetDSBlockFromSeed
 {
     required uint64 lowblocknum    = 1;
     required uint64 highblocknum   = 2;
     repeated ProtoDSBlock dsblocks = 3;
+    required ByteArray pubkey      = 4;
+    required ByteArray signature   = 5;
 }
 
+// From new join lookup node or new join normal node to existing lookup node.
 message LookupGetTxBlockFromSeed
 {
     required uint64 lowblocknum  = 1;
@@ -366,11 +389,14 @@ message LookupGetTxBlockFromSeed
     required uint32 listenport   = 3;
 }
 
+// From lookup nodes to new join lookup node or new join normal node.
 message LookupSetTxBlockFromSeed
 {
     required uint64 lowblocknum    = 1;
     required uint64 highblocknum   = 2;
     repeated ProtoTxBlock txblocks = 3;
+    required ByteArray pubkey      = 4;
+    required ByteArray signature   = 5;
 }
 
 message LookupGetTxBodyFromSeed
@@ -402,7 +428,9 @@ message LookupGetStateFromSeed
 
 message LookupSetStateFromSeed
 {
-    required ByteArray accounts = 1;
+    required ByteArray accounts  = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 message LookupSetLookupOffline
@@ -413,6 +441,7 @@ message LookupSetLookupOffline
 message LookupSetLookupOnline
 {
     required uint32 listenport = 1;
+    required ByteArray pubkey  = 2;
 }
 
 message LookupGetOfflineLookups
@@ -422,7 +451,9 @@ message LookupGetOfflineLookups
 
 message LookupSetOfflineLookups
 {
-    repeated ByteArray nodes = 1;
+    repeated ByteArray nodes     = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 message LookupRaiseStartPoW
@@ -437,17 +468,23 @@ message LookupGetStartPoWFromSeed
 
 message LookupSetStartPoWFromSeed
 {
-    // Empty
+    required uint64 blocknumber  = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
+// From archival node to lookup node.
 message LookupGetShardsFromSeed
 {
     required uint32 listenport = 1;
 }
 
+// From lookup node to archival node.
 message LookupSetShardsFromSeed
 {
     required ProtoShardingStructure sharding = 1;
+    required ByteArray pubkey                = 2;
+    required ByteArray signature             = 3;
 }
 
 message MicroBlockInfo
@@ -465,17 +502,21 @@ message LookupGetMicroBlockFromLookup
 message LookupSetMicroBlockFromLookup
 {
     repeated ProtoMicroBlock microblocks = 1;
+    required ByteArray pubkey            = 2;
+    required ByteArray signature         = 3;
 }
 
 message LookupGetTxnsFromLookup
 {
-    required uint32 portno = 1;
+    required uint32 portno   = 1;
     repeated bytes txnhashes = 2;
 }
 
 message LookupSetTxnsFromLookup
 {
-    repeated ByteArray transactions = 1;   
+    repeated ByteArray transactions = 1;
+    required ByteArray pubkey       = 2;
+    required ByteArray signature    = 3;
 }
 
 
@@ -575,5 +616,44 @@ message ConsensusCommitFailure
     }
     required ConsensusInfo consensusinfo = 1;
     required ByteArray signature         = 2;
+}
+
+message ProtoBlockLink
+{
+    required uint64 index = 1;
+    required uint64 dsindex = 2;
+    required uint32 blocktype = 3;
+    required bytes blockhash = 4;
+}
+
+message ProtoFallbackBlockWShardingStructure
+{
+    required ProtoFallbackBlock fallbackblock = 1;
+    required ProtoShardingStructure sharding = 2;
+}
+
+
+message ProtoSingleDirectoryBlock
+{
+    oneof directoryblock
+    {
+        ProtoDSBlock dsblock = 1;
+        ProtoVCBlock vcblock = 2;
+        ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
+    }
+}
+    
+
+
+message LookupGetDirectoryBlocksFromSeed
+{
+    required uint32 portno = 1;
+    required uint64 indexnum = 2;
+}
+
+message LookupSetDirectoryBlocksFromSeed
+{
+    required uint64 indexnum = 1;
+    repeated ProtoSingleDirectoryBlock dirblocks = 2;
 }
 

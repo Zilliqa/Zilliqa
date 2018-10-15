@@ -231,7 +231,7 @@ class Node : public Executable, public Broadcastable {
       const uint64_t& blocknum);
   void LogReceivedFinalBlockDetails(const TxBlock& txblock);
 
-  // internal calls from ProcessDSBlock
+  // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
   void StoreDSBlockToDisk(const DSBlock& dsblock);
   void UpdateDSCommiteeComposition();
@@ -268,8 +268,8 @@ class Node : public Executable, public Broadcastable {
 
   // bool ProcessCreateAccounts(const std::vector<unsigned char> & message,
   // unsigned int offset, const Peer & from);
-  bool ProcessDSBlock(const std::vector<unsigned char>& message,
-                      unsigned int cur_offset, const Peer& from);
+  bool ProcessVCDSBlocksMessage(const std::vector<unsigned char>& message,
+                                unsigned int cur_offset, const Peer& from);
   bool ProcessDoRejoin(const std::vector<unsigned char>& message,
                        unsigned int offset, const Peer& from);
 
@@ -283,7 +283,7 @@ class Node : public Executable, public Broadcastable {
   bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
   bool ProcessVCBlock(const std::vector<unsigned char>& message,
                       unsigned int cur_offset, const Peer& from);
-
+  bool ProcessVCBlockCore(const VCBlock& vcblock);
   // Transaction functions
   bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                          const Peer& from);

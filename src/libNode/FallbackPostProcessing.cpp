@@ -87,7 +87,22 @@ void Node::ProcessFallbackConsensusWhenDone() {
     return;
   }
 
-  // StoreFallbackBlockToStorage(); TODO
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo(),
+      BlockType::FB, m_pendingFallbackBlock->GetBlockHash());
+
+  vector<unsigned char> dst;
+
+  FallbackBlockWShardingStructure fbblockwshards(*m_pendingFallbackBlock,
+                                                 m_mediator.m_ds->m_shards);
+  if (!fbblockwshards.Serialize(dst, 0)) {
+    LOG_GENERAL(WARNING, "Failed to Serialize");
+    if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+            m_pendingFallbackBlock->GetBlockHash(), dst)) {
+      LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+    }
+  }
 
   Peer leaderNetworkInfo =
       m_pendingFallbackBlock->GetHeader().GetLeaderNetworkInfo();
@@ -193,6 +208,8 @@ void Node::ProcessFallbackConsensusWhenDone() {
               "I the part of the subset of newly DS committee after fallback "
               "that have sent the FallbackBlock to the lookup nodes");
   }
+
+  //
 
   // Broadcasting fallback block to nodes in other shard
   unsigned int my_DS_cluster_num;

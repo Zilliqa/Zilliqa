@@ -59,7 +59,7 @@ class DSBlockHeader : public BlockHeaderBase {
                 const boost::multiprecision::uint256_t& timestamp,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
-                const DSBlockHashSet& hash);
+                const DSBlockHashSet& hash, const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,
@@ -93,10 +93,6 @@ class DSBlockHeader : public BlockHeaderBase {
   const SWInfo& GetSWInfo() const;
 
   const std::map<PubKey, Peer>& GetDSPoWWinners() const;
-
-  /// Returns the digest that represents the hash of the DS committee
-  /// composition
-  const DSCommHash& GetDSCommHash() const;
 
   /// Returns the digest that represents the hash of the sharding structure
   const ShardingHash& GetShardingHash() const;

@@ -60,7 +60,7 @@ TxBlock constructDummyTxBlock(int instanceNum) {
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
                     BlockHash(), instanceNum, get_time_as_int(), TxnHash(),
                     StateHash(), StateHash(), StateHash(), TxnHash(), 5, 6,
-                    pubKey1.second, instanceNum, BlockHash()),
+                    pubKey1.second, instanceNum, BlockHash(), CommitteeHash()),
       vector<bool>(), vector<MicroBlockHashSet>(6), vector<uint32_t>(6),
       CoSignatures());
 }
