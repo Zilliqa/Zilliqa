@@ -232,6 +232,24 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, fallbackblock.GetHeader().GetFallbackDSEpochNo(),
+      BlockType::FB, fallbackblock.GetBlockHash());
+
+  vector<unsigned char> dst;
+
+  FallbackBlockWShardingStructure fbblockwshards(fallbackblock,
+                                                 m_mediator.m_ds->m_shards);
+
+  if (!fbblockwshards.Serialize(dst, 0)) {
+    LOG_GENERAL(WARNING, "Failed to deserialize");
+    if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+            fallbackblock.GetBlockHash(), dst)) {
+      LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+    }
+  }
+
   FallbackTimerPulse();
 
   UpdateDSCommittee(shard_id, leaderPubKey, leaderNetworkInfo);

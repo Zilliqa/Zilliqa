@@ -20,6 +20,7 @@
 #include "Messenger.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
@@ -4738,5 +4739,218 @@ bool Messenger::GetConsensusCommitFailure(
     return false;
   }
 
+  return true;
+}
+
+bool Messenger::SetBlockLink(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
+  ProtoBlockLink result;
+
+  result.set_index(get<BlockLinkIndex::INDEX>(blocklink));
+  result.set_dsindex(get<BlockLinkIndex::DSINDEX>(blocklink));
+  result.set_blocktype(get<BlockLinkIndex::BLOCKTYPE>(blocklink));
+  BlockHash blkhash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+  result.set_blockhash(blkhash.data(), blkhash.size);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Failed to intialize ProtoBlockLink");
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetBlockLink(
+    const vector<unsigned char>& src, const unsigned int offset,
+    std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
+  ProtoBlockLink result;
+  BlockHash blkhash;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoBlockLink initialization failed");
+    return false;
+  }
+
+  get<BlockLinkIndex::INDEX>(blocklink) = result.index();
+  get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
+  copy(result.blockhash().begin(),
+       result.blockhash().begin() + min((unsigned int)result.blockhash().size(),
+                                        (unsigned int)blkhash.size),
+       blkhash.asArray().begin());
+  get<BlockLinkIndex::BLOCKTYPE>(blocklink) = (BlockType)result.blocktype();
+  get<BlockLinkIndex::BLOCKHASH>(blocklink) = blkhash;
+
+  return true;
+}
+
+bool Messenger::SetFallbackBlockWShardingStructure(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const FallbackBlock& fallbackblock, const DequeOfShard& shards) {
+  ProtoFallbackBlockWShardingStructure result;
+
+  FallbackBlockToProtobuf(fallbackblock, *result.mutable_fallbackblock());
+  ShardingStructureToProtobuf(shards, *result.mutable_sharding());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ProtoFallbackBlockWShardingStructure initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetFallbackBlockWShardingStructure(
+    const vector<unsigned char>& src, const unsigned int offset,
+    FallbackBlock& fallbackblock, DequeOfShard& shards) {
+  ProtoFallbackBlockWShardingStructure result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ProtoFallbackBlockWShardingStructure initialization failed");
+    return false;
+  }
+
+  ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
+
+  ProtobufToShardingStructure(result.sharding(), shards);
+
+  return true;
+}
+
+bool Messenger::GetLookupGetDirectoryBlocksFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint32_t& portno, uint64_t& index_num) {
+  LookupGetDirectoryBlocksFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
+
+  portno = result.portno();
+
+  index_num = result.indexnum();
+
+  return true;
+}
+
+bool Messenger::SetLookupGetDirectoryBlocksFromSeed(vector<unsigned char>& dst,
+                                                    const unsigned int offset,
+                                                    const uint32_t portno,
+                                                    const uint64_t& index_num) {
+  LookupGetDirectoryBlocksFromSeed result;
+
+  result.set_portno(portno);
+  result.set_indexnum(index_num);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<
+        boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+        directoryBlocks,
+    const uint64_t& index_num) {
+  LookupSetDirectoryBlocksFromSeed result;
+
+  result.set_indexnum(index_num);
+
+  for (const auto& dirblock : directoryBlocks) {
+    ProtoSingleDirectoryBlock* proto_dir_blocks = result.add_dirblocks();
+    if (dirblock.type() == typeid(DSBlock)) {
+      DSBlockToProtobuf(get<DSBlock>(dirblock),
+                        *proto_dir_blocks->mutable_dsblock());
+    } else if (dirblock.type() == typeid(VCBlock)) {
+      VCBlockToProtobuf(get<VCBlock>(dirblock),
+                        *proto_dir_blocks->mutable_vcblock());
+    } else if (dirblock.type() == typeid(FallbackBlockWShardingStructure)) {
+      FallbackBlockToProtobuf(
+          get<FallbackBlockWShardingStructure>(dirblock).m_fallbackblock,
+          *proto_dir_blocks->mutable_fallbackblockwshard()
+               ->mutable_fallbackblock());
+      ShardingStructureToProtobuf(
+          get<FallbackBlockWShardingStructure>(dirblock).m_shards,
+          *proto_dir_blocks->mutable_fallbackblockwshard()->mutable_sharding());
+    }
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed initialization failed");
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+        directoryBlocks,
+    uint64_t& index_num) {
+  LookupSetDirectoryBlocksFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
+
+  index_num = result.indexnum();
+
+  for (const auto& dirblock : result.dirblocks()) {
+    DSBlock dsblock;
+    VCBlock vcblock;
+    FallbackBlockWShardingStructure fallbackblockwshard;
+    switch (dirblock.directoryblock_case()) {
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kDsblock:
+        if (!dirblock.dsblock().IsInitialized()) {
+          LOG_GENERAL(WARNING, "DS block not initialized");
+          continue;
+        }
+        ProtobufToDSBlock(dirblock.dsblock(), dsblock);
+        directoryBlocks.emplace_back(dsblock);
+        break;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kVcblock:
+        if (!dirblock.vcblock().IsInitialized()) {
+          LOG_GENERAL(WARNING, "VC block not initialized");
+          continue;
+        }
+        ProtobufToVCBlock(dirblock.vcblock(), vcblock);
+        directoryBlocks.emplace_back(vcblock);
+        break;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kFallbackblockwshard:
+        if (!dirblock.fallbackblockwshard().IsInitialized()) {
+          LOG_GENERAL(WARNING, "FallbackBlock not initialized");
+          continue;
+        }
+        ProtobufToFallbackBlock(dirblock.fallbackblockwshard().fallbackblock(),
+                                fallbackblockwshard.m_fallbackblock);
+        ProtobufToShardingStructure(dirblock.fallbackblockwshard().sharding(),
+                                    fallbackblockwshard.m_shards);
+        directoryBlocks.emplace_back(fallbackblockwshard);
+        break;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::
+          DIRECTORYBLOCK_NOT_SET:
+      default:
+        LOG_GENERAL(WARNING, "Error in the blocktype");
+        break;
+    }
+  }
   return true;
 }

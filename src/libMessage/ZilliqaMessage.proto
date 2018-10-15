@@ -616,3 +616,42 @@ message ConsensusCommitFailure
     required ByteArray signature         = 2;
 }
 
+message ProtoBlockLink
+{
+    required uint64 index = 1;
+    required uint64 dsindex = 2;
+    required uint32 blocktype = 3;
+    required bytes blockhash = 4;
+}
+
+message ProtoFallbackBlockWShardingStructure
+{
+    required ProtoFallbackBlock fallbackblock = 1;
+    required ProtoShardingStructure sharding = 2;
+}
+
+
+message ProtoSingleDirectoryBlock
+{
+    oneof directoryblock
+    {
+        ProtoDSBlock dsblock = 1;
+        ProtoVCBlock vcblock = 2;
+        ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
+    }
+}
+    
+
+
+message LookupGetDirectoryBlocksFromSeed
+{
+    required uint32 portno = 1;
+    required uint64 indexnum = 2;
+}
+
+message LookupSetDirectoryBlocksFromSeed
+{
+    required uint64 indexnum = 1;
+    repeated ProtoSingleDirectoryBlock dirblocks = 2;
+}
+

@@ -196,6 +196,19 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
+  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+  m_mediator.m_blocklinkchain.AddBlockLink(
+      latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(), BlockType::VC,
+      vcblock.GetBlockHash());
+
+  vector<unsigned char> dst;
+  vcblock.Serialize(dst, 0);
+
+  if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
+                                                  dst)) {
+    LOG_GENERAL(WARNING, "Failed to store VC Block");
+    return false;
+  }
   for (unsigned int x = 0; x < newCandidateLeader; x++) {
     // TODO: If VC select a random
     // leader, we need to change the way
