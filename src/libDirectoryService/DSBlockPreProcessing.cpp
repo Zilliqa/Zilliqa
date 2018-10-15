@@ -629,34 +629,30 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
 #ifdef VC_TEST_DS_SUSPEND_1
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-  {
-      LOG_GENERAL(INFO, "I am suspending myself to test viewchange");
-      return false;
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
+    LOG_GENERAL(INFO, "I am suspending myself to test viewchange");
+    return false;
   }
 #endif  // VC_TEST_DS_SUSPEND_1
 
 #ifdef VC_TEST_DS_SUsPEND_3
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 3)
-  {
-      LOG_GENERAL(INFO, "I am suspending myself to test viewchange");
-      return false;
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
+    LOG_GENERAL(INFO, "I am suspending myself to test viewchange");
+    return false;
   }
 #endif  // VC_TEST_DS_SUSPEND_3
 
 #ifdef VC_TEST_DS_TERMINATE_1
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-  {
-      LOG_GENERAL(INFO, "I am killing myself to test viewchange");
-      throw exception();
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
+    LOG_GENERAL(INFO, "I am killing myself to test viewchange");
+    throw exception();
   }
 #endif  // VC_TEST_DS_TERMINATE_1
 
 #ifdef VC_TEST_DS_TERMINATE_3
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 3)
-  {
-      LOG_GENERAL(INFO, "I am killing myself to test viewchange");
-      throw exception();
+  if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
+    LOG_GENERAL(INFO, "I am killing myself to test viewchange");
+    throw exception();
   }
 #endif  // VC_TEST_DS_TERMINATE_3
 
