@@ -27,6 +27,7 @@
 #include "libMediator/Mediator.h"
 
 using namespace std;
+using namespace boost::multiprecision;
 
 template <class Container>
 bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
@@ -150,6 +151,36 @@ void DirectoryService::InitCoinbase() {
 
   Address genesisAccount(GENESIS_WALLETS[0]);
 
+  uint256_t sig_count = 0;
+
+  for (auto const& epochNum : m_coinbaseRewardees) {
+    for (auto const& shardId : epochNum.second) {
+      sig_count += shardId.second.size();
+    }
+  }
+  LOG_GENERAL(INFO, "Total signatures count: " << sig_count);
+
+  uint256_t total_reward;
+
+  if (!SafeMath<uint256_t>::add(COINBASE_REWARD, m_totalTxnFees, total_reward))
+  {
+    LOG_GENERAL(WARNING, "total_reward addition unsafe!");
+    return;
+  }
+
+  LOG_GENERAL(INFO, "Total reward: " << total_reward);
+
+  uint256_t reward_each;
+
+  if (!SafeMath<uint256_t>::div(total_reward, sig_count, reward_each))
+  {
+    LOG_GENERAL(WARNING, "reward_each dividing unsafe!");
+    return;
+  }
+
+  LOG_GENERAL(INFO, "Each reward: " << reward_each);
+
+  uint256_t suc_counter = 0;
   for (auto const& epochNum : m_coinbaseRewardees) {
     LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum.first << " epoch");
 
@@ -158,10 +189,32 @@ void DirectoryService::InitCoinbase() {
 
       for (auto const& addr : shardId.second) {
         if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                addr, genesisAccount, COINBASE_REWARD)) {
+                addr, genesisAccount, reward_each)) {
           LOG_GENERAL(WARNING, "Could Not reward " << addr);
+        }
+        else
+        {
+          suc_counter++;
         }
       }
     }
+  }
+
+  uint256_t balance_left = total_reward - (suc_counter * reward_each);
+
+  LOG_GENERAL(INFO, "Left reward: " << balance_left);
+
+  uint16_t lastBlockHash = DataConversion::charArrTo16Bits(m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+  uint16_t rdm_epochNum = lastBlockHash % m_coinbaseRewardees.size();
+  uint16_t rdm_shardId = lastBlockHash % m_coinbaseRewardees[rdm_epochNum].size();
+  uint16_t rdm_index = lastBlockHash % m_coinbaseRewardees[rdm_epochNum][rdm_shardId].size();
+
+  const Address& winnerAddr = m_coinbaseRewardees[rdm_epochNum][rdm_shardId][rdm_index];
+
+  LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
+
+  if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+    winnerAddr, genesisAccount, balance_left)) {
+    LOG_GENERAL(WARNING, "Could not reward lucky draw!");
   }
 }
