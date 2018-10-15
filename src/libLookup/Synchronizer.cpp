@@ -143,6 +143,18 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup) {
   return true;
 }
 
+bool Synchronizer::FetchInitialDSInfo(Lookup* lookup)
+{
+  if(LOOKUP_NODE_MODE)
+  {
+    return true;
+  }
+
+  lookup->GetDSInfoFromLookupNodes(true);
+
+  return true;
+}
+
 bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
                                        uint64_t currentBlockChainSize) {
   if (LOOKUP_NODE_MODE) {

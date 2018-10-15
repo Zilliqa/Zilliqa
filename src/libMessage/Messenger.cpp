@@ -2877,12 +2877,13 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
                                            const unsigned int offset,
-                                           const uint32_t listenPort) {
+                                           const uint32_t listenPort, const bool initalDS) {
   LOG_MARKER();
 
   LookupGetDSInfoFromSeed result;
 
   result.set_listenport(listenPort);
+  result.set_initialds(initalDS);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetDSInfoFromSeed initialization failed.");
@@ -2894,7 +2895,7 @@ bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
-                                           uint32_t& listenPort) {
+                                           uint32_t& listenPort,bool& initalDS) {
   LOG_MARKER();
 
   LookupGetDSInfoFromSeed result;
@@ -2907,6 +2908,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
   }
 
   listenPort = result.listenport();
+  initalDS = result.initialds();
 
   return true;
 }
@@ -2914,7 +2916,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
 bool Messenger::SetLookupSetDSInfoFromSeed(
     vector<unsigned char>& dst, const unsigned int offset,
     const std::pair<PrivKey, PubKey>& senderKey,
-    const deque<pair<PubKey, Peer>>& dsNodes) {
+    const deque<pair<PubKey, Peer>>& dsNodes, const bool initialDS) {
   LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;
@@ -2929,6 +2931,8 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
     return false;
   }
 
+
+
   Signature signature;
   if (!Schnorr::GetInstance().Sign(tmp, senderKey.first, senderKey.second,
                                    signature)) {
@@ -2937,6 +2941,8 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  result.set_initialds(initialDS);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetDSInfoFromSeed initialization failed.");
@@ -2949,7 +2955,7 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
 bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
                                            PubKey& senderPubKey,
-                                           deque<pair<PubKey, Peer>>& dsNodes) {
+                                           deque<pair<PubKey, Peer>>& dsNodes, bool& initialDS) {
   LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;
@@ -2972,6 +2978,8 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
     LOG_GENERAL(WARNING, "Failed to serialize DS committee.");
     return false;
   }
+
+  initialDS = result.initialds();
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in DS nodes info.");
