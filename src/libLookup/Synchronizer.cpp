@@ -76,7 +76,6 @@ bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
 bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
   DSBlock dsBlock = ConstructGenesisDSBlock();
   AddGenesisDSBlockToBlockChain(dsBlockChain, dsBlock);
-
   return true;
 }
 

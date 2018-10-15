@@ -231,6 +231,7 @@ void Node::Init() {
   m_retriever.reset();
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
+  m_mediator.m_blocklinkchain.Reset();
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     m_mediator.m_DSCommittee->clear();
@@ -240,6 +241,9 @@ void Node::Init() {
 
   m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                          m_mediator.m_txBlockChain);
+  const auto& dsBlock = m_mediator.m_dsBlockChain.GetBlock(0);
+  m_mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
+                                           dsBlock.GetBlockHash());
 }
 
 void Node::Prepare(bool runInitializeGenesisBlocks) {

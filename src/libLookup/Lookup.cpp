@@ -27,7 +27,6 @@
 #include <exception>
 #include <fstream>
 #include <random>
-#include <unordered_set>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -38,7 +37,9 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockChainData/BlockChain.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
@@ -2592,6 +2593,111 @@ bool Lookup::GetOfflineLookupNodes() {
   return true;
 }
 
+bool Lookup::ProcessGetDirectoryBlocksFromSeed(
+    const vector<unsigned char>& message, unsigned int offset,
+    const Peer& from) {
+  uint64_t index_num;
+  uint32_t portNo;
+
+  if (!Messenger::GetLookupGetDirectoryBlocksFromSeed(message, offset, portNo,
+                                                      index_num)) {
+    LOG_GENERAL(WARNING,
+                "Messenger::GetLookupGetDirectoryBlocksFromSeed failed");
+    return false;
+  }
+
+  vector<unsigned char> msg = {MessageType::LOOKUP,
+                               LookupInstructionType::SETDIRBLOCKSFROMSEED};
+
+  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+      dirBlocks;
+
+  for (uint64_t i = index_num;
+       i <= m_mediator.m_blocklinkchain.GetLatestIndex(); i++) {
+    BlockLink b = m_mediator.m_blocklinkchain.GetBlockLink(i);
+
+    if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::DS) {
+      dirBlocks.emplace_back(
+          m_mediator.m_dsBlockChain.GetBlock(get<BlockLinkIndex::DSINDEX>(b)));
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::VC) {
+      VCBlockSharedPtr vcblockptr;
+      if (!BlockStorage::GetBlockStorage().GetVCBlock(
+              get<BlockLinkIndex::BLOCKHASH>(b), vcblockptr)) {
+        LOG_GENERAL(WARNING, "could not get vc block "
+                                 << get<BlockLinkIndex::BLOCKHASH>(b));
+        continue;
+      }
+      dirBlocks.emplace_back(*vcblockptr);
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::FB) {
+      FallbackBlockSharedPtr fallbackwsharding;
+      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
+              get<BlockLinkIndex::BLOCKHASH>(b), fallbackwsharding)) {
+        LOG_GENERAL(WARNING, "could not get fb block "
+                                 << get<BlockLinkIndex::BLOCKHASH>(b));
+        continue;
+      }
+      dirBlocks.emplace_back(*fallbackwsharding);
+    }
+  }
+
+  if (dirBlocks.empty()) {
+    LOG_GENERAL(WARNING, "No block, aborting..");
+    return false;
+  }
+
+  uint128_t ipAddr = from.m_ipAddress;
+  Peer peer(ipAddr, portNo);
+
+  if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(msg, MessageOffset::BODY,
+                                                      dirBlocks, index_num)) {
+    LOG_GENERAL(WARNING,
+                "Messenger::SetLookupSetDirectoryBlocksFromSeed failed");
+    return false;
+  }
+
+  P2PComm::GetInstance().SendMessage(peer, msg);
+
+  return true;
+}
+
+bool Lookup::ProcessSetDirectoryBlocksFromSeed(
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+      dirBlocks;
+  uint64_t index_num;
+
+  if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(message, offset,
+                                                      dirBlocks, index_num)) {
+    LOG_GENERAL(WARNING,
+                "Messenger::GetLookupSetDirectoryBlocksFromSeed failed");
+    return false;
+  }
+
+  if (dirBlocks.empty()) {
+    LOG_GENERAL(WARNING, "No Directory blocks sent");
+    return false;
+  }
+
+  //[ToDo]: Verify blocks and ds-info
+
+  return true;
+}
+
+void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(uint64_t& index_num) {
+  vector<unsigned char> message = {MessageType::LOOKUP,
+                                   LookupInstructionType::GETDIRBLOCKSFROMSEED};
+
+  if (!Messenger::SetLookupGetDirectoryBlocksFromSeed(
+          message, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost,
+          index_num)) {
+    LOG_GENERAL(WARNING, "Messenger::SetLookupGetDirectoryBlocksFromSeed");
+    return;
+  }
+
+  SendMessageToRandomLookupNode(message);
+}
+
 bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                      const Peer& from) {
   LOG_MARKER();
@@ -2601,34 +2707,37 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
   typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
                                              unsigned int, const Peer&);
 
-  InstructionHandler ins_handlers[] = {&Lookup::ProcessGetSeedPeersFromLookup,
-                                       &Lookup::ProcessSetSeedPeersFromLookup,
-                                       &Lookup::ProcessGetDSInfoFromSeed,
-                                       &Lookup::ProcessSetDSInfoFromSeed,
-                                       &Lookup::ProcessGetDSBlockFromSeed,
-                                       &Lookup::ProcessSetDSBlockFromSeed,
-                                       &Lookup::ProcessGetTxBlockFromSeed,
-                                       &Lookup::ProcessSetTxBlockFromSeed,
-                                       &Lookup::ProcessGetTxBodyFromSeed,
-                                       &Lookup::ProcessSetTxBodyFromSeed,
-                                       &Lookup::ProcessGetNetworkId,
-                                       &Lookup::ProcessGetNetworkId,
-                                       &Lookup::ProcessGetStateFromSeed,
-                                       &Lookup::ProcessSetStateFromSeed,
-                                       &Lookup::ProcessSetLookupOffline,
-                                       &Lookup::ProcessSetLookupOnline,
-                                       &Lookup::ProcessGetOfflineLookups,
-                                       &Lookup::ProcessSetOfflineLookups,
-                                       &Lookup::ProcessRaiseStartPoW,
-                                       &Lookup::ProcessGetStartPoWFromSeed,
-                                       &Lookup::ProcessSetStartPoWFromSeed,
-                                       &Lookup::ProcessGetShardFromSeed,
-                                       &Lookup::ProcessSetShardFromSeed,
-                                       &Lookup::ProcessSetMicroBlockFromSeed,
-                                       &Lookup::ProcessGetMicroBlockFromLookup,
-                                       &Lookup::ProcessSetMicroBlockFromLookup,
-                                       &Lookup::ProcessGetTxnsFromLookup,
-                                       &Lookup::ProcessSetTxnsFromLookup};
+  InstructionHandler ins_handlers[] = {
+      &Lookup::ProcessGetSeedPeersFromLookup,
+      &Lookup::ProcessSetSeedPeersFromLookup,
+      &Lookup::ProcessGetDSInfoFromSeed,
+      &Lookup::ProcessSetDSInfoFromSeed,
+      &Lookup::ProcessGetDSBlockFromSeed,
+      &Lookup::ProcessSetDSBlockFromSeed,
+      &Lookup::ProcessGetTxBlockFromSeed,
+      &Lookup::ProcessSetTxBlockFromSeed,
+      &Lookup::ProcessGetTxBodyFromSeed,
+      &Lookup::ProcessSetTxBodyFromSeed,
+      &Lookup::ProcessGetNetworkId,
+      &Lookup::ProcessGetNetworkId,
+      &Lookup::ProcessGetStateFromSeed,
+      &Lookup::ProcessSetStateFromSeed,
+      &Lookup::ProcessSetLookupOffline,
+      &Lookup::ProcessSetLookupOnline,
+      &Lookup::ProcessGetOfflineLookups,
+      &Lookup::ProcessSetOfflineLookups,
+      &Lookup::ProcessRaiseStartPoW,
+      &Lookup::ProcessGetStartPoWFromSeed,
+      &Lookup::ProcessSetStartPoWFromSeed,
+      &Lookup::ProcessGetShardFromSeed,
+      &Lookup::ProcessSetShardFromSeed,
+      &Lookup::ProcessSetMicroBlockFromSeed,
+      &Lookup::ProcessGetMicroBlockFromLookup,
+      &Lookup::ProcessSetMicroBlockFromLookup,
+      &Lookup::ProcessGetTxnsFromLookup,
+      &Lookup::ProcessSetTxnsFromLookup,
+      &Lookup::ProcessGetDirectoryBlocksFromSeed,
+      &Lookup::ProcessSetDirectoryBlocksFromSeed};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
