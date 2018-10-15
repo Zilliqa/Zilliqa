@@ -35,7 +35,7 @@ TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
 
 TxBlockHeader::TxBlockHeader(
     uint8_t type, uint32_t version, const uint256_t& gasLimit,
-    const uint256_t& gasUsed, const BlockHash& prevHash,
+    const uint256_t& gasUsed, const uint256_t& rewards, const BlockHash& prevHash,
     const uint64_t& blockNum, const uint256_t& timestamp,
     const TxnHash& txRootHash, const StateHash& stateRootHash,
     const StateHash& deltaRootHash, const StateHash& stateDeltaHash,
@@ -46,6 +46,7 @@ TxBlockHeader::TxBlockHeader(
       m_version(version),
       m_gasLimit(gasLimit),
       m_gasUsed(gasUsed),
+      m_rewards(rewards),
       m_prevHash(prevHash),
       m_blockNum(blockNum),
       m_timestamp(timestamp),
@@ -84,6 +85,8 @@ const uint32_t& TxBlockHeader::GetVersion() const { return m_version; }
 const uint256_t& TxBlockHeader::GetGasLimit() const { return m_gasLimit; }
 
 const uint256_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }
+
+const uint256_t& TxBlockHeader::GetRewards() const { return m_rewards; }
 
 const BlockHash& TxBlockHeader::GetPrevHash() const { return m_prevHash; }
 
@@ -126,11 +129,11 @@ const BlockHash& TxBlockHeader::GetDSBlockHeader() const {
 }
 
 bool TxBlockHeader::operator==(const TxBlockHeader& header) const {
-  return std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
+  return std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_rewards, m_prevHash,
                   m_blockNum, m_timestamp, m_hash, m_numTxs,
                   m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader) ==
          std::tie(header.m_type, header.m_version, header.m_gasLimit,
-                  header.m_gasUsed, header.m_prevHash, header.m_blockNum,
+                  header.m_gasUsed, header.m_rewards, header.m_prevHash, header.m_blockNum,
                   header.m_timestamp, header.m_hash, header.m_numTxs,
                   header.m_numMicroBlockHashes, header.m_minerPubKey,
                   header.m_dsBlockHeader);
@@ -138,11 +141,11 @@ bool TxBlockHeader::operator==(const TxBlockHeader& header) const {
 
 bool TxBlockHeader::operator<(const TxBlockHeader& header) const {
   return std::tie(header.m_type, header.m_version, header.m_gasLimit,
-                  header.m_gasUsed, header.m_prevHash, header.m_blockNum,
+                  header.m_gasUsed, header.m_rewards, header.m_prevHash, header.m_blockNum,
                   header.m_timestamp, header.m_hash, header.m_numTxs,
                   header.m_numMicroBlockHashes, header.m_minerPubKey,
                   header.m_dsBlockHeader) >
-         std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_prevHash,
+         std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_rewards, m_prevHash,
                   m_blockNum, m_timestamp, m_hash, m_numTxs,
                   m_numMicroBlockHashes, m_minerPubKey, m_dsBlockHeader);
 }

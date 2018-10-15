@@ -35,6 +35,7 @@ class TxBlockHeader : public BlockHeaderBase {
   uint32_t m_version;
   boost::multiprecision::uint256_t m_gasLimit;
   boost::multiprecision::uint256_t m_gasUsed;
+  boost::multiprecision::uint256_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
   boost::multiprecision::uint256_t m_timestamp;
@@ -58,6 +59,7 @@ class TxBlockHeader : public BlockHeaderBase {
   TxBlockHeader(const uint8_t type, const uint32_t version,
                 const boost::multiprecision::uint256_t& gasLimit,
                 const boost::multiprecision::uint256_t& gasUsed,
+                const boost::multiprecision::uint256_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const boost::multiprecision::uint256_t& timestamp,
                 const TxnHash& txRootHash, const StateHash& stateRootHash,
@@ -85,6 +87,10 @@ class TxBlockHeader : public BlockHeaderBase {
 
   /// Returns the total gas used by transactions in this block.
   const boost::multiprecision::uint256_t& GetGasUsed() const;
+
+  /// Returns the rewards generated in this block. If normal epoch, then is the sum of txnFees from all microblock,
+  /// if vacuous epoch, is the total rewards generated during coinbase
+  const boost::multiprecision::uint256_t& GetRewards() const;
 
   /// Returns the digest of the parent block header.
   const BlockHash& GetPrevHash() const;
@@ -148,6 +154,7 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_version : " << t.m_version << std::endl
      << "m_gasLimit : " << t.m_gasLimit.convert_to<std::string>() << std::endl
      << "m_gasUsed : " << t.m_gasUsed.convert_to<std::string>() << std::endl
+     << "m_rewards : " << t.m_rewards.convert_to<std::string>() << std::endl
      << "m_prevHash : " << t.m_prevHash.hex() << std::endl
      << "m_blockNum : " << std::to_string(t.m_blockNum) << std::endl
      << "m_timestamp : " << t.m_timestamp.convert_to<std::string>() << std::endl
