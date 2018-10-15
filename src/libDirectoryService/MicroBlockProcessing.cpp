@@ -247,8 +247,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
             microBlocksAtEpoch.size()
                 << " of " << m_shards.size() << " microblocks received");
 
-  if (!m_mediator.GetIsVacuousEpoch())
-  {
+  if (!m_mediator.GetIsVacuousEpoch()) {
     ProcessStateDelta(stateDelta, microBlock.GetHeader().GetStateDeltaHash());
   }
 
@@ -483,7 +482,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
         if (!found) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Microblock fetched is not in missing list");
+                    "Microblock fetched is not in missing list");
           continue;
         }
       }
@@ -494,14 +493,15 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         const auto& _microBlocks = m_microBlocks[blockNumber];
         for (const auto& _microBlock : _microBlocks) {
           if (_microBlock.GetHeader().GetShardId() == shardId &&
-              _microBlock.GetHeader().GetHash() == microBlock.GetHeader().GetHash()) {
+              _microBlock.GetHeader().GetHash() ==
+                  microBlock.GetHeader().GetHash()) {
             found = true;
             break;
           }
         }
         if (found) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Microblock already exists in local");
+                    "Microblock already exists in local");
           continue;
         }
       }
