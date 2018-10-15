@@ -89,8 +89,9 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Returns the total gas used by transactions in this block.
   const boost::multiprecision::uint256_t& GetGasUsed() const;
 
-  /// Returns the rewards generated in this block. If normal epoch, then is the sum of txnFees from all microblock,
-  /// if vacuous epoch, is the total rewards generated during coinbase
+  /// Returns the rewards generated in this block. If normal epoch, then is the
+  /// sum of txnFees from all microblock, if vacuous epoch, is the total rewards
+  /// generated during coinbase
   const boost::multiprecision::uint256_t& GetRewards() const;
 
   /// Returns the digest of the parent block header.

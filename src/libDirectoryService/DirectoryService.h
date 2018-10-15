@@ -426,7 +426,9 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
-  std::unordered_map<uint64_t, std::vector<std::pair<uint32_t, MicroBlockHashSet>>> m_missingMicroBlocks;
+  std::unordered_map<uint64_t,
+                     std::vector<std::pair<uint32_t, MicroBlockHashSet>>>
+      m_missingMicroBlocks;
   boost::multiprecision::uint256_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;

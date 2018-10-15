@@ -244,8 +244,7 @@ void Mediator::IncreaseEpochNum() {
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }
 
-bool Mediator::GetIsVacuousEpoch(const uint64_t& epochNum)
-{
+bool Mediator::GetIsVacuousEpoch(const uint64_t& epochNum) {
   if ((epochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW == 0) {
     return true;
   }
