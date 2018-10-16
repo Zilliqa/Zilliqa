@@ -46,10 +46,8 @@ typedef struct ethash_mining_result {
 /// Implements the proof-of-work functionality.
 class POW {
   static std::string BytesToHexString(const uint8_t* str, const uint64_t s);
-  static std::string BlockhashToHexString(ethash_h256_t* _hash);
   static int FromHex(char _i);
   static std::vector<uint8_t> HexStringToBytes(std::string const& _s);
-  static ethash_h256_t StringToBlockhash(std::string const& _s);
   static ethash_h256_t DifficultyLevelInInt(uint8_t difficulty);
   std::mutex m_mutexLightClientConfigure;
   std::mutex m_mutexPoWMine;
@@ -61,6 +59,9 @@ class POW {
   void operator=(POW const&) = delete;
 
  public:
+  static ethash_h256_t StringToBlockhash(std::string const& _s);
+  static std::string BlockhashToHexString(ethash_h256_t* _hash);
+
   /// Returns the singleton POW instance.
   static POW& GetInstance();
 
