@@ -392,9 +392,9 @@ void MicroBlockHeaderToProtobuf(
   SerializableToProtobufByteArray(microBlockHeader.GetMinerPubKey(),
                                   *protoMicroBlockHeader.mutable_minerpubkey());
   protoMicroBlockHeader.set_dsblocknum(microBlockHeader.GetDSBlockNum());
-  protoMicroBlockHeader.set_dsblockheader(
-      microBlockHeader.GetDSBlockHeader().data(),
-      microBlockHeader.GetDSBlockHeader().size);
+  protoMicroBlockHeader.set_dsblockhash(
+      microBlockHeader.GetDSBlockHash().data(),
+      microBlockHeader.GetDSBlockHash().size);
   protoMicroBlockHeader.set_statedeltahash(
       microBlockHeader.GetStateDeltaHash().data(),
       microBlockHeader.GetStateDeltaHash().size);
@@ -448,7 +448,7 @@ void ProtobufToMicroBlockHeader(
   uint256_t timestamp;
   TxnHash txRootHash;
   PubKey minerPubKey;
-  BlockHash dsBlockHeader;
+  BlockHash dsBlockHash;
   StateHash stateDeltaHash;
   TxnHash tranReceiptHash;
   CommitteeHash committeeHash;
@@ -471,11 +471,11 @@ void ProtobufToMicroBlockHeader(
        txRootHash.asArray().begin());
   ProtobufByteArrayToSerializable(protoMicroBlockHeader.minerpubkey(),
                                   minerPubKey);
-  copy(protoMicroBlockHeader.dsblockheader().begin(),
-       protoMicroBlockHeader.dsblockheader().begin() +
-           min((unsigned int)protoMicroBlockHeader.dsblockheader().size(),
-               (unsigned int)dsBlockHeader.size),
-       dsBlockHeader.asArray().begin());
+  copy(protoMicroBlockHeader.dsblockhash().begin(),
+       protoMicroBlockHeader.dsblockhash().begin() +
+           min((unsigned int)protoMicroBlockHeader.dsblockhash().size(),
+               (unsigned int)dsBlockHash.size),
+       dsBlockHash.asArray().begin());
   copy(protoMicroBlockHeader.statedeltahash().begin(),
        protoMicroBlockHeader.statedeltahash().begin() +
            min((unsigned int)protoMicroBlockHeader.statedeltahash().size(),
@@ -498,7 +498,7 @@ void ProtobufToMicroBlockHeader(
       protoMicroBlockHeader.shardid(), gasLimit, gasUsed, prevHash,
       protoMicroBlockHeader.blocknum(), timestamp, txRootHash,
       protoMicroBlockHeader.numtxs(), minerPubKey,
-      protoMicroBlockHeader.dsblocknum(), dsBlockHeader, stateDeltaHash,
+      protoMicroBlockHeader.dsblocknum(), dsBlockHash, stateDeltaHash,
       tranReceiptHash, committeeHash);
 }
 

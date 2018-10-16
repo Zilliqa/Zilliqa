@@ -107,7 +107,7 @@ message ProtoMicroBlock
         required uint32 numtxs         = 10;
         required ByteArray minerpubkey = 11;
         required uint64 dsblocknum     = 12;
-        required bytes dsblockheader   = 13;
+        required bytes dsblockhash     = 13;
         required bytes statedeltahash  = 14;
         required bytes tranreceipthash = 15;
         required bytes committeehash   = 16;
