@@ -143,10 +143,8 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup) {
   return true;
 }
 
-bool Synchronizer::FetchInitialDSInfo(Lookup* lookup)
-{
-  if(LOOKUP_NODE_MODE)
-  {
+bool Synchronizer::FetchInitialDSInfo(Lookup* lookup) {
+  if (LOOKUP_NODE_MODE) {
     return true;
   }
 

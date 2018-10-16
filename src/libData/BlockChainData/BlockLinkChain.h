@@ -40,6 +40,8 @@ class BlockLinkChain {
   std::mutex m_mutexBlockLinkChain;
 
  public:
+  std::deque<std::pair<PubKey, Peer>> m_builtDsCommittee;
+
   BlockLink GetFromPersistentStorage(const uint64_t& index) {
     BlockLinkSharedPtr blnkshared;
 

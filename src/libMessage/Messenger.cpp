@@ -2877,7 +2877,8 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
 
 bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
                                            const unsigned int offset,
-                                           const uint32_t listenPort, const bool initalDS) {
+                                           const uint32_t listenPort,
+                                           const bool initalDS) {
   LOG_MARKER();
 
   LookupGetDSInfoFromSeed result;
@@ -2895,7 +2896,8 @@ bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
-                                           uint32_t& listenPort,bool& initalDS) {
+                                           uint32_t& listenPort,
+                                           bool& initalDS) {
   LOG_MARKER();
 
   LookupGetDSInfoFromSeed result;
@@ -2931,8 +2933,6 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
     return false;
   }
 
-
-
   Signature signature;
   if (!Schnorr::GetInstance().Sign(tmp, senderKey.first, senderKey.second,
                                    signature)) {
@@ -2955,7 +2955,8 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
 bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
                                            PubKey& senderPubKey,
-                                           deque<pair<PubKey, Peer>>& dsNodes, bool& initialDS) {
+                                           deque<pair<PubKey, Peer>>& dsNodes,
+                                           bool& initialDS) {
   LOG_MARKER();
 
   LookupSetDSInfoFromSeed result;

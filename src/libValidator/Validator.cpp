@@ -211,12 +211,18 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
 bool Validator::CheckDirBlocks(
     const vector<boost::variant<DSBlock, VCBlock,
                                 FallbackBlockWShardingStructure>>& dirBlocks,
-    const deque<pair<PubKey, Peer>>& initDsComm, deque<pair<PubKey,Peer>>& newDSComm) {
+    const deque<pair<PubKey, Peer>>& initDsComm, const uint64_t& index_num,
+    deque<pair<PubKey, Peer>>& newDSComm) {
   deque<pair<PubKey, Peer>> mutable_ds_comm = initDsComm;
 
-  uint64_t prevdsblocknum = 0;
-  uint64_t totalIndex = 0;
-  ShardingHash prevShardingHash = ShardingHash();
+  bool ret = true;
+
+  uint64_t prevdsblocknum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t totalIndex = index_num;
+  ShardingHash prevShardingHash =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetShardingHash();
+
   for (const auto& dirBlock : dirBlocks) {
     if (typeid(DSBlock) == dirBlock.type()) {
       const auto& dsblock = get<DSBlock>(dirBlock);
@@ -224,16 +230,30 @@ bool Validator::CheckDirBlocks(
         LOG_GENERAL(WARNING, "DSblocks not in sequence "
                                  << dsblock.GetHeader().GetBlockNum() << " "
                                  << prevdsblocknum);
-        return false;
+        ret = false;
+        break;
       }
 
       if (!CheckBlockCosignature(dsblock, mutable_ds_comm)) {
         LOG_GENERAL(WARNING, "Co-sig verification of ds block "
                                  << prevdsblocknum + 1 << " failed");
-        return false;
+        ret = false;
+        break;
       }
       prevdsblocknum++;
       prevShardingHash = dsblock.GetHeader().GetShardingHash();
+      m_mediator.m_blocklinkchain.AddBlockLink(
+          totalIndex, prevdsblocknum, BlockType::DS, dsblock.GetBlockHash());
+      m_mediator.m_dsBlockChain.AddBlock(dsblock);
+      // Store DS Block to disk
+      if (!ARCHIVAL_NODE) {
+        vector<unsigned char> serializedDSBlock;
+        dsblock.Serialize(serializedDSBlock, 0);
+        BlockStorage::GetBlockStorage().PutDSBlock(
+            dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
+      } else {
+        m_mediator.m_archDB->InsertDSBlock(dsblock);
+      }
       m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm);
       totalIndex++;
 
@@ -246,19 +266,27 @@ bool Validator::CheckDirBlocks(
                     "processed "
                         << prevdsblocknum << " "
                         << vcblock.GetHeader().GetVieWChangeDSEpochNo());
-        return false;
+        ret = false;
+        break;
       }
       if (!CheckBlockCosignature(vcblock, mutable_ds_comm)) {
         LOG_GENERAL(WARNING, "Co-sig verification of vc block in "
                                  << prevdsblocknum << " failed"
                                  << totalIndex + 1);
-        return false;
+        ret = false;
+        break;
       }
       unsigned int newCandidateLeader =
           vcblock.GetHeader().GetViewChangeCounter();
       for (unsigned int i = 0; i < newCandidateLeader; i++) {
         m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(mutable_ds_comm);
       }
+      m_mediator.m_blocklinkchain.AddBlockLink(
+          totalIndex, prevdsblocknum, BlockType::VC, vcblock.GetBlockHash());
+      vector<unsigned char> vcblockserialized;
+      vcblock.Serialize(vcblockserialized, 0);
+      BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
+                                                 vcblockserialized);
       totalIndex++;
     } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
       const auto& fallbackblock =
@@ -272,18 +300,21 @@ bool Validator::CheckDirBlocks(
                     "being processed "
                         << prevdsblocknum << " "
                         << fallbackblock.GetHeader().GetFallbackDSEpochNo());
-        return false;
+        ret = false;
+        break;
       }
 
       ShardingHash shardinghash;
       if (!Messenger::GetShardingStructureHash(shards, shardinghash)) {
         LOG_GENERAL(WARNING, "GetShardingStructureHash failed");
-        return false;
+        ret = false;
+        break;
       }
 
       if (shardinghash != prevShardingHash) {
         LOG_GENERAL(WARNING, "ShardingHash does not match ");
-        return false;
+        ret = false;
+        break;
       }
 
       uint32_t shard_id = fallbackblock.GetHeader().GetShardId();
@@ -292,13 +323,21 @@ bool Validator::CheckDirBlocks(
         LOG_GENERAL(WARNING, "Co-sig verification of fallbackblock in "
                                  << prevdsblocknum << " failed"
                                  << totalIndex + 1);
-        return false;
+        ret = false;
+        break;
       }
       const PubKey& leaderPubKey = fallbackblock.GetHeader().GetLeaderPubKey();
       const Peer& leaderNetworkInfo =
           fallbackblock.GetHeader().GetLeaderNetworkInfo();
       m_mediator.m_node->UpdateDSCommitteeAfterFallback(
           shard_id, leaderPubKey, leaderNetworkInfo, mutable_ds_comm, shards);
+      m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum,
+                                               BlockType::FB,
+                                               fallbackblock.GetBlockHash());
+      vector<unsigned char> fallbackblockser;
+      fallbackblock.Serialize(fallbackblockser, 0);
+      BlockStorage::GetBlockStorage().PutFallbackBlock(
+          fallbackblock.GetBlockHash(), fallbackblockser);
       totalIndex++;
     } else {
       LOG_GENERAL(WARNING, "dirBlock type unexpected ");
@@ -306,5 +345,5 @@ bool Validator::CheckDirBlocks(
   }
 
   newDSComm = move(mutable_ds_comm);
-  return true;
+  return ret;
 }

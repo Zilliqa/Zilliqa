@@ -75,14 +75,10 @@ void DirectoryService::StartSynchronization() {
       return;
     }
 
-    m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
     m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
-      m_synchronizer.FetchLatestDSBlocks(
-          m_mediator.m_lookup,
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-              1);
-      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(m_mediator.m_blocklinkchain.GetLatestIndex()+1);
+      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlocks(
           m_mediator.m_lookup,
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
