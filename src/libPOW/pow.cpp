@@ -101,7 +101,14 @@ int POW::FromHex(char _i) {
 ethash_h256_t POW::StringToBlockhash(std::string const& _s) {
   ethash_h256_t ret;
   std::vector<uint8_t> b = HexStringToBytes(_s);
-  memcpy(&ret, b.data(), b.size());
+  if (b.size() != 32) {
+    LOG_GENERAL(WARNING,
+                "Input to StringToBlockhash is not of size 32. Returning "
+                "uninitialize ethash_h256_t. Size is "
+                    << b.size());
+    return ret;
+  }
+  copy(b.begin(), b.end(), ret.b);
   return ret;
 }
 

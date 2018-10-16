@@ -379,6 +379,8 @@ bool DirectoryService::CleanVariables() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
+    m_missingMicroBlocks.clear();
+    m_totalTxnFees = 0;
   }
   CleanFinalblockConsensusBuffer();
 
@@ -388,6 +390,7 @@ bool DirectoryService::CleanVariables() {
   m_mode = IDLE;
   m_consensusLeaderID = 0;
   m_mediator.m_consensusID = 0;
+
   return true;
 }
 
