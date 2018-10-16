@@ -125,13 +125,13 @@ class Messenger {
 
   static bool SetDSMicroBlockSubmission(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const unsigned char microBlockType, const uint64_t blockNumber,
+      const unsigned char microBlockType, const uint64_t epochNumber,
       const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   static bool GetDSMicroBlockSubmission(const std::vector<unsigned char>& src,
                                         const unsigned int offset,
                                         unsigned char& microBlockType,
-                                        uint64_t& blockNumber,
+                                        uint64_t& epochNumber,
                                         std::vector<MicroBlock>& microBlocks,
                                         std::vector<unsigned char>& stateDelta);
 

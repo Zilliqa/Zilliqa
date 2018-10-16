@@ -36,6 +36,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   uint32_t m_shardId;
   boost::multiprecision::uint256_t m_gasLimit;
   boost::multiprecision::uint256_t m_gasUsed;
+  boost::multiprecision::uint256_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
   boost::multiprecision::uint256_t m_timestamp;
@@ -46,7 +47,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
       m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
-  BlockHash m_dsBlockHeader;  // DS Block hash
+  BlockHash m_dsBlockHash;  // DS Block hash
 
  public:
   /// Default constructor.
@@ -60,11 +61,12 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const uint32_t shardId,
                    const boost::multiprecision::uint256_t& gasLimit,
                    const boost::multiprecision::uint256_t& gasUsed,
+                   const boost::multiprecision::uint256_t& rewards,
                    const BlockHash& prevHash, const uint64_t& blockNum,
                    const boost::multiprecision::uint256_t& timestamp,
                    const TxnHash& txRootHash, const uint32_t numTxs,
                    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                   const BlockHash& dsBlockHeader,
+                   const BlockHash& dsBlockHash,
                    const StateHash& stateDeltaHash,
                    const TxnHash& tranReceiptHash,
                    const CommitteeHash& committeeHash);
@@ -82,13 +84,14 @@ class MicroBlockHeader : public BlockHeaderBase {
   const uint32_t& GetShardId() const;
   const boost::multiprecision::uint256_t& GetGasLimit() const;
   const boost::multiprecision::uint256_t& GetGasUsed() const;
+  const boost::multiprecision::uint256_t& GetRewards() const;
   const BlockHash& GetPrevHash() const;
   const uint64_t& GetBlockNum() const;
   const boost::multiprecision::uint256_t& GetTimestamp() const;
   const uint32_t& GetNumTxs() const;
   const PubKey& GetMinerPubKey() const;
   const uint64_t& GetDSBlockNum() const;
-  const BlockHash& GetDSBlockHeader() const;
+  const BlockHash& GetDSBlockHash() const;
   const TxnHash& GetTxRootHash() const;
   const StateHash& GetStateDeltaHash() const;
   const TxnHash& GetTranReceiptHash() const;

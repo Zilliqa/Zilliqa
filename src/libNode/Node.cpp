@@ -566,6 +566,11 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                   << " , local: " << m_mediator.m_currentEpochNum);
   }
 
+  if (m_mediator.GetIsVacuousEpoch(msgBlockNum)) {
+    LOG_GENERAL(WARNING, "Get missing txn from vacuous epoch, why?");
+    return false;
+  }
+
   while (cur_offset < message.size()) {
     Transaction submittedTransaction;
     if (submittedTransaction.Deserialize(message, cur_offset) != 0) {
@@ -978,6 +983,8 @@ bool Node::CleanVariables() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlock);
     m_microblock.reset();
+    m_gasUsedTotal = 0;
+    m_txnFees = 0;
   }
   {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
