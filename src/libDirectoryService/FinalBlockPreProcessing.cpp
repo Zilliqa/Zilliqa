@@ -103,14 +103,14 @@ void DirectoryService::ExtractDataFromMicroblocks(
                 << " TranReceiptRootHash: " << microblockTranReceiptRoot.hex());
 }
 
-void DirectoryService::ComposeFinalBlock() {
+bool DirectoryService::ComposeFinalBlock() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeFinalBlock not expected to "
                 "be called from LookUp node.");
-    return;
+    return true;
   }
 
   TxnHash microblockTxnTrieRoot;
@@ -150,6 +150,7 @@ void DirectoryService::ComposeFinalBlock() {
   if (m_mediator.m_dsBlockChain.GetBlockCount() <= 0) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
+    return false;
   }
 
   DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
@@ -170,6 +171,7 @@ void DirectoryService::ComposeFinalBlock() {
                                      committeeHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSCommitteeHash failed.");
+    return false;
   }
 
   m_finalBlock.reset(new TxBlock(
@@ -193,6 +195,8 @@ void DirectoryService::ComposeFinalBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Final block proposed with "
                 << m_finalBlock->GetHeader().GetNumTxs() << " transactions.");
+
+  return true;
 }
 
 bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
@@ -210,7 +214,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the leader DS node. Creating final block.");
 
-  ComposeFinalBlock();  // stores it in m_finalBlock
+  // stores it in m_finalBlock
+  if (!ComposeFinalBlock()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary failed");
+    return false;
+  }
 
   // kill first ds leader (used for view change testing)
 
