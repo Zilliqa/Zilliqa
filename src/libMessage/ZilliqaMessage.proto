@@ -269,7 +269,7 @@ message DSPoWSubmission
 message DSMicroBlockSubmission
 {
     required uint32 microblocktype       = 1; // only LSB used
-    required uint64 blocknumber          = 2;
+    required uint64 epochnumber          = 2;
     repeated ProtoMicroBlock microblocks = 3;
     optional bytes statedelta            = 4;
 }

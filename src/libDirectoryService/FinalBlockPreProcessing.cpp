@@ -626,7 +626,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
       Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
   offset += sizeof(uint32_t);
 
-  uint64_t blockNum =
+  uint64_t epochNum =
       Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
   offset += sizeof(uint64_t);
 
@@ -655,7 +655,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
 
   lock_guard<mutex> g(m_mutexMicroBlocks);
 
-  auto& microBlocks = m_microBlocks[blockNum];
+  auto& microBlocks = m_microBlocks[epochNum];
 
   vector<MicroBlock> microBlocksSent;
 
@@ -697,7 +697,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
 
   if (!Messenger::SetDSMicroBlockSubmission(
           mb_message, MessageOffset::BODY,
-          DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, blockNum,
+          DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, epochNum,
           microBlocksSent, stateDelta)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
