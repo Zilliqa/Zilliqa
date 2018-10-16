@@ -165,6 +165,34 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // TODO State machine check
 
+  // Verify the Block Hash
+  BlockHash temp_blockHash = vcblock.GetHeader().GetMyHash();
+  if (temp_blockHash != vcblock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received VC Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << vcblock.GetBlockHash().hex());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != vcblock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received VC Block doesn't match. "
+                "Calculated: "
+                    << committeeHash
+                    << " Received: " << vcblock.GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   unsigned int newCandidateLeader = vcblock.GetHeader().GetViewChangeCounter();
 
   if (newCandidateLeader > m_mediator.m_DSCommittee->size()) {

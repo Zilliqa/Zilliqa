@@ -57,7 +57,8 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
         MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_STATE_DELTA_HASH),
         MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_SHARD_ID),
         MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_ROOT),
-        MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_DELTA_HASH)};
+        MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_DELTA_HASH),
+        MAKE_LITERAL_PAIR(INVALID_COMMHASH)};
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                                  const vector<unsigned char>& block_hash,

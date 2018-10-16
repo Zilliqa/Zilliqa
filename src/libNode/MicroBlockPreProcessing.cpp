@@ -81,6 +81,23 @@ bool Node::ComposeMicroBlock() {
   BlockHash dsBlockHash = lastDSBlock.GetHeader().GetMyHash();
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
+  CommitteeHash committeeHash;
+  if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
+    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shardId),
+                                 committeeHash)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::GetShardHash failed.");
+      return false;
+    }
+  } else {
+    if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                       committeeHash)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::GetDSCommitteeHash failed.");
+      return false;
+    }
+  }
+
   // TxBlock
   vector<TxnHash> tranHashes;
 
@@ -113,7 +130,7 @@ bool Node::ComposeMicroBlock() {
       MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, prevHash,
                        blockNum, timestamp, txRootHash, numTxs, minerPubKey,
                        dsBlockNum, dsBlockHash, stateDeltaHash, txReceiptHash,
-                       CommitteeHash()),
+                       committeeHash),
       tranHashes, CoSignatures()));
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -847,6 +864,33 @@ bool Node::CheckMicroBlockshardId() {
   }
 
   LOG_GENERAL(INFO, "shardId check passed");
+
+  // Verify the shard committee hash
+  CommitteeHash committeeHash;
+  if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
+    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
+                                 committeeHash)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::GetShardHash failed.");
+      return false;
+    }
+  } else {
+    if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                       committeeHash)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::GetDSCommitteeHash failed.");
+      return false;
+    }
+  }
+  if (committeeHash != m_microblock->GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING, "Microblock committee hash mismatched"
+                             << endl
+                             << "expected: " << committeeHash << endl
+                             << "received: "
+                             << m_microblock->GetHeader().GetCommitteeHash());
+    m_consensusObject->SetConsensusErrorCode(ConsensusCommon::INVALID_COMMHASH);
+    return false;
+  }
 
   return true;
 }

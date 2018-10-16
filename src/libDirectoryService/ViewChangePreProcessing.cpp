@@ -67,6 +67,7 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
+  // Verify the Block Hash
   BlockHash temp_blockHash = m_pendingVCBlock->GetHeader().GetMyHash();
   if (temp_blockHash != m_pendingVCBlock->GetBlockHash()) {
     LOG_GENERAL(WARNING,
@@ -74,6 +75,23 @@ bool DirectoryService::ViewChangeValidator(
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << m_pendingVCBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != m_pendingVCBlock->GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received VC Block doesn't match. "
+                "Calculated: "
+                    << committeeHash << " Received: "
+                    << m_pendingVCBlock->GetHeader().GetCommitteeHash());
     return false;
   }
 
@@ -261,6 +279,14 @@ void DirectoryService::ComputeNewCandidateLeader() {
         m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
   }
 
+  // Compute the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+  }
+
   {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
     // To-do: Handle exceptions.
@@ -271,7 +297,7 @@ void DirectoryService::ComputeNewCandidateLeader() {
             m_mediator.m_currentEpochNum, m_viewChangestate,
             m_viewChangeCounter, newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
-            m_viewChangeCounter, get_time_as_int(), CommitteeHash()),
+            m_viewChangeCounter, get_time_as_int(), committeeHash),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
