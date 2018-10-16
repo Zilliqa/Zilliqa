@@ -77,7 +77,7 @@ class Validator : public ValidatorBase {
           DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
       const std::deque<std::pair<PubKey, Peer>>& initDsComm,
       const uint64_t& index_num,
-      std::deque<std::pair<PubKey, Peer>>& newDSComm);
+      std::deque<std::pair<PubKey, Peer>>& newDSComm) override;
   Mediator& m_mediator;
 };
 

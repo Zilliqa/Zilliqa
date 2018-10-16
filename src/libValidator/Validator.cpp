@@ -260,7 +260,7 @@ bool Validator::CheckDirBlocks(
     } else if (typeid(VCBlock) == dirBlock.type()) {
       const auto& vcblock = get<VCBlock>(dirBlock);
 
-      if (vcblock.GetHeader().GetVieWChangeDSEpochNo() != prevdsblocknum) {
+      if (vcblock.GetHeader().GetVieWChangeDSEpochNo() != prevdsblocknum + 1) {
         LOG_GENERAL(WARNING,
                     "VC block ds epoch number does not match the number being "
                     "processed "
@@ -281,8 +281,9 @@ bool Validator::CheckDirBlocks(
       for (unsigned int i = 0; i < newCandidateLeader; i++) {
         m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(mutable_ds_comm);
       }
-      m_mediator.m_blocklinkchain.AddBlockLink(
-          totalIndex, prevdsblocknum, BlockType::VC, vcblock.GetBlockHash());
+      m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
+                                               BlockType::VC,
+                                               vcblock.GetBlockHash());
       vector<unsigned char> vcblockserialized;
       vcblock.Serialize(vcblockserialized, 0);
       BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
@@ -295,7 +296,8 @@ bool Validator::CheckDirBlocks(
       const auto& fallbackblock = fallbackwshardingstructure.m_fallbackblock;
       const DequeOfShard& shards = fallbackwshardingstructure.m_shards;
 
-      if (fallbackblock.GetHeader().GetFallbackDSEpochNo() != prevdsblocknum) {
+      if (fallbackblock.GetHeader().GetFallbackDSEpochNo() !=
+          prevdsblocknum + 1) {
         LOG_GENERAL(WARNING,
                     "Fallback block ds epoch number does not match the number "
                     "being processed "
@@ -332,7 +334,7 @@ bool Validator::CheckDirBlocks(
           fallbackblock.GetHeader().GetLeaderNetworkInfo();
       m_mediator.m_node->UpdateDSCommitteeAfterFallback(
           shard_id, leaderPubKey, leaderNetworkInfo, mutable_ds_comm, shards);
-      m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum,
+      m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::FB,
                                                fallbackblock.GetBlockHash());
       vector<unsigned char> fallbackblockser;
