@@ -318,7 +318,7 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
   vector<unsigned char> hashVec(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
   std::copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
   bool ret = true;
-  vector<unsigned char> vec(BLOCK_HASH_SIZE);
+  vector<unsigned char> vec(BLOCK_HASH_SIZE), preVec(BLOCK_HASH_SIZE);
   uint32_t misorderNodes = 0;
   for (const auto& shard : shards) {
     for (const auto& shardNode : shard) {
@@ -358,9 +358,13 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
                         << DataConversion::Uint8VecToHexStr(vec) << " "
                         << DataConversion::Uint8VecToHexStr(sortHashVec));
         ++misorderNodes;
+        // If there is one PoW ordering fail, then vec is assigned to a big
+        // mismatch hash already, need to revert it to previous result and
+        // continue the comparison.
+        vec = preVec;
         continue;
       }
-
+      preVec = vec;
       vec = sortHashVec;
     }
     if (!ret) {
