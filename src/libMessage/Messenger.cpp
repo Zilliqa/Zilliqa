@@ -1946,7 +1946,7 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
 
 bool Messenger::SetDSMicroBlockSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
-    const unsigned char microBlockType, const uint64_t blockNumber,
+    const unsigned char microBlockType, const uint64_t epochNumber,
     const vector<MicroBlock>& microBlocks,
     const vector<unsigned char>& stateDelta) {
   LOG_MARKER();
@@ -1954,7 +1954,7 @@ bool Messenger::SetDSMicroBlockSubmission(
   DSMicroBlockSubmission result;
 
   result.set_microblocktype(microBlockType);
-  result.set_blocknumber(blockNumber);
+  result.set_epochnumber(epochNumber);
   for (const auto& microBlock : microBlocks) {
     MicroBlockToProtobuf(microBlock, *result.add_microblocks());
   }
@@ -1973,7 +1973,7 @@ bool Messenger::SetDSMicroBlockSubmission(
 bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
                                           const unsigned int offset,
                                           unsigned char& microBlockType,
-                                          uint64_t& blockNumber,
+                                          uint64_t& epochNumber,
                                           vector<MicroBlock>& microBlocks,
                                           vector<unsigned char>& stateDelta) {
   LOG_MARKER();
@@ -1988,7 +1988,7 @@ bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
   }
 
   microBlockType = result.microblocktype();
-  blockNumber = result.blocknumber();
+  epochNumber = result.epochnumber();
   for (const auto& proto_mb : result.microblocks()) {
     MicroBlock microBlock;
     ProtobufToMicroBlock(proto_mb, microBlock);

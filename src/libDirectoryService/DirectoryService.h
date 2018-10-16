@@ -236,13 +236,13 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
   void CommitMBSubmissionMsgBuffer();
   bool ProcessMicroblockSubmissionFromShard(
-      const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   bool ProcessMicroblockSubmissionFromShardCore(
       const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   bool ProcessMissingMicroblockSubmission(
-      const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   void ExtractDataFromMicroblocks(
       TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
