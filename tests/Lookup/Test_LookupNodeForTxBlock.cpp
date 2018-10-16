@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
   std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
   TxBlock txblock(
-      TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
+      TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
                     BlockHash(), 0, get_time_as_int(), TxnHash(), StateHash(),
                     StateHash(), StateHash(), TxnHash(), 0, 5, pubKey1.second,
                     0, BlockHash(), CommitteeHash()),
