@@ -300,6 +300,10 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
+  constexpr float MISORDER_TOLERENCE = 0.02f;  // 2 Percent tolerance
+  const uint32_t MAX_MISORDER_NODE =
+      std::ceil(m_allPoWs.size() * MISORDER_TOLERENCE);
+
   auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
   InjectPoWForDSNode(sortedPoWSolns,
                      m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
@@ -315,6 +319,7 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
   std::copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
   bool ret = true;
   vector<unsigned char> vec(BLOCK_HASH_SIZE);
+  uint32_t misorderNodes = 0;
   for (const auto& shard : shards) {
     for (const auto& shardNode : shard) {
       const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
@@ -332,6 +337,14 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
         break;
       }
 
+      auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
+      if (!r.second) {
+        LOG_GENERAL(WARNING, "The key is not unique in the sharding structure "
+                                 << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        ret = false;
+        break;
+      }
+
       copy(it->first.begin(), it->first.end(),
            hashVec.begin() + BLOCK_HASH_SIZE);
       const vector<unsigned char>& sortHashVec =
@@ -341,24 +354,26 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
                             << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
       if (sortHashVec < vec) {
         LOG_GENERAL(WARNING,
-                    "Failed to Verify due to bad PoW ordering "
+                    "Bad PoW ordering found: "
                         << DataConversion::Uint8VecToHexStr(vec) << " "
                         << DataConversion::Uint8VecToHexStr(sortHashVec));
-        ret = false;
-        break;
+        ++misorderNodes;
+        continue;
       }
-      auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
-      if (!r.second) {
-        LOG_GENERAL(WARNING, "The key is not unique in the sharding structure "
-                                 << std::get<SHARD_NODE_PUBKEY>(shardNode));
-        ret = false;
-        break;
-      }
+
       vec = sortHashVec;
     }
     if (!ret) {
       break;
     }
+  }
+
+  if (misorderNodes > MAX_MISORDER_NODE) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Failed to Verify due to bad PoW ordering count "
+                  << misorderNodes << " "
+                  << "exceed limit " << MAX_MISORDER_NODE);
+    return false;
   }
   return ret;
 }
