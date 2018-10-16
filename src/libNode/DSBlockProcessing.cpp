@@ -458,6 +458,56 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     return false;
   }
 
+  // Verify the DSBlockHashSet member of the DSBlockHeader
+  ShardingHash shardingHash;
+  if (!Messenger::GetShardingStructureHash(m_mediator.m_ds->m_shards,
+                                           shardingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardingStructureHash failed.");
+    return false;
+  }
+  if (shardingHash != dsblock.GetHeader().GetShardingHash()) {
+    LOG_GENERAL(WARNING,
+                "Sharding structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << shardingHash
+                    << " Received: " << dsblock.GetHeader().GetShardingHash());
+    return false;
+  }
+  TxSharingHash txSharingHash;
+  if (!Messenger::GetTxSharingAssignmentsHash(
+          m_mediator.m_ds->m_DSReceivers, m_mediator.m_ds->m_shardReceivers,
+          m_mediator.m_ds->m_shardSenders, txSharingHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetTxSharingAssignmentsHash failed.");
+    return false;
+  }
+  if (txSharingHash != dsblock.GetHeader().GetTxSharingHash()) {
+    LOG_GENERAL(WARNING,
+                "Tx sharing structure hash in newly received DS Block doesn't "
+                "match. Calculated: "
+                    << txSharingHash
+                    << " Received: " << dsblock.GetHeader().GetTxSharingHash());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != dsblock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received DS Block doesn't match. "
+                "Calculated: "
+                    << committeeHash
+                    << " Received: " << dsblock.GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   m_myshardId = shardId;
 
   LogReceivedDSBlockDetails(dsblock);

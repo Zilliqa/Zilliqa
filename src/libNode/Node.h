@@ -136,6 +136,9 @@ class Node : public Executable, public Broadcastable {
 
   uint32_t m_numOfAbsentTxnHashes;
 
+  boost::multiprecision::uint256_t m_gasUsedTotal;
+  boost::multiprecision::uint256_t m_txnFees;
+
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
   //     m_committedTransactions;
@@ -310,8 +313,7 @@ class Node : public Executable, public Broadcastable {
   bool CheckMicroBlockTranReceiptHash();
 
   void BroadcastMicroBlockToLookup();
-  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes,
-                          std::list<Transaction>& curTxns);
+  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes);
 
   void ProcessTransactionWhenShardLeader();
   bool ProcessTransactionWhenShardBackup(

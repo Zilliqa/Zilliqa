@@ -243,6 +243,7 @@ int PrivKey::Deserialize(const vector<unsigned char>& src,
     if (m_d == nullptr) {
       LOG_GENERAL(WARNING, "Deserialization failure");
       m_initialized = false;
+      return -1;
     } else {
       m_initialized = true;
     }
@@ -349,6 +350,7 @@ int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
     if (m_P == nullptr) {
       LOG_GENERAL(WARNING, "Deserialization failure");
       m_initialized = false;
+      return -1;
     } else {
       m_initialized = true;
     }
@@ -488,12 +490,14 @@ int Signature::Deserialize(const vector<unsigned char>& src,
     if (m_r == nullptr) {
       LOG_GENERAL(WARNING, "Deserialization failure");
       m_initialized = false;
+      return -1;
     } else {
       m_s = BIGNUMSerialize::GetNumber(src, offset + SIGNATURE_CHALLENGE_SIZE,
                                        SIGNATURE_RESPONSE_SIZE);
       if (m_s == nullptr) {
         LOG_GENERAL(WARNING, "Deserialization failure");
         m_initialized = false;
+        return -1;
       } else {
         m_initialized = true;
       }
