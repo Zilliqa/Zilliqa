@@ -53,6 +53,25 @@ message ProtoTxSharingAssignments
     repeated AssignedNodes shardnodes = 2;
 }
 
+message ProtoTransaction
+{
+    message CoreTransactionInfo
+    {
+        required ByteArray version      = 1;
+        required ByteArray nonce        = 2;
+        required bytes toaddr           = 3;
+        required ByteArray senderpubkey = 4;
+        required ByteArray amount       = 5;
+        required ByteArray gasprice     = 6;
+        required ByteArray gaslimit     = 7;
+        required bytes code             = 8;
+        required bytes data             = 9;
+    }
+    required bytes tranid               = 1;
+    required CoreTransactionInfo info   = 2;
+    required ByteArray signature        = 3;
+}
+
 message ProtoDSBlock
 {
     message DSBlockHashSet
@@ -108,7 +127,7 @@ message ProtoMicroBlock
         required uint32 numtxs         = 11;
         required ByteArray minerpubkey = 12;
         required uint64 dsblocknum     = 13;
-        required bytes dsblockheader   = 14;
+        required bytes dsblockhash     = 14;
         required bytes statedeltahash  = 15;
         required bytes tranreceipthash = 16;
         required bytes committeehash   = 17;
