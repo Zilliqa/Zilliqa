@@ -289,10 +289,11 @@ bool Validator::CheckDirBlocks(
                                                  vcblockserialized);
       totalIndex++;
     } else if (typeid(FallbackBlockWShardingStructure) == dirBlock.type()) {
-      const auto& fallbackblock =
-          get<FallbackBlockWShardingStructure>(dirBlock).m_fallbackblock;
-      const DequeOfShard& shards =
-          get<FallbackBlockWShardingStructure>(dirBlock).m_shards;
+      const auto& fallbackwshardingstructure =
+          get<FallbackBlockWShardingStructure>(dirBlock);
+
+      const auto& fallbackblock = fallbackwshardingstructure.m_fallbackblock;
+      const DequeOfShard& shards = fallbackwshardingstructure.m_shards;
 
       if (fallbackblock.GetHeader().GetFallbackDSEpochNo() != prevdsblocknum) {
         LOG_GENERAL(WARNING,
@@ -335,7 +336,7 @@ bool Validator::CheckDirBlocks(
                                                BlockType::FB,
                                                fallbackblock.GetBlockHash());
       vector<unsigned char> fallbackblockser;
-      fallbackblock.Serialize(fallbackblockser, 0);
+      fallbackwshardingstructure.Serialize(fallbackblockser, 0);
       BlockStorage::GetBlockStorage().PutFallbackBlock(
           fallbackblock.GetBlockHash(), fallbackblockser);
       totalIndex++;

@@ -2878,13 +2878,13 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
 bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort,
-                                           const bool initalDS) {
+                                           const bool initialDS) {
   LOG_MARKER();
 
   LookupGetDSInfoFromSeed result;
 
   result.set_listenport(listenPort);
-  result.set_initialds(initalDS);
+  result.set_initialds(initialDS);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetDSInfoFromSeed initialization failed.");
@@ -2897,7 +2897,7 @@ bool Messenger::SetLookupGetDSInfoFromSeed(vector<unsigned char>& dst,
 bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort,
-                                           bool& initalDS) {
+                                           bool& initialDS) {
   LOG_MARKER();
 
   LookupGetDSInfoFromSeed result;
@@ -2910,7 +2910,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const vector<unsigned char>& src,
   }
 
   listenPort = result.listenport();
-  initalDS = result.initialds();
+  initialDS = result.initialds();
 
   return true;
 }
