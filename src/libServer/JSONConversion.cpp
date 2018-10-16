@@ -89,7 +89,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["version"] = txheader.GetVersion();
   ret_head["GasLimit"] = txheader.GetGasLimit().str();
   ret_head["GasUsed"] = txheader.GetGasUsed().str();
-
+  ret_head["Rewards"] = txheader.GetRewards().str();
   ret_head["prevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
   ret_head["Timestamp"] = txheader.GetTimestamp().str();

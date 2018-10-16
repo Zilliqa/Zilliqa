@@ -236,13 +236,13 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
   void CommitMBSubmissionMsgBuffer();
   bool ProcessMicroblockSubmissionFromShard(
-      const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   bool ProcessMicroblockSubmissionFromShardCore(
       const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   bool ProcessMissingMicroblockSubmission(
-      const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   void ExtractDataFromMicroblocks(
       TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
@@ -250,7 +250,8 @@ class DirectoryService : public Executable, public Broadcastable {
       std::vector<MicroBlockHashSet>& microblockHashes,
       std::vector<uint32_t>& shardIds,
       boost::multiprecision::uint256_t& allGasLimit,
-      boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
+      boost::multiprecision::uint256_t& allGasUsed,
+      boost::multiprecision::uint256_t& rewards, uint32_t& numTxs,
       std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
@@ -266,6 +267,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
   bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg);
+  bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockHashRoot();
   bool CheckIsMicroBlockEmpty();
   bool CheckStateRoot();
@@ -422,8 +424,12 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexPrepareRunFinalblockConsensus;
   std::atomic<bool> m_startedRunFinalblockConsensus;
 
-  std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
   std::mutex m_mutexMicroBlocks;
+  std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
+  std::unordered_map<uint64_t,
+                     std::vector<std::pair<uint32_t, MicroBlockHashSet>>>
+      m_missingMicroBlocks;
+  boost::multiprecision::uint256_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
 
