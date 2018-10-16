@@ -119,17 +119,18 @@ message ProtoMicroBlock
         required uint32 shardid        = 3;
         required ByteArray gaslimit    = 4;
         required ByteArray gasused     = 5;
-        required bytes prevhash        = 6;
-        required uint64 blocknum       = 7;
-        required ByteArray timestamp   = 8;
-        required bytes txroothash      = 9;
-        required uint32 numtxs         = 10;
-        required ByteArray minerpubkey = 11;
-        required uint64 dsblocknum     = 12;
-        required bytes dsblockhash     = 13;
-        required bytes statedeltahash  = 14;
-        required bytes tranreceipthash = 15;
-        required bytes committeehash   = 16;
+        required ByteArray rewards     = 6;
+        required bytes prevhash        = 7;
+        required uint64 blocknum       = 8;
+        required ByteArray timestamp   = 9;
+        required bytes txroothash      = 10;
+        required uint32 numtxs         = 11;
+        required ByteArray minerpubkey = 12;
+        required uint64 dsblocknum     = 13;
+        required bytes dsblockhash     = 14;
+        required bytes statedeltahash  = 15;
+        required bytes tranreceipthash = 16;
+        required bytes committeehash   = 17;
     }
     message CoSignatures
     {
@@ -159,16 +160,17 @@ message ProtoTxBlock
         required uint32 version                 = 2;
         required ByteArray gaslimit             = 3;
         required ByteArray gasused              = 4;
-        required bytes prevhash                 = 5;
-        required uint64 blocknum                = 6;
-        required ByteArray timestamp            = 7;
-        required TxBlockHashSet hash            = 8;
-        required uint32 numtxs                  = 9;
-        required uint32 nummicroblockhashes     = 10;
-        required ByteArray minerpubkey          = 11;
-        required uint64 dsblocknum              = 12;
-        required bytes dsblockheader            = 13;
-        required bytes committeehash            = 14;
+        required ByteArray rewards              = 5;
+        required bytes prevhash                 = 6;
+        required uint64 blocknum                = 7;
+        required ByteArray timestamp            = 8;
+        required TxBlockHashSet hash            = 9;
+        required uint32 numtxs                  = 10;
+        required uint32 nummicroblockhashes     = 11;
+        required ByteArray minerpubkey          = 12;
+        required uint64 dsblocknum              = 13;
+        required bytes dsblockheader            = 14;
+        required bytes committeehash            = 15;
     }
     message MicroBlockHashSet
     {
@@ -267,7 +269,7 @@ message DSPoWSubmission
 message DSMicroBlockSubmission
 {
     required uint32 microblocktype       = 1; // only LSB used
-    required uint64 blocknumber          = 2;
+    required uint64 epochnumber          = 2;
     repeated ProtoMicroBlock microblocks = 3;
     optional bytes statedelta            = 4;
 }

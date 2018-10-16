@@ -375,6 +375,8 @@ void DirectoryService::StartFirstTxEpoch() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
+    m_missingMicroBlocks.clear();
+    m_totalTxnFees = 0;
   }
 
   if (m_mode != IDLE) {
