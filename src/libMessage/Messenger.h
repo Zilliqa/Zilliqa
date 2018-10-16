@@ -297,7 +297,8 @@ class Messenger {
                                     std::vector<Peer>& candidateSeeds);
   static bool SetLookupGetDSInfoFromSeed(std::vector<unsigned char>& dst,
                                          const unsigned int offset,
-                                         const uint32_t listenPort, const bool initialDS);
+                                         const uint32_t listenPort,
+                                         const bool initialDS);
   static bool GetLookupGetDSInfoFromSeed(const std::vector<unsigned char>& src,
                                          const unsigned int offset,
                                          uint32_t& listenPort, bool& initialDS);
@@ -307,7 +308,8 @@ class Messenger {
       const std::deque<std::pair<PubKey, Peer>>& dsNodes, const bool initialDS);
   static bool GetLookupSetDSInfoFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      PubKey& senderPubKey, std::deque<std::pair<PubKey, Peer>>& dsNodes, bool& initialDS);
+      PubKey& senderPubKey, std::deque<std::pair<PubKey, Peer>>& dsNodes,
+      bool& initialDS);
   static bool SetLookupGetDSBlockFromSeed(std::vector<unsigned char>& dst,
                                           const unsigned int offset,
                                           const uint64_t lowBlockNum,
