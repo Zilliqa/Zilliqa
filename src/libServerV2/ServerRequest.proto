@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+import "ZilliqaMessage.proto";
+
+
+message CreateTransactionRequest
+{
+    required ProtoTransaction tx = 1;
+}
+

@@ -1,0 +1,21 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+import "ZilliqaMessage.proto";
+
+
+message DefaultResponse
+{
+    required string result = 1 [default = "hello"];
+}
+
+
+message CreateTransactionResponse
+{
+    optional string error = 1;
+    optional string info = 2;
+    optional string tranid = 3;
+    optional string contractaddress = 4;
+}
+

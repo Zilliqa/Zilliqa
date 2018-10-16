@@ -1,0 +1,5 @@
+set(PROTOBUF_IMPORT_DIRS ${PROTOBUF_IMPORT_DIRS} ${PROJECT_SOURCE_DIR}/src/libMessage)
+protobuf_generate_cpp(PROTO_SRC PROTO_HEADER ServerRequest.proto ServerResponse.proto)
+add_library(ServerV2 ${PROTO_HEADER} ${PROTO_SRC} Server.cpp)
+target_include_directories(ServerV2 PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src/libServerV2 ${CMAKE_BINARY_DIR}/src/libMessage)
+target_link_libraries (ServerV2 PUBLIC ${PROTOBUF_LIBRARY} AccountData Messenger)
