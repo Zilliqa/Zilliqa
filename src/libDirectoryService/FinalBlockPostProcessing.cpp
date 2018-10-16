@@ -379,7 +379,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                       "Timeout: Didn't finish DS Microblock. Proceeds "
                       "without it");
 
-          RunConsensusOnFinalBlock(true);
+          RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
         }
       }
     }
@@ -425,7 +425,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         m_dsStartedMicroblockConsensus = true;
       }
       cv_scheduleFinalBlockConsensus.notify_all();
-      RunConsensusOnFinalBlock(true);
+      RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
     }
   } else {
     if (consensus_id < m_mediator.m_consensusID) {

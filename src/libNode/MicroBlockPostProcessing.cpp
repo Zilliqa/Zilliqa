@@ -253,10 +253,10 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
       lock_guard<mutex> g(
           m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
       if (!m_mediator.m_ds->m_startedRunFinalblockConsensus) {
-        m_mediator.m_ds->m_stateDeltaFromShards.clear();
+        m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
         AccountStore::GetInstance().SerializeDelta();
         AccountStore::GetInstance().GetSerializedDelta(
-            m_mediator.m_ds->m_stateDeltaFromShards);
+            m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
         m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
                                       m_microblock->GetB2(),
                                       m_microblock->GetHeader().GetShardId());
@@ -330,7 +330,8 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
                 "DS Microblock failed, discard changes on microblock and "
                 "proceed to finalblock consensus");
       m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
-      m_mediator.m_ds->RunConsensusOnFinalBlock(true);
+      m_mediator.m_ds->RunConsensusOnFinalBlock(
+          DirectoryService::REVERT_STATEDELTA);
     }
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
