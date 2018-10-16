@@ -80,6 +80,7 @@ bool BlockStorage::PutVCBlock(const BlockHash& blockhash,
 
 bool BlockStorage::PutFallbackBlock(const BlockHash& blockhash,
                                     const vector<unsigned char>& body) {
+  LOG_MARKER();
   int ret = -1;
   ret = m_fallbackBlockDB->Insert(blockhash, body);
   return (ret == 0);

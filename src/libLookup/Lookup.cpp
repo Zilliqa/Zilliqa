@@ -331,9 +331,6 @@ bool Lookup::GetDSInfoFromSeedNodes() {
 
 bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
   LOG_MARKER();
-  if (initialDS) {
-    LOG_GENERAL(INFO, "[DSINFOVERIF]");
-  }
   SendMessageToRandomLookupNode(ComposeGetDSInfoMessage(initialDS));
   return true;
 }
@@ -1441,6 +1438,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     }
 
     else {
+      bool isVerif = true;
       lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
       *m_mediator.m_DSCommittee = std::move(dsNodes);
 
@@ -1469,6 +1467,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
       if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() !=
           m_mediator.m_DSCommittee->size()) {
+        isVerif = false;
         LOG_GENERAL(WARNING,
                     "Size of "
                         << m_mediator.m_blocklinkchain.m_builtDsCommittee.size()
@@ -1481,7 +1480,14 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         if (m_mediator.m_DSCommittee->at(i) !=
             m_mediator.m_blocklinkchain.m_builtDsCommittee.at(i)) {
           LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
+          isVerif = false;
+          break;
         }
+      }
+
+      if (isVerif) {
+        LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                              << " Sucess ");
       }
     }
   }
@@ -2753,6 +2759,9 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
             dirBlocks, m_mediator.m_blocklinkchain.m_builtDsCommittee,
             index_num, newDScomm)) {
       LOG_GENERAL(WARNING, "Verification of ds information failed");
+    } else {
+      LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                            << "Verified successfully");
     }
 
     m_mediator.m_blocklinkchain.m_builtDsCommittee = newDScomm;
@@ -2778,9 +2787,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     }
     m_mediator.UpdateDSBlockRand();
   }
-
-  LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                        << "Verified successfully");
 
   return true;
 }
