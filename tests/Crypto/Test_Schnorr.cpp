@@ -305,4 +305,43 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   BOOST_CHECK(!SignatureOutput.is_empty(false));
 }
 
+/**
+ * \brief test_error_deserialization_pubkey
+ *
+ * \details Test failure in deserialization of public key
+ */
+BOOST_AUTO_TEST_CASE(test_error_deserialization_pubkey) {
+  PubKey pubkey;
+  vector<unsigned char> pubkey_bytes_empty;
+  int returnValue = pubkey.Deserialize(pubkey_bytes_empty, 0);
+  BOOST_CHECK_MESSAGE(returnValue == -1,
+                      "Expected: -1 Obtained: " << returnValue);
+}
+
+/**
+ * \brief test_error_deserialization_privkey
+ *
+ * \details Test failure in deserialization of private key
+ */
+BOOST_AUTO_TEST_CASE(test_error_deserialization_privkey) {
+  PrivKey privkey;
+  vector<unsigned char> privkey_bytes_empty;
+  int returnValue = privkey.Deserialize(privkey_bytes_empty, 0);
+  BOOST_CHECK_MESSAGE(returnValue == -1,
+                      "Expected: -1 Obtained: " << returnValue);
+}
+
+/**
+ * \brief test_error_deserialization_signature
+ *
+ * \details Test failure in deserialization of signature
+ */
+BOOST_AUTO_TEST_CASE(test_error_deserialization_signature) {
+  Signature signature;
+  vector<unsigned char> sig_bytes_empty;
+  int returnValue = signature.Deserialize(sig_bytes_empty, 0);
+  BOOST_CHECK_MESSAGE(returnValue == -1,
+                      "Expected: -1 Obtained: " << returnValue);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
