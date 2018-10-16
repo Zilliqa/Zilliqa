@@ -66,10 +66,6 @@ std::string bytesToHexString(const uint8_t* str, const uint64_t s) {
   return ret.str();
 }
 
-std::string blockhashToHexString(ethash_h256_t* _hash) {
-  return bytesToHexString((uint8_t*)_hash, 32);
-}
-
 int fromHex(char _i) {
   if (_i >= '0' && _i <= '9') return _i - '0';
   if (_i >= 'a' && _i <= 'f') return _i - 'a' + 10;
@@ -97,11 +93,39 @@ bytes hexStringToBytes(std::string const& _s) {
   return ret;
 }
 
-ethash_h256_t stringToBlockhash(std::string const& _s) {
-  ethash_h256_t ret;
-  bytes b = hexStringToBytes(_s);
-  memcpy(&ret, b.data(), b.size());
-  return ret;
+BOOST_AUTO_TEST_CASE(test_stringToBlockhash) {
+  string original =
+      "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b34";
+  ethash_h256_t testhash = POW::StringToBlockhash(original);
+  string result = POW::BlockhashToHexString(&testhash);
+  BOOST_REQUIRE_MESSAGE(result == original,
+                        "Expected: "
+                        "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539ee"
+                        "dad4b92b34 Obtained: "
+                            << result);
+}
+
+BOOST_AUTO_TEST_CASE(test_stringToBlockhash_smaller_than_expect_message) {
+  string original = "badf00d";
+  ethash_h256_t testhash = POW::StringToBlockhash(original);
+  string result = POW::BlockhashToHexString(&testhash);
+  BOOST_REQUIRE_MESSAGE(result != original, "Obtained: " << result);
+}
+
+BOOST_AUTO_TEST_CASE(test_stringToBlockhash_overflow) {
+  string original =
+      "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356e"
+      "e3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356ee3441623"
+      "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356e"
+      "e3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356ee3441623"
+      "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356e"
+      "e3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356ee3441623"
+      "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356e"
+      "e3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356ee3441623"
+      "bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b34";
+  ethash_h256_t testhash = POW::StringToBlockhash(original);
+  string result = POW::BlockhashToHexString(&testhash);
+  BOOST_REQUIRE_MESSAGE(result != original, "Obtained: " << result);
 }
 
 BOOST_AUTO_TEST_CASE(fnv_hash_check) {
@@ -406,18 +430,18 @@ BOOST_AUTO_TEST_CASE(light_and_full_client_checks) {
     light_out = ethash_light_compute_internal(light, full_size, hash, nonce);
     BOOST_REQUIRE(light_out.success);
     const std::string light_result_string =
-                          blockhashToHexString(&light_out.result),
+                          POW::BlockhashToHexString(&light_out.result),
                       full_result_string =
-                          blockhashToHexString(&full_out.result);
+                          POW::BlockhashToHexString(&full_out.result);
     BOOST_REQUIRE_MESSAGE(
         light_result_string == full_result_string,
         "\nlight result: " << light_result_string.c_str() << "\n"
                            << "full result: " << full_result_string.c_str()
                            << "\n");
     const std::string light_mix_hash_string =
-                          blockhashToHexString(&light_out.mix_hash),
+                          POW::BlockhashToHexString(&light_out.mix_hash),
                       full_mix_hash_string =
-                          blockhashToHexString(&full_out.mix_hash);
+                          POW::BlockhashToHexString(&full_out.mix_hash);
     BOOST_REQUIRE_MESSAGE(
         full_mix_hash_string == light_mix_hash_string,
         "\nlight mix hash: " << light_mix_hash_string.c_str() << "\n"
@@ -425,7 +449,8 @@ BOOST_AUTO_TEST_CASE(light_and_full_client_checks) {
                              << full_mix_hash_string.c_str() << "\n");
     ethash_h256_t check_hash;
     ethash_quick_hash(&check_hash, &hash, nonce, &full_out.mix_hash);
-    const std::string check_hash_string = blockhashToHexString(&check_hash);
+    const std::string check_hash_string =
+        POW::BlockhashToHexString(&check_hash);
     BOOST_REQUIRE_MESSAGE(
         check_hash_string == full_result_string,
         "\ncheck hash string: " << check_hash_string.c_str() << "\n"
@@ -435,23 +460,26 @@ BOOST_AUTO_TEST_CASE(light_and_full_client_checks) {
   {
     full_out = ethash_full_compute(full, hash, 5);
     BOOST_REQUIRE(full_out.success);
-    std::string light_result_string = blockhashToHexString(&light_out.result),
-                full_result_string = blockhashToHexString(&full_out.result);
+    std::string light_result_string =
+                    POW::BlockhashToHexString(&light_out.result),
+                full_result_string =
+                    POW::BlockhashToHexString(&full_out.result);
     BOOST_REQUIRE_MESSAGE(light_result_string != full_result_string,
                           "\nlight result and full result should differ: "
                               << light_result_string.c_str() << "\n");
 
     light_out = ethash_light_compute_internal(light, full_size, hash, 5);
     BOOST_REQUIRE(light_out.success);
-    light_result_string = blockhashToHexString(&light_out.result);
+    light_result_string = POW::BlockhashToHexString(&light_out.result);
     BOOST_REQUIRE_MESSAGE(
         light_result_string == full_result_string,
         "\nlight result and full result should be the same\n"
             << "light result: " << light_result_string.c_str() << "\n"
             << "full result: " << full_result_string.c_str() << "\n");
     std::string light_mix_hash_string =
-                    blockhashToHexString(&light_out.mix_hash),
-                full_mix_hash_string = blockhashToHexString(&full_out.mix_hash);
+                    POW::BlockhashToHexString(&light_out.mix_hash),
+                full_mix_hash_string =
+                    POW::BlockhashToHexString(&full_out.mix_hash);
     BOOST_REQUIRE_MESSAGE(
         full_mix_hash_string == light_mix_hash_string,
         "\nlight mix hash: " << light_mix_hash_string.c_str() << "\n"
@@ -503,18 +531,18 @@ BOOST_AUTO_TEST_CASE(ethash_full_new_when_dag_exists_with_wrong_size) {
     light_out = ethash_light_compute_internal(light, full_size, hash, nonce);
     BOOST_REQUIRE(light_out.success);
     const std::string light_result_string =
-                          blockhashToHexString(&light_out.result),
+                          POW::BlockhashToHexString(&light_out.result),
                       full_result_string =
-                          blockhashToHexString(&full_out.result);
+                          POW::BlockhashToHexString(&full_out.result);
     BOOST_REQUIRE_MESSAGE(
         light_result_string == full_result_string,
         "\nlight result: " << light_result_string.c_str() << "\n"
                            << "full result: " << full_result_string.c_str()
                            << "\n");
     const std::string light_mix_hash_string =
-                          blockhashToHexString(&light_out.mix_hash),
+                          POW::BlockhashToHexString(&light_out.mix_hash),
                       full_mix_hash_string =
-                          blockhashToHexString(&full_out.mix_hash);
+                          POW::BlockhashToHexString(&full_out.mix_hash);
     BOOST_REQUIRE_MESSAGE(
         full_mix_hash_string == light_mix_hash_string,
         "\nlight mix hash: " << light_mix_hash_string.c_str() << "\n"
@@ -522,7 +550,8 @@ BOOST_AUTO_TEST_CASE(ethash_full_new_when_dag_exists_with_wrong_size) {
                              << full_mix_hash_string.c_str() << "\n");
     ethash_h256_t check_hash;
     ethash_quick_hash(&check_hash, &hash, nonce, &full_out.mix_hash);
-    const std::string check_hash_string = blockhashToHexString(&check_hash);
+    const std::string check_hash_string =
+        POW::BlockhashToHexString(&check_hash);
     BOOST_REQUIRE_MESSAGE(
         check_hash_string == full_result_string,
         "\ncheck hash string: " << check_hash_string.c_str() << "\n"
@@ -629,13 +658,13 @@ BOOST_AUTO_TEST_CASE(test_incomplete_dag_file) {
 BOOST_AUTO_TEST_CASE(test_block22_verification) {
   // from POC-9 testnet, epoch 0
   ethash_light_t light = ethash_light_new(22);
-  ethash_h256_t seedhash = stringToBlockhash(
+  ethash_h256_t seedhash = POW::StringToBlockhash(
       "372eca2454ead349c3df0ab5d00b0b706b23e49d469387db91811cee0358fc6d");
   BOOST_ASSERT(light);
   ethash_return_value_t ret =
       ethash_light_compute(light, seedhash, 0x495732e0ed7a801cU);
   BOOST_REQUIRE_EQUAL(
-      blockhashToHexString(&ret.result),
+      POW::BlockhashToHexString(&ret.result),
       "00000b184f1fdd88bfd94c86c39e65db0c36144d5e43f745f722196e730cb614");
   ethash_h256_t difficulty = ethash_h256_static_init(0x2, 0x5, 0x40);
   BOOST_REQUIRE(ethash_check_difficulty(&ret.result, &difficulty));
@@ -645,7 +674,7 @@ BOOST_AUTO_TEST_CASE(test_block22_verification) {
 BOOST_AUTO_TEST_CASE(test_block30001_verification) {
   // from POC-9 testnet, epoch 1
   ethash_light_t light = ethash_light_new(30001);
-  ethash_h256_t seedhash = stringToBlockhash(
+  ethash_h256_t seedhash = POW::StringToBlockhash(
       "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b34");
   BOOST_ASSERT(light);
   ethash_return_value_t ret =
@@ -658,7 +687,7 @@ BOOST_AUTO_TEST_CASE(test_block30001_verification) {
 BOOST_AUTO_TEST_CASE(test_block60000_verification) {
   // from POC-9 testnet, epoch 2
   ethash_light_t light = ethash_light_new(60000);
-  ethash_h256_t seedhash = stringToBlockhash(
+  ethash_h256_t seedhash = POW::StringToBlockhash(
       "5fc898f16035bf5ac9c6d9077ae1e3d5fc1ecc3c9fd5bee8bb00e810fdacbaa0");
   BOOST_ASSERT(light);
   ethash_return_value_t ret =
