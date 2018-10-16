@@ -259,8 +259,7 @@ void DirectoryService::AddDSPoWs(PubKey Pubk,
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
 
-std::map<PubKey, std::array<unsigned char, 32>>
-DirectoryService::GetAllDSPoWs() {
+MapOfPubKeyPoW DirectoryService::GetAllDSPoWs() {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   return m_allDSPoWs;
 }
