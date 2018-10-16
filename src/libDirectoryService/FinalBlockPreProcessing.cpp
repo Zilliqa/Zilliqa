@@ -164,13 +164,21 @@ void DirectoryService::ComposeFinalBlock() {
 
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
+  // Compute the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+  }
+
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(type, version, allGasLimit, allGasUsed, prevHash, blockNum,
                     timestamp, microblockTxnTrieRoot, stateRoot,
                     microblockDeltaTrieRoot, stateDeltaHash,
                     microblockTranReceiptRoot, numTxs, numMicroBlocks,
                     m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
-                    CommitteeHash()),
+                    committeeHash),
       isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
@@ -813,6 +821,24 @@ bool DirectoryService::CheckBlockHash() {
                     << " Received: " << m_finalBlock->GetBlockHash().hex());
     return false;
   }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != m_finalBlock->GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received Tx Block doesn't match. "
+                "Calculated: "
+                    << committeeHash << " Received: "
+                    << m_pendingDSBlock->GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   return true;
 }
 
