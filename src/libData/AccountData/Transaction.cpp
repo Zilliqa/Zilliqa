@@ -92,7 +92,7 @@ Transaction::Transaction(const vector<unsigned char>& src,
   Deserialize(src, offset);
 }
 
-Transaction::Transaction(uint256_t version, const uint256_t& nonce,
+Transaction::Transaction(const uint256_t& version, const uint256_t& nonce,
                          const Address& toAddr, const KeyPair& senderKeyPair,
                          const uint256_t& amount, const uint256_t& gasPrice,
                          const uint256_t& gasLimit,
@@ -127,7 +127,26 @@ Transaction::Transaction(uint256_t version, const uint256_t& nonce,
   }
 }
 
-Transaction::Transaction(uint256_t version, const uint256_t& nonce,
+Transaction::Transaction(const TxnHash& tranID, const uint256_t& version,
+                         const uint256_t& nonce, const Address& toAddr,
+                         const PubKey& senderPubKey, const uint256_t& amount,
+                         const uint256_t& gasPrice, const uint256_t& gasLimit,
+                         const std::vector<unsigned char>& code,
+                         const std::vector<unsigned char>& data,
+                         const Signature& signature)
+    : m_tranID(tranID),
+      m_version(version),
+      m_nonce(nonce),
+      m_toAddr(toAddr),
+      m_senderPubKey(senderPubKey),
+      m_amount(amount),
+      m_gasPrice(gasPrice),
+      m_gasLimit(gasLimit),
+      m_code(code),
+      m_data(data),
+      m_signature(signature) {}
+
+Transaction::Transaction(const uint256_t& version, const uint256_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const uint256_t& amount, const uint256_t& gasPrice,
                          const uint256_t& gasLimit,
@@ -331,241 +350,3 @@ Transaction& Transaction::operator=(const Transaction& src) {
 
   return *this;
 }
-
-#if 0
-
-unsigned int Predicate::Serialize(vector<unsigned char> & dst, unsigned int offset) const
-{
-    LOG_MARKER();
-
-    unsigned int size_needed = sizeof(uint8_t) + ACC_ADDR_SIZE + sizeof(uint8_t) + UINT256_SIZE + ACC_ADDR_SIZE + ACC_ADDR_SIZE + UINT256_SIZE;
-    unsigned int size_remaining = dst.size() - offset;
-
-    if (size_remaining < size_needed)
-    {
-        dst.resize(size_needed + offset);
-    }
-
-    unsigned int curOffset = offset;
-
-    dst.at(curOffset) = m_type;
-    curOffset += sizeof(uint8_t);
-    copy(m_accConAddr.begin(), m_accConAddr.end(), dst.begin() + curOffset);
-    curOffset += ACC_ADDR_SIZE;
-    dst.at(curOffset) = m_ops;
-    curOffset += sizeof(uint8_t);
-    SetNumber<uint256_t>(dst, curOffset, m_accConBalance, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    copy(m_txConToAddr.begin(), m_txConToAddr.end(), dst.begin() + curOffset);
-    curOffset += ACC_ADDR_SIZE;
-    copy(m_txConFromAddr.begin(), m_txConFromAddr.end(), dst.begin() + curOffset);
-    curOffset += ACC_ADDR_SIZE;
-    SetNumber<uint256_t>(dst, curOffset, m_txConAmount, UINT256_SIZE);
-
-    return size_needed;
-}
-
-void Predicate::Deserialize(const vector<unsigned char> & src, unsigned int offset)
-{
-    LOG_MARKER();
-
-    unsigned int curOffset = offset;
-
-    m_type = src.at(curOffset);
-    curOffset += sizeof(uint8_t);
-    copy(src.begin() + offset + 1, src.begin() + offset + 1 + ACC_ADDR_SIZE, m_accConAddr.begin());
-    curOffset += ACC_ADDR_SIZE;
-    m_ops = src.at(curOffset);
-    curOffset += sizeof(uint8_t);
-    m_accConBalance = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE, m_txConToAddr.begin());
-    curOffset += ACC_ADDR_SIZE;
-    copy(src.begin() + curOffset, src.begin() + curOffset+ ACC_ADDR_SIZE, m_txConFromAddr.begin());
-    curOffset += ACC_ADDR_SIZE;
-    m_txConAmount = GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-}
-
-Predicate::Predicate()
-{
-    m_type = 0;
-}
-
-Predicate::Predicate(const vector<unsigned char> & src, unsigned int offset)
-{
-    Deserialize(src, offset);
-}
-
-Predicate::Predicate(uint8_t type, const array<unsigned char, ACC_ADDR_SIZE> & accConAddr, unsigned char ops, uint256_t accConBalance, const array<unsigned char, ACC_ADDR_SIZE> & txConToAddr, const array<unsigned char, ACC_ADDR_SIZE> & txConFromAddr, uint256_t txConAmount)
-    : m_type(type), m_accConAddr(accConAddr), m_ops(ops), m_accConBalance(accConBalance), m_txConToAddr(txConToAddr), m_txConFromAddr(txConFromAddr), m_txConAmount(txConAmount)
-{
-
-}
-
-Predicate::Predicate(uint8_t type, const array<unsigned char, ACC_ADDR_SIZE> & accConAddr, unsigned char accConOp, uint256_t accConBalance, const array<unsigned char, ACC_ADDR_SIZE> & txConToAddr, const array<unsigned char, ACC_ADDR_SIZE> & txConFromAddr, uint256_t txConAmount, unsigned char txConOp)
-    : m_type(type), m_accConAddr(accConAddr), m_accConBalance(accConBalance), m_txConToAddr(txConToAddr), m_txConFromAddr(txConFromAddr), m_txConAmount(txConAmount)
-{
-    m_ops = txConOp;
-    m_ops |= (accConOp << 4);
-}
-
-uint8_t Predicate::GetType() const
-{
-    return m_type;
-}
-
-const array<unsigned char, ACC_ADDR_SIZE> & Predicate::GetAccConAddr() const
-{
-    if((m_type & ACC_COND) != ACC_COND)
-    {
-        LOG_GENERAL(FATAL,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__
-                                         << ": " << __FUNCTION__ << ")");
-    }
-
-    return m_accConAddr;
-}
-
-uint8_t Predicate::GetAccConOp() const
-{
-    if((m_type & ACC_COND) != ACC_COND)
-    {
-        LOG_GENERAL(FATAL,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__
-                                         << ": " << __FUNCTION__ << ")");
-    }
-
-    return (m_ops & HIGH_BITS_MASK) >> 4;
-}
-
-uint256_t Predicate::GetAccConBalance() const
-{
-    if((m_type & ACC_COND) != ACC_COND)
-    {
-        LOG_GENERAL(FATAL,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__
-                                         << ": " << __FUNCTION__ << ")");
-    }
-
-    return m_accConBalance;
-}
-
-const array<unsigned char, ACC_ADDR_SIZE> & Predicate::GetTxConToAddr() const
-{
-    if((m_type & TX_COND) != TX_COND)
-    {
-        LOG_GENERAL(FATAL,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__
-                                         << ": " << __FUNCTION__ << ")");
-    }
-
-    return m_txConToAddr;
-}
-
-const array<unsigned char, ACC_ADDR_SIZE> & Predicate::GetTxConFromAddr() const
-{
-    if((m_type & TX_COND) != TX_COND)
-    {
-        LOG_GENERAL(FATAL,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__
-                                         << ": " << __FUNCTION__ << ")");
-    }
-
-    return m_txConFromAddr;
-}
-
-uint256_t Predicate::GetTxConAmount() const
-{
-    if((m_type & TX_COND) != TX_COND)
-    {
-        LOG_GENERAL(FATAL,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__
-                                         << ": " << __FUNCTION__ << ")");
-    }
-
-    return m_txConAmount;
-}
-
-unsigned char Predicate::GetTxConOp() const
-{
-    if((m_type & TX_COND) != TX_COND)
-    {
-        LOG_GENERAL(FATAL,
-                    "assertion failed (" << __FILE__ << ":" << __LINE__
-                                         << ": " << __FUNCTION__ << ")");
-    }
-
-    return m_ops & LOW_BITS_MASK;
-}
-
-bool Predicate::operator==(const Predicate & pred) const
-{
-    return ((m_type == pred.m_type) && (m_accConAddr == pred.m_accConAddr) && (m_ops == pred.m_ops) && (m_accConBalance == pred.m_accConBalance) && (m_txConToAddr == pred.m_txConToAddr) && (m_txConFromAddr == pred.m_txConFromAddr) && (m_txConAmount == pred.m_txConAmount));
-}
-
-bool Predicate::operator<(const Predicate & pred) const
-{
-    if (m_type < pred.m_type)
-    {
-        return true;
-    }
-    else if (m_type > pred.m_type)
-    {
-        return false;
-    }
-    else if (m_accConAddr < pred.m_accConAddr)
-    {
-        return true;
-    }
-    else if (m_accConAddr > pred.m_accConAddr)
-    {
-        return false;
-    }
-    else if (m_ops < pred.m_ops)
-    {
-        return true;
-    }
-    else if (m_ops > pred.m_ops)
-    {
-        return false;
-    }
-    else if (m_accConBalance < pred.m_accConBalance)
-    {
-        return true;
-    }
-    else if (m_accConBalance > pred.m_accConBalance)
-    {
-        return false;
-    }
-    else if (m_txConToAddr < pred.m_txConToAddr)
-    {
-        return true;
-    }
-    else if (m_txConToAddr > pred.m_txConToAddr)
-    {
-        return false;
-    }
-    else if (m_txConFromAddr < pred.m_txConFromAddr)
-    {
-        return true;
-    }
-    else if (m_txConFromAddr > pred.m_txConFromAddr)
-    {
-        return false;
-    }
-    else if (m_txConAmount < pred.m_txConAmount)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-bool Predicate::operator>(const Predicate & pred) const
-{
-    return !((*this == pred) || ((*this < pred)));
-}
-
-#endif
