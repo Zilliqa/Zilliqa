@@ -255,12 +255,12 @@ void DirectoryService::ScheduleViewChangeTimeout() {
   }
 }
 
-void DirectoryService::ComputeNewCandidateLeader() {
+bool DirectoryService::ComputeNewCandidateLeader() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComputeNewCandidateLeader not expected "
                 "to be called from LookUp node.");
-    return;
+    return true;
   }
 
   LOG_MARKER();
@@ -285,6 +285,7 @@ void DirectoryService::ComputeNewCandidateLeader() {
                                      committeeHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSCommitteeHash failed.");
+    return false;
   }
 
   {
@@ -301,6 +302,8 @@ void DirectoryService::ComputeNewCandidateLeader() {
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
+
+  return true;
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
@@ -329,7 +332,11 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the candidate leader DS node. Announcing to the rest.");
 
-  ComputeNewCandidateLeader();
+  if (!ComputeNewCandidateLeader()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DirectoryService::ComputeNewCandidateLeader failed");
+    return false;
+  }
 
   uint32_t consensusID = m_viewChangeCounter;
   // Create new consensus object

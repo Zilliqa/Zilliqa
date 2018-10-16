@@ -364,12 +364,12 @@ void Node::FallbackStop() {
   m_runFallback = false;
 }
 
-void Node::ComposeFallbackBlock() {
+bool Node::ComposeFallbackBlock() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComputeNewFallbackLeader not expected "
                 "to be called from LookUp node.");
-    return;
+    return true;
   }
 
   LOG_MARKER();
@@ -393,6 +393,7 @@ void Node::ComposeFallbackBlock() {
                                committeeHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetShardHash failed.");
+    return false;
   }
 
   {
@@ -410,6 +411,8 @@ void Node::ComposeFallbackBlock() {
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());
   }
+
+  return true;
 }
 
 void Node::RunConsensusOnFallback() {
@@ -461,7 +464,11 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the fallback leader node. Announcing to the rest.");
 
-  ComposeFallbackBlock();
+  if (!ComposeFallbackBlock()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Node::RunConsensusOnFallbackWhenLeader failed.");
+    return false;
+  }
 
   // Create new consensus object
   m_consensusBlockHash =
