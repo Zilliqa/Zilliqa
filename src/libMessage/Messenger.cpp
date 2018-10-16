@@ -518,6 +518,8 @@ void MicroBlockHeaderToProtobuf(
       *protoMicroBlockHeader.mutable_gaslimit());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       microBlockHeader.GetGasUsed(), *protoMicroBlockHeader.mutable_gasused());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      microBlockHeader.GetRewards(), *protoMicroBlockHeader.mutable_rewards());
   protoMicroBlockHeader.set_prevhash(microBlockHeader.GetPrevHash().data(),
                                      microBlockHeader.GetPrevHash().size);
   protoMicroBlockHeader.set_blocknum(microBlockHeader.GetBlockNum());
@@ -582,6 +584,7 @@ void ProtobufToMicroBlockHeader(
     MicroBlockHeader& microBlockHeader) {
   uint256_t gasLimit;
   uint256_t gasUsed;
+  uint256_t rewards;
   BlockHash prevHash;
   uint256_t timestamp;
   TxnHash txRootHash;
@@ -595,6 +598,8 @@ void ProtobufToMicroBlockHeader(
       protoMicroBlockHeader.gaslimit(), gasLimit);
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoMicroBlockHeader.gasused(), gasUsed);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoMicroBlockHeader.rewards(), rewards);
   copy(protoMicroBlockHeader.prevhash().begin(),
        protoMicroBlockHeader.prevhash().begin() +
            min((unsigned int)protoMicroBlockHeader.prevhash().size(),
@@ -633,7 +638,7 @@ void ProtobufToMicroBlockHeader(
 
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
-      protoMicroBlockHeader.shardid(), gasLimit, gasUsed, prevHash,
+      protoMicroBlockHeader.shardid(), gasLimit, gasUsed, rewards, prevHash,
       protoMicroBlockHeader.blocknum(), timestamp, txRootHash,
       protoMicroBlockHeader.numtxs(), minerPubKey,
       protoMicroBlockHeader.dsblocknum(), dsBlockHash, stateDeltaHash,
@@ -688,6 +693,8 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
       txBlockHeader.GetGasLimit(), *protoTxBlockHeader.mutable_gaslimit());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       txBlockHeader.GetGasUsed(), *protoTxBlockHeader.mutable_gasused());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      txBlockHeader.GetRewards(), *protoTxBlockHeader.mutable_rewards());
   protoTxBlockHeader.set_prevhash(txBlockHeader.GetPrevHash().data(),
                                   txBlockHeader.GetPrevHash().size);
   protoTxBlockHeader.set_blocknum(txBlockHeader.GetBlockNum());
@@ -776,6 +783,7 @@ void ProtobufToTxBlockHeader(
     TxBlockHeader& txBlockHeader) {
   uint256_t gasLimit;
   uint256_t gasUsed;
+  uint256_t rewards;
   BlockHash prevHash;
   uint256_t timestamp;
   TxBlockHashSet hash;
@@ -787,6 +795,8 @@ void ProtobufToTxBlockHeader(
       protoTxBlockHeader.gaslimit(), gasLimit);
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoTxBlockHeader.gasused(), gasUsed);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTxBlockHeader.rewards(), rewards);
   copy(protoTxBlockHeader.prevhash().begin(),
        protoTxBlockHeader.prevhash().begin() +
            min((unsigned int)protoTxBlockHeader.prevhash().size(),
@@ -840,7 +850,7 @@ void ProtobufToTxBlockHeader(
 
   txBlockHeader = TxBlockHeader(
       protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
-      gasUsed, prevHash, protoTxBlockHeader.blocknum(), timestamp,
+      gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), timestamp,
       hash.m_txRootHash, hash.m_stateRootHash, hash.m_deltaRootHash,
       hash.m_stateDeltaHash, hash.m_tranReceiptRootHash,
       protoTxBlockHeader.numtxs(), protoTxBlockHeader.nummicroblockhashes(),
@@ -1936,7 +1946,7 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
 
 bool Messenger::SetDSMicroBlockSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
-    const unsigned char microBlockType, const uint64_t blockNumber,
+    const unsigned char microBlockType, const uint64_t epochNumber,
     const vector<MicroBlock>& microBlocks,
     const vector<unsigned char>& stateDelta) {
   LOG_MARKER();
@@ -1944,7 +1954,7 @@ bool Messenger::SetDSMicroBlockSubmission(
   DSMicroBlockSubmission result;
 
   result.set_microblocktype(microBlockType);
-  result.set_blocknumber(blockNumber);
+  result.set_epochnumber(epochNumber);
   for (const auto& microBlock : microBlocks) {
     MicroBlockToProtobuf(microBlock, *result.add_microblocks());
   }
@@ -1963,7 +1973,7 @@ bool Messenger::SetDSMicroBlockSubmission(
 bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
                                           const unsigned int offset,
                                           unsigned char& microBlockType,
-                                          uint64_t& blockNumber,
+                                          uint64_t& epochNumber,
                                           vector<MicroBlock>& microBlocks,
                                           vector<unsigned char>& stateDelta) {
   LOG_MARKER();
@@ -1978,7 +1988,7 @@ bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
   }
 
   microBlockType = result.microblocktype();
-  blockNumber = result.blocknumber();
+  epochNumber = result.epochnumber();
   for (const auto& proto_mb : result.microblocks()) {
     MicroBlock microBlock;
     ProtobufToMicroBlock(proto_mb, microBlock);

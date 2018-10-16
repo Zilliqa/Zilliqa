@@ -110,9 +110,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     isNoSync = true;
 
     auto func = [this]() mutable -> void {
-      this_thread::sleep_for(chrono::milliseconds(NEW_NODE_SYNC_INTERVAL +
-                                                  POW_WINDOW_IN_SECONDS +
-                                                  FALLBACK_EXTRA_TIME));
+      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL +
+                                             POW_WINDOW_IN_SECONDS +
+                                             FALLBACK_EXTRA_TIME));
       if (m_stillMiningPrimary) {
         if (!GetOfflineLookups()) {
           LOG_GENERAL(WARNING, "Cannot sync currently");
