@@ -57,7 +57,7 @@ class Transaction : public Serializable {
   Transaction(const Transaction& src);
 
   /// Constructor with specified transaction fields.
-  Transaction(boost::multiprecision::uint256_t version,
+  Transaction(const boost::multiprecision::uint256_t& version,
               const boost::multiprecision::uint256_t& nonce,
               const Address& toAddr, const KeyPair& senderKeyPair,
               const boost::multiprecision::uint256_t& amount,
@@ -67,7 +67,19 @@ class Transaction : public Serializable {
               const std::vector<unsigned char>& data = {});
 
   /// Constructor with specified transaction fields.
-  Transaction(boost::multiprecision::uint256_t version,
+  Transaction(const TxnHash& tranID,
+              const boost::multiprecision::uint256_t& version,
+              const boost::multiprecision::uint256_t& nonce,
+              const Address& toAddr, const PubKey& senderPubKey,
+              const boost::multiprecision::uint256_t& amount,
+              const boost::multiprecision::uint256_t& gasPrice,
+              const boost::multiprecision::uint256_t& gasLimit,
+              const std::vector<unsigned char>& code,
+              const std::vector<unsigned char>& data,
+              const Signature& signature);
+
+  /// Constructor with specified transaction fields.
+  Transaction(const boost::multiprecision::uint256_t& version,
               const boost::multiprecision::uint256_t& nonce,
               const Address& toAddr, const PubKey& senderPubKey,
               const boost::multiprecision::uint256_t& amount,
@@ -153,63 +165,3 @@ class Transaction : public Serializable {
 };
 
 #endif  // __TRANSACTION_H__
-
-#if 0
-
-// ========================================================
-// The Predicate class facilitates conditional transactions
-// ========================================================
-
-// Each Predicate can specify a condition on the balance of 
-//   an account, or a condition on the existence of a prior
-//   transaction (A->B, amount), or both
-
-class Predicate: public Serializable
-{
-    uint8_t m_type; // 6 high bits reserved; bit0 (lowest): account condition active; bit1: transaction condition active
-    std::array<unsigned char, ACC_ADDR_SIZE> m_accConAddr; // for account condition: account address
-    uint8_t m_ops; // 4 high bits for account condition: account balance comparison operator: 
-                         //   000: ==, 001: !=, 010: >, 011: >=, 100: <, 101: <=
-                         // 4 low bits for tx cnodition:
-                         //   comparison operator. 0: on blockchain, 1: not on blockchain
-    boost::multiprecision::uint256_t m_accConBalance; // for account condition: balance specified
-    std::array<unsigned char, ACC_ADDR_SIZE> m_txConToAddr; // for transaction condition: to account address
-    std::array<unsigned char, ACC_ADDR_SIZE> m_txConFromAddr; // for transaction condition: from account address
-    boost::multiprecision::uint256_t m_txConAmount; // for transaction condition: the amount
-
-public:
-    unsigned int Serialize(std::vector<unsigned char> & dst, unsigned int offset) const;
-    void Deserialize(const std::vector<unsigned char> & src, unsigned int offset);
-
-    Predicate();
-
-    Predicate(const std::vector<unsigned char> & src, unsigned int offset);
-
-    Predicate(uint8_t type, const std::array<unsigned char, ACC_ADDR_SIZE> & accConAddr, unsigned char ops, boost::multiprecision::uint256_t accConBalance, const std::array<unsigned char, ACC_ADDR_SIZE> & txConToAddr, const std::array<unsigned char, ACC_ADDR_SIZE> & txConFromAddr, boost::multiprecision::uint256_t txConAmount);
-
-    Predicate(uint8_t type, const std::array<unsigned char, ACC_ADDR_SIZE> & accConAddr, unsigned char accConOp, boost::multiprecision::uint256_t accConBalance, const std::array<unsigned char, ACC_ADDR_SIZE> & txConToAddr, const std::array<unsigned char, ACC_ADDR_SIZE> & txConFromAddr, boost::multiprecision::uint256_t txConAmount, unsigned char txConOp);
-
-    uint8_t GetType() const;
-
-    const std::array<unsigned char, ACC_ADDR_SIZE> & GetAccConAddr() const;
-
-    uint8_t GetAccConOp() const;
-
-    boost::multiprecision::uint256_t GetAccConBalance() const;
-
-    const std::array<unsigned char, ACC_ADDR_SIZE> & GetTxConToAddr() const;
-
-    const std::array<unsigned char, ACC_ADDR_SIZE> & GetTxConFromAddr() const;
-
-    boost::multiprecision::uint256_t GetTxConAmount() const;
-
-    unsigned char GetTxConOp() const;
-
-    bool operator==(const Predicate & pred) const;
-
-    bool operator<(const Predicate & pred) const;
-
-    bool operator>(const Predicate & pred) const;
-};
-
-#endif

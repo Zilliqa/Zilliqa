@@ -31,7 +31,7 @@ The current release has the following features implemented:
 * Network sharding
 * Transaction sharding
 * Directory Service
-* Consensus for DS block (with sharding structure), Shard microblock and Final block 
+* Consensus for DS block (with sharding structure), Shard microblock, DS microblock, and Final block 
 * [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
 * Data layer and accounts store 
 * Looking up nodes to allow new nodes to join 
@@ -42,10 +42,10 @@ The current release has the following features implemented:
 * [Zilliqa Wallet](https://github.com/Zilliqa/Zilliqa-Wallet)
 * [Smart contract design and implementation](https://scilla.readthedocs.io)
 * [GPU (OpenCL and CUDA) support](https://github.com/Zilliqa/Zilliqa/wiki/GPU-mining) for PoW
+* Gossip protocol for network message broadcasting
 
 In the coming months, we plan to have the following features:
 
-* Gossip protocol for network message broadcasting
 * Incentive structure
 * Further unit and integration tests
 * Enhancement of existing features
