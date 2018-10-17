@@ -20,3 +20,7 @@ message GetDSBlockRequest
     required string blocknum = 1;
 }
 
+message GetTxBlockRequest
+{
+	required string blocknum = 1;
+}

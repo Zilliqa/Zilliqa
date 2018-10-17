@@ -17,8 +17,6 @@
  * program files.
  */
 
-#include <jsonrpccpp/server.h>
-#include <jsonrpccpp/server/connectors/httpserver.h>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <mutex>
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
@@ -57,6 +55,8 @@ class Server {
   GetTransactionResponse GetTransaction(GetTransactionRequest& request);
 
   GetDSBlockResponse GetDsBlock(GetDSBlockRequest& request);
+
+  GetTxBlockResponse GetTxBlock(GetTxBlockRequest& request);
 
 };
 
