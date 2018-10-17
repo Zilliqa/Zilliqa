@@ -487,9 +487,12 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
   if (!_json.isMember("message") || !_json.isMember("states")) {
-    LOG_GENERAL(WARNING,
-                "The json output of this contract is corrupted or create "
-                "contract failed");
+    if (_json.isMember("errors")) {
+      m_curTranReceipt.AddInterpreterError(_json["errors"]);
+      LOG_GENERAL(WARNING, "Contract creation failed");
+    } else {
+      LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+    }
     return false;
   }
 
