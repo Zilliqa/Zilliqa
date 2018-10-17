@@ -45,10 +45,9 @@ class Server {
   ~Server();
 
   DefaultResponse GetClientVersion();
-
   DefaultResponse GetNetworkId();
-
   DefaultResponse GetProtocolVersion();
+  DefaultResponse GetGasPrice();
 
   CreateTransactionResponse CreateTransaction(CreateTransactionRequest& request);
 
@@ -58,5 +57,8 @@ class Server {
 
   GetTxBlockResponse GetTxBlock(GetTxBlockRequest& request);
 
-};
+  GetDSBlockResponse GetLatestDsBlock();
 
+  GetTxBlockResponse GetLatestTxBlock();
+
+};
