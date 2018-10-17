@@ -263,8 +263,9 @@ bool DirectoryService::VerifyDifficulty() {
   auto localDSDifficulty = CalculateNewDSDifficulty(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty());
   constexpr uint8_t DIFFICULTY_TOL = 1;
-  if (remoteDSDifficulty < localDSDifficulty ||
-      (remoteDSDifficulty - localDSDifficulty > DIFFICULTY_TOL)) {
+  if (std::max(remoteDSDifficulty, localDSDifficulty) -
+          std::min(remoteDSDifficulty, localDSDifficulty) >
+      DIFFICULTY_TOL) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "WARNING: The ds difficulty "
                   << std::to_string(remoteDSDifficulty)
@@ -277,8 +278,9 @@ bool DirectoryService::VerifyDifficulty() {
   auto remoteDifficulty = m_pendingDSBlock->GetHeader().GetDifficulty();
   auto localDifficulty = CalculateNewDifficulty(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
-  if (remoteDifficulty < localDifficulty ||
-      (remoteDifficulty - localDifficulty > DIFFICULTY_TOL)) {
+  if (std::max(remoteDifficulty, localDifficulty) -
+          std::min(remoteDifficulty, localDifficulty) >
+      DIFFICULTY_TOL) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "WARNING: The difficulty "
                   << std::to_string(remoteDifficulty)
