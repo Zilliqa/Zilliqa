@@ -134,7 +134,6 @@ extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
-extern const unsigned int MAXSUBMITTXNPERNODE;
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
@@ -177,6 +176,7 @@ extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
 extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
 extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
+extern const unsigned int MAX_CONTRACT_DEPTH;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
