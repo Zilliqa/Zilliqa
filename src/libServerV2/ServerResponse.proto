@@ -19,3 +19,16 @@ message CreateTransactionResponse
     optional string contractaddress = 4;
 }
 
+message GetTransactionResponse
+{
+    optional string error = 1;
+    optional ProtoTransaction tx = 2;
+    optional string receipt = 3;
+}
+
+message GetDSBlockResponse
+{
+    optional string error = 1;
+    optional ProtoDSBlock dsblock = 2;
+}
+

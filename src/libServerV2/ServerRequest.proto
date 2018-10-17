@@ -10,3 +10,13 @@ message CreateTransactionRequest
     required ProtoTransaction tx = 1;
 }
 
+message GetTransactionRequest
+{
+    required string txhash = 1;
+}
+
+message GetDSBlockRequest
+{
+    required string blocknum = 1;
+}
+
