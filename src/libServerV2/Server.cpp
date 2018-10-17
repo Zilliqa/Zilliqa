@@ -94,6 +94,16 @@ DefaultResponse Server::GetProtocolVersion() {
 }
 
 
+DefaultResponse Server::GetGasPrice() {
+  DefaultResponse ret;
+  return ret;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& request) {
   LOG_MARKER();
 
@@ -245,7 +255,6 @@ GetDSBlockResponse Server::GetDsBlock(GetDSBlockRequest& request) {
     // Convert DSBlock to proto.
     ProtoDSBlock protoDSBlock;
     DSBlockToProtobuf(dsblock, protoDSBlock);
-
     ret.set_allocated_dsblock(&protoDSBlock);
   } catch (const char* msg) {
     ret.set_error(msg);
@@ -284,7 +293,6 @@ GetTxBlockResponse Server::GetTxBlock(GetTxBlockRequest& request) {
     // Convert txblock to proto.
     ProtoTxBlock protoTxBlock;
     TxBlockToProtobuf(txblock, protoTxBlock);
-
     ret.set_allocated_txblock(&protoTxBlock);
   } catch (const char* msg) {
     ret.set_error(msg);
@@ -301,6 +309,50 @@ GetTxBlockResponse Server::GetTxBlock(GetTxBlockRequest& request) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     ret.set_error("Unable to Process");
   }
+
+  return ret;
+}
+
+
+GetDSBlockResponse Server::GetLatestDsBlock() {
+  LOG_MARKER();
+
+  GetDSBlockResponse ret;
+
+  // Retrieve the latest DS block.
+  DSBlock dsblock = m_mediator.m_dsBlockChain.GetLastBlock();
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "BlockNum " << dsblock.GetHeader().GetBlockNum()
+                        << "  Timestamp:        "
+                        << dsblock.GetHeader().GetTimestamp().str());
+
+  // Convert DSBlock to proto.
+  ProtoDSBlock protoDSBlock;
+  DSBlockToProtobuf(dsblock, protoDSBlock);
+  ret.set_allocated_dsblock(&protoDSBlock);
+
+  return ret;
+}
+
+
+GetTxBlockResponse Server::GetLatestTxBlock() {
+  LOG_MARKER();
+
+  GetTxBlockResponse ret;
+
+  // Get the latest tx block.
+  TxBlock txblock = m_mediator.m_txBlockChain.GetLastBlock();
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "BlockNum " << txblock.GetHeader().GetBlockNum()
+                        << "  Timestamp:        "
+                        << txblock.GetHeader().GetTimestamp().str());
+
+  // Convert txblock to proto.
+  ProtoTxBlock protoTxBlock;
+  TxBlockToProtobuf(txblock, protoTxBlock);
+  ret.set_allocated_txblock(&protoTxBlock);
 
   return ret;
 }
