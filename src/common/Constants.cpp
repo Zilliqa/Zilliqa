@@ -78,7 +78,7 @@ unsigned int ReadGpuConstants(std::string propertyName) {
   return pt.get<unsigned int>("node.gpu." + propertyName);
 }
 
-std::string ReadGpuVariable(std::string propertyName) {
+std::string ReadGPUVariableFromConstantsFile(std::string propertyName) {
   auto pt = PTree::GetInstance();
   return pt.get<std::string>("node.gpu." + propertyName);
 }
@@ -238,7 +238,7 @@ const bool USE_REMOTE_TXN_CREATOR{
     ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
 const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 
-const std::string GPU_TO_USE{ReadGpuVariable("GPU_TO_USE")};
+const std::string GPU_TO_USE{ReadGPUVariableFromConstantsFile("GPU_TO_USE")};
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
 const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
