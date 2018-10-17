@@ -92,6 +92,10 @@ void TransactionReceipt::AddEntry(const LogEntry& entry) {
   m_tranReceiptObj["event_logs"].append(entry.GetJsonObject());
 }
 
+void TransactionReceipt::AddInterpreterError(const Json::Value& errorObj) {
+  m_tranReceiptObj["interpreter_errors"] = errorObj;
+}
+
 void TransactionReceipt::clear() {
   m_tranReceiptStr.clear();
   m_tranReceiptObj.clear();
