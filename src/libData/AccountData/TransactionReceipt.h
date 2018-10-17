@@ -47,7 +47,6 @@ class TransactionReceipt : public Serializable {
   void SetResult(const bool& result);
   void SetCumGas(const boost::multiprecision::uint256_t& cumGas);
   void AddEntry(const LogEntry& entry);
-  void AddInterpreterError(const Json::Value& errorObj);
   const std::string& GetString() const { return m_tranReceiptStr; }
   const boost::multiprecision::uint256_t& GetCumGas() { return m_cumGas; }
   void clear();
