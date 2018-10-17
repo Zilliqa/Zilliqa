@@ -49,7 +49,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     vim \
     && rm -rf /var/lib/apt/lists/* \
     && pip install setuptools \
-    && pip install kubernetes
+    && pip install kubernetes \
+    && pip uninstall urllib3 --yes \
+    && pip install urllib3==1.23
 EOF
 
 docker push ${registry_url}
