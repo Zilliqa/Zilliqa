@@ -235,7 +235,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // Final Block functions
   bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool RunConsensusOnFinalBlockWhenDSBackup();
-  void ComposeFinalBlock();
+  bool ComposeFinalBlock();
   bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
   void CommitMBSubmissionMsgBuffer();
   bool ProcessMicroblockSubmissionFromShard(
@@ -332,7 +332,7 @@ class DirectoryService : public Executable, public Broadcastable {
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
-  void ComputeNewCandidateLeader();
+  bool ComputeNewCandidateLeader();
   bool RunConsensusOnViewChangeWhenCandidateLeader();
   bool RunConsensusOnViewChangeWhenNotCandidateLeader();
   void ProcessViewChangeConsensusWhenDone();

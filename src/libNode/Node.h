@@ -334,7 +334,7 @@ class Node : public Executable, public Broadcastable {
                          std::vector<unsigned char>& messageToCosign);
   void UpdateFallbackConsensusLeader();
   void SetLastKnownGoodState();
-  void ComposeFallbackBlock();
+  bool ComposeFallbackBlock();
   void RunConsensusOnFallback();
   bool RunConsensusOnFallbackWhenLeader();
   bool RunConsensusOnFallbackWhenBackup();
