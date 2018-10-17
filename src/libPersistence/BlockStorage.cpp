@@ -493,7 +493,7 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
 }
 
 bool BlockStorage::GetShardStructure(DequeOfShard& shards,
-                                     atomic<uint32_t> myshardId) {
+                                     atomic<uint32_t>& myshardId) {
   LOG_MARKER();
 
   unsigned int index = 0;
@@ -512,12 +512,15 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
   LOG_MARKER();
 
   if (0 != m_stateDeltaDB->Insert(finalBlockNum, stateDelta)) {
-    LOG_GENERAL(WARNING, "Failed to store state delta of final block: "
-                             << finalBlockNum);
+    LOG_GENERAL(WARNING, "Failed to store state delta of final block["
+                             << finalBlockNum << "]: "
+                             << DataConversion::Uint8VecToHexStr(stateDelta));
     return false;
   }
 
-  LOG_GENERAL(INFO, "Stored state delta of final block: " << finalBlockNum);
+  LOG_GENERAL(INFO, "Stored state delta of final block["
+                        << finalBlockNum << "]: "
+                        << DataConversion::Uint8VecToHexStr(stateDelta));
   return true;
 }
 
@@ -527,7 +530,9 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
 
   string dataStr = m_stateDeltaDB->Lookup(finalBlockNum);
   stateDelta = vector<unsigned char>(dataStr.begin(), dataStr.end());
-  LOG_GENERAL(INFO, "Retrieved state delta of final block: " << finalBlockNum);
+  LOG_GENERAL(INFO, "Retrieved state delta of final block["
+                        << finalBlockNum << "]: "
+                        << DataConversion::Uint8VecToHexStr(stateDelta));
   return true;
 }
 
