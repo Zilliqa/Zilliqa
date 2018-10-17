@@ -53,6 +53,10 @@ const unsigned int REF_BLOCK_DIFF = 5;
 
 // Forward declaration.
 void ProtobufToTransaction(const ProtoTransaction& protoTransaction, Transaction& transaction);
+void TransactionToProtobuf(const Transaction& transaction, ProtoTransaction& protoTransaction);
+void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
+void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
+
 
 Server::Server(Mediator& mediator) : m_mediator(mediator) {
   m_StartTimeTx = 0;
@@ -71,6 +75,25 @@ Server::~Server() {
 }
 
 
+DefaultResponse Server::GetClientVersion() {
+  DefaultResponse ret;
+  return ret;
+}
+
+
+DefaultResponse Server::GetNetworkId() {
+  DefaultResponse ret;
+  ret.set_result("TestNet");
+  return ret;
+}
+
+
+DefaultResponse Server::GetProtocolVersion() {
+  DefaultResponse ret;
+  return ret;
+}
+
+
 CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& request) {
   LOG_MARKER();
 
@@ -80,6 +103,10 @@ CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& re
 
     // Convert Protobuf transaction to Transaction.
     Transaction tx;
+    if (!request.has_tx()) {
+      ret.set_error("Tx not present in request");
+      return ret;
+    }
     ProtobufToTransaction(request.tx(), tx);
 
     // NOTE: Do we need to check if ProtobufToTransaction() failed?
@@ -153,3 +180,89 @@ CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& re
 
   return ret;
 }
+
+
+GetTransactionResponse Server::GetTransaction(GetTransactionRequest& request) {
+  LOG_MARKER();
+
+  GetTransactionResponse ret;
+
+  try {
+    // Check if txhash is set in request.
+    if (!request.has_txhash()) {
+      ret.set_error("Tx hash not set in request");
+      return ret;
+    }
+
+    // Validate the txhash.
+    TxBodySharedPtr tptr;
+    TxnHash tranHash(request.txhash());
+    if (request.txhash().size() != TRAN_HASH_SIZE * 2) {
+      ret.set_error("Size not appropriate");
+      return ret;
+    }
+
+    // Retrieve the tx if it exists.
+    bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
+    if (!isPresent || tptr == nullptr) {
+      ret.set_error("Txn Hash not Present");
+      return ret;
+    }
+
+    // Convert Transaction to proto.
+    ProtoTransaction protoTx;
+    TransactionToProtobuf(tptr->GetTransaction(), protoTx);
+    ret.set_allocated_tx(&protoTx);
+
+    ret.set_receipt(tptr->GetTransactionReceipt().GetString());
+
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << request.txhash());
+    ret.set_error("Unable to Process");
+  }
+
+  return ret;
+}
+
+
+GetDSBlockResponse Server::GetDsBlock(GetDSBlockRequest& request) {
+  LOG_MARKER();
+
+  uint64_t blockNum;
+  GetDSBlockResponse ret;
+
+  try {
+    // Convert string "blocknum" to ULL.
+    if (!request.has_blocknum()) {
+      ret.set_error("Blocknum not set in request");
+      return ret;
+    }
+    blockNum = stoull(request.blocknum());
+
+    // Get the DS block.
+    DSBlock dsblock = m_mediator.m_dsBlockChain.GetBlock(blockNum);
+
+    // Convert DSBlock to proto.
+    ProtoDSBlock protoDSBlock;
+    DSBlockToProtobuf(dsblock, protoDSBlock);
+
+    ret.set_allocated_dsblock(&protoDSBlock);
+  } catch (const char* msg) {
+    ret.set_error(msg);
+  } catch (runtime_error& e) {
+    LOG_GENERAL(INFO, "Error " << e.what());
+    ret.set_error("String not numeric");
+  } catch (invalid_argument& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    ret.set_error("Invalid arugment");
+  } catch (out_of_range& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    ret.set_error("Out of range");
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    ret.set_error("Unable to Process");
+  }
+
+  return ret;
+}
+
