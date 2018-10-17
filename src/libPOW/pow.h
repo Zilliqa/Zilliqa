@@ -97,6 +97,7 @@ class POW {
                                            uint8_t difficulty);
   bool CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                            uint8_t difficulty);
+  static std::vector<unsigned int> GetGpuToUse();
 
  private:
   ethash_light_t ethash_light_client;
