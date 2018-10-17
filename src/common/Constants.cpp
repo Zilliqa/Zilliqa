@@ -188,6 +188,8 @@ const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{
     ReadFromConstantsFile("NUM_OF_TREEBASED_CHILD_CLUSTERS")};
 const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
     ReadFromConstantsFile("FETCH_LOOKUP_MSG_MAX_RETRY")};
+const unsigned int MAX_CONTRACT_DEPTH{
+    ReadFromConstantsFile("MAX_CONTRACT_DEPTH")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
