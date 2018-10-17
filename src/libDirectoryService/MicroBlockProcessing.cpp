@@ -216,6 +216,21 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
+  CommitteeHash committeeHash;
+  if (!Messenger::GetShardHash(m_shards.at(shardId), committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardHash failed.");
+    return false;
+  }
+  if (committeeHash != microBlock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING, "Microblock committee hash mismatched"
+                             << endl
+                             << "expected: " << committeeHash << endl
+                             << "received: "
+                             << microBlock.GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   // Verify the co-signature
   if (!VerifyMicroBlockCoSignature(microBlock, shardId)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -288,7 +303,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                     "Timeout: Didn't finish DS Microblock. Proceeds "
                     "without it");
 
-        RunConsensusOnFinalBlock(true);
+        RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
       }
     };
 

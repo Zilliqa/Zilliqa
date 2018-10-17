@@ -169,7 +169,7 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  // Check shard'
+  // Check shard
   uint32_t shard_id = fallbackblock.GetHeader().GetShardId();
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
@@ -179,6 +179,23 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
                   "The shard doesn't exist here for this id " << shard_id);
       return false;
     }
+
+    CommitteeHash committeeHash;
+    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shard_id),
+                                 committeeHash)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::GetShardHash failed.");
+      return false;
+    }
+    if (committeeHash != fallbackblock.GetHeader().GetCommitteeHash()) {
+      LOG_GENERAL(WARNING, "Fallback committee hash mismatched"
+                               << endl
+                               << "expected: " << committeeHash << endl
+                               << "received: "
+                               << fallbackblock.GetHeader().GetCommitteeHash());
+      return false;
+    }
+
 
     // Check consensus leader network info and pubkey
     uint32_t leaderConsensusId =
