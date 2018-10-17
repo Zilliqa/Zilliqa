@@ -708,6 +708,23 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != txBlock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received Tx Block doesn't match. "
+                "Calculated: "
+                    << committeeHash
+                    << " Received: " << txBlock.GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "DEBUG shard id is " << (unsigned int)shardId)
 
