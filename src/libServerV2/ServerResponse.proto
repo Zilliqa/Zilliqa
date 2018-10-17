@@ -38,4 +38,9 @@ message GetTxBlockResponse
     optional ProtoTxBlock txblock = 2;
 }
 
-
+message GetBalanceResponse
+{
+    optional string error = 1;
+    optional ByteArray balance = 2;
+    optional ByteArray nonce = 3;
+}

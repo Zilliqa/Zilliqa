@@ -50,12 +50,13 @@ const unsigned int TXN_PAGE_SIZE = 100;
 //[warning] do not make this constant too big as it loops over blockchain
 const unsigned int REF_BLOCK_DIFF = 5;
 
-// Forward declaration.
+// Forward declarations (implementation in libMessage).
 void ProtobufToTransaction(const ProtoTransaction& protoTransaction, Transaction& transaction);
 void TransactionToProtobuf(const Transaction& transaction, ProtoTransaction& protoTransaction);
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
+void NumberToProtobufByteArray(const boost::multiprecision::uint256_t& number, ByteArray& byteArray);
 
 
 Server::Server(Mediator& mediator) : m_mediator(mediator) {
@@ -353,6 +354,59 @@ GetTxBlockResponse Server::GetLatestTxBlock() {
   ProtoTxBlock protoTxBlock;
   TxBlockToProtobuf(txblock, protoTxBlock);
   ret.set_allocated_txblock(&protoTxBlock);
+
+  return ret;
+}
+
+
+GetBalanceResponse Server::GetBalance(GetBalanceRequest &request) {
+  LOG_MARKER();
+
+  GetBalanceResponse ret;
+
+  try {
+    if (!request.has_address()) {
+      ret.set_error("Address not set in request");
+      return ret;
+    }
+
+    if (request.address().size() != ACC_ADDR_SIZE * 2) {
+      ret.set_error("Address size not appropriate");
+      return ret;
+    }
+
+    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(request.address());
+    Address addr(tmpaddr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+    if (account != nullptr) {
+      boost::multiprecision::uint256_t balance = account->GetBalance();
+      boost::multiprecision::uint256_t nonce = account->GetNonce();
+
+      ByteArray balanceByteArray;
+      NumberToProtobufByteArray(balance, balanceByteArray);
+      ret.set_allocated_balance(&balanceByteArray);
+
+      ByteArray nonceByteArray;
+      NumberToProtobufByteArray(nonce, nonceByteArray);
+      ret.set_allocated_nonce(&nonceByteArray);
+
+      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
+                                   << nonce.convert_to<unsigned int>());
+    } else if (account == nullptr) {
+      ByteArray balanceByteArray;
+      NumberToProtobufByteArray(0, balanceByteArray);
+      ret.set_allocated_balance(&balanceByteArray);
+
+      ByteArray nonceByteArray;
+      NumberToProtobufByteArray(0, nonceByteArray);
+      ret.set_allocated_nonce(&nonceByteArray);
+    }
+
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << request.address());
+    ret.set_error("Unable To Process");
+  }
 
   return ret;
 }
