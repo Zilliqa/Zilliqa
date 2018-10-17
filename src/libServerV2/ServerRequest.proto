@@ -24,3 +24,8 @@ message GetTxBlockRequest
 {
 	required string blocknum = 1;
 }
+
+message GetBalanceRequest
+{
+	required string address = 1;
+}
