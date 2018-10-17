@@ -185,7 +185,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutShardStructure(const DequeOfShard& shards, const uint32_t myshardId);
 
   /// Retrieve shard structure
-  bool GetShardStructure(DequeOfShard& shards, std::atomic<uint32_t> myshardId);
+  bool GetShardStructure(DequeOfShard& shards,
+                         std::atomic<uint32_t>& myshardId);
 
   /// Save state delta
   bool PutStateDelta(const uint64_t& finalBlockNum,

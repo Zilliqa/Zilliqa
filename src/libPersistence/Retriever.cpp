@@ -107,14 +107,15 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
     return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
   });
 
+  unsigned int totalSize = blocks.size();
+  unsigned int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
+
   if (wakeupForUpgrade ||
       (blocks.back()->GetHeader().GetBlockNum() + NUM_VACUOUS_EPOCHS) %
               NUM_FINAL_BLOCK_PER_POW ==
           0) {
     // truncate the extra final blocks at last
-    int totalSize = blocks.size();
-    int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
-    for (int i = 0; i < extra_txblocks; ++i) {
+    for (unsigned int i = 0; i < extra_txblocks; ++i) {
       BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
       blocks.pop_back();
     }
@@ -134,6 +135,23 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
                NUM_FINAL_BLOCK_PER_POW ==
            0)) {
     result = false;
+    return;
+  }
+
+  /// Retrieve state delta from last DS epoch to current TX epoch
+  for (const auto& block : blocks) {
+    if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
+      std::vector<unsigned char> stateDelta;
+      BlockStorage::GetBlockStorage().GetStateDelta(
+          block->GetHeader().GetBlockNum(), stateDelta);
+
+      if (AccountStore::GetInstance().DeserializeDelta(stateDelta, 0) != 0) {
+        LOG_GENERAL(WARNING,
+                    "AccountStore::GetInstance().DeserializeDelta failed");
+        result = false;
+        return;
+      }
+    }
   }
 }
 

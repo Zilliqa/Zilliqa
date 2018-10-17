@@ -774,8 +774,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                                   txBlock.GetHeader().GetStateDeltaHash());
 
   BlockStorage::GetBlockStorage().PutStateDelta(
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-      stateDelta);
+      txBlock.GetHeader().GetBlockNum(), stateDelta);
 
   if (!LOOKUP_NODE_MODE &&
       (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {

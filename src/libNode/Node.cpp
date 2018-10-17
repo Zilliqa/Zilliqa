@@ -293,6 +293,7 @@ bool Node::StartRetrieveHistory() {
     }
   }
 
+  bool st_result = m_retriever->RetrieveStates();
   bool tx_result;
   m_retriever->RetrieveTxBlocks(tx_result, wakeupForUpgrade);
 
@@ -304,9 +305,10 @@ bool Node::StartRetrieveHistory() {
   /// Removing incompleted DS for upgrading protocol
   /// Keeping incompleted DS for node recovery
   m_retriever->RetrieveDSBlocks(ds_result, wakeupForUpgrade);
-  bool st_result = m_retriever->RetrieveStates();
-  bool res = false;
+  BlockStorage::GetBlockStorage().GetShardStructure(
+      m_mediator.m_ds->m_shards, m_mediator.m_node->m_myshardId);
 
+  bool res = false;
   if (st_result && ds_result && tx_result) {
     if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates()) ||
         (LOOKUP_NODE_MODE && m_retriever->ValidateStates() &&

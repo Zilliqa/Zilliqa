@@ -73,6 +73,12 @@ void DirectoryService::StoreFinalBlockToDisk() {
   m_finalBlock->Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(
       m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock);
+
+  vector<unsigned char> stateDelta;
+  AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+  BlockStorage::GetBlockStorage().PutStateDelta(
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+      stateDelta);
 }
 
 bool DirectoryService::SendFinalBlockToLookupNodes() {
@@ -305,11 +311,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo, my_shards_hi);
   SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
-  vector<unsigned char> stateDelta;
-  AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-  BlockStorage::GetBlockStorage().PutStateDelta(
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-      stateDelta);
 
   LOG_STATE(
       "[FLBLK]["
