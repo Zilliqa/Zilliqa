@@ -62,6 +62,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool m_curIsDS;
   TransactionReceipt m_curTranReceipt;
 
+  unsigned int m_curDepth = 0;
+
   bool ParseCreateContractOutput(boost::multiprecision::uint256_t& gasRemained);
   bool ParseCreateContractJsonOutput(
       const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained);
