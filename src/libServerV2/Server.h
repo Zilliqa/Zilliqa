@@ -27,6 +27,8 @@
 #include "ServerRequest.pb.h"
 #include "ServerResponse.pb.h"
 
+using namespace ZilliqaMessage;
+
 class Mediator;
 
 class Server {
@@ -44,5 +46,17 @@ class Server {
   Server(Mediator& mediator);
   ~Server();
 
-  ZilliqaMessage::CreateTransactionResponse CreateTransaction(ZilliqaMessage::CreateTransactionRequest& request);
+  DefaultResponse GetClientVersion();
+
+  DefaultResponse GetNetworkId();
+
+  DefaultResponse GetProtocolVersion();
+
+  CreateTransactionResponse CreateTransaction(CreateTransactionRequest& request);
+
+  GetTransactionResponse GetTransaction(GetTransactionRequest& request);
+
+  GetDSBlockResponse GetDsBlock(GetDSBlockRequest& request);
+
 };
+
