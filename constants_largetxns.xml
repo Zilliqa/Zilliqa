@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <!-- format guideline: non-tab four-space indentation -->
 <!-- These constant settings are experimental with scaling tesnet for better tps. -->
-<!-- Used with 1000-nodes testnet ( 100 DS nodes, 4 shards with 200 nodes each ) and tps observed is 373 -->
+<!-- Used with 1000-nodes testnet ( 100 DS nodes, 4 shards with 200 nodes each ) and TPS observed is 373 -->
+<!-- Make sure you update the tps, if its better after updating any of paramters. -->
 <node>
     <constants>
         <MSG_VERSION>1</MSG_VERSION>
