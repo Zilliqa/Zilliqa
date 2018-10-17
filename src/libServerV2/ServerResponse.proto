@@ -32,3 +32,10 @@ message GetDSBlockResponse
     optional ProtoDSBlock dsblock = 2;
 }
 
+message GetTxBlockResponse
+{
+    optional string error = 1;
+    optional ProtoTxBlock txblock = 2;
+}
+
+
