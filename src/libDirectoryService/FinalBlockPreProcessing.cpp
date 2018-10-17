@@ -1036,7 +1036,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   return true;
 }
 
-void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta) {
+void DirectoryService::RunConsensusOnFinalBlock(
+    RunFinalBlockConsensusOptions options) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnFinalBlock not expected "
@@ -1068,17 +1069,22 @@ void DirectoryService::RunConsensusOnFinalBlock(bool revertStateDelta) {
 
     m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
-    if (revertStateDelta) {
-      LOG_GENERAL(WARNING,
-                  "Failed DS microblock consensus, revert state delta");
-      AccountStore::GetInstance().InitTemp();
-      AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
-                                                       0);
+    switch (options) {
+      case NORMAL:
+        AccountStore::GetInstance().SerializeDelta();
+        AccountStore::GetInstance().CommitTempReversible();
+        break;
+      case REVERT_STATEDELTA:
+        LOG_GENERAL(WARNING,
+                    "Failed DS microblock consensus, revert state delta");
+        AccountStore::GetInstance().InitTemp();
+        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
+                                                         0);
+        break;
+      case FROM_VIEWCHANGE:
+      default:
+        break;
     }
-
-    AccountStore::GetInstance().SerializeDelta();
-
-    AccountStore::GetInstance().CommitTempReversible();
 
     // Upon consensus object creation failure, one should not return from the
     // function, but rather wait for view change.

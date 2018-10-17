@@ -1051,7 +1051,7 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg) {
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
     // Check COINBASE_REWARD + totalTxnFees
-    uint256_t rewards;
+    uint256_t rewards = 0;
     if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees,
                                   COINBASE_REWARD, rewards)) {
       LOG_GENERAL(WARNING, "total_reward addition unsafe!");
