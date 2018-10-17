@@ -61,4 +61,6 @@ class Server {
 
   GetTxBlockResponse GetLatestTxBlock();
 
+  GetBalanceResponse GetBalance(GetBalanceRequest &request);
+
 };
