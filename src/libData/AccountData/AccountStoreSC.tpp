@@ -555,9 +555,12 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   if (!_json.isMember("message") || !_json.isMember("states") ||
       !_json.isMember("events")) {
-    LOG_GENERAL(WARNING,
-                "The json output of this contract is corrupted or call "
-                "transition failed");
+    if (_json.isMember("errors")) {
+      m_curTranReceipt.AddInterpreterError(_json["errors"]);
+      LOG_GENERAL(WARNING, "Call contract failed");
+    } else {
+      LOG_GENERAL(WARNING, "The json output of this contract is corrupted");
+    }
     return false;
   }
 
