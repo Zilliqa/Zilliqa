@@ -359,6 +359,12 @@ class DirectoryService : public Executable, public Broadcastable {
     ERROR
   };
 
+  enum RunFinalBlockConsensusOptions : unsigned char {
+    NORMAL = 0x00,
+    REVERT_STATEDELTA,
+    FROM_VIEWCHANGE
+  };
+
   /// Transaction sharing assignments
   std::vector<Peer> m_DSReceivers;
   std::vector<std::vector<Peer>> m_shardReceivers;
@@ -461,7 +467,7 @@ class DirectoryService : public Executable, public Broadcastable {
   /// network
   bool FinishRejoinAsDS();
 
-  void RunConsensusOnFinalBlock(bool revertStateDelta = false);
+  void RunConsensusOnFinalBlock(RunFinalBlockConsensusOptions options = NORMAL);
 
   // Coinbase
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,

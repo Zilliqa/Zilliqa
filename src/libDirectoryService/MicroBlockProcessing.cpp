@@ -288,7 +288,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                     "Timeout: Didn't finish DS Microblock. Proceeds "
                     "without it");
 
-        RunConsensusOnFinalBlock(true);
+        RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
       }
     };
 
