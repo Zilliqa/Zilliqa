@@ -37,7 +37,6 @@
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
 
-using namespace jsonrpc;
 using namespace std;
 using namespace ZilliqaMessage;
 
@@ -56,6 +55,7 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction, Transaction
 void TransactionToProtobuf(const Transaction& transaction, ProtoTransaction& protoTransaction);
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
+void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
 
 
 Server::Server(Mediator& mediator) : m_mediator(mediator) {
@@ -266,3 +266,41 @@ GetDSBlockResponse Server::GetDsBlock(GetDSBlockRequest& request) {
   return ret;
 }
 
+GetTxBlockResponse Server::GetTxBlock(GetTxBlockRequest& request) {
+  GetTxBlockResponse ret;
+  uint64_t blockNum;
+
+  try {
+    // Convert string "blocknum" to ULL.
+    if (!request.has_blocknum()) {
+      ret.set_error("blocknum not set in request");
+      return ret;
+    }
+    blockNum = stoull(request.blocknum());
+
+    // Get the tx block.
+    TxBlock txblock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+
+    // Convert txblock to proto.
+    ProtoTxBlock protoTxBlock;
+    TxBlockToProtobuf(txblock, protoTxBlock);
+
+    ret.set_allocated_txblock(&protoTxBlock);
+  } catch (const char* msg) {
+    ret.set_error(msg);
+  } catch (runtime_error& e) {
+    LOG_GENERAL(INFO, "Error " << e.what());
+    ret.set_error("String not numeric");
+  } catch (invalid_argument& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    ret.set_error("Invalid arugment");
+  } catch (out_of_range& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    ret.set_error("Out of range");
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    ret.set_error("Unable to Process");
+  }
+
+  return ret;
+}
