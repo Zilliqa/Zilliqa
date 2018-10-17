@@ -136,7 +136,7 @@
     -->
     </lookups>
     <gpu>
-        <!-- Which GPU to use, can use multile GPU, for example: 0, 2, 4 -->
+        <!-- Which GPU to use, can use multiple GPU, for example: "0, 2, 4" -->
         <GPU_TO_USE>0</GPU_TO_USE>
         <opencl>
             <LOCAL_WORK_SIZE>128</LOCAL_WORK_SIZE>
