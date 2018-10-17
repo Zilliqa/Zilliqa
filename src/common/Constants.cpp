@@ -112,8 +112,6 @@ const unsigned int NUM_FINAL_BLOCK_PER_POW{
 const unsigned int NUM_DS_KEEP_TX_BODY{
     ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
-const unsigned int MAXSUBMITTXNPERNODE{
-    ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
 const unsigned int MICROBLOCK_GAS_LIMIT{
     ReadFromConstantsFile("MICROBLOCK_GAS_LIMIT")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
@@ -188,6 +186,8 @@ const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{
     ReadFromConstantsFile("NUM_OF_TREEBASED_CHILD_CLUSTERS")};
 const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
     ReadFromConstantsFile("FETCH_LOOKUP_MSG_MAX_RETRY")};
+const unsigned int MAX_CONTRACT_DEPTH{
+    ReadFromConstantsFile("MAX_CONTRACT_DEPTH")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};

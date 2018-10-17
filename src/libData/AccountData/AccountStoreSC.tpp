@@ -235,6 +235,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     m_curSenderAddr = fromAddr;
+    m_curDepth = 0;
 
     Account* toAccount = this->GetAccount(toAddr);
     if (toAccount == nullptr) {
@@ -628,6 +629,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                 "_tag in the scilla output is empty when invoking a "
                 "contract, transaction finished");
     return true;
+  }
+
+  ++m_curDepth;
+
+  if (m_curDepth > MAX_CONTRACT_DEPTH) {
+    LOG_GENERAL(WARNING,
+                "maximum contract depth reached, cannot call another contract");
+    return false;
   }
 
   LOG_GENERAL(INFO, "Call another contract");

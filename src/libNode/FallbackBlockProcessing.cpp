@@ -179,6 +179,22 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  CommitteeHash committeeHash;
+  if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shard_id),
+                               committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardHash failed.");
+    return false;
+  }
+  if (committeeHash != fallbackblock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING, "Fallback committee hash mismatched"
+                             << endl
+                             << "expected: " << committeeHash << endl
+                             << "received: "
+                             << fallbackblock.GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   // Check consensus leader network info and pubkey
   uint32_t leaderConsensusId = fallbackblock.GetHeader().GetLeaderConsensusId();
   if (leaderConsensusId >= m_mediator.m_ds->m_shards[shard_id].size()) {
