@@ -196,7 +196,6 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
       return false;
     }
 
-
     // Check consensus leader network info and pubkey
     uint32_t leaderConsensusId =
         fallbackblock.GetHeader().GetLeaderConsensusId();

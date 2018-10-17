@@ -1410,7 +1410,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
   LOG_MARKER();
 
-  bool initialDS;
+  bool initialDS = false;
 
   {
     PubKey senderPubKey;
@@ -2733,11 +2733,11 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   }
 
   if (dirBlocks.empty()) {
-    LOG_GENERAL(WARNING, "No Directory blocks sent");
+    LOG_GENERAL(WARNING, "No Directory blocks sent/ I have the latest blocks");
     return false;
   }
 
-  if (m_mediator.m_blocklinkchain.GetLatestIndex() + 1 > index_num) {
+  if (m_mediator.m_blocklinkchain.GetLatestIndex() >= index_num) {
     LOG_GENERAL(INFO, "Already have dir blocks");
     return true;
   }

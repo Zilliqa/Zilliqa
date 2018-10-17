@@ -145,6 +145,9 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup) {
 
 bool Synchronizer::FetchInitialDSInfo(Lookup* lookup) {
   if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchInitialDSInfo not expected to be called "
+                "from Lookup Node");
     return true;
   }
 
