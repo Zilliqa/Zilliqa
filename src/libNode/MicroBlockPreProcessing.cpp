@@ -289,32 +289,47 @@ void Node::ProcessTransactionWhenShardLeader() {
   };
 
   auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
-    auto& compIdx = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-    auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
-    if (it != compIdx.end()) {
-      if (it->GetGasPrice() > t.GetGasPrice()) {
-        t = std::move(*it);
-        compIdx.erase(it);
+    auto searchNonce =
+        m_newNonceIdxTxns.find({t.GetSenderPubKey(), t.GetNonce()});
+    if (searchNonce != m_newNonceIdxTxns.end()) {
+      if (searchNonce->second.GetGasPrice() > t.GetGasPrice()) {
+        t = std::move(searchNonce->second);
+
+        // erase tx nonce map
+        m_newNonceIdxTxns.erase(searchNonce);
+        // erase tx gas map
+        m_newGasIdxTxns[t.GetGasPrice()].erase(t.GetTranID());
+        if (m_newGasIdxTxns[t.GetGasPrice()].empty()) {
+          m_newGasIdxTxns.erase(t.GetGasPrice());
+        }
+        // erase tx hash map
+        m_newHashIdxTxns.erase(t.GetTranID());
       }
     }
   };
 
   auto findOneFromCreated = [this](Transaction& t) -> bool {
-    auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
+    auto firstGas = m_newGasIdxTxns.begin();
+    auto firstHash = firstGas->second.begin();
 
-    // LOG_GENERAL(INFO, "Size List Idx " << listIdx.size());
-    if (listIdx.size() == 0) {
-      return false;
+    if (firstHash != firstGas->second.end()) {
+      t = std::move(firstHash->second);
+
+      // erase tx gas map
+      firstGas->second.erase(firstHash);
+      if (firstGas->second.empty()) {
+        m_newGasIdxTxns.erase(firstGas);
+      }
+      // erase tx nonce map
+      m_newNonceIdxTxns.erase({t.GetSenderPubKey(), t.GetNonce()});
+      // erase tx hash m ap
+      m_newHashIdxTxns.erase(t.GetTranID());
+      return true;
     }
-
-    auto it = listIdx.begin();
-    t = std::move(*it);
-    listIdx.erase(it);
-    return true;
+    return false;
   };
 
   auto appendOne = [this](const Transaction& t, const TransactionReceipt& tr) {
-    // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     auto& processedTransactions =
         m_processedTransactions[m_mediator.m_currentEpochNum];
@@ -428,18 +443,11 @@ bool Node::ProcessTransactionWhenShardBackup(
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   auto findFromCreated = [this](const TxnHash& th) -> bool {
-    auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
-    if (!hashIdx.size()) {
+    auto searchHash = m_newHashIdxTxns.find(th);
+    if (searchHash == m_newHashIdxTxns.end()) {
+      // LOG_GENERAL(WARNING, "txn is not found");
       return false;
     }
-
-    auto it = hashIdx.find(th);
-
-    if (hashIdx.end() == it) {
-      LOG_GENERAL(WARNING, "txn is not found");
-      return false;
-    }
-
     return true;
   };
 
@@ -462,7 +470,13 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
       t_addrNonceTxnMap = m_addrNonceTxnMap;
-  gas_txnid_comp_txns t_createdTransactions = m_createdTransactions;
+  std::unordered_map<TxnHash, Transaction> t_newHashIdxTxns = m_newHashIdxTxns;
+  std::map<boost::multiprecision::uint256_t, std::map<TxnHash, Transaction>,
+           std::greater<boost::multiprecision::uint256_t>>
+      t_newGasIdxTxns = m_newGasIdxTxns;
+  std::unordered_map<std::pair<PubKey, boost::multiprecision::uint256_t>,
+                     Transaction, pair_hash>
+      t_newNonceIdxTxns = m_newNonceIdxTxns;
   vector<TxnHash> t_tranHashes;
   std::unordered_map<TxnHash, TransactionWithReceipt> t_processedTransactions;
 
@@ -485,27 +499,47 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   };
 
   auto findSameNonceButHigherGasPrice =
-      [&t_createdTransactions](Transaction& t) -> void {
-    auto& compIdx = t_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-    auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
-    if (it != compIdx.end()) {
-      if (it->GetGasPrice() > t.GetGasPrice()) {
-        t = std::move(*it);
-        compIdx.erase(it);
+      [&t_newHashIdxTxns, &t_newGasIdxTxns,
+       &t_newNonceIdxTxns](Transaction& t) -> void {
+    auto searchNonce =
+        t_newNonceIdxTxns.find({t.GetSenderPubKey(), t.GetNonce()});
+    if (searchNonce != t_newNonceIdxTxns.end()) {
+      if (searchNonce->second.GetGasPrice() > t.GetGasPrice()) {
+        t = std::move(searchNonce->second);
+
+        // erase tx nonce map
+        t_newNonceIdxTxns.erase(searchNonce);
+        // erase tx gas map
+        t_newGasIdxTxns[t.GetGasPrice()].erase(t.GetTranID());
+        if (t_newGasIdxTxns[t.GetGasPrice()].empty()) {
+          t_newGasIdxTxns.erase(t.GetGasPrice());
+        }
+        // erase tx hash map
+        t_newHashIdxTxns.erase(t.GetTranID());
       }
     }
   };
 
-  auto findOneFromCreated = [&t_createdTransactions](Transaction& t) -> bool {
-    auto& listIdx = t_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-    if (!listIdx.size()) {
-      return false;
-    }
+  auto findOneFromCreated = [&t_newHashIdxTxns, &t_newGasIdxTxns,
+                             &t_newNonceIdxTxns](Transaction& t) -> bool {
+    auto firstGas = t_newGasIdxTxns.begin();
+    auto firstHash = firstGas->second.begin();
 
-    auto it = listIdx.begin();
-    t = std::move(*it);
-    listIdx.erase(it);
-    return true;
+    if (firstHash != firstGas->second.end()) {
+      t = std::move(firstHash->second);
+
+      // erase tx gas map
+      firstGas->second.erase(firstHash);
+      if (firstGas->second.empty()) {
+        t_newGasIdxTxns.erase(firstGas);
+      }
+      // erase tx nonce map
+      t_newNonceIdxTxns.erase({t.GetSenderPubKey(), t.GetNonce()});
+      // erase tx hash m ap
+      t_newHashIdxTxns.erase(t.GetTranID());
+      return true;
+    }
+    return false;
   };
 
   auto appendOne = [&t_tranHashes, &t_processedTransactions](
@@ -601,7 +635,9 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
   if (t_tranHashes == tranHashes) {
     m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
-    m_createdTransactions = std::move(t_createdTransactions);
+    m_newHashIdxTxns = std::move(t_newHashIdxTxns);
+    m_newGasIdxTxns = std::move(t_newGasIdxTxns);
+    m_newNonceIdxTxns = std::move(t_newNonceIdxTxns);
 
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     m_processedTransactions[m_mediator.m_currentEpochNum] =
