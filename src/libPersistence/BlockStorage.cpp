@@ -330,6 +330,40 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
   return true;
 }
 
+bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
+  LOG_MARKER();
+
+  leveldb::Iterator* it =
+      m_blockLinkDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string bns = it->key().ToString();
+    string blockString = it->value().ToString();
+    if (blockString.empty()) {
+      LOG_GENERAL(WARNING, "Lost one blocklink in the chain");
+      delete it;
+      return false;
+    }
+    BlockLink blnk;
+    if (!Messenger::GetBlockLink(
+            vector<unsigned char>(blockString.begin(), blockString.end()), 0,
+            blnk)) {
+      LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
+      return false;
+    }
+    blocklinks.emplace_back(blnk);
+    LOG_GENERAL(INFO, "Retrievd BlockLink Num:" << bns);
+  }
+
+  delete it;
+
+  if (blocklinks.empty()) {
+    LOG_GENERAL(INFO, "Disk has no blocklink");
+    return false;
+  }
+
+  return true;
+}
+
 bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
   LOG_MARKER();
 
@@ -414,6 +448,7 @@ bool BlockStorage::PutDSCommittee(
   LOG_MARKER();
 
   unsigned int index = 0;
+
   string leaderId = to_string(consensusLeaderID);
 
   if (0 !=
@@ -427,19 +462,30 @@ bool BlockStorage::PutDSCommittee(
 
   vector<unsigned char> data;
 
-  for (const auto& ds : *dsCommittee) {
-    int pubKeySize = ds.first.Serialize(data, 0);
-    ds.second.Serialize(data, pubKeySize);
+  if (!Messenger::SetDSCommittee(data, 0, *dsCommittee)) {
+    LOG_GENERAL(WARNING, "Fail to serialize the ds comm");
+    return false;
+  }
 
-    /// Store index as key, to guarantee the sequence of DS committee after
-    /// retrieval Because first DS committee is DS leader
-    if (0 != m_dsCommitteeDB->Insert(index++, data)) {
-      LOG_GENERAL(WARNING, "Failed to store DS committee:" << ds.first << ", "
-                                                           << ds.second);
-      return false;
-    }
+  if (0 != m_dsCommitteeDB->Insert(index++, data)) {
+    LOG_GENERAL(WARNING, "Failed to store DS comm");
+    return false;
+  }
 
-    LOG_GENERAL(INFO, "Stored DS committee:" << ds.first << ", " << ds.second);
+  return true;
+}
+
+bool BlockStorage::PutInitialDSCommittee(
+    const deque<pair<PubKey, Peer>>& dsCommittee) {
+  vector<unsigned char> data;
+  if (!Messenger::SetDSCommittee(data, 0, dsCommittee)) {
+    LOG_GENERAL(WARNING, "Fail to serialize the ds comm");
+    return false;
+  }
+
+  if (0 != m_dsCommitteeDB->Insert(2, data)) {
+    LOG_GENERAL(WARNING, "Failed to store the ds comm");
+    return false;
   }
 
   return true;
@@ -455,23 +501,41 @@ bool BlockStorage::GetDSCommittee(
   LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
   string dataStr;
 
-  while (true) {
-    dataStr = m_dsCommitteeDB->Lookup(index++);
+  dataStr = m_dsCommitteeDB->Lookup(index++);
 
-    if (dataStr.empty()) {
-      break;
-    }
+  if (dataStr.empty()) {
+    LOG_GENERAL(WARNING, "Could not find ds committee");
+    return false;
+  }
 
-    dsCommittee->emplace_back(
-        PubKey(vector<unsigned char>(dataStr.begin(),
-                                     dataStr.begin() + PUB_KEY_SIZE),
-               0),
-        Peer(vector<unsigned char>(dataStr.begin() + PUB_KEY_SIZE,
-                                   dataStr.end()),
-             0));
-    LOG_GENERAL(INFO, "Retrieved DS committee: " << dsCommittee->back().first
-                                                 << ", "
-                                                 << dsCommittee->back().second);
+  vector<unsigned char> src(dataStr.begin(), dataStr.end());
+
+  deque<pair<PubKey, Peer>> tmpDSComm;
+
+  if (!Messenger::GetDSCommittee(src, 0, tmpDSComm)) {
+    LOG_GENERAL(WARNING, "Could not deserialize ds comm");
+    return false;
+  }
+
+  dsCommittee = make_shared<deque<pair<PubKey, Peer>>>(tmpDSComm);
+
+  return true;
+}
+
+bool BlockStorage::GetInitialDSCommittee(
+    deque<pair<PubKey, Peer>>& dsCommittee) {
+  string dataStr = m_dsCommitteeDB->Lookup(2);
+
+  if (dataStr.empty()) {
+    LOG_GENERAL(WARNING, "Could not find the ds committee");
+    return false;
+  }
+
+  vector<unsigned char> src(dataStr.begin(), dataStr.end());
+
+  if (!Messenger::GetDSCommittee(src, 0, dsCommittee)) {
+    LOG_GENERAL(WARNING, "Could not deserialize ds comm");
+    return false;
   }
 
   return true;

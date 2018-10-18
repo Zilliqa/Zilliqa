@@ -1452,6 +1452,40 @@ bool Messenger::GetDSCommitteeHash(const deque<pair<PubKey, Peer>>& dsCommittee,
   return true;
 }
 
+bool Messenger::SetDSCommittee(vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const deque<pair<PubKey, Peer>>& dsCommittee) {
+  ProtoDSCommittee protoDSCommittee;
+
+  DSCommitteeToProtobuf(dsCommittee, protoDSCommittee);
+
+  if (!SerializeToArray(protoDSCommittee, dst, offset)) {
+    LOG_GENERAL(WARNING, "ProtoDSCommittee serialization failed");
+    return false;
+  }
+
+  return true;
+}
+
+bool Messenger::GetDSCommittee(const vector<unsigned char>& src,
+                               const unsigned int offset,
+                               deque<pair<PubKey, Peer>>& dsCommittee) {
+  ProtoDSCommittee protoDSCommittee;
+
+  protoDSCommittee.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!protoDSCommittee.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDSCommittee is not initialized");
+    return false;
+  }
+
+  // dsCommittee should be empty
+
+  ProtobufToDSCommittee(protoDSCommittee, dsCommittee);
+
+  return true;
+}
+
 bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
   ProtoCommittee protoCommittee;
 

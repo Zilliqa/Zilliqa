@@ -113,6 +113,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Adds a transaction body to storage.
   bool PutTxBody(const dev::h256& key, const std::vector<unsigned char>& body);
 
+  /// Puts Initital DS comm
+  bool PutInitialDSCommittee(
+      const std::deque<std::pair<PubKey, Peer>>& dsCommittee);
+
   /// Retrieves the requested DS block.
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
 
@@ -130,6 +134,9 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
+
+  /// Retrives the initial DS comm
+  bool GetInitialDSCommittee(std::deque<std::pair<PubKey, Peer>>& dsCommittee);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);
@@ -156,6 +163,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieves all the TxBlocks
   bool GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks);
 
+  /// Retrieves all the blocklinks
+  bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
   /// Retrieves all the TxBodiesTmp
   bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
 

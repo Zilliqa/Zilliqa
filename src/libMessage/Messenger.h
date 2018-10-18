@@ -103,6 +103,12 @@ class Messenger {
   static bool GetFallbackBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                FallbackBlock& fallbackBlock);
+  static bool GetDSCommittee(const std::vector<unsigned char>& src,
+                             const unsigned int offset,
+                             std::deque<std::pair<PubKey, Peer>>& dsCommittee);
+  static bool SetDSCommittee(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::deque<std::pair<PubKey, Peer>>& dsCommittee);
 
   // ============================================================================
   // Directory Service messages

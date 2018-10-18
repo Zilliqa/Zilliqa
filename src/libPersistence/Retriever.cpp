@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <algorithm>
+#include <deque>
 #include <exception>
 #include <vector>
 
@@ -28,11 +29,13 @@
 
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 
 using namespace boost::filesystem;
 namespace filesys = boost::filesystem;
+using namespace std;
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
@@ -89,6 +92,138 @@ void Retriever::RetrieveDSBlocks(bool& result) {
   }
 
   result = true;
+}
+
+void Retriever::RetrieveDirectoryBlocks(
+    bool& result, deque<pair<PubKey, Peer>>& initialDSComm) {
+  result = true;
+
+  list<BlockLink> blocklinks;
+
+  if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
+    LOG_GENERAL(WARNING, "RetrieveDirectoryBlocks skipped or incompleted");
+    result = false;
+    return;
+  }
+
+  blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
+    return get<BlockLinkIndex::INDEX>(a) < get<BlockLinkIndex::INDEX>(b);
+  });
+
+  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+      dirBlocks;
+
+  deque<pair<PubKey, Peer>> dsComm;
+
+  if (BlockStorage::GetBlockStorage().GetInitialDSCommittee(dsComm)) {
+    LOG_GENERAL(WARNING, "Could not get initial ds committee");
+    result = false;
+    return;
+  }
+  // initialDSComm must be empty here
+  initialDSComm = dsComm;
+
+  if (initialDSComm.size() == 0) {
+    LOG_GENERAL(WARNING, "initial DS comm empty, cannot verify");
+    result = false;
+    return;
+  }
+
+  if (!blocklinks.empty()) {
+    if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0) {
+      std::vector<unsigned char> latestActiveDSBlockNumVec;
+      if (!BlockStorage::GetBlockStorage().GetMetadata(
+              MetaType::LATESTACTIVEDSBLOCKNUM, latestActiveDSBlockNumVec)) {
+        LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
+        result = false;
+        return;
+      }
+      m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
+          DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
+    }
+  }
+
+  for (const auto& b : blocklinks) {
+    if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::DS) {
+      DSBlockSharedPtr dsblock;
+      if (!BlockStorage::GetBlockStorage().GetDSBlock(
+              get<BlockLinkIndex::DSINDEX>(b), dsblock)) {
+        LOG_GENERAL(WARNING, "could not get ds block "
+                                 << get<BlockLinkIndex::DSINDEX>(b));
+        result = false;
+        continue;
+      }
+      dirBlocks.emplace_back(*dsblock);
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::VC) {
+      VCBlockSharedPtr vcblockptr;
+      if (!BlockStorage::GetBlockStorage().GetVCBlock(
+              get<BlockLinkIndex::BLOCKHASH>(b), vcblockptr)) {
+        LOG_GENERAL(WARNING, "could not get vc block "
+                                 << get<BlockLinkIndex::BLOCKHASH>(b));
+        result = false;
+        continue;
+      }
+      dirBlocks.emplace_back(*vcblockptr);
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(b) == BlockType::FB) {
+      FallbackBlockSharedPtr fallbackwsharding;
+      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
+              get<BlockLinkIndex::BLOCKHASH>(b), fallbackwsharding)) {
+        LOG_GENERAL(WARNING, "could not get fb block "
+                                 << get<BlockLinkIndex::BLOCKHASH>(b));
+        result = false;
+        continue;
+      }
+      dirBlocks.emplace_back(*fallbackwsharding);
+    }
+  }
+
+  uint64_t lastDsind = get<BlockLinkIndex::DSINDEX>(blocklinks.back());
+
+  if (get<BlockLinkIndex::BLOCKTYPE>(blocklinks.back()) == BlockType::DS) {
+    lastDsind--;
+  }
+
+  if (lastDsind == 0) {
+    LOG_GENERAL(INFO, "");
+    result = false;
+    return;
+  }
+
+  /// Check whether the termination of last running happens before the last
+  /// DSEpoch properly ended.
+  std::vector<unsigned char> isDSIncompleted;
+  if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
+                                                   isDSIncompleted)) {
+    LOG_GENERAL(WARNING, "No GetMetadata or failed");
+    result = false;
+    return;
+  }
+
+  if (isDSIncompleted[0] == '1') {
+    LOG_GENERAL(INFO, "Has incompleted DS Block");
+    if (BlockStorage::GetBlockStorage().DeleteDSBlock(lastDsind)) {
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                  {'0'});
+    }
+    hasIncompletedDS = true;
+  }
+
+  LOG_GENERAL(INFO, "Resetting DBs");
+
+  vector<BlockStorage::DBTYPE> dbs = {
+      BlockStorage::DBTYPE::DS_BLOCK, BlockStorage::DBTYPE::VC_BLOCK,
+      BlockStorage::DBTYPE::FB_BLOCK, BlockStorage::DBTYPE::BLOCKLINK};
+
+  for (const auto& db : dbs) {
+    if (!BlockStorage::GetBlockStorage().ResetDB(db)) {
+      LOG_GENERAL(WARNING, "Could not reset db  " << db);
+      continue;
+    }
+  }
+
+  m_mediator.m_validator->CheckDirBlocks(dirBlocks, initialDSComm, 0, dsComm);
+
+  //[ToDo]check built with given ds comm
 }
 
 void Retriever::RetrieveTxBlocks(bool& result) {

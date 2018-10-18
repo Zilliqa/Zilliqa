@@ -38,6 +38,8 @@ class Retriever {
   bool ValidateStates();
   bool CleanExtraTxBodies();
   void CleanAll();
+  void RetrieveDirectoryBlocks(
+      bool& result, std::deque<std::pair<PubKey, Peer>>& initialDSComm);
 
  private:
   Mediator& m_mediator;
