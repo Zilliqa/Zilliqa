@@ -5,6 +5,17 @@ package ZilliqaMessage;
 import "ZilliqaMessage.proto";
 
 
+message GetStorageAtRequest
+{
+    optional string address = 1;
+    optional string position = 2;
+}
+
+message GetBlockTransactionCountRequest
+{
+    optional string blockhash = 1;
+}
+
 message CreateTransactionRequest
 {
     required ProtoTransaction tx = 1;
@@ -13,19 +24,4 @@ message CreateTransactionRequest
 message GetTransactionRequest
 {
     required string txhash = 1;
-}
-
-message GetDSBlockRequest
-{
-    required string blocknum = 1;
-}
-
-message GetTxBlockRequest
-{
-	required string blocknum = 1;
-}
-
-message GetBalanceRequest
-{
-	required string address = 1;
 }
