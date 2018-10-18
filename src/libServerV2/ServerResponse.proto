@@ -3,11 +3,22 @@ syntax = "proto2";
 package ZilliqaMessage;
 
 import "ZilliqaMessage.proto";
+import "ServerMessages.proto";
 
 
 message DefaultResponse
 {
     required string result = 1 [default = "hello"];
+}
+
+message UIntResponse
+{
+    required uint32 result = 1;
+}
+
+message StringResponse
+{
+    required string result = 1;
 }
 
 
@@ -43,4 +54,21 @@ message GetBalanceResponse
     optional string error = 1;
     optional ByteArray balance = 2;
     optional ByteArray nonce = 3;
+}
+
+message StorageInfo
+{
+
+}
+
+message GetSmartContractStateResponse
+{
+    optional string error = 1;
+    optional StorageInfo storage = 2;
+}
+
+message GetSmartContractCodeResponse
+{
+    optional string error = 1;
+    optional string smartcontractcode = 2;
 }

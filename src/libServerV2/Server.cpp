@@ -101,6 +101,42 @@ DefaultResponse Server::GetGasPrice() {
 }
 
 
+DefaultResponse Server::GetStorageAt([[gnu::unused]] GetStorageAtRequest& request) {
+  DefaultResponse ret;
+  return ret;
+}
+
+
+DefaultResponse Server::GetBlockTransactionCount([[gnu::unused]] GetBlockTransactionCountRequest& request) {
+  DefaultResponse ret;
+  return ret;
+}
+
+
+DefaultResponse Server::GetTransactionReceipt([[gnu::unused]] GetTransactionRequest& request) {
+  DefaultResponse ret;
+  return ret;
+}
+
+
+DefaultResponse Server::isNodeSyncing() {
+  DefaultResponse ret;
+  return ret;
+}
+
+
+DefaultResponse Server::isNodeMining() {
+  DefaultResponse ret;
+  return ret;
+}
+
+DefaultResponse Server::GetHashrate() {
+  DefaultResponse ret;
+  return ret;
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -236,19 +272,18 @@ GetTransactionResponse Server::GetTransaction(GetTransactionRequest& request) {
 }
 
 
-GetDSBlockResponse Server::GetDsBlock(GetDSBlockRequest& request) {
+GetDSBlockResponse Server::GetDsBlock(ProtoBlockNum& protoBlockNum) {
   LOG_MARKER();
 
-  uint64_t blockNum;
   GetDSBlockResponse ret;
 
   try {
     // Convert string "blocknum" to ULL.
-    if (!request.has_blocknum()) {
+    if (!protoBlockNum.has_blocknum()) {
       ret.set_error("Blocknum not set in request");
       return ret;
     }
-    blockNum = stoull(request.blocknum());
+    uint64_t blockNum = stoull(protoBlockNum.blocknum());
 
     // Get the DS block.
     DSBlock dsblock = m_mediator.m_dsBlockChain.GetBlock(blockNum);
@@ -263,30 +298,32 @@ GetDSBlockResponse Server::GetDsBlock(GetDSBlockRequest& request) {
     LOG_GENERAL(INFO, "Error " << e.what());
     ret.set_error("String not numeric");
   } catch (invalid_argument& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Invalid arugment");
   } catch (out_of_range& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Out of range");
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Unable to Process");
   }
 
   return ret;
 }
 
-GetTxBlockResponse Server::GetTxBlock(GetTxBlockRequest& request) {
+
+GetTxBlockResponse Server::GetTxBlock(ProtoBlockNum& protoBlockNum) {
+  LOG_MARKER();
+
   GetTxBlockResponse ret;
-  uint64_t blockNum;
 
   try {
     // Convert string "blocknum" to ULL.
-    if (!request.has_blocknum()) {
+    if (!protoBlockNum.has_blocknum()) {
       ret.set_error("blocknum not set in request");
       return ret;
     }
-    blockNum = stoull(request.blocknum());
+    uint64_t blockNum = stoull(protoBlockNum.blocknum());
 
     // Get the tx block.
     TxBlock txblock = m_mediator.m_txBlockChain.GetBlock(blockNum);
@@ -301,13 +338,13 @@ GetTxBlockResponse Server::GetTxBlock(GetTxBlockRequest& request) {
     LOG_GENERAL(INFO, "Error " << e.what());
     ret.set_error("String not numeric");
   } catch (invalid_argument& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Invalid arugment");
   } catch (out_of_range& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Out of range");
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Unable to Process");
   }
 
@@ -359,23 +396,23 @@ GetTxBlockResponse Server::GetLatestTxBlock() {
 }
 
 
-GetBalanceResponse Server::GetBalance(GetBalanceRequest &request) {
+GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
   LOG_MARKER();
 
   GetBalanceResponse ret;
 
   try {
-    if (!request.has_address()) {
+    if (!protoAddress.has_address()) {
       ret.set_error("Address not set in request");
       return ret;
     }
 
-    if (request.address().size() != ACC_ADDR_SIZE * 2) {
+    if (protoAddress.address().size() != ACC_ADDR_SIZE * 2) {
       ret.set_error("Address size not appropriate");
       return ret;
     }
 
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(request.address());
+    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -404,9 +441,178 @@ GetBalanceResponse Server::GetBalance(GetBalanceRequest &request) {
     }
 
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << request.address());
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
   }
 
+  return ret;
+}
+
+
+GetSmartContractStateResponse Server::GetSmartContractState(ProtoAddress& protoAddress) {
+  LOG_MARKER();
+
+  GetSmartContractStateResponse ret;
+
+  try {
+    if (!protoAddress.has_address()) {
+      ret.set_error("Address not set in request");
+      return ret;
+    }
+
+    if (protoAddress.address().size() != ACC_ADDR_SIZE * 2) {
+      ret.set_error("Address size inappropriate");
+      return ret;
+    }
+
+    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    Address addr(tmpaddr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+    if (account == nullptr) {
+      ret.set_error("Address does not exist");
+      return ret;
+    }
+
+    if (!account->isContract()) {
+      ret.set_error("Address is not a contract account");
+      return ret;
+    }
+
+    //return account->GetStorageJson();
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    ret.set_error("Unable To Process");
+  }
+
+  return ret;
+}
+
+
+GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
+  LOG_MARKER();
+
+  GetSmartContractCodeResponse ret;
+
+  try {
+    if (!protoAddress.has_address()) {
+      ret.set_error("Address not set in request");
+      return ret;
+    }
+
+    if (protoAddress.address().size() != ACC_ADDR_SIZE * 2) {
+      ret.set_error("Address size inappropriate");
+      return ret;
+    }
+
+    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    Address addr(tmpaddr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+    if (account == nullptr) {
+      ret.set_error("Address does not exist");
+      return ret;
+    }
+
+    if (!account->isContract()) {
+      ret.set_error("Address is not a contract account");
+      return ret;
+    }
+
+    ret.set_smartcontractcode(DataConversion::CharArrayToString(account->GetCode()));
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    ret.set_error("Unable To Process");
+  }
+
+  return ret;
+}
+
+
+StringResponse Server::GetContractAddressFromTransactionID(ProtoTranId& protoTranId) {
+  LOG_MARKER();
+
+  StringResponse ret;
+
+  try {
+    if (!protoTranId.has_tranid()) {
+      ret.set_result("Tran id not set in request");
+      return ret;
+    }
+
+    TxBodySharedPtr tptr;
+    TxnHash tranHash(protoTranId.tranid());
+    if (protoTranId.tranid().size() != TRAN_HASH_SIZE * 2) {
+      ret.set_result("Size not appropriate");
+      return ret;
+    }
+
+    bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
+    if (!isPresent) {
+      ret.set_result("Txn Hash not Present");
+      return ret;
+    }
+
+    const Transaction& tx = tptr->GetTransaction();
+    if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
+      ret.set_result("ID not a contract txn");
+      return ret;
+    }
+
+    ret.set_result(Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1).hex());
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << protoTranId.tranid());
+    ret.set_result("Unable to process");
+  }
+
+  return ret;
+}
+
+
+UIntResponse Server::GetNumPeers() {
+  LOG_MARKER();
+
+  unsigned int numPeers = m_mediator.m_lookup->GetNodePeers().size();
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  UIntResponse ret;
+  ret.set_result(numPeers + m_mediator.m_DSCommittee->size());
+  return ret;
+}
+
+
+StringResponse Server::GetNumTxBlocks() {
+  LOG_MARKER();
+
+  StringResponse ret;
+  ret.set_result(to_string(m_mediator.m_txBlockChain.GetBlockCount()));
+  return ret;
+}
+
+
+StringResponse Server::GetNumDSBlocks() {
+  LOG_MARKER();
+
+  StringResponse ret;
+  ret.set_result(to_string(m_mediator.m_dsBlockChain.GetBlockCount()));
+  return ret;
+}
+
+
+StringResponse Server::GetNumTransactions() {
+  LOG_MARKER();
+
+  uint64_t currBlock =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  if (m_BlockTxPair.first < currBlock) {
+    for (uint64_t i = m_BlockTxPair.first + 1; i <= currBlock; i++) {
+      m_BlockTxPair.second +=
+          m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+    }
+  }
+  m_BlockTxPair.first = currBlock;
+
+  StringResponse ret;
+  ret.set_result(m_BlockTxPair.second.str());
   return ret;
 }

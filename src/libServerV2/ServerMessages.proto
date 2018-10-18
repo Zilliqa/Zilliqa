@@ -1,0 +1,21 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+import "ZilliqaMessage.proto";
+
+
+message ProtoTranId
+{
+    required string tranid = 1;
+}
+
+message ProtoAddress
+{
+    required string address = 1;
+}
+
+message ProtoBlockNum
+{
+    required string blocknum = 1;
+}
