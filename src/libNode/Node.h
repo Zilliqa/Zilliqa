@@ -36,6 +36,7 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountData/TxnPool.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
 #include "libLookup/Synchronizer.h"
@@ -119,27 +120,7 @@ class Node : public Executable, public Broadcastable {
 
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
-
-  struct pair_hash {
-    template <class T1, class T2>
-    std::size_t operator()(const std::pair<T1, T2>& p) const {
-      std::size_t seed = 0;
-      auto h1 = std::hash<T1>{}(p.first);
-      auto h2 = std::hash<T2>{}(p.second);
-      boost::hash_combine(seed, h1);
-      boost::hash_combine(seed, h2);
-
-      return seed;
-    }
-  };
-
-  std::unordered_map<TxnHash, Transaction> m_newHashIdxTxns;
-  std::map<boost::multiprecision::uint256_t, std::map<TxnHash, Transaction>,
-           std::greater<boost::multiprecision::uint256_t>>
-      m_newGasIdxTxns;
-  std::unordered_map<std::pair<PubKey, boost::multiprecision::uint256_t>,
-                     Transaction, pair_hash>
-      m_newNonceIdxTxns;
+  TxnPool m_createdTxns;
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
       m_addrNonceTxnMap;
