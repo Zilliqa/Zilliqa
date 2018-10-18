@@ -371,7 +371,8 @@ message LookupSetSeedPeers
 // From normal node to lookup nodes.
 message LookupGetDSInfoFromSeed
 {
-    required uint32 listenport = 1;
+    required uint32 listenport =        1;
+    required bool initialds =           2;
 }
 
 // From DS leader to lookup nodes and from lookup nodes to normal nodes.
@@ -380,14 +381,15 @@ message LookupSetDSInfoFromSeed
     required ProtoDSCommittee dscommittee = 1;
     required ByteArray pubkey             = 2;
     required ByteArray signature          = 3;
+    required bool initialds               = 4;
 }
 
 // From new join lookup node or new join normal node to existing lookup node.
 message LookupGetDSBlockFromSeed
 {
-    required uint64 lowblocknum  = 1;
-    required uint64 highblocknum = 2;
-    required uint32 listenport   = 3;
+    required uint64 lowblocknum            = 1;
+    required uint64 highblocknum           = 2;
+    required uint32 listenport             = 3;
 }
 
 // From lookup nodes to new join lookup node or new join normal node.
@@ -639,16 +641,16 @@ message ConsensusCommitFailure
 
 message ProtoBlockLink
 {
-    required uint64 index = 1;
-    required uint64 dsindex = 2;
-    required uint32 blocktype = 3;
-    required bytes blockhash = 4;
+    required uint64 index       = 1;
+    required uint64 dsindex     = 2;
+    required uint32 blocktype   = 3;
+    required bytes blockhash    = 4;
 }
 
 message ProtoFallbackBlockWShardingStructure
 {
-    required ProtoFallbackBlock fallbackblock = 1;
-    required ProtoShardingStructure sharding = 2;
+    required ProtoFallbackBlock fallbackblock   = 1;
+    required ProtoShardingStructure sharding    = 2;
 }
 
 
@@ -656,8 +658,8 @@ message ProtoSingleDirectoryBlock
 {
     oneof directoryblock
     {
-        ProtoDSBlock dsblock = 1;
-        ProtoVCBlock vcblock = 2;
+        ProtoDSBlock dsblock                                     = 1;
+        ProtoVCBlock vcblock                                     = 2;
         ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
     }
 }
@@ -666,13 +668,13 @@ message ProtoSingleDirectoryBlock
 
 message LookupGetDirectoryBlocksFromSeed
 {
-    required uint32 portno = 1;
-    required uint64 indexnum = 2;
+    required uint32 portno      = 1;
+    required uint64 indexnum    = 2;
 }
 
 message LookupSetDirectoryBlocksFromSeed
 {
-    required uint64 indexnum = 1;
+    required uint64 indexnum                     = 1;
     repeated ProtoSingleDirectoryBlock dirblocks = 2;
 }
 

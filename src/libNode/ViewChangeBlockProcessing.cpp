@@ -46,12 +46,12 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::UpdateDSCommiteeCompositionAfterVC() {
+void Node::UpdateDSCommiteeCompositionAfterVC(
+    deque<pair<PubKey, Peer>>& dsComm) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-  m_mediator.m_DSCommittee->emplace_back(m_mediator.m_DSCommittee->front());
-  m_mediator.m_DSCommittee->pop_front();
+  dsComm.emplace_back(dsComm.front());
+  dsComm.pop_front();
 }
 
 bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
@@ -237,11 +237,15 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     LOG_GENERAL(WARNING, "Failed to store VC Block");
     return false;
   }
-  for (unsigned int x = 0; x < newCandidateLeader; x++) {
-    // TODO: If VC select a random
-    // leader, we need to change the way
-    // we update ds composition.
-    UpdateDSCommiteeCompositionAfterVC();
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    for (unsigned int x = 0; x < newCandidateLeader; x++) {
+      // TODO: If VC select a random
+      // leader, we need to change the way
+      // we update ds composition.
+      UpdateDSCommiteeCompositionAfterVC(*m_mediator.m_DSCommittee);
+    }
   }
 
   return true;
