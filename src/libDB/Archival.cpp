@@ -39,6 +39,7 @@ void Archival::InitSync() {
     uint64_t dsBlockNum = 0;
     uint64_t txBlockNum = 0;
 
+    m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
     while (true) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
         dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
@@ -48,7 +49,8 @@ void Archival::InitSync() {
       }
       LOG_GENERAL(INFO,
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
-      m_synchronizer.FetchLatestDSBlocks(m_mediator.m_lookup, dsBlockNum);
+      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup, txBlockNum);
       m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
       m_synchronizer.FetchLatestState(m_mediator.m_lookup);
@@ -86,6 +88,7 @@ bool Archival::Execute(
 void Archival::Init() {
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
+  m_mediator.m_blocklinkchain.Reset();
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     m_mediator.m_DSCommittee->clear();
@@ -94,6 +97,9 @@ void Archival::Init() {
 
   m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                          m_mediator.m_txBlockChain);
+  const auto& dsBlock = m_mediator.m_dsBlockChain.GetBlock(0);
+  m_mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
+                                           dsBlock.GetBlockHash());
 }
 
 bool Archival::AddToFetchMicroBlockInfo(const uint64_t& blockNum,
