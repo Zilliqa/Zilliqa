@@ -450,9 +450,9 @@ void POW::InitOpenCL() {
   }
 
   CLMiner::setNumInstances(UINT_MAX);
-  auto setGpuIndex = GetGpuToUse();
+  auto gpuToUse = GetGpuToUse();
   auto totalGpuDevice = CLMiner::getNumDevices();
-  for (const auto gpuIndex : setGpuIndex) {
+  for (const auto gpuIndex : gpuToUse) {
     if (gpuIndex >= totalGpuDevice) {
       LOG_GENERAL(FATAL, "Selected GPU "
                              << gpuIndex
@@ -482,9 +482,9 @@ void POW::InitCUDA() {
   }
 
   CUDAMiner::setNumInstances(UINT_MAX);
-  auto setGpuIndex = GetGpuToUse();
+  auto gpuToUse = GetGpuToUse();
   auto totalGpuDevice = CUDAMiner::getNumDevices();
-  for (const auto gpuIndex : setGpuIndex) {
+  for (const auto gpuIndex : gpuToUse) {
     if (gpuIndex >= totalGpuDevice) {
       LOG_GENERAL(FATAL, "Selected GPU "
                              << gpuIndex
@@ -505,12 +505,12 @@ void POW::InitCUDA() {
 }
 
 std::set<unsigned int> POW::GetGpuToUse() {
-  std::set<unsigned int> setGpuIndex;
+  std::set<unsigned int> gpuToUse;
   std::stringstream ss(GPU_TO_USE);
   std::string item;
   while (std::getline(ss, item, ',')) {
     unsigned int index = strtol(item.c_str(), NULL, 10);
-    setGpuIndex.insert(index);
+    gpuToUse.insert(index);
   }
-  return setGpuIndex;
+  return gpuToUse;
 }
