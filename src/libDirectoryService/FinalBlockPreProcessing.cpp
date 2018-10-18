@@ -244,7 +244,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   }
 #endif  // VC_TEST_FB_TERMINATE_3
 
-#ifdef VC_TEST_FB_TERMINATE_1
+#ifdef VC_TEST_FB_TERMINATE_3
   if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
     LOG_GENERAL(WARNING, "I am killing myself to test viewchange");
     throw exception();
