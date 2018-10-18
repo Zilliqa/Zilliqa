@@ -97,12 +97,13 @@ void Node::ProcessFallbackConsensusWhenDone() {
 
   FallbackBlockWShardingStructure fbblockwshards(*m_pendingFallbackBlock,
                                                  m_mediator.m_ds->m_shards);
-  if (!fbblockwshards.Serialize(dst, 0)) {
-    LOG_GENERAL(WARNING, "Failed to Serialize");
+  if (fbblockwshards.Serialize(dst, 0)) {
     if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
             m_pendingFallbackBlock->GetBlockHash(), dst)) {
       LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
     }
+  } else {
+    LOG_GENERAL(WARNING, "Failed to Serialize");
   }
 
   Peer leaderNetworkInfo =
