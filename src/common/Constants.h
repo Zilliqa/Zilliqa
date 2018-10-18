@@ -194,7 +194,7 @@ extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 
-extern const unsigned int NUM_DEVICE_TO_USE;
+extern const std::string GPU_TO_USE;
 extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
 extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
 extern const unsigned int OPENCL_START_EPOCH;
