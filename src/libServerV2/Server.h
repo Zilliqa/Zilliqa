@@ -24,6 +24,7 @@
 
 #include "ServerRequest.pb.h"
 #include "ServerResponse.pb.h"
+#include "ServerMessages.pb.h"
 
 using namespace ZilliqaMessage;
 
@@ -48,19 +49,41 @@ class Server {
   DefaultResponse GetNetworkId();
   DefaultResponse GetProtocolVersion();
   DefaultResponse GetGasPrice();
+  DefaultResponse GetStorageAt(GetStorageAtRequest &request);
+  DefaultResponse GetBlockTransactionCount(GetBlockTransactionCountRequest& request);
+  DefaultResponse CreateMessage();
+  DefaultResponse GetGasEstimate();
+  DefaultResponse GetTransactionReceipt(GetTransactionRequest& request);
+  DefaultResponse isNodeSyncing();
+  DefaultResponse isNodeMining();
+  DefaultResponse GetHashrate();
 
   CreateTransactionResponse CreateTransaction(CreateTransactionRequest& request);
 
   GetTransactionResponse GetTransaction(GetTransactionRequest& request);
 
-  GetDSBlockResponse GetDsBlock(GetDSBlockRequest& request);
+  GetDSBlockResponse GetDsBlock(ProtoBlockNum& protoBlockNum);
 
-  GetTxBlockResponse GetTxBlock(GetTxBlockRequest& request);
+  GetTxBlockResponse GetTxBlock(ProtoBlockNum& protoBlockNum);
 
   GetDSBlockResponse GetLatestDsBlock();
 
   GetTxBlockResponse GetLatestTxBlock();
 
-  GetBalanceResponse GetBalance(GetBalanceRequest &request);
+  GetBalanceResponse GetBalance(ProtoAddress& protoAddress);
+
+  GetSmartContractStateResponse GetSmartContractState(ProtoAddress& protoAddress);
+
+  GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress);
+
+  StringResponse GetContractAddressFromTransactionID(ProtoTranId& protoTranId);
+
+  UIntResponse GetNumPeers();
+
+  StringResponse GetNumTxBlocks();
+
+  StringResponse GetNumDSBlocks();
+
+  StringResponse GetNumTransactions();
 
 };
