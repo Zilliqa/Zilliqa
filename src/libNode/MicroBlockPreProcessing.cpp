@@ -288,56 +288,6 @@ void Node::ProcessTransactionWhenShardLeader() {
     return false;
   };
 
-  auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
-    LOG_GENERAL(INFO, "findSameNonceButHigherGasPrice started");
-    auto searchNonce =
-        m_newNonceIdxTxns.find({t.GetSenderPubKey(), t.GetNonce()});
-    if (searchNonce != m_newNonceIdxTxns.end()) {
-      if (searchNonce->second.GetGasPrice() > t.GetGasPrice()) {
-        t = std::move(searchNonce->second);
-
-        // erase tx nonce map
-        m_newNonceIdxTxns.erase(searchNonce);
-        // erase tx gas map
-        m_newGasIdxTxns[t.GetGasPrice()].erase(t.GetTranID());
-        if (m_newGasIdxTxns[t.GetGasPrice()].empty()) {
-          m_newGasIdxTxns.erase(t.GetGasPrice());
-        }
-        // erase tx hash map
-        m_newHashIdxTxns.erase(t.GetTranID());
-      }
-    }
-    LOG_GENERAL(INFO, "findSameNonceButHigherGasPrice finished");
-  };
-
-  auto findOneFromCreated = [this](Transaction& t) -> bool {
-    LOG_GENERAL(INFO, "findOneFromCreated started");
-    if (m_newGasIdxTxns.empty()) {
-      return false;
-    }
-
-    auto firstGas = m_newGasIdxTxns.begin();
-    auto firstHash = firstGas->second.begin();
-
-    if (firstHash != firstGas->second.end()) {
-      t = std::move(firstHash->second);
-
-      // erase tx gas map
-      firstGas->second.erase(firstHash);
-      if (firstGas->second.empty()) {
-        m_newGasIdxTxns.erase(firstGas);
-      }
-      // erase tx nonce map
-      m_newNonceIdxTxns.erase({t.GetSenderPubKey(), t.GetNonce()});
-      // erase tx hash m ap
-      m_newHashIdxTxns.erase(t.GetTranID());
-      LOG_GENERAL(INFO, "findOneFromCreated finished true");
-      return true;
-    }
-    LOG_GENERAL(INFO, "findOneFromCreated finished false");
-    return false;
-  };
-
   auto appendOne = [this](const Transaction& t, const TransactionReceipt& tr) {
     LOG_MARKER();
     lock_guard<mutex> g(m_mutexProcessedTransactions);
@@ -358,7 +308,7 @@ void Node::ProcessTransactionWhenShardLeader() {
       // check whether m_createdTransaction have transaction with same Addr and
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
-      findSameNonceButHigherGasPrice(t);
+      m_createdTxns.findSameNonceButHigherGas(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
@@ -382,7 +332,7 @@ void Node::ProcessTransactionWhenShardLeader() {
       }
     }
     // if no txn in u_map meet right nonce process new come-in transactions
-    else if (findOneFromCreated(t)) {
+    else if (m_createdTxns.findOne(t)) {
       // LOG_GENERAL(INFO, "findOneFromCreated");
 
       Address senderAddr = t.GetSenderAddr();
@@ -452,17 +402,8 @@ bool Node::ProcessTransactionWhenShardBackup(
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-  auto findFromCreated = [this](const TxnHash& th) -> bool {
-    auto searchHash = m_newHashIdxTxns.find(th);
-    if (searchHash == m_newHashIdxTxns.end()) {
-      // LOG_GENERAL(WARNING, "txn is not found");
-      return false;
-    }
-    return true;
-  };
-
   for (const auto& tranHash : tranHashes) {
-    if (!findFromCreated(tranHash)) {
+    if (!m_createdTxns.exist(tranHash)) {
       missingtranHashes.emplace_back(tranHash);
     }
   }
@@ -477,16 +418,10 @@ bool Node::ProcessTransactionWhenShardBackup(
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   LOG_MARKER();
 
+  TxnPool t_createdTxns = m_createdTxns;
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
       t_addrNonceTxnMap = m_addrNonceTxnMap;
-  std::unordered_map<TxnHash, Transaction> t_newHashIdxTxns = m_newHashIdxTxns;
-  std::map<boost::multiprecision::uint256_t, std::map<TxnHash, Transaction>,
-           std::greater<boost::multiprecision::uint256_t>>
-      t_newGasIdxTxns = m_newGasIdxTxns;
-  std::unordered_map<std::pair<PubKey, boost::multiprecision::uint256_t>,
-                     Transaction, pair_hash>
-      t_newNonceIdxTxns = m_newNonceIdxTxns;
   vector<TxnHash> t_tranHashes;
   std::unordered_map<TxnHash, TransactionWithReceipt> t_processedTransactions;
 
@@ -504,54 +439,6 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
         }
         return true;
       }
-    }
-    return false;
-  };
-
-  auto findSameNonceButHigherGasPrice =
-      [&t_newHashIdxTxns, &t_newGasIdxTxns,
-       &t_newNonceIdxTxns](Transaction& t) -> void {
-    auto searchNonce =
-        t_newNonceIdxTxns.find({t.GetSenderPubKey(), t.GetNonce()});
-    if (searchNonce != t_newNonceIdxTxns.end()) {
-      if (searchNonce->second.GetGasPrice() > t.GetGasPrice()) {
-        t = std::move(searchNonce->second);
-
-        // erase tx nonce map
-        t_newNonceIdxTxns.erase(searchNonce);
-        // erase tx gas map
-        t_newGasIdxTxns[t.GetGasPrice()].erase(t.GetTranID());
-        if (t_newGasIdxTxns[t.GetGasPrice()].empty()) {
-          t_newGasIdxTxns.erase(t.GetGasPrice());
-        }
-        // erase tx hash map
-        t_newHashIdxTxns.erase(t.GetTranID());
-      }
-    }
-  };
-
-  auto findOneFromCreated = [&t_newHashIdxTxns, &t_newGasIdxTxns,
-                             &t_newNonceIdxTxns](Transaction& t) -> bool {
-    if (t_newGasIdxTxns.empty()) {
-      return false;
-    }
-
-    auto firstGas = t_newGasIdxTxns.begin();
-    auto firstHash = firstGas->second.begin();
-
-    if (firstHash != firstGas->second.end()) {
-      t = std::move(firstHash->second);
-
-      // erase tx gas map
-      firstGas->second.erase(firstHash);
-      if (firstGas->second.empty()) {
-        t_newGasIdxTxns.erase(firstGas);
-      }
-      // erase tx nonce map
-      t_newNonceIdxTxns.erase({t.GetSenderPubKey(), t.GetNonce()});
-      // erase tx hash m ap
-      t_newHashIdxTxns.erase(t.GetTranID());
-      return true;
     }
     return false;
   };
@@ -576,7 +463,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       // check whether m_createdTransaction have transaction with same Addr and
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
-      findSameNonceButHigherGasPrice(t);
+      t_createdTxns.findSameNonceButHigherGas(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
@@ -599,7 +486,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       }
     }
     // if no txn in u_map meet right nonce process new come-in transactions
-    else if (findOneFromCreated(t)) {
+    else if (t_createdTxns.findOne(t)) {
       Address senderAddr = t.GetSenderAddr();
       // check nonce, if nonce larger than expected, put it into
       // t_addrNonceTxnMap
@@ -649,9 +536,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
   if (t_tranHashes == tranHashes) {
     m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
-    m_newHashIdxTxns = std::move(t_newHashIdxTxns);
-    m_newGasIdxTxns = std::move(t_newGasIdxTxns);
-    m_newNonceIdxTxns = std::move(t_newNonceIdxTxns);
+    m_createdTxns = std::move(t_createdTxns);
 
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     m_processedTransactions[m_mediator.m_currentEpochNum] =

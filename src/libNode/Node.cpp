@@ -582,16 +582,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     cur_offset += submittedTxn.GetSerializedSize();
 
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    auto searchHash = m_newHashIdxTxns.find(submittedTxn.GetTranID());
-    if (searchHash != m_newHashIdxTxns.end()) {
-      LOG_GENERAL(WARNING, "Transaction fetched from already exist");
-      continue;
-    }
-    m_newHashIdxTxns[submittedTxn.GetTranID()] = submittedTxn;
-    m_newNonceIdxTxns[{submittedTxn.GetSenderPubKey(),
-                       submittedTxn.GetNonce()}] = submittedTxn;
-    m_newGasIdxTxns[submittedTxn.GetGasPrice()][submittedTxn.GetTranID()] =
-        std::move(submittedTxn);
+    m_createdTxns.insert(submittedTxn);
   }
 
   // vector<TxnHash> missingTxnHashes;
@@ -767,45 +758,7 @@ bool Node::ProcessTxnPacketFromLookupCore(
 
     for (const auto& tx : transactions) {
       if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx)) {
-        // auto it = compIdx.find(make_tuple(tx.GetSenderPubKey(),
-        // tx.GetNonce())); if (it != compIdx.end()) {
-        //   if (it->GetGasPrice() < tx.GetGasPrice()) {
-        //     compIdx.replace(it, tx);
-        //   }
-        // } else {
-        //   compIdx.insert(tx);
-        // }
-
-        auto searchNonce =
-            m_newNonceIdxTxns.find({tx.GetSenderPubKey(), tx.GetNonce()});
-        if (searchNonce != m_newNonceIdxTxns.end()) {
-          if (tx.GetGasPrice() > searchNonce->second.GetGasPrice()) {
-            // erase from HashIdxTxns
-            auto searchHash =
-                m_newHashIdxTxns.find(searchNonce->second.GetTranID());
-            if (searchHash != m_newHashIdxTxns.end()) {
-              m_newHashIdxTxns.erase(searchHash);
-            }
-            // erase from GasIdxTxns
-            auto searchGas =
-                m_newGasIdxTxns.find(searchNonce->second.GetGasPrice());
-            if (searchGas != m_newGasIdxTxns.end()) {
-              auto searchGasHash =
-                  searchGas->second.find(searchNonce->second.GetTranID());
-              if (searchGasHash != searchGas->second.end()) {
-                searchGas->second.erase(searchGasHash);
-              }
-            }
-            m_newHashIdxTxns[tx.GetTranID()] = tx;
-            m_newGasIdxTxns[tx.GetGasPrice()][tx.GetTranID()] = tx;
-            searchNonce->second = std::move(tx);
-          }
-        } else {
-          m_newHashIdxTxns[tx.GetTranID()] = tx;
-          m_newGasIdxTxns[tx.GetGasPrice()][tx.GetTranID()] = tx;
-          m_newNonceIdxTxns[{tx.GetSenderPubKey(), tx.GetNonce()}] =
-              std::move(tx);
-        }
+        m_createdTxns.insert(tx);
       } else {
         LOG_GENERAL(WARNING, "Txn is not valid.");
       }
@@ -1002,9 +955,7 @@ void Node::SetMyshardId(uint32_t shardId) {
 void Node::CleanCreatedTransaction() {
   {
     std::lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_newHashIdxTxns.clear();
-    m_newGasIdxTxns.clear();
-    m_newNonceIdxTxns.clear();
+    m_createdTxns.clear();
     m_addrNonceTxnMap.clear();
   }
   {
