@@ -289,6 +289,7 @@ void Node::ProcessTransactionWhenShardLeader() {
   };
 
   auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
+    LOG_GENERAL(INFO, "findSameNonceButHigherGasPrice started");
     auto searchNonce =
         m_newNonceIdxTxns.find({t.GetSenderPubKey(), t.GetNonce()});
     if (searchNonce != m_newNonceIdxTxns.end()) {
@@ -306,9 +307,15 @@ void Node::ProcessTransactionWhenShardLeader() {
         m_newHashIdxTxns.erase(t.GetTranID());
       }
     }
+    LOG_GENERAL(INFO, "findSameNonceButHigherGasPrice finished");
   };
 
   auto findOneFromCreated = [this](Transaction& t) -> bool {
+    LOG_GENERAL(INFO, "findOneFromCreated started");
+    if (m_newGasIdxTxns.empty()) {
+      return false;
+    }
+
     auto firstGas = m_newGasIdxTxns.begin();
     auto firstHash = firstGas->second.begin();
 
@@ -324,12 +331,15 @@ void Node::ProcessTransactionWhenShardLeader() {
       m_newNonceIdxTxns.erase({t.GetSenderPubKey(), t.GetNonce()});
       // erase tx hash m ap
       m_newHashIdxTxns.erase(t.GetTranID());
+      LOG_GENERAL(INFO, "findOneFromCreated finished true");
       return true;
     }
+    LOG_GENERAL(INFO, "findOneFromCreated finished false");
     return false;
   };
 
   auto appendOne = [this](const Transaction& t, const TransactionReceipt& tr) {
+    LOG_MARKER();
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     auto& processedTransactions =
         m_processedTransactions[m_mediator.m_currentEpochNum];
@@ -522,6 +532,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
   auto findOneFromCreated = [&t_newHashIdxTxns, &t_newGasIdxTxns,
                              &t_newNonceIdxTxns](Transaction& t) -> bool {
+    if (t_newGasIdxTxns.empty()) {
+      return false;
+    }
+
     auto firstGas = t_newGasIdxTxns.begin();
     auto firstHash = firstGas->second.begin();
 
