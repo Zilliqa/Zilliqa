@@ -234,7 +234,6 @@ class Node : public Executable, public Broadcastable {
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
   void StoreDSBlockToDisk(const DSBlock& dsblock);
-  void UpdateDSCommiteeComposition();
 
   // Message handlers
   bool ProcessStartPoW(const std::vector<unsigned char>& message,
@@ -279,7 +278,7 @@ class Node : public Executable, public Broadcastable {
   bool CheckStateRoot(const TxBlock& finalBlock);
 
   // View change
-  void UpdateDSCommiteeCompositionAfterVC();
+
   bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
   bool ProcessVCBlock(const std::vector<unsigned char>& message,
                       unsigned int cur_offset, const Peer& from);
@@ -334,7 +333,7 @@ class Node : public Executable, public Broadcastable {
                          std::vector<unsigned char>& messageToCosign);
   void UpdateFallbackConsensusLeader();
   void SetLastKnownGoodState();
-  void ComposeFallbackBlock();
+  bool ComposeFallbackBlock();
   void RunConsensusOnFallback();
   bool RunConsensusOnFallbackWhenLeader();
   bool RunConsensusOnFallbackWhenBackup();
@@ -342,8 +341,6 @@ class Node : public Executable, public Broadcastable {
   bool ProcessFallbackConsensus(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   // Fallback block processing
-  void UpdateDSCommittee(const uint32_t& shard_id, const PubKey& leaderPubKey,
-                         const Peer& leaderNetworkInfo);
   bool VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock);
   bool ProcessFallbackBlock(const std::vector<unsigned char>& message,
                             unsigned int cur_offset, const Peer& from);
@@ -482,6 +479,16 @@ class Node : public Executable, public Broadcastable {
 
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
+
+  void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
+
+  void UpdateDSCommiteeCompositionAfterVC(
+      std::deque<std::pair<PubKey, Peer>>& dsComm);
+
+  void UpdateDSCommitteeAfterFallback(
+      const uint32_t& shard_id, const PubKey& leaderPubKey,
+      const Peer& leaderNetworkInfo,
+      std::deque<std::pair<PubKey, Peer>>& dsComm, const DequeOfShard& shards);
 
   void CommitForwardedTransactionBuffer();
 

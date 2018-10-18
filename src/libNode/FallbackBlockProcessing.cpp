@@ -39,21 +39,19 @@
 
 using namespace std;
 
-void Node::UpdateDSCommittee(const uint32_t& shard_id,
-                             const PubKey& leaderPubKey,
-                             const Peer& leaderNetworkInfo) {
-  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-
-  m_mediator.m_DSCommittee->clear();
-
-  for (auto const& shardNode : m_mediator.m_ds->m_shards[shard_id]) {
+void Node::UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
+                                          const PubKey& leaderPubKey,
+                                          const Peer& leaderNetworkInfo,
+                                          deque<pair<PubKey, Peer>>& dsComm,
+                                          const DequeOfShard& shards) {
+  dsComm.clear();
+  for (auto const& shardNode : shards[shard_id]) {
     if (std::get<SHARD_NODE_PUBKEY>(shardNode) == leaderPubKey &&
         std::get<SHARD_NODE_PEER>(shardNode) == leaderNetworkInfo) {
-      m_mediator.m_DSCommittee->push_front({leaderPubKey, leaderNetworkInfo});
+      dsComm.push_front({leaderPubKey, leaderNetworkInfo});
     } else {
-      m_mediator.m_DSCommittee->push_back(
-          {std::get<SHARD_NODE_PUBKEY>(shardNode),
-           std::get<SHARD_NODE_PEER>(shardNode)});
+      dsComm.push_back({std::get<SHARD_NODE_PUBKEY>(shardNode),
+                        std::get<SHARD_NODE_PEER>(shardNode)});
     }
   }
 }
@@ -173,88 +171,115 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 
   // Check shard
   uint32_t shard_id = fallbackblock.GetHeader().GetShardId();
-  if (shard_id >= m_mediator.m_ds->m_shards.size()) {
-    LOG_GENERAL(WARNING,
-                "The shard doesn't exist here for this id " << shard_id);
-    return false;
-  }
+  {
+    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
-  // Check consensus leader network info and pubkey
-  uint32_t leaderConsensusId = fallbackblock.GetHeader().GetLeaderConsensusId();
-  if (leaderConsensusId >= m_mediator.m_ds->m_shards[shard_id].size()) {
-    LOG_GENERAL(WARNING,
-                "The consensusLeaderId "
-                    << leaderConsensusId
-                    << " is larger than the size of that shard member we have "
-                    << m_mediator.m_ds->m_shards[shard_id].size());
-    return false;
-  }
-
-  const PubKey& leaderPubKey = fallbackblock.GetHeader().GetLeaderPubKey();
-  const Peer& leaderNetworkInfo =
-      fallbackblock.GetHeader().GetLeaderNetworkInfo();
-
-  auto leader = make_tuple(leaderPubKey, leaderNetworkInfo, 0);
-
-  auto found = std::find_if(m_mediator.m_ds->m_shards[shard_id].begin(),
-                            m_mediator.m_ds->m_shards[shard_id].end(),
-                            [&leader](const auto& item) {
-                              return (std::get<SHARD_NODE_PUBKEY>(leader) ==
-                                      std::get<SHARD_NODE_PUBKEY>(item)) &&
-                                     (std::get<SHARD_NODE_PEER>(leader) ==
-                                      std::get<SHARD_NODE_PEER>(item));
-                            });
-  if (found == m_mediator.m_ds->m_shards[shard_id].end()) {
-    LOG_GENERAL(WARNING,
-                "The expected consensus leader not found in sharding structure"
-                    << endl
-                    << "PubKey: " << leaderPubKey << endl
-                    << "Peer: " << leaderNetworkInfo);
-    return false;
-  }
-
-  if (AccountStore::GetInstance().GetStateRootHash() !=
-      fallbackblock.GetHeader().GetStateRootHash()) {
-    LOG_GENERAL(WARNING,
-                "The state root hash mismatched"
-                    << endl
-                    << "expected: "
-                    << AccountStore::GetInstance().GetStateRootHash().hex()
-                    << endl
-                    << "received: "
-                    << fallbackblock.GetHeader().GetStateRootHash().hex());
-    return false;
-  }
-
-  if (!VerifyFallbackBlockCoSignature(fallbackblock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "FallbackBlock co-sig verification failed");
-    return false;
-  }
-
-  uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
-  m_mediator.m_blocklinkchain.AddBlockLink(
-      latestInd, fallbackblock.GetHeader().GetFallbackDSEpochNo(),
-      BlockType::FB, fallbackblock.GetBlockHash());
-
-  vector<unsigned char> dst;
-
-  FallbackBlockWShardingStructure fbblockwshards(fallbackblock,
-                                                 m_mediator.m_ds->m_shards);
-
-  if (!fbblockwshards.Serialize(dst, 0)) {
-    LOG_GENERAL(WARNING, "Failed to deserialize");
-    if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
-            fallbackblock.GetBlockHash(), dst)) {
-      LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+    if (shard_id >= m_mediator.m_ds->m_shards.size()) {
+      LOG_GENERAL(WARNING,
+                  "The shard doesn't exist here for this id " << shard_id);
+      return false;
     }
+
+    CommitteeHash committeeHash;
+    if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shard_id),
+                                 committeeHash)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::GetShardHash failed.");
+      return false;
+    }
+    if (committeeHash != fallbackblock.GetHeader().GetCommitteeHash()) {
+      LOG_GENERAL(WARNING, "Fallback committee hash mismatched"
+                               << endl
+                               << "expected: " << committeeHash << endl
+                               << "received: "
+                               << fallbackblock.GetHeader().GetCommitteeHash());
+      return false;
+    }
+
+    // Check consensus leader network info and pubkey
+    uint32_t leaderConsensusId =
+        fallbackblock.GetHeader().GetLeaderConsensusId();
+    if (leaderConsensusId >= m_mediator.m_ds->m_shards[shard_id].size()) {
+      LOG_GENERAL(
+          WARNING,
+          "The consensusLeaderId "
+              << leaderConsensusId
+              << " is larger than the size of that shard member we have "
+              << m_mediator.m_ds->m_shards[shard_id].size());
+      return false;
+    }
+
+    const PubKey& leaderPubKey = fallbackblock.GetHeader().GetLeaderPubKey();
+    const Peer& leaderNetworkInfo =
+        fallbackblock.GetHeader().GetLeaderNetworkInfo();
+
+    auto leader = make_tuple(leaderPubKey, leaderNetworkInfo, 0);
+
+    auto found = std::find_if(m_mediator.m_ds->m_shards[shard_id].begin(),
+                              m_mediator.m_ds->m_shards[shard_id].end(),
+                              [&leader](const auto& item) {
+                                return (std::get<SHARD_NODE_PUBKEY>(leader) ==
+                                        std::get<SHARD_NODE_PUBKEY>(item)) &&
+                                       (std::get<SHARD_NODE_PEER>(leader) ==
+                                        std::get<SHARD_NODE_PEER>(item));
+                              });
+    if (found == m_mediator.m_ds->m_shards[shard_id].end()) {
+      LOG_GENERAL(
+          WARNING,
+          "The expected consensus leader not found in sharding structure"
+              << endl
+              << "PubKey: " << leaderPubKey << endl
+              << "Peer: " << leaderNetworkInfo);
+      return false;
+    }
+
+    if (AccountStore::GetInstance().GetStateRootHash() !=
+        fallbackblock.GetHeader().GetStateRootHash()) {
+      LOG_GENERAL(WARNING,
+                  "The state root hash mismatched"
+                      << endl
+                      << "expected: "
+                      << AccountStore::GetInstance().GetStateRootHash().hex()
+                      << endl
+                      << "received: "
+                      << fallbackblock.GetHeader().GetStateRootHash().hex());
+      return false;
+    }
+
+    if (!VerifyFallbackBlockCoSignature(fallbackblock)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "FallbackBlock co-sig verification failed");
+      return false;
+    }
+
+    uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+    m_mediator.m_blocklinkchain.AddBlockLink(
+        latestInd, fallbackblock.GetHeader().GetFallbackDSEpochNo(),
+        BlockType::FB, fallbackblock.GetBlockHash());
+
+    vector<unsigned char> dst;
+
+    FallbackBlockWShardingStructure fbblockwshards(fallbackblock,
+                                                   m_mediator.m_ds->m_shards);
+
+    if (!fbblockwshards.Serialize(dst, 0)) {
+      LOG_GENERAL(WARNING, "Failed to Serialize");
+    } else {
+      if (!BlockStorage::GetBlockStorage().PutFallbackBlock(
+              fallbackblock.GetBlockHash(), dst)) {
+        LOG_GENERAL(WARNING, "Unable to store FallbackBlock");
+      }
+    }
+
+    FallbackTimerPulse();
+    {
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+      UpdateDSCommitteeAfterFallback(shard_id, leaderPubKey, leaderNetworkInfo,
+                                     *m_mediator.m_DSCommittee,
+                                     m_mediator.m_ds->m_shards);
+    }
+    StoreState();
   }
-
-  FallbackTimerPulse();
-
-  UpdateDSCommittee(shard_id, leaderPubKey, leaderNetworkInfo);
-
-  StoreState();
 
   if (!LOOKUP_NODE_MODE) {
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
