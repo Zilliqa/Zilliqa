@@ -69,6 +69,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   shared_ptr<PubKey> aggregatedKey = MultiSig::AggregatePubKeys(keys);
   if (aggregatedKey == nullptr) {
     LOG_GENERAL(WARNING, "Aggregated key generation failed");
+    return;
   }
 
   vector<unsigned char> message;
