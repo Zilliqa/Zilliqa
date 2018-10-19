@@ -452,7 +452,8 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
 
       uint32_t shardId = microBlock.GetHeader().GetShardId();
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "shard_id " << shardId);
+                "shard_id: " << shardId << ", pubkey: "
+                             << microBlock.GetHeader().GetMinerPubKey());
 
       const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 

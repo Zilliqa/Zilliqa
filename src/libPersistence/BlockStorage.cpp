@@ -488,7 +488,6 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
   }
 
   LOG_GENERAL(INFO, "Stored sharding structure");
-
   return true;
 }
 
@@ -503,7 +502,6 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards,
   Messenger::ArrayToShardStructure(
       vector<unsigned char>(dataStr.begin(), dataStr.end()), 0, shards);
   LOG_GENERAL(INFO, "Retrieved sharding structure");
-
   return true;
 }
 
