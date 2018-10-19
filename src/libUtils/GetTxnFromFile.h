@@ -29,21 +29,27 @@
 
 #include "Logger.h"
 #include "libData/AccountData/Transaction.h"
-
-unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
+#include "libMessage/Messenger.h"
 
 bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
                              unsigned int totalNum,
-                             std::vector<unsigned char>& vec) {
-  f.seekg(startNum * TXN_SIZE, std::ios::beg);
-  // vec.resize(TXN_SIZE * totalNum);
-  for (unsigned int i = 0; i < TXN_SIZE * totalNum; i++) {
-    if (!f.good()) {
-      LOG_GENERAL(WARNING, "Bad byte accessed");
-      return false;
-    }
-    vec.emplace_back(f.get());
+                             std::vector<Transaction>& txns) {
+  f.seekg(0, std::ios::end);
+  size_t fileSize = f.tellg();
+  f.seekg(0, std::ios::beg);
+  std::vector<unsigned char> buffer(fileSize);
+  f.read((char*)&buffer[0], fileSize);
+
+  std::vector<Transaction> localTxns;
+  if (!Messenger::GetTransactionArray(buffer, 0, localTxns)) {
+    return false;
   }
+
+  if (startNum + totalNum <= localTxns.size()) {
+    txns = std::vector<Transaction>(localTxns.begin() + startNum,
+                                    localTxns.begin() + startNum + totalNum);
+  }
+
   return true;
 }
 
@@ -52,14 +58,14 @@ class GetTxnFromFile {
   // clears vec
   static bool GetFromFile(Address addr, unsigned int startNum,
                           unsigned int totalNum,
-                          std::vector<unsigned char>& vec) {
+                          std::vector<Transaction>& txns) {
     if (NUM_TXN_TO_SEND_PER_ACCOUNT == 0) {
       return true;
     }
 
     const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
     std::fstream file;
-    vec.clear();
+    txns.clear();
 
     if (totalNum > num_txn) {
       LOG_GENERAL(WARNING, "A single file is holding too many txns ("
@@ -85,7 +91,7 @@ class GetTxnFromFile {
     unsigned int fileNum = (startNum - 1) / num_txn;
     bool breakCall = false;
     bool b = false;
-    std::vector<unsigned char> remainTxn;
+    std::vector<Transaction> remainTxn;
     unsigned int startNumInFile = (startNum - 1) % num_txn;
     if (startNumInFile + totalNum > num_txn) {
       breakCall = true;
@@ -109,7 +115,7 @@ class GetTxnFromFile {
       return false;
     }
 
-    b = getTransactionsFromFile(file, startNumInFile, totalNum, vec);
+    b = getTransactionsFromFile(file, startNumInFile, totalNum, txns);
 
     file.close();
 
@@ -118,7 +124,7 @@ class GetTxnFromFile {
     }
 
     if (breakCall) {
-      copy(remainTxn.begin(), remainTxn.end(), back_inserter(vec));
+      copy(remainTxn.begin(), remainTxn.end(), back_inserter(txns));
     }
 
     return true;
