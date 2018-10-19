@@ -430,6 +430,15 @@ void DirectoryService::StartFirstTxEpoch() {
 
     // Start sharding work
     SetState(MICROBLOCK_SUBMISSION);
+
+    LOG_STATE(
+        "[MIBLKSWAIT["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] BEGIN");
+
     m_dsStartedMicroblockConsensus = false;
 
     if (BROADCAST_GOSSIP_MODE) {
@@ -453,6 +462,15 @@ void DirectoryService::StartFirstTxEpoch() {
         LOG_GENERAL(WARNING,
                     "Timeout: Didn't receive all Microblock. Proceeds "
                     "without it");
+
+        LOG_STATE("[MIBLKSWAIT["
+                  << setw(15) << left
+                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                  << m_mediator.m_txBlockChain.GetLastBlock()
+                             .GetHeader()
+                             .GetBlockNum() +
+                         1
+                  << "] TIMEOUT: Didn't receive all Microblock.");
 
         auto func = [this]() mutable -> void {
           m_dsStartedMicroblockConsensus = true;
