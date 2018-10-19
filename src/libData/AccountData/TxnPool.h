@@ -53,9 +53,9 @@ struct TxnPool {
   bool exist(const TxnHash& th) {
     auto search = HashIndex.find(th);
     if (search != HashIndex.end()) {
-      return false;
+      return true;
     }
-    return true;
+    return false;
   }
 
   bool insert(const Transaction& t) {
