@@ -67,6 +67,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
   shared_ptr<PubKey> aggregatetdKey = MultiSig::AggregatePubKeys(keys);
   if (aggregatetdKey == nullptr) {
     LOG_GENERAL(WARNING, "Aggregated key generation failed");
+    return;
   }
 
   vector<unsigned char> message;
