@@ -31,10 +31,30 @@ message ProtoBlockNum
     required string blocknum = 1;
 }
 
+message ProtoStorageInfo
+{
+
+}
+
 message ProtoShardingStruct
 {
     optional string error = 1;
     repeated uint32 numpeers = 2;
+}
+
+message ProtoBlockListing {
+    optional string error = 1;
+    optional int32 maxpages = 2;
+    message BlockData {
+        required string hash = 1;
+        required int32 blocknum = 2;
+    }
+    repeated BlockData data = 3;
+}
+
+message ProtoPage
+{
+	required uint32 page = 1;
 }
 
 message ProtoBlockChainInfo
