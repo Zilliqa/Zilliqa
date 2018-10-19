@@ -719,7 +719,7 @@ StringResponse Server::GetNumTransactions() {
 }
 
 
-// TODO: protobuf it.
+// NOTE: is ir required to protobuf it?
 boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -957,7 +957,6 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
   }
 
   unsigned int offset = PAGE_SIZE * (page - 1);
-  Json::Value tmpJson;
   if (page <= NUM_PAGES_CACHE) {  // can use cache
     boost::multiprecision::uint256_t cacheSize(
         m_DSBlockCache.second.capacity());
