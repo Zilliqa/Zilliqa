@@ -687,10 +687,6 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     return false;
   }
 
-  LOG_STATE("[MICON][" << std::setw(15) << std::left
-                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                       << m_mediator.m_currentEpochNum << "] BGIN");
-
   ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
   auto announcementGeneratorFunc =
@@ -704,6 +700,23 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
         *m_microblock, messageToCosign);
   };
 
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+    LOG_STATE(
+        "[DSMICON]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] BGIN.");
+  } else {
+    LOG_STATE(
+        "[MICON]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] BGIN.");
+  }
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
   return true;
