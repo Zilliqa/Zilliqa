@@ -886,9 +886,6 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  BlockStorage::GetBlockStorage().PutShardStructure(
-      m_shards, m_mediator.m_node->m_myshardId);
-
   if (shardingHash != m_pendingDSBlock->GetHeader().GetShardingHash()) {
     LOG_GENERAL(WARNING,
                 "Sharding structure hash in newly received DS Block doesn't "
