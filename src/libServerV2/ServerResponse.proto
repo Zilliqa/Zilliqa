@@ -62,15 +62,14 @@ message GetBalanceResponse
     optional ByteArray nonce = 3;
 }
 
-message StorageInfo
-{
-
-}
-
 message GetSmartContractStateResponse
 {
     optional string error = 1;
-    optional StorageInfo storage = 2;
+}
+
+message GetSmartContractInitResponse
+{
+    optional string error = 1;
 }
 
 message GetSmartContractCodeResponse
@@ -79,4 +78,14 @@ message GetSmartContractCodeResponse
     optional string smartcontractcode = 2;
 }
 
+message GetSmartContractResponse
+{
+    optional string error = 1;
+    repeated string address = 2;
+}
 
+message TxBlockListingResponse
+{
+    optional string error = 1;
+    optional int32 maxpages = 2;
+}

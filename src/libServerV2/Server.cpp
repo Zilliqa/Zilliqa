@@ -479,7 +479,51 @@ GetSmartContractStateResponse Server::GetSmartContractState(ProtoAddress& protoA
       return ret;
     }
 
+    // TODO:
+    // Wait for AccountStore protobuffing.
     //return account->GetStorageJson();
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    ret.set_error("Unable To Process");
+  }
+
+  return ret;
+}
+
+
+GetSmartContractInitResponse Server::GetSmartContractInit(ProtoAddress& protoAddress) {
+  LOG_MARKER();
+
+  GetSmartContractInitResponse ret;
+
+  try {
+    if (!protoAddress.has_address()) {
+      ret.set_error("Address not set in request");
+      return ret;
+    }
+
+    if (protoAddress.address().size() != ACC_ADDR_SIZE * 2) {
+      ret.set_error("Address size inappropriate");
+      return ret;
+    }
+
+    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    Address addr(tmpaddr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+    if (account == nullptr) {
+      ret.set_error("Address does not exist");
+      return ret;
+    }
+
+    if (!account->isContract()) {
+      ret.set_error("Address not contract address");
+      return ret;
+    }
+
+    // TODO:
+    // Wait for AccountStore protobuffing.
+    //return account->GetInitJson();
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
@@ -520,6 +564,63 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
     }
 
     ret.set_smartcontractcode(DataConversion::CharArrayToString(account->GetCode()));
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    ret.set_error("Unable To Process");
+  }
+
+  return ret;
+}
+
+
+GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
+  LOG_MARKER();
+
+  GetSmartContractResponse ret;
+
+  try {
+    if (!protoAddress.has_address()) {
+      ret.set_error("Address not set in request");
+      return ret;
+    }
+
+    if (protoAddress.address().size() != ACC_ADDR_SIZE * 2) {
+      ret.set_error("Address size inappropriate");
+      return ret;
+    }
+
+    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    Address addr(tmpaddr);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+
+    if (account == nullptr) {
+      ret.set_error("Address does not exist");
+      return ret;
+    }
+
+    if (account->isContract()) {
+      ret.set_error("A contract account queried");
+      return ret;
+    }
+
+    boost::multiprecision::uint256_t nonce = account->GetNonce();
+    //[TODO] find out a more efficient way (using storage)
+
+    for (boost::multiprecision::uint256_t i = 0; i < nonce; i++) {
+      Address contractAddr = Account::GetAddressForContract(addr, i);
+      const Account* contractAccount =
+          AccountStore::GetInstance().GetAccount(contractAddr);
+
+      if (contractAccount == nullptr || !contractAccount->isContract()) {
+        continue;
+      }
+
+      // TODO: wait for protobuffing AccountStore.
+      /*auto protoContractAccount = ret.add_addresses();
+      protoContractAccount->set_address(contractAddr.hex());
+      protoContractAccount->set_state(contractAccount->GetStorageJson());*/
+    }
+
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
@@ -618,6 +719,7 @@ StringResponse Server::GetNumTransactions() {
 }
 
 
+// TODO: protobuf it.
 boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -753,6 +855,7 @@ DoubleResponse Server::GetTxBlockRate() {
       if (string(msg) == "Blocknumber Absent") {
         LOG_GENERAL(INFO, "No TxBlock has been mined yet");
       }
+
       return ret;
     }
   }
@@ -789,14 +892,183 @@ StringResponse Server::GetCurrentDSEpoch() {
   LOG_MARKER();
 
   StringResponse ret;
-  ret.set_result(to_string(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()));
+  ret.set_result(to_string(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()));
+  return ret;
+}
+
+
+ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
+  LOG_MARKER();
+
+  ProtoBlockListing ret;
+  if (protoPage.has_page()) {
+    ret.set_error("Page not in request");
+    return ret;
+  }
+
+  uint64_t currBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
+  ret.set_maxpages(int(maxPages));
+
+  if (m_DSBlockCache.second.size() == 0) {
+    try {
+      // add the hash of genesis block
+      DSBlockHeader dshead = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      vector<unsigned char> vec;
+      dshead.Serialize(vec, 0);
+      sha2.Update(vec);
+      const vector<unsigned char>& resVec = sha2.Finalize();
+      m_DSBlockCache.second.insert_new(
+          m_DSBlockCache.second.size(),
+          DataConversion::Uint8VecToHexStr(resVec));
+    } catch (const char* msg) {
+      ret.set_error(msg);
+      return ret;
+    }
+  }
+
+  unsigned int page = protoPage.page();
+  if (page > maxPages || page < 1) {
+    ret.set_error("Pages out of limit");
+    return ret;
+  }
+
+  if (currBlockNum > m_DSBlockCache.first) {
+    for (uint64_t i = m_DSBlockCache.first + 1; i < currBlockNum; i++) {
+      m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(),
+                                       m_mediator.m_dsBlockChain.GetBlock(i + 1)
+                                           .GetHeader()
+                                           .GetPrevHash()
+                                           .hex());
+    }
+    // for the latest block
+    DSBlockHeader dshead =
+        m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    vector<unsigned char> vec;
+    dshead.Serialize(vec, 0);
+    sha2.Update(vec);
+    const vector<unsigned char>& resVec = sha2.Finalize();
+
+    m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(),
+                                     DataConversion::Uint8VecToHexStr(resVec));
+    m_DSBlockCache.first = currBlockNum;
+  }
+
+  unsigned int offset = PAGE_SIZE * (page - 1);
+  Json::Value tmpJson;
+  if (page <= NUM_PAGES_CACHE) {  // can use cache
+    boost::multiprecision::uint256_t cacheSize(
+        m_DSBlockCache.second.capacity());
+    if (cacheSize > m_DSBlockCache.second.size()) {
+      cacheSize = m_DSBlockCache.second.size();
+    }
+
+    uint64_t size = m_DSBlockCache.second.size();
+
+    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize; i++) {
+      auto blockData = ret.add_data();
+      blockData->set_hash(m_DSBlockCache.second[size - i - 1]);
+      blockData->set_blocknum(int(currBlockNum - i));
+    }
+
+  } else {
+    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum; i++) {
+      auto blockData = ret.add_data();
+      blockData->set_hash(m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
+      blockData->set_blocknum(int(currBlockNum - i));
+    }
+  }
 
   return ret;
 }
 
 
-// TODO:
+ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
+  LOG_MARKER();
+
+  ProtoBlockListing ret;
+  if (protoPage.has_page()) {
+    ret.set_error("Page not in request");
+    return ret;
+  }
+
+  uint64_t currBlockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
+  ret.set_maxpages(int(maxPages));
+
+  if (m_TxBlockCache.second.size() == 0) {
+    try {
+      // add the hash of genesis block
+      TxBlockHeader txhead = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+      vector<unsigned char> vec;
+      txhead.Serialize(vec, 0);
+      sha2.Update(vec);
+      const vector<unsigned char>& resVec = sha2.Finalize();
+      m_TxBlockCache.second.insert_new(
+          m_TxBlockCache.second.size(),
+          DataConversion::Uint8VecToHexStr(resVec));
+    } catch (const char* msg) {
+      ret.set_error(msg);
+      return ret;
+    }
+  }
+
+  unsigned int page = protoPage.page();
+  if (page > maxPages || page < 1) {
+    ret.set_error("Pages out of limit");
+    return ret;
+  }
+
+  if (currBlockNum > m_TxBlockCache.first) {
+    for (uint64_t i = m_TxBlockCache.first + 1; i < currBlockNum; i++) {
+      m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(),
+                                       m_mediator.m_txBlockChain.GetBlock(i + 1)
+                                           .GetHeader()
+                                           .GetPrevHash()
+                                           .hex());
+    }
+    // for the latest block
+    TxBlockHeader txhead =
+        m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    vector<unsigned char> vec;
+    txhead.Serialize(vec, 0);
+    sha2.Update(vec);
+    const vector<unsigned char>& resVec = sha2.Finalize();
+
+    m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(),
+                                     DataConversion::Uint8VecToHexStr(resVec));
+    m_TxBlockCache.first = currBlockNum;
+  }
+
+  unsigned int offset = PAGE_SIZE * (page - 1);
+  if (page <= NUM_PAGES_CACHE) {  // can use cache
+    boost::multiprecision::uint256_t cacheSize(m_TxBlockCache.second.capacity());
+
+    if (cacheSize > m_TxBlockCache.second.size()) {
+      cacheSize = m_TxBlockCache.second.size();
+    }
+
+    uint64_t size = m_TxBlockCache.second.size();
+    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize; i++) {
+      auto blockData = ret.add_data();
+      blockData->set_hash(m_TxBlockCache.second[size - i - 1]);
+      blockData->set_blocknum(int(currBlockNum - i));
+    }
+
+  } else {
+    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum; i++) {
+      auto blockData = ret.add_data();
+      blockData->set_hash(m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
+      blockData->set_blocknum(int(currBlockNum - i));
+    }
+  }
+
+  return ret;
+}
 
 
 ProtoBlockChainInfo Server::GetBlockchainInfo() {
@@ -824,8 +1096,6 @@ ProtoBlockChainInfo Server::GetBlockchainInfo() {
 ProtoTxHashes Server::GetRecentTransactions() {
   LOG_MARKER();
 
-  ProtoTxHashes ret;
-
   lock_guard<mutex> g(m_mutexRecentTxns);
 
   uint64_t actualSize(m_RecentTransactions.capacity());
@@ -833,9 +1103,10 @@ ProtoTxHashes Server::GetRecentTransactions() {
     actualSize = m_RecentTransactions.size();
   }
 
-  uint64_t size = m_RecentTransactions.size();
+  ProtoTxHashes ret;
   ret.set_number(int(actualSize));
 
+  uint64_t size = m_RecentTransactions.size();
   for (uint64_t i = 0; i < actualSize; i++) {
     auto txhash = ret.add_txhashes();
     txhash->set_txhash(m_RecentTransactions[size - i - 1]);
@@ -846,8 +1117,11 @@ ProtoTxHashes Server::GetRecentTransactions() {
 
 
 void Server::AddToRecentTransactions(ProtoTxHash& protoTxHash) {
-  lock_guard<mutex> g(m_mutexRecentTxns);
-  m_RecentTransactions.insert_new(m_RecentTransactions.size(), protoTxHash.txhash());
+  // Add tx hash to recent transactions.
+  if (protoTxHash.has_txhash()) {
+    lock_guard<mutex> g(m_mutexRecentTxns);
+    m_RecentTransactions.insert_new(m_RecentTransactions.size(), protoTxHash.txhash());
+  }
 }
 
 
