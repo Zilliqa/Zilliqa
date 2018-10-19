@@ -267,16 +267,21 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   if (microBlocksAtEpoch.size() == m_shards.size()) {
-    if (m_mode == PRIMARY_DS) {
-      LOG_STATE("[MICRO][" << std::setw(15) << std::left
-                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "]["
-                           << m_mediator.m_txBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetBlockNum() +
-                                  1
-                           << "] LAST");
-    }
+    LOG_STATE(
+        "[MICRO]["
+        << std::setw(15) << std::left
+        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] LAST RECVD");
+    LOG_STATE(
+        "[MIBLKSWAIT["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] DONE");
+
     for (auto& mb : microBlocksAtEpoch) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Timestamp: " << mb.GetHeader().GetTimestamp()
@@ -308,14 +313,14 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     };
 
     DetachedFunction(1, func2);
-  } else if ((microBlocks.size() == 1) && (m_mode == PRIMARY_DS)) {
+  } else if (microBlocks.size() == 1) {
     LOG_STATE(
         "[MICRO]["
         << std::setw(15) << std::left
         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
-        << "] FRST");
+        << "] FRST RECVD");
   }
 
   // TODO: Re-request from shard leader if microblock is not received after a
