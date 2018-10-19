@@ -217,10 +217,21 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     m_microblock->SetCoSignatures(*m_consensusObject);
 
     if (m_isPrimary) {
-      LOG_STATE("[MICON][" << std::setw(15) << std::left
-                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "][" << m_mediator.m_currentEpochNum << "] DONE");
-
+      if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
+        LOG_STATE("[MICON][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_mediator.m_currentEpochNum
+                             << "] DONE");
+      } else {
+        LOG_STATE("[DSMICON[" << setw(15) << left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "]["
+                              << m_mediator.m_txBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetBlockNum() +
+                                     1
+                              << "] DONE.");
+      }
       // Multicast micro block to all DS nodes
       SubmitMicroblockToDSCommittee();
     }
