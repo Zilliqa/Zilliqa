@@ -42,7 +42,7 @@ struct tm* gmtime_safe(const time_t* timer) {
 }
 
 long int get_ms(const time_point<system_clock> time) {
-  return duration_cast<milliseconds>(
+  return duration_cast<microseconds>(
              time - system_clock::from_time_t(system_clock::to_time_t(time)))
       .count();
 }

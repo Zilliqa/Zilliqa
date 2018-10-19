@@ -788,6 +788,10 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         return false;
       }
 
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "Step 1: Check if r,s is in [1, ..., order-1].");
+      }
+
       // 2. Compute Q = sG + r*kpub
       err2 =
           (EC_POINT_mul(m_curve.m_group.get(), Q.get(), toverify.m_s.get(),
@@ -798,12 +802,20 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
         return false;
       }
 
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "Step 2: Compute Q = sG + r*kpub.");
+      }
+
       // 3. If Q = O (the neutral point), return 0;
       err2 = (EC_POINT_is_at_infinity(m_curve.m_group.get(), Q.get()));
       err = err || err2;
       if (err2) {
         LOG_GENERAL(WARNING, "Commit at infinity");
         return false;
+      }
+
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "Step 3: Check Q = O (the neutral point).");
       }
 
       // 4. r' = H(Q, kpub, m)
@@ -824,6 +836,10 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
       // Reset buf
       fill(buf.begin(), buf.end(), 0x00);
 
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "Step 4.1: Convert the committment to octets first.");
+      }
+
       // 4.2 Convert the public key to octets
       err2 = (EC_POINT_point2oct(m_curve.m_group.get(), pubkey.m_P.get(),
                                  POINT_CONVERSION_COMPRESSED, buf.data(),
@@ -838,9 +854,17 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
       // Hash public key
       sha2.Update(buf);
 
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "Step 4.2: Convert the public key to octets.");
+      }
+
       // 4.3 Hash message
       sha2.Update(message, offset, size);
       vector<unsigned char> digest = sha2.Finalize();
+
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "Step 4.3: Hash message.");
+      }
 
       // 5. return r' == r
       err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get()) ==
@@ -860,6 +884,11 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
       }
 
       sha2.Reset();
+
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "Step 5: return r' == r.");
+      }
+
     } else {
       LOG_GENERAL(WARNING, "Memory allocation failure");
       // throw exception();

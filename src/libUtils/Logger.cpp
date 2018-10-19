@@ -139,7 +139,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function) {
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
     LOG(level) << "[TID " << PAD(GetPid(), TID_LEN) << "]["
                << put_time(gmtime(&cur_time_t), "%H:%M:%S:")
-               << PAD(get_ms(cur), 3) << "]["
+               << PAD(get_ms(cur), 6) << "]["
                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
     return;
   }

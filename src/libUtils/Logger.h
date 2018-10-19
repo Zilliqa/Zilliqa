@@ -167,7 +167,7 @@ class ScopeMarker {
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);            \
       LOG(level) << "[TID " << PAD(Logger::GetPid(), Logger::TID_LEN) << "][" \
                  << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")           \
-                 << PAD(get_ms(cur), 3) << "]["                               \
+                 << PAD(get_ms(cur), 6) << "]["                               \
                  << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "     \
                  << msg;                                                      \
     } else {                                                                  \
