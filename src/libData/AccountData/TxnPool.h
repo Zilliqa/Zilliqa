@@ -24,25 +24,24 @@
 #include "libData/AccountData/Transaction.h"
 
 struct TxnPool {
-  struct pair_hash {
-    template <class T1, class T2>
-    std::size_t operator()(const std::pair<T1, T2>& p) const {
+  struct PubKeyNonceHash {
+    std::size_t operator()(
+        const std::pair<PubKey, boost::multiprecision::uint256_t>& p) const {
       std::size_t seed = 0;
-      auto h1 = std::hash<T1>{}(p.first);
-      auto h2 = std::hash<T2>{}(p.second);
-      boost::hash_combine(seed, h1);
-      boost::hash_combine(seed, h2);
+      boost::hash_combine(seed, std::string(p.first));
+      boost::hash_combine(seed, p.second.convert_to<uint64_t>());
 
       return seed;
     }
   };
 
   std::unordered_map<TxnHash, Transaction> HashIndex;
-  std::map<boost::multiprecision::uint256_t, std::map<TxnHash, Transaction>,
+  std::map<boost::multiprecision::uint256_t,
+           std::unordered_map<TxnHash, Transaction>,
            std::greater<boost::multiprecision::uint256_t>>
       GasIndex;
   std::unordered_map<std::pair<PubKey, boost::multiprecision::uint256_t>,
-                     Transaction, pair_hash>
+                     Transaction, PubKeyNonceHash>
       NonceIndex;
 
   void clear() {
