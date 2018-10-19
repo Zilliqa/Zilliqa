@@ -529,20 +529,20 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
 }
 
 
-StringResponse Server::GetContractAddressFromTransactionID(ProtoTranId& protoTranId) {
+StringResponse Server::GetContractAddressFromTransactionID(ProtoTxId& protoTxId) {
   LOG_MARKER();
 
   StringResponse ret;
 
   try {
-    if (!protoTranId.has_tranid()) {
+    if (!protoTxId.has_txid()) {
       ret.set_result("Tran id not set in request");
       return ret;
     }
 
     TxBodySharedPtr tptr;
-    TxnHash tranHash(protoTranId.tranid());
-    if (protoTranId.tranid().size() != TRAN_HASH_SIZE * 2) {
+    TxnHash tranHash(protoTxId.txid());
+    if (protoTxId.txid().size() != TRAN_HASH_SIZE * 2) {
       ret.set_result("Size not appropriate");
       return ret;
     }
@@ -561,7 +561,7 @@ StringResponse Server::GetContractAddressFromTransactionID(ProtoTranId& protoTra
 
     ret.set_result(Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1).hex());
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << protoTranId.tranid());
+    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << protoTxId.txid());
     ret.set_result("Unable to process");
   }
 
@@ -616,3 +616,328 @@ StringResponse Server::GetNumTransactions() {
   ret.set_result(m_BlockTxPair.second.str());
   return ret;
 }
+
+
+boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
+  uint64_t currBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (blockNum >= currBlockNum) {
+    return 0;
+  }
+
+  uint64_t i, res = 0;
+  for (i = blockNum + 1; i <= currBlockNum; i++) {
+    res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+  }
+
+  return res;
+}
+
+
+DoubleResponse Server::GetTransactionRate() {
+  LOG_MARKER();
+
+  DoubleResponse ret;
+
+  uint64_t refBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  boost::multiprecision::uint256_t refTimeTx = 0;
+
+  if (refBlockNum <= REF_BLOCK_DIFF) {
+    if (refBlockNum <= 1) {
+      LOG_GENERAL(INFO, "Not enough blocks for information");
+      return ret;
+    } else {
+      refBlockNum = 1;
+      // In case there are less than REF_DIFF_BLOCKS blocks in blockchain,
+      // blocknum 1 can be ref block;
+    }
+  } else {
+    refBlockNum = refBlockNum - REF_BLOCK_DIFF;
+  }
+
+  boost::multiprecision::cpp_dec_float_50 numTxns(Server::GetNumTransactions(refBlockNum));
+  LOG_GENERAL(INFO, "Num Txns: " << numTxns);
+
+  try {
+    TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
+    refTimeTx = tx.GetHeader().GetTimestamp();
+  } catch (const char* msg) {
+    if (string(msg) == "Blocknumber Absent") {
+      LOG_GENERAL(INFO, "Error in fetching ref block");
+    }
+
+    return ret;
+  }
+
+  boost::multiprecision::uint256_t TimeDiff =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
+      refTimeTx;
+
+  if (TimeDiff == 0 || refTimeTx == 0) {
+    // something went wrong
+    LOG_GENERAL(INFO, "TimeDiff or refTimeTx = 0 \n TimeDiff:"
+                          << TimeDiff.str()
+                          << " refTimeTx:" << refTimeTx.str());
+    return ret;
+  }
+
+  numTxns = numTxns * 1000000;  // conversion from microseconds to seconds
+  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat =
+      static_cast<boost::multiprecision::cpp_dec_float_50>(TimeDiff);
+  boost::multiprecision::cpp_dec_float_50 ans = numTxns / TimeDiffFloat;
+
+  ret.set_result(ans.convert_to<double>());
+  return ret;
+}
+
+
+DoubleResponse Server::GetDSBlockRate() {
+  LOG_MARKER();
+
+  DoubleResponse ret;
+
+  string numDSblockStr = to_string(m_mediator.m_dsBlockChain.GetBlockCount());
+  boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
+
+  if (m_StartTimeDs == 0) { // case when m_StartTime has not been set
+    try {
+      // Refernce time chosen to be the first block's timestamp
+      DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
+      m_StartTimeDs = dsb.GetHeader().GetTimestamp();
+    } catch (const char* msg) {
+      if (string(msg) == "Blocknumber Absent") {
+        LOG_GENERAL(INFO, "No DSBlock has been mined yet");
+      }
+
+      return ret;
+    }
+  }
+
+  boost::multiprecision::uint256_t TimeDiff =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
+      m_StartTimeDs;
+
+  if (TimeDiff == 0) {
+    LOG_GENERAL(INFO, "Wait till the second block");
+    return ret;
+  }
+
+  // To convert from microSeconds to seconds
+  numDs = numDs * 1000000;
+  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat =
+      static_cast<boost::multiprecision::cpp_dec_float_50>(TimeDiff);
+  boost::multiprecision::cpp_dec_float_50 ans = numDs / TimeDiffFloat;
+
+  ret.set_result(ans.convert_to<double>());
+  return ret;
+}
+
+
+DoubleResponse Server::GetTxBlockRate() {
+  LOG_MARKER();
+
+  DoubleResponse ret;
+
+  string numTxblockStr = to_string(m_mediator.m_txBlockChain.GetBlockCount());
+  boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
+
+  if (m_StartTimeTx == 0) {
+    try {
+      // Reference Time chosen to be first block's timestamp
+      TxBlock txb = m_mediator.m_txBlockChain.GetBlock(1);
+      m_StartTimeTx = txb.GetHeader().GetTimestamp();
+    } catch (const char* msg) {
+      if (string(msg) == "Blocknumber Absent") {
+        LOG_GENERAL(INFO, "No TxBlock has been mined yet");
+      }
+      return ret;
+    }
+  }
+
+  boost::multiprecision::uint256_t TimeDiff =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
+      m_StartTimeTx;
+
+  if (TimeDiff == 0) {
+    LOG_GENERAL(INFO, "Wait till the second block");
+    return ret;
+  }
+
+  // To convert from microSeconds to seconds
+  numTx = numTx * 1000000;
+  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
+  boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
+
+  ret.set_result(ans.convert_to<double>());
+  return ret;
+}
+
+
+StringResponse Server::GetCurrentMiniEpoch() {
+  LOG_MARKER();
+
+  StringResponse ret;
+  ret.set_result(to_string(m_mediator.m_currentEpochNum));
+  return ret;
+}
+
+
+StringResponse Server::GetCurrentDSEpoch() {
+  LOG_MARKER();
+
+  StringResponse ret;
+  ret.set_result(to_string(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()));
+
+  return ret;
+}
+
+
+// TODO:
+
+
+ProtoBlockChainInfo Server::GetBlockchainInfo() {
+  ProtoBlockChainInfo ret;
+
+  ret.set_numpeers(Server::GetNumPeers().result());
+  ret.set_numtxblocks(Server::GetNumTxBlocks().result());
+  ret.set_numdsblocks(Server::GetNumDSBlocks().result());
+  ret.set_numtxns(Server::GetNumTransactions().result());
+  ret.set_txrate(Server::GetTransactionRate().result());
+  ret.set_txblockrate(Server::GetTxBlockRate().result());
+  ret.set_dsblockrate(Server::GetDSBlockRate().result());
+  ret.set_currentminiepoch(Server::GetCurrentMiniEpoch().result());
+  ret.set_currentdsepoch(Server::GetCurrentDSEpoch().result());
+  ret.set_numtxnsdsepoch(Server::GetNumTxnsDSEpoch().result());
+  ret.set_numtxnstxepoch(Server::GetNumTxnsTxEpoch().result());
+
+  ProtoShardingStruct sharding = Server::GetShardingStructure();
+  ret.set_allocated_shardingstructure(&sharding);
+
+  return ret;
+}
+
+
+ProtoTxHashes Server::GetRecentTransactions() {
+  LOG_MARKER();
+
+  ProtoTxHashes ret;
+
+  lock_guard<mutex> g(m_mutexRecentTxns);
+
+  uint64_t actualSize(m_RecentTransactions.capacity());
+  if (actualSize > m_RecentTransactions.size()) {
+    actualSize = m_RecentTransactions.size();
+  }
+
+  uint64_t size = m_RecentTransactions.size();
+  ret.set_number(int(actualSize));
+
+  for (uint64_t i = 0; i < actualSize; i++) {
+    auto txhash = ret.add_txhashes();
+    txhash->set_txhash(m_RecentTransactions[size - i - 1]);
+  }
+
+  return ret;
+}
+
+
+void Server::AddToRecentTransactions(ProtoTxHash& protoTxHash) {
+  lock_guard<mutex> g(m_mutexRecentTxns);
+  m_RecentTransactions.insert_new(m_RecentTransactions.size(), protoTxHash.txhash());
+}
+
+
+ProtoShardingStruct Server::GetShardingStructure() {
+  LOG_MARKER();
+
+  ProtoShardingStruct ret;
+
+  try {
+    auto shards = m_mediator.m_lookup->GetShardPeers();
+
+    unsigned int num_shards = shards.size();
+
+    if (num_shards == 0) {
+      ret.set_error("No shards yet");
+    } else {
+      for (unsigned int i = 0; i < num_shards; i++) {
+        ret.set_numpeers(i, static_cast<unsigned int>(shards[i].size()));
+      }
+    }
+
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    ret.set_error("Unable to process");
+  }
+
+  return ret;
+}
+
+
+UIntResponse Server::GetNumTxnsTxEpoch() {
+  LOG_MARKER();
+
+  UIntResponse ret;
+
+  try {
+    ret.set_result(m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    ret.set_result(0);
+  }
+
+  return ret;
+}
+
+
+StringResponse Server::GetNumTxnsDSEpoch() {
+  LOG_MARKER();
+
+  StringResponse ret;
+
+  try {
+    auto latestTxBlock = m_mediator.m_txBlockChain.GetLastBlock().GetHeader();
+    auto latestTxBlockNum = latestTxBlock.GetBlockNum();
+    auto latestDSBlockNum = latestTxBlock.GetDSBlockNum();
+
+    if (latestTxBlockNum > m_TxBlockCountSumPair.first) {
+      // Case where the DS Epoch is same
+      if (m_mediator.m_txBlockChain.GetBlock(m_TxBlockCountSumPair.first)
+              .GetHeader()
+              .GetDSBlockNum() == latestDSBlockNum) {
+        for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first; i--) {
+          m_TxBlockCountSumPair.second +=
+              m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+        }
+
+      } else {  // Case if DS Epoch Changed
+        m_TxBlockCountSumPair.second = 0;
+
+        for (auto i = latestTxBlockNum; i > m_TxBlockCountSumPair.first; i--) {
+          if (m_mediator.m_txBlockChain.GetBlock(i)
+                  .GetHeader()
+                  .GetDSBlockNum() < latestDSBlockNum) {
+            break;
+          }
+          m_TxBlockCountSumPair.second +=
+              m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+        }
+      }
+
+      m_TxBlockCountSumPair.first = latestTxBlockNum;
+    }
+
+    ret.set_result(m_TxBlockCountSumPair.second.str());
+
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    ret.set_result("0");
+  }
+
+  return ret;
+}
+
