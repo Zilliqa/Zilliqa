@@ -27,6 +27,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
 using KeyPairAddress = std::tuple<PrivKey, PubKey, Address>;
@@ -66,15 +67,16 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   std::string txn_filename(oss.str());
   std::ofstream txn_file(txn_filename, std::fstream::binary);
 
-  std::vector<unsigned char> buf;
-
+  std::vector<Transaction> txns;
   for (auto nonce = begin; nonce < end; nonce++) {
     Transaction txn{0, nonce, toAddr, std::make_pair(privKey, pubKey), nonce, 1,
                     1, {},    {}};
-
-    txn.Serialize(buf, 0);
-    txn_file.write(reinterpret_cast<char*>(buf.data()), buf.size());
+    txns.push_back(txn);
   }
+
+  std::vector<unsigned char> buf;
+  Messenger::SetTransactionArray(buf, 0, txns);
+  txn_file.write(reinterpret_cast<char*>(buf.data()), buf.size());
 
   if (txn_file) {
     std::cout << "Write to file " << txn_filename << "\n";
