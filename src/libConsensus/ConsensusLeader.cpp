@@ -225,7 +225,9 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
 
     P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg);
     auto main_func = [this]() mutable -> void {
-      m_shardCommitFailureHandlerFunc(m_commitFailureMap);
+      if (m_shardCommitFailureHandlerFunc != nullptr) {
+        m_shardCommitFailureHandlerFunc(m_commitFailureMap);
+      }
     };
     DetachedFunction(1, main_func);
   }

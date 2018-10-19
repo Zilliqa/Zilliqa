@@ -64,10 +64,12 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   unsigned int m_curDepth = 0;
 
-  bool ParseCreateContractOutput(boost::multiprecision::uint256_t& gasRemained);
+  bool ParseCreateContractOutput(boost::multiprecision::uint256_t& gasRemained,
+                                 const std::string& runnerPrint);
   bool ParseCreateContractJsonOutput(
       const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained);
-  bool ParseCallContractOutput(boost::multiprecision::uint256_t& gasRemained);
+  bool ParseCallContractOutput(boost::multiprecision::uint256_t& gasRemained,
+                               const std::string& runnerPrint);
   bool ParseCallContractJsonOutput(
       const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained);
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
