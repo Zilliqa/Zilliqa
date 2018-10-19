@@ -76,7 +76,7 @@ class Server {
 
   GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress);
 
-  StringResponse GetContractAddressFromTransactionID(ProtoTranId& protoTranId);
+  StringResponse GetContractAddressFromTransactionID(ProtoTxId& protoTxId);
 
   UIntResponse GetNumPeers();
 
@@ -86,4 +86,29 @@ class Server {
 
   StringResponse GetNumTransactions();
 
+  boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
+
+  DoubleResponse GetTransactionRate();
+
+  DoubleResponse GetDSBlockRate();
+
+  DoubleResponse GetTxBlockRate();
+
+  StringResponse GetCurrentMiniEpoch();
+
+  StringResponse GetCurrentDSEpoch();
+
+  ProtoBlockChainInfo GetBlockchainInfo();
+
+  ProtoTxHashes GetRecentTransactions();
+
+  void AddToRecentTransactions(ProtoTxHash& protoTxHash);
+
+  ProtoShardingStruct GetShardingStructure();
+
+  UIntResponse GetNumTxnsTxEpoch();
+
+  StringResponse GetNumTxnsDSEpoch();
+
 };
+

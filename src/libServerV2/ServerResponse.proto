@@ -21,6 +21,12 @@ message StringResponse
     required string result = 1;
 }
 
+message DoubleResponse
+{
+    required double result = 1 [default = 0];
+}
+
+
 
 message CreateTransactionResponse
 {
@@ -72,3 +78,5 @@ message GetSmartContractCodeResponse
     optional string error = 1;
     optional string smartcontractcode = 2;
 }
+
+

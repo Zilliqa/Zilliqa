@@ -5,9 +5,20 @@ package ZilliqaMessage;
 import "ZilliqaMessage.proto";
 
 
-message ProtoTranId
+message ProtoTxId
 {
-    required string tranid = 1;
+    required string txid = 1;
+}
+
+message ProtoTxHash
+{
+    required string txhash = 1;
+}
+
+message ProtoTxHashes
+{
+    required uint64 number = 1;
+    repeated ProtoTxHash txhashes = 2;
 }
 
 message ProtoAddress
@@ -18,4 +29,26 @@ message ProtoAddress
 message ProtoBlockNum
 {
     required string blocknum = 1;
+}
+
+message ProtoShardingStruct
+{
+    optional string error = 1;
+    repeated uint32 numpeers = 2;
+}
+
+message ProtoBlockChainInfo
+{
+    required uint32 numpeers = 1;
+    required string numtxblocks = 2;
+    required string numdsblocks = 3;
+    required string numtxns = 4;
+    required double txrate = 5;
+    required double txblockrate = 6;
+    required double dsblockrate = 7;
+    required string currentminiepoch = 8;
+    required string currentdsepoch = 9;
+    required uint32 numtxnstxepoch = 10;
+    required string numtxnsdsepoch = 11;
+    required ProtoShardingStruct shardingstructure = 12;
 }
