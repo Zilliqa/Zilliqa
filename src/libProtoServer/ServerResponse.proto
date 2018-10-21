@@ -68,11 +68,13 @@ message GetBalanceResponse
 message GetSmartContractStateResponse
 {
     optional string error = 1;
+    optional string storagejson = 2;
 }
 
 message GetSmartContractInitResponse
 {
     optional string error = 1;
+    optional string initjson = 2;
 }
 
 message GetSmartContractCodeResponse
@@ -84,7 +86,12 @@ message GetSmartContractCodeResponse
 message GetSmartContractResponse
 {
     optional string error = 1;
-    repeated string address = 2;
+    message ContractAddressState
+    {
+        required string address = 1;
+        required string state = 2;
+    }
+    repeated ContractAddressState address = 2;
 }
 
 message TxBlockListingResponse
