@@ -26,8 +26,6 @@
 #include "ServerRequest.pb.h"
 #include "ServerResponse.pb.h"
 
-using namespace ZilliqaMessage;
-
 class Mediator;
 
 class Server {
@@ -48,77 +46,91 @@ class Server {
   // Auxillary functions.
   boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
   void AddToRecentTransactions(const dev::h256& txhash);
+  bool ValidateProtoTransaction(
+      const ZilliqaMessage::ProtoTransaction& protoTransaction);
 
   // Interfaces returning default values.
-  DefaultResponse GetClientVersion();
-  DefaultResponse GetNetworkId();
-  DefaultResponse GetProtocolVersion();
-  DefaultResponse GetGasPrice();
-  DefaultResponse GetStorageAt(GetStorageAtRequest& request);
-  DefaultResponse GetBlockTransactionCount(
-      GetBlockTransactionCountRequest& request);
-  DefaultResponse CreateMessage();
-  DefaultResponse GetGasEstimate();
-  DefaultResponse GetTransactionReceipt(GetTransactionRequest& request);
-  DefaultResponse isNodeSyncing();
-  DefaultResponse isNodeMining();
-  DefaultResponse GetHashrate();
+  ZilliqaMessage::DefaultResponse GetClientVersion();
+  ZilliqaMessage::DefaultResponse GetNetworkId();
+  ZilliqaMessage::DefaultResponse GetProtocolVersion();
+  ZilliqaMessage::DefaultResponse GetGasPrice();
+  ZilliqaMessage::DefaultResponse GetStorageAt(
+      ZilliqaMessage::GetStorageAtRequest& request);
+  ZilliqaMessage::DefaultResponse GetBlockTransactionCount(
+      ZilliqaMessage::GetBlockTransactionCountRequest& request);
+  ZilliqaMessage::DefaultResponse CreateMessage();
+  ZilliqaMessage::DefaultResponse GetGasEstimate();
+  ZilliqaMessage::DefaultResponse GetTransactionReceipt(
+      ZilliqaMessage::GetTransactionRequest& request);
+  ZilliqaMessage::DefaultResponse isNodeSyncing();
+  ZilliqaMessage::DefaultResponse isNodeMining();
+  ZilliqaMessage::DefaultResponse GetHashrate();
 
-  CreateTransactionResponse CreateTransaction(
-      CreateTransactionRequest& request);
+  ZilliqaMessage::CreateTransactionResponse CreateTransaction(
+      ZilliqaMessage::CreateTransactionRequest& request);
 
-  GetTransactionResponse GetTransaction(GetTransactionRequest& request);
+  ZilliqaMessage::GetTransactionResponse GetTransaction(
+      ZilliqaMessage::GetTransactionRequest& request);
 
-  GetDSBlockResponse GetDsBlock(ProtoBlockNum& protoBlockNum);
+  ZilliqaMessage::GetDSBlockResponse GetDsBlock(
+      ZilliqaMessage::ProtoBlockNum& protoBlockNum);
 
-  GetTxBlockResponse GetTxBlock(ProtoBlockNum& protoBlockNum);
+  ZilliqaMessage::GetTxBlockResponse GetTxBlock(
+      ZilliqaMessage::ProtoBlockNum& protoBlockNum);
 
-  GetDSBlockResponse GetLatestDsBlock();
+  ZilliqaMessage::GetDSBlockResponse GetLatestDsBlock();
 
-  GetTxBlockResponse GetLatestTxBlock();
+  ZilliqaMessage::GetTxBlockResponse GetLatestTxBlock();
 
-  GetBalanceResponse GetBalance(ProtoAddress& protoAddress);
+  ZilliqaMessage::GetBalanceResponse GetBalance(
+      ZilliqaMessage::ProtoAddress& protoAddress);
 
-  GetSmartContractStateResponse GetSmartContractState(
-      ProtoAddress& protoAddress);
+  ZilliqaMessage::GetSmartContractStateResponse GetSmartContractState(
+      ZilliqaMessage::ProtoAddress& protoAddress);
 
-  GetSmartContractInitResponse GetSmartContractInit(ProtoAddress& protoAddress);
+  ZilliqaMessage::GetSmartContractInitResponse GetSmartContractInit(
+      ZilliqaMessage::ProtoAddress& protoAddress);
 
-  GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress);
+  ZilliqaMessage::GetSmartContractCodeResponse GetSmartContractCode(
+      ZilliqaMessage::ProtoAddress& protoAddress);
 
-  GetSmartContractResponse GetSmartContracts(ProtoAddress& protoAddress);
+  ZilliqaMessage::GetSmartContractResponse GetSmartContracts(
+      ZilliqaMessage::ProtoAddress& protoAddress);
 
-  StringResponse GetContractAddressFromTransactionID(ProtoTxId& protoTxId);
+  ZilliqaMessage::StringResponse GetContractAddressFromTransactionID(
+      ZilliqaMessage::ProtoTxId& protoTxId);
 
-  UIntResponse GetNumPeers();
+  ZilliqaMessage::UIntResponse GetNumPeers();
 
-  StringResponse GetNumTxBlocks();
+  ZilliqaMessage::StringResponse GetNumTxBlocks();
 
-  StringResponse GetNumDSBlocks();
+  ZilliqaMessage::StringResponse GetNumDSBlocks();
 
-  StringResponse GetNumTransactions();
+  ZilliqaMessage::StringResponse GetNumTransactions();
 
-  DoubleResponse GetTransactionRate();
+  ZilliqaMessage::DoubleResponse GetTransactionRate();
 
-  DoubleResponse GetDSBlockRate();
+  ZilliqaMessage::DoubleResponse GetDSBlockRate();
 
-  DoubleResponse GetTxBlockRate();
+  ZilliqaMessage::DoubleResponse GetTxBlockRate();
 
-  StringResponse GetCurrentMiniEpoch();
+  ZilliqaMessage::StringResponse GetCurrentMiniEpoch();
 
-  StringResponse GetCurrentDSEpoch();
+  ZilliqaMessage::StringResponse GetCurrentDSEpoch();
 
-  ProtoBlockListing DSBlockListing(ProtoPage& protoPage);
+  ZilliqaMessage::ProtoBlockListing DSBlockListing(
+      ZilliqaMessage::ProtoPage& protoPage);
 
-  ProtoBlockListing TxBlockListing(ProtoPage& protoPage);
+  ZilliqaMessage::ProtoBlockListing TxBlockListing(
+      ZilliqaMessage::ProtoPage& protoPage);
 
-  ProtoBlockChainInfo GetBlockchainInfo();
+  ZilliqaMessage::ProtoBlockChainInfo GetBlockchainInfo();
 
-  ProtoTxHashes GetRecentTransactions();
+  ZilliqaMessage::ProtoTxHashes GetRecentTransactions();
 
-  ProtoShardingStruct GetShardingStructure();
+  ZilliqaMessage::ProtoShardingStruct GetShardingStructure();
 
-  UIntResponse GetNumTxnsTxEpoch();
+  ZilliqaMessage::UIntResponse GetNumTxnsTxEpoch();
 
-  StringResponse GetNumTxnsDSEpoch();
+  ZilliqaMessage::StringResponse GetNumTxnsDSEpoch();
 };
