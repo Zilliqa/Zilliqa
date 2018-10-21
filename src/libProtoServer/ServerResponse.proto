@@ -26,6 +26,11 @@ message DoubleResponse
     required double result = 1 [default = 0];
 }
 
+message UInt64Response
+{
+    required uint64 result = 1;
+}
+
 message CreateTransactionResponse
 {
     optional string error = 1;
