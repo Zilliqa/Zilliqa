@@ -266,14 +266,14 @@ GetTransactionResponse Server::GetTransaction(GetTransactionRequest& request) {
     }
 
     // Validate the txhash.
-    TxBodySharedPtr tptr;
-    TxnHash tranHash(request.txhash());
     if (request.txhash().size() != TRAN_HASH_SIZE * 2) {
       ret.set_error("Size not appropriate");
       return ret;
     }
 
     // Retrieve the tx if it exists.
+    TxBodySharedPtr tptr;
+    TxnHash tranHash(request.txhash());
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
     if (!isPresent || tptr == nullptr) {
       ret.set_error("Txn Hash not Present");
