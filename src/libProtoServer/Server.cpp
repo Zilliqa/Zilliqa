@@ -171,8 +171,6 @@ CreateTransactionResponse Server::CreateTransaction(
       return ret;
     }
 
-    // TODO: Verify that the ProtoTransaction is valid.
-
     // Convert ProtoTransaction to Transaction.
     Transaction tx;
     if (ProtobufToTransaction(request.tx(), tx) !=
@@ -308,7 +306,7 @@ GetDSBlockResponse Server::GetDsBlock(ProtoBlockNum& protoBlockNum) {
       ret.set_error("Blocknum not set in request");
       return ret;
     }
-    uint64_t blockNum = stoull(protoBlockNum.blocknum());
+    uint64_t blockNum = protoBlockNum.blocknum();
 
     // Get the DS block.
     DSBlock dsblock = m_mediator.m_dsBlockChain.GetBlock(blockNum);
@@ -350,7 +348,7 @@ GetTxBlockResponse Server::GetTxBlock(ProtoBlockNum& protoBlockNum) {
       ret.set_error("blocknum not set in request");
       return ret;
     }
-    uint64_t blockNum = stoull(protoBlockNum.blocknum());
+    uint64_t blockNum = protoBlockNum.blocknum();
 
     // Get the tx block.
     TxBlock txblock = m_mediator.m_txBlockChain.GetBlock(blockNum);
@@ -883,20 +881,20 @@ DoubleResponse Server::GetTxBlockRate() {
   return ret;
 }
 
-StringResponse Server::GetCurrentMiniEpoch() {
+UInt64Response Server::GetCurrentMiniEpoch() {
   LOG_MARKER();
 
-  StringResponse ret;
-  ret.set_result(to_string(m_mediator.m_currentEpochNum));
+  UInt64Response ret;
+  ret.set_result(m_mediator.m_currentEpochNum);
   return ret;
 }
 
-StringResponse Server::GetCurrentDSEpoch() {
+UInt64Response Server::GetCurrentDSEpoch() {
   LOG_MARKER();
 
-  StringResponse ret;
-  ret.set_result(to_string(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()));
+  UInt64Response ret;
+  ret.set_result(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum());
   return ret;
 }
 

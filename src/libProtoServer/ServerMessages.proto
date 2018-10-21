@@ -28,7 +28,7 @@ message ProtoAddress
 
 message ProtoBlockNum
 {
-    required string blocknum = 1;
+    required uint64 blocknum = 1;
 }
 
 message ProtoStorageInfo
@@ -66,8 +66,8 @@ message ProtoBlockChainInfo
     required double txrate = 5;
     required double txblockrate = 6;
     required double dsblockrate = 7;
-    required string currentminiepoch = 8;
-    required string currentdsepoch = 9;
+    required uint64 currentminiepoch = 8;
+    required uint64 currentdsepoch = 9;
     required uint32 numtxnstxepoch = 10;
     required string numtxnsdsepoch = 11;
     required ProtoShardingStruct shardingstructure = 12;

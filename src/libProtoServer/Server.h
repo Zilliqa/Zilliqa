@@ -114,9 +114,9 @@ class Server {
 
   ZilliqaMessage::DoubleResponse GetTxBlockRate();
 
-  ZilliqaMessage::StringResponse GetCurrentMiniEpoch();
+  ZilliqaMessage::UInt64Response GetCurrentMiniEpoch();
 
-  ZilliqaMessage::StringResponse GetCurrentDSEpoch();
+  ZilliqaMessage::UInt64Response GetCurrentDSEpoch();
 
   ZilliqaMessage::ProtoBlockListing DSBlockListing(
       ZilliqaMessage::ProtoPage& protoPage);
