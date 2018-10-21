@@ -446,26 +446,16 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
 
     if (account != nullptr) {
       boost::multiprecision::uint256_t balance = account->GetBalance();
+      ret.set_balance(balance.str());
+
       boost::multiprecision::uint256_t nonce = account->GetNonce();
-
-      ByteArray balanceByteArray;
-      NumberToProtobufByteArray(balance, balanceByteArray);
-      ret.set_allocated_balance(&balanceByteArray);
-
-      ByteArray nonceByteArray;
-      NumberToProtobufByteArray(nonce, nonceByteArray);
-      ret.set_allocated_nonce(&nonceByteArray);
+      ret.set_nonce(nonce.str());
 
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
                                    << nonce.convert_to<unsigned int>());
     } else if (account == nullptr) {
-      ByteArray balanceByteArray;
-      NumberToProtobufByteArray(0, balanceByteArray);
-      ret.set_allocated_balance(&balanceByteArray);
-
-      ByteArray nonceByteArray;
-      NumberToProtobufByteArray(0, nonceByteArray);
-      ret.set_allocated_nonce(&nonceByteArray);
+      ret.set_balance("0");
+      ret.set_nonce("0");
     }
 
   } catch (exception& e) {
