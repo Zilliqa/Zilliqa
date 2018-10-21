@@ -58,8 +58,7 @@ void TransactionToProtobuf(const Transaction& transaction,
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
-void NumberToProtobufByteArray(const boost::multiprecision::uint256_t& number,
-                               ByteArray& byteArray);
+
 
 Server::Server(Mediator& mediator) : m_mediator(mediator) {
   m_StartTimeTx = 0;
