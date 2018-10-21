@@ -301,7 +301,6 @@ GetDSBlockResponse Server::GetDsBlock(ProtoBlockNum& protoBlockNum) {
   GetDSBlockResponse ret;
 
   try {
-    // Convert string "blocknum" to ULL.
     if (!protoBlockNum.has_blocknum()) {
       ret.set_error("Blocknum not set in request");
       return ret;
@@ -343,7 +342,6 @@ GetTxBlockResponse Server::GetTxBlock(ProtoBlockNum& protoBlockNum) {
   GetTxBlockResponse ret;
 
   try {
-    // Convert string "blocknum" to ULL.
     if (!protoBlockNum.has_blocknum()) {
       ret.set_error("blocknum not set in request");
       return ret;
@@ -497,9 +495,7 @@ GetSmartContractStateResponse Server::GetSmartContractState(
       return ret;
     }
 
-    // TODO:
-    // Wait for AccountStore protobuffing.
-    // return account->GetStorageJson();
+    ret.set_storagejson(account->GetStorageJson().toStyledString());
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());
@@ -541,9 +537,7 @@ GetSmartContractInitResponse Server::GetSmartContractInit(
       return ret;
     }
 
-    // TODO:
-    // Wait for AccountStore protobuffing.
-    // return account->GetInitJson();
+    ret.set_initjson(account->GetInitJson().toStyledString());
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());
@@ -638,10 +632,10 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
         continue;
       }
 
-      // TODO: wait for protobuffing AccountStore.
-      /*auto protoContractAccount = ret.add_addresses();
+      auto protoContractAccount = ret.add_address();
       protoContractAccount->set_address(contractAddr.hex());
-      protoContractAccount->set_state(contractAccount->GetStorageJson());*/
+      protoContractAccount->set_state(
+          contractAccount->GetStorageJson().toStyledString());
     }
 
   } catch (exception& e) {
