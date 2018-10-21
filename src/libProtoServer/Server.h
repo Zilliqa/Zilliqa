@@ -22,9 +22,9 @@
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
 
+#include "ServerMessages.pb.h"
 #include "ServerRequest.pb.h"
 #include "ServerResponse.pb.h"
-#include "ServerMessages.pb.h"
 
 using namespace ZilliqaMessage;
 
@@ -54,8 +54,9 @@ class Server {
   DefaultResponse GetNetworkId();
   DefaultResponse GetProtocolVersion();
   DefaultResponse GetGasPrice();
-  DefaultResponse GetStorageAt(GetStorageAtRequest &request);
-  DefaultResponse GetBlockTransactionCount(GetBlockTransactionCountRequest& request);
+  DefaultResponse GetStorageAt(GetStorageAtRequest& request);
+  DefaultResponse GetBlockTransactionCount(
+      GetBlockTransactionCountRequest& request);
   DefaultResponse CreateMessage();
   DefaultResponse GetGasEstimate();
   DefaultResponse GetTransactionReceipt(GetTransactionRequest& request);
@@ -63,7 +64,8 @@ class Server {
   DefaultResponse isNodeMining();
   DefaultResponse GetHashrate();
 
-  CreateTransactionResponse CreateTransaction(CreateTransactionRequest& request);
+  CreateTransactionResponse CreateTransaction(
+      CreateTransactionRequest& request);
 
   GetTransactionResponse GetTransaction(GetTransactionRequest& request);
 
@@ -77,7 +79,8 @@ class Server {
 
   GetBalanceResponse GetBalance(ProtoAddress& protoAddress);
 
-  GetSmartContractStateResponse GetSmartContractState(ProtoAddress& protoAddress);
+  GetSmartContractStateResponse GetSmartContractState(
+      ProtoAddress& protoAddress);
 
   GetSmartContractInitResponse GetSmartContractInit(ProtoAddress& protoAddress);
 
@@ -118,6 +121,4 @@ class Server {
   UIntResponse GetNumTxnsTxEpoch();
 
   StringResponse GetNumTxnsDSEpoch();
-
 };
-
