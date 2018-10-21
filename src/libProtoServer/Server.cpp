@@ -51,13 +51,15 @@ const unsigned int TXN_PAGE_SIZE = 100;
 const unsigned int REF_BLOCK_DIFF = 5;
 
 // Forward declarations (implementation in libMessage).
-int ProtobufToTransaction(const ProtoTransaction& protoTransaction, Transaction& transaction);
-void TransactionToProtobuf(const Transaction& transaction, ProtoTransaction& protoTransaction);
+int ProtobufToTransaction(const ProtoTransaction& protoTransaction,
+                          Transaction& transaction);
+void TransactionToProtobuf(const Transaction& transaction,
+                           ProtoTransaction& protoTransaction);
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
-void NumberToProtobufByteArray(const boost::multiprecision::uint256_t& number, ByteArray& byteArray);
-
+void NumberToProtobufByteArray(const boost::multiprecision::uint256_t& number,
+                               ByteArray& byteArray);
 
 Server::Server(Mediator& mediator) : m_mediator(mediator) {
   m_StartTimeTx = 0;
@@ -75,11 +77,9 @@ Server::~Server() {
   // destructor
 }
 
-
 ////////////////////////////////////////////////////////////////////////
 // Auxillary functions.
 ////////////////////////////////////////////////////////////////////////
-
 
 boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
   uint64_t currBlockNum =
@@ -97,21 +97,17 @@ boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
   return res;
 }
 
-
 void Server::AddToRecentTransactions(const dev::h256& txhash) {
   lock_guard<mutex> g(m_mutexRecentTxns);
   m_RecentTransactions.insert_new(m_RecentTransactions.size(), txhash.hex());
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
-
 
 DefaultResponse Server::GetClientVersion() {
   DefaultResponse ret;
   return ret;
 }
-
 
 DefaultResponse Server::GetNetworkId() {
   DefaultResponse ret;
@@ -119,42 +115,38 @@ DefaultResponse Server::GetNetworkId() {
   return ret;
 }
 
-
 DefaultResponse Server::GetProtocolVersion() {
   DefaultResponse ret;
   return ret;
 }
-
 
 DefaultResponse Server::GetGasPrice() {
   DefaultResponse ret;
   return ret;
 }
 
-
-DefaultResponse Server::GetStorageAt([[gnu::unused]] GetStorageAtRequest& request) {
+DefaultResponse Server::GetStorageAt([
+    [gnu::unused]] GetStorageAtRequest& request) {
   DefaultResponse ret;
   return ret;
 }
 
-
-DefaultResponse Server::GetBlockTransactionCount([[gnu::unused]] GetBlockTransactionCountRequest& request) {
+DefaultResponse Server::GetBlockTransactionCount([
+    [gnu::unused]] GetBlockTransactionCountRequest& request) {
   DefaultResponse ret;
   return ret;
 }
 
-
-DefaultResponse Server::GetTransactionReceipt([[gnu::unused]] GetTransactionRequest& request) {
+DefaultResponse Server::GetTransactionReceipt([
+    [gnu::unused]] GetTransactionRequest& request) {
   DefaultResponse ret;
   return ret;
 }
-
 
 DefaultResponse Server::isNodeSyncing() {
   DefaultResponse ret;
   return ret;
 }
-
 
 DefaultResponse Server::isNodeMining() {
   DefaultResponse ret;
@@ -166,12 +158,10 @@ DefaultResponse Server::GetHashrate() {
   return ret;
 }
 
-
-
 ////////////////////////////////////////////////////////////////////////////////////////
 
-
-CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& request) {
+CreateTransactionResponse Server::CreateTransaction(
+    CreateTransactionRequest& request) {
   LOG_MARKER();
 
   CreateTransactionResponse ret;
@@ -185,7 +175,8 @@ CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& re
 
     // Convert ProtoTransaction to Transaction.
     Transaction tx;
-    if (ProtobufToTransaction(request.tx(), tx) != 0) {   // check if conversion failed.
+    if (ProtobufToTransaction(request.tx(), tx) !=
+        0) {  // check if conversion failed.
       ret.set_error("ProtoTransaction to Transaction conversion failed");
       return ret;
     }
@@ -219,13 +210,16 @@ CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& re
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
           ret.set_info("Contract Creation txn, sent to shard");
           ret.set_tranid(tx.GetTranID().hex());
-          ret.set_contractaddress(Account::GetAddressForContract(fromAddr, sender->GetNonce()).hex());
+          ret.set_contractaddress(
+              Account::GetAddressForContract(fromAddr, sender->GetNonce())
+                  .hex());
         } else {
           ret.set_error("Code is empty and To addr is null");
         }
 
       } else {
-        const Account* account = AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+        const Account* account =
+            AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
         if (account == nullptr) {
           ret.set_error("To Addr is null");
@@ -235,7 +229,8 @@ CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& re
           return ret;
         }
 
-        unsigned int to_shard = Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+        unsigned int to_shard =
+            Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
 
         if (to_shard == shard) {
           m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
@@ -259,7 +254,6 @@ CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& re
 
   return ret;
 }
-
 
 GetTransactionResponse Server::GetTransaction(GetTransactionRequest& request) {
   LOG_MARKER();
@@ -303,7 +297,6 @@ GetTransactionResponse Server::GetTransaction(GetTransactionRequest& request) {
   return ret;
 }
 
-
 GetDSBlockResponse Server::GetDsBlock(ProtoBlockNum& protoBlockNum) {
   LOG_MARKER();
 
@@ -330,19 +323,21 @@ GetDSBlockResponse Server::GetDsBlock(ProtoBlockNum& protoBlockNum) {
     LOG_GENERAL(INFO, "Error " << e.what());
     ret.set_error("String not numeric");
   } catch (invalid_argument& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
+    LOG_GENERAL(
+        INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Invalid arugment");
   } catch (out_of_range& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
+    LOG_GENERAL(
+        INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Out of range");
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
+    LOG_GENERAL(
+        INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Unable to Process");
   }
 
   return ret;
 }
-
 
 GetTxBlockResponse Server::GetTxBlock(ProtoBlockNum& protoBlockNum) {
   LOG_MARKER();
@@ -370,19 +365,21 @@ GetTxBlockResponse Server::GetTxBlock(ProtoBlockNum& protoBlockNum) {
     LOG_GENERAL(INFO, "Error " << e.what());
     ret.set_error("String not numeric");
   } catch (invalid_argument& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
+    LOG_GENERAL(
+        INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Invalid arugment");
   } catch (out_of_range& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
+    LOG_GENERAL(
+        INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Out of range");
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
+    LOG_GENERAL(
+        INFO, "[Error]" << e.what() << " Input: " << protoBlockNum.blocknum());
     ret.set_error("Unable to Process");
   }
 
   return ret;
 }
-
 
 GetDSBlockResponse Server::GetLatestDsBlock() {
   LOG_MARKER();
@@ -405,7 +402,6 @@ GetDSBlockResponse Server::GetLatestDsBlock() {
   return ret;
 }
 
-
 GetTxBlockResponse Server::GetLatestTxBlock() {
   LOG_MARKER();
 
@@ -427,7 +423,6 @@ GetTxBlockResponse Server::GetLatestTxBlock() {
   return ret;
 }
 
-
 GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
   LOG_MARKER();
 
@@ -444,7 +439,8 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    vector<unsigned char> tmpaddr =
+        DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -473,15 +469,16 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     }
 
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    LOG_GENERAL(INFO,
+                "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
   }
 
   return ret;
 }
 
-
-GetSmartContractStateResponse Server::GetSmartContractState(ProtoAddress& protoAddress) {
+GetSmartContractStateResponse Server::GetSmartContractState(
+    ProtoAddress& protoAddress) {
   LOG_MARKER();
 
   GetSmartContractStateResponse ret;
@@ -497,7 +494,8 @@ GetSmartContractStateResponse Server::GetSmartContractState(ProtoAddress& protoA
       return ret;
     }
 
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    vector<unsigned char> tmpaddr =
+        DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -513,17 +511,18 @@ GetSmartContractStateResponse Server::GetSmartContractState(ProtoAddress& protoA
 
     // TODO:
     // Wait for AccountStore protobuffing.
-    //return account->GetStorageJson();
+    // return account->GetStorageJson();
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    LOG_GENERAL(INFO,
+                "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
   }
 
   return ret;
 }
 
-
-GetSmartContractInitResponse Server::GetSmartContractInit(ProtoAddress& protoAddress) {
+GetSmartContractInitResponse Server::GetSmartContractInit(
+    ProtoAddress& protoAddress) {
   LOG_MARKER();
 
   GetSmartContractInitResponse ret;
@@ -539,7 +538,8 @@ GetSmartContractInitResponse Server::GetSmartContractInit(ProtoAddress& protoAdd
       return ret;
     }
 
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    vector<unsigned char> tmpaddr =
+        DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -555,15 +555,15 @@ GetSmartContractInitResponse Server::GetSmartContractInit(ProtoAddress& protoAdd
 
     // TODO:
     // Wait for AccountStore protobuffing.
-    //return account->GetInitJson();
+    // return account->GetInitJson();
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    LOG_GENERAL(INFO,
+                "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
   }
 
   return ret;
 }
-
 
 GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
   LOG_MARKER();
@@ -581,7 +581,8 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    vector<unsigned char> tmpaddr =
+        DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -595,15 +596,16 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    ret.set_smartcontractcode(DataConversion::CharArrayToString(account->GetCode()));
+    ret.set_smartcontractcode(
+        DataConversion::CharArrayToString(account->GetCode()));
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    LOG_GENERAL(INFO,
+                "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
   }
 
   return ret;
 }
-
 
 GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
   LOG_MARKER();
@@ -621,7 +623,8 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    vector<unsigned char> tmpaddr =
+        DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -654,15 +657,16 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
     }
 
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << protoAddress.address());
+    LOG_GENERAL(INFO,
+                "[Error]" << e.what() << " Input: " << protoAddress.address());
     ret.set_error("Unable To Process");
   }
 
   return ret;
 }
 
-
-StringResponse Server::GetContractAddressFromTransactionID(ProtoTxId& protoTxId) {
+StringResponse Server::GetContractAddressFromTransactionID(
+    ProtoTxId& protoTxId) {
   LOG_MARKER();
 
   StringResponse ret;
@@ -692,15 +696,17 @@ StringResponse Server::GetContractAddressFromTransactionID(ProtoTxId& protoTxId)
       return ret;
     }
 
-    ret.set_result(Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1).hex());
+    ret.set_result(
+        Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
+            .hex());
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << protoTxId.txid());
+    LOG_GENERAL(WARNING,
+                "[Error]" << e.what() << " Input " << protoTxId.txid());
     ret.set_result("Unable to process");
   }
 
   return ret;
 }
-
 
 UIntResponse Server::GetNumPeers() {
   LOG_MARKER();
@@ -713,7 +719,6 @@ UIntResponse Server::GetNumPeers() {
   return ret;
 }
 
-
 StringResponse Server::GetNumTxBlocks() {
   LOG_MARKER();
 
@@ -722,7 +727,6 @@ StringResponse Server::GetNumTxBlocks() {
   return ret;
 }
 
-
 StringResponse Server::GetNumDSBlocks() {
   LOG_MARKER();
 
@@ -730,7 +734,6 @@ StringResponse Server::GetNumDSBlocks() {
   ret.set_result(to_string(m_mediator.m_dsBlockChain.GetBlockCount()));
   return ret;
 }
-
 
 StringResponse Server::GetNumTransactions() {
   LOG_MARKER();
@@ -749,7 +752,6 @@ StringResponse Server::GetNumTransactions() {
   ret.set_result(m_BlockTxPair.second.str());
   return ret;
 }
-
 
 DoubleResponse Server::GetTransactionRate() {
   LOG_MARKER();
@@ -774,7 +776,8 @@ DoubleResponse Server::GetTransactionRate() {
     refBlockNum = refBlockNum - REF_BLOCK_DIFF;
   }
 
-  boost::multiprecision::cpp_dec_float_50 numTxns(Server::GetNumTransactions(refBlockNum));
+  boost::multiprecision::cpp_dec_float_50 numTxns(
+      Server::GetNumTransactions(refBlockNum));
   LOG_GENERAL(INFO, "Num Txns: " << numTxns);
 
   try {
@@ -809,7 +812,6 @@ DoubleResponse Server::GetTransactionRate() {
   return ret;
 }
 
-
 DoubleResponse Server::GetDSBlockRate() {
   LOG_MARKER();
 
@@ -818,7 +820,7 @@ DoubleResponse Server::GetDSBlockRate() {
   string numDSblockStr = to_string(m_mediator.m_dsBlockChain.GetBlockCount());
   boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
 
-  if (m_StartTimeDs == 0) { // case when m_StartTime has not been set
+  if (m_StartTimeDs == 0) {  // case when m_StartTime has not been set
     try {
       // Refernce time chosen to be the first block's timestamp
       DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
@@ -850,7 +852,6 @@ DoubleResponse Server::GetDSBlockRate() {
   ret.set_result(ans.convert_to<double>());
   return ret;
 }
-
 
 DoubleResponse Server::GetTxBlockRate() {
   LOG_MARKER();
@@ -892,7 +893,6 @@ DoubleResponse Server::GetTxBlockRate() {
   return ret;
 }
 
-
 StringResponse Server::GetCurrentMiniEpoch() {
   LOG_MARKER();
 
@@ -901,15 +901,14 @@ StringResponse Server::GetCurrentMiniEpoch() {
   return ret;
 }
 
-
 StringResponse Server::GetCurrentDSEpoch() {
   LOG_MARKER();
 
   StringResponse ret;
-  ret.set_result(to_string(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()));
+  ret.set_result(to_string(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()));
   return ret;
 }
-
 
 ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
   LOG_MARKER();
@@ -920,7 +919,8 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
     return ret;
   }
 
-  uint64_t currBlockNum = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t currBlockNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
   ret.set_maxpages(int(maxPages));
 
@@ -980,23 +980,28 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
 
     uint64_t size = m_DSBlockCache.second.size();
 
-    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize; i++) {
+    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
+         i++) {
       auto blockData = ret.add_data();
       blockData->set_hash(m_DSBlockCache.second[size - i - 1]);
       blockData->set_blocknum(int(currBlockNum - i));
     }
 
   } else {
-    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum; i++) {
+    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum;
+         i++) {
       auto blockData = ret.add_data();
-      blockData->set_hash(m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
+      blockData->set_hash(
+          m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1)
+              .GetHeader()
+              .GetPrevHash()
+              .hex());
       blockData->set_blocknum(int(currBlockNum - i));
     }
   }
 
   return ret;
 }
-
 
 ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
   LOG_MARKER();
@@ -1007,7 +1012,8 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
     return ret;
   }
 
-  uint64_t currBlockNum = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t currBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   auto maxPages = (currBlockNum / PAGE_SIZE) + 1;
   ret.set_maxpages(int(maxPages));
 
@@ -1059,30 +1065,36 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
 
   unsigned int offset = PAGE_SIZE * (page - 1);
   if (page <= NUM_PAGES_CACHE) {  // can use cache
-    boost::multiprecision::uint256_t cacheSize(m_TxBlockCache.second.capacity());
+    boost::multiprecision::uint256_t cacheSize(
+        m_TxBlockCache.second.capacity());
 
     if (cacheSize > m_TxBlockCache.second.size()) {
       cacheSize = m_TxBlockCache.second.size();
     }
 
     uint64_t size = m_TxBlockCache.second.size();
-    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize; i++) {
+    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
+         i++) {
       auto blockData = ret.add_data();
       blockData->set_hash(m_TxBlockCache.second[size - i - 1]);
       blockData->set_blocknum(int(currBlockNum - i));
     }
 
   } else {
-    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum; i++) {
+    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum;
+         i++) {
       auto blockData = ret.add_data();
-      blockData->set_hash(m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1).GetHeader().GetPrevHash().hex());
+      blockData->set_hash(
+          m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1)
+              .GetHeader()
+              .GetPrevHash()
+              .hex());
       blockData->set_blocknum(int(currBlockNum - i));
     }
   }
 
   return ret;
 }
-
 
 ProtoBlockChainInfo Server::GetBlockchainInfo() {
   ProtoBlockChainInfo ret;
@@ -1105,7 +1117,6 @@ ProtoBlockChainInfo Server::GetBlockchainInfo() {
   return ret;
 }
 
-
 ProtoTxHashes Server::GetRecentTransactions() {
   LOG_MARKER();
 
@@ -1127,7 +1138,6 @@ ProtoTxHashes Server::GetRecentTransactions() {
 
   return ret;
 }
-
 
 ProtoShardingStruct Server::GetShardingStructure() {
   LOG_MARKER();
@@ -1155,14 +1165,14 @@ ProtoShardingStruct Server::GetShardingStructure() {
   return ret;
 }
 
-
 UIntResponse Server::GetNumTxnsTxEpoch() {
   LOG_MARKER();
 
   UIntResponse ret;
 
   try {
-    ret.set_result(m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
+    ret.set_result(
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
     ret.set_result(0);
@@ -1170,7 +1180,6 @@ UIntResponse Server::GetNumTxnsTxEpoch() {
 
   return ret;
 }
-
 
 StringResponse Server::GetNumTxnsDSEpoch() {
   LOG_MARKER();
