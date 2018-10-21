@@ -59,7 +59,6 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
 
-
 Server::Server(Mediator& mediator) : m_mediator(mediator) {
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -171,6 +170,8 @@ CreateTransactionResponse Server::CreateTransaction(
       ret.set_error("Tx not present in request");
       return ret;
     }
+
+    // TODO: Verify that the ProtoTransaction is valid.
 
     // Convert ProtoTransaction to Transaction.
     Transaction tx;
