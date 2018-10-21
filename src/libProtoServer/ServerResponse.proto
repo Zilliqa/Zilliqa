@@ -26,8 +26,6 @@ message DoubleResponse
     required double result = 1 [default = 0];
 }
 
-
-
 message CreateTransactionResponse
 {
     optional string error = 1;
@@ -58,8 +56,8 @@ message GetTxBlockResponse
 message GetBalanceResponse
 {
     optional string error = 1;
-    optional ByteArray balance = 2;
-    optional ByteArray nonce = 3;
+    optional string balance = 2;
+    optional string nonce = 3;
 }
 
 message GetSmartContractStateResponse
