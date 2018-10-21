@@ -51,7 +51,7 @@ const unsigned int TXN_PAGE_SIZE = 100;
 const unsigned int REF_BLOCK_DIFF = 5;
 
 // Forward declarations (implementation in libMessage).
-void ProtobufToTransaction(const ProtoTransaction& protoTransaction, Transaction& transaction);
+int ProtobufToTransaction(const ProtoTransaction& protoTransaction, Transaction& transaction);
 void TransactionToProtobuf(const Transaction& transaction, ProtoTransaction& protoTransaction);
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
@@ -74,6 +74,37 @@ Server::Server(Mediator& mediator) : m_mediator(mediator) {
 Server::~Server() {
   // destructor
 }
+
+
+////////////////////////////////////////////////////////////////////////
+// Auxillary functions.
+////////////////////////////////////////////////////////////////////////
+
+
+boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
+  uint64_t currBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (blockNum >= currBlockNum) {
+    return 0;
+  }
+
+  uint64_t i, res = 0;
+  for (i = blockNum + 1; i <= currBlockNum; i++) {
+    res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
+  }
+
+  return res;
+}
+
+
+void Server::AddToRecentTransactions(const dev::h256& txhash) {
+  lock_guard<mutex> g(m_mutexRecentTxns);
+  m_RecentTransactions.insert_new(m_RecentTransactions.size(), txhash.hex());
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 
 
 DefaultResponse Server::GetClientVersion() {
@@ -140,23 +171,24 @@ DefaultResponse Server::GetHashrate() {
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
-
 CreateTransactionResponse Server::CreateTransaction(CreateTransactionRequest& request) {
   LOG_MARKER();
 
   CreateTransactionResponse ret;
 
   try {
-
-    // Convert Protobuf transaction to Transaction.
-    Transaction tx;
+    // Check if request has proto tx object.
     if (!request.has_tx()) {
       ret.set_error("Tx not present in request");
       return ret;
     }
-    ProtobufToTransaction(request.tx(), tx);
 
-    // NOTE: Do we need to check if ProtobufToTransaction() failed?
+    // Convert ProtoTransaction to Transaction.
+    Transaction tx;
+    if (ProtobufToTransaction(request.tx(), tx) != 0) {   // check if conversion failed.
+      ret.set_error("ProtoTransaction to Transaction conversion failed");
+      return ret;
+    }
 
     // Verify the transaction.
     if (!m_mediator.m_validator->VerifyTransaction(tx)) {
@@ -719,24 +751,6 @@ StringResponse Server::GetNumTransactions() {
 }
 
 
-// NOTE: is ir required to protobuf it?
-boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
-  uint64_t currBlockNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  if (blockNum >= currBlockNum) {
-    return 0;
-  }
-
-  uint64_t i, res = 0;
-  for (i = blockNum + 1; i <= currBlockNum; i++) {
-    res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
-  }
-
-  return res;
-}
-
-
 DoubleResponse Server::GetTransactionRate() {
   LOG_MARKER();
 
@@ -1112,15 +1126,6 @@ ProtoTxHashes Server::GetRecentTransactions() {
   }
 
   return ret;
-}
-
-
-void Server::AddToRecentTransactions(ProtoTxHash& protoTxHash) {
-  // Add tx hash to recent transactions.
-  if (protoTxHash.has_txhash()) {
-    lock_guard<mutex> g(m_mutexRecentTxns);
-    m_RecentTransactions.insert_new(m_RecentTransactions.size(), protoTxHash.txhash());
-  }
 }
 
 

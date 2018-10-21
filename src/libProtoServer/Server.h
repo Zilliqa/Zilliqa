@@ -45,6 +45,11 @@ class Server {
   Server(Mediator& mediator);
   ~Server();
 
+  // Auxillary functions.
+  boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
+  void AddToRecentTransactions(const dev::h256& txhash);
+
+  // Interfaces returning default values.
   DefaultResponse GetClientVersion();
   DefaultResponse GetNetworkId();
   DefaultResponse GetProtocolVersion();
@@ -90,9 +95,6 @@ class Server {
 
   StringResponse GetNumTransactions();
 
-  // TODO:
-  boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
-
   DoubleResponse GetTransactionRate();
 
   DoubleResponse GetDSBlockRate();
@@ -110,8 +112,6 @@ class Server {
   ProtoBlockChainInfo GetBlockchainInfo();
 
   ProtoTxHashes GetRecentTransactions();
-
-  void AddToRecentTransactions(ProtoTxHash& protoTxHash);
 
   ProtoShardingStruct GetShardingStructure();
 
