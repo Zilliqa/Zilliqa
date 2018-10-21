@@ -33,7 +33,6 @@ using namespace boost::multiprecision;
 using namespace std;
 using namespace ZilliqaMessage;
 
-
 void SerializableToProtobufByteArray(const Serializable& serializable,
                                      ByteArray& byteArray) {
   vector<unsigned char> tmp;
@@ -1420,7 +1419,6 @@ bool GetConsensusAnnouncementCore(
 
   return true;
 }
-
 
 // ============================================================================
 // Primitives
