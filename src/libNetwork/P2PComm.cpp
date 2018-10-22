@@ -682,7 +682,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
 void P2PComm::SendMessage(const vector<Peer>& peers,
                           const vector<unsigned char>& message,
                           const unsigned char& startByteType) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   if (peers.empty()) {
     return;
@@ -705,7 +705,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
 void P2PComm::SendMessage(const deque<Peer>& peers,
                           const vector<unsigned char>& message,
                           const unsigned char& startByteType) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   if (peers.empty()) {
     return;
@@ -728,7 +728,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
 void P2PComm::SendMessage(const Peer& peer,
                           const vector<unsigned char>& message,
                           const unsigned char& startByteType) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   // Make job
   SendJob* job = new SendJobPeer;

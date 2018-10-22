@@ -153,12 +153,15 @@ class ScopeMarker {
 #define INIT_EPOCHINFO_LOGGER(fname_prefix) \
   Logger::GetEpochInfoLogger(fname_prefix, true)
 #define LOG_MARKER() ScopeMarker marker(__FUNCTION__)
-#define LOG_STATE(msg)                              \
-  {                                                 \
-    std::ostringstream oss;                         \
-    oss << msg;                                     \
-    Logger::GetStateLogger(NULL, true)              \
-        .LogState(oss.str().c_str(), __FUNCTION__); \
+#define LOG_STATE(msg)                                             \
+  {                                                                \
+    std::ostringstream oss;                                        \
+    auto cur = std::chrono::system_clock::now();                   \
+    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);   \
+    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:") \
+        << PAD(get_ms(cur), 3) << " ]" << msg;                     \
+    Logger::GetStateLogger(NULL, true)                             \
+        .LogState(oss.str().c_str(), __FUNCTION__);                \
   }
 #define LOG_GENERAL(level, msg)                                               \
   {                                                                           \

@@ -738,6 +738,12 @@ bool Node::ProcessTxnPacketFromLookupCore(
     return false;
   }
 
+  LOG_STATE(
+      "[TXNPKTPROC]["
+      << std::setw(15) << std::left
+      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] BEGN");
   // Broadcast to other shard node
   vector<Peer> toSend;
   for (auto& it : *m_myShardMembers) {
@@ -772,6 +778,12 @@ bool Node::ProcessTxnPacketFromLookupCore(
   }
   LOG_GENERAL(INFO, "INSERTED TXN COUNT" << processed_count);
 
+  LOG_STATE(
+      "[TXNPKTPROC]["
+      << std::setw(15) << std::left
+      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "][" << txn_sent_count << "] DONE");
   return true;
 }
 
