@@ -47,11 +47,18 @@ struct CoSignatures {
 class BlockBase : public SerializableDataBlock {
   // TODO: pull out all common code from ds, micro and tx block
  protected:
+  BlockHash m_blockHash;
   CoSignatures m_cosigs;
 
  public:
   /// Default constructor.
   BlockBase();
+
+  /// Returns the block hash
+  const BlockHash& GetBlockHash() const;
+
+  /// Set the block hash
+  void SetBlockHash(const BlockHash& blockHash);
 
   /// Returns the co-sig for first round.
   const Signature& GetCS1() const;
@@ -67,6 +74,7 @@ class BlockBase : public SerializableDataBlock {
 
   /// Sets the co-sig members.
   void SetCoSignatures(const ConsensusCommon& src);
+  void SetCoSignatures(CoSignatures& cosigs);
 };
 
 #endif  // __BLOCKBASE_H__

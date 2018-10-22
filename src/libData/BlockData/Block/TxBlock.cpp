@@ -87,6 +87,21 @@ TxBlock::TxBlock(const TxBlockHeader& header,
   m_cosigs = move(cosigs);
 }
 
+TxBlock::TxBlock(const TxBlockHeader& header,
+                 const vector<bool>& isMicroBlockEmpty,
+                 const vector<MicroBlockHashSet>& microBlockHashes,
+                 const vector<uint32_t>& shardIds)
+    : m_header(header),
+      m_isMicroBlockEmpty(isMicroBlockEmpty),
+      m_microBlockHashes(microBlockHashes),
+      m_shardIds(shardIds) {
+  if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size() &&
+      m_header.GetNumMicroBlockHashes() != m_shardIds.size()) {
+    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                              << ": " << __FUNCTION__ << ")");
+  }
+}
+
 const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
 
 const std::vector<bool>& TxBlock::GetIsMicroBlockEmpty() const {
@@ -120,10 +135,4 @@ bool TxBlock::operator<(const TxBlock& block) const {
 
 bool TxBlock::operator>(const TxBlock& block) const {
   return !((*this == block) || (*this < block));
-}
-
-const BlockHash& TxBlock::GetBlockHash() const { return m_blockHash; }
-
-void TxBlock::SetBlockHash(const BlockHash& blockHash) {
-  m_blockHash = blockHash;
 }
