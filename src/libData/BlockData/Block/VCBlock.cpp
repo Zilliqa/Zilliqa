@@ -39,6 +39,9 @@ VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
   m_cosigs = move(cosigs);
 }
 
+VCBlock::VCBlock(const VCBlockHeader& header)
+    : m_header(header) {}
+
 bool VCBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   if (!Messenger::SetVCBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetVCBlock failed.");
@@ -70,10 +73,4 @@ bool VCBlock::operator<(const VCBlock& block) const {
 
 bool VCBlock::operator>(const VCBlock& block) const {
   return !((*this == block) || (*this < block));
-}
-
-const BlockHash& VCBlock::GetBlockHash() const { return m_blockHash; }
-
-void VCBlock::SetBlockHash(const BlockHash& blockHash) {
-  m_blockHash = blockHash;
 }
