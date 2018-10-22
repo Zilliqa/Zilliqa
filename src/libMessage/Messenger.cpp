@@ -4046,11 +4046,6 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
     MicroBlockToProtobuf(mb, *result.add_microblocks());
   }
 
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetMicroBlockFromLookup initialization failed");
-    return false;
-  }
-
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.microblocks().size() > 0) {
@@ -4068,6 +4063,11 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetMicroBlockFromLookup initialization failed");
+    return false;
+  }
 
   return SerializeToArray(result, dst, offset);
 }
