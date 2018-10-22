@@ -47,7 +47,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/TxnRootComputation.h"
+#include "libUtils/RootComputation.h"
 
 using namespace std;
 using namespace boost::multiprecision;

@@ -37,7 +37,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
 #include "libData/DataStructures/MultiIndexContainer.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
@@ -199,6 +198,7 @@ class Node : public Executable, public Broadcastable {
       const std::vector<TransactionWithReceipt>& txns_to_send);
 
   bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
+                                       const std::vector<uint32_t>& shardIds,
                                        const uint64_t& blocknum,
                                        bool& toSendTxnToLookup);
 
@@ -400,7 +400,7 @@ class Node : public Executable, public Broadcastable {
 
   // Transaction body sharing variables
   std::mutex m_mutexUnavailableMicroBlocks;
-  std::unordered_map<uint64_t, std::vector<UnavailableMicroBlock>>
+  std::unordered_map<uint64_t, std::vector<BlockHash>>
       m_unavailableMicroBlocks;
 
   /// Sharding variables

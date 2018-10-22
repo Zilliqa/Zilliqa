@@ -236,15 +236,13 @@ class Lookup : public Executable, public Broadcastable {
 
   void CommitMicroBlockStorage();
 
-  void SendGetMicroBlockFromLookup(
-      const std::map<uint64_t, std::vector<uint32_t>>& mbInfos);
+  void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbInfos);
 
   bool ProcessGetMicroBlockFromLookup(const std::vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from);
   bool ProcessSetMicroBlockFromLookup(const std::vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from);
-  bool AddMicroBlockToStorage(const uint64_t& blocknum,
-                              const MicroBlock& microblock);
+  bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);

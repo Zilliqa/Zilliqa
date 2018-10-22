@@ -112,37 +112,18 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
   return (ret == 0);
 }
 
-string MakeKey(const uint64_t& blockNum, const uint32_t& shardId) {
-  unsigned int curr_offset = 0;
-  vector<unsigned char> vec;
-  Serializable::SetNumber<uint64_t>(vec, curr_offset, blockNum,
-                                    sizeof(uint64_t));
-  curr_offset += sizeof(uint64_t);
-  Serializable::SetNumber<uint32_t>(vec, curr_offset, shardId,
-                                    sizeof(uint32_t));
-
-  string key = DataConversion::Uint8VecToHexStr(vec);
-  LOG_GENERAL(INFO, "blockNum: " << blockNum << " shardId:" << shardId);
-
-  return key;
-}
-
-bool BlockStorage::PutMicroBlock(const uint64_t& blocknum,
-                                 const uint32_t& shardId,
+bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const vector<unsigned char>& body) {
-  string key = MakeKey(blocknum, shardId);
-  int ret = m_microBlockDB->Insert(key, body);
+  int ret = m_microBlockDB->Insert(blockHash, body);
 
   return (ret == 0);
 }
 
-bool BlockStorage::GetMicroBlock(const uint64_t& blocknum,
-                                 const uint32_t& shardId,
+bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
                                  MicroBlockSharedPtr& microblock) {
   LOG_MARKER();
-  string key = MakeKey(blocknum, shardId);
 
-  string blockString = m_microBlockDB->Lookup(key);
+  string blockString = m_microBlockDB->Lookup(blockHash);
 
   if (blockString.empty()) {
     return false;

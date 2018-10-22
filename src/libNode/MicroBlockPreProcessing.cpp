@@ -47,7 +47,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/TxnRootComputation.h"
+#include "libUtils/RootComputation.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -118,7 +118,7 @@ bool Node::ComposeMicroBlock() {
 
     auto& processedTransactions = m_processedTransactions[blockNum];
 
-    txRootHash = ComputeTransactionsRoot(m_TxnOrder);
+    txRootHash = ComputeRoot(m_TxnOrder);
 
     numTxs = processedTransactions.size();
     if (numTxs != m_TxnOrder.size()) {
@@ -143,6 +143,7 @@ bool Node::ComposeMicroBlock() {
                        minerPubKey, dsBlockNum, dsBlockHash, stateDeltaHash,
                        txReceiptHash, committeeHash),
       tranHashes, CoSignatures()));
+  m_microblock->SetBlockHash(m_microblock->GetHeader().GetMyHash());
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Micro block proposed with "
@@ -167,6 +168,14 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
 
   if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset) {
     LOG_GENERAL(WARNING, "Malformed Message");
+    return false;
+  }  BlockHash temp_blockHash = m_microblock->GetHeader().GetMyHash();
+  if (temp_blockHash != m_microblock->GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received DS Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << m_microblock->GetBlockHash().hex());
     return false;
   }
 
@@ -1135,7 +1144,7 @@ bool Node::CheckMicroBlockTxnRootHash() {
 
   // Check transaction root
   TxnHash expectedTxRootHash =
-      ComputeTransactionsRoot(m_microblock->GetTranHashes());
+      ComputeRoot(m_microblock->GetTranHashes());
 
   LOG_GENERAL(INFO, "Microblock root computation done "
                         << DataConversion::charArrToHexStr(
@@ -1241,6 +1250,16 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
           leaderKey, *m_microblock, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeMicroBlockAnnouncement failed.");
+    return false;
+  }
+
+  BlockHash temp_blockHash = m_microblock->GetHeader().GetMyHash();
+  if (temp_blockHash != m_microblock->GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received MicroBlock doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << m_microblock->GetBlockHash().hex());
     return false;
   }
 
