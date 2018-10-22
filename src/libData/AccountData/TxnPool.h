@@ -29,7 +29,7 @@ struct TxnPool {
         const std::pair<PubKey, boost::multiprecision::uint256_t>& p) const {
       std::size_t seed = 0;
       boost::hash_combine(seed, std::string(p.first));
-      boost::hash_combine(seed, p.second.convert_to<uint64_t>());
+      boost::hash_combine(seed, p.second.convert_to<std::string>());
 
       return seed;
     }
