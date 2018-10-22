@@ -20,7 +20,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
-#include "libUtils/TxnRootComputation.h"
+#include "libUtils/RootComputation.h"
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <cstdint>
@@ -73,9 +73,9 @@ BOOST_AUTO_TEST_CASE(compareAllThreeVersions) {
     txnList2.emplace_back(txnPair.second);
   }
 
-  auto hashRoot1 = ComputeTransactionsRoot(txnHashVec);
-  auto hashRoot2 = ComputeTransactionsRoot(txnList1, txnList2);
-  auto hashRoot3 = ComputeTransactionsRoot(txnMap1, txnMap2);
+  auto hashRoot1 = ComputeRoot(txnHashVec);
+  auto hashRoot2 = ComputeRoot(txnList1, txnList2);
+  auto hashRoot3 = ComputeRoot(txnMap1, txnMap2);
 
   BOOST_CHECK_EQUAL(hashRoot1, hashRoot2);
   BOOST_CHECK_EQUAL(hashRoot1, hashRoot3);
