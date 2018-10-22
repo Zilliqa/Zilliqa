@@ -313,28 +313,28 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
 
 #ifdef VC_TEST_VC_SUSPEND_1
   if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
-    LOG_GENERAL(WARNING, "I am suspending myself to test viewchange");
+    LOG_GENERAL(WARNING, "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_1)");
     return false;
   }
 #endif  // VC_TEST_VC_SUSPEND_1
 
 #ifdef VC_TEST_VC_SUSPEND_3
   if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
-    LOG_GENERAL(WARNING, "I am suspending myself to test viewchange");
+    LOG_GENERAL(WARNING, "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
     return false;
   }
 #endif  // VC_TEST_VC_SUSPEND_3
 
 #ifdef VC_TEST_VC_TERMINATE_1
   if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
-    LOG_GENERAL(WARNING, "I am killing myself to test viewchange");
+    LOG_GENERAL(WARNING, "I am killing myself to test viewchange (VC_TEST_VC_TERMINATE_1)");
     throw exception();
   }
 #endif  // VC_TEST_VC_TERMINATE_1
 
 #ifdef VC_TEST_FB_TERMINATE_3
   if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
-    LOG_GENERAL(WARNING, "I am killing myself to test viewchange");
+    LOG_GENERAL(WARNING, "I am killing myself to test viewchange (VC_TEST_FB_TERMINATE_3)");
     throw exception();
   }
 #endif  // VC_TEST_VC_TERMINATE_3
