@@ -17,36 +17,24 @@
  * program files.
  */
 
-#include "TxnRootComputation.h"
+#include "RootComputation.h"
 #include "libCrypto/Sha2.h"
 
 using namespace dev;
 
 namespace {
 template <typename T, typename R>
-const R& GetTranID(const T& item);
+const R& GetHash(const T& item);
 
-inline const TxnHash& GetTranID(const TxnHash& item) { return item; }
+inline const TxnHash& GetHash(const TxnHash& item) { return item; }
 
-inline const TxnHash& GetTranID(const Transaction& item) {
+inline const TxnHash& GetHash(const Transaction& item) {
   return item.GetTranID();
 }
 
-inline const TxnHash& GetTranID(
+inline const TxnHash& GetHash(
     const std::pair<const TxnHash, Transaction>& item) {
   return item.second.GetTranID();
-}
-
-inline const TxnHash& GetTranID(const MicroBlockHashSet& item) {
-  return item.m_txRootHash;
-}
-
-inline const StateHash& GetStateID(const MicroBlockHashSet& item) {
-  return item.m_stateDeltaHash;
-}
-
-inline const TxnHash& GetTranReceiptID(const MicroBlockHashSet& item) {
-  return item.m_tranReceiptHash;
 }
 };  // namespace
 
@@ -59,7 +47,7 @@ TxnHash ConcatTranAndHash(const Container&... conts) {
   (void)std::initializer_list<int>{(
       [](const auto& list, decltype(sha2)& sha2) {
         for (auto& item : list) {
-          sha2.Update(GetTranID(item).asBytes());
+          sha2.Update(GetHash(item).asBytes());
         }
       }(conts, sha2),
       0)...};
@@ -84,34 +72,17 @@ StateHash ConcatStateAndHash(const Container&... conts) {
   return StateHash{sha2.Finalize()};
 }
 
-template <typename... Container>
-TxnHash ConcatTranReceiptAndHash(const Container&... conts) {
+dev::h256 ComputeRoot(const std::vector<dev::h256>& hashes) {
   LOG_MARKER();
 
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-
-  (void)std::initializer_list<int>{(
-      [](const auto& list, decltype(sha2)& sha2) {
-        for (auto& item : list) {
-          sha2.Update(GetTranReceiptID(item).asBytes());
-        }
-      }(conts, sha2),
-      0)...};
-
-  return TxnHash{sha2.Finalize()};
-}
-
-TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes) {
-  LOG_MARKER();
-
-  if (transactionHashes.empty()) {
+  if (hashes.empty()) {
     return TxnHash();
   }
 
-  return ConcatTranAndHash(transactionHashes);
+  return ConcatTranAndHash(hashes);
 }
 
-TxnHash ComputeTransactionsRoot(
+TxnHash ComputeRoot(
     const std::list<Transaction>& receivedTransactions,
     const std::list<Transaction>& submittedTransactions) {
   LOG_MARKER();
@@ -119,38 +90,17 @@ TxnHash ComputeTransactionsRoot(
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
 }
 
-TxnHash ComputeTransactionsRoot(
+TxnHash ComputeRoot(
     const std::unordered_map<TxnHash, Transaction>& processedTransactions) {
   LOG_MARKER();
 
   return ConcatTranAndHash(processedTransactions);
 }
 
-TxnHash ComputeTransactionsRoot(
+TxnHash ComputeRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
     const std::unordered_map<TxnHash, Transaction>& submittedTransactions) {
   LOG_MARKER();
 
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
-}
-
-TxnHash ComputeTransactionsRoot(
-    const std::vector<MicroBlockHashSet>& microBlockHashes) {
-  LOG_MARKER();
-
-  return ConcatTranAndHash(microBlockHashes);
-}
-
-StateHash ComputeDeltasRoot(
-    const std::vector<MicroBlockHashSet>& microBlockHashes) {
-  LOG_MARKER();
-
-  return ConcatStateAndHash(microBlockHashes);
-}
-
-TxnHash ComputeTranReceiptsRoot(
-    const std::vector<MicroBlockHashSet>& microBlockHashes) {
-  LOG_MARKER();
-
-  return ConcatTranReceiptAndHash(microBlockHashes);
 }

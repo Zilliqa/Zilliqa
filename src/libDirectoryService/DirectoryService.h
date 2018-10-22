@@ -248,13 +248,9 @@ class DirectoryService : public Executable, public Broadcastable {
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   void ExtractDataFromMicroblocks(
-      TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
-      TxnHash& microblockTranReceiptRoot,
-      std::vector<MicroBlockHashSet>& microblockHashes,
-      std::vector<uint32_t>& shardIds,
-      boost::multiprecision::uint256_t& allGasLimit,
-      boost::multiprecision::uint256_t& allGasUsed,
-      boost::multiprecision::uint256_t& rewards, uint32_t& numTxs,
+      BlockHash& microblockTrieRoot, std::vector<BlockHash>& microblockHashes, 
+      boost::multiprecision::uint256_t& allGasLimit, boost::multiprecision::uint256_t& allGasUsed, 
+      boost::multiprecision::uint256_t& allRewards, uint32_t& numTxs, 
       std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
@@ -434,9 +430,7 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
-  std::unordered_map<uint64_t,
-                     std::vector<std::pair<uint32_t, MicroBlockHashSet>>>
-      m_missingMicroBlocks;
+  std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
   boost::multiprecision::uint256_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;

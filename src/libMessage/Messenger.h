@@ -208,13 +208,15 @@ class Messenger {
                                 const uint64_t dsBlockNumber,
                                 const uint32_t consensusID,
                                 const TxBlock& txBlock,
-                                const std::vector<unsigned char>& stateDelta);
+                                const std::vector<unsigned char>& stateDelta,
+                                const std::vector<uint32_t>& shardIds);
 
   static bool GetNodeFinalBlock(const std::vector<unsigned char>& src,
                                 const unsigned int offset, uint32_t& shardId,
                                 uint64_t& dsBlockNumber, uint32_t& consensusID,
                                 TxBlock& txBlock,
-                                std::vector<unsigned char>& stateDelta);
+                                std::vector<unsigned char>& stateDelta,
+                                std::vector<uint32_t>& shardIds);
 
   static bool SetNodeVCBlock(std::vector<unsigned char>& dst,
                              const unsigned int offset, const VCBlock& vcBlock);
@@ -223,8 +225,7 @@ class Messenger {
 
   static bool SetNodeForwardTransaction(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t blockNum, const MicroBlockHashSet& hashes,
-      const uint32_t& shardId, const std::vector<TransactionWithReceipt>& txns);
+      const uint64_t blockNum, const BlockHash& hash, const std::vector<TransactionWithReceipt>& txns);
   static bool GetNodeForwardTransaction(const std::vector<unsigned char>& src,
                                         const unsigned int offset,
                                         ForwardedTxnEntry& entry);
@@ -445,12 +446,12 @@ class Messenger {
 
   static bool SetLookupGetMicroBlockFromLookup(
       std::vector<unsigned char>& dest, const unsigned int offset,
-      const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+      const std::vector<BlockHash>& microBlockInfo,
       uint32_t portNo);
 
   static bool GetLookupGetMicroBlockFromLookup(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
+      std::vector<BlockHash>& microBlockInfo,
       uint32_t& portNo);
 
   static bool SetLookupSetMicroBlockFromLookup(

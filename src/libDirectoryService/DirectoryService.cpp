@@ -39,7 +39,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
-#include "libUtils/TxnRootComputation.h"
+#include "libUtils/RootComputation.h"
 
 using namespace std;
 using namespace boost::multiprecision;
