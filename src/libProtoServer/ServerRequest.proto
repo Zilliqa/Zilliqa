@@ -1,0 +1,27 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+import "ZilliqaMessage.proto";
+
+
+message GetStorageAtRequest
+{
+    optional string address = 1;
+    optional string position = 2;
+}
+
+message GetBlockTransactionCountRequest
+{
+    optional string blockhash = 1;
+}
+
+message CreateTransactionRequest
+{
+    required ProtoTransaction tx = 1;
+}
+
+message GetTransactionRequest
+{
+    required string txhash = 1;
+}

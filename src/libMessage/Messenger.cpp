@@ -33,7 +33,6 @@ using namespace boost::multiprecision;
 using namespace std;
 using namespace ZilliqaMessage;
 
-namespace {
 void SerializableToProtobufByteArray(const Serializable& serializable,
                                      ByteArray& byteArray) {
   vector<unsigned char> tmp;
@@ -1316,13 +1315,13 @@ bool GetConsensusAnnouncementCore(
   ProtobufByteArrayToSerializable(announcement.signature(), signature);
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey)) {
-    LOG_GENERAL(WARNING, "Invalid signature in announcement.");
+    LOG_GENERAL(WARNING, "Invalid signature in announcement. leaderID = "
+                             << leaderID << " leaderKey = " << leaderKey);
     return false;
   }
 
   return true;
 }
-}  // namespace
 
 // ============================================================================
 // Primitives
