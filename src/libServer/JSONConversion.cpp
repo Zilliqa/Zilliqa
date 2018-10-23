@@ -223,8 +223,8 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
       return false;
     }
     if (_json["toAddr"].asString().size() != ACC_ADDR_SIZE * 2) {
-      LOG_GENERAL(INFO, "To Address size wrong "
-                            << _json["signature"].asString().size());
+      LOG_GENERAL(
+          INFO, "To Address size wrong " << _json["toAddr"].asString().size());
       return false;
     }
   } else {
