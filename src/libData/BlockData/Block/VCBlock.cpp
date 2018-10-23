@@ -39,8 +39,7 @@ VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
   m_cosigs = move(cosigs);
 }
 
-VCBlock::VCBlock(const VCBlockHeader& header)
-    : m_header(header) {}
+VCBlock::VCBlock(const VCBlockHeader& header) : m_header(header) {}
 
 bool VCBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   if (!Messenger::SetVCBlock(dst, offset, *this)) {

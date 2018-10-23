@@ -434,7 +434,8 @@ void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
 
   DSBlockHeaderToProtobuf(header, *protoHeader);
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoDSBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoDSBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(dsBlock, *protoBlockBase);
 }
@@ -515,7 +516,7 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
 
   dsBlock = DSBlock(header);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoDSBlock.blockbase();
 
   ProtobufToBlockBase(dsBlock, protoBlockBase);
@@ -772,7 +773,8 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
     protoTxBlock.add_shardids(i);
   }
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoTxBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoTxBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(txBlock, *protoBlockBase);
 }
@@ -902,7 +904,7 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
 
   txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
 
   ProtobufToBlockBase(txBlock, protoBlockBase);
@@ -941,7 +943,8 @@ void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
 
   VCBlockHeaderToProtobuf(header, *protoHeader);
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoVCBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoVCBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(vcBlock, *protoBlockBase);
 }
@@ -989,7 +992,7 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 
   vcBlock = VCBlock(header);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoVCBlock.blockbase();
 
   ProtobufToBlockBase(vcBlock, protoBlockBase);
@@ -1036,7 +1039,8 @@ void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
 
   FallbackBlockHeaderToProtobuf(header, *protoHeader);
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoFallbackBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoFallbackBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(fallbackBlock, *protoBlockBase);
 }
@@ -1090,7 +1094,7 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
 
   fallbackBlock = FallbackBlock(header);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoFallbackBlock.blockbase();
 
   ProtobufToBlockBase(fallbackBlock, protoBlockBase);
