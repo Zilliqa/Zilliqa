@@ -408,8 +408,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
             "I am a backup DS node (after view change). Waiting for view "
             "change announcement. "
             "Leader is at index  "
-                << m_consensusLeaderID << " "
-                << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+                << m_viewChangeCounter << " "
+                << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
 
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
