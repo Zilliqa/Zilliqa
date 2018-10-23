@@ -783,7 +783,7 @@ bool Node::ProcessTxnPacketFromLookupCore(
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "][" << txn_sent_count << "] DONE");
+      << "][" << processed_count << "] DONE");
   return true;
 }
 
