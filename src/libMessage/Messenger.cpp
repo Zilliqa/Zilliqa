@@ -131,19 +131,18 @@ void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
   }
 }
 
-
-void FaultyDSMembersToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
-                           ProtoFaultyDSMembers& protoFaultyLeaders) {
+void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
+                           ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
   for (const auto& node : faultyLeaders) {
-    ProtoDSNode* protodsnode = protoFaultyLeaders.add_dsnodes();
+    ProtoDSNode* protodsnode = protoVCBlockHeader.add_faultyleaders();
     SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
     SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
   }
 }
 
-void ProtobufToFaultyDSMembers(const ProtoFaultyDSMembers& protoFaultyDSMembers,
+void ProtobufToFaultyDSMembers(const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
                            vector<pair<PubKey, Peer>>& faultyDSMembers) {
-  for (const auto& dsnode : protoFaultyDSMembers.dsnodes()) {
+  for (const auto& dsnode : protoVCBlockHeader.faultyleaders()) {
     PubKey pubkey;
     Peer peer;
 
@@ -968,7 +967,7 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
       vcBlockHeader.GetCandidateLeaderPubKey(),
       *protoVCBlockHeader.mutable_candidateleaderpubkey());
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
-  FaultyDSMembersToProtobuf(vcBlockHeader.GetFaultyLeaders(), *protoVCBlockHeader.mutable_faultyleaders());
+  FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       vcBlockHeader.GetTimeStamp(), *protoVCBlockHeader.mutable_timestamp());
   protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
@@ -1022,7 +1021,7 @@ void ProtobufToVCBlockHeader(
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoVCBlockHeader.timestamp(), timestamp);
   
-  ProtobufToFaultyDSMembers(protoVCBlockHeader.faultyleaders(), faultyLeaders);
+  ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
 
   copy(protoVCBlockHeader.committeehash().begin(),
        protoVCBlockHeader.committeehash().begin() +
