@@ -72,7 +72,7 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset) {
 
 TxBlock::TxBlock(const TxBlockHeader& header,
                  const vector<bool>& isMicroBlockEmpty,
-                 const vector<BlockHash>& microBlockHashes, 
+                 const vector<BlockHash>& microBlockHashes,
                  CoSignatures&& cosigs)
     : m_header(header),
       m_isMicroBlockEmpty(isMicroBlockEmpty),

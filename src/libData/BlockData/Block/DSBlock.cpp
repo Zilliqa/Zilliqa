@@ -41,8 +41,7 @@ DSBlock::DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs)
   m_cosigs = move(cosigs);
 }
 
-DSBlock::DSBlock(const DSBlockHeader& header)
-    : m_header(header) {}
+DSBlock::DSBlock(const DSBlockHeader& header) : m_header(header) {}
 
 bool DSBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   if (!Messenger::SetDSBlock(dst, offset, *this)) {

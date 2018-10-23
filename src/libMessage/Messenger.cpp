@@ -434,7 +434,8 @@ void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
 
   DSBlockHeaderToProtobuf(header, *protoHeader);
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoDSBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoDSBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(dsBlock, *protoBlockBase);
 }
@@ -515,7 +516,7 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
 
   dsBlock = DSBlock(header);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoDSBlock.blockbase();
 
   ProtobufToBlockBase(dsBlock, protoBlockBase);
@@ -578,7 +579,8 @@ void MicroBlockToProtobuf(const MicroBlock& microBlock,
     protoMicroBlock.add_tranhashes(hash.data(), hash.size);
   }
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoMicroBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoMicroBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(microBlock, *protoBlockBase);
 }
@@ -673,7 +675,7 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
 
   microBlock = MicroBlock(header, tranHashes);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoMicroBlock.blockbase();
 
   ProtobufToBlockBase(microBlock, protoBlockBase);
@@ -736,7 +738,8 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
     protoTxBlock.add_mbhashes(hash.data(), hash.size);
   }
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoTxBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoTxBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(txBlock, *protoBlockBase);
 }
@@ -831,15 +834,14 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
   for (const auto& hash : protoTxBlock.mbhashes()) {
     microBlockHashes.emplace_back();
     copy(hash.begin(),
-         hash.begin() +
-             min((unsigned int)hash.size(),
-                 (unsigned int)microBlockHashes.back().size),
+         hash.begin() + min((unsigned int)hash.size(),
+                            (unsigned int)microBlockHashes.back().size),
          microBlockHashes.back().asArray().begin());
   }
 
   txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
 
   ProtobufToBlockBase(txBlock, protoBlockBase);
@@ -878,7 +880,8 @@ void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
 
   VCBlockHeaderToProtobuf(header, *protoHeader);
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoVCBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoVCBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(vcBlock, *protoBlockBase);
 }
@@ -926,7 +929,7 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 
   vcBlock = VCBlock(header);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoVCBlock.blockbase();
 
   ProtobufToBlockBase(vcBlock, protoBlockBase);
@@ -973,7 +976,8 @@ void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
 
   FallbackBlockHeaderToProtobuf(header, *protoHeader);
 
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase = protoFallbackBlock.mutable_blockbase();
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoFallbackBlock.mutable_blockbase();
 
   BlockBaseToProtobuf(fallbackBlock, *protoBlockBase);
 }
@@ -1027,7 +1031,7 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
 
   fallbackBlock = FallbackBlock(header);
 
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase = 
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoFallbackBlock.blockbase();
 
   ProtobufToBlockBase(fallbackBlock, protoBlockBase);
@@ -2197,14 +2201,11 @@ bool Messenger::GetNodeVCDSBlocksMessage(
   return true;
 }
 
-bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
-                                  const unsigned int offset,
-                                  const uint32_t shardId,
-                                  const uint64_t dsBlockNumber,
-                                  const uint32_t consensusID,
-                                  const TxBlock& txBlock,
-                                  const vector<unsigned char>& stateDelta,
-                                  const vector<uint32_t>& shardIds) {
+bool Messenger::SetNodeFinalBlock(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t shardId, const uint64_t dsBlockNumber,
+    const uint32_t consensusID, const TxBlock& txBlock,
+    const vector<unsigned char>& stateDelta, const vector<uint32_t>& shardIds) {
   LOG_MARKER();
 
   NodeFinalBlock result;
@@ -2260,14 +2261,14 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeForwardTransaction(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t blockNum, const BlockHash& hash, const vector<TransactionWithReceipt>& txns) {
+    const uint64_t blockNum, const BlockHash& hash,
+    const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
   NodeForwardTransaction result;
 
   result.set_blocknum(blockNum);
-  result.set_microblockhash(hash.asArray().data(),
-                            hash.asArray().size());
+  result.set_microblockhash(hash.asArray().data(), hash.asArray().size());
   unsigned int txnsCount = 0;
 
   for (const auto& txn : txns) {
@@ -3850,9 +3851,10 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
 
   for (const auto& hash : result.mbhashes()) {
     microBlockHashes.emplace_back();
-    unsigned int size =
-        min((unsigned int)hash.size(), (unsigned int)microBlockHashes.back().size);
-    copy(hash.begin(), hash.begin() + size, microBlockHashes.back().asArray().begin());
+    unsigned int size = min((unsigned int)hash.size(),
+                            (unsigned int)microBlockHashes.back().size);
+    copy(hash.begin(), hash.begin() + size,
+         microBlockHashes.back().asArray().begin());
   }
 
   return true;

@@ -1179,7 +1179,8 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
 }
 
 bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
-  TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(microblock.GetHeader().GetBlockNum());
+  TxBlock txblk =
+      m_mediator.m_txBlockChain.GetBlock(microblock.GetHeader().GetBlockNum());
   LOG_GENERAL(INFO, "[SendMB]"
                         << "Add MicroBlock hash: "
                         << microblock.GetBlockHash());
@@ -1201,7 +1202,8 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
 
   vector<unsigned char> body;
   microblock.Serialize(body, 0);
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microblock.GetBlockHash(), body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microblock.GetBlockHash(),
+                                                     body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
     return false;
   }
@@ -1240,10 +1242,10 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   vector<MicroBlock> retMicroBlocks;
 
   for (const auto& mbhash : microBlockHashes) {
-    LOG_GENERAL(INFO, "[SendMB]" << "Request for microBlockHash " << mbhash);
+    LOG_GENERAL(INFO, "[SendMB]"
+                          << "Request for microBlockHash " << mbhash);
     shared_ptr<MicroBlock> mbptr;
-    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbhash,
-                                                       mbptr)) {
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbhash, mbptr)) {
       LOG_GENERAL(WARNING, "Failed to fetch micro block Hash " << mbhash);
       continue;
     } else {
@@ -1295,7 +1297,8 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
                           << " MBHash:" << mb.GetBlockHash());
 
     if (ARCHIVAL_NODE) {
-      if (!m_mediator.m_archival->RemoveFromFetchMicroBlockInfo(mb.GetBlockHash())) {
+      if (!m_mediator.m_archival->RemoveFromFetchMicroBlockInfo(
+              mb.GetBlockHash())) {
         LOG_GENERAL(WARNING, "Error in remove fetch micro block");
         continue;
       }
@@ -1306,8 +1309,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
   return true;
 }
 
-void Lookup::SendGetMicroBlockFromLookup(
-    const vector<BlockHash>& mbHashes) {
+void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   vector<unsigned char> msg = {MessageType::LOOKUP,
                                LookupInstructionType::GETMICROBLOCKFROMLOOKUP};
 
@@ -1643,12 +1645,15 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
         BlockStorage::GetBlockStorage().PutTxBlock(
             txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
       } else {
-        for (unsigned int i = 0; i < txBlock.GetMicroBlockHashes().size(); i++) {
+        for (unsigned int i = 0; i < txBlock.GetMicroBlockHashes().size();
+             i++) {
           if (!txBlock.GetIsMicroBlockEmpty()[i]) {
-            m_mediator.m_archival->AddToFetchMicroBlockInfo(txBlock.GetMicroBlockHashes()[i]);
+            m_mediator.m_archival->AddToFetchMicroBlockInfo(
+                txBlock.GetMicroBlockHashes()[i]);
           } else {
-            LOG_GENERAL(INFO, "MicroBlock of hash " << txBlock.GetMicroBlockHashes()[i].hex()
-                                                     << " empty");
+            LOG_GENERAL(INFO, "MicroBlock of hash "
+                                  << txBlock.GetMicroBlockHashes()[i].hex()
+                                  << " empty");
           }
         }
 

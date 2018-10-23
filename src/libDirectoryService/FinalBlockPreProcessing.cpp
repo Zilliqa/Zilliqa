@@ -36,16 +36,17 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/RootComputation.h"
+#include "libUtils/SanityChecks.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
 void DirectoryService::ExtractDataFromMicroblocks(
-    BlockHash& microblockTrieRoot, std::vector<BlockHash>& microblockHashes, 
-    uint256_t& allGasLimit, uint256_t& allGasUsed, uint256_t& allRewards, 
-    uint32_t& numTxs, std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) {
+    BlockHash& microblockTrieRoot, std::vector<BlockHash>& microblockHashes,
+    uint256_t& allGasLimit, uint256_t& allGasUsed, uint256_t& allRewards,
+    uint32_t& numTxs, std::vector<bool>& isMicroBlockEmpty,
+    uint32_t& numMicroBlocks) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ExtractDataFromMicroblocks not expected "
@@ -117,9 +118,9 @@ bool DirectoryService::ComposeFinalBlock() {
   uint32_t numMicroBlocks = 0;
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
-  ExtractDataFromMicroblocks(microblockTrieRoot, microBlockHashes,
-                             allGasLimit, allGasUsed, allRewards,
-                             numTxs, isMicroBlockEmpty, numMicroBlocks);
+  ExtractDataFromMicroblocks(microblockTrieRoot, microBlockHashes, allGasLimit,
+                             allGasUsed, allRewards, numTxs, isMicroBlockEmpty,
+                             numMicroBlocks);
 
   BlockHash prevHash;
   uint256_t timestamp = get_time_as_int();
@@ -169,7 +170,7 @@ bool DirectoryService::ComposeFinalBlock() {
                     stateRoot, stateDeltaHash, numTxs, numMicroBlocks,
                     m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
                     committeeHash),
-      isMicroBlockEmpty, microBlockHashes, 
+      isMicroBlockEmpty, microBlockHashes,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
 
@@ -462,7 +463,8 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg) {
   int offset = 0;
 
   if (!m_missingMicroBlocks[m_mediator.m_currentEpochNum].empty()) {
-    for (auto const& hash : m_missingMicroBlocks[m_mediator.m_currentEpochNum]) {
+    for (auto const& hash :
+         m_missingMicroBlocks[m_mediator.m_currentEpochNum]) {
       if (errorMsg.empty()) {
         errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t) + BLOCK_HASH_SIZE);
         offset += (sizeof(uint32_t) + sizeof(uint64_t));
@@ -716,11 +718,13 @@ bool DirectoryService::CheckMicroBlockHashRoot() {
   BlockHash microBlocksRoot = ComputeRoot(blockHashes);
 
   if (m_finalBlock->GetHeader().GetMbRootHash() != microBlocksRoot) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Microblocks root hash in proposed final block by "
-                "leader is incorrect" << endl
-                << "expected: " << microBlocksRoot.hex() << endl
-                << "received: " << m_finalBlock->GetHeader().GetMbRootHash().hex());
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "Microblocks root hash in proposed final block by "
+        "leader is incorrect"
+            << endl
+            << "expected: " << microBlocksRoot.hex() << endl
+            << "received: " << m_finalBlock->GetHeader().GetMbRootHash().hex());
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH);
@@ -900,7 +904,7 @@ bool DirectoryService::CheckFinalBlockValidity(
       !CheckFinalBlockVersion() || !CheckFinalBlockNumber() ||
       !CheckPreviousFinalBlockHash() || !CheckFinalBlockTimestamp() ||
       !CheckMicroBlocks(errorMsg) || !CheckLegitimacyOfMicroBlocks() ||
-      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() || 
+      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() ||
       !CheckStateRoot() || !CheckStateDeltaHash()) {
     Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
                                       m_mediator.m_selfPeer.m_listenPortHost,

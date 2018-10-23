@@ -47,10 +47,10 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/RootComputation.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -177,8 +177,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                         "The microblock hashes in finalblock doesn't "
                         "match with the local one"
                             << endl
-                            << "expected: "
-                            << m_microblock->GetBlockHash() << endl
+                            << "expected: " << m_microblock->GetBlockHash()
+                            << endl
                             << "received: " << microBlockHashes[i])
             return false;
           }
@@ -278,8 +278,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
 
 bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
                                    [[gnu::unused]] const uint64_t& blocknum) {
-  TxnHash microBlocksHash =
-      ComputeRoot(finalBlock.GetMicroBlockHashes());
+  TxnHash microBlocksHash = ComputeRoot(finalBlock.GetMicroBlockHashes());
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Expected FinalBlock TxRoot hash: " << microBlocksHash.hex());
@@ -678,7 +677,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   vector<uint32_t> shardIds;
 
   if (!Messenger::GetNodeFinalBlock(message, offset, shardId, dsBlockNumber,
-                                    consensusID, txBlock, stateDelta, shardIds)) {
+                                    consensusID, txBlock, stateDelta,
+                                    shardIds)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeFinalBlock failed.");
     return false;
@@ -763,8 +763,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   if (!isVacuousEpoch) {
-    if (!LoadUnavailableMicroBlockHashes(
-            txBlock, shardIds, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
+    if (!LoadUnavailableMicroBlockHashes(txBlock, shardIds,
+                                         txBlock.GetHeader().GetBlockNum(),
+                                         toSendTxnToLookup)) {
       return false;
     }
     StoreFinalBlock(txBlock);

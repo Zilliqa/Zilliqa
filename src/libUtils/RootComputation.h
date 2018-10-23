@@ -34,9 +34,8 @@
 
 TxnHash ComputeRoot(const std::vector<TxnHash>& transactionHashes);
 
-TxnHash ComputeRoot(
-    const std::list<Transaction>& receivedTransactions,
-    const std::list<Transaction>& submittedTransactions);
+TxnHash ComputeRoot(const std::list<Transaction>& receivedTransactions,
+                    const std::list<Transaction>& submittedTransactions);
 
 TxnHash ComputeRoot(
     const std::unordered_map<TxnHash, Transaction>& processedTransactions);
@@ -45,7 +44,6 @@ TxnHash ComputeRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
     const std::unordered_map<TxnHash, Transaction>& submittedTransactions);
 
-BlockHash ComputeRoot(
-    const std::vector<BlockHash>& blockHashes);
+BlockHash ComputeRoot(const std::vector<BlockHash>& blockHashes);
 
 #endif  // __ROOTCOMPUTATION_H__

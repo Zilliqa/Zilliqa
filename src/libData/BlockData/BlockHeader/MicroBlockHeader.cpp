@@ -117,7 +117,9 @@ const TxnHash& MicroBlockHeader::GetTranReceiptHash() const {
   return m_hashset.m_tranReceiptHash;
 }
 
-const MicroBlockHashSet& MicroBlockHeader::GetHashes() const { return m_hashset; }
+const MicroBlockHashSet& MicroBlockHeader::GetHashes() const {
+  return m_hashset;
+}
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const {
   return std::tie(m_type, m_version, m_shardId, m_gasLimit, m_gasUsed,
