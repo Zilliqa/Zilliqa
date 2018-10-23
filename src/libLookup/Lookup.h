@@ -236,7 +236,7 @@ class Lookup : public Executable, public Broadcastable {
 
   void CommitMicroBlockStorage();
 
-  void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbInfos);
+  void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
   bool ProcessGetMicroBlockFromLookup(const std::vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from);
