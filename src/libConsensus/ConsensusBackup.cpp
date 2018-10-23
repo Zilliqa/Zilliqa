@@ -113,7 +113,9 @@ bool ConsensusBackup::ProcessMessageAnnounce(
       }
     }
 
-    LOG_GENERAL(WARNING, "Announcement content validation failed - dropping message but keeping state");
+    LOG_GENERAL(WARNING,
+                "Announcement content validation failed - dropping message but "
+                "keeping state");
     return false;
   }
 
