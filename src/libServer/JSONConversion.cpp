@@ -197,9 +197,13 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
       LOG_GENERAL(INFO, "Fault in nonce");
       return false;
     }
-    if (!_json["amount"].isIntegral()) {
-      LOG_GENERAL(INFO, "Fault in amount");
-      return false;
+    if (!_json["amount"].isString()) {
+      try {
+        uint256_t amount(_json["amount"].isString());
+      } catch (exception& e) {
+        LOG_GENERAL(INFO, "Fault in amount " << e.what());
+        return false;
+      }
     }
     if (!_json["version"].isIntegral()) {
       LOG_GENERAL(INFO, "Fault in version");
