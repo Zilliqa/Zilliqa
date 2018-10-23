@@ -40,7 +40,6 @@ bool ConsensusBackup::CheckState(Action action) {
                                       // get ignored by the node)
        {RESPONSE_DONE, PROCESS_CHALLENGE},
        {RESPONSE_DONE, PROCESS_COLLECTIVESIG},
-       {RESPONSE_DONE, PROCESS_FINALCHALLENGE},
        {RESPONSE_DONE,
         PROCESS_FINALCOLLECTIVESIG},  // TODO: check this logic again. Issue #43
                                       // Node cannot proceed if
@@ -114,7 +113,9 @@ bool ConsensusBackup::ProcessMessageAnnounce(
       }
     }
 
-    m_state = ERROR;
+    LOG_GENERAL(WARNING,
+                "Announcement content validation failed - dropping message but "
+                "keeping state");
     return false;
   }
 
@@ -240,9 +241,11 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   Challenge challenge_verif =
       GetChallenge(m_messageToCosign, aggregated_commit, aggregated_key);
 
+  // If the challenge was gossiped, I may not necessarily be part of the 2/3
+  // backups that are part of the bitmap So, I shouldn't change to ERROR state
+  // here
   if (!(challenge_verif == m_challenge)) {
     LOG_GENERAL(WARNING, "Generated challenge mismatch");
-    m_state = ERROR;
     return false;
   }
 
