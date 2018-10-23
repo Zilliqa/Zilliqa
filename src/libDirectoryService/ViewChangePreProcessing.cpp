@@ -193,9 +193,10 @@ void DirectoryService::RunConsensusOnViewChange() {
       m_mediator.m_DSCommittee
           ->size();  // TODO: To be change to a random node using VRF
 
-  LOG_GENERAL(INFO, "The new consensus leader is at index "
-                        << to_string(m_viewChangeCounter) << " "
-                << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
+  LOG_GENERAL(INFO,
+              "The new consensus leader is at index "
+                  << to_string(m_viewChangeCounter) << " "
+                  << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
 
   if (DEBUG_LEVEL >= 5) {
     for (auto& i : *m_mediator.m_DSCommittee) {
