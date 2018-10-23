@@ -61,47 +61,6 @@ AccountStore& AccountStore::GetInstance() {
   return accountstore;
 }
 
-int AccountStore::Deserialize(const vector<unsigned char>& src,
-                              unsigned int offset) {
-  // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] ....
-  // [Addr n] [Account n] LOG_MARKER();
-
-  try {
-    unsigned int curOffset = offset;
-    uint256_t totalNumOfAccounts =
-        GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-
-    Address address;
-    Account account;
-    unsigned int numberOfAccountDeserialze = 0;
-    this->Init();
-    while (numberOfAccountDeserialze < totalNumOfAccounts) {
-      numberOfAccountDeserialze++;
-
-      // Deserialize address
-      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
-           address.asArray().begin());
-      curOffset += ACC_ADDR_SIZE;
-
-      // Deserialize account
-      if (account.DeserializeAddOffset(src, curOffset) < 0) {
-        LOG_GENERAL(WARNING, "failed to deserialize account: " << address);
-        continue;
-      }
-      (*m_addressToAccount)[address] = account;
-      UpdateStateTrie(address, account);
-      // MoveUpdatesToDisk();
-    }
-    // PrintAccountState();
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with AccountStore::Deserialize." << ' ' << e.what());
-    return -1;
-  }
-  return 0;
-}
-
 void AccountStore::SerializeDelta() {
   LOG_MARKER();
 

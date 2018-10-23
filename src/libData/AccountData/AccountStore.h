@@ -86,9 +86,6 @@ class AccountStore
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
 
-  int Deserialize(const std::vector<unsigned char>& src,
-                  unsigned int offset) override;
-
   void SerializeDelta();
 
   unsigned int GetSerializedDelta(std::vector<unsigned char>& dst);
