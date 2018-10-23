@@ -264,6 +264,18 @@ bool DirectoryService::ComputeNewCandidateLeader() {
   LOG_GENERAL(
       INFO, "Composing new vc block with vc count at " << m_viewChangeCounter);
 
+  // New leader is computed using the following
+  // If there no previous vc block, 
+  // New candidate leader index is 
+  // H(Last valid Block (eg. finalblock, ds block), vc counter) 
+  // If there is previous vc block, 
+  // New candidate leader index is 
+
+  vector<pair<PubKey, Peer>> faultyLeaders; 
+
+  // TODO: If previous vc block exists, add faulty leader
+  // TODO: Add current faulty leader
+
   Peer newLeaderNetworkInfo;
   if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer()) {
     // I am the leader but in the Peer store, it is put as 0.0.0.0 with port 0
@@ -292,7 +304,7 @@ bool DirectoryService::ComputeNewCandidateLeader() {
             m_mediator.m_currentEpochNum, m_viewChangestate,
             m_viewChangeCounter, newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
-            m_viewChangeCounter, get_time_as_int(), committeeHash),
+            m_viewChangeCounter, faultyLeaders, get_time_as_int(), committeeHash),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
