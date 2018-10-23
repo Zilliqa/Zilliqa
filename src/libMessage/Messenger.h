@@ -447,11 +447,11 @@ class Messenger {
 
   static bool SetLookupGetMicroBlockFromLookup(
       std::vector<unsigned char>& dest, const unsigned int offset,
-      const std::vector<BlockHash>& microBlockInfo, uint32_t portNo);
+      const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
   static bool GetLookupGetMicroBlockFromLookup(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      std::vector<BlockHash>& microBlockInfo, uint32_t& portNo);
+      std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
 
   static bool SetLookupSetMicroBlockFromLookup(
       std::vector<unsigned char>& dst, const unsigned int offset,

@@ -20,6 +20,7 @@
 #include "RootComputation.h"
 #include "libCrypto/Sha2.h"
 
+using namespace std;
 using namespace dev;
 
 namespace {
@@ -72,7 +73,7 @@ StateHash ConcatStateAndHash(const Container&... conts) {
   return StateHash{sha2.Finalize()};
 }
 
-dev::h256 ComputeRoot(const std::vector<dev::h256>& hashes) {
+h256 ComputeRoot(const vector<h256>& hashes) {
   LOG_MARKER();
 
   if (hashes.empty()) {
@@ -82,23 +83,23 @@ dev::h256 ComputeRoot(const std::vector<dev::h256>& hashes) {
   return ConcatTranAndHash(hashes);
 }
 
-TxnHash ComputeRoot(const std::list<Transaction>& receivedTransactions,
-                    const std::list<Transaction>& submittedTransactions) {
+TxnHash ComputeRoot(const list<Transaction>& receivedTransactions,
+                    const list<Transaction>& submittedTransactions) {
   LOG_MARKER();
 
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
 }
 
 TxnHash ComputeRoot(
-    const std::unordered_map<TxnHash, Transaction>& processedTransactions) {
+    const unordered_map<TxnHash, Transaction>& processedTransactions) {
   LOG_MARKER();
 
   return ConcatTranAndHash(processedTransactions);
 }
 
 TxnHash ComputeRoot(
-    const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
-    const std::unordered_map<TxnHash, Transaction>& submittedTransactions) {
+    const unordered_map<TxnHash, Transaction>& receivedTransactions,
+    const unordered_map<TxnHash, Transaction>& submittedTransactions) {
   LOG_MARKER();
 
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
