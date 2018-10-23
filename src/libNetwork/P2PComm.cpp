@@ -763,13 +763,15 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   job->m_message = message;
   job->m_hash = sha256.Finalize();
 
+  vector<unsigned char> hashCopy(job->m_hash);
+
   // Queue job
   while (!m_sendQueue.push(job)) {
     // Keep attempting to push until success
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
-  m_broadcastHashes.insert(job->m_hash);
+  m_broadcastHashes.insert(hashCopy);
 }
 
 void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
@@ -791,13 +793,15 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   job->m_message = message;
   job->m_hash = sha256.Finalize();
 
+  vector<unsigned char> hashCopy(job->m_hash);
+
   // Queue job
   while (!m_sendQueue.push(job)) {
     // Keep attempting to push until success
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
-  m_broadcastHashes.insert(job->m_hash);
+  m_broadcastHashes.insert(hashCopy);
 }
 
 void P2PComm::RebroadcastMessage(const vector<Peer>& peers,
