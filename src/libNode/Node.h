@@ -400,8 +400,7 @@ class Node : public Executable, public Broadcastable {
 
   // Transaction body sharing variables
   std::mutex m_mutexUnavailableMicroBlocks;
-  std::unordered_map<uint64_t, std::vector<BlockHash>>
-      m_unavailableMicroBlocks;
+  std::unordered_map<uint64_t, std::vector<BlockHash>> m_unavailableMicroBlocks;
 
   /// Sharding variables
   std::atomic<uint32_t> m_myshardId;

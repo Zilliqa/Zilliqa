@@ -117,13 +117,13 @@ bool Archival::RemoveFromFetchMicroBlockInfo(const BlockHash& microBlockHash) {
 
   lock_guard<mutex> g(m_mutexMicroBlockInfo);
 
-  auto position = find(m_fetchMicroBlockInfo.begin(), m_fetchMicroBlockInfo.end(), microBlockHash);
+  auto position = find(m_fetchMicroBlockInfo.begin(),
+                       m_fetchMicroBlockInfo.end(), microBlockHash);
   if (position != m_fetchMicroBlockInfo.end()) {
     m_fetchMicroBlockInfo.erase(position);
     return true;
   } else {
-    LOG_GENERAL(WARNING,
-                "Could not find hash " << microBlockHash);
+    LOG_GENERAL(WARNING, "Could not find hash " << microBlockHash);
     return false;
   }
 }

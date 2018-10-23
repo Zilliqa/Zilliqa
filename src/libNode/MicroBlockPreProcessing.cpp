@@ -44,10 +44,10 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/RootComputation.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -169,7 +169,8 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
   if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset) {
     LOG_GENERAL(WARNING, "Malformed Message");
     return false;
-  }  BlockHash temp_blockHash = m_microblock->GetHeader().GetMyHash();
+  }
+  BlockHash temp_blockHash = m_microblock->GetHeader().GetMyHash();
   if (temp_blockHash != m_microblock->GetBlockHash()) {
     LOG_GENERAL(WARNING,
                 "Block Hash in Newly received DS Block doesn't match. "
@@ -1143,8 +1144,7 @@ bool Node::CheckMicroBlockTxnRootHash() {
   }
 
   // Check transaction root
-  TxnHash expectedTxRootHash =
-      ComputeRoot(m_microblock->GetTranHashes());
+  TxnHash expectedTxRootHash = ComputeRoot(m_microblock->GetTranHashes());
 
   LOG_GENERAL(INFO, "Microblock root computation done "
                         << DataConversion::charArrToHexStr(

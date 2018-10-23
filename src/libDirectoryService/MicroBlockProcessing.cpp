@@ -238,8 +238,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  LOG_GENERAL(
-      INFO, "MicroBlock StateDeltaHash: " << microBlock.GetHeader().GetHashes());
+  LOG_GENERAL(INFO, "MicroBlock StateDeltaHash: "
+                        << microBlock.GetHeader().GetHashes());
 
   lock_guard<mutex> g(m_mutexMicroBlocks);
 

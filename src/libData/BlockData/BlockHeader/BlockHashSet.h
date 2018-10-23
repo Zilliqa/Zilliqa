@@ -160,9 +160,9 @@ struct hash<MicroBlockHashSet> {
 }  // namespace std
 
 struct TxBlockHashSet {
-  BlockHash m_mbRootHash;   // root hash concated from all microblock hash
-  StateHash m_stateRootHash;  // State merkle tree root hash only valid in
-                              // vacuous epoch
+  BlockHash m_mbRootHash;      // root hash concated from all microblock hash
+  StateHash m_stateRootHash;   // State merkle tree root hash only valid in
+                               // vacuous epoch
   StateHash m_stateDeltaHash;  // State Delta Hash on DS
 
   /// Implements the Serialize function inherited from Serializable.

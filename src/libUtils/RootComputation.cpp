@@ -82,9 +82,8 @@ dev::h256 ComputeRoot(const std::vector<dev::h256>& hashes) {
   return ConcatTranAndHash(hashes);
 }
 
-TxnHash ComputeRoot(
-    const std::list<Transaction>& receivedTransactions,
-    const std::list<Transaction>& submittedTransactions) {
+TxnHash ComputeRoot(const std::list<Transaction>& receivedTransactions,
+                    const std::list<Transaction>& submittedTransactions) {
   LOG_MARKER();
 
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);

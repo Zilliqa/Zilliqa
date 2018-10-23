@@ -247,11 +247,14 @@ class DirectoryService : public Executable, public Broadcastable {
   bool ProcessMissingMicroblockSubmission(
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
-  void ExtractDataFromMicroblocks(
-      BlockHash& microblockTrieRoot, std::vector<BlockHash>& microblockHashes, 
-      boost::multiprecision::uint256_t& allGasLimit, boost::multiprecision::uint256_t& allGasUsed, 
-      boost::multiprecision::uint256_t& allRewards, uint32_t& numTxs, 
-      std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
+  void ExtractDataFromMicroblocks(BlockHash& microblockTrieRoot,
+                                  std::vector<BlockHash>& microblockHashes,
+                                  boost::multiprecision::uint256_t& allGasLimit,
+                                  boost::multiprecision::uint256_t& allGasUsed,
+                                  boost::multiprecision::uint256_t& allRewards,
+                                  uint32_t& numTxs,
+                                  std::vector<bool>& isMicroBlockEmpty,
+                                  uint32_t& numMicroBlocks);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,
