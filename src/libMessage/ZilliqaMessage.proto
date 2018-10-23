@@ -22,6 +22,11 @@ message ProtoDSCommittee
     repeated ProtoDSNode dsnodes = 1;
 }
 
+message ProtoFaultyDSMembers
+{
+    repeated ProtoDSNode dsnodes = 1;
+}
+
 message ProtoCommittee
 {
     repeated ByteArray members = 1;
@@ -204,8 +209,9 @@ message ProtoVCBlock
         required ByteArray candidateleadernetworkinfo = 5;
         required ByteArray candidateleaderpubkey      = 6;
         required uint32 vccounter                     = 7;
-        required ByteArray timestamp                  = 8;
-        required bytes committeehash                  = 9;
+        repeated ProtoFaultyDSMembers faultyleaders   = 8;
+        required ByteArray timestamp                  = 9;
+        required bytes committeehash                  = 10;
     }
     message CoSignatures
     {
