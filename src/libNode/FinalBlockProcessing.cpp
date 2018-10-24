@@ -119,7 +119,6 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 }
 
 bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                           const vector<uint32_t>& shardIds,
                                            const uint64_t& blocknum,
                                            bool& toSendTxnToLookup) {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -129,12 +128,15 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   const auto& microBlockHashes = finalBlock.GetMicroBlockHashes();
   const auto& isMicroBlockEmptys = finalBlock.GetIsMicroBlockEmpty();
+  const auto& shardIds = finalBlock.GetShardIds();
 
-  if (microBlockHashes.size() != shardIds.size() ||
+  if (microBlockHashes.size() != isMicroBlockEmptys.size() ||
       shardIds.size() != isMicroBlockEmptys.size()) {
-    LOG_GENERAL(WARNING,
-                "size of hashesInMicroBlocks & microBlockShardIds & "
-                "isMicroBlockEmptys is not equal");
+    LOG_GENERAL(WARNING, "size of microBlockHashes("
+                             << microBlockHashes.size()
+                             << ") & isMicroBlockEmptys("
+                             << isMicroBlockEmptys.size() << ") & shardIds("
+                             << shardIds.size() << ") is not equal");
     return false;
   }
 
@@ -674,11 +676,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   uint32_t consensusID = 0;
   TxBlock txBlock;
   vector<unsigned char> stateDelta;
-  vector<uint32_t> shardIds;
 
   if (!Messenger::GetNodeFinalBlock(message, offset, shardId, dsBlockNumber,
-                                    consensusID, txBlock, stateDelta,
-                                    shardIds)) {
+                                    consensusID, txBlock, stateDelta)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeFinalBlock failed.");
     return false;
@@ -763,9 +763,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   if (!isVacuousEpoch) {
-    if (!LoadUnavailableMicroBlockHashes(txBlock, shardIds,
-                                         txBlock.GetHeader().GetBlockNum(),
-                                         toSendTxnToLookup)) {
+    if (!LoadUnavailableMicroBlockHashes(
+            txBlock, txBlock.GetHeader().GetBlockNum(), toSendTxnToLookup)) {
       return false;
     }
     StoreFinalBlock(txBlock);

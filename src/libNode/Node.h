@@ -36,8 +36,8 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountData/TxnPool.h"
 #include "libData/BlockData/Block.h"
-#include "libData/DataStructures/MultiIndexContainer.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
@@ -119,8 +119,7 @@ class Node : public Executable, public Broadcastable {
 
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
-  gas_txnid_comp_txns m_createdTransactions;
-
+  TxnPool m_createdTxns;
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
       m_addrNonceTxnMap;
@@ -198,7 +197,6 @@ class Node : public Executable, public Broadcastable {
       const std::vector<TransactionWithReceipt>& txns_to_send);
 
   bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                       const std::vector<uint32_t>& shardIds,
                                        const uint64_t& blocknum,
                                        bool& toSendTxnToLookup);
 
@@ -251,9 +249,6 @@ class Node : public Executable, public Broadcastable {
   bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
                                  unsigned int cur_offset, const Peer& from);
   bool ProcessForwardTransactionCore(const ForwardedTxnEntry& entry);
-  bool ProcessCreateTransactionFromLookup(
-      const std::vector<unsigned char>& message, unsigned int offset,
-      const Peer& from);
   bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
   bool ProcessTxnPacketFromLookupCore(

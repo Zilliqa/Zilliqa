@@ -95,7 +95,8 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
                     BlockHash(), 0, 151384616955606, BlockHash(), StateHash(),
                     StateHash(), 0, 5, keypair.second, 0, BlockHash(),
                     CommitteeHash()),
-      vector<bool>(1), vector<BlockHash>(5), CoSignatures());
+      vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
+      CoSignatures());
   txBlock.SetBlockHash(txBlock.GetHeader().GetMyHash());
   return txBlock;
 }
