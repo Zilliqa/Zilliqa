@@ -177,6 +177,8 @@ extern const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
 extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
 extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
 extern const unsigned int MAX_CONTRACT_DEPTH;
+extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
+extern const unsigned int NUM_CONSENSUS_SUBSETS;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

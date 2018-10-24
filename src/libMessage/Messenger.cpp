@@ -4367,9 +4367,10 @@ bool Messenger::GetConsensusCommit(
 bool Messenger::SetConsensusChallenge(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
-    const Challenge& challenge, const pair<PrivKey, PubKey>& leaderKey) {
+    const uint8_t subsetID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+    const PubKey& aggregatedKey, const Challenge& challenge,
+    const pair<PrivKey, PubKey>& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -4379,6 +4380,7 @@ bool Messenger::SetConsensusChallenge(
   result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_leaderid(leaderID);
+  result.mutable_consensusinfo()->set_subsetid(subsetID);
   SerializableToProtobufByteArray(
       aggregatedCommit,
       *result.mutable_consensusinfo()->mutable_aggregatedcommit());
@@ -4415,7 +4417,7 @@ bool Messenger::SetConsensusChallenge(
 
 bool Messenger::GetConsensusChallenge(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const uint64_t blockNumber,
+    const uint32_t consensusID, const uint64_t blockNumber, uint8_t& subsetID,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     CommitPoint& aggregatedCommit, PubKey& aggregatedKey, Challenge& challenge,
     const PubKey& leaderKey) {
@@ -4470,6 +4472,8 @@ bool Messenger::GetConsensusChallenge(
     return false;
   }
 
+  subsetID = result.consensusinfo().subsetid();
+
   ProtobufByteArrayToSerializable(result.consensusinfo().aggregatedcommit(),
                                   aggregatedCommit);
   ProtobufByteArrayToSerializable(result.consensusinfo().aggregatedkey(),
@@ -4495,8 +4499,9 @@ bool Messenger::GetConsensusChallenge(
 bool Messenger::SetConsensusResponse(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const vector<unsigned char>& blockHash, const uint16_t backupID,
-    const Response& response, const pair<PrivKey, PubKey>& backupKey) {
+    const uint8_t subsetID, const vector<unsigned char>& blockHash,
+    const uint16_t backupID, const Response& response,
+    const pair<PrivKey, PubKey>& backupKey) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -4506,6 +4511,7 @@ bool Messenger::SetConsensusResponse(
   result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_backupid(backupID);
+  result.mutable_consensusinfo()->set_subsetid(subsetID);
   SerializableToProtobufByteArray(
       response, *result.mutable_consensusinfo()->mutable_response());
 
@@ -4539,7 +4545,8 @@ bool Messenger::GetConsensusResponse(
     const vector<unsigned char>& src, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, uint16_t& backupID,
-    Response& response, const deque<pair<PubKey, Peer>>& committeeKeys) {
+    uint8_t& subsetID, Response& response,
+    const deque<pair<PubKey, Peer>>& committeeKeys) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -4592,6 +4599,8 @@ bool Messenger::GetConsensusResponse(
                              << " Shard size: " << committeeKeys.size());
     return false;
   }
+
+  subsetID = result.consensusinfo().subsetid();
 
   ProtobufByteArrayToSerializable(result.consensusinfo().response(), response);
 
