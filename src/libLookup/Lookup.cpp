@@ -1444,15 +1444,27 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
       }
 
       if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
-        m_mediator.m_blocklinkchain.m_builtDsCommittee =
-            *m_mediator.m_DSCommittee;
         lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
         LOG_GENERAL(INFO, "[DSINFOVERIF]"
                               << "Recvd initial ds config");
-        m_mediator.m_initialDSCommittee->clear();
-        for (const auto& dsCommKey : dsNodes) {
-          m_mediator.m_initialDSCommittee->push_back(dsCommKey.first);
+        if (dsNodes.size() != m_mediator.m_initialDSCommittee->size()) {
+          LOG_GENERAL(WARNING,
+                      "The initial ds comm recvd and from file differs "
+                          << dsNodes.size() << " "
+                          << m_mediator.m_initialDSCommittee->size());
         }
+        unsigned int i = 0;
+        for (const auto& dsCommKey : dsNodes) {
+          if (!(m_mediator.m_initialDSCommittee->at(i) == dsCommKey.first)) {
+            LOG_GENERAL(WARNING,
+                        "The key from ds comm recvd and from file differs "
+                            << dsCommKey.first << " "
+                            << m_mediator.m_initialDSCommittee->at(i));
+          }
+          i++;
+        }
+
+        m_mediator.m_blocklinkchain.m_builtDsCommittee = dsNodes;
       }
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -2757,7 +2769,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   {
     if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() == 0) {
       LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
-      GetDSInfoFromLookupNodes(true);
       return true;
     }
 

@@ -38,6 +38,35 @@ const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP = 1;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_LEADER = 2;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_LOOKUP = 3;
 
+namespace {
+struct PTree {
+  static boost::property_tree::ptree& GetInstance() {
+    static boost::property_tree::ptree pt;
+    read_xml("dsnodes.xml", pt);
+
+    return pt;
+  }
+  PTree() = delete;
+  ~PTree() = delete;
+};
+
+const vector<string> ReadDSCommFromFile() {
+  auto pt = PTree::GetInstance();
+  std::vector<std::string> result;
+  for (auto& pubk : pt.get_child("dsnodes")) {
+    if (pubk.first == "pubk") {
+      result.emplace_back(pubk.second.data());
+    }
+  }
+  return result;
+}
+
+const string ReadDSCommFile(string propName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<string>(propName);
+}
+}  // namespace
+
 UpgradeManager::UpgradeManager() {
   curl_global_init(CURL_GLOBAL_DEFAULT);
   m_curl = curl_easy_init();
@@ -410,40 +439,12 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
   return raise(SIGKILL) == 0;
 }
 
-namespace {
-struct PTree {
-  static boost::property_tree::ptree& GetInstance() {
-    static boost::property_tree::ptree pt;
-    read_xml("dsnodes.xml", pt);
-
-    return pt;
-  }
-  PTree() = delete;
-  ~PTree() = delete;
-};
-
-const vector<string> ReadDSCommFromFile() {
-  auto pt = PTree::GetInstance();
-  std::vector<std::string> result;
-  for (auto& pubk : pt.get_child("dsnodes")) {
-    if (pubk.first == "pubk") {
-      result.emplace_back(pubk.second.data());
-    }
-  }
-  return result;
-}
-
-const string ReadDSCommFile(string propName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<string>(propName);
-}
-}  // namespace
-
 bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
-  string downloadUrl = "";
+  string downloadUrl =
+      "https://api.github.com/repos/KaustubhShamshery/abcdef/releases/latest";
   try {
     if (GET_INITIAL_DS_FROM_REPO) {
-      UpgradeManager::GetInstance().DownloadFile("xml", downloadUrl.c_str());
+      DownloadFile("xml", downloadUrl.c_str());
 
       auto pt = PTree::GetInstance();
 

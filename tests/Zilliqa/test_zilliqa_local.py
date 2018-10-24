@@ -161,9 +161,9 @@ def run_prestart(numdsnodes):
 	dsTree.write("dsnodes.xml")
 	dsnodes.clear()
 
-	# Create config.xml with pubkey and IP info of all DS nodes
+	# Create config_normal.xml with pubkey and IP info of all DS nodes
 	tree = ET.ElementTree(nodes)
-	tree.write("config.xml")
+	tree.write("config_normal.xml")
 
 	# Clear the element tree 
 	nodes.clear()
@@ -221,7 +221,7 @@ def run_start(numdsnodes):
 		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
 
 		if (x < numdsnodes):
-			shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
+			shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 0 1 > ./error_log_zilliqa 2>&1 &')
 		else:
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 1 > ./error_log_zilliqa 2>&1 &')

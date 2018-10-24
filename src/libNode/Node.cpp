@@ -48,7 +48,6 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -240,17 +239,17 @@ void Node::Init() {
   // m_committedTransactions.clear();
   AccountStore::GetInstance().Init();
 
+  m_mediator.m_blocklinkchain.m_builtDsCommittee.clear();
   {
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
-    if (!UpgradeManager::GetInstance().LoadInitialDS(
-            *m_mediator.m_initialDSCommittee)) {
-      LOG_GENERAL(WARNING, "Unable to load initial DS comm");
-    }
-    m_mediator.m_blocklinkchain.m_builtDsCommittee.clear();
-
-    for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
-      m_mediator.m_blocklinkchain.m_builtDsCommittee.push_back(
-          make_pair(initDSCommKey, Peer()));
+    if (m_mediator.m_initialDSCommittee->size() != 0) {
+      for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
+        m_mediator.m_blocklinkchain.m_builtDsCommittee.push_back(
+            make_pair(initDSCommKey, Peer()));
+        // Set initial ds committee with null peer
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Initial DS comm size 0 ");
     }
   }
 
@@ -355,7 +354,7 @@ void Node::StartSynchronization() {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
       return;
     }
-    m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
+    // m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);

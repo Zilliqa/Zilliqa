@@ -93,6 +93,35 @@ def run_setup(numnodes, printnodes):
 		for x in range(0, count):
 			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
 
+
+	keypairs = []
+	# Generate keypairs (sort by public key)
+	for x in range(0, count):
+		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
+		(output, err) = process.communicate()
+		exit_code = process.wait()
+		keypairs.append(output)
+	keypairs.sort()
+
+	patch_lookup_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
+	nodes = ET.Element("nodes")
+
+	# Store sorted keys list in text file
+	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
+	for x in range(0, count):
+		keys_file.write(keypairs[x] + '\n')
+		keypair = keypairs[x].split(" ")
+		if (x < count):
+			peer = ET.SubElement(nodes, "peer")
+			ET.SubElement(peer, "pubk").text = keypair[0]
+			ET.SubElement(peer, "ip").text = '127.0.0.1'
+			ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
+	keys_file.close()
+
+	# Create config_lookup.xml with pubkey and IP info of all DS nodes
+	tree = ET.ElementTree(nodes)
+	tree.write("config_lookup.xml")
+
 def patch_constants_xml(filepath, read_txn=False):
         root = ET.parse(filepath).getroot()
 
@@ -138,40 +167,16 @@ def patch_lookup_pubkey(filepath, keypairs, count):
 def run_start():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
+
+	# Load the keypairs
 	keypairs = []
+	with open(LOCAL_RUN_FOLDER + 'keys.txt') as f:
+		keypairs = f.readlines()
+	keypairs = [x.strip() for x in keypairs]
 
-	# Generate keypairs (sort by public key)
+
 	for x in range(0, count):
-		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
-		(output, err) = process.communicate()
-		exit_code = process.wait()
-		keypairs.append(output)
-	keypairs.sort()
-
-	patch_lookup_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
-	nodes = ET.Element("nodes")
-
-	# Store sorted keys list in text file
-	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
-	for x in range(0, count):
-		keys_file.write(keypairs[x] + '\n')
-		keypair = keypairs[x].split(" ")
-		if (x < count):
-			peer = ET.SubElement(nodes, "peer")
-			ET.SubElement(peer, "pubk").text = keypair[0]
-			ET.SubElement(peer, "ip").text = '127.0.0.1'
-			ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
-	keys_file.close()
-
-	# Create config.xml with pubkey and IP info of all DS nodes
-	tree = ET.ElementTree(nodes)
-	tree.write("config.xml")
-
-	# Store sorted keys list in text file
-	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
-	for x in range(0, count):
-		keys_file.write(keypairs[x] + '\n')
-		shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
+		shutil.copyfile('config_lookup.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 		shutil.copyfile('dsnodes.xml',LOCAL_RUN_FOLDER+testfolders_list[x]+'/dsnodes.xml')
 		# FIXME: every lookup node has the option USE_REMOTE_TXN_CREATOR set to true, which seemingly
@@ -180,8 +185,6 @@ def run_start():
 		# will be only one as there is an unknown issue that multiple lookup nodes are having port collision
 		# on 4201 and eventually only one will get the port and others won't be able to start jsonrpc server
 		patch_constants_xml(LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml', True)
-
-	keys_file.close()
 
 	# Launch node zilliqa process
 	for x in range(0, count):
