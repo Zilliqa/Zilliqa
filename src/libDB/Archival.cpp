@@ -39,7 +39,7 @@ void Archival::InitSync() {
     uint64_t dsBlockNum = 0;
     uint64_t txBlockNum = 0;
 
-    m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
+    // m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
     while (true) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
         dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();

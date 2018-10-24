@@ -40,7 +40,6 @@ class Synchronizer {
   bool InitializeGenesisBlocks(DSBlockChain& dsBlockChain,
                                TxBlockChain& txBlockChain);
 
-  bool FetchInitialDSInfo(Lookup* lookup);
   bool FetchDSInfo(Lookup* lookup);
   bool FetchLatestDSBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
   bool FetchLatestTxBlocks(Lookup* lookup, uint64_t currentBlockChainSize);
