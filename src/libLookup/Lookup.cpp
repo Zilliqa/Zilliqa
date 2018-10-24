@@ -479,14 +479,14 @@ vector<Peer> Lookup::GetNodePeers() {
 }
 
 bool Lookup::ProcessEntireShardingStructure() {
+  LOG_MARKER();
+
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessEntireShardingStructure not expected to be "
                 "called from other than the LookUp node.");
     return true;
   }
-
-  LOG_MARKER();
 
   LOG_GENERAL(INFO, "[LOOKUP received sharding structure]");
 
@@ -496,9 +496,14 @@ bool Lookup::ProcessEntireShardingStructure() {
 
   m_nodesInNetwork.clear();
   unordered_set<Peer> t_nodesInNetwork;
+  unsigned int totalNodeCount = 0;
 
   for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size(); i++) {
     unsigned int index = 0;
+
+    totalNodeCount += m_mediator.m_ds->m_shards.at(i).size();
+    LOG_STATE("[SHARD " << to_string(i) << "] Num nodes = "
+                        << m_mediator.m_ds->m_shards.at(i).size());
 
     for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
       const PubKey& key = std::get<SHARD_NODE_PUBKEY>(shardNode);
@@ -518,6 +523,8 @@ bool Lookup::ProcessEntireShardingStructure() {
       index++;
     }
   }
+
+  LOG_STATE("[SHARDS] Total num nodes = " << totalNodeCount);
 
   for (auto& peer : t_nodesInNetwork) {
     if (!l_nodesInNetwork.erase(peer)) {
