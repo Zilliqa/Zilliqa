@@ -177,7 +177,7 @@ class ConsensusCommon {
                      uint16_t peer_id);
 
   /// Aggregates public keys according to the response map.
-  PubKey AggregateKeys(const std::vector<bool> peer_map);
+  PubKey AggregateKeys(const std::vector<bool>& peer_map);
 
   /// Aggregates the list of received commits.
   CommitPoint AggregateCommits(const std::vector<CommitPoint>& commits);

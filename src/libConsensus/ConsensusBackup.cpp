@@ -48,6 +48,7 @@ bool ConsensusBackup::CheckState(Action action) {
                                       // get ignored by the node)
        {FINALCOMMIT_DONE, PROCESS_FINALCHALLENGE},
        {FINALCOMMIT_DONE, PROCESS_FINALCOLLECTIVESIG},
+       {FINALRESPONSE_DONE, PROCESS_FINALCHALLENGE},
        {FINALRESPONSE_DONE, PROCESS_FINALCOLLECTIVESIG}};
 
   bool found = false;
@@ -131,7 +132,6 @@ bool ConsensusBackup::ProcessMessageAnnounce(
     // Update internal state
     // =====================
     m_state = COMMIT_DONE;
-    cv_announcementBlock.notify_all();
 
     // Unicast to the leader
     // =====================
@@ -207,11 +207,12 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 
   CommitPoint aggregated_commit;
   PubKey aggregated_key;
+  uint8_t subsetID = 0;
 
   if (!Messenger::GetConsensusChallenge(
-          challenge, offset, m_consensusID, m_blockNumber, m_blockHash,
-          m_leaderID, aggregated_commit, aggregated_key, m_challenge,
-          m_committee.at(m_leaderID).first)) {
+          challenge, offset, m_consensusID, m_blockNumber, subsetID,
+          m_blockHash, m_leaderID, aggregated_commit, aggregated_key,
+          m_challenge, m_committee.at(m_leaderID).first)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusChallenge failed.");
     return false;
   }
@@ -252,7 +253,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   vector<unsigned char> response = {m_classByte, m_insByte,
                                     static_cast<unsigned char>(returnmsgtype)};
   bool result = GenerateResponseMessage(
-      response, MessageOffset::BODY + sizeof(unsigned char));
+      response, MessageOffset::BODY + sizeof(unsigned char), subsetID);
   if (result) {
     // Update internal state
     // =====================
@@ -277,7 +278,8 @@ bool ConsensusBackup::ProcessMessageChallenge(
 }
 
 bool ConsensusBackup::GenerateResponseMessage(vector<unsigned char>& response,
-                                              unsigned int offset) {
+                                              unsigned int offset,
+                                              uint8_t subsetID) {
   LOG_MARKER();
 
   // Assemble response message body
@@ -286,8 +288,8 @@ bool ConsensusBackup::GenerateResponseMessage(vector<unsigned char>& response,
   Response r(*m_commitSecret, m_challenge, m_myPrivKey);
 
   if (!Messenger::SetConsensusResponse(
-          response, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
-          r, make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
+          response, offset, m_consensusID, m_blockNumber, subsetID, m_blockHash,
+          m_myID, r, make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusResponse failed.");
     return false;
   }
@@ -385,7 +387,6 @@ bool ConsensusBackup::ProcessMessageCollectiveSig(
   LOG_MARKER();
   bool collectiveSigResult = ProcessMessageCollectiveSigCore(
       collectivesig, offset, PROCESS_COLLECTIVESIG, FINALCOMMIT_DONE);
-  cv_cosig1Block.notify_all();
   return collectiveSigResult;
 }
 
