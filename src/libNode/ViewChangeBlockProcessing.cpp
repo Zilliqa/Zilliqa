@@ -234,16 +234,31 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
-  {
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    for (unsigned int x = 0; x < newCandidateLeader; x++) {
-      // TODO: If VC select a random
-      // leader, we need to change the way
-      // we update ds composition.
-      UpdateDSCommiteeCompositionAfterVC(*m_mediator.m_DSCommittee);
-    }
-  }
+  // {
+  //   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+  //   for (unsigned int x = 0; x < newCandidateLeader; x++) {
+  //     // TODO: If VC select a random
+  //     // leader, we need to change the way
+  //     // we update ds composition.
+  //     UpdateDSCommiteeCompositionAfterVC(*m_mediator.m_DSCommittee);
+  //   }
+  // }
 
+  for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
+    deque<pair<PubKey, Peer>>::iterator it =
+        find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
+             faultyLeader);
+
+    // Remove faulty leader from the current
+    if (it != m_mediator.m_DSCommittee->end()) {
+      m_mediator.m_DSCommittee->erase(it);
+    } else {
+      LOG_GENERAL(WARNING, "Cannot find the ds leader to eject");
+      // TODO: Handle this situation. This siutation shouldn't be
+      // encountered at all
+    }
+    m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+  }
   return true;
 }
 
