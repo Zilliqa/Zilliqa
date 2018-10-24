@@ -33,7 +33,6 @@
 /// Stores the DS header and signature.
 class DSBlock : public BlockBase {
   DSBlockHeader m_header;
-  BlockHash m_blockHash;
 
  public:
   /// Default constructor.
@@ -45,6 +44,7 @@ class DSBlock : public BlockBase {
 
   /// Constructor with specified DS block parameters.
   DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs);
+  DSBlock(const DSBlockHeader& header);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
@@ -63,12 +63,6 @@ class DSBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const DSBlock& block) const;
-
-  /// Returns the block hash
-  const BlockHash& GetBlockHash() const;
-
-  /// Set the block hash
-  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __DSBLOCK_H__
