@@ -99,14 +99,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     viewChangeState = m_pendingVCBlock->GetHeader().GetViewChangeState();
   }
 
-  // StoreVCBlockToStorage(); TODO
-
+  uint32_t newLeaderIndex =
+      m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex();
   Peer expectedLeader;
-  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer()) {
+  if (m_mediator.m_DSCommittee->at(newLeaderIndex).second == Peer()) {
     // I am 0.0.0.0
     expectedLeader = m_mediator.m_selfPeer;
   } else {
-    expectedLeader = m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
+    expectedLeader = m_mediator.m_DSCommittee->at(newLeaderIndex).second;
   }
 
   if (expectedLeader == newLeaderNetworkInfo) {
@@ -120,6 +120,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       m_mode = BACKUP_DS;
     }
 
+    // TODO: Update this description
     // Kick ousted leader and/or faulty candidate leader to the back of the
     // queue, waiting to be eject at the next ds epoch Suppose X1 - X3 are
     // faulty ds nodes [X1][X2][X3][N1][N2] View change happen 3 times The view
@@ -136,64 +137,102 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     // (original)
     //                    = 5 - 1 - 2 = 4
 
-    bool isCurrentNodeFaulty = false;
+    // bool isCurrentNodeFaulty = false;
     {
       lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
 
-      for (unsigned int faultyLeaderIndex = 0;
-           faultyLeaderIndex < m_viewChangeCounter; faultyLeaderIndex++) {
-        LOG_GENERAL(INFO,
-                    "Ejecting " << m_mediator.m_DSCommittee->front().second);
+      // for (unsigned int faultyLeaderIndex = 0;
+      //      faultyLeaderIndex < m_viewChangeCounter; faultyLeaderIndex++) {
+      //   LOG_GENERAL(INFO,
+      //               "Ejecting " << m_mediator.m_DSCommittee->front().second);
 
-        // Adjust ds commiteee
-        // Push the faulty leader to the back of the deque
-        m_mediator.m_DSCommittee->push_back(
-            m_mediator.m_DSCommittee->at(m_consensusLeaderID));
-        m_mediator.m_DSCommittee->erase(m_mediator.m_DSCommittee->begin() +
-                                        (m_consensusLeaderID - 1));
+      //   // Adjust ds commiteee
+      //   // Push the faulty leader to the back of the deque
+      //   m_mediator.m_DSCommittee->push_back(
+      //       m_mediator.m_DSCommittee->at(m_consensusLeaderID));
+      //   m_mediator.m_DSCommittee->erase(m_mediator.m_DSCommittee->begin() +
+      //                                   (m_consensusLeaderID - 1));
 
-        // Old implementation. To be removed.
-        // m_mediator.m_DSCommittee->push_back(m_mediator.m_DSCommittee->front());
-        // m_mediator.m_DSCommittee->pop_front();
+      //   // Old implementation. To be removed.
+      //   //
+      //   m_mediator.m_DSCommittee->push_back(m_mediator.m_DSCommittee->front());
+      //   // m_mediator.m_DSCommittee->pop_front();
 
-        // Adjust faulty DS leader and/or faulty ds candidate leader
-        if (m_consensusMyID == faultyLeaderIndex) {
-          if (m_consensusMyID == 0) {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Current node is a faulty DS leader and got ousted "
-                      "by the DS "
-                      "Committee");
-          } else {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Current node is a faulty DS candidate leader and "
-                      "got ousted by the DS "
-                      "Committee");
-          }
+      //   // Adjust faulty DS leader and/or faulty ds candidate leader
+      //   if (m_consensusMyID == faultyLeaderIndex) {
+      //     if (m_consensusMyID == 0) {
+      //       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      //                 "Current node is a faulty DS leader and got ousted "
+      //                 "by the DS "
+      //                 "Committee");
+      //     } else {
+      //       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      //                 "Current node is a faulty DS candidate leader and "
+      //                 "got ousted by the DS "
+      //                 "Committee");
+      //     }
 
-          // calculate (new) my consensus id for faulty ds nodes.
-          // Good ds nodes adjustment have already been done previously.
-          // m_consensusMyID = last index - num of time vc occur + faulty index
-          // Need to add +1 at the end as vc counter begin at 1.
-          m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1) -
-                            m_viewChangeCounter + faultyLeaderIndex + 1;
-          isCurrentNodeFaulty = true;
-          LOG_GENERAL(INFO, "New m_consensusMyID  is "
-                                << m_consensusMyID
-                                << ". New m_consensusLeaderID is "
-                                << m_consensusLeaderID);
+      //     // calculate (new) my consensus id for faulty ds nodes.
+      //     // Good ds nodes adjustment have already been done previously.
+      //     // m_consensusMyID = last index - num of time vc occur + faulty
+      //     index
+      //     // Need to add +1 at the end as vc counter begin at 1.
+      //     m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1) -
+      //                       m_viewChangeCounter + faultyLeaderIndex + 1;
+      //     isCurrentNodeFaulty = true;
+      //     LOG_GENERAL(INFO, "New m_consensusMyID  is "
+      //                           << m_consensusMyID
+      //                           << ". New m_consensusLeaderID is "
+      //                           << m_consensusLeaderID);
+      //   }
+
+      // Pushing faulty leader to back of the deque
+      for (const auto& faultyLeader :
+           m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
+        deque<pair<PubKey, Peer>>::iterator it =
+            find(m_mediator.m_DSCommittee->begin(),
+                 m_mediator.m_DSCommittee->end(), faultyLeader);
+
+        // Remove faulty leader from the current
+        if (it != m_mediator.m_DSCommittee->end()) {
+          m_mediator.m_DSCommittee->erase(it);
+        } else {
+          LOG_GENERAL(WARNING, "Cannot find the ds leader to eject");
+          // TODO: Handle this situation. This siutation shouldn't be
+          // encountered at all
         }
+        m_mediator.m_DSCommittee->emplace_back(faultyLeader);
       }
 
-      // Faulty node already adjusted. Hence, only adjust current node here if
-      // it is not faultu.
-      if (!isCurrentNodeFaulty) {
-        LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
-        m_consensusMyID -= m_viewChangeCounter;
-        LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
+      // Re-calculate the new m_consensusMyID
+      pair<PubKey, Peer> selfPubKPeerPair =
+          make_pair(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
+
+      deque<pair<PubKey, Peer>>::iterator it2 =
+          find(m_mediator.m_DSCommittee->begin(),
+               m_mediator.m_DSCommittee->end(), selfPubKPeerPair);
+
+      if (it2 != m_mediator.m_DSCommittee->end()) {
+        m_consensusMyID = distance(m_mediator.m_DSCommittee->begin(), it2);
+      } else {
+        LOG_GENERAL(WARNING, "Cannot find myself in the ds committee");
+        // TODO: Handle this situation. This siutation shouldn't be
+        // encountered at all
       }
     }
+    // Faulty node already adjusted. Hence, only adjust current node here if
+    // it is not faulty.
+    // if (!isCurrentNodeFaulty) {
+    //   LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
+    //   m_consensusMyID -= m_viewChangeCounter;
+    //   LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
+    // }
+    // }
+    // m_consensusLeaderID =
+    //     0;  // Hotfix. https://github.com/Zilliqa/Issues/issues/212
+
     m_consensusLeaderID =
-        0;  // Hotfix. https://github.com/Zilliqa/Issues/issues/212
+        m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex();
 
     LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
     LOG_GENERAL(INFO, "New view of ds committee: ");
@@ -226,9 +265,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
                   << "expectedLeader: " << expectedLeader
                   << "newLeaderNetworkInfo: " << newLeaderNetworkInfo);
   }
-
-  // TODO: Refine this
-  // Broadcasting vcblock to lookup nodes
 
   // Store to blockLink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
