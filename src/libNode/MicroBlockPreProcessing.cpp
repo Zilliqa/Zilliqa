@@ -298,33 +298,8 @@ void Node::ProcessTransactionWhenShardLeader() {
     return false;
   };
 
-  auto findSameNonceButHigherGasPrice = [this](Transaction& t) -> void {
-    auto& compIdx = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-    auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
-    if (it != compIdx.end()) {
-      if (it->GetGasPrice() > t.GetGasPrice()) {
-        t = std::move(*it);
-        compIdx.erase(it);
-      }
-    }
-  };
-
-  auto findOneFromCreated = [this](Transaction& t) -> bool {
-    auto& listIdx = m_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-
-    // LOG_GENERAL(INFO, "Size List Idx " << listIdx.size());
-    if (listIdx.size() == 0) {
-      return false;
-    }
-
-    auto it = listIdx.begin();
-    t = std::move(*it);
-    listIdx.erase(it);
-    return true;
-  };
-
   auto appendOne = [this](const Transaction& t, const TransactionReceipt& tr) {
-    // LOG_GENERAL(INFO, "appendOne: " << t.GetTranID().hex());
+    LOG_MARKER();
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     auto& processedTransactions =
         m_processedTransactions[m_mediator.m_currentEpochNum];
@@ -343,7 +318,7 @@ void Node::ProcessTransactionWhenShardLeader() {
       // check whether m_createdTransaction have transaction with same Addr and
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
-      findSameNonceButHigherGasPrice(t);
+      m_createdTxns.findSameNonceButHigherGas(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
@@ -367,7 +342,7 @@ void Node::ProcessTransactionWhenShardLeader() {
       }
     }
     // if no txn in u_map meet right nonce process new come-in transactions
-    else if (findOneFromCreated(t)) {
+    else if (m_createdTxns.findOne(t)) {
       // LOG_GENERAL(INFO, "findOneFromCreated");
 
       Address senderAddr = t.GetSenderAddr();
@@ -437,24 +412,8 @@ bool Node::ProcessTransactionWhenShardBackup(
 
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-  auto findFromCreated = [this](const TxnHash& th) -> bool {
-    auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
-    if (!hashIdx.size()) {
-      return false;
-    }
-
-    auto it = hashIdx.find(th);
-
-    if (hashIdx.end() == it) {
-      LOG_GENERAL(WARNING, "txn is not found");
-      return false;
-    }
-
-    return true;
-  };
-
   for (const auto& tranHash : tranHashes) {
-    if (!findFromCreated(tranHash)) {
+    if (!m_createdTxns.exist(tranHash)) {
       missingtranHashes.emplace_back(tranHash);
     }
   }
@@ -469,10 +428,10 @@ bool Node::ProcessTransactionWhenShardBackup(
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   LOG_MARKER();
 
+  TxnPool t_createdTxns = m_createdTxns;
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
       t_addrNonceTxnMap = m_addrNonceTxnMap;
-  gas_txnid_comp_txns t_createdTransactions = m_createdTransactions;
   vector<TxnHash> t_tranHashes;
   std::unordered_map<TxnHash, TransactionWithReceipt> t_processedTransactions;
 
@@ -492,30 +451,6 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       }
     }
     return false;
-  };
-
-  auto findSameNonceButHigherGasPrice =
-      [&t_createdTransactions](Transaction& t) -> void {
-    auto& compIdx = t_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-    auto it = compIdx.find(make_tuple(t.GetSenderPubKey(), t.GetNonce()));
-    if (it != compIdx.end()) {
-      if (it->GetGasPrice() > t.GetGasPrice()) {
-        t = std::move(*it);
-        compIdx.erase(it);
-      }
-    }
-  };
-
-  auto findOneFromCreated = [&t_createdTransactions](Transaction& t) -> bool {
-    auto& listIdx = t_createdTransactions.get<MULTI_INDEX_KEY::GAS_PRICE>();
-    if (!listIdx.size()) {
-      return false;
-    }
-
-    auto it = listIdx.begin();
-    t = std::move(*it);
-    listIdx.erase(it);
-    return true;
   };
 
   auto appendOne = [&t_tranHashes, &t_processedTransactions](
@@ -538,7 +473,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       // check whether m_createdTransaction have transaction with same Addr and
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
-      findSameNonceButHigherGasPrice(t);
+      t_createdTxns.findSameNonceButHigherGas(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
@@ -561,7 +496,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       }
     }
     // if no txn in u_map meet right nonce process new come-in transactions
-    else if (findOneFromCreated(t)) {
+    else if (t_createdTxns.findOne(t)) {
       Address senderAddr = t.GetSenderAddr();
       // check nonce, if nonce larger than expected, put it into
       // t_addrNonceTxnMap
@@ -611,7 +546,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
   if (t_tranHashes == tranHashes) {
     m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
-    m_createdTransactions = std::move(t_createdTransactions);
+    m_createdTxns = std::move(t_createdTxns);
 
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     m_processedTransactions[m_mediator.m_currentEpochNum] =

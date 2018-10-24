@@ -171,7 +171,8 @@ message ProtoTxBlock
     required TxBlockHeader header               = 1;
     repeated bool ismicroblockempty             = 2 [packed=true];
     repeated bytes mbhashes                     = 3;
-    required ProtoBlockBase blockbase           = 4;
+    repeated uint32 shardids                    = 4;
+    required ProtoBlockBase blockbase           = 5;
 }
 
 message ProtoVCBlock

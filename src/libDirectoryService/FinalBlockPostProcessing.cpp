@@ -92,12 +92,9 @@ bool DirectoryService::SendFinalBlockToLookupNodes() {
   vector<unsigned char> stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-  // Send empty shardIds to lookup as it's not needed
-  vector<uint32_t> shardIds;
-
   if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY, 0,
                                     dsBlockNumber, m_mediator.m_consensusID,
-                                    *m_finalBlock, stateDelta, shardIds)) {
+                                    *m_finalBlock, stateDelta)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetNodeFinalBlock failed.");
     return false;
@@ -139,14 +136,9 @@ void DirectoryService::SendFinalBlockToShardNodes(
     vector<unsigned char> finalblock_message = {
         MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
-    vector<uint32_t> shardIds;
-    for (const auto& mb : m_microBlocks[m_mediator.m_currentEpochNum]) {
-      shardIds.emplace_back(mb.GetHeader().GetShardId());
-    }
-
     if (!Messenger::SetNodeFinalBlock(
             finalblock_message, MessageOffset::BODY, shardId, dsBlockNumber,
-            m_mediator.m_consensusID, *m_finalBlock, stateDelta, shardIds)) {
+            m_mediator.m_consensusID, *m_finalBlock, stateDelta)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetNodeFinalBlock failed.");
       return;

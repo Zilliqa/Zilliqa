@@ -208,15 +208,13 @@ class Messenger {
                                 const uint64_t dsBlockNumber,
                                 const uint32_t consensusID,
                                 const TxBlock& txBlock,
-                                const std::vector<unsigned char>& stateDelta,
-                                const std::vector<uint32_t>& shardIds);
+                                const std::vector<unsigned char>& stateDelta);
 
   static bool GetNodeFinalBlock(const std::vector<unsigned char>& src,
                                 const unsigned int offset, uint32_t& shardId,
                                 uint64_t& dsBlockNumber, uint32_t& consensusID,
                                 TxBlock& txBlock,
-                                std::vector<unsigned char>& stateDelta,
-                                std::vector<uint32_t>& shardIds);
+                                std::vector<unsigned char>& stateDelta);
 
   static bool SetNodeVCBlock(std::vector<unsigned char>& dst,
                              const unsigned int offset, const VCBlock& vcBlock);

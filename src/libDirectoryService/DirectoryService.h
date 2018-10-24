@@ -249,6 +249,7 @@ class DirectoryService : public Executable, public Broadcastable {
       const std::vector<unsigned char>& stateDelta);
   void ExtractDataFromMicroblocks(BlockHash& microblockTrieRoot,
                                   std::vector<BlockHash>& microblockHashes,
+                                  std::vector<uint32_t>& shardIds,
                                   boost::multiprecision::uint256_t& allGasLimit,
                                   boost::multiprecision::uint256_t& allGasUsed,
                                   boost::multiprecision::uint256_t& allRewards,

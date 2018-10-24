@@ -166,8 +166,8 @@ void BlockBaseToProtobuf(const BlockBase& base,
   }
 }
 
-void ProtobufToBlockBase(BlockBase& base,
-                         const ProtoBlockBase& protoBlockBase) {
+void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
+                         BlockBase& base) {
   // Deserialize cosigs
   CoSignatures cosigs;
   cosigs.m_B1.resize(protoBlockBase.cosigs().b1().size());
@@ -519,7 +519,7 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoDSBlock.blockbase();
 
-  ProtobufToBlockBase(dsBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, dsBlock);
 }
 
 void MicroBlockHeaderToProtobuf(
@@ -678,7 +678,7 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoMicroBlock.blockbase();
 
-  ProtobufToBlockBase(microBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, microBlock);
 }
 
 void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
@@ -736,6 +736,10 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
 
   for (const auto& hash : txBlock.GetMicroBlockHashes()) {
     protoTxBlock.add_mbhashes(hash.data(), hash.size);
+  }
+
+  for (const auto& i : txBlock.GetShardIds()) {
+    protoTxBlock.add_shardids(i);
   }
 
   ZilliqaMessage::ProtoBlockBase* protoBlockBase =
@@ -826,6 +830,7 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
 
   vector<bool> isMicroBlockEmpty;
   vector<BlockHash> microBlockHashes;
+  vector<uint32_t> shardIds;
 
   for (const auto& i : protoTxBlock.ismicroblockempty()) {
     isMicroBlockEmpty.emplace_back(i);
@@ -839,12 +844,16 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
          microBlockHashes.back().asArray().begin());
   }
 
-  txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes);
+  for (const auto& i : protoTxBlock.shardids()) {
+    shardIds.emplace_back(i);
+  }
+
+  txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds);
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
 
-  ProtobufToBlockBase(txBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, txBlock);
 }
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
@@ -932,7 +941,7 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoVCBlock.blockbase();
 
-  ProtobufToBlockBase(vcBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, vcBlock);
 }
 
 void FallbackBlockHeaderToProtobuf(
@@ -1034,7 +1043,7 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoFallbackBlock.blockbase();
 
-  ProtobufToBlockBase(fallbackBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, fallbackBlock);
 }
 
 bool SetConsensusAnnouncementCore(
@@ -1256,7 +1265,8 @@ bool GetConsensusAnnouncementCore(
   ProtobufByteArrayToSerializable(announcement.signature(), signature);
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey)) {
-    LOG_GENERAL(WARNING, "Invalid signature in announcement.");
+    LOG_GENERAL(WARNING, "Invalid signature in announcement. leaderID = "
+                             << leaderID << " leaderKey = " << leaderKey);
     return false;
   }
 
@@ -2201,11 +2211,13 @@ bool Messenger::GetNodeVCDSBlocksMessage(
   return true;
 }
 
-bool Messenger::SetNodeFinalBlock(
-    vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t shardId, const uint64_t dsBlockNumber,
-    const uint32_t consensusID, const TxBlock& txBlock,
-    const vector<unsigned char>& stateDelta, const vector<uint32_t>& shardIds) {
+bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
+                                  const unsigned int offset,
+                                  const uint32_t shardId,
+                                  const uint64_t dsBlockNumber,
+                                  const uint32_t consensusID,
+                                  const TxBlock& txBlock,
+                                  const vector<unsigned char>& stateDelta) {
   LOG_MARKER();
 
   NodeFinalBlock result;
@@ -2215,10 +2227,6 @@ bool Messenger::SetNodeFinalBlock(
   result.set_consensusid(consensusID);
   TxBlockToProtobuf(txBlock, *result.mutable_txblock());
   result.set_statedelta(stateDelta.data(), stateDelta.size());
-
-  for (const auto& i : shardIds) {
-    result.add_shardids(i);
-  }
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeFinalBlock initialization failed.");
@@ -2232,8 +2240,7 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
                                   const unsigned int offset, uint32_t& shardId,
                                   uint64_t& dsBlockNumber,
                                   uint32_t& consensusID, TxBlock& txBlock,
-                                  vector<unsigned char>& stateDelta,
-                                  vector<uint32_t>& shardIds) {
+                                  vector<unsigned char>& stateDelta) {
   LOG_MARKER();
 
   NodeFinalBlock result;
@@ -2252,9 +2259,6 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
   stateDelta.resize(result.statedelta().size());
   copy(result.statedelta().begin(), result.statedelta().end(),
        stateDelta.begin());
-  for (const auto& i : result.shardids()) {
-    shardIds.emplace_back(i);
-  }
 
   return true;
 }
@@ -3871,11 +3875,6 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
     MicroBlockToProtobuf(mb, *result.add_microblocks());
   }
 
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetMicroBlockFromLookup initialization failed");
-    return false;
-  }
-
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.microblocks().size() > 0) {
@@ -3893,6 +3892,11 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetMicroBlockFromLookup initialization failed");
+    return false;
+  }
 
   return SerializeToArray(result, dst, offset);
 }
