@@ -238,6 +238,29 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
   // Now I need to find my index in the sorted list (this will be my ID for the
   // consensus)
   m_consensusMyID = 0;
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
+    if (m_mediator.m_DSCommittee->size() !=
+        m_mediator.m_initialDSCommittee->size()) {
+      LOG_GENERAL(WARNING,
+                  "The initial DS committee from file and ProcessSetPrimary "
+                  "size do not match "
+                      << m_mediator.m_DSCommittee->size() << " "
+                      << m_mediator.m_initialDSCommittee->size());
+    }
+    unsigned int i = 0;
+    for (auto const& dsNode : *m_mediator.m_DSCommittee) {
+      if (!(dsNode.first == m_mediator.m_initialDSCommittee->at(i))) {
+        LOG_GENERAL(WARNING,
+                    "PubKey from file and ProcessSetPrimary do not match  "
+                        << dsNode.first << " "
+                        << m_mediator.m_initialDSCommittee->at(i))
+      }
+      i++;
+    }
+  }
+
   for (auto const& i : *m_mediator.m_DSCommittee) {
     if (i.first == m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -246,6 +269,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     }
     m_consensusMyID++;
   }
+
   m_consensusLeaderID = 0;
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "

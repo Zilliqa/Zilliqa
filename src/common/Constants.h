@@ -190,6 +190,7 @@ extern const bool ARCHIVAL_NODE;
 extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
 extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
+extern const bool GET_INITIAL_DS_FROM_REPO;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;

@@ -57,6 +57,8 @@ def main():
 		command = sys.argv[1]
 		if (command == 'setup'):
 			print_usage() if (numargs != 3) else run_setup(numnodes=int(sys.argv[2]), printnodes=True)
+		elif(command == 'prestart'):
+			print_usage() if (numargs != 3) else run_prestart(numdsnodes=int(sys.argv[2]))
 		elif (command == 'start'):
 			print_usage() if (numargs != 3) else run_start(numdsnodes=int(sys.argv[2]))
 		elif (command == 'connect'):
@@ -123,7 +125,8 @@ def run_setup(numnodes, printnodes):
 		for x in range(0, count):
 			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
 
-def run_start(numdsnodes):
+
+def run_prestart(numdsnodes):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
 	keypairs = []
@@ -137,18 +140,26 @@ def run_start(numdsnodes):
 	keypairs.sort()
 
 	nodes = ET.Element("nodes")
+	dsnodes = ET.Element("dsnodes");
 
 	# Store sorted keys list in text file
 	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
 		keypair = keypairs[x].split(" ")
+		
 		if (x < numdsnodes):
+			ET.SubElement(dsnodes, "pubk").text = keypair[0];
 			peer = ET.SubElement(nodes, "peer")
 			ET.SubElement(peer, "pubk").text = keypair[0]
 			ET.SubElement(peer, "ip").text = '127.0.0.1'
 			ET.SubElement(peer, "port").text = str(NODE_LISTEN_PORT + x)
 	keys_file.close()
+
+	#Create dsnodes file
+	dsTree = ET.ElementTree(dsnodes)
+	dsTree.write("dsnodes.xml")
+	dsnodes.clear()
 
 	# Create config.xml with pubkey and IP info of all DS nodes
 	tree = ET.ElementTree(nodes)
@@ -188,12 +199,26 @@ def run_start(numdsnodes):
 	tree = ET.ElementTree(address_nodes)
 	tree.write("shard_whitelist.xml")
 
+
+
+def run_start(numdsnodes):
+
+	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
+	count = len(testfolders_list)
+
+	# Load the keypairs
+	keypairs = []
+	with open(LOCAL_RUN_FOLDER + 'keys.txt') as f:
+		keypairs = f.readlines()
+	keypairs = [x.strip() for x in keypairs]
+
 	# Launch node Zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
 		shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/ds_whitelist.xml')
 		shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/shard_whitelist.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
 
 		if (x < numdsnodes):
 			shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')

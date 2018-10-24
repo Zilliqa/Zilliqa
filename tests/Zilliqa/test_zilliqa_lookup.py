@@ -173,6 +173,7 @@ def run_start():
 		keys_file.write(keypairs[x] + '\n')
 		shutil.copyfile('config.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+		shutil.copyfile('dsnodes.xml',LOCAL_RUN_FOLDER+testfolders_list[x]+'/dsnodes.xml')
 		# FIXME: every lookup node has the option USE_REMOTE_TXN_CREATOR set to true, which seemingly
 		# enable transaction dispatching on every lookup running locally. However, the truth is only the
 		# one with the jsonrpc server running will do the transaction dispatching and coincidentally there
