@@ -18,6 +18,8 @@
  */
 
 #include "UpgradeManager.h"
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
@@ -121,6 +123,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
   string downloadFilePath;
 
   for (auto s : downloadFilePaths) {
+    LOG_GENERAL(INFO, "downloadFilePath: " << s);
     if (string::npos != s.rfind(fileTail)) {
       downloadFilePath = s;
       break;
@@ -405,4 +408,84 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
   /// Kill current node, then the recovery procedure will wake up node with
   /// stored data
   return raise(SIGKILL) == 0;
+}
+
+namespace {
+struct PTree {
+  static boost::property_tree::ptree& GetInstance() {
+    static boost::property_tree::ptree pt;
+    read_xml("dsnodes.xml", pt);
+
+    return pt;
+  }
+  PTree() = delete;
+  ~PTree() = delete;
+};
+
+const vector<string> ReadDSCommFromFile() {
+  auto pt = PTree::GetInstance();
+  std::vector<std::string> result;
+  for (auto& pubk : pt.get_child("dsnodes")) {
+    if (pubk.first == "pubk") {
+      result.emplace_back(pubk.second.data());
+    }
+  }
+  return result;
+}
+
+const string ReadDSCommFile(string propName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<string>(propName);
+}
+}  // namespace
+
+bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
+  string downloadUrl = "";
+  try {
+    if (GET_INITIAL_DS_FROM_REPO) {
+      UpgradeManager::GetInstance().DownloadFile("xml", downloadUrl.c_str());
+
+      auto pt = PTree::GetInstance();
+
+      vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
+      initialDSCommittee.clear();
+      for (auto ds_string : tempDsComm_string) {
+        initialDSCommittee.push_back(
+            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+      }
+
+      vector<unsigned char> message;
+
+      unsigned int curr_offset = 0;
+      for (auto& dsKey : initialDSCommittee) {
+        dsKey.Serialize(message, curr_offset);
+        curr_offset += PUB_KEY_SIZE;
+      }
+
+      string sig_str = ReadDSCommFile("signature");
+      string pubKey_str = ReadDSCommFile("publicKey");
+
+      PubKey pubKey(DataConversion::HexStrToUint8Vec(pubKey_str), 0);
+      Signature sig(DataConversion::HexStrToUint8Vec(sig_str), 0);
+
+      if (!Schnorr::GetInstance().Verify(message, sig, pubKey)) {
+        LOG_GENERAL(WARNING, "Unable to verify file");
+        return false;
+      }
+      return true;
+
+    } else {
+      vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
+      initialDSCommittee.clear();
+      for (auto ds_string : tempDsComm_string) {
+        initialDSCommittee.push_back(
+            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+      }
+    }
+
+    return true;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    return false;
+  }
 }

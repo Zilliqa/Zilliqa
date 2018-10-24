@@ -17,6 +17,9 @@
 # program files.
 
 
+
+rm -rf local_run/node*
+
 sudo sysctl net.core.somaxconn=102400; 
 sudo sysctl net.core.netdev_max_backlog=65536; 
 sudo sysctl net.ipv4.tcp_tw_reuse=1; 
@@ -28,27 +31,6 @@ ulimit -Sc unlimited;
 ulimit -Hc unlimited;
 ulimit -s unlimited; 
 
-python tests/Zilliqa/test_zilliqa_local.py start 10
-
-sleep 40
-echo "starting..."
-
-#set primary 
-for ds in {1..10}
-do
-    python tests/Zilliqa/test_zilliqa_local.py sendcmd $ds 01000000000000000000000000000100007F00001389
-done
-sleep 10
-
-# PoW submission should be multicasted to all DS committee members
-for node in {11..20}
-do
-    python tests/Zilliqa/test_zilliqa_local.py startpow $node 10 0000000000000001 05 03 2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf
-done
-
-
-for port in {1..20}
-do
-    python tests/Zilliqa/test_zilliqa_local.py sendtxn $((5000 + $port))
-done 
-
+python tests/Zilliqa/test_zilliqa_local.py stop
+python tests/Zilliqa/test_zilliqa_local.py setup 20
+python tests/Zilliqa/test_zilliqa_local.py prestart 10

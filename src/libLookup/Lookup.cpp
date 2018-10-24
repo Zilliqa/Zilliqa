@@ -655,18 +655,17 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
       MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
   if (initialDS) {
-    lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
+    LOG_GENERAL(WARNING, "[DSINFOVERIF]"
+                             << "Recvd call to send initial ds "
+                             << " Unsupported");
 
-    LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                          << "Recvd call to send initial ds");
-
-    if (!Messenger::SetLookupSetDSInfoFromSeed(
+    /*if (!Messenger::SetLookupSetDSInfoFromSeed(
             dsInfoMessage, MessageOffset::BODY, m_mediator.m_selfKey,
             *m_mediator.m_initialDSCommittee, true)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
-    }
+    }*/
 
   }
 
@@ -1431,22 +1430,29 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
       }
     }
 
-    if (initialDS && !LOOKUP_NODE_MODE) {
+    /*if (initialDS && !LOOKUP_NODE_MODE) {
       LOG_GENERAL(INFO, "[DSINFOVERIF]"
                             << "Recvd inital ds config");
       m_mediator.m_blocklinkchain.m_builtDsCommittee = move(dsNodes);
-    }
+    }*/
 
     else {
       bool isVerif = true;
-      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-      *m_mediator.m_DSCommittee = std::move(dsNodes);
+      {
+        lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+        *m_mediator.m_DSCommittee = dsNodes;
+      }
 
       if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
+        m_mediator.m_blocklinkchain.m_builtDsCommittee =
+            *m_mediator.m_DSCommittee;
         lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
         LOG_GENERAL(INFO, "[DSINFOVERIF]"
                               << "Recvd initial ds config");
-        *m_mediator.m_initialDSCommittee = *m_mediator.m_DSCommittee;
+        m_mediator.m_initialDSCommittee->clear();
+        for (const auto& dsCommKey : dsNodes) {
+          m_mediator.m_initialDSCommittee->push_back(dsCommKey.first);
+        }
       }
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
