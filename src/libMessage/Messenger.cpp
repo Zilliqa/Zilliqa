@@ -166,8 +166,8 @@ void BlockBaseToProtobuf(const BlockBase& base,
   }
 }
 
-void ProtobufToBlockBase(BlockBase& base,
-                         const ProtoBlockBase& protoBlockBase) {
+void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
+                         BlockBase& base) {
   // Deserialize cosigs
   CoSignatures cosigs;
   cosigs.m_B1.resize(protoBlockBase.cosigs().b1().size());
@@ -519,7 +519,7 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoDSBlock.blockbase();
 
-  ProtobufToBlockBase(dsBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, dsBlock);
 }
 
 void MicroBlockHeaderToProtobuf(
@@ -907,7 +907,7 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
 
-  ProtobufToBlockBase(txBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, txBlock);
 }
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
@@ -995,7 +995,7 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoVCBlock.blockbase();
 
-  ProtobufToBlockBase(vcBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, vcBlock);
 }
 
 void FallbackBlockHeaderToProtobuf(
@@ -1097,7 +1097,7 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoFallbackBlock.blockbase();
 
-  ProtobufToBlockBase(fallbackBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, fallbackBlock);
 }
 
 bool SetConsensusAnnouncementCore(
