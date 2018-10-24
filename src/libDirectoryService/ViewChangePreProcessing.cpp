@@ -95,15 +95,38 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
-  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second !=
-      m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
-    LOG_GENERAL(WARNING, "Candidate network info mismatched");
+  // Verify candidate leader index
+  uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
+  if (m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex() !=
+      candidateLeaderIndex) {
+    LOG_GENERAL(WARNING,
+                "Candidate leader index mismatched. Expected: "
+                    << candidateLeaderIndex << " Obtained: "
+                    << m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex());
     return false;
   }
 
-  if (!(m_mediator.m_DSCommittee->at(m_viewChangeCounter).first ==
+  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
+      m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
+    LOG_GENERAL(
+        WARNING,
+        "Candidate network info mismatched. Expected: "
+            << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
+            << " Obtained: "
+            << m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
+    return false;
+  }
+
+  if (!(m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
         m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey())) {
-    LOG_GENERAL(WARNING, "Candidate pubkey mismatched");
+    LOG_GENERAL(
+        WARNING,
+        "Candidate pubkey mismatched. Expected: "
+            << DataConversion::SerializableToHexStr(
+                   m_mediator.m_DSCommittee->at(candidateLeaderIndex).first)
+            << " Obtained: "
+            << DataConversion::SerializableToHexStr(
+                   m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()));
     return false;
   }
 
@@ -120,7 +143,10 @@ bool DirectoryService::ViewChangeValidator(
 
   if (m_viewChangeCounter !=
       m_pendingVCBlock->GetHeader().GetViewChangeCounter()) {
-    LOG_GENERAL(WARNING, "View change counter mismatched");
+    LOG_GENERAL(WARNING,
+                "View change counter mismatched. Expected: "
+                    << m_viewChangeCounter << " Obtained: "
+                    << m_pendingVCBlock->GetHeader().GetViewChangeCounter());
     return false;
   }
   return true;
@@ -264,26 +290,25 @@ bool DirectoryService::ComputeNewCandidateLeader() {
   LOG_GENERAL(
       INFO, "Composing new vc block with vc count at " << m_viewChangeCounter);
 
-  // New leader is computed using the following
-  // If there no previous vc block, 
-  // New candidate leader index is 
-  // H(Last valid Block (eg. finalblock, ds block), vc counter) 
-  // If there is previous vc block, 
-  // New candidate leader index is 
+  uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
+  LOG_GENERAL(INFO, "Candidate leader is at index " << candidateLeaderIndex);
 
-  vector<pair<PubKey, Peer>> faultyLeaders; 
+  vector<pair<PubKey, Peer>> faultyLeaders;
 
   // TODO: If previous vc block exists, add faulty leader
   // TODO: Add current faulty leader
 
   Peer newLeaderNetworkInfo;
-  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer()) {
+  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second == Peer()) {
     // I am the leader but in the Peer store, it is put as 0.0.0.0 with port 0
     newLeaderNetworkInfo = m_mediator.m_selfPeer;
   } else {
     newLeaderNetworkInfo =
-        m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
+        m_mediator.m_DSCommittee->at(candidateLeaderIndex).second;
   }
+
+  // TODO: What if there is multiple failed leader?
+  faultyLeaders.emplace_back(m_mediator.m_DSCommittee->at(m_consensusLeaderID));
 
   // Compute the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
@@ -302,14 +327,50 @@ bool DirectoryService::ComputeNewCandidateLeader() {
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             m_mediator.m_currentEpochNum, m_viewChangestate,
-            m_viewChangeCounter, newLeaderNetworkInfo,
+            candidateLeaderIndex, newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
-            m_viewChangeCounter, faultyLeaders, get_time_as_int(), committeeHash),
+            m_viewChangeCounter, faultyLeaders, get_time_as_int(),
+            committeeHash),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
 
   return true;
+}
+
+uint32_t DirectoryService::CalculateNewLeaderIndex() {
+  // New leader is computed using the following
+  // If there no previous vc block, new candidate leader index is
+  // H((finalblock or vc block), vc counter) % size
+  // of ds committee
+
+  // TODO: To handle multiple view change siutation
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  switch (m_viewChangestate) {
+    case DSBLOCK_CONSENSUS:
+    case DSBLOCK_CONSENSUS_PREP:
+    case FINALBLOCK_CONSENSUS:
+    case FINALBLOCK_CONSENSUS_PREP:
+      sha2.Update(
+          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+      break;
+    case VIEWCHANGE_CONSENSUS:
+    case VIEWCHANGE_CONSENSUS_PREP:
+    default:
+      LOG_GENERAL(FATAL, "should not encounter view change consensus state")
+      break;
+  }
+
+  vector<unsigned char> vcCounterBytes;
+  Serializable::SetNumber<uint32_t>(vcCounterBytes, 0, m_viewChangeCounter,
+                                    sizeof(uint32_t));
+  sha2.Update(vcCounterBytes);
+  uint16_t lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
+  uint32_t candidateLeaderIndex =
+      lastBlockHash % (m_mediator.m_DSCommittee->size());
+  sha2.Reset();
+  return candidateLeaderIndex;
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
@@ -325,28 +386,36 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
 
 #ifdef VC_TEST_VC_SUSPEND_1
   if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
-    LOG_GENERAL(WARNING, "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_1)");
+    LOG_GENERAL(
+        WARNING,
+        "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_1)");
     return false;
   }
 #endif  // VC_TEST_VC_SUSPEND_1
 
 #ifdef VC_TEST_VC_SUSPEND_3
   if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
-    LOG_GENERAL(WARNING, "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
+    LOG_GENERAL(
+        WARNING,
+        "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
     return false;
   }
 #endif  // VC_TEST_VC_SUSPEND_3
 
 #ifdef VC_TEST_VC_TERMINATE_1
   if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
-    LOG_GENERAL(WARNING, "I am killing myself to test viewchange (VC_TEST_VC_TERMINATE_1)");
+    LOG_GENERAL(
+        WARNING,
+        "I am killing myself to test viewchange (VC_TEST_VC_TERMINATE_1)");
     throw exception();
   }
 #endif  // VC_TEST_VC_TERMINATE_1
 
 #ifdef VC_TEST_VC_TERMINATE_3
   if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
-    LOG_GENERAL(WARNING, "I am killing myself to test viewchange (VC_TEST_VC_TERMINATE_3)");
+    LOG_GENERAL(
+        WARNING,
+        "I am killing myself to test viewchange (VC_TEST_VC_TERMINATE_3)");
     throw exception();
   }
 #endif  // VC_TEST_VC_TERMINATE_3

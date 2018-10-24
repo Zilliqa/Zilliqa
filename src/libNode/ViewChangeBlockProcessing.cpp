@@ -139,10 +139,6 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  // TDOO
-  // Add to block chain and Store the VC block to disk.
-  // StoreVCBlockToDisk(dsblock);
-
   if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
     SendVCBlockToOtherShardNodes(message);
   }
