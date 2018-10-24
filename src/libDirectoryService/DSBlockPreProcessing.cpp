@@ -337,8 +337,8 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
       if (it == sortedPoWSolns.cend()) {
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());
-        ret = false;
-        break;
+        ++misorderNodes;
+        continue;
       }
 
       auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
