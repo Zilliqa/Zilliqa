@@ -333,6 +333,7 @@ class DirectoryService : public Executable, public Broadcastable {
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
   bool ComputeNewCandidateLeader();
+  uint32_t CalculateNewLeaderIndex();
   bool RunConsensusOnViewChangeWhenCandidateLeader();
   bool RunConsensusOnViewChangeWhenNotCandidateLeader();
   void ProcessViewChangeConsensusWhenDone();
