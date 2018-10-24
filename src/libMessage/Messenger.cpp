@@ -132,7 +132,7 @@ void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
 }
 
 void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
-                           ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
+                            ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
   for (const auto& node : faultyLeaders) {
     ProtoDSNode* protodsnode = protoVCBlockHeader.add_faultyleaders();
     SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
@@ -140,8 +140,9 @@ void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
   }
 }
 
-void ProtobufToFaultyDSMembers(const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
-                           vector<pair<PubKey, Peer>>& faultyDSMembers) {
+void ProtobufToFaultyDSMembers(
+    const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
+    vector<pair<PubKey, Peer>>& faultyDSMembers) {
   for (const auto& dsnode : protoVCBlockHeader.faultyleaders()) {
     PubKey pubkey;
     Peer peer;
@@ -1020,7 +1021,7 @@ void ProtobufToVCBlockHeader(
                                   candidateLeaderPubKey);
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoVCBlockHeader.timestamp(), timestamp);
-  
+
   ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
 
   copy(protoVCBlockHeader.committeehash().begin(),
@@ -1029,13 +1030,13 @@ void ProtobufToVCBlockHeader(
                (unsigned int)committeeHash.size),
        committeeHash.asArray().begin());
 
-  vcBlockHeader =
-      VCBlockHeader(protoVCBlockHeader.viewchangedsepochno(),
-                    protoVCBlockHeader.viewchangeepochno(),
-                    protoVCBlockHeader.viewchangestate(),
-                    protoVCBlockHeader.candidateleaderindex(),
-                    candidateLeaderNetworkInfo, candidateLeaderPubKey,
-                    protoVCBlockHeader.vccounter(), faultyLeaders, timestamp, committeeHash);
+  vcBlockHeader = VCBlockHeader(
+      protoVCBlockHeader.viewchangedsepochno(),
+      protoVCBlockHeader.viewchangeepochno(),
+      protoVCBlockHeader.viewchangestate(),
+      protoVCBlockHeader.candidateleaderindex(), candidateLeaderNetworkInfo,
+      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
+      timestamp, committeeHash);
 }
 
 void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
