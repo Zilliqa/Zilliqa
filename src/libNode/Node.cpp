@@ -288,6 +288,33 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
       NUM_FINAL_BLOCK_PER_POW;
 
+#if 1  // clark
+  /// Save coin base for microblock and finalblock
+  for (uint64_t blockNum =
+           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
+           (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() %
+            NUM_FINAL_BLOCK_PER_POW);
+       blockNum <=
+       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+       ++blockNum) {
+    for (uint32_t shardId = 0; shardId < m_mediator.m_ds->m_shards.size();
+         ++shardId) {
+      shared_ptr<MicroBlock> microBlock;
+
+      if (!BlockStorage::GetBlockStorage().GetMicroBlock(blockNum, shardId,
+                                                         microBlock)) {
+        continue;
+      }
+
+      LOG_GENERAL(INFO, "Retrieve microblock with blockNum: "
+                            << blockNum << ", shardId: " << shardId
+                            << " from persistence, and update coin base");
+      m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
+                                    microBlock->GetHeader().GetShardId());
+    }
+  }
+#endif
+
   if (st_result && ds_result && tx_result) {
     if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates()) ||
         (LOOKUP_NODE_MODE && m_retriever->ValidateStates() &&
