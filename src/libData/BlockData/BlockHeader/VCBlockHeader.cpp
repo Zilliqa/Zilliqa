@@ -100,7 +100,9 @@ const PubKey& VCBlockHeader::GetCandidateLeaderPubKey() const {
 
 uint32_t VCBlockHeader::GetViewChangeCounter() const { return m_VCCounter; }
 
-const vector<pair<PubKey, Peer>>& VCBlockHeader::GetFaultyLeaders() const { return m_FaultyLeaders; }; 
+const vector<pair<PubKey, Peer>>& VCBlockHeader::GetFaultyLeaders() const {
+  return m_FaultyLeaders;
+};
 
 const boost::multiprecision::uint256_t& VCBlockHeader::GetTimeStamp() const {
   return m_Timestamp;
