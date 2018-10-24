@@ -27,6 +27,19 @@ message ProtoCommittee
     repeated ByteArray members = 1;
 }
 
+message ProtoBlockBase
+{
+    message CoSignatures
+    {
+        required ByteArray cs1          = 1;
+        repeated bool b1                = 2 [packed=true];
+        required ByteArray cs2          = 3;
+        repeated bool b2                = 4 [packed=true];
+    }
+    required bytes blockhash            = 1;
+    required CoSignatures cosigs        = 2;
+}
+
 message ProtoShardingStructure
 {
     message Member
@@ -98,16 +111,8 @@ message ProtoDSBlock
         required DSBlockHashSet hash    = 9;
         required bytes committeehash    = 10;
     }
-    message CoSignatures
-    {
-        required ByteArray cs1          = 1;
-        repeated bool b1                = 2 [packed=true];
-        required ByteArray cs2          = 3;
-        repeated bool b2                = 4 [packed=true];
-    }
     required DSBlockHeader header       = 1;
-    required CoSignatures cosigs        = 2;
-    required bytes blockhash            = 3;
+    required ProtoBlockBase blockbase   = 2;
 }
 
 message ProtoMicroBlock
@@ -178,19 +183,11 @@ message ProtoTxBlock
         required bytes statedeltahash           = 2;
         required bytes tranreceipthash          = 3;
     }
-    message CoSignatures
-    {
-        required ByteArray cs1                  = 1;
-        repeated bool b1                        = 2 [packed=true];
-        required ByteArray cs2                  = 3;
-        repeated bool b2                        = 4 [packed=true];
-    }
     required TxBlockHeader header               = 1;
     repeated bool ismicroblockempty             = 2 [packed=true];
     repeated MicroBlockHashSet microblockhashes = 3;
     repeated uint32 shardids                    = 4;
-    required CoSignatures cosigs                = 5;
-    required bytes blockhash                    = 6;
+    required ProtoBlockBase blockbase           = 5;
 }
 
 message ProtoVCBlock
@@ -207,16 +204,8 @@ message ProtoVCBlock
         required ByteArray timestamp                  = 8;
         required bytes committeehash                  = 9;
     }
-    message CoSignatures
-    {
-        required ByteArray cs1                        = 1;
-        repeated bool b1                              = 2 [packed=true];
-        required ByteArray cs2                        = 3;
-        repeated bool b2                              = 4 [packed=true];
-    }
     required VCBlockHeader header                     = 1;
-    required CoSignatures cosigs                      = 2;
-    required bytes blockhash                          = 3;
+    required ProtoBlockBase blockbase                 = 2;
 }
 
 message ProtoFallbackBlock
@@ -234,16 +223,8 @@ message ProtoFallbackBlock
         required ByteArray timestamp         = 9;
         required bytes committeehash         = 10;
     }
-    message CoSignatures
-    {
-        required ByteArray cs1               = 1;
-        repeated bool b1                     = 2 [packed=true];
-        required ByteArray cs2               = 3;
-        repeated bool b2                     = 4 [packed=true];
-    }
     required FallbackBlockHeader header      = 1;
-    required CoSignatures cosigs             = 2;
-    required bytes blockhash                 = 3;
+    required ProtoBlockBase blockbase        = 2;
 }
 
 // ============================================================================

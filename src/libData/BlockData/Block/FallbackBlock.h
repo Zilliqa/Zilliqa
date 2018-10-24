@@ -34,7 +34,6 @@
 
 class FallbackBlock : public BlockBase {
   FallbackBlockHeader m_header;
-  BlockHash m_blockHash;
 
  public:
   /// Default constructor.
@@ -45,6 +44,7 @@ class FallbackBlock : public BlockBase {
 
   /// Constructor with specified fallback block parameters.
   FallbackBlock(const FallbackBlockHeader& header, CoSignatures&& cosigs);
+  FallbackBlock(const FallbackBlockHeader& header);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
@@ -64,15 +64,6 @@ class FallbackBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const FallbackBlock& block) const;
-
-  /// Calculate the block hash from header
-  BlockHash CalculateBlockHash() const;
-
-  /// Returns the block hash
-  const BlockHash& GetBlockHash() const;
-
-  /// Set the block hash
-  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __FALLBACKBLOCK_H__

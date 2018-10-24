@@ -33,7 +33,6 @@
 /// Stores the VC header and signatures.
 class VCBlock : public BlockBase {
   VCBlockHeader m_header;
-  BlockHash m_blockHash;
 
  public:
   /// Default constructor.
@@ -44,6 +43,9 @@ class VCBlock : public BlockBase {
 
   /// Constructor with specified VC block parameters.
   VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs);
+
+  /// Constructor with specified VC block parameters.
+  VCBlock(const VCBlockHeader& header);
 
   /// Implements the Serialize function inherited from Serializable.
   /// Return size of serialized structure
@@ -64,12 +66,6 @@ class VCBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const VCBlock& block) const;
-
-  /// Returns the block hash
-  const BlockHash& GetBlockHash() const;
-
-  /// Set the block hash
-  void SetBlockHash(const BlockHash& blockHash);
 };
 
 #endif  // __VCBLOCK_H__
