@@ -145,6 +145,55 @@ void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
   }
 }
 
+void BlockBaseToProtobuf(const BlockBase& base,
+                         ProtoBlockBase& protoBlockBase) {
+  // Block hash
+
+  protoBlockBase.set_blockhash(base.GetBlockHash().data(),
+                               base.GetBlockHash().size);
+  // Serialize cosigs
+
+  ZilliqaMessage::ProtoBlockBase::CoSignatures* cosigs =
+      protoBlockBase.mutable_cosigs();
+
+  SerializableToProtobufByteArray(base.GetCS1(), *cosigs->mutable_cs1());
+  for (const auto& i : base.GetB1()) {
+    cosigs->add_b1(i);
+  }
+  SerializableToProtobufByteArray(base.GetCS2(), *cosigs->mutable_cs2());
+  for (const auto& i : base.GetB2()) {
+    cosigs->add_b2(i);
+  }
+}
+
+void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
+                         BlockBase& base) {
+  // Deserialize cosigs
+  CoSignatures cosigs;
+  cosigs.m_B1.resize(protoBlockBase.cosigs().b1().size());
+  cosigs.m_B2.resize(protoBlockBase.cosigs().b2().size());
+
+  ProtobufByteArrayToSerializable(protoBlockBase.cosigs().cs1(), cosigs.m_CS1);
+  copy(protoBlockBase.cosigs().b1().begin(), protoBlockBase.cosigs().b1().end(),
+       cosigs.m_B1.begin());
+  ProtobufByteArrayToSerializable(protoBlockBase.cosigs().cs2(), cosigs.m_CS2);
+  copy(protoBlockBase.cosigs().b2().begin(), protoBlockBase.cosigs().b2().end(),
+       cosigs.m_B2.begin());
+
+  base.SetCoSignatures(cosigs);
+
+  // Deserialize the block hash
+  BlockHash blockHash;
+
+  copy(protoBlockBase.blockhash().begin(),
+       protoBlockBase.blockhash().begin() +
+           min((unsigned int)protoBlockBase.blockhash().size(),
+               (unsigned int)blockHash.size),
+       blockHash.asArray().begin());
+
+  base.SetBlockHash(blockHash);
+}
+
 void ShardingStructureToProtobuf(
     const DequeOfShard& shards,
     ProtoShardingStructure& protoShardingStructure) {
@@ -385,24 +434,10 @@ void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
 
   DSBlockHeaderToProtobuf(header, *protoHeader);
 
-  // Serialize cosigs
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoDSBlock.mutable_blockbase();
 
-  ZilliqaMessage::ProtoDSBlock::CoSignatures* cosigs =
-      protoDSBlock.mutable_cosigs();
-
-  SerializableToProtobufByteArray(dsBlock.GetCS1(), *cosigs->mutable_cs1());
-  for (const auto& i : dsBlock.GetB1()) {
-    cosigs->add_b1(i);
-  }
-  SerializableToProtobufByteArray(dsBlock.GetCS2(), *cosigs->mutable_cs2());
-  for (const auto& i : dsBlock.GetB2()) {
-    cosigs->add_b2(i);
-  }
-
-  // Block hash
-
-  protoDSBlock.set_blockhash(dsBlock.GetBlockHash().data(),
-                             dsBlock.GetBlockHash().size);
+  BlockBaseToProtobuf(dsBlock, *protoBlockBase);
 }
 
 void ProtobufToDSBlockHeader(
@@ -479,31 +514,12 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
 
   ProtobufToDSBlockHeader(protoHeader, header);
 
-  // Deserialize cosigs
-  CoSignatures cosigs;
-  cosigs.m_B1.resize(protoDSBlock.cosigs().b1().size());
-  cosigs.m_B2.resize(protoDSBlock.cosigs().b2().size());
+  dsBlock = DSBlock(header);
 
-  ProtobufByteArrayToSerializable(protoDSBlock.cosigs().cs1(), cosigs.m_CS1);
-  copy(protoDSBlock.cosigs().b1().begin(), protoDSBlock.cosigs().b1().end(),
-       cosigs.m_B1.begin());
-  ProtobufByteArrayToSerializable(protoDSBlock.cosigs().cs2(), cosigs.m_CS2);
-  copy(protoDSBlock.cosigs().b2().begin(), protoDSBlock.cosigs().b2().end(),
-       cosigs.m_B2.begin());
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
+      protoDSBlock.blockbase();
 
-  // Generate the new DSBloc
-  dsBlock = DSBlock(header, CoSignatures(cosigs));
-
-  // Deserialize the block hash
-  BlockHash blockHash;
-
-  copy(protoDSBlock.blockhash().begin(),
-       protoDSBlock.blockhash().begin() +
-           min((unsigned int)protoDSBlock.blockhash().size(),
-               (unsigned int)blockHash.size),
-       blockHash.asArray().begin());
-
-  dsBlock.SetBlockHash(blockHash);
+  ProtobufToBlockBase(protoBlockBase, dsBlock);
 }
 
 void MicroBlockHeaderToProtobuf(
@@ -757,24 +773,10 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
     protoTxBlock.add_shardids(i);
   }
 
-  // Serialize cosigs
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoTxBlock.mutable_blockbase();
 
-  ZilliqaMessage::ProtoTxBlock::CoSignatures* cosigs =
-      protoTxBlock.mutable_cosigs();
-
-  SerializableToProtobufByteArray(txBlock.GetCS1(), *cosigs->mutable_cs1());
-  for (const auto& i : txBlock.GetB1()) {
-    cosigs->add_b1(i);
-  }
-  SerializableToProtobufByteArray(txBlock.GetCS2(), *cosigs->mutable_cs2());
-  for (const auto& i : txBlock.GetB2()) {
-    cosigs->add_b2(i);
-  }
-
-  // Block hash
-
-  protoTxBlock.set_blockhash(txBlock.GetBlockHash().data(),
-                             txBlock.GetBlockHash().size);
+  BlockBaseToProtobuf(txBlock, *protoBlockBase);
 }
 
 void ProtobufToTxBlockHeader(
@@ -900,34 +902,12 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
     shardIds.emplace_back(i);
   }
 
-  // Deserialize cosigs
+  txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds);
 
-  CoSignatures cosigs;
-  cosigs.m_B1.resize(protoTxBlock.cosigs().b1().size());
-  cosigs.m_B2.resize(protoTxBlock.cosigs().b2().size());
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
+      protoTxBlock.blockbase();
 
-  ProtobufByteArrayToSerializable(protoTxBlock.cosigs().cs1(), cosigs.m_CS1);
-  copy(protoTxBlock.cosigs().b1().begin(), protoTxBlock.cosigs().b1().end(),
-       cosigs.m_B1.begin());
-  ProtobufByteArrayToSerializable(protoTxBlock.cosigs().cs2(), cosigs.m_CS2);
-  copy(protoTxBlock.cosigs().b2().begin(), protoTxBlock.cosigs().b2().end(),
-       cosigs.m_B2.begin());
-
-  // Generate the new TxBlock
-
-  txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds,
-                    CoSignatures(cosigs));
-
-  // Deserialize the block hash
-  BlockHash blockHash;
-
-  copy(protoTxBlock.blockhash().begin(),
-       protoTxBlock.blockhash().begin() +
-           min((unsigned int)protoTxBlock.blockhash().size(),
-               (unsigned int)blockHash.size),
-       blockHash.asArray().begin());
-
-  txBlock.SetBlockHash(blockHash);
+  ProtobufToBlockBase(protoBlockBase, txBlock);
 }
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
@@ -963,24 +943,10 @@ void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
 
   VCBlockHeaderToProtobuf(header, *protoHeader);
 
-  // Serialize cosigs
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoVCBlock.mutable_blockbase();
 
-  ZilliqaMessage::ProtoVCBlock::CoSignatures* cosigs =
-      protoVCBlock.mutable_cosigs();
-
-  SerializableToProtobufByteArray(vcBlock.GetCS1(), *cosigs->mutable_cs1());
-  for (const auto& i : vcBlock.GetB1()) {
-    cosigs->add_b1(i);
-  }
-  SerializableToProtobufByteArray(vcBlock.GetCS2(), *cosigs->mutable_cs2());
-  for (const auto& i : vcBlock.GetB2()) {
-    cosigs->add_b2(i);
-  }
-
-  // Block hash
-
-  protoVCBlock.set_blockhash(vcBlock.GetBlockHash().data(),
-                             vcBlock.GetBlockHash().size);
+  BlockBaseToProtobuf(vcBlock, *protoBlockBase);
 }
 
 void ProtobufToVCBlockHeader(
@@ -1024,33 +990,12 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 
   ProtobufToVCBlockHeader(protoHeader, header);
 
-  // Deserialize cosigs
+  vcBlock = VCBlock(header);
 
-  CoSignatures cosigs;
-  cosigs.m_B1.resize(protoVCBlock.cosigs().b1().size());
-  cosigs.m_B2.resize(protoVCBlock.cosigs().b2().size());
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
+      protoVCBlock.blockbase();
 
-  ProtobufByteArrayToSerializable(protoVCBlock.cosigs().cs1(), cosigs.m_CS1);
-  copy(protoVCBlock.cosigs().b1().begin(), protoVCBlock.cosigs().b1().end(),
-       cosigs.m_B1.begin());
-  ProtobufByteArrayToSerializable(protoVCBlock.cosigs().cs2(), cosigs.m_CS2);
-  copy(protoVCBlock.cosigs().b2().begin(), protoVCBlock.cosigs().b2().end(),
-       cosigs.m_B2.begin());
-
-  // Generate the new VCBlock
-
-  vcBlock = VCBlock(header, CoSignatures(cosigs));
-
-  // Deserialize the block hash
-  BlockHash blockHash;
-
-  copy(protoVCBlock.blockhash().begin(),
-       protoVCBlock.blockhash().begin() +
-           min((unsigned int)protoVCBlock.blockhash().size(),
-               (unsigned int)blockHash.size),
-       blockHash.asArray().begin());
-
-  vcBlock.SetBlockHash(blockHash);
+  ProtobufToBlockBase(protoBlockBase, vcBlock);
 }
 
 void FallbackBlockHeaderToProtobuf(
@@ -1094,26 +1039,10 @@ void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
 
   FallbackBlockHeaderToProtobuf(header, *protoHeader);
 
-  // Serialize cosigs
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoFallbackBlock.mutable_blockbase();
 
-  ZilliqaMessage::ProtoFallbackBlock::CoSignatures* cosigs =
-      protoFallbackBlock.mutable_cosigs();
-
-  SerializableToProtobufByteArray(fallbackBlock.GetCS1(),
-                                  *cosigs->mutable_cs1());
-  for (const auto& i : fallbackBlock.GetB1()) {
-    cosigs->add_b1(i);
-  }
-  SerializableToProtobufByteArray(fallbackBlock.GetCS2(),
-                                  *cosigs->mutable_cs2());
-  for (const auto& i : fallbackBlock.GetB2()) {
-    cosigs->add_b2(i);
-  }
-
-  // Block hash
-
-  protoFallbackBlock.set_blockhash(fallbackBlock.GetBlockHash().data(),
-                                   fallbackBlock.GetBlockHash().size);
+  BlockBaseToProtobuf(fallbackBlock, *protoBlockBase);
 }
 
 void ProtobufToFallbackBlockHeader(
@@ -1163,34 +1092,12 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
 
   ProtobufToFallbackBlockHeader(protoHeader, header);
 
-  // Deserialize cosigs
+  fallbackBlock = FallbackBlock(header);
 
-  CoSignatures cosigs;
-  cosigs.m_B1.resize(protoFallbackBlock.cosigs().b1().size());
-  cosigs.m_B2.resize(protoFallbackBlock.cosigs().b2().size());
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
+      protoFallbackBlock.blockbase();
 
-  ProtobufByteArrayToSerializable(protoFallbackBlock.cosigs().cs1(),
-                                  cosigs.m_CS1);
-  copy(protoFallbackBlock.cosigs().b1().begin(),
-       protoFallbackBlock.cosigs().b1().end(), cosigs.m_B1.begin());
-  ProtobufByteArrayToSerializable(protoFallbackBlock.cosigs().cs2(),
-                                  cosigs.m_CS2);
-  copy(protoFallbackBlock.cosigs().b2().begin(),
-       protoFallbackBlock.cosigs().b2().end(), cosigs.m_B2.begin());
-
-  // Generate the new FallbackBlock
-  fallbackBlock = FallbackBlock(header, CoSignatures(cosigs));
-
-  // Deserialize the block hash
-  BlockHash blockHash;
-
-  copy(protoFallbackBlock.blockhash().begin(),
-       protoFallbackBlock.blockhash().begin() +
-           min((unsigned int)protoFallbackBlock.blockhash().size(),
-               (unsigned int)blockHash.size),
-       blockHash.asArray().begin());
-
-  fallbackBlock.SetBlockHash(blockHash);
+  ProtobufToBlockBase(protoBlockBase, fallbackBlock);
 }
 
 bool SetConsensusAnnouncementCore(
