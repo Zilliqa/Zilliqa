@@ -231,8 +231,20 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     // m_consensusLeaderID =
     //     0;  // Hotfix. https://github.com/Zilliqa/Issues/issues/212
 
-    m_consensusLeaderID =
-        m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex();
+    // Update the index for the new leader
+    pair<PubKey, Peer> candidateLeaderInfo = make_pair(
+        m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
+        m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
+    deque<pair<PubKey, Peer>>::iterator it3 =
+        find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
+             candidateLeaderInfo);
+    if (it3 != m_mediator.m_DSCommittee->end()) {
+      m_consensusLeaderID = distance(m_mediator.m_DSCommittee->begin(), it3);
+    } else {
+      LOG_GENERAL(WARNING, "Cannot new leader in the ds committee");
+      // TODO: Handle this situation. This siutation shouldn't be
+      // encountered at all
+    }
 
     LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
     LOG_GENERAL(INFO, "New view of ds committee: ");
