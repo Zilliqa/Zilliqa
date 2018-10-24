@@ -138,7 +138,12 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
     return;
   }
 
+#if 1  // clark
+  /// Retrieve final block state delta and save coin base, from last DS epoch to
+  /// current TX epoch
+#else
   /// Retrieve state delta from last DS epoch to current TX epoch
+#endif
   for (const auto& block : blocks) {
     if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
       std::vector<unsigned char> stateDelta;
@@ -151,6 +156,9 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
         result = false;
         return;
       }
+#if 1  // clark
+      m_mediator.m_ds->SaveCoinbase(block->GetB1(), block->GetB2(), -1);
+#endif
     }
   }
 }
