@@ -189,29 +189,32 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
-  unsigned int newCandidateLeader = vcblock.GetHeader().GetViewChangeCounter();
+  // unsigned int newCandidateLeader =
+  // vcblock.GetHeader().GetViewChangeCounter();
 
-  if (newCandidateLeader > m_mediator.m_DSCommittee->size()) {
-    LOG_GENERAL(WARNING,
-                "View change counter is more than size of ds commitee. "
-                "This may be due view of ds committee is wrong. "
-                    << m_mediator.m_currentEpochNum << "vc epoch: "
-                    << vcblock.GetHeader().GetViewChangeEpochNo());
-    newCandidateLeader = newCandidateLeader % m_mediator.m_DSCommittee->size();
-  }
+  // if (newCandidateLeader > m_mediator.m_DSCommittee->size()) {
+  //   LOG_GENERAL(WARNING,
+  //               "View change counter is more than size of ds commitee. "
+  //               "This may be due view of ds committee is wrong. "
+  //                   << m_mediator.m_currentEpochNum << "vc epoch: "
+  //                   << vcblock.GetHeader().GetViewChangeEpochNo());
+  //   newCandidateLeader = newCandidateLeader %
+  //   m_mediator.m_DSCommittee->size();
+  // }
 
-  if (!(m_mediator.m_DSCommittee->at(newCandidateLeader).second ==
-            vcblock.GetHeader().GetCandidateLeaderNetworkInfo() &&
-        m_mediator.m_DSCommittee->at(newCandidateLeader).first ==
-            vcblock.GetHeader().GetCandidateLeaderPubKey())) {
-    LOG_GENERAL(WARNING,
-                "View change expectation mismatched "
-                "expected new leader: "
-                    << m_mediator.m_DSCommittee->at(newCandidateLeader).second
-                    << "actual vc new leader "
-                    << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
-    return false;
-  }
+  // if (!(m_mediator.m_DSCommittee->at(newCandidateLeader).second ==
+  //           vcblock.GetHeader().GetCandidateLeaderNetworkInfo() &&
+  //       m_mediator.m_DSCommittee->at(newCandidateLeader).first ==
+  //           vcblock.GetHeader().GetCandidateLeaderPubKey())) {
+  //   LOG_GENERAL(WARNING,
+  //               "View change expectation mismatched "
+  //               "expected new leader: "
+  //                   <<
+  //                   m_mediator.m_DSCommittee->at(newCandidateLeader).second
+  //                   << "actual vc new leader "
+  //                   << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
+  //   return false;
+  // }
 
   // Check the signature of this VC block
   if (!VerifyVCBlockCoSignature(vcblock)) {
@@ -259,6 +262,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     }
     m_mediator.m_DSCommittee->emplace_back(faultyLeader);
   }
+
   return true;
 }
 
