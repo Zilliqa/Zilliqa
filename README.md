@@ -92,7 +92,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 2. Run the local testnet script in `build` directory
 
     ```
-    cd build && ./tests/Node/test_node_simple.sh
+   cd build && ./tests/Node/pre_run.sh && ./tests/Node/test_node_lookup.sh && ./tests/Node/test_node_simple.sh
     ```
 
 3. Logs of each node can be found at `./local_run`
