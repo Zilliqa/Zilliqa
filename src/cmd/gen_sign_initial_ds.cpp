@@ -18,27 +18,32 @@
  */
 
 #include <iostream>
+#include <string>
 #include "libUtils/UpgradeManager.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+using boost::property_tree::ptree;
+using namespace std;
+
 namespace {
+
+const string publicKeyProp = "publicKey";
+const string signatureProp = "signature";
 
 struct PTree {
   static boost::property_tree::ptree& GetInstance() {
     static boost::property_tree::ptree pt;
-    read_xml("dsnodes.xml", pt);
+    read_xml(dsNodeFile.c_str(), pt);
 
     return pt;
   }
   PTree() = delete;
   ~PTree() = delete;
 };
-}  // namespace
 
-using boost::property_tree::ptree;
-using namespace std;
+}  // namespace
 
 int main(int argc, char** argv) {
   if (argc != 3) {
@@ -105,13 +110,14 @@ int main(int argc, char** argv) {
 
   auto pt = PTree::GetInstance();
   if (!sig_str.empty()) {
-    pt.push_back(ptree::value_type("signature", ptree(sig_str.c_str())));
+    pt.push_back(ptree::value_type(signatureProp, ptree(sig_str.c_str())));
   }
   if (!pubKey_string.empty()) {
-    pt.push_back(ptree::value_type("publicKey", ptree(pubKey_string.c_str())));
+    pt.push_back(
+        ptree::value_type(publicKeyProp, ptree(pubKey_string.c_str())));
   }
 
-  write_xml("dsnodes.xml", pt);
+  write_xml(dsNodeFile.c_str(), pt);
 
   return 0;
 }

@@ -39,10 +39,14 @@ const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_LEADER = 2;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_LOOKUP = 3;
 
 namespace {
+
+const string dsNodePubProp = "pubk";
+const string publicKeyProp = "publicKey";
+const string signatureProp = "signature";
 struct PTree {
   static boost::property_tree::ptree& GetInstance() {
     static boost::property_tree::ptree pt;
-    read_xml("dsnodes.xml", pt);
+    read_xml(dsNodeFile.c_str(), pt);
 
     return pt;
   }
@@ -54,7 +58,7 @@ const vector<string> ReadDSCommFromFile() {
   auto pt = PTree::GetInstance();
   std::vector<std::string> result;
   for (auto& pubk : pt.get_child("dsnodes")) {
-    if (pubk.first == "pubk") {
+    if (pubk.first == dsNodePubProp) {
       result.emplace_back(pubk.second.data());
     }
   }
@@ -462,8 +466,8 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
         curr_offset += PUB_KEY_SIZE;
       }
 
-      string sig_str = ReadDSCommFile("signature");
-      string pubKey_str = ReadDSCommFile("publicKey");
+      string sig_str = ReadDSCommFile(signatureProp);
+      string pubKey_str = ReadDSCommFile(publicKeyProp);
 
       PubKey pubKey(DataConversion::HexStrToUint8Vec(pubKey_str), 0);
       Signature sig(DataConversion::HexStrToUint8Vec(sig_str), 0);

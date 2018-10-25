@@ -248,15 +248,14 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                       << m_mediator.m_DSCommittee->size() << " "
                       << m_mediator.m_initialDSCommittee->size());
     }
-    unsigned int i = 0;
-    for (auto const& dsNode : *m_mediator.m_DSCommittee) {
-      if (!(dsNode.first == m_mediator.m_initialDSCommittee->at(i))) {
+    for (unsigned int i = 0; i < m_mediator.m_initialDSCommittee->size(); i++) {
+      if (!(m_mediator.m_DSCommittee->at(i).first ==
+            m_mediator.m_initialDSCommittee->at(i))) {
         LOG_GENERAL(WARNING,
                     "PubKey from file and ProcessSetPrimary do not match  "
-                        << dsNode.first << " "
+                        << m_mediator.m_DSCommittee->at(i).first << " "
                         << m_mediator.m_initialDSCommittee->at(i))
       }
-      i++;
     }
   }
 
