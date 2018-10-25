@@ -332,10 +332,12 @@ class DirectoryService : public Executable, public Broadcastable {
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
-  bool ComputeNewCandidateLeader();
+  bool ComputeNewCandidateLeader(const uint32_t candidateLeaderIndex);
   uint32_t CalculateNewLeaderIndex();
-  bool RunConsensusOnViewChangeWhenCandidateLeader();
-  bool RunConsensusOnViewChangeWhenNotCandidateLeader();
+  bool RunConsensusOnViewChangeWhenCandidateLeader(
+      const uint32_t candidateLeaderIndex);
+  bool RunConsensusOnViewChangeWhenNotCandidateLeader(
+      const uint32_t candidateLeaderIndex);
   void ProcessViewChangeConsensusWhenDone();
   void ProcessNextConsensus(unsigned char viewChangeState);
 

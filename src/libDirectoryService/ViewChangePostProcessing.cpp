@@ -206,7 +206,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
 
       // Re-calculate the new m_consensusMyID
       pair<PubKey, Peer> selfPubKPeerPair =
-          make_pair(m_mediator.m_selfKey.second, m_mediator.m_selfPeer);
+          make_pair(m_mediator.m_selfKey.second, Peer());
 
       deque<pair<PubKey, Peer>>::iterator it2 =
           find(m_mediator.m_DSCommittee->begin(),
