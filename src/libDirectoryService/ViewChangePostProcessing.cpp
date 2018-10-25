@@ -189,19 +189,33 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       // Pushing faulty leader to back of the deque
       for (const auto& faultyLeader :
            m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-        deque<pair<PubKey, Peer>>::iterator it =
-            find(m_mediator.m_DSCommittee->begin(),
-                 m_mediator.m_DSCommittee->end(), faultyLeader);
+        // find the faulty leader and identify the index
+        deque<pair<PubKey, Peer>>::iterator it;
+        if (faultyLeader.second == m_mediator.m_selfPeer) {
+          it = find(m_mediator.m_DSCommittee->begin(),
+                    m_mediator.m_DSCommittee->end(),
+                    make_pair(faultyLeader.first, Peer()));
+        } else {
+          it = find(m_mediator.m_DSCommittee->begin(),
+                    m_mediator.m_DSCommittee->end(), faultyLeader);
+        }
 
         // Remove faulty leader from the current
         if (it != m_mediator.m_DSCommittee->end()) {
           m_mediator.m_DSCommittee->erase(it);
         } else {
-          LOG_GENERAL(WARNING, "Cannot find the ds leader to eject");
+          LOG_GENERAL(WARNING, "Cannot find " << faultyLeader.second << " to eject");
           // TODO: Handle this situation. This siutation shouldn't be
           // encountered at all
         }
-        m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+
+        // Add to the back of the ds commitee deque
+        if (faultyLeader.second == m_mediator.m_selfPeer) {
+          m_mediator.m_DSCommittee->emplace_back(
+              make_pair(faultyLeader.first, Peer()));
+        } else {
+          m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+        }
       }
 
       // Re-calculate the new m_consensusMyID
