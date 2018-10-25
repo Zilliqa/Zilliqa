@@ -1962,6 +1962,7 @@ bool Messenger::SetDSFinalBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+    const shared_ptr<MicroBlock>& microBlock,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -1971,6 +1972,9 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 
   DSFinalBlockAnnouncement* finalblock = announcement.mutable_finalblock();
   TxBlockToProtobuf(txBlock, *finalblock->mutable_txblock());
+  if (microBlock != nullptr) {
+    MicroBlockToProtobuf(*microBlock, *finalblock->mutable_microblock());
+  }
 
   if (!finalblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "DSFinalBlockAnnouncement initialization failed.");
@@ -2004,6 +2008,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, TxBlock& txBlock,
+    shared_ptr<MicroBlock>& microBlock,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -2033,6 +2038,12 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 
   const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
   ProtobufToTxBlock(finalblock.txblock(), txBlock);
+
+  if (finalblock.has_microblock()) {
+    ProtobufToMicroBlock(finalblock.microblock(), *microBlock);
+  } else {
+    microBlock = nullptr;
+  }
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus

@@ -243,7 +243,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
   lock_guard<mutex> g(m_mutexMicroBlocks);
 
-  if (m_dsStartedMicroblockConsensus) {
+  if (m_stopRecvNewMBSubmission) {
     LOG_GENERAL(WARNING,
                 "DS microblock consensus already started, ignore this "
                 "microblock submission");
@@ -288,31 +288,12 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                               << mb.GetHeader().GetStateDeltaHash());
     }
 
-    // m_mediator.m_node->RunConsensusOnMicroBlock();
+    m_stopRecvNewMBSubmission = true;
+    cv_scheduleDSMicroBlockConsensus.notify_all();
 
-    auto func = [this]() mutable -> void {
-      m_dsStartedMicroblockConsensus = true;
-      cv_scheduleDSMicroBlockConsensus.notify_all();
-      m_mediator.m_node->RunConsensusOnMicroBlock();
-    };
+    auto func = [this]() mutable -> void { RunConsensusOnFinalBlock(); };
 
     DetachedFunction(1, func);
-
-    auto func2 = [this]() mutable -> void {
-      std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-      if (cv_scheduleFinalBlockConsensus.wait_for(
-              cv_lk,
-              std::chrono::seconds(DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING,
-                    "Timeout: Didn't finish DS Microblock. Proceeds "
-                    "without it");
-
-        RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
-      }
-    };
-
-    DetachedFunction(1, func2);
   } else if (microBlocks.size() == 1) {
     LOG_STATE(
         "[MICRO]["
@@ -483,10 +464,12 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       }
 
       // Verify the co-signature
-      if (!VerifyMicroBlockCoSignature(microBlock, shardId)) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Microblock co-sig verification failed");
-        continue;
+      if (shardId != m_mediator.m_node->m_myshardId) {
+        if (!VerifyMicroBlockCoSignature(microBlock, shardId)) {
+          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Microblock co-sig verification failed");
+          continue;
+        }
       }
 
       {
@@ -577,7 +560,6 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
                   "AccountStore::GetInstance().DeserializeDelta failed");
       return false;
     }
-    AccountStore::GetInstance().SerializeDelta();
   } else {
     LOG_GENERAL(INFO,
                 "State Delta Hash is empty, skip processing final state delta");
