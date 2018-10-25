@@ -80,7 +80,7 @@ class ConsensusBackup : public ConsensusCommon {
   bool ProcessMessageChallenge(const std::vector<unsigned char>& challenge,
                                unsigned int offset);
   bool GenerateResponseMessage(std::vector<unsigned char>& response,
-                               unsigned int offset, uint8_t subsetID);
+                               unsigned int offset, uint16_t subsetID);
   bool ProcessMessageCollectiveSigCore(
       const std::vector<unsigned char>& collectivesig, unsigned int offset,
       Action action, State nextstate);

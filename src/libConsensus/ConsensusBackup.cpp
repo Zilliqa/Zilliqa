@@ -208,7 +208,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 
   CommitPoint aggregated_commit;
   PubKey aggregated_key;
-  uint8_t subsetID = 0;
+  uint16_t subsetID = 0;
 
   if (!Messenger::GetConsensusChallenge(
           challenge, offset, m_consensusID, m_blockNumber, subsetID,
@@ -282,7 +282,7 @@ bool ConsensusBackup::ProcessMessageChallenge(
 
 bool ConsensusBackup::GenerateResponseMessage(vector<unsigned char>& response,
                                               unsigned int offset,
-                                              uint8_t subsetID) {
+                                              uint16_t subsetID) {
   LOG_MARKER();
 
   // Assemble response message body

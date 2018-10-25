@@ -109,11 +109,11 @@ class ConsensusLeader : public ConsensusCommon {
 
   // Internal functions
   bool CheckState(Action action);
-  bool CheckStateSubset(uint8_t subsetID, Action action);
-  void SetStateSubset(uint8_t subsetID, State newState);
+  bool CheckStateSubset(uint16_t subsetID, Action action);
+  void SetStateSubset(uint16_t subsetID, State newState);
   void GenerateConsensusSubsets();
   void StartConsensusSubsets();
-  void SubsetEnded(uint8_t subsetID);
+  void SubsetEnded(uint16_t subsetID);
   bool ProcessMessageCommitCore(const std::vector<unsigned char>& commit,
                                 unsigned int offset, Action action,
                                 ConsensusMessageType returnmsgtype,
@@ -124,7 +124,7 @@ class ConsensusLeader : public ConsensusCommon {
       const std::vector<unsigned char>& commitFailureMsg, unsigned int offset,
       const Peer& from);
   bool GenerateChallengeMessage(std::vector<unsigned char>& challenge,
-                                unsigned int offset, uint8_t subsetID);
+                                unsigned int offset, uint16_t subsetID);
   bool ProcessMessageResponseCore(const std::vector<unsigned char>& response,
                                   unsigned int offset, Action action,
                                   ConsensusMessageType returnmsgtype,
@@ -132,7 +132,7 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessageResponse(const std::vector<unsigned char>& response,
                               unsigned int offset);
   bool GenerateCollectiveSigMessage(std::vector<unsigned char>& collectivesig,
-                                    unsigned int offset, uint8_t subsetID);
+                                    unsigned int offset, uint16_t subsetID);
   bool ProcessMessageFinalCommit(const std::vector<unsigned char>& finalcommit,
                                  unsigned int offset);
   bool ProcessMessageFinalResponse(

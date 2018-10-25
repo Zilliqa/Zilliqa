@@ -4273,7 +4273,7 @@ bool Messenger::GetConsensusCommit(
 bool Messenger::SetConsensusChallenge(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const uint8_t subsetID, const vector<unsigned char>& blockHash,
+    const uint16_t subsetID, const vector<unsigned char>& blockHash,
     const uint16_t leaderID, const CommitPoint& aggregatedCommit,
     const PubKey& aggregatedKey, const Challenge& challenge,
     const pair<PrivKey, PubKey>& leaderKey) {
@@ -4323,7 +4323,7 @@ bool Messenger::SetConsensusChallenge(
 
 bool Messenger::GetConsensusChallenge(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const uint64_t blockNumber, uint8_t& subsetID,
+    const uint32_t consensusID, const uint64_t blockNumber, uint16_t& subsetID,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     CommitPoint& aggregatedCommit, PubKey& aggregatedKey, Challenge& challenge,
     const PubKey& leaderKey) {
@@ -4405,7 +4405,7 @@ bool Messenger::GetConsensusChallenge(
 bool Messenger::SetConsensusResponse(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const uint8_t subsetID, const vector<unsigned char>& blockHash,
+    const uint16_t subsetID, const vector<unsigned char>& blockHash,
     const uint16_t backupID, const Response& response,
     const pair<PrivKey, PubKey>& backupKey) {
   LOG_MARKER();
@@ -4451,7 +4451,7 @@ bool Messenger::GetConsensusResponse(
     const vector<unsigned char>& src, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, uint16_t& backupID,
-    uint8_t& subsetID, Response& response,
+    uint16_t& subsetID, Response& response,
     const deque<pair<PubKey, Peer>>& committeeKeys) {
   LOG_MARKER();
 

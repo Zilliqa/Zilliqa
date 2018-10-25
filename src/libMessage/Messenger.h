@@ -516,28 +516,28 @@ class Messenger {
   static bool SetConsensusChallenge(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const uint8_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
       const uint16_t leaderID, const CommitPoint& aggregatedCommit,
       const PubKey& aggregatedKey, const Challenge& challenge,
       const std::pair<PrivKey, PubKey>& leaderKey);
   static bool GetConsensusChallenge(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      const uint32_t consensusID, const uint64_t blockNumber, uint8_t& subsetID,
-      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-      CommitPoint& aggregatedCommit, PubKey& aggregatedKey,
-      Challenge& challenge, const PubKey& leaderKey);
+      const uint32_t consensusID, const uint64_t blockNumber,
+      uint16_t& subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t leaderID, CommitPoint& aggregatedCommit,
+      PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey);
 
   static bool SetConsensusResponse(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const uint8_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
       const uint16_t backupID, const Response& response,
       const std::pair<PrivKey, PubKey>& backupKey);
   static bool GetConsensusResponse(
       const std::vector<unsigned char>& src, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, uint16_t& backupID,
-      uint8_t& subsetID, Response& response,
+      uint16_t& subsetID, Response& response,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 
   static bool SetConsensusCollectiveSig(
