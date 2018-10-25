@@ -170,15 +170,6 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     LOG_GENERAL(WARNING, "Malformed Message");
     return false;
   }
-  BlockHash temp_blockHash = m_microblock->GetHeader().GetMyHash();
-  if (temp_blockHash != m_microblock->GetBlockHash()) {
-    LOG_GENERAL(WARNING,
-                "Block Hash in Newly received DS Block doesn't match. "
-                "Calculated: "
-                    << temp_blockHash
-                    << " Received: " << m_microblock->GetBlockHash().hex());
-    return false;
-  }
 
   uint32_t numOfAbsentHashes =
       Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
@@ -647,12 +638,11 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   if (!m_mediator.GetIsVacuousEpoch()) {
     ProcessTransactionWhenShardLeader();
+    AccountStore::GetInstance().SerializeDelta();
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Vacuous epoch: Skipping submit transactions");
   }
-
-  AccountStore::GetInstance().SerializeDelta();
 
   // composed microblock stored in m_microblock
   if (!ComposeMicroBlock()) {
@@ -911,10 +901,6 @@ bool Node::CheckMicroBlockshardId() {
     return true;
   }
 
-  // Check version (must be most current version)
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    return true;
-  }
   if (m_microblock->GetHeader().GetShardId() != m_myshardId) {
     LOG_GENERAL(WARNING, "shardId check failed. Expected: "
                              << m_myshardId << " Actual: "
@@ -1226,6 +1212,39 @@ bool Node::CheckMicroBlockTranReceiptHash() {
   return true;
 }
 
+bool Node::CheckMicroBlockValidity(vector<unsigned char>& errorMsg) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::CheckMicroBlockValidity not expected to "
+                "be called from LookUp node.");
+    return true;
+  }
+
+  LOG_MARKER();
+
+  if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion() ||
+      !CheckMicroBlockshardId() || !CheckMicroBlockTimestamp() ||
+      !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash() ||
+      !CheckMicroBlockStateDeltaHash() || !CheckMicroBlockTranReceiptHash()) {
+    // LOG_GENERAL(INFO, "To-do: What to do if proposed microblock is not
+    // valid?");
+    return false;
+  }
+
+  // Check gas limit (must satisfy some equations)
+  // Check gas used (must be <= gas limit)
+  // Check state root (TBD)
+  // Check pubkey (must be valid and = shard leader)
+  // Check parent DS hash (must be = digest of last DS block header in the DS
+  // blockchain) Need some rework to be able to access DS blockchain (or we
+  // switch to using the persistent storage lib) Check parent DS block number
+  // (must be = block number of last DS block header in the DS blockchain) Need
+  // some rework to be able to access DS blockchain (or we switch to using the
+  // persistent storage lib)
+
+  return true;
+}
+
 bool Node::MicroBlockValidator(const vector<unsigned char>& message,
                                unsigned int offset,
                                vector<unsigned char>& errorMsg,
@@ -1263,29 +1282,14 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
     return false;
   }
 
-  if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion() ||
-      !CheckMicroBlockshardId() || !CheckMicroBlockTimestamp() ||
-      !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash() ||
-      !CheckMicroBlockStateDeltaHash() || !CheckMicroBlockTranReceiptHash()) {
+  if (!CheckMicroBlockValidity(errorMsg)) {
     m_microblock = nullptr;
     Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
                                       m_mediator.m_selfPeer.m_listenPortHost,
                                       sizeof(uint32_t));
-    // LOG_GENERAL(INFO, "To-do: What to do if proposed microblock is not
-    // valid?");
+    LOG_GENERAL(WARNING, "CheckMicroBlockValidity Failed");
     return false;
   }
-
-  // Check gas limit (must satisfy some equations)
-  // Check gas used (must be <= gas limit)
-  // Check state root (TBD)
-  // Check pubkey (must be valid and = shard leader)
-  // Check parent DS hash (must be = digest of last DS block header in the DS
-  // blockchain) Need some rework to be able to access DS blockchain (or we
-  // switch to using the persistent storage lib) Check parent DS block number
-  // (must be = block number of last DS block header in the DS blockchain) Need
-  // some rework to be able to access DS blockchain (or we switch to using the
-  // persistent storage lib)
 
   return true;
 }

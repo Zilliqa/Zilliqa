@@ -248,7 +248,8 @@ message DSDSBlockAnnouncement
 
 message DSFinalBlockAnnouncement
 {
-    required ProtoTxBlock txblock = 1;
+    required ProtoTxBlock txblock       = 1;
+    optional ProtoMicroBlock microblock = 2;
 }
 
 message DSVCBlockAnnouncement

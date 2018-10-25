@@ -188,7 +188,8 @@ bool DirectoryService::ComposeFinalBlock() {
   return true;
 }
 
-bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
+bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
+    const RunFinalBlockConsensusOptions& options) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -202,6 +203,34 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   // I guess only the leader has to do this
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the leader DS node. Creating final block.");
+
+  if (options == NORMAL ||
+      (options == FROM_VIEWCHANGE && m_needCheckMicroBlock)) {
+    m_skippedDSMB = false;
+
+    if (!m_mediator.GetIsVacuousEpoch()) {
+      m_mediator.m_node->ProcessTransactionWhenShardLeader();
+      AccountStore::GetInstance().SerializeDelta();
+    }
+    AccountStore::GetInstance().CommitTempReversible();
+
+    if (!m_mediator.m_node->ComposeMicroBlock()) {
+      LOG_GENERAL(WARNING, "DS ComposeMicroBlock Failed");
+      m_mediator.m_node->m_microblock = nullptr;
+    } else {
+      m_microBlocks[m_mediator.m_currentEpochNum].emplace(
+          *(m_mediator.m_node->m_microblock));
+    }
+  } else if (options == SKIP_DSMICROBLOCK) {
+    if (m_mediator.m_node->m_microblock != nullptr) {
+      auto iter = m_microBlocks[m_mediator.m_currentEpochNum].find(
+          *(m_mediator.m_node->m_microblock));
+      if (iter != m_microBlocks[m_mediator.m_currentEpochNum].end()) {
+        m_microBlocks[m_mediator.m_currentEpochNum].erase(iter);
+      }
+      m_mediator.m_node->m_microblock = nullptr;
+    }
+  }
 
   // stores it in m_finalBlock
   if (!ComposeFinalBlock()) {
@@ -222,18 +251,39 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto nodeMissingMicroBlocksFunc = [this](
-                                        const vector<unsigned char>& errorMsg,
-                                        const Peer& from) mutable -> bool {
-    return OnNodeMissingMicroBlocks(errorMsg, from);
+  auto commitErrorFunc = [this](const vector<unsigned char>& errorMsg,
+                                const Peer& from) mutable -> bool {
+    return OnNodeFinalConsensusError(errorMsg, from);
+  };
+
+  m_numForDSMBConsFail = 0;
+
+  auto commitFailureFunc =
+      [this]([[gnu::unused]] const map<unsigned int, vector<unsigned char>>&
+                 m) mutable -> bool {
+    lock_guard<mutex> g(m_mutexCommitFailure);
+    if (m_numForDSMBConsFail >=
+            m_consensusObject->GetNumForConsensusFailure() &&
+        !m_skippedDSMB) {
+      // Enough failure received due to ds microblock
+      // Rerun Finalblock without ds microblock
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Enough error commit for ds microblock received, skip ds block "
+                "and rerun finalblock consensus");
+      m_skippedDSMB = true;
+      RunConsensusOnFinalBlock(SKIP_DSMICROBLOCK);
+    }
+
+    return true;
   };
 
   m_consensusObject.reset(new ConsensusLeader(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
       m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
-      static_cast<unsigned char>(FINALBLOCKCONSENSUS),
-      nodeMissingMicroBlocksFunc, ShardCommitFailureHandlerFunc()));
+      static_cast<unsigned char>(FINALBLOCKCONSENSUS), commitErrorFunc,
+      (options == SKIP_DSMICROBLOCK) ? ShardCommitFailureHandlerFunc()
+                                     : commitFailureFunc));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -261,7 +311,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
              vector<unsigned char>& messageToCosign) mutable -> bool {
     return Messenger::SetDSFinalBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
-        *m_finalBlock, messageToCosign);
+        *m_finalBlock, m_mediator.m_node->m_microblock, messageToCosign);
   };
 
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
@@ -591,6 +641,58 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   }
 
   return ret;
+}
+
+bool DirectoryService::OnNodeFinalConsensusError(
+    const vector<unsigned char>& errorMsg, const Peer& from) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::OnNodeFailFinalConsensus not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
+
+  LOG_MARKER();
+
+  unsigned int offset = 0;
+
+  if (errorMsg.size() < sizeof(unsigned char)) {
+    LOG_GENERAL(WARNING, "Malformed Message");
+    LOG_PAYLOAD(INFO, "errorMsg from " << from, errorMsg, 200);
+    LOG_GENERAL(INFO, "MsgSize: " << errorMsg.size() << " expected size: "
+                                  << sizeof(unsigned char) + offset);
+    return false;
+  }
+
+  unsigned char type = errorMsg[0];
+  offset += sizeof(unsigned char);
+
+  vector<unsigned char> t_errorMsg;
+  std::copy(errorMsg.begin() + offset, errorMsg.end(),
+            back_inserter(t_errorMsg));
+
+  switch (type) {
+    case FINALCONSENSUSERRORTYPE::CHECKMICROBLOCK: {
+      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      ++m_numForDSMBConsFail;
+      return true;
+    }
+    case FINALCONSENSUSERRORTYPE::DSMBMISSINGTXN: {
+      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      return m_mediator.m_node->OnNodeMissingTxns(t_errorMsg, from);
+    }
+    case FINALCONSENSUSERRORTYPE::CHECKFINALBLOCK: {
+      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      return true;
+    }
+    case FINALCONSENSUSERRORTYPE::DSFBMISSINGMB: {
+      LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
+      return OnNodeMissingMicroBlocks(t_errorMsg, from);
+    }
+    default:
+      LOG_GENERAL(WARNING, "Wrong Consensus Error Type");
+      return false;
+  }
 }
 
 bool DirectoryService::OnNodeMissingMicroBlocks(
@@ -923,14 +1025,52 @@ bool DirectoryService::CheckFinalBlockValidity(
   return true;
 }
 
+bool DirectoryService::CheckMicroBlockValidity(
+    vector<unsigned char>& errorMsg) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::CheckMicroBlockValidity not expected to "
+                "be called from LookUp node.");
+    return true;
+  }
+
+  LOG_MARKER();
+
+  bool ret = true;
+
+  // Check whether microblock is in TxBlock
+  if (m_finalBlock->GetMicroBlockHashes().end() ==
+      std::find(m_finalBlock->GetMicroBlockHashes().begin(),
+                m_finalBlock->GetMicroBlockHashes().end(),
+                m_mediator.m_node->m_microblock->GetBlockHash())) {
+    LOG_GENERAL(WARNING, "Microblock attached is not found in finalblock");
+    ret = false;
+  }
+
+  if (ret && m_mediator.m_node->CheckMicroBlockValidity(errorMsg)) {
+    LOG_GENERAL(WARNING, "Microblock validation failed");
+    ret = false;
+  }
+
+  if (!ret) {
+    m_mediator.m_node->m_microblock = nullptr;
+    Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
+                                      m_mediator.m_selfPeer.m_listenPortHost,
+                                      sizeof(uint32_t));
+  } else {
+    m_microBlocks[m_mediator.m_currentEpochNum].emplace(
+        *(m_mediator.m_node->m_microblock));
+  }
+
+  return ret;
+}
+
 bool DirectoryService::FinalBlockValidator(
     const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    vector<unsigned char>& errorMsg, const uint32_t consensusID,
     const uint64_t blockNumber, const vector<unsigned char>& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey,
     vector<unsigned char>& messageToCosign) {
-  LOG_MARKER();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FinalBlockValidator not expected to be "
@@ -938,21 +1078,59 @@ bool DirectoryService::FinalBlockValidator(
     return true;
   }
 
+  LOG_MARKER();
+
   m_finalBlock.reset(new TxBlock);
 
   if (!Messenger::GetDSFinalBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
-          leaderKey, *m_finalBlock, messageToCosign)) {
+          leaderKey, *m_finalBlock, m_mediator.m_node->m_microblock,
+          messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSFinalBlockAnnouncement failed.");
     return false;
   }
 
+  bool deltaSerialized = false;
+
+  if (m_mediator.m_node->m_microblock != nullptr && m_needCheckMicroBlock) {
+    if (!CheckMicroBlockValidity(errorMsg)) {
+      LOG_GENERAL(WARNING,
+                  "TODO: DS CheckMicroBlockValidity Failed, what to do?");
+      if (m_consensusObject->GetConsensusErrorCode() ==
+          ConsensusCommon::MISSING_TXN) {
+        errorMsg.insert(errorMsg.begin(), DSMBMISSINGTXN);
+      } else {
+        m_consensusObject->SetConsensusErrorCode(
+            ConsensusCommon::INVALID_DS_MICROBLOCK);
+        errorMsg.insert(errorMsg.begin(), CHECKMICROBLOCK);
+      }
+      return false;
+    }
+
+    m_needCheckMicroBlock = false;
+    m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
+    AccountStore::GetInstance().SerializeDelta();
+    deltaSerialized = true;
+    AccountStore::GetInstance().GetSerializedDelta(
+        m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
+  }
+
+  if (!deltaSerialized) {
+    AccountStore::GetInstance().SerializeDelta();
+  }
+  AccountStore::GetInstance().CommitTempReversible();
   if (!CheckFinalBlockValidity(errorMsg)) {
     LOG_GENERAL(WARNING,
                 "To-do: What to do if proposed finalblock is not valid?");
+    if (m_consensusObject->GetConsensusErrorCode() ==
+        ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS) {
+      errorMsg.insert(errorMsg.begin(), DSFBMISSINGMB);
+    } else {
+      errorMsg.insert(errorMsg.begin(), CHECKFINALBLOCK);
+    }
     // throw exception();
-    // TODO: microblock is invalid
+    // TODO: finalblock is invalid
     return false;
   }
 
@@ -987,9 +1165,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
                 << m_consensusLeaderID << " "
                 << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second
                 << " my consensus id is " << m_consensusMyID);
-  // Create new consensus object
 
-  // Dummy values for now
+  // Create new consensus object
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
@@ -1020,6 +1197,22 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   return true;
 }
 
+void DirectoryService::SkipDSMicroBlock() {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::SkipDSMicroBlock not expected "
+                "to be called from LookUp node.");
+    return;
+  }
+
+  LOG_MARKER();
+  AccountStore::GetInstance().InitTemp();
+  AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
+  AccountStore::GetInstance().SerializeDelta();
+  AccountStore::GetInstance().RevertCommitTemp();
+  AccountStore::GetInstance().CommitTempReversible();
+}
+
 void DirectoryService::RunConsensusOnFinalBlock(
     RunFinalBlockConsensusOptions options) {
   if (LOOKUP_NODE_MODE) {
@@ -1032,7 +1225,8 @@ void DirectoryService::RunConsensusOnFinalBlock(
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    if (CheckState(PROCESS_FINALBLOCKCONSENSUS) ||
+    if ((options != SKIP_DSMICROBLOCK &&
+         CheckState(PROCESS_FINALBLOCKCONSENSUS)) ||
         m_state == FINALBLOCK_CONSENSUS_PREP) {
       return;
     } else {
@@ -1054,17 +1248,30 @@ void DirectoryService::RunConsensusOnFinalBlock(
     m_mediator.m_node->PrepareGoodStateForFinalBlock();
 
     switch (options) {
-      case NORMAL:
-        AccountStore::GetInstance().SerializeDelta();
-        AccountStore::GetInstance().CommitTempReversible();
+      case NORMAL: {
+        m_needCheckMicroBlock = true;
+        m_toSendTxnToLookup = false;
+        m_stateDeltaWhenRunDSMB = m_stateDeltaFromShards;
+
+        if (m_mediator.GetIsVacuousEpoch()) {
+          // Coinbase
+          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "[CNBSE]");
+
+          InitCoinbase();
+          m_stateDeltaWhenRunDSMB.clear();
+          AccountStore::GetInstance().SerializeDelta();
+          AccountStore::GetInstance().GetSerializedDelta(
+              m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
+        }
         break;
-      case REVERT_STATEDELTA:
+      }
+      case SKIP_DSMICROBLOCK: {
         LOG_GENERAL(WARNING,
                     "Failed DS microblock consensus, revert state delta");
-        AccountStore::GetInstance().InitTemp();
-        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
-                                                         0);
+        SkipDSMicroBlock();
         break;
+      }
       case FROM_VIEWCHANGE:
       default:
         break;
@@ -1075,7 +1282,7 @@ void DirectoryService::RunConsensusOnFinalBlock(
     bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS) {
       this_thread::sleep_for(chrono::milliseconds(FINALBLOCK_DELAY_IN_MS));
-      ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
+      ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary(options);
       if (!ConsensusObjCreation) {
         LOG_GENERAL(WARNING,
                     "Consensus failed at "
@@ -1099,6 +1306,10 @@ void DirectoryService::RunConsensusOnFinalBlock(
     auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
 
     DetachedFunction(1, func1);
+  }
+
+  if (SKIP_DSMICROBLOCK) {
+    cv_viewChangeFinalBlock.notify_all();
   }
 
   auto func1 = [this]() -> void {

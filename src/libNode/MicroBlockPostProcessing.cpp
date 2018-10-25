@@ -283,19 +283,18 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     }
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Oops, no consensus reached - what to do now???");
+              "Oops, no consensus reached - consensus error. "
+              "error number: "
+                  << to_string(m_consensusObject->GetConsensusErrorCode())
+                  << " error message: "
+                  << (m_consensusObject->GetConsensusErrorMsg()));
 
     if (m_consensusObject->GetConsensusErrorCode() ==
         ConsensusCommon::MISSING_TXN) {
       // Missing txns in microblock proposed by leader. Will attempt to fetch
       // missing txns from leader, set to a valid state to accept cosig1 and
       // cosig2
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Oops, no consensus reached - consensus error. "
-                "error number: "
-                    << to_string(m_consensusObject->GetConsensusErrorCode())
-                    << " error message: "
-                    << (m_consensusObject->GetConsensusErrorMsg()));
+      LOG_GENERAL(INFO, "Start pending for fetching missing txns")
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
@@ -309,19 +308,13 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         m_consensusObject->RecoveryAndProcessFromANewState(
             ConsensusCommon::INITIAL);
 
-        auto rerunconsensus = [this, message, offset, from]() {
+        auto reprocessconsensus = [this, message, offset, from]() {
           ProcessMicroblockConsensusCore(message, offset, from);
         };
-        DetachedFunction(1, rerunconsensus);
+        DetachedFunction(1, reprocessconsensus);
         return true;
       }
     } else {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Oops, no consensus reached - unhandled consensus error. "
-                "error number: "
-                    << to_string(m_consensusObject->GetConsensusErrorCode())
-                    << " error message: "
-                    << m_consensusObject->GetConsensusErrorMsg());
     }
 
     // return false;
@@ -342,7 +335,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
                 "proceed to finalblock consensus");
       m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
       m_mediator.m_ds->RunConsensusOnFinalBlock(
-          DirectoryService::REVERT_STATEDELTA);
+          DirectoryService::SKIP_DSMICROBLOCK);
     }
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

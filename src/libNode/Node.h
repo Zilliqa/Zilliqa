@@ -103,14 +103,10 @@ class Node : public Executable, public Broadcastable {
   std::mutex m_MutexCVFBWaitMB;
   std::condition_variable cv_FBWaitMB;
 
-  std::mutex m_mutexCVMicroBlockMissingTxn;
-  std::condition_variable cv_MicroBlockMissingTxn;
-
   // Persistence Retriever
   std::shared_ptr<Retriever> m_retriever;
 
   std::vector<unsigned char> m_consensusBlockHash;
-  std::shared_ptr<MicroBlock> m_microblock;
   std::pair<uint64_t, CoSignatures> m_lastMicroBlockCoSig;
   std::mutex m_mutexMicroBlock;
 
@@ -284,14 +280,11 @@ class Node : public Executable, public Broadcastable {
                       unsigned int cur_offset, const Peer& from);
   bool ProcessVCBlockCore(const VCBlock& vcblock);
   // Transaction functions
-  bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                         const Peer& from);
   bool OnCommitFailure(
       const std::map<unsigned int, std::vector<unsigned char>>&);
 
   bool RunConsensusOnMicroBlockWhenShardLeader();
   bool RunConsensusOnMicroBlockWhenShardBackup();
-  bool ComposeMicroBlock();
   void SubmitMicroblockToDSCommittee() const;
   bool MicroBlockValidator(const std::vector<unsigned char>& message,
                            unsigned int offset,
@@ -314,11 +307,6 @@ class Node : public Executable, public Broadcastable {
 
   void BroadcastMicroBlockToLookup();
   bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes);
-
-  void ProcessTransactionWhenShardLeader();
-  bool ProcessTransactionWhenShardBackup(
-      const std::vector<TxnHash>& tranHashes,
-      std::vector<TxnHash>& missingtranHashes);
 
   // Fallback Consensus
   void FallbackTimerLaunch();
@@ -388,6 +376,11 @@ class Node : public Executable, public Broadcastable {
   // bool m_allMicroBlocksRecvd = true;
 
   std::shared_ptr<std::deque<std::pair<PubKey, Peer>>> m_myShardMembers;
+
+  std::shared_ptr<MicroBlock> m_microblock;
+
+  std::mutex m_mutexCVMicroBlockMissingTxn;
+  std::condition_variable cv_MicroBlockMissingTxn;
 
   // std::condition_variable m_cvNewRoundStarted;
   // std::mutex m_mutexNewRoundStarted;
@@ -496,6 +489,15 @@ class Node : public Executable, public Broadcastable {
   void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
+
+  void ProcessTransactionWhenShardLeader();
+  bool ProcessTransactionWhenShardBackup(
+      const std::vector<TxnHash>& tranHashes,
+      std::vector<TxnHash>& missingtranHashes);
+  bool ComposeMicroBlock();
+  bool CheckMicroBlockValidity(std::vector<unsigned char>& errorMsg);
+  bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
+                         const Peer& from);
 
   void UpdateStateForNextConsensusRound();
 

@@ -355,6 +355,11 @@ bool DirectoryService::CleanVariables() {
   m_allPoWConns.clear();
   m_mapNodeReputation.clear();
 
+  m_toSendTxnToLookup = false;
+  m_stopRecvNewMBSubmission = false;
+  m_needCheckMicroBlock = true;
+  m_startedRunFinalblockConsensus = false;
+
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();

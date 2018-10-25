@@ -160,6 +160,7 @@ class Messenger {
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
       const std::pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+      const std::shared_ptr<MicroBlock>& microBlock,
       std::vector<unsigned char>& messageToCosign);
 
   static bool GetDSFinalBlockAnnouncement(
@@ -167,6 +168,7 @@ class Messenger {
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
       const PubKey& leaderKey, TxBlock& txBlock,
+      std::shared_ptr<MicroBlock>& microBlock,
       std::vector<unsigned char>& messageToCosign);
 
   static bool SetDSVCBlockAnnouncement(

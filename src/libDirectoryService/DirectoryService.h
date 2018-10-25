@@ -86,6 +86,12 @@ class DirectoryService : public Executable, public Broadcastable {
   // Consensus variables
   std::shared_ptr<ConsensusCommon> m_consensusObject;
   std::vector<unsigned char> m_consensusBlockHash;
+  unsigned int m_numForDSMBConsFail;
+  std::atomic<bool> m_skippedDSMB;
+  std::mutex m_mutexCommitFailure;
+
+  /// Is it needed to validate the microblock in finalblock consensus
+  std::atomic<bool> m_needCheckMicroBlock;
 
   // PoW (DS block) consensus variables
   std::shared_ptr<DSBlock> m_pendingDSBlock;
@@ -233,7 +239,6 @@ class DirectoryService : public Executable, public Broadcastable {
   void CommitFinalBlockConsensusBuffer();
 
   // Final Block functions
-  bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool RunConsensusOnFinalBlockWhenDSBackup();
   bool ComposeFinalBlock();
   bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
@@ -259,10 +264,12 @@ class DirectoryService : public Executable, public Broadcastable {
                                    uint32_t shardId);
   bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,
                          const StateHash& microBlockStateDeltaHash);
+  void SkipDSMicroBlock();
 
   // FinalBlockValidator functions
   bool CheckBlockHash();
   bool CheckFinalBlockValidity(std::vector<unsigned char>& errorMsg);
+  bool CheckMicroBlockValidity(std::vector<unsigned char>& errorMsg);
   bool CheckBlockTypeIsFinal();
   bool CheckFinalBlockVersion();
   bool CheckPreviousFinalBlockHash();
@@ -275,9 +282,6 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckStateRoot();
   bool CheckStateDeltaHash();
   void LoadUnavailableMicroBlocks();
-
-  // Redundant code
-  // bool WaitForTxnBodies();
 
   // DS block consensus validator function
   bool DSBlockValidator(const std::vector<unsigned char>& message,
@@ -314,6 +318,8 @@ class DirectoryService : public Executable, public Broadcastable {
 
   void StoreFinalBlockToDisk();
 
+  bool OnNodeFinalConsensusError(const std::vector<unsigned char>& errorMsg,
+                                 const Peer& from);
   bool OnNodeMissingMicroBlocks(const std::vector<unsigned char>& errorMsg,
                                 const Peer& from);
 
@@ -349,6 +355,12 @@ class DirectoryService : public Executable, public Broadcastable {
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
+  enum RunFinalBlockConsensusOptions : unsigned char {
+    NORMAL = 0x00,
+    SKIP_DSMICROBLOCK,
+    FROM_VIEWCHANGE
+  };
+
   enum DirState : unsigned char {
     POW_SUBMISSION = 0x00,
     DSBLOCK_CONSENSUS_PREP,
@@ -361,12 +373,6 @@ class DirectoryService : public Executable, public Broadcastable {
     ERROR
   };
 
-  enum RunFinalBlockConsensusOptions : unsigned char {
-    NORMAL = 0x00,
-    REVERT_STATEDELTA,
-    FROM_VIEWCHANGE
-  };
-
   /// Transaction sharing assignments
   std::vector<Peer> m_DSReceivers;
   std::vector<std::vector<Peer>> m_shardReceivers;
@@ -375,6 +381,13 @@ class DirectoryService : public Executable, public Broadcastable {
   enum SUBMITMICROBLOCKTYPE : unsigned char {
     SHARDMICROBLOCK = 0x00,
     MISSINGMICROBLOCK = 0x01
+  };
+
+  enum FINALCONSENSUSERRORTYPE : unsigned char {
+    CHECKMICROBLOCK = 0x00,
+    DSMBMISSINGTXN = 0x01,
+    CHECKFINALBLOCK = 0x02,
+    DSFBMISSINGMB = 0x03
   };
 
   /// Sharing assignment for state delta
@@ -425,7 +438,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::atomic<bool> m_toSendTxnToLookup;
 
   /// Whether ds started microblock consensus
-  std::atomic<bool> m_dsStartedMicroblockConsensus;
+  std::atomic<bool> m_stopRecvNewMBSubmission;
 
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
@@ -538,6 +551,8 @@ class DirectoryService : public Executable, public Broadcastable {
   bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);
   uint32_t GetNumberOfDSPoWSolns();
   void ClearVCBlockVector();
+  bool RunConsensusOnFinalBlockWhenDSPrimary(
+      const RunFinalBlockConsensusOptions& options);
 };
 
 #endif  // __DIRECTORYSERVICE_H__
