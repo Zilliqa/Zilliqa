@@ -354,7 +354,7 @@ void Node::StartSynchronization() {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
       return;
     }
-    
+
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
