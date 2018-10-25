@@ -659,14 +659,6 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
                              << "Recvd call to send initial ds "
                              << " Unsupported");
 
-    /*if (!Messenger::SetLookupSetDSInfoFromSeed(
-            dsInfoMessage, MessageOffset::BODY, m_mediator.m_selfKey,
-            *m_mediator.m_initialDSCommittee, true)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Messenger::SetLookupSetDSInfoFromSeed failed.");
-      return false;
-    }*/
-
   }
 
   else {
@@ -1430,11 +1422,11 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
       }
     }
 
-    /*if (initialDS && !LOOKUP_NODE_MODE) {
+    if (initialDS && !LOOKUP_NODE_MODE) {
       LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                            << "Recvd inital ds config");
-      m_mediator.m_blocklinkchain.m_builtDsCommittee = move(dsNodes);
-    }*/
+                            << "Recvd inital ds config "<<"Call Unsupported");
+      return false;
+    }
 
     else {
       bool isVerif = true;
