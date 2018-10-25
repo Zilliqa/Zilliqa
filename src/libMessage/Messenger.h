@@ -109,6 +109,12 @@ class Messenger {
   static bool GetTransaction(const std::vector<unsigned char>& src,
                              const unsigned int offset,
                              Transaction& transaction);
+  static bool SetTransactionFileOffset(std::vector<unsigned char>& dst,
+                                       const unsigned int offset,
+                                       const std::vector<uint32_t>& txnOffsets);
+  static bool GetTransactionFileOffset(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       std::vector<uint32_t>& txnOffsets);
   static bool SetTransactionArray(std::vector<unsigned char>& dst,
                                   const unsigned int offset,
                                   const std::vector<Transaction>& txns);

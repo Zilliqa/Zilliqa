@@ -67,15 +67,35 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   std::string txn_filename(oss.str());
   std::ofstream txn_file(txn_filename, std::fstream::binary);
 
-  std::vector<Transaction> txns;
+  std::vector<unsigned char> txnBuff;
+  std::vector<uint32_t> txnOffsets;
+
   for (auto nonce = begin; nonce < end; nonce++) {
     Transaction txn{0, nonce, toAddr, std::make_pair(privKey, pubKey), nonce, 1,
                     1, {},    {}};
-    txns.push_back(txn);
+    txnOffsets.push_back(txnBuff.size());
+    if (!Messenger::SetTransaction(txnBuff, txnBuff.size(), txn)) {
+      std::cout << "Messenger::SetTransaction failed." << std::endl;
+      return;
+    }
+  }
+
+  // The number of txn offset is number of transaction + 1.
+  // So it is easiler to get the transaction size when read out.
+  txnOffsets.push_back(txnBuff.size());
+
+  std::vector<unsigned char> txnOffsetBuff;
+  if (!Messenger::SetTransactionFileOffset(txnOffsetBuff, 0, txnOffsets)) {
+    std::cout << "Messenger::SetTransactionFileOffset failed." << std::endl;
+    return;
   }
 
   std::vector<unsigned char> buf;
-  Messenger::SetTransactionArray(buf, 0, txns);
+  SerializableDataBlock::SetNumber<uint32_t>(buf, 0, txnOffsetBuff.size(),
+                                             sizeof(uint32_t));
+  buf.insert(buf.end(), txnOffsetBuff.begin(), txnOffsetBuff.end());
+  buf.insert(buf.end(), txnBuff.begin(), txnBuff.end());
+
   txn_file.write(reinterpret_cast<char*>(buf.data()), buf.size());
 
   if (txn_file) {

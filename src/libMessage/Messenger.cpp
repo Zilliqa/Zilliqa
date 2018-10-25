@@ -333,6 +333,21 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
                             amount, gasPrice, gasLimit, code, data, signature);
 }
 
+void TransactionOffsetToProtobuf(const std::vector<uint32_t>& txnOffsets,
+                                 ProtoTxnFileOffset& protoTxnFileOffset) {
+  for (const auto& offset : txnOffsets) {
+    protoTxnFileOffset.add_offsetinfile(offset);
+  }
+}
+
+void ProtobufToTransactionOffset(const ProtoTxnFileOffset& protoTxnFileOffset,
+                                 std::vector<uint32_t>& txnOffsets) {
+  txnOffsets.clear();
+  for (const auto& offset : protoTxnFileOffset.offsetinfile()) {
+    txnOffsets.push_back(offset);
+  }
+}
+
 void TransactionArrayToProtobuf(const std::vector<Transaction>& txns,
                                 ProtoTransactionArray& protoTransactionArray) {
   for (const auto& txn : txns) {
@@ -1939,6 +1954,34 @@ bool Messenger::GetTransaction(const std::vector<unsigned char>& src,
 
   ProtobufToTransaction(result, transaction);
 
+  return true;
+}
+
+bool Messenger::SetTransactionFileOffset(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const std::vector<uint32_t>& txnOffsets) {
+  ProtoTxnFileOffset result;
+  TransactionOffsetToProtobuf(txnOffsets, result);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction file offset initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTransactionFileOffset(const std::vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         std::vector<uint32_t>& txnOffsets) {
+  ProtoTxnFileOffset result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction file offset initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransactionOffset(result, txnOffsets);
   return true;
 }
 
