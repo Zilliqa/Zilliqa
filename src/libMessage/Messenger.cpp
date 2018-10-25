@@ -21,6 +21,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
@@ -227,6 +228,69 @@ void ProtobufToShardingStructure(
       ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
 
       shards.back().emplace_back(key, peer, proto_member.reputation());
+    }
+  }
+}
+
+void AnnouncementShardingStructureToProtobuf(
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
+    ProtoShardingStructureWithPoWSolns& protoShardingStructure) {
+  for (const auto& shard : shards) {
+    ProtoShardingStructureWithPoWSolns::Shard* proto_shard =
+        protoShardingStructure.add_shards();
+
+    for (const auto& node : shard) {
+      ProtoShardingStructureWithPoWSolns::Member* proto_member =
+          proto_shard->add_members();
+
+      const PubKey& key = std::get<SHARD_NODE_PUBKEY>(node);
+
+      SerializableToProtobufByteArray(key, *proto_member->mutable_pubkey());
+      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
+                                      *proto_member->mutable_peerinfo());
+      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
+
+      ProtoPoWSolution* proto_soln = proto_member->mutable_powsoln();
+      const auto soln = allPoWs.find(key);
+      proto_soln->set_nonce(soln->second.nonce);
+      proto_soln->set_result(soln->second.result.data(),
+                             soln->second.result.size());
+      proto_soln->set_mixhash(soln->second.mixhash.data(),
+                              soln->second.mixhash.size());
+    }
+  }
+}
+
+void ProtobufToShardingStructureAnnouncement(
+    const ProtoShardingStructureWithPoWSolns& protoShardingStructure,
+    DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
+  std::array<unsigned char, 32> result;
+  std::array<unsigned char, 32> mixhash;
+
+  for (const auto& proto_shard : protoShardingStructure.shards()) {
+    shards.emplace_back();
+
+    for (const auto& proto_member : proto_shard.members()) {
+      PubKey key;
+      Peer peer;
+
+      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
+      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
+
+      shards.back().emplace_back(key, peer, proto_member.reputation());
+
+      copy(proto_member.powsoln().result().begin(),
+           proto_member.powsoln().result().begin() +
+               min((unsigned int)proto_member.powsoln().result().size(),
+                   (unsigned int)result.size()),
+           result.begin());
+      copy(proto_member.powsoln().mixhash().begin(),
+           proto_member.powsoln().mixhash().begin() +
+               min((unsigned int)proto_member.powsoln().mixhash().size(),
+                   (unsigned int)mixhash.size()),
+           mixhash.begin());
+      allPoWs.emplace(
+          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash));
     }
   }
 }
@@ -1916,7 +1980,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
     const DequeOfShard& shards, const vector<Peer>& dsReceivers,
     const vector<vector<Peer>>& shardReceivers,
-    const vector<vector<Peer>>& shardSenders,
+    const vector<vector<Peer>>& shardSenders, const MapOfPubKeyPoW& allPoWs,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -1928,7 +1992,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
   DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
 
-  ShardingStructureToProtobuf(shards, *dsblock->mutable_sharding());
+  AnnouncementShardingStructureToProtobuf(shards, allPoWs,
+                                          *dsblock->mutable_sharding());
 
   TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
                                  *dsblock->mutable_assignments());
@@ -1968,7 +2033,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
     vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
-    vector<vector<Peer>>& shardSenders,
+    vector<vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -2004,7 +2069,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
 
-  ProtobufToShardingStructure(dsblock.sharding(), shards);
+  ProtobufToShardingStructureAnnouncement(dsblock.sharding(), shards, allPoWs);
 
   ProtobufToTxSharingAssignments(dsblock.assignments(), dsReceivers,
                                  shardReceivers, shardSenders);
