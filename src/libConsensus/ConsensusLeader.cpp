@@ -196,7 +196,7 @@ void ConsensusLeader::StartConsensusSubsets() {
                                        static_cast<unsigned char>(type)};
     bool result = GenerateChallengeMessage(
         challenge, MessageOffset::BODY + sizeof(unsigned char), index);
-    if (result == true) {
+    if (result) {
       // Update subset's internal state
       SetStateSubset(index, m_state);
 
@@ -497,7 +497,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                                     << "] Backup ID beyond backup count");
     return false;
   }
-  if (subset.m_commitMap.at(backupID) == false) {
+  if (!subset.m_commitMap.at(backupID)) {
     LOG_GENERAL(
         WARNING, "[Subset "
                      << subsetID << "] [Backup " << backupID
