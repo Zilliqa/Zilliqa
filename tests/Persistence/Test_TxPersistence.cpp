@@ -61,7 +61,8 @@ TxBlock constructDummyTxBlock(int instanceNum) {
                     BlockHash(), instanceNum, get_time_as_int(), BlockHash(),
                     StateHash(), StateHash(), 5, 6, pubKey1.second, instanceNum,
                     BlockHash(), CommitteeHash()),
-      vector<bool>(), vector<BlockHash>(6), CoSignatures());
+      vector<bool>(), vector<BlockHash>(6), vector<uint32_t>(6),
+      CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
