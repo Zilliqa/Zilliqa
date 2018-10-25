@@ -440,8 +440,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
 }
 
 bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
-  string downloadUrl =
-      "";
+  string downloadUrl = "";
   try {
     if (GET_INITIAL_DS_FROM_REPO) {
       DownloadFile("xml", downloadUrl.c_str());

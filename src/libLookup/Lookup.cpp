@@ -1403,104 +1403,102 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
   bool initialDS = false;
 
-  {
-    PubKey senderPubKey;
-    std::deque<std::pair<PubKey, Peer>> dsNodes;
-    if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
-                                               dsNodes, initialDS)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Messenger::GetLookupSetDSInfoFromSeed failed.");
+  PubKey senderPubKey;
+  std::deque<std::pair<PubKey, Peer>> dsNodes;
+  if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
+                                             dsNodes, initialDS)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupSetDSInfoFromSeed failed.");
+    return false;
+  }
+
+  if (!LOOKUP_NODE_MODE) {
+    if (!VerifyLookupNode(GetLookupNodes(), senderPubKey)) {
+      LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                "The message sender pubkey: "
+                    << senderPubKey << " is not in my lookup node list.");
       return false;
-    }
-
-    if (!LOOKUP_NODE_MODE) {
-      if (!VerifyLookupNode(GetLookupNodes(), senderPubKey)) {
-        LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "The message sender pubkey: "
-                      << senderPubKey << " is not in my lookup node list.");
-        return false;
-      }
-    }
-
-    if (initialDS && !LOOKUP_NODE_MODE) {
-      LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                            << "Recvd inital ds config "<<"Call Unsupported");
-      return false;
-    }
-
-    else {
-      bool isVerif = true;
-      {
-        lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-        *m_mediator.m_DSCommittee = dsNodes;
-      }
-
-      if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
-        lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
-        LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                              << "Recvd initial ds config");
-        if (dsNodes.size() != m_mediator.m_initialDSCommittee->size()) {
-          LOG_GENERAL(WARNING,
-                      "The initial ds comm recvd and from file differs "
-                          << dsNodes.size() << " "
-                          << m_mediator.m_initialDSCommittee->size());
-        }
-        unsigned int i = 0;
-        for (const auto& dsCommKey : dsNodes) {
-          if (!(m_mediator.m_initialDSCommittee->at(i) == dsCommKey.first)) {
-            LOG_GENERAL(WARNING,
-                        "The key from ds comm recvd and from file differs "
-                            << dsCommKey.first << " "
-                            << m_mediator.m_initialDSCommittee->at(i));
-          }
-          i++;
-        }
-
-        m_mediator.m_blocklinkchain.m_builtDsCommittee = dsNodes;
-      }
-
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "ProcessSetDSInfoFromSeed sent by "
-                    << from << " for numPeers "
-                    << m_mediator.m_DSCommittee->size());
-
-      unsigned int i = 0;
-      for (auto& ds : *m_mediator.m_DSCommittee) {
-        if (m_syncType == SyncType::DS_SYNC &&
-            ds.second == m_mediator.m_selfPeer) {
-          ds.second = Peer();
-        }
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
-      }
-
-      if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() !=
-          m_mediator.m_DSCommittee->size()) {
-        isVerif = false;
-        LOG_GENERAL(WARNING,
-                    "Size of "
-                        << m_mediator.m_blocklinkchain.m_builtDsCommittee.size()
-                        << " " << m_mediator.m_DSCommittee->size()
-                        << " does not match");
-      }
-
-      for (i = 0; i < m_mediator.m_blocklinkchain.m_builtDsCommittee.size();
-           i++) {
-        if (m_mediator.m_DSCommittee->at(i) !=
-            m_mediator.m_blocklinkchain.m_builtDsCommittee.at(i)) {
-          LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
-          isVerif = false;
-          break;
-        }
-      }
-
-      if (isVerif) {
-        LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                              << " Sucess ");
-      }
     }
   }
+
+  if (initialDS && !LOOKUP_NODE_MODE) {
+    LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                          << "Recvd inital ds config "
+                          << "Call Unsupported");
+    return false;
+  }
+
+  else {
+    bool isVerif = true;
+
+    if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
+      lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
+      LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                            << "Recvd initial ds config");
+      if (dsNodes.size() != m_mediator.m_initialDSCommittee->size()) {
+        LOG_GENERAL(WARNING, "The initial ds comm recvd and from file differs "
+                                 << dsNodes.size() << " "
+                                 << m_mediator.m_initialDSCommittee->size());
+      }
+      unsigned int i = 0;
+      for (const auto& dsCommKey : dsNodes) {
+        if (!(m_mediator.m_initialDSCommittee->at(i) == dsCommKey.first)) {
+          LOG_GENERAL(WARNING,
+                      "The key from ds comm recvd and from file differs "
+                          << dsCommKey.first << " "
+                          << m_mediator.m_initialDSCommittee->at(i));
+        }
+        i++;
+      }
+
+      m_mediator.m_blocklinkchain.m_builtDsCommittee = dsNodes;
+    }
+
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    *m_mediator.m_DSCommittee = move(dsNodes);
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "ProcessSetDSInfoFromSeed sent by "
+                  << from << " for numPeers "
+                  << m_mediator.m_DSCommittee->size());
+
+    unsigned int i = 0;
+    for (auto& ds : *m_mediator.m_DSCommittee) {
+      if (m_syncType == SyncType::DS_SYNC &&
+          ds.second == m_mediator.m_selfPeer) {
+        ds.second = Peer();
+      }
+      LOG_EPOCH(
+          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
+    }
+
+    if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() !=
+        m_mediator.m_DSCommittee->size()) {
+      isVerif = false;
+      LOG_GENERAL(WARNING,
+                  "Size of "
+                      << m_mediator.m_blocklinkchain.m_builtDsCommittee.size()
+                      << " " << m_mediator.m_DSCommittee->size()
+                      << " does not match");
+    }
+
+    for (i = 0; i < m_mediator.m_blocklinkchain.m_builtDsCommittee.size();
+         i++) {
+      if (!(m_mediator.m_DSCommittee->at(i).first ==
+            m_mediator.m_blocklinkchain.m_builtDsCommittee.at(i).first)) {
+        LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
+        isVerif = false;
+        break;
+      }
+    }
+
+    if (isVerif) {
+      LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                            << " Sucess ");
+    }
+  }
+
   //    Data::GetInstance().SetDSPeers(dsPeers);
   //#endif // IS_LOOKUP_NODE
 
