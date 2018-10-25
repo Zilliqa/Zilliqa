@@ -111,5 +111,5 @@ done
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
 cmake --build ${dir} -- -j4
-./scripts/copyright_checker.sh
+./scripts/license_checker.sh
 [ ${run_clang_format_fix} -ne 0 ] && cmake --build ${dir} --target clang-format-fix
