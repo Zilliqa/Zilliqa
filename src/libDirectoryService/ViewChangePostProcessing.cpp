@@ -137,54 +137,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     // (original)
     //                    = 5 - 1 - 2 = 4
 
-    // bool isCurrentNodeFaulty = false;
     {
       lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
-
-      // for (unsigned int faultyLeaderIndex = 0;
-      //      faultyLeaderIndex < m_viewChangeCounter; faultyLeaderIndex++) {
-      //   LOG_GENERAL(INFO,
-      //               "Ejecting " << m_mediator.m_DSCommittee->front().second);
-
-      //   // Adjust ds commiteee
-      //   // Push the faulty leader to the back of the deque
-      //   m_mediator.m_DSCommittee->push_back(
-      //       m_mediator.m_DSCommittee->at(m_consensusLeaderID));
-      //   m_mediator.m_DSCommittee->erase(m_mediator.m_DSCommittee->begin() +
-      //                                   (m_consensusLeaderID - 1));
-
-      //   // Old implementation. To be removed.
-      //   //
-      //   m_mediator.m_DSCommittee->push_back(m_mediator.m_DSCommittee->front());
-      //   // m_mediator.m_DSCommittee->pop_front();
-
-      //   // Adjust faulty DS leader and/or faulty ds candidate leader
-      //   if (m_consensusMyID == faultyLeaderIndex) {
-      //     if (m_consensusMyID == 0) {
-      //       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-      //                 "Current node is a faulty DS leader and got ousted "
-      //                 "by the DS "
-      //                 "Committee");
-      //     } else {
-      //       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-      //                 "Current node is a faulty DS candidate leader and "
-      //                 "got ousted by the DS "
-      //                 "Committee");
-      //     }
-
-      //     // calculate (new) my consensus id for faulty ds nodes.
-      //     // Good ds nodes adjustment have already been done previously.
-      //     // m_consensusMyID = last index - num of time vc occur + faulty
-      //     index
-      //     // Need to add +1 at the end as vc counter begin at 1.
-      //     m_consensusMyID = (m_mediator.m_DSCommittee->size() - 1) -
-      //                       m_viewChangeCounter + faultyLeaderIndex + 1;
-      //     isCurrentNodeFaulty = true;
-      //     LOG_GENERAL(INFO, "New m_consensusMyID  is "
-      //                           << m_consensusMyID
-      //                           << ". New m_consensusLeaderID is "
-      //                           << m_consensusLeaderID);
-      //   }
 
       // Pushing faulty leader to back of the deque
       for (const auto& faultyLeader :
@@ -235,16 +189,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         // encountered at all
       }
     }
-    // Faulty node already adjusted. Hence, only adjust current node here if
-    // it is not faulty.
-    // if (!isCurrentNodeFaulty) {
-    //   LOG_GENERAL(INFO, "Old m_consensusMyID " << m_consensusMyID);
-    //   m_consensusMyID -= m_viewChangeCounter;
-    //   LOG_GENERAL(INFO, "New m_consensusMyID " << m_consensusMyID);
-    // }
-    // }
-    // m_consensusLeaderID =
-    //     0;  // Hotfix. https://github.com/Zilliqa/Issues/issues/212
 
     // Update the index for the new leader
     pair<PubKey, Peer> candidateLeaderInfo = make_pair(
