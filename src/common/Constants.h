@@ -100,6 +100,8 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
+const std::string dsNodeFile = "dsnodes.xml";
+
 extern const std::string SCILLA_ROOT;
 extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;

@@ -1440,18 +1440,16 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
                                  << dsNodes.size() << " "
                                  << m_mediator.m_initialDSCommittee->size());
       }
-      unsigned int i = 0;
-      for (const auto& dsCommKey : dsNodes) {
-        if (!(m_mediator.m_initialDSCommittee->at(i) == dsCommKey.first)) {
+      for (unsigned int i = 0; i < dsNodes.size(); i++) {
+        if (!(m_mediator.m_initialDSCommittee->at(i) == dsNodes.at(i).first)) {
           LOG_GENERAL(WARNING,
                       "The key from ds comm recvd and from file differs "
-                          << dsCommKey.first << " "
+                          << dsNodes.at(i).first << " "
                           << m_mediator.m_initialDSCommittee->at(i));
         }
-        i++;
       }
 
-      m_mediator.m_blocklinkchain.m_builtDsCommittee = dsNodes;
+      m_mediator.m_blocklinkchain.SetBuiltDSComm(dsNodes);
     }
 
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
@@ -1473,20 +1471,19 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
           "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
     }
 
-    if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() !=
+    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
         m_mediator.m_DSCommittee->size()) {
       isVerif = false;
       LOG_GENERAL(WARNING,
                   "Size of "
-                      << m_mediator.m_blocklinkchain.m_builtDsCommittee.size()
+                      << m_mediator.m_blocklinkchain.GetBuiltDSComm().size()
                       << " " << m_mediator.m_DSCommittee->size()
                       << " does not match");
     }
 
-    for (i = 0; i < m_mediator.m_blocklinkchain.m_builtDsCommittee.size();
-         i++) {
+    for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
       if (!(m_mediator.m_DSCommittee->at(i).first ==
-            m_mediator.m_blocklinkchain.m_builtDsCommittee.at(i).first)) {
+            m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
         LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
         isVerif = false;
         break;
@@ -2757,21 +2754,21 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   LOG_GENERAL(INFO, "[DSINFOVERIF]"
                         << "Recvd " << dirBlocks.size() << " from lookup");
   {
-    if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() == 0) {
+    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
       LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
       return true;
     }
 
     if (!m_mediator.m_validator->CheckDirBlocks(
-            dirBlocks, m_mediator.m_blocklinkchain.m_builtDsCommittee,
-            index_num, newDScomm)) {
+            dirBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), index_num,
+            newDScomm)) {
       LOG_GENERAL(WARNING, "Verification of ds information failed");
     } else {
       LOG_GENERAL(INFO, "[DSINFOVERIF]"
                             << "Verified successfully");
     }
 
-    m_mediator.m_blocklinkchain.m_builtDsCommittee = newDScomm;
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
   }
   uint64_t dsblocknumafter =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();

@@ -239,12 +239,12 @@ void Node::Init() {
   // m_committedTransactions.clear();
   AccountStore::GetInstance().Init();
 
-  m_mediator.m_blocklinkchain.m_builtDsCommittee.clear();
+  m_mediator.m_blocklinkchain.GetBuiltDSComm().clear();
   {
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
     if (m_mediator.m_initialDSCommittee->size() != 0) {
       for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
-        m_mediator.m_blocklinkchain.m_builtDsCommittee.push_back(
+        m_mediator.m_blocklinkchain.GetBuiltDSComm().emplace_back(
             make_pair(initDSCommKey, Peer()));
         // Set initial ds committee with null peer
       }
