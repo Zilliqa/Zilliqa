@@ -117,6 +117,12 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
+  LOG_GENERAL(INFO, "candidate leader is at index " << candidateLeaderIndex);
+  for (auto& i : *m_mediator.m_DSCommittee) {
+    LOG_GENERAL(
+        INFO, i.second << " " << DataConversion::SerializableToHexStr(i.first));
+  }
+
   if (!(m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
         m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey())) {
     LOG_GENERAL(
@@ -214,15 +220,13 @@ void DirectoryService::RunConsensusOnViewChange() {
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
 
-  m_viewChangeCounter =
-      (m_viewChangeCounter + 1) %
-      m_mediator.m_DSCommittee
-          ->size();  // TODO: To be change to a random node using VRF
+  m_viewChangeCounter += 1;
+  uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
 
   LOG_GENERAL(INFO,
               "The new consensus leader is at index "
-                  << to_string(m_viewChangeCounter) << " "
-                  << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
+                  << to_string(candidateLeaderIndex) << " "
+                  << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second);
 
   if (DEBUG_LEVEL >= 5) {
     for (auto& i : *m_mediator.m_DSCommittee) {
@@ -236,13 +240,15 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   // We compare with empty peer is due to the fact that DSCommittee for yourself
   // is 0.0.0.0 with port 0.
-  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer()) {
-    ConsensusObjCreation = RunConsensusOnViewChangeWhenCandidateLeader();
+  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second == Peer()) {
+    ConsensusObjCreation =
+        RunConsensusOnViewChangeWhenCandidateLeader(candidateLeaderIndex);
     if (!ConsensusObjCreation) {
       LOG_GENERAL(WARNING, "Error after RunConsensusOnDSBlockWhenDSPrimary");
     }
   } else {
-    ConsensusObjCreation = RunConsensusOnViewChangeWhenNotCandidateLeader();
+    ConsensusObjCreation =
+        RunConsensusOnViewChangeWhenNotCandidateLeader(candidateLeaderIndex);
     if (!ConsensusObjCreation) {
       LOG_GENERAL(WARNING,
                   "Error after "
@@ -279,7 +285,8 @@ void DirectoryService::ScheduleViewChangeTimeout() {
   }
 }
 
-bool DirectoryService::ComputeNewCandidateLeader() {
+bool DirectoryService::ComputeNewCandidateLeader(
+    const uint32_t candidateLeaderIndex) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComputeNewCandidateLeader not expected "
@@ -292,10 +299,13 @@ bool DirectoryService::ComputeNewCandidateLeader() {
   // Assemble VC block header
 
   LOG_GENERAL(
-      INFO, "Composing new vc block with vc count at " << m_viewChangeCounter);
-
-  uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
-  LOG_GENERAL(INFO, "Candidate leader is at index " << candidateLeaderIndex);
+      INFO,
+      "Composing new vc block with vc count at "
+          << m_viewChangeCounter << " and candidate leader is at index "
+          << candidateLeaderIndex << ". "
+          << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second << " "
+          << DataConversion::SerializableToHexStr(
+                 m_mediator.m_DSCommittee->at(candidateLeaderIndex).first));
 
   vector<pair<PubKey, Peer>> faultyLeaders;
 
@@ -332,7 +342,7 @@ bool DirectoryService::ComputeNewCandidateLeader() {
                 1,
             m_mediator.m_currentEpochNum, m_viewChangestate,
             candidateLeaderIndex, newLeaderNetworkInfo,
-            m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
+            m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
             m_viewChangeCounter, faultyLeaders, get_time_as_int(),
             committeeHash),
         CoSignatures()));
@@ -349,7 +359,6 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   // of ds committee
 
   // TODO: To handle multiple view change siutation
-
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   switch (m_viewChangestate) {
     case DSBLOCK_CONSENSUS:
@@ -377,7 +386,8 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   return candidateLeaderIndex;
 }
 
-bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
+bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
+    const uint32_t candidateLeaderIndex) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::"
@@ -427,7 +437,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the candidate leader DS node. Announcing to the rest.");
 
-  if (!ComputeNewCandidateLeader()) {
+  if (!ComputeNewCandidateLeader(candidateLeaderIndex)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DirectoryService::ComputeNewCandidateLeader failed");
     return false;
@@ -478,7 +488,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
   return true;
 }
 
-bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
+bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
+    const uint32_t candidateLeaderIndex) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -493,8 +504,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
             "I am a backup DS node (after view change). Waiting for view "
             "change announcement. "
             "Leader is at index  "
-                << m_viewChangeCounter << " "
-                << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
+                << candidateLeaderIndex << " "
+                << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second);
 
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
@@ -513,7 +524,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
   uint32_t consensusID = m_viewChangeCounter;
   m_consensusObject.reset(new ConsensusBackup(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
-      m_consensusMyID, m_viewChangeCounter, m_mediator.m_selfKey.first,
+      m_consensusMyID, candidateLeaderIndex, m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
       static_cast<unsigned char>(VIEWCHANGECONSENSUS), func));
 
