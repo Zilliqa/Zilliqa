@@ -34,20 +34,47 @@
 bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
                              unsigned int totalNum,
                              std::vector<Transaction>& txns) {
-  f.seekg(0, std::ios::end);
-  size_t fileSize = f.tellg();
   f.seekg(0, std::ios::beg);
-  std::vector<unsigned char> buffer(fileSize);
-  f.read((char*)&buffer[0], fileSize);
 
-  std::vector<Transaction> localTxns;
-  if (!Messenger::GetTransactionArray(buffer, 0, localTxns)) {
+  std::vector<unsigned char> buffOffsetInfo(sizeof(uint32_t));
+  f.read((char*)&buffOffsetInfo[0], sizeof(uint32_t));
+  uint32_t txnOffsetInfoSize = SerializableDataBlock::GetNumber<uint32_t>(
+      buffOffsetInfo, 0, sizeof(uint32_t));
+  if (txnOffsetInfoSize <= 0 && txnOffsetInfoSize >= 1000000) {
+    LOG_GENERAL(WARNING, "The txn offset information size" << txnOffsetInfoSize
+                                                           << " is invalid.");
     return false;
   }
 
-  if (startNum + totalNum <= localTxns.size()) {
-    txns = std::vector<Transaction>(localTxns.begin() + startNum,
-                                    localTxns.begin() + startNum + totalNum);
+  std::vector<unsigned char> buffTxnOffsets(txnOffsetInfoSize);
+  f.read((char*)&buffTxnOffsets[0], txnOffsetInfoSize);
+
+  uint32_t txnDataStart = f.tellg();
+
+  std::vector<uint32_t> txnOffsets;
+  if (!Messenger::GetTransactionFileOffset(buffTxnOffsets, 0, txnOffsets)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransactionFileOffset failed.");
+    return false;
+  }
+
+  if (txnOffsets.empty()) {
+    LOG_GENERAL(WARNING, "The transaction offset information is empty.");
+    return false;
+  }
+
+  f.seekg(txnDataStart + txnOffsets[startNum], std::ios::beg);
+  for (unsigned int i = startNum;
+       i < startNum + totalNum && i < (txnOffsets.size() - 1); ++i) {
+    uint32_t txnSize = txnOffsets[i + 1] - txnOffsets[i];
+    std::vector<unsigned char> buffTxn(txnSize);
+    f.read((char*)&buffTxn[0], txnSize);
+
+    Transaction txn;
+    if (!Messenger::GetTransaction(buffTxn, 0, txn)) {
+      LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
+      return false;
+    }
+    txns.push_back(txn);
   }
 
   return true;

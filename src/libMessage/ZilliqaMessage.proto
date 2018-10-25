@@ -72,6 +72,11 @@ message ProtoTransaction
     required ByteArray signature        = 3;
 }
 
+message ProtoTxnFileOffset
+{
+    repeated uint32 offsetinfile = 1;
+}
+
 message ProtoTransactionArray
 {
     repeated ProtoTransaction transactions = 1;
