@@ -146,7 +146,7 @@ class ConsensusLeader : public ConsensusCommon {
   bool ProcessMessage(const std::vector<unsigned char>& message,
                       unsigned int offset, const Peer& from);
 
-  unsigned int GetNumForConsensusFailure() override;
+  unsigned int GetNumForConsensusFailure() { return m_numForConsensusFailure; }
 
  private:
   static std::map<Action, std::string> ActionStrings;

@@ -623,10 +623,6 @@ bool ConsensusLeader::ProcessMessage(const vector<unsigned char>& message,
   return result;
 }
 
-unsigned int ConsensusLeader::GetNumForConsensusFailure() {
-  return m_numForConsensusFailure;
-}
-
 #define MAKE_LITERAL_PAIR(s) \
   { s, #s }
 

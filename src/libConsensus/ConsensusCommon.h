@@ -245,7 +245,7 @@ class ConsensusCommon {
   /// Returns a string representation of the current state
   std::string GetStateString() const;
 
-  virtual unsigned int GetNumForConsensusFailure() { return 0; }
+  virtual unsigned int GetNumForConsensusFailure() = 0;
 
  private:
   static std::map<State, std::string> ConsensusStateStrings;
