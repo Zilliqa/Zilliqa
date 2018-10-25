@@ -195,9 +195,11 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   unsigned int i = 0;
 
   for (const auto& kv : sortedPoWs) {
-    LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
-                                  << DataConversion::charArrToHexStr(kv.first)
-                                  << endl);
+    if (DEBUG_LEVEL >= 5) {
+      LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
+                                    << DataConversion::charArrToHexStr(kv.first)
+                                    << endl);
+    }
     const PubKey& key = kv.second;
     auto& shard =
         m_shards.at(min(i / m_mediator.GetShardSize(false), max_shard));
@@ -351,9 +353,11 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
            hashVec.begin() + BLOCK_HASH_SIZE);
       const vector<unsigned char>& sortHashVec =
           HashUtils::BytesToHash(hashVec);
-      LOG_GENERAL(INFO, "[DSSORT]"
-                            << DataConversion::Uint8VecToHexStr(sortHashVec)
-                            << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
+      if (DEBUG_LEVEL >= 5) {
+        LOG_GENERAL(INFO, "[DSSORT]"
+                              << DataConversion::Uint8VecToHexStr(sortHashVec)
+                              << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
+      }
       if (sortHashVec < vec) {
         LOG_GENERAL(WARNING,
                     "Bad PoW ordering found: "

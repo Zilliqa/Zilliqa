@@ -641,6 +641,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
         ProcessSendJob(job);
       }
     }
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
   };
   DetachedFunction(1, funcCheckSendQueue);
 
