@@ -137,9 +137,8 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
       LOG_GENERAL(WARNING, "Unable to load initial DS comm");
     }
   }
-#if 1  // clark
+
   P2PComm::GetInstance().SetSelfPeer(peer);
-#endif
 
   if (!m_n.Install(syncType, toRetrieveHistory)) {
     if (LOOKUP_NODE_MODE) {
@@ -157,10 +156,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   }
 
   LogSelfNodeInfo(key, peer);
-
-#if 0  // clark
-  P2PComm::GetInstance().SetSelfPeer(peer);
-#endif
 
   switch (syncType) {
     case SyncType::NO_SYNC:

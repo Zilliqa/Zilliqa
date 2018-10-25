@@ -444,9 +444,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     return false;
   }
 
-  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
-                                                    m_myshardId);
-
   if (shardingHash != dsblock.GetHeader().GetShardingHash()) {
     LOG_GENERAL(WARNING,
                 "Sharding structure hash in newly received DS Block doesn't "
@@ -473,6 +470,8 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   m_myshardId = shardId;
+  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
+                                                    m_myshardId);
 
   LogReceivedDSBlockDetails(dsblock);
 
