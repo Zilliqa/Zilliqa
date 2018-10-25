@@ -569,7 +569,7 @@ message ConsensusChallenge
         required uint64 blocknumber         = 2;
         required bytes blockhash            = 3; // 32 bytes
         required uint32 leaderid            = 4; // only lower 2 bytes used
-        required uint32 subsetid            = 5; // only lower 1 byte used
+        required uint32 subsetid            = 5; // only lower 2 byte used
         required ByteArray aggregatedcommit = 6;
         required ByteArray aggregatedkey    = 7;
         required ByteArray challenge        = 8;
@@ -585,8 +585,8 @@ message ConsensusResponse
         required uint32 consensusid      = 1;
         required uint64 blocknumber      = 2;
         required bytes blockhash         = 3; // 32 bytes
-        required uint32 backupid         = 4; // only lower 1 byte used
-        required uint32 subsetid         = 5;
+        required uint32 backupid         = 4; // only lower 2 byte used
+        required uint32 subsetid         = 5; // only lower 2 byte used
         required ByteArray response      = 6;
     }
     required ConsensusInfo consensusinfo = 1;

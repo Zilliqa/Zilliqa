@@ -63,7 +63,7 @@ bool ConsensusLeader::CheckState(Action action) {
   return true;
 }
 
-bool ConsensusLeader::CheckStateSubset(uint8_t subsetID, Action action) {
+bool ConsensusLeader::CheckStateSubset(uint16_t subsetID, Action action) {
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
 
   static const std::multimap<ConsensusCommon::State, Action> ACTIONS_FOR_STATE =
@@ -91,7 +91,7 @@ bool ConsensusLeader::CheckStateSubset(uint8_t subsetID, Action action) {
   return true;
 }
 
-void ConsensusLeader::SetStateSubset(uint8_t subsetID, State newState) {
+void ConsensusLeader::SetStateSubset(uint16_t subsetID, State newState) {
   LOG_MARKER();
   if ((newState == INITIAL) ||
       (newState > m_consensusSubsets.at(subsetID).m_state)) {
@@ -229,7 +229,7 @@ void ConsensusLeader::StartConsensusSubsets() {
     }
   }
 }
-void ConsensusLeader::SubsetEnded(uint8_t subsetID) {
+void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
   LOG_MARKER();
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
   if (subset.m_state == COLLECTIVESIG_DONE || subset.m_state == DONE) {
@@ -399,7 +399,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
 
 bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
                                                unsigned int offset,
-                                               uint8_t subsetID) {
+                                               uint16_t subsetID) {
   LOG_MARKER();
 
   // Generate challenge object
@@ -466,7 +466,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   // Format: [4-byte consensus id] [32-byte blockhash] [2-byte backup id]
   // [1-byte subset id] [32-byte response] [64-byte signature]
   uint16_t backupID = 0;
-  uint8_t subsetID = 0;
+  uint16_t subsetID = 0;
   Response r;
 
   if (!Messenger::GetConsensusResponse(response, offset, m_consensusID,
@@ -666,7 +666,7 @@ bool ConsensusLeader::ProcessMessageResponse(
 
 bool ConsensusLeader::GenerateCollectiveSigMessage(
     vector<unsigned char>& collectivesig, unsigned int offset,
-    uint8_t subsetID) {
+    uint16_t subsetID) {
   LOG_MARKER();
 
   // Generate collective signature object
