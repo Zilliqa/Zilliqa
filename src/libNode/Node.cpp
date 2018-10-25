@@ -421,6 +421,17 @@ void Node::WakeupForRecovery() {
     return;
   }
 
+  if (BROADCAST_GOSSIP_MODE) {
+    std::vector<Peer> peers;
+    for (const auto& i : *m_myShardMembers) {
+      if (i.second.m_listenPortHost != 0) {
+        peers.emplace_back(i.second);
+      }
+    }
+    // Initialize every start of DS Epoch
+    P2PComm::GetInstance().InitializeRumorManager(peers);
+  }
+
   SetState(WAITING_FINALBLOCK);
 }
 

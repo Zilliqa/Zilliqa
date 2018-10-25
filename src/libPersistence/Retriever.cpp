@@ -87,8 +87,14 @@ void Retriever::RetrieveDSBlocks(bool& result, const bool& wakeupForUpgrade) {
     }
   }
 
+  m_mediator.m_blocklinkchain.Reset();
+  uint64_t index = 0;
+
   for (const auto& block : blocks) {
     m_mediator.m_dsBlockChain.AddBlock(*block);
+    m_mediator.m_blocklinkchain.AddBlockLink(
+        index++, block->GetHeader().GetBlockNum(), BlockType::DS,
+        block->GetBlockHash());
   }
 
   result = true;
@@ -138,12 +144,8 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
     return;
   }
 
-#if 1  // clark
   /// Retrieve final block state delta and save coin base, from last DS epoch to
   /// current TX epoch
-#else
-  /// Retrieve state delta from last DS epoch to current TX epoch
-#endif
   for (const auto& block : blocks) {
     if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
       std::vector<unsigned char> stateDelta;
