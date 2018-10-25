@@ -204,7 +204,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         if (it != m_mediator.m_DSCommittee->end()) {
           m_mediator.m_DSCommittee->erase(it);
         } else {
-          LOG_GENERAL(WARNING, "Cannot find " << faultyLeader.second << " to eject");
+          LOG_GENERAL(WARNING,
+                      "Cannot find " << faultyLeader.second << " to eject");
           // TODO: Handle this situation. This siutation shouldn't be
           // encountered at all
         }
