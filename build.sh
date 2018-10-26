@@ -63,44 +63,20 @@ do
         echo "Build with VC test - Suspend DS leader for 3 times (before DS block consensus)"
     ;;
     vc3)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_TERMINATE_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Terminate DS leader for 1 time (before DS block consensus)"
-    ;;
-    vc4)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_TERMINATE_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Terminate DS leader for 3 times (before DS block consensus)"
-    ;;
-    vc5)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 1 time (before Final block consensus)"
     ;;
-    vc6)
+    vc4)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 3 times (before Final block consensus)"
     ;;
-    vc7)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_TERMINATE_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Terminate DS leader for 1 time (before Final block consensus)"
-    ;;
-    vc8)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_TERMINATE_3=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Terminate DS leader for 3 times (before Final block consensus)"
-    ;;
-    vc9)
+    vc5)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 1 time (before VC block consensus)"
     ;;
-    vc10)
+    vc6)
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 3 times (before VC block consensus)"
-    ;;
-    vc11)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_TERMINATE_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Terminate DS leader for 1 time (before VC block consensus)"
-    ;;
-    vc12)
-        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_TERMINATE_1=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with VC test - Terminate DS leader for 3 times (before VC block consensus)"
     ;;
     *)
         echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-12>]"
