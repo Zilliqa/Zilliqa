@@ -207,6 +207,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
   if (options == NORMAL ||
       (options == FROM_VIEWCHANGE && m_needCheckMicroBlock)) {
     m_skippedDSMB = false;
+    m_needCheckMicroBlock = false;
 
     if (!m_mediator.GetIsVacuousEpoch()) {
       m_mediator.m_node->ProcessTransactionWhenShardLeader();
