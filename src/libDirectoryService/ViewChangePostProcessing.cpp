@@ -112,30 +112,13 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   if (expectedLeader == newLeaderNetworkInfo) {
     if (newLeaderNetworkInfo == m_mediator.m_selfPeer) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "After view change, I am the new leader!");
+                "After view change, I am the new DS leader!");
       m_mode = PRIMARY_DS;
     } else {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "After view change, I am ds backup");
       m_mode = BACKUP_DS;
     }
-
-    // TODO: Update this description
-    // Kick ousted leader and/or faulty candidate leader to the back of the
-    // queue, waiting to be eject at the next ds epoch Suppose X1 - X3 are
-    // faulty ds nodes [X1][X2][X3][N1][N2] View change happen 3 times The view
-    // change will restructure the ds committee into this [X2][X3][N1][N2][X1]
-    // first vc. vc counter = 1 [X3][N1][N2][X1][X2] second vc. vc counter = 2
-    // [N1][N2][X1][X2][X3] third vc. vc counter = 3
-    // X1 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex
-    // (original)
-    //                    = 5 - 1 - 0 = 2
-    // X2 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex
-    // (original)
-    //                    = 5 - 1 - 1 = 3
-    // X3 m_consensusMyID = (size of ds committee) - 1 - faultyLeaderIndex
-    // (original)
-    //                    = 5 - 1 - 2 = 4
 
     {
       lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
