@@ -123,6 +123,7 @@ extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
+extern const unsigned int RECOVERY_SYNC_TIMEOUT;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
