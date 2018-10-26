@@ -244,8 +244,8 @@ void Node::Init() {
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
     if (m_mediator.m_initialDSCommittee->size() != 0) {
       for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
-        m_mediator.m_blocklinkchain.GetBuiltDSComm().emplace_back(
-            make_pair(initDSCommKey, Peer()));
+        m_mediator.m_blocklinkchain.GetBuiltDSComm().emplace_back(initDSCommKey,
+                                                                  Peer());
         // Set initial ds committee with null peer
       }
     } else {
