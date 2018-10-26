@@ -2946,7 +2946,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
       result = Messenger::SetNodeForwardTxnBlock(
           msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
-          m_mediator.m_selfKey, m_txnShardMap[i], mp.at(i));
+          m_mediator.m_selfKey, m_txnShardMap[i], mp[i]);
     }
 
     if (!result) {
