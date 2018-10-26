@@ -108,6 +108,28 @@ message ProtoTransaction
     required ByteArray signature        = 3;
 }
 
+message ProtoTxnFileOffset
+{
+    repeated uint32 offsetinfile = 1;
+}
+
+message ProtoTransactionArray
+{
+    repeated ProtoTransaction transactions = 1;
+}
+
+message ProtoTransactionReceipt
+{
+    required bytes receipt    = 1;
+    required ByteArray cumgas = 2;
+}
+
+message ProtoTransactionWithReceipt
+{
+    required ProtoTransaction transaction    = 1;
+    required ProtoTransactionReceipt receipt = 2;
+}
+
 message ProtoDSBlock
 {
     message DSBlockHashSet
@@ -335,11 +357,11 @@ message NodeVCBlock
 
 message NodeForwardTxnBlock
 {
-    required uint64 epochnumber     = 1;
-    required uint32 shardid         = 2;
-    required ByteArray pubkey       = 3;
-    repeated ByteArray transactions = 4;
-    required ByteArray signature    = 5;
+    required uint64 epochnumber            = 1;
+    required uint32 shardid                = 2;
+    required ByteArray pubkey              = 3;
+    repeated ProtoTransaction transactions = 4;
+    required ByteArray signature           = 5;
 }
 
 message NodeMicroBlockAnnouncement
