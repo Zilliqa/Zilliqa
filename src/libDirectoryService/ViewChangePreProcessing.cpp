@@ -354,25 +354,25 @@ bool DirectoryService::ComputeNewCandidateLeader(
 
 uint32_t DirectoryService::CalculateNewLeaderIndex() {
   // New leader is computed using the following
-  // If there no previous vc block, new candidate leader index is
+  // new candidate leader index is
   // H((finalblock or vc block), vc counter) % size
   // of ds committee
+  uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
+  BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
+  BlockType latestBlockType = get<BlockLinkIndex::BLOCKTYPE>(bl);
 
-  // TODO: To handle multiple view change siutation
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  switch (m_viewChangestate) {
-    case DSBLOCK_CONSENSUS:
-    case DSBLOCK_CONSENSUS_PREP:
-    case FINALBLOCK_CONSENSUS:
-    case FINALBLOCK_CONSENSUS_PREP:
-      sha2.Update(
-          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-      break;
-    case VIEWCHANGE_CONSENSUS:
-    case VIEWCHANGE_CONSENSUS_PREP:
-    default:
-      LOG_GENERAL(FATAL, "should not encounter view change consensus state")
-      break;
+  if (latestBlockType == BlockType::VC) {
+    VCBlockSharedPtr prevVCBlockptr;
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(bl), prevVCBlockptr)) {
+      LOG_GENERAL(WARNING, "could not get vc block "
+                               << get<BlockLinkIndex::BLOCKHASH>(bl));
+    }
+    sha2.Update(prevVCBlockptr->GetBlockHash().asBytes());
+  } else {
+    sha2.Update(
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
 
   vector<unsigned char> vcCounterBytes;
