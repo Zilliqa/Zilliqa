@@ -438,6 +438,12 @@ bool DirectoryService::ProcessFinalBlockConsensus(
   }
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
+    // don't buffer the Final block consensus message if i am non-ds node
+    if (m_mode == Mode::IDLE) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Ignoring final block consensus message");
+      return false;
+    }
     {
       lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
       m_finalBlockConsensusBuffer[consensus_id].push_back(

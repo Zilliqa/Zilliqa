@@ -258,28 +258,6 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
       lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
       cv_FBWaitMB.notify_all();
-    } else {
-      lock_guard<mutex> g(
-          m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
-      if (!m_mediator.m_ds->m_startedRunFinalblockConsensus) {
-        m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
-        AccountStore::GetInstance().SerializeDelta();
-        AccountStore::GetInstance().GetSerializedDelta(
-            m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
-        m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
-        {
-          lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
-          m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum].emplace(
-              *m_microblock);
-        }
-        if (!m_mediator.GetIsVacuousEpoch()) {
-          m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
-                                        m_microblock->GetB2(),
-                                        m_microblock->GetHeader().GetShardId());
-          m_mediator.m_ds->m_toSendTxnToLookup = true;
-        }
-      }
-      m_mediator.m_ds->RunConsensusOnFinalBlock();
     }
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
