@@ -294,7 +294,8 @@ bool DirectoryService::VerifyDifficulty() {
   return true;
 }
 
-bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
+bool DirectoryService::VerifyPoWOrdering(
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromTheLeader) {
   // Requires mutex for m_shards
   vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
   set<PubKey> keyset;
@@ -304,9 +305,9 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
-  constexpr float MISORDER_TOLERENCE = 0.02f;  // 2 Percent tolerance
+  constexpr float MISORDER_TOLERANCE = 0.02f;  // 2 Percent tolerance
   const uint32_t MAX_MISORDER_NODE =
-      std::ceil(m_allPoWs.size() * MISORDER_TOLERENCE);
+      std::ceil(m_allPoWs.size() * MISORDER_TOLERANCE);
 
   auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
   InjectPoWForDSNode(sortedPoWSolns,
@@ -337,8 +338,22 @@ bool DirectoryService::VerifyPoWOrdering(const DequeOfShard& shards) {
       if (it == sortedPoWSolns.cend()) {
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());
-        ret = false;
-        break;
+
+        LOG_GENERAL(INFO,
+                    "Checking for the key and PoW in the announcement...");
+
+        auto itLeaderMap = allPoWsFromTheLeader.find(toFind);
+        if (itLeaderMap != allPoWsFromTheLeader.end()) {
+          LOG_GENERAL(INFO,
+                      "TODO: Verify the PoW submission for this unknown node.");
+        } else {
+          LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
+          ret = false;
+        }
+
+        if (!ret) {
+          break;
+        }
       }
 
       auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
@@ -524,7 +539,7 @@ void DirectoryService::ComputeTxnSharingAssignments(
 VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs) {
   std::map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
   for (const auto& powsoln : mapOfPoWs) {
-    PoWOrderSorter[powsoln.second] = powsoln.first;
+    PoWOrderSorter[powsoln.second.result] = powsoln.first;
   }
 
   // Put it back to vector for easy manipilation and adjustment of the ordering
@@ -672,7 +687,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_pendingDSBlock, m_shards, m_DSReceivers, m_shardReceivers,
-        m_shardSenders, messageToCosign);
+        m_shardSenders, m_allPoWs, messageToCosign);
   };
 
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
@@ -747,10 +762,13 @@ bool DirectoryService::DSBlockValidator(
 
   m_pendingDSBlock.reset(new DSBlock);
 
+  MapOfPubKeyPoW allPoWsFromTheLeader;
+
   if (!Messenger::GetDSDSBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
-          m_tempShardReceivers, m_tempShardSenders, messageToCosign)) {
+          m_tempShardReceivers, m_tempShardSenders, allPoWsFromTheLeader,
+          messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
     return false;
@@ -844,7 +862,7 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  if (!VerifyPoWOrdering(m_tempShards)) {
+  if (!VerifyPoWOrdering(m_tempShards, allPoWsFromTheLeader)) {
     LOG_GENERAL(INFO, "Failed to verify ordering");
     return false;
   }

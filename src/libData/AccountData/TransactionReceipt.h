@@ -32,7 +32,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-class TransactionReceipt : public Serializable {
+class TransactionReceipt : public SerializableDataBlock {
   Json::Value m_tranReceiptObj = Json::nullValue;
   std::string m_tranReceiptStr;
   unsigned int m_serialized_size = 0;
@@ -40,21 +40,22 @@ class TransactionReceipt : public Serializable {
 
  public:
   TransactionReceipt();
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-  unsigned int GetSerializedSize() const { return m_serialized_size; }
+  bool Serialize(std::vector<unsigned char>& dst,
+                 unsigned int offset) const override;
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
   void SetResult(const bool& result);
   void SetCumGas(const boost::multiprecision::uint256_t& cumGas);
   void AddEntry(const LogEntry& entry);
   const std::string& GetString() const { return m_tranReceiptStr; }
-  const boost::multiprecision::uint256_t& GetCumGas() { return m_cumGas; }
+  void SetString(const std::string& tranReceiptStr);
+  const boost::multiprecision::uint256_t& GetCumGas() const { return m_cumGas; }
   void clear();
   const Json::Value& GetJsonValue() const { return m_tranReceiptObj; }
   void update();
 };
 
-class TransactionWithReceipt : public Serializable {
+class TransactionWithReceipt : public SerializableDataBlock {
   Transaction m_transaction;
   TransactionReceipt m_tranReceipt;
 
@@ -69,33 +70,12 @@ class TransactionWithReceipt : public Serializable {
   }
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const {
-    offset = m_transaction.Serialize(dst, offset);
-    offset = m_tranReceipt.Serialize(dst, offset);
-
-    return offset;
-  }
+  bool Serialize(std::vector<unsigned char>& dst,
+                 unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset) {
-    if (m_transaction.Deserialize(src, offset) == -1) {
-      return -1;
-    }
-    offset += m_transaction.GetSerializedSize();
-
-    if (m_tranReceipt.Deserialize(src, offset) == -1) {
-      return -1;
-    }
-    offset += m_tranReceipt.GetSerializedSize();
-    return 0;
-  }
-
-  /// Returns the size in bytes when serializing the transaction.
-  unsigned int GetSerializedSize() {
-    return m_transaction.GetSerializedSize() +
-           m_tranReceipt.GetSerializedSize();
-  }
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
 
   const Transaction& GetTransaction() const { return m_transaction; }
   const TransactionReceipt& GetTransactionReceipt() const {

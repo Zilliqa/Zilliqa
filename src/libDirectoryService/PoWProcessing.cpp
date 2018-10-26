@@ -184,20 +184,20 @@ bool DirectoryService::ProcessPoWSubmission(
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-      std::array<unsigned char, 32> winningHashArr =
-          DataConversion::HexStrToStdArray(resultingHash);
+      PoWSolution soln(nonce, DataConversion::HexStrToStdArray(resultingHash),
+                       DataConversion::HexStrToStdArray(mixHash));
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
-        m_allPoWs[submitterPubKey] = winningHashArr;
-      } else if (m_allPoWs[submitterPubKey] > winningHashArr) {
-        LOG_EPOCH(
-            INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Harder PoW result: "
-                << DataConversion::charArrToHexStr(winningHashArr)
-                << " overwrite the old PoW: "
-                << DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey]));
-        m_allPoWs[submitterPubKey] = winningHashArr;
+        m_allPoWs[submitterPubKey] = soln;
+      } else if (m_allPoWs[submitterPubKey].result > soln.result) {
+        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Harder PoW result: "
+                      << DataConversion::charArrToHexStr(soln.result)
+                      << " overwrite the old PoW: "
+                      << DataConversion::charArrToHexStr(
+                             m_allPoWs[submitterPubKey].result));
+        m_allPoWs[submitterPubKey] = soln;
       }
 
       uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
@@ -208,7 +208,7 @@ bool DirectoryService::ProcessPoWSubmission(
       }
 
       if (difficultyLevel == expectedDSDiff) {
-        AddDSPoWs(submitterPubKey, winningHashArr);
+        AddDSPoWs(submitterPubKey, soln);
       }
 
       UpdatePoWSubmissionCounterforNode(submitterPubKey);
@@ -253,8 +253,7 @@ void DirectoryService::ResetPoWSubmissionCounter() {
   m_AllPoWCounter.clear();
 }
 
-void DirectoryService::AddDSPoWs(PubKey Pubk,
-                                 std::array<unsigned char, 32> DSPOWSoln) {
+void DirectoryService::AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   m_allDSPoWs[Pubk] = DSPOWSoln;
 }
@@ -272,7 +271,7 @@ void DirectoryService::ClearDSPoWSolns() {
 std::array<unsigned char, 32> DirectoryService::GetDSPoWSoln(PubKey Pubk) {
   lock_guard<mutex> g(m_mutexAllDSPOWs);
   if (m_allDSPoWs.find(Pubk) != m_allDSPoWs.end()) {
-    return m_allDSPoWs[Pubk];
+    return m_allDSPoWs[Pubk].result;
   } else {
     LOG_GENERAL(WARNING, "No such element in m_allDSPoWs");
     return array<unsigned char, 32>();

@@ -112,7 +112,7 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
   return result;
 }
 
-PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map) {
+PubKey ConsensusCommon::AggregateKeys(const vector<bool>& peer_map) {
   LOG_MARKER();
 
   vector<PubKey> keys;
@@ -321,5 +321,13 @@ string ConsensusCommon::GetStateString() const {
     return "Unknown";
   } else {
     return ConsensusStateStrings.at(m_state);
+  }
+}
+
+string ConsensusCommon::GetStateString(const State state) const {
+  if (ConsensusStateStrings.find(state) == ConsensusStateStrings.end()) {
+    return "Unknown";
+  } else {
+    return ConsensusStateStrings.at(state);
   }
 }
