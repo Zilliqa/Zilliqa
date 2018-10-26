@@ -72,8 +72,8 @@ bool ConsensusLeader::CheckStateSubset(uint16_t subsetID, Action action) {
 
   bool found = false;
 
-  for (auto pos = ACTIONS_FOR_STATE.lower_bound(subset.m_state);
-       pos != ACTIONS_FOR_STATE.upper_bound(subset.m_state); pos++) {
+  for (auto pos = ACTIONS_FOR_STATE.lower_bound(subset.state);
+       pos != ACTIONS_FOR_STATE.upper_bound(subset.state); pos++) {
     if (pos->second == action) {
       found = true;
       break;
@@ -83,7 +83,9 @@ bool ConsensusLeader::CheckStateSubset(uint16_t subsetID, Action action) {
   if (!found) {
     LOG_GENERAL(WARNING, "SubsetID: " << subsetID << ", Action "
                                       << GetActionString(action)
-                                      << " not allowed in state "
+                                      << " not allowed in subset-state "
+                                      << GetStateString(subset.state)
+                                      << ", overall state: "
                                       << GetStateString());
     return false;
   }
@@ -94,8 +96,8 @@ bool ConsensusLeader::CheckStateSubset(uint16_t subsetID, Action action) {
 void ConsensusLeader::SetStateSubset(uint16_t subsetID, State newState) {
   LOG_MARKER();
   if ((newState == INITIAL) ||
-      (newState > m_consensusSubsets.at(subsetID).m_state)) {
-    m_consensusSubsets.at(subsetID).m_state = newState;
+      (newState > m_consensusSubsets.at(subsetID).state)) {
+    m_consensusSubsets.at(subsetID).state = newState;
   }
 }
 
@@ -126,34 +128,34 @@ void ConsensusLeader::GenerateConsensusSubsets() {
 
   for (unsigned int i = 0; i < numSubsets; i++) {
     ConsensusSubset& subset = m_consensusSubsets.at(i);
-    subset.m_commitMap.resize(m_committee.size());
-    fill(subset.m_commitMap.begin(), subset.m_commitMap.end(), false);
-    subset.m_commitPointMap.resize(m_committee.size());
-    subset.m_commitPoints.clear();
-    subset.m_responseCounter = 0;
-    subset.m_responseDataMap.resize(m_committee.size());
-    subset.m_responseMap.resize(m_committee.size());
-    fill(subset.m_responseMap.begin(), subset.m_responseMap.end(), false);
-    subset.m_responseData.clear();
+    subset.commitMap.resize(m_committee.size());
+    fill(subset.commitMap.begin(), subset.commitMap.end(), false);
+    subset.commitPointMap.resize(m_committee.size());
+    subset.commitPoints.clear();
+    subset.responseCounter = 0;
+    subset.responseDataMap.resize(m_committee.size());
+    subset.responseMap.resize(m_committee.size());
+    fill(subset.responseMap.begin(), subset.responseMap.end(), false);
+    subset.responseData.clear();
 
-    subset.m_state = m_state;
+    subset.state = m_state;
     // add myself to subset commit map always
-    subset.m_commitPointMap.at(m_myID) = m_commitPointMap.at(m_myID);
-    subset.m_commitPoints.emplace_back(m_commitPointMap.at(m_myID));
-    subset.m_commitMap.at(m_myID) = true;
+    subset.commitPointMap.at(m_myID) = m_commitPointMap.at(m_myID);
+    subset.commitPoints.emplace_back(m_commitPointMap.at(m_myID));
+    subset.commitMap.at(m_myID) = true;
 
     for (unsigned int j = 0; j < m_numForConsensus - 1; j++) {
       unsigned int index = peersWhoCommitted.at(j);
-      subset.m_commitPointMap.at(index) = m_commitPointMap.at(index);
-      subset.m_commitPoints.emplace_back(m_commitPointMap.at(index));
-      subset.m_commitMap.at(index) = true;
+      subset.commitPointMap.at(index) = m_commitPointMap.at(index);
+      subset.commitPoints.emplace_back(m_commitPointMap.at(index));
+      subset.commitMap.at(index) = true;
     }
 
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "SubsetID: " << i);
-      for (unsigned int i = 0; i < subset.m_commitMap.size(); i++) {
+      for (unsigned int k = 0; k < subset.commitMap.size(); k++) {
         LOG_GENERAL(INFO,
-                    "Commit map " << i << " = " << subset.m_commitMap.at(i));
+                    "Commit map " << k << " = " << subset.commitMap.at(k));
       }
     }
 
@@ -201,26 +203,25 @@ void ConsensusLeader::StartConsensusSubsets() {
       SetStateSubset(index, m_state);
 
       // Add the leader to the responses
-      Response r(*m_commitSecret, subset.m_challenge, m_myPrivKey);
-      subset.m_responseData.emplace_back(r);
-      subset.m_responseDataMap.at(m_myID) = r;
-      subset.m_responseMap.at(m_myID) = true;
-      subset.m_responseCounter = 1;
+      Response r(*m_commitSecret, subset.challenge, m_myPrivKey);
+      subset.responseData.emplace_back(r);
+      subset.responseDataMap.at(m_myID) = r;
+      subset.responseMap.at(m_myID) = true;
+      subset.responseCounter = 1;
 
-      // Multicast to all nodes who send validated commits
-      // =================================================
-
-      vector<Peer> commit_peers;
-      deque<pair<PubKey, Peer>>::const_iterator j = m_committee.begin();
-
-      for (unsigned int i = 0; i < subset.m_commitMap.size(); i++, j++) {
-        if ((subset.m_commitMap.at(i)) && (i != m_myID)) {
-          commit_peers.emplace_back(j->second);
-        }
-      }
       if (BROADCAST_GOSSIP_MODE) {
+        // Gossip challenge within my all peers
         P2PComm::GetInstance().SpreadRumor(challenge);
       } else {
+        // Multicast challenge to all nodes who send validated commits
+        vector<Peer> commit_peers;
+        deque<pair<PubKey, Peer>>::const_iterator j = m_committee.begin();
+
+        for (unsigned int i = 0; i < subset.commitMap.size(); i++, j++) {
+          if ((subset.commitMap.at(i)) && (i != m_myID)) {
+            commit_peers.emplace_back(j->second);
+          }
+        }
         P2PComm::GetInstance().SendMessage(commit_peers, challenge);
       }
     } else {
@@ -232,7 +233,7 @@ void ConsensusLeader::StartConsensusSubsets() {
 void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
   LOG_MARKER();
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
-  if (subset.m_state == COLLECTIVESIG_DONE || subset.m_state == DONE) {
+  if (subset.state == COLLECTIVESIG_DONE || subset.state == DONE) {
     // We've achieved consensus!
     LOG_GENERAL(INFO,
                 "[Subset " << subsetID << "] Subset has finished consensus!");
@@ -245,7 +246,7 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
       SetStateSubset(i, INITIAL);
     }
     // Set overall state to that of subset i.e. COLLECTIVESIG_DONE OR DONE
-    m_state = subset.m_state;
+    m_state = subset.state;
   } else if (--m_numSubsetsRunning == 0) {
     // All subsets have ended and not one reached consensus!
     LOG_GENERAL(
@@ -408,29 +409,26 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
 
   // Aggregate commits
-  CommitPoint aggregated_commit = AggregateCommits(subset.m_commitPoints);
+  CommitPoint aggregated_commit = AggregateCommits(subset.commitPoints);
   if (!aggregated_commit.Initialized()) {
     LOG_GENERAL(WARNING, "[Subset " << subsetID << "] AggregateCommits failed");
-    m_state = ERROR;
     return false;
   }
 
   // Aggregate keys
-  PubKey aggregated_key = AggregateKeys(subset.m_commitMap);
+  PubKey aggregated_key = AggregateKeys(subset.commitMap);
   if (!aggregated_key.Initialized()) {
     LOG_GENERAL(WARNING,
                 "[Subset " << subsetID << "] Aggregated key generation failed");
-    m_state = ERROR;
     return false;
   }
 
   // Generate the challenge
-  subset.m_challenge =
+  subset.challenge =
       GetChallenge(m_messageToCosign, aggregated_commit, aggregated_key);
 
-  if (!subset.m_challenge.Initialized()) {
+  if (!subset.challenge.Initialized()) {
     LOG_GENERAL(WARNING, "Challenge generation failed");
-    m_state = ERROR;
     return false;
   }
 
@@ -440,7 +438,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
   if (!Messenger::SetConsensusChallenge(
           challenge, offset, m_consensusID, m_blockNumber, subsetID,
           m_blockHash, m_myID, aggregated_commit, aggregated_key,
-          subset.m_challenge,
+          subset.challenge,
           make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusChallenge failed.");
     return false;
@@ -463,8 +461,6 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   // Extract and check response message body
   // =======================================
 
-  // Format: [4-byte consensus id] [32-byte blockhash] [2-byte backup id]
-  // [1-byte subset id] [32-byte response] [64-byte signature]
   uint16_t backupID = 0;
   uint16_t subsetID = 0;
   Response r;
@@ -492,12 +488,12 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
 
   // Check the backup id
-  if (backupID >= subset.m_responseDataMap.size()) {
+  if (backupID >= subset.responseDataMap.size()) {
     LOG_GENERAL(WARNING, "[Subset " << subsetID << "] [Backup " << backupID
                                     << "] Backup ID beyond backup count");
     return false;
   }
-  if (!subset.m_commitMap.at(backupID)) {
+  if (!subset.commitMap.at(backupID)) {
     LOG_GENERAL(
         WARNING, "[Subset "
                      << subsetID << "] [Backup " << backupID
@@ -505,16 +501,16 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     return false;
   }
 
-  if (subset.m_responseMap.at(backupID)) {
+  if (subset.responseMap.at(backupID)) {
     LOG_GENERAL(WARNING, "[Subset "
                              << subsetID << "] [Backup " << backupID
                              << "] Backup has already sent validated response");
     return false;
   }
 
-  if (!MultiSig::VerifyResponse(r, subset.m_challenge,
+  if (!MultiSig::VerifyResponse(r, subset.challenge,
                                 m_committee.at(backupID).first,
-                                subset.m_commitPointMap.at(backupID))) {
+                                subset.commitPointMap.at(backupID))) {
     LOG_GENERAL(WARNING, "Invalid response for this backup");
     return false;
   }
@@ -532,17 +528,17 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   }
 
   // 32-byte response
-  subset.m_responseData.emplace_back(r);
-  subset.m_responseDataMap.at(backupID) = r;
-  subset.m_responseMap.at(backupID) = true;
-  subset.m_responseCounter++;
+  subset.responseData.emplace_back(r);
+  subset.responseDataMap.at(backupID) = r;
+  subset.responseMap.at(backupID) = true;
+  subset.responseCounter++;
 
   // Generate collective sig if sufficient responses have been obtained
   // ==================================================================
 
   bool result = true;
 
-  if (subset.m_responseCounter == m_numForConsensus) {
+  if (subset.responseCounter == m_numForConsensus) {
     LOG_GENERAL(INFO, "Sufficient responses obtained");
 
     vector<unsigned char> collectivesig = {
@@ -559,14 +555,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       if (action == PROCESS_RESPONSE) {
         // First round: consensus over part of message (e.g., DS block header)
         // Second round: consensus over part of message + CS1 + B1
-        subset.m_collectiveSig.Serialize(m_messageToCosign,
-                                         m_messageToCosign.size());
+        subset.collectiveSig.Serialize(m_messageToCosign,
+                                       m_messageToCosign.size());
         BitVector::SetBitVector(m_messageToCosign, m_messageToCosign.size(),
-                                subset.m_responseMap);
+                                subset.responseMap);
 
         // Save the collective sig over the first round
-        m_CS1 = subset.m_collectiveSig;
-        m_B1 = subset.m_responseMap;
+        m_CS1 = subset.collectiveSig;
+        m_B1 = subset.responseMap;
 
         // reset settings for second round of consensus
         m_commitMap.resize(m_committee.size());
@@ -588,8 +584,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
 
       } else {
         // Save the collective sig over the second round
-        m_CS2 = subset.m_collectiveSig;
-        m_B2 = subset.m_responseMap;
+        m_CS2 = subset.collectiveSig;
+        m_B2 = subset.responseMap;
       }
 
       // Subset has finished consensus! Either Round 1 or Round 2
@@ -675,7 +671,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
   ConsensusSubset& subset = m_consensusSubsets.at(subsetID);
 
   // Aggregate responses
-  Response aggregated_response = AggregateResponses(subset.m_responseData);
+  Response aggregated_response = AggregateResponses(subset.responseData);
   if (!aggregated_response.Initialized()) {
     LOG_GENERAL(WARNING, "AggregateCommits failed");
     SetStateSubset(subsetID, ERROR);
@@ -683,7 +679,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
   }
 
   // Aggregate keys
-  PubKey aggregated_key = AggregateKeys(subset.m_responseMap);
+  PubKey aggregated_key = AggregateKeys(subset.responseMap);
   if (!aggregated_key.Initialized()) {
     LOG_GENERAL(WARNING, "Aggregated key generation failed");
     SetStateSubset(subsetID, ERROR);
@@ -691,16 +687,15 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
   }
 
   // Generate the collective signature
-  subset.m_collectiveSig =
-      AggregateSign(subset.m_challenge, aggregated_response);
-  if (!subset.m_collectiveSig.Initialized()) {
+  subset.collectiveSig = AggregateSign(subset.challenge, aggregated_response);
+  if (!subset.collectiveSig.Initialized()) {
     LOG_GENERAL(WARNING, "Collective sig generation failed");
     SetStateSubset(subsetID, ERROR);
     return false;
   }
 
   // Verify the collective signature
-  if (!Schnorr::GetInstance().Verify(m_messageToCosign, subset.m_collectiveSig,
+  if (!Schnorr::GetInstance().Verify(m_messageToCosign, subset.collectiveSig,
                                      aggregated_key)) {
     LOG_GENERAL(WARNING, "Collective sig verification failed");
     SetStateSubset(subsetID, ERROR);
@@ -716,14 +711,14 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
 
   if (!Messenger::SetConsensusCollectiveSig(
           collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
-          m_myID, subset.m_collectiveSig, subset.m_responseMap,
+          m_myID, subset.collectiveSig, subset.responseMap,
           make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusCollectiveSig failed.");
     return false;
   }
 
   // set the collective sig of overall state
-  m_collectiveSig = subset.m_collectiveSig;
+  m_collectiveSig = subset.collectiveSig;
 
   return true;
 }

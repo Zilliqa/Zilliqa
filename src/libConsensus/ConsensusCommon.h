@@ -244,6 +244,9 @@ class ConsensusCommon {
   /// Returns a string representation of the current state
   std::string GetStateString() const;
 
+  /// Return a string respresentation of the given state
+  std::string GetStateString(const State state) const;
+
  private:
   static std::map<State, std::string> ConsensusStateStrings;
 };

@@ -87,19 +87,19 @@ class ConsensusLeader : public ConsensusCommon {
   // Tracking data for each consensus subset
   // TODO: the vectors should be replaced by more space efficient DS
   struct ConsensusSubset {
-    std::vector<bool> m_commitMap;
-    std::vector<CommitPoint> m_commitPointMap;  // Ordered list of commits of
-                                                // fixed size = committee size
-    std::vector<CommitPoint> m_commitPoints;
-    unsigned int m_responseCounter;
-    Challenge m_challenge;  // Challenge / Finalchallenge value generated
-    std::vector<Response> m_responseDataMap;  // Ordered list of responses of
+    std::vector<bool> commitMap;
+    std::vector<CommitPoint> commitPointMap;  // Ordered list of commits of
                                               // fixed size = committee size
+    std::vector<CommitPoint> commitPoints;
+    unsigned int responseCounter;
+    Challenge challenge;  // Challenge / Finalchallenge value generated
+    std::vector<Response> responseDataMap;  // Ordered list of responses of
+                                            // fixed size = committee size
     /// Response map for the generated collective signature
-    std::vector<bool> m_responseMap;
-    std::vector<Response> m_responseData;
-    Signature m_collectiveSig;
-    State m_state;  // Subset consensus state
+    std::vector<bool> responseMap;
+    std::vector<Response> responseData;
+    Signature collectiveSig;
+    State state;  // Subset consensus state
   };
   std::vector<ConsensusSubset> m_consensusSubsets;
   unsigned int m_numSubsetsRunning;

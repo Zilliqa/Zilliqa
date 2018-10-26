@@ -323,3 +323,11 @@ string ConsensusCommon::GetStateString() const {
     return ConsensusStateStrings.at(m_state);
   }
 }
+
+string ConsensusCommon::GetStateString(const State state) const {
+  if (ConsensusStateStrings.find(state) == ConsensusStateStrings.end()) {
+    return "Unknown";
+  } else {
+    return ConsensusStateStrings.at(state);
+  }
+}
