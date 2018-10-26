@@ -754,6 +754,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
   }
 
+  LOG_GENERAL(INFO, "TxnPool size before processing: " << m_createdTxns.size());
+
   // Process the txns
   unsigned int processed_count = 0;
   {
@@ -774,7 +776,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
       }
     }
   }
-  LOG_GENERAL(INFO, "INSERTED TXN COUNT" << processed_count);
+  LOG_GENERAL(INFO, "Txn processed: " << processed_count
+                                      << " TxnPool size after processing: "
+                                      << m_createdTxns.size());
 
   LOG_STATE(
       "[TXNPKTPROC]["

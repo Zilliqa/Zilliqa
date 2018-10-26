@@ -294,7 +294,6 @@ void Node::ProcessTransactionWhenShardLeader() {
   };
 
   auto appendOne = [this](const Transaction& t, const TransactionReceipt& tr) {
-    LOG_MARKER();
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     auto& processedTransactions =
         m_processedTransactions[m_mediator.m_currentEpochNum];
@@ -302,6 +301,9 @@ void Node::ProcessTransactionWhenShardLeader() {
         make_pair(t.GetTranID(), TransactionWithReceipt(t, tr)));
     m_TxnOrder.push_back(t.GetTranID());
   };
+
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
     Transaction t;
@@ -734,9 +736,6 @@ bool Node::RunConsensusOnMicroBlock() {
   LOG_MARKER();
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
-
-  m_gasUsedTotal = 0;
-  m_txnFees = 0;
 
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
     m_mediator.m_ds->m_toSendTxnToLookup = false;
