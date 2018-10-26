@@ -350,3 +350,52 @@ bool Validator::CheckDirBlocks(
   newDSComm = move(mutable_ds_comm);
   return ret;
 }
+
+bool Validator::CheckTxBlocks(const vector<TxBlock>& txBlocks,
+                              const deque<pair<PubKey, Peer>>& dsComm,
+                              const BlockLink& latestBlockLink) {
+  // Verify the last Tx Block
+  uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
+
+  if (get<BlockLinkIndex::BLOCKTYPE>(latestBlockLink) != BlockType::DS) {
+    if (latestDSIndex == 0) {
+      LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
+      return false;
+    }
+    latestDSIndex--;
+  }
+
+  const TxBlock& latestTxBlock = txBlocks.back();
+
+  if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
+    LOG_GENERAL(
+        WARNING,
+        "The latest DS index does not match that of the latest tx block ds num "
+            << latestTxBlock.GetHeader().GetDSBlockNum() << " "
+            << latestDSIndex);
+    return false;
+  }
+
+  if (!CheckBlockCosignature(latestTxBlock, dsComm)) {
+    return false;
+  }
+
+  if (txBlocks.size() < 2) {
+    return true;
+  }
+
+  const BlockHash& prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
+  uint64_t blockNum = latestTxBlock.GetHeader().GetBlockNum() - 1;
+
+  for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
+    if (prevBlockHash != txBlocks.at(blockNum).GetHeader().GetMyHash()) {
+      LOG_GENERAL(WARNING, "Prev hash "
+                               << prevBlockHash << " and hash of blocknum "
+                               << txBlocks.at(i).GetHeader().GetBlockNum());
+      return false;
+    }
+    blockNum--;
+  }
+
+  return true;
+}

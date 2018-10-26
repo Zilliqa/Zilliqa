@@ -1614,6 +1614,16 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
               "I already have the block");
     return false;
   } else {
+    if (!m_mediator.m_validator->CheckTxBlocks(
+            txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+            m_mediator.m_blocklinkchain.GetLatestBlockLink())) {
+      LOG_GENERAL(WARNING, "[TxBlockVerif]"
+                               << "Failed");
+    } else {
+      LOG_GENERAL(WARNING, "[TxBlockVerif]"
+                               << "Success");
+    }
+
     for (const auto& txBlock : txBlocks) {
       LOG_EPOCH(
           INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
