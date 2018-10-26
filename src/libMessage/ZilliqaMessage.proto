@@ -17,6 +17,13 @@ message ProtoDSNode
     required ByteArray peer   = 2;
 }
 
+message ProtoPoWSolution
+{
+    required uint64 nonce  = 1;
+    required bytes result  = 2;
+    required bytes mixhash = 3;
+}
+
 message ProtoDSCommittee
 {
     repeated ProtoDSNode dsnodes = 1;
@@ -25,6 +32,22 @@ message ProtoDSCommittee
 message ProtoCommittee
 {
     repeated ByteArray members = 1;
+}
+
+message ProtoShardingStructureWithPoWSolns
+{
+    message Member
+    {
+        required ByteArray pubkey         = 1;
+        required ByteArray peerinfo       = 2;
+        required uint32 reputation        = 3;
+        required ProtoPoWSolution powsoln = 4;
+    }
+    message Shard
+    {
+        repeated Member members           = 1;
+    }
+    repeated Shard shards                 = 1;
 }
 
 message ProtoShardingStructure
@@ -276,9 +299,10 @@ message DSMicroBlockSubmission
 
 message DSDSBlockAnnouncement
 {
-    required ProtoDSBlock dsblock                  = 1;
-    required ProtoShardingStructure sharding       = 2;
-    required ProtoTxSharingAssignments assignments = 3;
+    required ProtoDSBlock dsblock                        = 1;
+    required ProtoShardingStructureWithPoWSolns sharding = 2;
+    required ProtoTxSharingAssignments assignments       = 3;
+    // TODO: Also send the PoW Solutions for the DS winners
 }
 
 message DSFinalBlockAnnouncement
