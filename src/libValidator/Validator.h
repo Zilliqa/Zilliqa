@@ -24,6 +24,7 @@
 #include <string>
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libNetwork/Peer.h"
@@ -49,6 +50,9 @@ class ValidatorBase {
       const std::deque<std::pair<PubKey, Peer>>& initDsComm,
       const uint64_t& index_num,
       std::deque<std::pair<PubKey, Peer>>& newDSComm) = 0;
+  virtual bool CheckTxBlocks(const std::vector<TxBlock>& txblocks,
+                             const std::deque<std::pair<PubKey, Peer>>& dsComm,
+                             const BlockLink& latestBlockLink) = 0;
 };
 
 class Validator : public ValidatorBase {
@@ -78,6 +82,10 @@ class Validator : public ValidatorBase {
       const std::deque<std::pair<PubKey, Peer>>& initDsComm,
       const uint64_t& index_num,
       std::deque<std::pair<PubKey, Peer>>& newDSComm) override;
+  // TxBlocks must be in increasing order or it will fail
+  bool CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
+                     const std::deque<std::pair<PubKey, Peer>>& dsComm,
+                     const BlockLink& latestBlockLink) override;
   Mediator& m_mediator;
 };
 

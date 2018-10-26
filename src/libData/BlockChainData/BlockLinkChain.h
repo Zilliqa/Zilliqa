@@ -111,6 +111,11 @@ class BlockLinkChain {
   void SetBuiltDSComm(const std::deque<std::pair<PubKey, Peer>>& dsComm) {
     m_builtDsCommittee = dsComm;
   }
+  const BlockLink& GetLatestBlockLink() {
+    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
+
+    return m_blockLinkChain.back();
+  }
 };
 
 #endif  //__BLOCKLINKCHAIN_H__
