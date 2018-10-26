@@ -28,6 +28,8 @@ repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
 packageName=""
 releaseTitle=""
 releaseDescription=""
+dsNodeFile="dsnodes.xml"
+
 
 # Environment variables
 releaseDir="release"
@@ -123,6 +125,15 @@ sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
 echo -e "SHA-256 & multi-signature are written into ${versionFile} successfully.\n"
 
+#Sign the ds nodes and update the xml
+cd ${releaseDir}
+echo -e "Updating ds xml file"
+cp ../constants_local.xml ./constants.xml
+cp ../${dsNodeFile} ./${dsNodeFile}
+ret="$(./bin/gensigninitialds   ${privKeyFile} ${pubKeyFile})"
+cp ./${dsNodeFile} ../${dsNodeFile}
+cd - 
+
 # Upload package onto GitHub
 echo -e "Creating new release and uploading package onto GitHub..."
 fullCommit="$(git rev-parse HEAD)"
@@ -161,6 +172,10 @@ curl -v -s \
   -H "Content-Type:application/octet-stream" \
   --data-binary @${releaseDir}/${versionFile} \
   "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}"
+curl -v -s  \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/octet-stream"  \
+  --data-binary @"${dsNodeFile}" \
+  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${dsNodeFile}"
 rm ${releaseLog}
 echo -e "\nA new draft release with package is created on Github sucessfully, please proceed to publishing the draft release on Github webpage.\n"
-

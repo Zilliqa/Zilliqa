@@ -662,18 +662,9 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
       MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
   if (initialDS) {
-    lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
-
-    LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                          << "Recvd call to send initial ds");
-
-    if (!Messenger::SetLookupSetDSInfoFromSeed(
-            dsInfoMessage, MessageOffset::BODY, m_mediator.m_selfKey,
-            *m_mediator.m_initialDSCommittee, true)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Messenger::SetLookupSetDSInfoFromSeed failed.");
-      return false;
-    }
+    LOG_GENERAL(WARNING, "[DSINFOVERIF]"
+                             << "Recvd call to send initial ds "
+                             << " Unsupported");
 
   }
 
@@ -1397,85 +1388,99 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
   bool initialDS = false;
 
-  {
-    PubKey senderPubKey;
-    std::deque<std::pair<PubKey, Peer>> dsNodes;
-    if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
-                                               dsNodes, initialDS)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Messenger::GetLookupSetDSInfoFromSeed failed.");
+  PubKey senderPubKey;
+  std::deque<std::pair<PubKey, Peer>> dsNodes;
+  if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
+                                             dsNodes, initialDS)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupSetDSInfoFromSeed failed.");
+    return false;
+  }
+
+  if (!LOOKUP_NODE_MODE) {
+    if (!VerifyLookupNode(GetLookupNodes(), senderPubKey)) {
+      LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                "The message sender pubkey: "
+                    << senderPubKey << " is not in my lookup node list.");
       return false;
     }
+  }
 
-    if (!LOOKUP_NODE_MODE) {
-      if (!VerifyLookupNode(GetLookupNodes(), senderPubKey)) {
-        LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "The message sender pubkey: "
-                      << senderPubKey << " is not in my lookup node list.");
-        return false;
-      }
-    }
+  if (initialDS && !LOOKUP_NODE_MODE) {
+    LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                          << "Recvd inital ds config "
+                          << "Call Unsupported");
+    return false;
+  }
 
-    if (initialDS && !LOOKUP_NODE_MODE) {
+  else {
+    bool isVerif = true;
+
+    if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
+      lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
       LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                            << "Recvd inital ds config");
-      m_mediator.m_blocklinkchain.m_builtDsCommittee = move(dsNodes);
+                            << "Recvd initial ds config");
+      if (dsNodes.size() != m_mediator.m_initialDSCommittee->size()) {
+        LOG_GENERAL(WARNING, "The initial ds comm recvd and from file differs "
+                                 << dsNodes.size() << " "
+                                 << m_mediator.m_initialDSCommittee->size());
+      }
+      for (unsigned int i = 0; i < dsNodes.size(); i++) {
+        if (!(m_mediator.m_initialDSCommittee->at(i) == dsNodes.at(i).first)) {
+          LOG_GENERAL(WARNING,
+                      "The key from ds comm recvd and from file differs "
+                          << dsNodes.at(i).first << " "
+                          << m_mediator.m_initialDSCommittee->at(i));
+        }
+      }
+
+      m_mediator.m_blocklinkchain.SetBuiltDSComm(dsNodes);
     }
 
-    else {
-      bool isVerif = true;
-      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-      *m_mediator.m_DSCommittee = std::move(dsNodes);
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    *m_mediator.m_DSCommittee = move(dsNodes);
 
-      if (m_mediator.m_currentEpochNum == 1 && LOOKUP_NODE_MODE) {
-        lock_guard<mutex> h(m_mediator.m_mutexInitialDSCommittee);
-        LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                              << "Recvd initial ds config");
-        *m_mediator.m_initialDSCommittee = *m_mediator.m_DSCommittee;
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "ProcessSetDSInfoFromSeed sent by "
+                  << from << " for numPeers "
+                  << m_mediator.m_DSCommittee->size());
+
+    unsigned int i = 0;
+    for (auto& ds : *m_mediator.m_DSCommittee) {
+      if (m_syncType == SyncType::DS_SYNC &&
+          ds.second == m_mediator.m_selfPeer) {
+        ds.second = Peer();
       }
+      LOG_EPOCH(
+          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
+    }
 
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "ProcessSetDSInfoFromSeed sent by "
-                    << from << " for numPeers "
-                    << m_mediator.m_DSCommittee->size());
+    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() !=
+        m_mediator.m_DSCommittee->size()) {
+      isVerif = false;
+      LOG_GENERAL(WARNING,
+                  "Size of "
+                      << m_mediator.m_blocklinkchain.GetBuiltDSComm().size()
+                      << " " << m_mediator.m_DSCommittee->size()
+                      << " does not match");
+    }
 
-      unsigned int i = 0;
-      for (auto& ds : *m_mediator.m_DSCommittee) {
-        if (m_syncType == SyncType::DS_SYNC &&
-            ds.second == m_mediator.m_selfPeer) {
-          ds.second = Peer();
-        }
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "ProcessSetDSInfoFromSeed recvd peer " << i++ << ": " << ds.second);
-      }
-
-      if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() !=
-          m_mediator.m_DSCommittee->size()) {
+    for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
+      if (!(m_mediator.m_DSCommittee->at(i).first ==
+            m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
+        LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
         isVerif = false;
-        LOG_GENERAL(WARNING,
-                    "Size of "
-                        << m_mediator.m_blocklinkchain.m_builtDsCommittee.size()
-                        << " " << m_mediator.m_DSCommittee->size()
-                        << " does not match");
+        break;
       }
+    }
 
-      for (i = 0; i < m_mediator.m_blocklinkchain.m_builtDsCommittee.size();
-           i++) {
-        if (m_mediator.m_DSCommittee->at(i) !=
-            m_mediator.m_blocklinkchain.m_builtDsCommittee.at(i)) {
-          LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
-          isVerif = false;
-          break;
-        }
-      }
-
-      if (isVerif) {
-        LOG_GENERAL(INFO, "[DSINFOVERIF]"
-                              << " Sucess ");
-      }
+    if (isVerif) {
+      LOG_GENERAL(INFO, "[DSINFOVERIF]"
+                            << " Sucess ");
     }
   }
+
   //    Data::GetInstance().SetDSPeers(dsPeers);
   //#endif // IS_LOOKUP_NODE
 
@@ -2734,22 +2739,21 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   LOG_GENERAL(INFO, "[DSINFOVERIF]"
                         << "Recvd " << dirBlocks.size() << " from lookup");
   {
-    if (m_mediator.m_blocklinkchain.m_builtDsCommittee.size() == 0) {
+    if (m_mediator.m_blocklinkchain.GetBuiltDSComm().size() == 0) {
       LOG_GENERAL(WARNING, "Initial DS comm size 0, it is unset")
-      GetDSInfoFromLookupNodes(true);
       return true;
     }
 
     if (!m_mediator.m_validator->CheckDirBlocks(
-            dirBlocks, m_mediator.m_blocklinkchain.m_builtDsCommittee,
-            index_num, newDScomm)) {
+            dirBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(), index_num,
+            newDScomm)) {
       LOG_GENERAL(WARNING, "Verification of ds information failed");
     } else {
       LOG_GENERAL(INFO, "[DSINFOVERIF]"
                             << "Verified successfully");
     }
 
-    m_mediator.m_blocklinkchain.m_builtDsCommittee = newDScomm;
+    m_mediator.m_blocklinkchain.SetBuiltDSComm(newDScomm);
   }
   uint64_t dsblocknumafter =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
