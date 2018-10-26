@@ -21,6 +21,7 @@
 #include <algorithm>
 #include "Account.h"
 #include "libCrypto/Sha2.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -182,78 +183,24 @@ Transaction::Transaction(const uint256_t& version, const uint256_t& nonce,
   }
 }
 
-unsigned int Transaction::Serialize(vector<unsigned char>& dst,
-                                    unsigned int offset) const {
-  // LOG_MARKER();
-
-  if ((dst.size() - offset) < TRAN_HASH_SIZE) {
-    dst.resize(TRAN_HASH_SIZE + offset);
+bool Transaction::Serialize(vector<unsigned char>& dst,
+                            unsigned int offset) const {
+  if (!Messenger::SetTransaction(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetTransaction failed.");
+    return false;
   }
 
-  copy(m_tranID.asArray().begin(), m_tranID.asArray().end(),
-       dst.begin() + offset);
-  offset += TRAN_HASH_SIZE;
-  offset += m_signature.Serialize(dst, offset);
-  offset += SerializeCoreFields(dst, offset);
-
-  return offset;
+  return true;
 }
 
-int Transaction::Deserialize(const vector<unsigned char>& src,
-                             unsigned int offset) {
-  // LOG_MARKER();
-
-  try {
-    copy(src.begin() + offset, src.begin() + offset + TRAN_HASH_SIZE,
-         m_tranID.asArray().begin());
-    offset += TRAN_HASH_SIZE;
-    if (m_signature.Deserialize(src, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to init m_signature.");
-      return -1;
-    }
-    offset += TRAN_SIG_SIZE;
-    m_version = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    m_nonce = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    copy(src.begin() + offset, src.begin() + offset + ACC_ADDR_SIZE,
-         m_toAddr.asArray().begin());
-    offset += ACC_ADDR_SIZE;
-    if (m_senderPubKey.Deserialize(src, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to init m_senderPubKey.");
-      return -1;
-    }
-    offset += PUB_KEY_SIZE;
-    m_amount = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    m_gasPrice = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    m_gasLimit = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    uint32_t codeSize = GetNumber<uint32_t>(src, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    m_code.clear();
-    if (codeSize > 0) {
-      m_code.resize(codeSize);
-      copy(src.begin() + offset, src.begin() + offset + codeSize,
-           m_code.begin());
-    }
-    offset += codeSize;
-    uint32_t dataSize = GetNumber<uint32_t>(src, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    m_data.clear();
-    if (dataSize > 0) {
-      m_data.resize(dataSize);
-      copy(src.begin() + offset, src.begin() + offset + dataSize,
-           m_data.begin());
-    }
-    offset += dataSize;
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with Transaction::Deserialize." << ' ' << e.what());
-    return -1;
+bool Transaction::Deserialize(const vector<unsigned char>& src,
+                              unsigned int offset) {
+  if (!Messenger::GetTransaction(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
+    return false;
   }
-  return 0;
+
+  return true;
 }
 
 const TxnHash& Transaction::GetTranID() const { return m_tranID; }
@@ -307,19 +254,6 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
   }
 
   return target_shard;
-}
-
-unsigned int Transaction::GetSerializedSize() const {
-  return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE +
-         ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE +
-         UINT256_SIZE + sizeof(uint32_t) + m_code.size() + sizeof(uint32_t) +
-         m_data.size();
-}
-
-unsigned int Transaction::GetMinSerializedSize() {
-  return TRAN_HASH_SIZE + TRAN_SIG_SIZE + UINT256_SIZE + UINT256_SIZE +
-         ACC_ADDR_SIZE + PUB_KEY_SIZE + UINT256_SIZE + UINT256_SIZE +
-         UINT256_SIZE + sizeof(uint32_t) + sizeof(uint32_t);
 }
 
 bool Transaction::operator==(const Transaction& tran) const {

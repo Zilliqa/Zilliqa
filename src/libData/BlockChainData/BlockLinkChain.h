@@ -38,10 +38,9 @@ enum BlockLinkIndex : unsigned char {
 class BlockLinkChain {
   CircularArray<BlockLink> m_blockLinkChain;
   std::mutex m_mutexBlockLinkChain;
-
- public:
   std::deque<std::pair<PubKey, Peer>> m_builtDsCommittee;
 
+ public:
   BlockLink GetFromPersistentStorage(const uint64_t& index) {
     BlockLinkSharedPtr blnkshared;
 
@@ -55,6 +54,8 @@ class BlockLinkChain {
   }
 
   void Reset() { m_blockLinkChain.resize(BLOCKCHAIN_SIZE); }
+
+  BlockLinkChain() { Reset(); };
 
   BlockLink GetBlockLink(const uint64_t& blocknum) {
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
@@ -101,6 +102,14 @@ class BlockLinkChain {
       return 0;
     }
     return std::get<BlockLinkIndex::INDEX>(m_blockLinkChain.back());
+  }
+
+  std::deque<std::pair<PubKey, Peer>>& GetBuiltDSComm() {
+    return m_builtDsCommittee;
+  }
+
+  void SetBuiltDSComm(const std::deque<std::pair<PubKey, Peer>>& dsComm) {
+    m_builtDsCommittee = dsComm;
   }
 };
 

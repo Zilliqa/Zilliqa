@@ -45,9 +45,28 @@
 
 class Mediator;
 
+struct PoWSolution {
+  uint64_t nonce;
+  std::array<unsigned char, 32> result;
+  std::array<unsigned char, 32> mixhash;
+
+  PoWSolution()
+      : nonce(0),
+        result({{0}}),
+        mixhash({{0}}) {
+  }  // The oldest DS (and now new shard node) will have this default value
+  PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
+              const std::array<unsigned char, 32>& m)
+      : nonce(n), result(r), mixhash(m) {}
+  bool operator==(const PoWSolution& rhs) const {
+    return (nonce == rhs.nonce) && (result == rhs.result) &&
+           (mixhash == rhs.mixhash);
+  }
+};
+
 using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
-using MapOfPubKeyPoW = std::map<PubKey, std::array<unsigned char, 32>>;
+using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
 
 /// Implements Directory Service functionality including PoW verification, DS,
 /// Tx Block Consensus and sharding management.
@@ -207,7 +226,8 @@ class DirectoryService : public Executable, public Broadcastable {
 
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyDifficulty();
-  bool VerifyPoWOrdering(const DequeOfShard& shards);
+  bool VerifyPoWOrdering(const DequeOfShard& shards,
+                         const MapOfPubKeyPoW& allPoWsFromTheLeader);
   bool VerifyNodePriority(const DequeOfShard& shards);
 
   // internal calls from RunConsensusOnDSBlock
@@ -254,6 +274,7 @@ class DirectoryService : public Executable, public Broadcastable {
       const std::vector<unsigned char>& stateDelta);
   void ExtractDataFromMicroblocks(BlockHash& microblockTrieRoot,
                                   std::vector<BlockHash>& microblockHashes,
+                                  std::vector<uint32_t>& shardIds,
                                   boost::multiprecision::uint256_t& allGasLimit,
                                   boost::multiprecision::uint256_t& allGasUsed,
                                   boost::multiprecision::uint256_t& allRewards,
@@ -544,7 +565,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::string GetActionString(Action action) const;
   bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
 
-  void AddDSPoWs(PubKey Pubk, std::array<unsigned char, 32> DSPOWSoln);
+  void AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln);
   MapOfPubKeyPoW GetAllDSPoWs();
   void ClearDSPoWSolns();
   std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);

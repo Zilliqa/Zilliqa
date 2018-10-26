@@ -44,9 +44,9 @@ using namespace boost::multiprecision;
 
 void DirectoryService::ExtractDataFromMicroblocks(
     BlockHash& microblockTrieRoot, std::vector<BlockHash>& microblockHashes,
-    uint256_t& allGasLimit, uint256_t& allGasUsed, uint256_t& allRewards,
-    uint32_t& numTxs, std::vector<bool>& isMicroBlockEmpty,
-    uint32_t& numMicroBlocks) {
+    std::vector<uint32_t>& shardIds, uint256_t& allGasLimit,
+    uint256_t& allGasUsed, uint256_t& allRewards, uint32_t& numTxs,
+    std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ExtractDataFromMicroblocks not expected "
@@ -76,6 +76,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
                             << "hash: " << microBlock.GetHeader().GetHashes());
 
       microblockHashes.push_back(microBlock.GetBlockHash());
+      shardIds.push_back(microBlock.GetHeader().GetShardId());
       allGasLimit += microBlock.GetHeader().GetGasLimit();
       allGasUsed += microBlock.GetHeader().GetGasUsed();
       allRewards += microBlock.GetHeader().GetRewards();
@@ -108,6 +109,7 @@ bool DirectoryService::ComposeFinalBlock() {
 
   BlockHash microblockTrieRoot;
   std::vector<BlockHash> microBlockHashes;
+  std::vector<uint32_t> shardIds;
   uint8_t type = TXBLOCKTYPE::FINAL;
   uint32_t version = BLOCKVERSION::VERSION1;
   uint256_t allGasLimit = 0;
@@ -118,9 +120,9 @@ bool DirectoryService::ComposeFinalBlock() {
   uint32_t numMicroBlocks = 0;
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
-  ExtractDataFromMicroblocks(microblockTrieRoot, microBlockHashes, allGasLimit,
-                             allGasUsed, allRewards, numTxs, isMicroBlockEmpty,
-                             numMicroBlocks);
+  ExtractDataFromMicroblocks(microblockTrieRoot, microBlockHashes, shardIds,
+                             allGasLimit, allGasUsed, allRewards, numTxs,
+                             isMicroBlockEmpty, numMicroBlocks);
 
   BlockHash prevHash;
   uint256_t timestamp = get_time_as_int();
@@ -170,7 +172,7 @@ bool DirectoryService::ComposeFinalBlock() {
                     stateRoot, stateDeltaHash, numTxs, numMicroBlocks,
                     m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
                     committeeHash),
-      isMicroBlockEmpty, microBlockHashes,
+      isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
 

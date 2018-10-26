@@ -178,7 +178,7 @@ class ConsensusCommon {
                      uint16_t peer_id);
 
   /// Aggregates public keys according to the response map.
-  PubKey AggregateKeys(const std::vector<bool> peer_map);
+  PubKey AggregateKeys(const std::vector<bool>& peer_map);
 
   /// Aggregates the list of received commits.
   CommitPoint AggregateCommits(const std::vector<CommitPoint>& commits);
@@ -246,6 +246,9 @@ class ConsensusCommon {
   std::string GetStateString() const;
 
   virtual unsigned int GetNumForConsensusFailure() = 0;
+
+  /// Return a string respresentation of the given state
+  std::string GetStateString(const State state) const;
 
  private:
   static std::map<State, std::string> ConsensusStateStrings;

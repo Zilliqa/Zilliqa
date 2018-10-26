@@ -95,7 +95,8 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
                     BlockHash(), 0, 151384616955606, BlockHash(), StateHash(),
                     StateHash(), 0, 5, keypair.second, 0, BlockHash(),
                     CommitteeHash()),
-      vector<bool>(1), vector<BlockHash>(5), CoSignatures());
+      vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
+      CoSignatures());
   txBlock.SetBlockHash(txBlock.GetHeader().GetMyHash());
   return txBlock;
 }
@@ -139,19 +140,6 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup) {
 
   lookup->GetDSInfoFromLookupNodes();
   // lookup->GetDSInfoFromSeedNodes();
-  return true;
-}
-
-bool Synchronizer::FetchInitialDSInfo(Lookup* lookup) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Synchronizer::FetchInitialDSInfo not expected to be called "
-                "from Lookup Node");
-    return true;
-  }
-
-  lookup->GetDSInfoFromLookupNodes(true);
-
   return true;
 }
 

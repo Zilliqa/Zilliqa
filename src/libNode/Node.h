@@ -193,7 +193,6 @@ class Node : public Executable, public Broadcastable {
       const std::vector<TransactionWithReceipt>& txns_to_send);
 
   bool LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
-                                       const std::vector<uint32_t>& shardIds,
                                        const uint64_t& blocknum,
                                        bool& toSendTxnToLookup);
 
@@ -248,9 +247,9 @@ class Node : public Executable, public Broadcastable {
   bool ProcessForwardTransactionCore(const ForwardedTxnEntry& entry);
   bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
-  bool ProcessTxnPacketFromLookupCore(
-      const std::vector<unsigned char>& message, const uint32_t shardId,
-      const std::vector<Transaction>& transactions);
+  bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
+                                      const uint32_t shardId,
+                                      const std::vector<Transaction>& txns);
 
 #ifdef HEARTBEAT_TEST
   bool ProcessKillPulse(const std::vector<unsigned char>& message,

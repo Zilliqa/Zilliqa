@@ -32,6 +32,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace jsonrpc;
@@ -128,6 +129,15 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   } else {
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
   }
+
+  {
+    lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
+    if (!UpgradeManager::GetInstance().LoadInitialDS(
+            *m_mediator.m_initialDSCommittee)) {
+      LOG_GENERAL(WARNING, "Unable to load initial DS comm");
+    }
+  }
+
   m_n.Install(syncType, toRetrieveHistory);
 
   LogSelfNodeInfo(key, peer);
