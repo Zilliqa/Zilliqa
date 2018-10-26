@@ -571,33 +571,17 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
     return false;
   }
 
-  while (cur_offset < message.size()) {
-    Transaction submittedTxn;
-    if (submittedTxn.Deserialize(message, cur_offset) != 0) {
-      LOG_GENERAL(WARNING,
-                  "Deserialize transactions failed, stop at the previous "
-                  "successful one");
-      return false;
-    }
-    cur_offset += submittedTxn.GetSerializedSize();
+  std::vector<Transaction> txns;
+  if (!Messenger::GetTransactionArray(message, cur_offset, txns)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransactionArray failed.");
+    return false;
+  }
 
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
+  lock_guard<mutex> g(m_mutexCreatedTransactions);
+  for (const auto& submittedTxn : txns) {
     m_createdTxns.insert(submittedTxn);
   }
 
-  // vector<TxnHash> missingTxnHashes;
-  // if (!ProcessTransactionWhenShardBackup(m_txnsOrdering, missingTxnHashes))
-  // {
-  //     LOG_GENERAL(WARNING, "Wrong order after receiving missing txns");
-  //     return false;
-  // }
-  // if (!missingTxnHashes.empty())
-  // {
-  //     LOG_GENERAL(WARNING, "Still missed txns");
-  //     return false;
-  // }
-
-  // AccountStore::GetInstance().SerializeDelta();
   cv_MicroBlockMissingTxn.notify_all();
   return true;
 }
@@ -715,9 +699,9 @@ bool Node::ProcessTxnPacketFromLookup(
   return true;
 }
 
-bool Node::ProcessTxnPacketFromLookupCore(
-    const vector<unsigned char>& message, const uint32_t shardId,
-    const vector<Transaction>& transactions) {
+bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
+                                          const uint32_t shardId,
+                                          const vector<Transaction>& txns) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -762,7 +746,7 @@ bool Node::ProcessTxnPacketFromLookupCore(
     LOG_GENERAL(INFO, "Start check txn packet from lookup");
     lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    for (const auto& tx : transactions) {
+    for (const auto& tx : txns) {
       if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx)) {
         m_createdTxns.insert(tx);
       } else {
