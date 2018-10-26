@@ -22,6 +22,7 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 
@@ -143,6 +144,7 @@ class Messenger {
       const DequeOfShard& shards, const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders,
+      const MapOfPubKeyPoW& allPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool GetDSDSBlockAnnouncement(
@@ -152,7 +154,7 @@ class Messenger {
       const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
       std::vector<Peer>& dsReceivers,
       std::vector<std::vector<Peer>>& shardReceivers,
-      std::vector<std::vector<Peer>>& shardSenders,
+      std::vector<std::vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool SetDSFinalBlockAnnouncement(
