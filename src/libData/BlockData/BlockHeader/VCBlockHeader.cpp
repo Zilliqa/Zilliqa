@@ -24,7 +24,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-VCBlockHeader::VCBlockHeader() : m_CandidateLeaderIndex(1) {}
+VCBlockHeader::VCBlockHeader() {}
 
 VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {
@@ -36,7 +36,6 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
 VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
                              const uint64_t& viewChangeEpochNo,
                              const unsigned char viewChangeState,
-                             const uint32_t expectedCandidateLeaderIndex,
                              const Peer& candidateLeaderNetworkInfo,
                              const PubKey& candidateLeaderPubKey,
                              const uint32_t vcCounter,
@@ -47,7 +46,6 @@ VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
       m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
       m_VieWChangeEpochNo(viewChangeEpochNo),
       m_ViewChangeState(viewChangeState),
-      m_CandidateLeaderIndex(expectedCandidateLeaderIndex),
       m_CandidateLeaderNetworkInfo(candidateLeaderNetworkInfo),
       m_CandidateLeaderPubKey(candidateLeaderPubKey),
       m_VCCounter(vcCounter),
@@ -86,10 +84,6 @@ unsigned char VCBlockHeader::GetViewChangeState() const {
   return m_ViewChangeState;
 }
 
-uint32_t VCBlockHeader::GetCandidateLeaderIndex() const {
-  return m_CandidateLeaderIndex;
-}
-
 const Peer& VCBlockHeader::GetCandidateLeaderNetworkInfo() const {
   return m_CandidateLeaderNetworkInfo;
 }
@@ -113,7 +107,6 @@ bool VCBlockHeader::operator==(const VCBlockHeader& header) const {
       (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
       (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
       (m_ViewChangeState == header.m_ViewChangeState) &&
-      (m_CandidateLeaderIndex == header.m_CandidateLeaderIndex) &&
       (m_CandidateLeaderNetworkInfo == header.m_CandidateLeaderNetworkInfo) &&
       (m_CandidateLeaderPubKey == header.m_CandidateLeaderPubKey) &&
       (m_VCCounter == header.m_VCCounter) &&

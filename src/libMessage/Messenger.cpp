@@ -1076,8 +1076,6 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
   protoVCBlockHeader.set_viewchangeepochno(
       vcBlockHeader.GetViewChangeEpochNo());
   protoVCBlockHeader.set_viewchangestate(vcBlockHeader.GetViewChangeState());
-  protoVCBlockHeader.set_candidateleaderindex(
-      vcBlockHeader.GetCandidateLeaderIndex());
   SerializableToProtobufByteArray(
       vcBlockHeader.GetCandidateLeaderNetworkInfo(),
       *protoVCBlockHeader.mutable_candidateleadernetworkinfo());
@@ -1136,8 +1134,7 @@ void ProtobufToVCBlockHeader(
   vcBlockHeader = VCBlockHeader(
       protoVCBlockHeader.viewchangedsepochno(),
       protoVCBlockHeader.viewchangeepochno(),
-      protoVCBlockHeader.viewchangestate(),
-      protoVCBlockHeader.candidateleaderindex(), candidateLeaderNetworkInfo,
+      protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
       candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
       timestamp, committeeHash);
 }
