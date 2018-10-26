@@ -1048,7 +1048,7 @@ bool DirectoryService::CheckMicroBlockValidity(
     ret = false;
   }
 
-  if (ret && m_mediator.m_node->CheckMicroBlockValidity(errorMsg)) {
+  if (ret && !m_mediator.m_node->CheckMicroBlockValidity(errorMsg)) {
     LOG_GENERAL(WARNING, "Microblock validation failed");
     ret = false;
   }
@@ -1083,12 +1083,15 @@ bool DirectoryService::FinalBlockValidator(
 
   m_finalBlock.reset(new TxBlock);
 
+  m_mediator.m_node->m_microblock.reset(new MicroBlock());
+
   if (!Messenger::GetDSFinalBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_finalBlock, m_mediator.m_node->m_microblock,
           messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSFinalBlockAnnouncement failed.");
+    m_mediator.m_node->m_microblock = nullptr;
     return false;
   }
 
