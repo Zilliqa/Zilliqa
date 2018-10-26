@@ -166,8 +166,8 @@ void BlockBaseToProtobuf(const BlockBase& base,
   }
 }
 
-void ProtobufToBlockBase(BlockBase& base,
-                         const ProtoBlockBase& protoBlockBase) {
+void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
+                         BlockBase& base) {
   // Deserialize cosigs
   CoSignatures cosigs;
   cosigs.m_B1.resize(protoBlockBase.cosigs().b1().size());
@@ -519,7 +519,7 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoDSBlock.blockbase();
 
-  ProtobufToBlockBase(dsBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, dsBlock);
 }
 
 void MicroBlockHeaderToProtobuf(
@@ -678,7 +678,7 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoMicroBlock.blockbase();
 
-  ProtobufToBlockBase(microBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, microBlock);
 }
 
 void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
@@ -844,7 +844,7 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
 
-  ProtobufToBlockBase(txBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, txBlock);
 }
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
@@ -932,7 +932,7 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoVCBlock.blockbase();
 
-  ProtobufToBlockBase(vcBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, vcBlock);
 }
 
 void FallbackBlockHeaderToProtobuf(
@@ -1034,7 +1034,7 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoFallbackBlock.blockbase();
 
-  ProtobufToBlockBase(fallbackBlock, protoBlockBase);
+  ProtobufToBlockBase(protoBlockBase, fallbackBlock);
 }
 
 bool SetConsensusAnnouncementCore(
@@ -1256,7 +1256,8 @@ bool GetConsensusAnnouncementCore(
   ProtobufByteArrayToSerializable(announcement.signature(), signature);
 
   if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey)) {
-    LOG_GENERAL(WARNING, "Invalid signature in announcement.");
+    LOG_GENERAL(WARNING, "Invalid signature in announcement. leaderID = "
+                             << leaderID << " leaderKey = " << leaderKey);
     return false;
   }
 
@@ -3882,11 +3883,6 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
     MicroBlockToProtobuf(mb, *result.add_microblocks());
   }
 
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetMicroBlockFromLookup initialization failed");
-    return false;
-  }
-
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.microblocks().size() > 0) {
@@ -3904,6 +3900,11 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   }
 
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetMicroBlockFromLookup initialization failed");
+    return false;
+  }
 
   return SerializeToArray(result, dst, offset);
 }
