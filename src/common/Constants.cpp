@@ -193,6 +193,10 @@ const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
     ReadFromConstantsFile("FETCH_LOOKUP_MSG_MAX_RETRY")};
 const unsigned int MAX_CONTRACT_DEPTH{
     ReadFromConstantsFile("MAX_CONTRACT_DEPTH")};
+const unsigned int COMMIT_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("COMMIT_WINDOW_IN_SECONDS")};
+const unsigned int NUM_CONSENSUS_SUBSETS{
+    ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
