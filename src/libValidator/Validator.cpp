@@ -385,16 +385,16 @@ bool Validator::CheckTxBlocks(const vector<TxBlock>& txBlocks,
   }
 
   const BlockHash& prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
-  uint64_t blockNum = latestTxBlock.GetHeader().GetBlockNum() - 1;
+  unsigned int sIndex = txBlocks.size() - 2;
 
   for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
-    if (prevBlockHash != txBlocks.at(blockNum).GetHeader().GetMyHash()) {
+    if (prevBlockHash != txBlocks.at(sIndex).GetHeader().GetMyHash()) {
       LOG_GENERAL(WARNING, "Prev hash "
                                << prevBlockHash << " and hash of blocknum "
                                << txBlocks.at(i).GetHeader().GetBlockNum());
       return false;
     }
-    blockNum--;
+    sIndex--;
   }
 
   return true;

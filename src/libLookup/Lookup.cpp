@@ -1619,8 +1619,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             m_mediator.m_blocklinkchain.GetLatestBlockLink())) {
       LOG_GENERAL(WARNING, "[TxBlockVerif]"
                                << "Failed");
+      return false;
     } else {
-      LOG_GENERAL(WARNING, "[TxBlockVerif]"
+      LOG_GENERAL(INFO, "[TxBlockVerif]"
                                << "Success");
     }
 
