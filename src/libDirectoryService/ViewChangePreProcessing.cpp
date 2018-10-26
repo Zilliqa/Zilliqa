@@ -97,15 +97,6 @@ bool DirectoryService::ViewChangeValidator(
 
   // Verify candidate leader index
   uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
-  if (m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex() !=
-      candidateLeaderIndex) {
-    LOG_GENERAL(WARNING,
-                "Candidate leader index mismatched. Expected: "
-                    << candidateLeaderIndex << " Obtained: "
-                    << m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex());
-    return false;
-  }
-
   if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
       m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
     LOG_GENERAL(
@@ -341,7 +332,7 @@ bool DirectoryService::ComputeNewCandidateLeader(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             m_mediator.m_currentEpochNum, m_viewChangestate,
-            candidateLeaderIndex, newLeaderNetworkInfo,
+            newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
             m_viewChangeCounter, faultyLeaders, get_time_as_int(),
             committeeHash),

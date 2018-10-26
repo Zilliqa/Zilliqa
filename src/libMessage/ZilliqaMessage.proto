@@ -242,13 +242,12 @@ message ProtoVCBlock
         required uint64 viewchangedsepochno           = 1;
         required uint64 viewchangeepochno             = 2;
         required uint32 viewchangestate               = 3; // only LSB used
-        required uint32 candidateleaderindex          = 4;
-        required ByteArray candidateleadernetworkinfo = 5;
-        required ByteArray candidateleaderpubkey      = 6;
-        required uint32 vccounter                     = 7;
-        repeated ProtoDSNode faultyleaders            = 8;
-        required ByteArray timestamp                  = 9;
-        required bytes committeehash                  = 10;
+        required ByteArray candidateleadernetworkinfo = 4;
+        required ByteArray candidateleaderpubkey      = 5;
+        required uint32 vccounter                     = 6;
+        repeated ProtoDSNode faultyleaders            = 7;
+        required ByteArray timestamp                  = 8;
+        required bytes committeehash                  = 9;
     }
     required VCBlockHeader header                     = 1;
     required ProtoBlockBase blockbase                 = 2;

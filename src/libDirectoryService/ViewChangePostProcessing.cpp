@@ -90,135 +90,121 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   Peer newLeaderNetworkInfo;
+  PubKey newLeaderPubKey;
   unsigned char viewChangeState;
   {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
 
     newLeaderNetworkInfo =
         m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo();
+    newLeaderPubKey = m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey();
     viewChangeState = m_pendingVCBlock->GetHeader().GetViewChangeState();
   }
 
-  uint32_t newLeaderIndex =
-      m_pendingVCBlock->GetHeader().GetCandidateLeaderIndex();
-  Peer expectedLeader;
-  if (m_mediator.m_DSCommittee->at(newLeaderIndex).second == Peer()) {
-    // I am 0.0.0.0
-    expectedLeader = m_mediator.m_selfPeer;
+  if (newLeaderNetworkInfo == m_mediator.m_selfPeer &&
+      newLeaderPubKey == m_mediator.m_selfKey.second) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "After view change, I am the new DS leader!");
+    m_mode = PRIMARY_DS;
   } else {
-    expectedLeader = m_mediator.m_DSCommittee->at(newLeaderIndex).second;
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "After view change, I am ds backup");
+    m_mode = BACKUP_DS;
   }
 
-  if (expectedLeader == newLeaderNetworkInfo) {
-    if (newLeaderNetworkInfo == m_mediator.m_selfPeer) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "After view change, I am the new DS leader!");
-      m_mode = PRIMARY_DS;
-    } else {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "After view change, I am ds backup");
-      m_mode = BACKUP_DS;
-    }
+  {
+    lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
 
-    {
-      lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
-
-      // Pushing faulty leader to back of the deque
-      for (const auto& faultyLeader :
-           m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-        // find the faulty leader and identify the index
-        deque<pair<PubKey, Peer>>::iterator it;
-        if (faultyLeader.second == m_mediator.m_selfPeer) {
-          it = find(m_mediator.m_DSCommittee->begin(),
-                    m_mediator.m_DSCommittee->end(),
-                    make_pair(faultyLeader.first, Peer()));
-        } else {
-          it = find(m_mediator.m_DSCommittee->begin(),
-                    m_mediator.m_DSCommittee->end(), faultyLeader);
-        }
-
-        // Remove faulty leader from the current
-        if (it != m_mediator.m_DSCommittee->end()) {
-          m_mediator.m_DSCommittee->erase(it);
-        } else {
-          LOG_GENERAL(WARNING,
-                      "Cannot find " << faultyLeader.second << " to eject");
-          // TODO: Handle this situation. This siutation shouldn't be
-          // encountered at all
-        }
-
-        // Add to the back of the ds commitee deque
-        if (faultyLeader.second == m_mediator.m_selfPeer) {
-          m_mediator.m_DSCommittee->emplace_back(
-              make_pair(faultyLeader.first, Peer()));
-        } else {
-          m_mediator.m_DSCommittee->emplace_back(faultyLeader);
-        }
+    // Pushing faulty leader to back of the deque
+    for (const auto& faultyLeader :
+         m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
+      // find the faulty leader and identify the index
+      deque<pair<PubKey, Peer>>::iterator it;
+      if (faultyLeader.second == m_mediator.m_selfPeer) {
+        it = find(m_mediator.m_DSCommittee->begin(),
+                  m_mediator.m_DSCommittee->end(),
+                  make_pair(faultyLeader.first, Peer()));
+      } else {
+        it = find(m_mediator.m_DSCommittee->begin(),
+                  m_mediator.m_DSCommittee->end(), faultyLeader);
       }
 
-      // Re-calculate the new m_consensusMyID
-      pair<PubKey, Peer> selfPubKPeerPair =
-          make_pair(m_mediator.m_selfKey.second, Peer());
-
-      deque<pair<PubKey, Peer>>::iterator it2 =
-          find(m_mediator.m_DSCommittee->begin(),
-               m_mediator.m_DSCommittee->end(), selfPubKPeerPair);
-
-      if (it2 != m_mediator.m_DSCommittee->end()) {
-        m_consensusMyID = distance(m_mediator.m_DSCommittee->begin(), it2);
+      // Remove faulty leader from the current
+      if (it != m_mediator.m_DSCommittee->end()) {
+        m_mediator.m_DSCommittee->erase(it);
       } else {
-        LOG_GENERAL(WARNING, "Cannot find myself in the ds committee");
+        LOG_GENERAL(WARNING,
+                    "Cannot find " << faultyLeader.second << " to eject");
         // TODO: Handle this situation. This siutation shouldn't be
         // encountered at all
       }
+
+      // Add to the back of the ds commitee deque
+      if (faultyLeader.second == m_mediator.m_selfPeer) {
+        m_mediator.m_DSCommittee->emplace_back(
+            make_pair(faultyLeader.first, Peer()));
+      } else {
+        m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+      }
     }
 
-    // Update the index for the new leader
-    pair<PubKey, Peer> candidateLeaderInfo = make_pair(
-        m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
-        m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
-    deque<pair<PubKey, Peer>>::iterator it3 =
+    // Re-calculate the new m_consensusMyID
+    pair<PubKey, Peer> selfPubKPeerPair =
+        make_pair(m_mediator.m_selfKey.second, Peer());
+
+    deque<pair<PubKey, Peer>>::iterator it2 =
         find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
-             candidateLeaderInfo);
-    if (it3 != m_mediator.m_DSCommittee->end()) {
-      m_consensusLeaderID = distance(m_mediator.m_DSCommittee->begin(), it3);
+             selfPubKPeerPair);
+
+    if (it2 != m_mediator.m_DSCommittee->end()) {
+      m_consensusMyID = distance(m_mediator.m_DSCommittee->begin(), it2);
     } else {
-      LOG_GENERAL(WARNING, "Cannot new leader in the ds committee");
+      LOG_GENERAL(WARNING, "Cannot find myself in the ds committee");
       // TODO: Handle this situation. This siutation shouldn't be
       // encountered at all
     }
-
-    LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
-    LOG_GENERAL(INFO, "New view of ds committee: ");
-    for (auto& i : *m_mediator.m_DSCommittee) {
-      LOG_GENERAL(INFO, i.second);
-    }
-
-    // Consensus update for DS shard
-    m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
-    m_mediator.m_node->m_consensusMyID = m_consensusMyID;
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
-    if (m_mediator.m_node->m_consensusMyID ==
-        m_mediator.m_node->m_consensusLeaderID) {
-      m_mediator.m_node->m_isPrimary = true;
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am leader of the DS shard");
-    } else {
-      m_mediator.m_node->m_isPrimary = false;
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am backup member of the DS shard");
-    }
-
-    auto func = [this, viewChangeState]() -> void {
-      ProcessNextConsensus(viewChangeState);
-    };
-    DetachedFunction(1, func);
-  } else {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "View change completed but it seems wrong to me."
-                  << "expectedLeader: " << expectedLeader
-                  << "newLeaderNetworkInfo: " << newLeaderNetworkInfo);
   }
+
+  // Update the index for the new leader
+  pair<PubKey, Peer> candidateLeaderInfo =
+      make_pair(m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
+                m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
+  deque<pair<PubKey, Peer>>::iterator it3 =
+      find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
+           candidateLeaderInfo);
+  if (it3 != m_mediator.m_DSCommittee->end()) {
+    m_consensusLeaderID = distance(m_mediator.m_DSCommittee->begin(), it3);
+  } else {
+    LOG_GENERAL(WARNING, "Cannot new leader in the ds committee");
+    // TODO: Handle this situation. This siutation shouldn't be
+    // encountered at all
+  }
+
+  LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
+  LOG_GENERAL(INFO, "New view of ds committee: ");
+  for (auto& i : *m_mediator.m_DSCommittee) {
+    LOG_GENERAL(INFO, i.second);
+  }
+
+  // Consensus update for DS shard
+  m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+  m_mediator.m_node->m_consensusMyID = m_consensusMyID;
+  m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+  if (m_mediator.m_node->m_consensusMyID ==
+      m_mediator.m_node->m_consensusLeaderID) {
+    m_mediator.m_node->m_isPrimary = true;
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am leader of the DS shard");
+  } else {
+    m_mediator.m_node->m_isPrimary = false;
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am backup member of the DS shard");
+  }
+
+  auto func = [this, viewChangeState]() -> void {
+    ProcessNextConsensus(viewChangeState);
+  };
+  DetachedFunction(1, func);
 
   // Store to blockLink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;

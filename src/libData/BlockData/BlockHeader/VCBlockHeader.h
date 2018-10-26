@@ -37,7 +37,6 @@ class VCBlockHeader : public BlockHeaderBase {
   uint64_t m_VieWChangeDSEpochNo;
   uint64_t m_VieWChangeEpochNo;
   unsigned char m_ViewChangeState;
-  uint32_t m_CandidateLeaderIndex;
   Peer m_CandidateLeaderNetworkInfo;
   PubKey m_CandidateLeaderPubKey;
   uint32_t m_VCCounter;
@@ -56,7 +55,6 @@ class VCBlockHeader : public BlockHeaderBase {
   VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
                 const uint64_t& viewChangeEpochNo,
                 const unsigned char viewChangeState,
-                const uint32_t expectedCandidateLeaderIndex,
                 const Peer& candidateLeaderNetworkInfo,
                 const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
                 const std::vector<std::pair<PubKey, Peer>>& faultyLeaders,
@@ -78,9 +76,6 @@ class VCBlockHeader : public BlockHeaderBase {
 
   /// Return the candidate leader ds state when view change happen
   unsigned char GetViewChangeState() const;
-
-  /// Return index of candidate leader
-  uint32_t GetCandidateLeaderIndex() const;
 
   /// Return the IP and port of candidate (at the point where view change
   /// happen)
