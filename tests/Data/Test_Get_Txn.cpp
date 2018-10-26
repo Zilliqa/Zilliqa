@@ -42,21 +42,14 @@ BOOST_AUTO_TEST_CASE(test1) {
     auto pubKey = PubKey{privKey};
     auto addr = Account::GetAddressFromPublicKey(pubKey);
 
-    bool b = GetTxnFromFile::GetFromFile(addr, 56, 90, vec);
+    std::vector<Transaction> txns;
+    bool b = GetTxnFromFile::GetFromFile(addr, 1, 9, txns);
 
-    LOG_GENERAL(INFO, "Size: " << vec.size());
+    LOG_GENERAL(INFO, "Size: " << txns.size());
     BOOST_CHECK_MESSAGE(b, "Failed");
 
-    Transaction tx;
-    unsigned int curr_offset = 0;
-    for (unsigned int j = 0; j < 90; j++) {
-      if (tx.Deserialize(vec, curr_offset) != 0) {
-        LOG_GENERAL(WARNING, "Failed to Deserialize");
-        break;
-      }
+    for (const auto& tx : txns) {
       LOG_GENERAL(INFO, "Nonce of " << i << " " << tx.GetNonce());
-
-      curr_offset += tx.GetSerializedSize();
     }
   }
 }

@@ -22,6 +22,7 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 
@@ -103,6 +104,36 @@ class Messenger {
   static bool GetFallbackBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                FallbackBlock& fallbackBlock);
+  static bool SetTransaction(std::vector<unsigned char>& dst,
+                             const unsigned int offset,
+                             const Transaction& transaction);
+  static bool GetTransaction(const std::vector<unsigned char>& src,
+                             const unsigned int offset,
+                             Transaction& transaction);
+  static bool SetTransactionFileOffset(std::vector<unsigned char>& dst,
+                                       const unsigned int offset,
+                                       const std::vector<uint32_t>& txnOffsets);
+  static bool GetTransactionFileOffset(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       std::vector<uint32_t>& txnOffsets);
+  static bool SetTransactionArray(std::vector<unsigned char>& dst,
+                                  const unsigned int offset,
+                                  const std::vector<Transaction>& txns);
+  static bool GetTransactionArray(const std::vector<unsigned char>& src,
+                                  const unsigned int offset,
+                                  std::vector<Transaction>& txns);
+  static bool SetTransactionReceipt(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const TransactionReceipt& transactionReceipt);
+  static bool GetTransactionReceipt(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    TransactionReceipt& transactionReceipt);
+  static bool SetTransactionWithReceipt(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const TransactionWithReceipt& transactionWithReceipt);
+  static bool GetTransactionWithReceipt(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      TransactionWithReceipt& transactionWithReceipt);
 
   // ============================================================================
   // Directory Service messages
@@ -143,6 +174,7 @@ class Messenger {
       const DequeOfShard& shards, const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders,
+      const MapOfPubKeyPoW& allPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool GetDSDSBlockAnnouncement(
@@ -152,7 +184,7 @@ class Messenger {
       const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
       std::vector<Peer>& dsReceivers,
       std::vector<std::vector<Peer>>& shardReceivers,
-      std::vector<std::vector<Peer>>& shardSenders,
+      std::vector<std::vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool SetDSFinalBlockAnnouncement(
@@ -234,7 +266,7 @@ class Messenger {
       const uint64_t epochNumber, const uint32_t shardId,
       const std::pair<PrivKey, PubKey>& lookupKey,
       const std::vector<Transaction>& txnsCurrent,
-      const std::vector<unsigned char>& txnsGenerated);
+      const std::vector<Transaction>& txnsGenerated);
   static bool GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                      const unsigned int offset,
                                      uint64_t& epochNumber, uint32_t& shardId,
@@ -514,26 +546,28 @@ class Messenger {
   static bool SetConsensusChallenge(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-      const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
-      const Challenge& challenge, const std::pair<PrivKey, PubKey>& leaderKey);
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+      const PubKey& aggregatedKey, const Challenge& challenge,
+      const std::pair<PrivKey, PubKey>& leaderKey);
   static bool GetConsensusChallenge(
       const std::vector<unsigned char>& src, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-      CommitPoint& aggregatedCommit, PubKey& aggregatedKey,
-      Challenge& challenge, const PubKey& leaderKey);
+      uint16_t& subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t leaderID, CommitPoint& aggregatedCommit,
+      PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey);
 
   static bool SetConsensusResponse(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t backupID,
-      const Response& response, const std::pair<PrivKey, PubKey>& backupKey);
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t backupID, const Response& response,
+      const std::pair<PrivKey, PubKey>& backupKey);
   static bool GetConsensusResponse(
       const std::vector<unsigned char>& src, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, uint16_t& backupID,
-      Response& response,
+      uint16_t& subsetID, Response& response,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 
   static bool SetConsensusCollectiveSig(

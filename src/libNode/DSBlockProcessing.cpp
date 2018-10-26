@@ -491,23 +491,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     return false;
   }
 
-  // Verify the CommitteeHash member of the BlockHeaderBase
-  CommitteeHash committeeHash;
-  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
-                                     committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetDSCommitteeHash failed.");
-    return false;
-  }
-  if (committeeHash != dsblock.GetHeader().GetCommitteeHash()) {
-    LOG_GENERAL(WARNING,
-                "DS committee hash in newly received DS Block doesn't match. "
-                "Calculated: "
-                    << committeeHash
-                    << " Received: " << dsblock.GetHeader().GetCommitteeHash());
-    return false;
-  }
-
   m_myshardId = shardId;
 
   LogReceivedDSBlockDetails(dsblock);
@@ -545,6 +528,23 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     LOG_GENERAL(INFO, "view change completed for vc blocknum "
                           << vcBlock.GetHeader().GetViewChangeCounter());
     expectedViewChangeCounter++;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != dsblock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received DS Block doesn't match. "
+                "Calculated: "
+                    << committeeHash
+                    << " Received: " << dsblock.GetHeader().GetCommitteeHash());
+    return false;
   }
 
   // Check the signature of this DS block

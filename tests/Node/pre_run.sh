@@ -16,13 +16,27 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 
+
+
+rm -rf local_run/node*
+
 sudo sysctl net.core.somaxconn=102400; 
 sudo sysctl net.core.netdev_max_backlog=65536; 
 sudo sysctl net.ipv4.tcp_tw_reuse=1; 
 sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
+ulimit -n 65535;
+ulimit -Sc unlimited; 
+ulimit -Hc unlimited;
+ulimit -s unlimited; 
 
-python tests/Zilliqa/test_zilliqa_lookup.py start
+python tests/Zilliqa/test_zilliqa_local.py stop
+python tests/Zilliqa/test_zilliqa_local.py setup 20
+python tests/Zilliqa/test_zilliqa_local.py prestart 10
 
-echo "end"
+# clean up persistence storage
+rm -rf lookup_local_run/node*
+
+python tests/Zilliqa/test_zilliqa_lookup.py setup 5
+

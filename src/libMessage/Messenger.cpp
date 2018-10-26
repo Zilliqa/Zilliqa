@@ -21,6 +21,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
@@ -231,6 +232,69 @@ void ProtobufToShardingStructure(
   }
 }
 
+void AnnouncementShardingStructureToProtobuf(
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
+    ProtoShardingStructureWithPoWSolns& protoShardingStructure) {
+  for (const auto& shard : shards) {
+    ProtoShardingStructureWithPoWSolns::Shard* proto_shard =
+        protoShardingStructure.add_shards();
+
+    for (const auto& node : shard) {
+      ProtoShardingStructureWithPoWSolns::Member* proto_member =
+          proto_shard->add_members();
+
+      const PubKey& key = std::get<SHARD_NODE_PUBKEY>(node);
+
+      SerializableToProtobufByteArray(key, *proto_member->mutable_pubkey());
+      SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
+                                      *proto_member->mutable_peerinfo());
+      proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
+
+      ProtoPoWSolution* proto_soln = proto_member->mutable_powsoln();
+      const auto soln = allPoWs.find(key);
+      proto_soln->set_nonce(soln->second.nonce);
+      proto_soln->set_result(soln->second.result.data(),
+                             soln->second.result.size());
+      proto_soln->set_mixhash(soln->second.mixhash.data(),
+                              soln->second.mixhash.size());
+    }
+  }
+}
+
+void ProtobufToShardingStructureAnnouncement(
+    const ProtoShardingStructureWithPoWSolns& protoShardingStructure,
+    DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
+  std::array<unsigned char, 32> result;
+  std::array<unsigned char, 32> mixhash;
+
+  for (const auto& proto_shard : protoShardingStructure.shards()) {
+    shards.emplace_back();
+
+    for (const auto& proto_member : proto_shard.members()) {
+      PubKey key;
+      Peer peer;
+
+      ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
+      ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
+
+      shards.back().emplace_back(key, peer, proto_member.reputation());
+
+      copy(proto_member.powsoln().result().begin(),
+           proto_member.powsoln().result().begin() +
+               min((unsigned int)proto_member.powsoln().result().size(),
+                   (unsigned int)result.size()),
+           result.begin());
+      copy(proto_member.powsoln().mixhash().begin(),
+           proto_member.powsoln().mixhash().begin() +
+               min((unsigned int)proto_member.powsoln().mixhash().size(),
+                   (unsigned int)mixhash.size()),
+           mixhash.begin());
+      allPoWs.emplace(
+          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash));
+    }
+  }
+}
+
 void TxSharingAssignmentsToProtobuf(
     const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders,
@@ -282,8 +346,8 @@ void ProtobufToTxSharingAssignments(
   }
 }
 
-[[gnu::unused]] void TransactionToProtobuf(const Transaction& transaction,
-                                           ProtoTransaction& protoTransaction) {
+void TransactionToProtobuf(const Transaction& transaction,
+                           ProtoTransaction& protoTransaction) {
   protoTransaction.set_tranid(transaction.GetTranID().data(),
                               transaction.GetTranID().size);
 
@@ -310,8 +374,8 @@ void ProtobufToTxSharingAssignments(
                                   *protoTransaction.mutable_signature());
 }
 
-[[gnu::unused]] void ProtobufToTransaction(
-    const ProtoTransaction& protoTransaction, Transaction& transaction) {
+void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
+                           Transaction& transaction) {
   TxnHash tranID;
   uint256_t version;
   uint256_t nonce;
@@ -355,17 +419,12 @@ void ProtobufToTxSharingAssignments(
   ProtobufByteArrayToSerializable(protoTransaction.signature(), signature);
 
   // Verify transaction ID
-
-  vector<unsigned char> txData;
-
-  if (!SerializeToArray(protoTransaction.info(), txData, 0)) {
-    LOG_GENERAL(WARNING,
-                "ProtoTransaction::CoreTransactionInfo serialization failed.");
-    return;
-  }
-
+  Transaction transTmp(tranID, version, nonce, toAddr, senderPubKey, amount,
+                       gasPrice, gasLimit, code, data, signature);
+  vector<unsigned char> txnData;
+  transTmp.SerializeCoreFields(txnData, 0);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(txData);
+  sha2.Update(txnData);
   const vector<unsigned char>& hash = sha2.Finalize();
 
   if (!equal(hash.begin(), hash.end(), tranID.begin())) {
@@ -378,13 +437,91 @@ void ProtobufToTxSharingAssignments(
 
   // Verify signature
 
-  if (!Schnorr::GetInstance().Verify(txData, signature, senderPubKey)) {
+  if (!Schnorr::GetInstance().Verify(txnData, signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "Signature verification failed.");
     return;
   }
 
   transaction = Transaction(tranID, version, nonce, toAddr, senderPubKey,
                             amount, gasPrice, gasLimit, code, data, signature);
+}
+
+void TransactionOffsetToProtobuf(const std::vector<uint32_t>& txnOffsets,
+                                 ProtoTxnFileOffset& protoTxnFileOffset) {
+  for (const auto& offset : txnOffsets) {
+    protoTxnFileOffset.add_offsetinfile(offset);
+  }
+}
+
+void ProtobufToTransactionOffset(const ProtoTxnFileOffset& protoTxnFileOffset,
+                                 std::vector<uint32_t>& txnOffsets) {
+  txnOffsets.clear();
+  for (const auto& offset : protoTxnFileOffset.offsetinfile()) {
+    txnOffsets.push_back(offset);
+  }
+}
+
+void TransactionArrayToProtobuf(const std::vector<Transaction>& txns,
+                                ProtoTransactionArray& protoTransactionArray) {
+  for (const auto& txn : txns) {
+    TransactionToProtobuf(txn, *protoTransactionArray.add_transactions());
+  }
+}
+
+void ProtobufToTransactionArray(
+    const ProtoTransactionArray& protoTransactionArray,
+    std::vector<Transaction>& txns) {
+  for (const auto& protoTransaction : protoTransactionArray.transactions()) {
+    Transaction txn;
+    ProtobufToTransaction(protoTransaction, txn);
+    txns.push_back(txn);
+  }
+}
+
+void TransactionReceiptToProtobuf(const TransactionReceipt& transReceipt,
+                                  ProtoTransactionReceipt& protoTransReceipt) {
+  protoTransReceipt.set_receipt(transReceipt.GetString());
+  // protoTransReceipt.set_cumgas(transReceipt.GetCumGas());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      transReceipt.GetCumGas(), *protoTransReceipt.mutable_cumgas());
+}
+
+void ProtobufToTransactionReceipt(
+    const ProtoTransactionReceipt& protoTransactionReceipt,
+    TransactionReceipt& transactionReceipt) {
+  std::string tranReceiptStr;
+  tranReceiptStr.resize(protoTransactionReceipt.receipt().size());
+  copy(protoTransactionReceipt.receipt().begin(),
+       protoTransactionReceipt.receipt().end(), tranReceiptStr.begin());
+  transactionReceipt.SetString(tranReceiptStr);
+
+  uint256_t cumgas;
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTransactionReceipt.cumgas(), cumgas);
+  transactionReceipt.SetCumGas(cumgas);
+}
+
+void TransactionWithReceiptToProtobuf(
+    const TransactionWithReceipt& transWithReceipt,
+    ProtoTransactionWithReceipt& protoTransWithReceipt) {
+  auto* protoTransaction = protoTransWithReceipt.mutable_transaction();
+  TransactionToProtobuf(transWithReceipt.GetTransaction(), *protoTransaction);
+
+  auto* protoTranReceipt = protoTransWithReceipt.mutable_receipt();
+  TransactionReceiptToProtobuf(transWithReceipt.GetTransactionReceipt(),
+                               *protoTranReceipt);
+}
+
+void ProtobufToTransactionWithReceipt(
+    const ProtoTransactionWithReceipt& protoWithTransaction,
+    TransactionWithReceipt& transactionWithReceipt) {
+  Transaction transaction;
+  ProtobufToTransaction(protoWithTransaction.transaction(), transaction);
+
+  TransactionReceipt receipt;
+  ProtobufToTransactionReceipt(protoWithTransaction.receipt(), receipt);
+
+  transactionWithReceipt = TransactionWithReceipt(transaction, receipt);
 }
 
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
@@ -1706,6 +1843,155 @@ bool Messenger::GetFallbackBlock(const vector<unsigned char>& src,
   return true;
 }
 
+bool Messenger::SetTransaction(std::vector<unsigned char>& dst,
+                               const unsigned int offset,
+                               const Transaction& transaction) {
+  ProtoTransaction result;
+
+  TransactionToProtobuf(transaction, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTransaction(const std::vector<unsigned char>& src,
+                               const unsigned int offset,
+                               Transaction& transaction) {
+  ProtoTransaction result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransaction(result, transaction);
+
+  return true;
+}
+
+bool Messenger::SetTransactionFileOffset(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const std::vector<uint32_t>& txnOffsets) {
+  ProtoTxnFileOffset result;
+  TransactionOffsetToProtobuf(txnOffsets, result);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction file offset initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTransactionFileOffset(const std::vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         std::vector<uint32_t>& txnOffsets) {
+  ProtoTxnFileOffset result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction file offset initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransactionOffset(result, txnOffsets);
+  return true;
+}
+
+bool Messenger::SetTransactionArray(std::vector<unsigned char>& dst,
+                                    const unsigned int offset,
+                                    const std::vector<Transaction>& txns) {
+  ProtoTransactionArray result;
+  TransactionArrayToProtobuf(txns, result);
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction array initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTransactionArray(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    std::vector<Transaction>& txns) {
+  ProtoTransactionArray result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction array initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransactionArray(result, txns);
+  return true;
+}
+
+bool Messenger::SetTransactionReceipt(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const TransactionReceipt& transactionReceipt) {
+  ProtoTransactionReceipt result;
+
+  TransactionReceiptToProtobuf(transactionReceipt, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "TransactionReceipt initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTransactionReceipt(const std::vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      TransactionReceipt& transactionReceipt) {
+  ProtoTransactionReceipt result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "TransactionReceipt initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransactionReceipt(result, transactionReceipt);
+
+  return true;
+}
+
+bool Messenger::SetTransactionWithReceipt(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const TransactionWithReceipt& transactionWithReceipt) {
+  ProtoTransactionWithReceipt result;
+
+  TransactionWithReceiptToProtobuf(transactionWithReceipt, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "TransactionWithReceipt initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTransactionWithReceipt(
+    const std::vector<unsigned char>& src, const unsigned int offset,
+    TransactionWithReceipt& transactionWithReceipt) {
+  ProtoTransactionWithReceipt result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "TransactionWithReceipt initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
+
+  return true;
+}
+
 // ============================================================================
 // Directory Service messages
 // ============================================================================
@@ -1862,7 +2148,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
     const DequeOfShard& shards, const vector<Peer>& dsReceivers,
     const vector<vector<Peer>>& shardReceivers,
-    const vector<vector<Peer>>& shardSenders,
+    const vector<vector<Peer>>& shardSenders, const MapOfPubKeyPoW& allPoWs,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -1874,7 +2160,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
   DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
 
-  ShardingStructureToProtobuf(shards, *dsblock->mutable_sharding());
+  AnnouncementShardingStructureToProtobuf(shards, allPoWs,
+                                          *dsblock->mutable_sharding());
 
   TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
                                  *dsblock->mutable_assignments());
@@ -1914,7 +2201,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
     vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
-    vector<vector<Peer>>& shardSenders,
+    vector<vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -1950,7 +2237,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
 
-  ProtobufToShardingStructure(dsblock.sharding(), shards);
+  ProtobufToShardingStructureAnnouncement(dsblock.sharding(), shards, allPoWs);
 
   ProtobufToTxSharingAssignments(dsblock.assignments(), dsReceivers,
                                  shardReceivers, shardSenders);
@@ -2364,7 +2651,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     const uint64_t epochNumber, const uint32_t shardId,
     const std::pair<PrivKey, PubKey>& lookupKey,
     const std::vector<Transaction>& txnsCurrent,
-    const std::vector<unsigned char>& txnsGenerated) {
+    const std::vector<Transaction>& txnsGenerated) {
   LOG_MARKER();
 
   NodeForwardTxnBlock result;
@@ -2377,21 +2664,12 @@ bool Messenger::SetNodeForwardTxnBlock(
   unsigned int txnsGeneratedCount = 0;
 
   for (const auto& txn : txnsCurrent) {
-    SerializableToProtobufByteArray(txn, *result.add_transactions());
+    TransactionToProtobuf(txn, *result.add_transactions());
     txnsCurrentCount++;
   }
 
-  unsigned int txnStreamOffset = 0;
-  while (txnStreamOffset < txnsGenerated.size()) {
-    Transaction txn;
-    if (txn.Deserialize(txnsGenerated, txnStreamOffset) != 0) {
-      LOG_GENERAL(WARNING, "Failed to deserialize generated transaction.");
-      return false;
-    }
-
-    SerializableToProtobufByteArray(txn, *result.add_transactions());
-
-    txnStreamOffset += txn.GetSerializedSize();
+  for (const auto& txn : txnsGenerated) {
+    TransactionToProtobuf(txn, *result.add_transactions());
     txnsGeneratedCount++;
   }
 
@@ -2459,7 +2737,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
 
     for (const auto& txn : result.transactions()) {
       Transaction t;
-      ProtobufByteArrayToSerializable(txn, t);
+      ProtobufToTransaction(txn, t);
       txns.emplace_back(t);
     }
   }
@@ -4195,9 +4473,10 @@ bool Messenger::GetConsensusCommit(
 bool Messenger::SetConsensusChallenge(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
-    const Challenge& challenge, const pair<PrivKey, PubKey>& leaderKey) {
+    const uint16_t subsetID, const vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+    const PubKey& aggregatedKey, const Challenge& challenge,
+    const pair<PrivKey, PubKey>& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -4207,6 +4486,7 @@ bool Messenger::SetConsensusChallenge(
   result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_leaderid(leaderID);
+  result.mutable_consensusinfo()->set_subsetid(subsetID);
   SerializableToProtobufByteArray(
       aggregatedCommit,
       *result.mutable_consensusinfo()->mutable_aggregatedcommit());
@@ -4243,7 +4523,7 @@ bool Messenger::SetConsensusChallenge(
 
 bool Messenger::GetConsensusChallenge(
     const vector<unsigned char>& src, const unsigned int offset,
-    const uint32_t consensusID, const uint64_t blockNumber,
+    const uint32_t consensusID, const uint64_t blockNumber, uint16_t& subsetID,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     CommitPoint& aggregatedCommit, PubKey& aggregatedKey, Challenge& challenge,
     const PubKey& leaderKey) {
@@ -4298,6 +4578,8 @@ bool Messenger::GetConsensusChallenge(
     return false;
   }
 
+  subsetID = result.consensusinfo().subsetid();
+
   ProtobufByteArrayToSerializable(result.consensusinfo().aggregatedcommit(),
                                   aggregatedCommit);
   ProtobufByteArrayToSerializable(result.consensusinfo().aggregatedkey(),
@@ -4323,8 +4605,9 @@ bool Messenger::GetConsensusChallenge(
 bool Messenger::SetConsensusResponse(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const vector<unsigned char>& blockHash, const uint16_t backupID,
-    const Response& response, const pair<PrivKey, PubKey>& backupKey) {
+    const uint16_t subsetID, const vector<unsigned char>& blockHash,
+    const uint16_t backupID, const Response& response,
+    const pair<PrivKey, PubKey>& backupKey) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -4334,6 +4617,7 @@ bool Messenger::SetConsensusResponse(
   result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_backupid(backupID);
+  result.mutable_consensusinfo()->set_subsetid(subsetID);
   SerializableToProtobufByteArray(
       response, *result.mutable_consensusinfo()->mutable_response());
 
@@ -4367,7 +4651,8 @@ bool Messenger::GetConsensusResponse(
     const vector<unsigned char>& src, const unsigned int offset,
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, uint16_t& backupID,
-    Response& response, const deque<pair<PubKey, Peer>>& committeeKeys) {
+    uint16_t& subsetID, Response& response,
+    const deque<pair<PubKey, Peer>>& committeeKeys) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -4420,6 +4705,8 @@ bool Messenger::GetConsensusResponse(
                              << " Shard size: " << committeeKeys.size());
     return false;
   }
+
+  subsetID = result.consensusinfo().subsetid();
 
   ProtobufByteArrayToSerializable(result.consensusinfo().response(), response);
 

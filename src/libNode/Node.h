@@ -251,9 +251,9 @@ class Node : public Executable, public Broadcastable {
   bool ProcessForwardTransactionCore(const ForwardedTxnEntry& entry);
   bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
-  bool ProcessTxnPacketFromLookupCore(
-      const std::vector<unsigned char>& message, const uint32_t shardId,
-      const std::vector<Transaction>& transactions);
+  bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
+                                      const uint32_t shardId,
+                                      const std::vector<Transaction>& txns);
 
 #ifdef HEARTBEAT_TEST
   bool ProcessKillPulse(const std::vector<unsigned char>& message,

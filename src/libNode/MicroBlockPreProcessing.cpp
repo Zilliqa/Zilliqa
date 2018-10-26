@@ -219,6 +219,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                                     sizeof(uint64_t));
   cur_offset += sizeof(uint64_t);
 
+  std::vector<Transaction> txns;
   for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
     // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn "
     // << missingTransactions[i])
@@ -231,13 +232,16 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     } else {
       LOG_GENERAL(INFO, "Leader unable to find txn proposed in microblock "
                             << missingTransactions[i]);
-      // throw exception();
-      // return false;
       continue;
     }
-    t.Serialize(tx_message, cur_offset);
-    cur_offset += t.GetSerializedSize();
+    txns.push_back(t);
   }
+
+  if (!Messenger::SetTransactionArray(tx_message, cur_offset, txns)) {
+    LOG_GENERAL(WARNING, "Messenger::SetTransactionArray failed.");
+    return false;
+  }
+
   P2PComm::GetInstance().SendMessage(peer, tx_message);
 
   return true;
