@@ -98,6 +98,7 @@ def run_start():
 	keys_file = open(LOCAL_RUN_FOLDER + 'keys.txt', "w")
 	for x in range(0, count):
 		keys_file.write(keypairs[x] + '\n')
+		shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
 		shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
 	keys_file.close()
 
