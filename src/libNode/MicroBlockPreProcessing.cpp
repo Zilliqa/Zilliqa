@@ -1160,14 +1160,11 @@ bool Node::CheckMicroBlockValidity(vector<unsigned char>& errorMsg) {
 
   LOG_MARKER();
 
-  if (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion() ||
-      !CheckMicroBlockshardId() || !CheckMicroBlockTimestamp() ||
-      !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash() ||
-      !CheckMicroBlockStateDeltaHash() || !CheckMicroBlockTranReceiptHash()) {
-    // LOG_GENERAL(INFO, "To-do: What to do if proposed microblock is not
-    // valid?");
-    return false;
-  }
+  return (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion() ||
+          !CheckMicroBlockshardId() || !CheckMicroBlockTimestamp() ||
+          !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash() ||
+          !CheckMicroBlockStateDeltaHash() ||
+          !CheckMicroBlockTranReceiptHash());
 
   // Check gas limit (must satisfy some equations)
   // Check gas used (must be <= gas limit)
@@ -1179,8 +1176,6 @@ bool Node::CheckMicroBlockValidity(vector<unsigned char>& errorMsg) {
   // (must be = block number of last DS block header in the DS blockchain) Need
   // some rework to be able to access DS blockchain (or we switch to using the
   // persistent storage lib)
-
-  return true;
 }
 
 bool Node::MicroBlockValidator(const vector<unsigned char>& message,
