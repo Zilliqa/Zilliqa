@@ -78,9 +78,9 @@ class BlockLinkChain {
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
 
     uint64_t latestIndex = GetLatestIndex();
-    if(index <= latestIndex)
-    {
-      LOG_GENERAL(WARNING,"the latest index in the blocklink is greater"<<index<<" "<<latestIndex);
+    if (index <= latestIndex) {
+      LOG_GENERAL(WARNING, "the latest index in the blocklink is greater"
+                               << index << " " << latestIndex);
       return false;
     }
     m_blockLinkChain.insert_new(
