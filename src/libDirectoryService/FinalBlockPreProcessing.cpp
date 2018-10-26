@@ -1005,16 +1005,12 @@ bool DirectoryService::CheckFinalBlockValidity(
     return true;
   }
 
-  if (!CheckBlockHash() || !CheckBlockTypeIsFinal() ||
-      !CheckFinalBlockVersion() || !CheckFinalBlockNumber() ||
-      !CheckPreviousFinalBlockHash() || !CheckFinalBlockTimestamp() ||
-      !CheckMicroBlocks(errorMsg) || !CheckLegitimacyOfMicroBlocks() ||
-      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() ||
-      !CheckStateRoot() || !CheckStateDeltaHash()) {
-    Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
-    return false;
+  if (CheckBlockHash() && CheckBlockTypeIsFinal() && CheckFinalBlockVersion() &&
+      CheckFinalBlockNumber() && CheckPreviousFinalBlockHash() &&
+      CheckFinalBlockTimestamp() && CheckMicroBlocks(errorMsg) &&
+      CheckLegitimacyOfMicroBlocks() && CheckMicroBlockHashRoot() &&
+      CheckIsMicroBlockEmpty() && CheckStateRoot() && CheckStateDeltaHash()) {
+    return true;
   }
 
   // TODO: Check gas limit (must satisfy some equations)
@@ -1025,7 +1021,10 @@ bool DirectoryService::CheckFinalBlockValidity(
   // TODO: Check parent DS block number (must be = block number of last DS block
   // header in the DS blockchain)
 
-  return true;
+  Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
+                                    m_mediator.m_selfPeer.m_listenPortHost,
+                                    sizeof(uint32_t));
+  return false;
 }
 
 bool DirectoryService::CheckMicroBlockValidity(

@@ -1160,11 +1160,10 @@ bool Node::CheckMicroBlockValidity(vector<unsigned char>& errorMsg) {
 
   LOG_MARKER();
 
-  return (!CheckBlockTypeIsMicro() || !CheckMicroBlockVersion() ||
-          !CheckMicroBlockshardId() || !CheckMicroBlockTimestamp() ||
-          !CheckMicroBlockHashes(errorMsg) || !CheckMicroBlockTxnRootHash() ||
-          !CheckMicroBlockStateDeltaHash() ||
-          !CheckMicroBlockTranReceiptHash());
+  return CheckBlockTypeIsMicro() && CheckMicroBlockVersion() &&
+         CheckMicroBlockshardId() && CheckMicroBlockTimestamp() &&
+         CheckMicroBlockHashes(errorMsg) && CheckMicroBlockTxnRootHash() &&
+         CheckMicroBlockStateDeltaHash() && CheckMicroBlockTranReceiptHash();
 
   // Check gas limit (must satisfy some equations)
   // Check gas used (must be <= gas limit)
