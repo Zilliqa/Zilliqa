@@ -104,6 +104,12 @@ class Messenger {
   static bool GetFallbackBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                FallbackBlock& fallbackBlock);
+  static bool SetTransactionCoreInfo(std::vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     const TransactionCoreInfo& transaction);
+  static bool GetTransactionCoreInfo(const std::vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     TransactionCoreInfo& transaction);
   static bool SetTransaction(std::vector<unsigned char>& dst,
                              const unsigned int offset,
                              const Transaction& transaction);

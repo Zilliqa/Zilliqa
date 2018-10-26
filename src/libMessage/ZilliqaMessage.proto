@@ -89,23 +89,24 @@ message ProtoTxSharingAssignments
     repeated AssignedNodes shardnodes = 2;
 }
 
+message ProtoTransactionCoreInfo
+{
+    required ByteArray version      = 1;
+    required ByteArray nonce        = 2;
+    required bytes toaddr           = 3;
+    required ByteArray senderpubkey = 4;
+    required ByteArray amount       = 5;
+    required ByteArray gasprice     = 6;
+    required ByteArray gaslimit     = 7;
+    required bytes code             = 8;
+    required bytes data             = 9;
+}
+
 message ProtoTransaction
 {
-    message CoreTransactionInfo
-    {
-        required ByteArray version      = 1;
-        required ByteArray nonce        = 2;
-        required bytes toaddr           = 3;
-        required ByteArray senderpubkey = 4;
-        required ByteArray amount       = 5;
-        required ByteArray gasprice     = 6;
-        required ByteArray gaslimit     = 7;
-        required bytes code             = 8;
-        required bytes data             = 9;
-    }
-    required bytes tranid               = 1;
-    required CoreTransactionInfo info   = 2;
-    required ByteArray signature        = 3;
+    required bytes tranid                  = 1;
+    required ProtoTransactionCoreInfo info = 2;
+    required ByteArray signature           = 3;
 }
 
 message ProtoTxnFileOffset
