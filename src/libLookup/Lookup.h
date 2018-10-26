@@ -141,7 +141,7 @@ class Lookup : public Executable, public Broadcastable {
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
-                    std::map<uint32_t, std::vector<unsigned char>>& mp,
+                    std::map<uint32_t, std::vector<Transaction>>& mp,
                     uint32_t numShards);
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes

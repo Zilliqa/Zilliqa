@@ -139,7 +139,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn signmultisig ZilliqaDaemon_AWS
+set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn signmultisig ZilliqaDaemon_AWS gensigninitialds
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT

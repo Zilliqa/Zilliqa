@@ -38,6 +38,7 @@ class TxBlock : public BlockBase {
   TxBlockHeader m_header;
   std::vector<bool> m_isMicroBlockEmpty;
   std::vector<BlockHash> m_microBlockHashes;
+  std::vector<uint32_t> m_shardIds;
 
  public:
   /// Default constructor.
@@ -51,10 +52,11 @@ class TxBlock : public BlockBase {
   TxBlock(const TxBlockHeader& header,
           const std::vector<bool>& isMicroBlockEmpty,
           const std::vector<BlockHash>& microBlockHashes,
-          CoSignatures&& cosigs);
+          const std::vector<uint32_t>& shardIds, CoSignatures&& cosigs);
   TxBlock(const TxBlockHeader& header,
           const std::vector<bool>& isMicroBlockEmpty,
-          const std::vector<BlockHash>& microBlockHashes);
+          const std::vector<BlockHash>& microBlockHashes,
+          const std::vector<uint32_t>& shardIds);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
@@ -70,6 +72,9 @@ class TxBlock : public BlockBase {
 
   /// Returns the list of MicroBlockHashes.
   const std::vector<BlockHash>& GetMicroBlockHashes() const;
+
+  /// Returns the list of shardIds
+  const std::vector<uint32_t>& GetShardIds() const;
 
   /// Equality comparison operator.
   bool operator==(const TxBlock& block) const;

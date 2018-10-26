@@ -74,8 +74,10 @@ MicroBlock::MicroBlock(const MicroBlockHeader& header,
                        const vector<TxnHash>& tranHashes, CoSignatures&& cosigs)
     : m_header(header), m_tranHashes(tranHashes) {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+    LOG_GENERAL(WARNING, "Num of Txns get from header "
+                             << m_header.GetNumTxs()
+                             << " is not equal to the size of m_tranHashes "
+                             << m_tranHashes.size());
   }
 
   m_cosigs = move(cosigs);
@@ -85,8 +87,10 @@ MicroBlock::MicroBlock(const MicroBlockHeader& header,
                        const vector<TxnHash>& tranHashes)
     : m_header(header), m_tranHashes(tranHashes) {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+    LOG_GENERAL(WARNING, "Num of Txns get from header "
+                             << m_header.GetNumTxs()
+                             << " is not equal to the size of m_tranHashes "
+                             << m_tranHashes.size());
   }
 }
 

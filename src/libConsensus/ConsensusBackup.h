@@ -60,14 +60,6 @@ class ConsensusBackup : public ConsensusCommon {
   // Function handler for validating message content
   MsgContentValidatorFunc m_msgContentValidator;
 
-  // Announcement State block
-  std::condition_variable cv_announcementBlock;
-  std::mutex m_MutexCVAnnouncementBlock;
-
-  // Cosig1 State block
-  std::condition_variable cv_cosig1Block;
-  std::mutex m_MutexCVCosig1Block;
-
   // Internal functions
   bool CheckState(Action action);
 
@@ -88,7 +80,7 @@ class ConsensusBackup : public ConsensusCommon {
   bool ProcessMessageChallenge(const std::vector<unsigned char>& challenge,
                                unsigned int offset);
   bool GenerateResponseMessage(std::vector<unsigned char>& response,
-                               unsigned int offset);
+                               unsigned int offset, uint16_t subsetID);
   bool ProcessMessageCollectiveSigCore(
       const std::vector<unsigned char>& collectivesig, unsigned int offset,
       Action action, State nextstate);
