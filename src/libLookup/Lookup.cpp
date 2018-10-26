@@ -1622,7 +1622,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
       return false;
     } else {
       LOG_GENERAL(INFO, "[TxBlockVerif]"
-                               << "Success");
+                            << "Success");
     }
 
     for (const auto& txBlock : txBlocks) {
