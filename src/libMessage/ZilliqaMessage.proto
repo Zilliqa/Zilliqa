@@ -442,6 +442,20 @@ message LookupSetTxBlockFromSeed
     required ByteArray signature   = 5;
 }
 
+message LookupGetStateDeltaFromSeed
+{
+    required uint64 blocknum     = 1;
+    required uint32 listenport   = 2;
+}
+
+message LookupSetStateDeltaFromSeed
+{
+    required uint64 blocknum     = 1;
+    required bytes statedelta    = 2;
+    required ByteArray pubkey    = 3;
+    required ByteArray signature = 4;
+}
+
 message LookupGetTxBodyFromSeed
 {
     required bytes txhash      = 1;

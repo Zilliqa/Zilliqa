@@ -90,7 +90,10 @@ enum LookupInstructionType : unsigned char {
   SETTXNFROMLOOKUP = 0x1B,
   GETDIRBLOCKSFROMSEED = 0x1C,
   SETDIRBLOCKSFROMSEED = 0x1D,
-
+#if 1  // clark
+  GETSTATEDELTAFROMSEED = 0x1E,
+  SETSTATEDELTAFROMSEED = 0x1F,
+#endif
 };
 
 enum TxSharingMode : unsigned char {

@@ -389,6 +389,25 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
   return getTxBlockMessage;
 }
 
+#if 1  // clark
+vector<unsigned char> Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
+  LOG_MARKER();
+
+  vector<unsigned char> getStateDeltaMessage = {
+      MessageType::LOOKUP, LookupInstructionType::GETSTATEDELTAFROMSEED};
+
+  if (!Messenger::SetLookupGetStateDeltaFromSeed(
+          getStateDeltaMessage, MessageOffset::BODY, blockNum,
+          m_mediator.m_selfPeer.m_listenPortHost)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetLookupGetStateDeltaFromSeed failed.");
+    return {};
+  }
+
+  return getStateDeltaMessage;
+}
+#endif
+
 // low and high denote the range of blocknumbers being requested(inclusive).
 // use 0 to denote the latest blocknumber since obviously no one will request
 // for the genesis block
@@ -401,6 +420,16 @@ bool Lookup::GetTxBlockFromLookupNodes(uint64_t lowBlockNum,
 
   return true;
 }
+
+#if 1  // clark
+bool Lookup::GetStateDeltaFromLookupNodes(uint64_t blockNum) {
+  LOG_MARKER();
+
+  SendMessageToRandomLookupNode(ComposeGetStateDeltaMessage(blockNum));
+
+  return true;
+}
+#endif
 
 bool Lookup::GetTxBodyFromSeedNodes(string txHashStr) {
   LOG_MARKER();
@@ -938,6 +967,66 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
   return true;
 }
+
+#if 1  // clark
+bool Lookup::ProcessGetStateDeltaFromSeed(const vector<unsigned char>& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
+  LOG_MARKER();
+
+  uint64_t blockNum = 0;
+  uint32_t portNo = 0;
+
+  if (!Messenger::GetLookupGetStateDeltaFromSeed(message, offset, blockNum,
+                                                 portNo)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupGetStateDeltaFromSeed failed.");
+    return false;
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ProcessGetStateDeltaFromSeed requested by "
+                << from << " for block " << blockNum);
+
+  vector<unsigned char> stateDelta;
+
+  if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta)) {
+    LOG_GENERAL(INFO, "Block Number "
+                          << blockNum
+                          << " absent. Didn't include it in response message.");
+  }
+
+  vector<unsigned char> stateDeltaMessage = {
+      MessageType::LOOKUP, LookupInstructionType::SETSTATEDELTAFROMSEED};
+
+  if (!Messenger::SetLookupSetStateDeltaFromSeed(
+          stateDeltaMessage, MessageOffset::BODY, blockNum,
+          m_mediator.m_selfKey, stateDelta)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetLookupSetStateDeltaFromSeed failed.");
+    return false;
+  }
+
+  uint128_t ipAddr = from.m_ipAddress;
+  Peer requestingNode(ipAddr, portNo);
+  LOG_GENERAL(INFO, requestingNode);
+
+  // TODO: Revamp the sendmessage and sendbroadcastmessage
+  // Currently, we use sendbroadcastmessage instead of sendmessage. The reason
+  // is a new node who want to join will received similar response from mulitple
+  // lookup node. It will process them in full. Currently, we want the
+  // duplicated message to be drop so to ensure it do not do redundant
+  // processing. In the long term, we need to track all the incoming messages
+  // from lookup or seed node more grandularly,. and ensure 2/3 of such
+  // identical message is received in order to move on.
+
+  // vector<Peer> node;
+  // node.emplace_back(requestingNode);
+
+  P2PComm::GetInstance().SendMessage(requestingNode, stateDeltaMessage);
+  return true;
+}
+#endif
 
 bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from) {
@@ -1559,6 +1648,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
   LOG_MARKER();
 
   if (AlreadyJoinedNetwork()) {
+#if 1  // clark
+    cv_setTxBlockFromSeed.notify_all();
+#endif
     return true;
   }
 
@@ -1691,7 +1783,64 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     LOG_GENERAL(INFO, "At new DS epoch now, try getting state from lookup");
     GetStateFromLookupNodes();
   }
+
+#if 1  // clark
+  cv_setTxBlockFromSeed.notify_all();
+#endif
+  return true;
 }
+
+#if 1  // clark
+bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
+  LOG_MARKER();
+
+  if (AlreadyJoinedNetwork()) {
+#if 1  // clark
+    cv_setStateDeltaFromSeed.notify_all();
+#endif
+    return true;
+  }
+
+  unique_lock<mutex> lock(m_mutexSetStateDeltaFromSeed);
+
+  uint64_t blockNum = 0;
+  std::vector<unsigned char> stateDelta;
+  PubKey lookupPubKey;
+
+  if (!Messenger::GetLookupSetStateDeltaFromSeed(message, offset, blockNum,
+                                                 lookupPubKey, stateDelta)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupSetStateDeltaFromSeed failed.");
+    return false;
+  }
+
+  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ProcessSetStateDeltaFromSeed sent by " << from << " for block "
+                                                    << blockNum);
+
+  if (AccountStore::GetInstance().DeserializeDelta(stateDelta, 0) != 0) {
+    LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
+    return false;
+  }
+  m_mediator.m_ds->SaveCoinbase(
+      m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
+      m_mediator.m_txBlockChain.GetLastBlock().GetB2(), -1);
+
+#if 1  // clark
+  cv_setStateDeltaFromSeed.notify_all();
+#endif
+  return true;
+}
+#endif
 
 bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset,
@@ -2850,37 +2999,44 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
                                              unsigned int, const Peer&);
 
   InstructionHandler ins_handlers[] = {
-      &Lookup::ProcessGetSeedPeersFromLookup,
-      &Lookup::ProcessSetSeedPeersFromLookup,
-      &Lookup::ProcessGetDSInfoFromSeed,
-      &Lookup::ProcessSetDSInfoFromSeed,
-      &Lookup::ProcessGetDSBlockFromSeed,
-      &Lookup::ProcessSetDSBlockFromSeed,
-      &Lookup::ProcessGetTxBlockFromSeed,
-      &Lookup::ProcessSetTxBlockFromSeed,
-      &Lookup::ProcessGetTxBodyFromSeed,
-      &Lookup::ProcessSetTxBodyFromSeed,
-      &Lookup::ProcessGetNetworkId,
-      &Lookup::ProcessGetNetworkId,
-      &Lookup::ProcessGetStateFromSeed,
-      &Lookup::ProcessSetStateFromSeed,
-      &Lookup::ProcessSetLookupOffline,
-      &Lookup::ProcessSetLookupOnline,
-      &Lookup::ProcessGetOfflineLookups,
-      &Lookup::ProcessSetOfflineLookups,
-      &Lookup::ProcessRaiseStartPoW,
-      &Lookup::ProcessGetStartPoWFromSeed,
-      &Lookup::ProcessSetStartPoWFromSeed,
-      &Lookup::ProcessGetShardFromSeed,
-      &Lookup::ProcessSetShardFromSeed,
-      &Lookup::ProcessSetMicroBlockFromSeed,
-      &Lookup::ProcessGetMicroBlockFromLookup,
-      &Lookup::ProcessSetMicroBlockFromLookup,
-      &Lookup::ProcessGetTxnsFromLookup,
-      &Lookup::ProcessSetTxnsFromLookup,
-      &Lookup::ProcessGetDirectoryBlocksFromSeed,
-      &Lookup::ProcessSetDirectoryBlocksFromSeed};
-
+    &Lookup::ProcessGetSeedPeersFromLookup,
+    &Lookup::ProcessSetSeedPeersFromLookup,
+    &Lookup::ProcessGetDSInfoFromSeed,
+    &Lookup::ProcessSetDSInfoFromSeed,
+    &Lookup::ProcessGetDSBlockFromSeed,
+    &Lookup::ProcessSetDSBlockFromSeed,
+    &Lookup::ProcessGetTxBlockFromSeed,
+    &Lookup::ProcessSetTxBlockFromSeed,
+    &Lookup::ProcessGetTxBodyFromSeed,
+    &Lookup::ProcessSetTxBodyFromSeed,
+    &Lookup::ProcessGetNetworkId,
+    &Lookup::ProcessGetNetworkId,
+    &Lookup::ProcessGetStateFromSeed,
+    &Lookup::ProcessSetStateFromSeed,
+    &Lookup::ProcessSetLookupOffline,
+    &Lookup::ProcessSetLookupOnline,
+    &Lookup::ProcessGetOfflineLookups,
+    &Lookup::ProcessSetOfflineLookups,
+    &Lookup::ProcessRaiseStartPoW,
+    &Lookup::ProcessGetStartPoWFromSeed,
+    &Lookup::ProcessSetStartPoWFromSeed,
+    &Lookup::ProcessGetShardFromSeed,
+    &Lookup::ProcessSetShardFromSeed,
+    &Lookup::ProcessSetMicroBlockFromSeed,
+    &Lookup::ProcessGetMicroBlockFromLookup,
+    &Lookup::ProcessSetMicroBlockFromLookup,
+    &Lookup::ProcessGetTxnsFromLookup,
+    &Lookup::ProcessSetTxnsFromLookup,
+    &Lookup::ProcessGetDirectoryBlocksFromSeed,
+#if 1  // clark
+    &Lookup::ProcessSetDirectoryBlocksFromSeed,
+    &Lookup::ProcessGetStateDeltaFromSeed,
+    &Lookup::ProcessSetStateDeltaFromSeed
+  };
+#else
+    &Lookup::ProcessSetDirectoryBlocksFromSeed
+  };
+#endif
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
       sizeof(ins_handlers) / sizeof(InstructionHandler);

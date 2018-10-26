@@ -97,6 +97,8 @@ const unsigned int POW_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("POW_WINDOW_IN_SECONDS")};
 const unsigned int NEW_NODE_SYNC_INTERVAL{
     ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
+const unsigned int RECOVERY_SYNC_TIMEOUT{
+    ReadFromConstantsFile("RECOVERY_SYNC_TIMEOUT")};
 const unsigned int POW_SUBMISSION_TIMEOUT{
     ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
 const unsigned int DS_POW_DIFFICULTY{

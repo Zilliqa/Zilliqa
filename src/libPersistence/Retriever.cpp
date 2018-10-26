@@ -141,6 +141,9 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
                NUM_FINAL_BLOCK_PER_POW ==
            0)) {
     result = false;
+    LOG_GENERAL(INFO,
+                "Node recovery with vacuous epoch or too early, apply "
+                "re-join process instead");
     return;
   }
 
