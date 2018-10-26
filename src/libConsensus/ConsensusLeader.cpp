@@ -81,12 +81,12 @@ bool ConsensusLeader::CheckStateSubset(uint16_t subsetID, Action action) {
   }
 
   if (!found) {
-    LOG_GENERAL(WARNING, "SubsetID: " << subsetID << ", Action "
-                                      << GetActionString(action)
-                                      << " not allowed in subset-state "
-                                      << GetStateString(subset.state)
-                                      << ", overall state: "
-                                      << GetStateString());
+    LOG_GENERAL(WARNING,
+                "SubsetID: " << subsetID << ", Action "
+                             << GetActionString(action)
+                             << " not allowed in subset-state "
+                             << GetStateString(subset.state)
+                             << ", overall state: " << GetStateString());
     return false;
   }
 
