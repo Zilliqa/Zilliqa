@@ -407,24 +407,6 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
   }
 #endif  // VC_TEST_VC_SUSPEND_3
 
-#ifdef VC_TEST_VC_TERMINATE_1
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
-    LOG_GENERAL(
-        WARNING,
-        "I am killing myself to test viewchange (VC_TEST_VC_TERMINATE_1)");
-    throw exception();
-  }
-#endif  // VC_TEST_VC_TERMINATE_1
-
-#ifdef VC_TEST_VC_TERMINATE_3
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
-    LOG_GENERAL(
-        WARNING,
-        "I am killing myself to test viewchange (VC_TEST_VC_TERMINATE_3)");
-    throw exception();
-  }
-#endif  // VC_TEST_VC_TERMINATE_3
-
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the candidate leader DS node. Announcing to the rest.");
 

@@ -665,24 +665,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 #endif  // VC_TEST_DS_SUSPEND_3
 
-#ifdef VC_TEST_DS_TERMINATE_1
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
-    LOG_GENERAL(
-        INFO,
-        "I am killing myself to test viewchange (VC_TEST_DS_TERMINATE_1)");
-    throw exception();
-  }
-#endif  // VC_TEST_DS_TERMINATE_1
-
-#ifdef VC_TEST_DS_TERMINATE_3
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
-    LOG_GENERAL(
-        INFO,
-        "I am killing myself to test viewchange (VC_TEST_DS_TERMINATE_3)");
-    throw exception();
-  }
-#endif  // VC_TEST_DS_TERMINATE_3
-
   m_consensusObject.reset(new ConsensusLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
       m_consensusMyID, m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
