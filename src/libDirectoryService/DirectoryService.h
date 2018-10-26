@@ -52,8 +52,8 @@ struct PoWSolution {
 
   PoWSolution()
       : nonce(0),
-        result({0}),
-        mixhash({0}) {
+        result({{0}}),
+        mixhash({{0}}) {
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
               const std::array<unsigned char, 32>& m)
