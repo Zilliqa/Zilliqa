@@ -104,6 +104,36 @@ class Messenger {
   static bool GetFallbackBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                FallbackBlock& fallbackBlock);
+  static bool SetTransaction(std::vector<unsigned char>& dst,
+                             const unsigned int offset,
+                             const Transaction& transaction);
+  static bool GetTransaction(const std::vector<unsigned char>& src,
+                             const unsigned int offset,
+                             Transaction& transaction);
+  static bool SetTransactionFileOffset(std::vector<unsigned char>& dst,
+                                       const unsigned int offset,
+                                       const std::vector<uint32_t>& txnOffsets);
+  static bool GetTransactionFileOffset(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       std::vector<uint32_t>& txnOffsets);
+  static bool SetTransactionArray(std::vector<unsigned char>& dst,
+                                  const unsigned int offset,
+                                  const std::vector<Transaction>& txns);
+  static bool GetTransactionArray(const std::vector<unsigned char>& src,
+                                  const unsigned int offset,
+                                  std::vector<Transaction>& txns);
+  static bool SetTransactionReceipt(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const TransactionReceipt& transactionReceipt);
+  static bool GetTransactionReceipt(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    TransactionReceipt& transactionReceipt);
+  static bool SetTransactionWithReceipt(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const TransactionWithReceipt& transactionWithReceipt);
+  static bool GetTransactionWithReceipt(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      TransactionWithReceipt& transactionWithReceipt);
 
   // ============================================================================
   // Directory Service messages
@@ -236,7 +266,7 @@ class Messenger {
       const uint64_t epochNumber, const uint32_t shardId,
       const std::pair<PrivKey, PubKey>& lookupKey,
       const std::vector<Transaction>& txnsCurrent,
-      const std::vector<unsigned char>& txnsGenerated);
+      const std::vector<Transaction>& txnsGenerated);
   static bool GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                      const unsigned int offset,
                                      uint64_t& epochNumber, uint32_t& shardId,
