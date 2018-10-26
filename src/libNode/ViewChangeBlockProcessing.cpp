@@ -189,33 +189,6 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
-  // unsigned int newCandidateLeader =
-  // vcblock.GetHeader().GetViewChangeCounter();
-
-  // if (newCandidateLeader > m_mediator.m_DSCommittee->size()) {
-  //   LOG_GENERAL(WARNING,
-  //               "View change counter is more than size of ds commitee. "
-  //               "This may be due view of ds committee is wrong. "
-  //                   << m_mediator.m_currentEpochNum << "vc epoch: "
-  //                   << vcblock.GetHeader().GetViewChangeEpochNo());
-  //   newCandidateLeader = newCandidateLeader %
-  //   m_mediator.m_DSCommittee->size();
-  // }
-
-  // if (!(m_mediator.m_DSCommittee->at(newCandidateLeader).second ==
-  //           vcblock.GetHeader().GetCandidateLeaderNetworkInfo() &&
-  //       m_mediator.m_DSCommittee->at(newCandidateLeader).first ==
-  //           vcblock.GetHeader().GetCandidateLeaderPubKey())) {
-  //   LOG_GENERAL(WARNING,
-  //               "View change expectation mismatched "
-  //               "expected new leader: "
-  //                   <<
-  //                   m_mediator.m_DSCommittee->at(newCandidateLeader).second
-  //                   << "actual vc new leader "
-  //                   << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
-  //   return false;
-  // }
-
   // Check the signature of this VC block
   if (!VerifyVCBlockCoSignature(vcblock)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -236,16 +209,6 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     LOG_GENERAL(WARNING, "Failed to store VC Block");
     return false;
   }
-
-  // {
-  //   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-  //   for (unsigned int x = 0; x < newCandidateLeader; x++) {
-  //     // TODO: If VC select a random
-  //     // leader, we need to change the way
-  //     // we update ds composition.
-  //     UpdateDSCommiteeCompositionAfterVC(*m_mediator.m_DSCommittee);
-  //   }
-  // }
 
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
     deque<pair<PubKey, Peer>>::iterator it =
