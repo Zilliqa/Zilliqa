@@ -79,8 +79,11 @@ TxBlock::TxBlock(const TxBlockHeader& header,
       m_microBlockHashes(microBlockHashes),
       m_shardIds(shardIds) {
   if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+    LOG_GENERAL(WARNING,
+                "Num of microblocks get from header "
+                    << m_header.GetNumMicroBlockHashes()
+                    << " is not equal to the size of m_microBlockHashes "
+                    << m_microBlockHashes.size());
   }
 
   m_cosigs = move(cosigs);
@@ -95,8 +98,11 @@ TxBlock::TxBlock(const TxBlockHeader& header,
       m_microBlockHashes(microBlockHashes),
       m_shardIds(shardIds) {
   if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+    LOG_GENERAL(WARNING,
+                "Num of microblocks get from header "
+                    << m_header.GetNumMicroBlockHashes()
+                    << " is not equal to the size of m_microBlockHashes "
+                    << m_microBlockHashes.size());
   }
 }
 
