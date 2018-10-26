@@ -139,9 +139,9 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
 }
 
 bool Lookup::GenTxnToSend(size_t num_txn,
-                          map<uint32_t, vector<unsigned char>>& mp,
+                          map<uint32_t, vector<Transaction>>& mp,
                           uint32_t numShards) {
-  vector<unsigned char> txns;
+  vector<Transaction> txns;
 
   if (GENESIS_KEYS.size() == 0) {
     LOG_GENERAL(WARNING, "No genesis keys found");
@@ -813,28 +813,6 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
                                      unsigned int offset, const Peer& from) {
   LOG_MARKER();
-
-  // #ifndef IS_LOOKUP_NODE
-  // Message = [TRAN_HASH_SIZE txHashStr][Transaction::GetSerializedSize()
-  // txbody]
-
-  // if (IsMessageSizeInappropriate(message.size(), offset,
-  //                                TRAN_HASH_SIZE +
-  //                                Transaction::GetSerializedSize()))
-  // {
-  //     return false;
-  // }
-
-  // TxnHash tranHash;
-  // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE,
-  //      tranHash.asArray().begin());
-  // offset += TRAN_HASH_SIZE;
-
-  // Transaction transaction(message, offset);
-
-  // vector<unsigned char> serializedTxBody;
-  // transaction.Serialize(serializedTxBody, 0);
-  // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
 
   uint32_t portNo = 0;
 
@@ -2926,7 +2904,7 @@ void Lookup::SenderTxnBatchThread() {
   LOG_MARKER();
 
   auto main_func = [this]() mutable -> void {
-    uint32_t numShards;
+    uint32_t numShards = 0;
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
         {
@@ -2955,7 +2933,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
     return;
   }
 
-  map<uint32_t, vector<unsigned char>> mp;
+  map<uint32_t, vector<Transaction>> mp;
 
   if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, numShards)) {
     LOG_GENERAL(WARNING, "GenTxnToSend failed");
@@ -2969,21 +2947,13 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
     {
       lock_guard<mutex> g(m_txnShardMapMutex);
+      auto transactionNumber = mp[i].size();
 
-      unsigned int size_dummy = (mp.find(i) != mp.end()) ? mp.at(i).size() : 0;
-      size_dummy = size_dummy / Transaction::GetMinSerializedSize();
+      LOG_GENERAL(INFO, "Transaction number generated: " << transactionNumber);
 
-      LOG_GENERAL(INFO, "size_dummy: " << size_dummy);
-
-      if (size_dummy > 0) {
-        result = Messenger::SetNodeForwardTxnBlock(
-            msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
-            m_mediator.m_selfKey, m_txnShardMap[i], mp.at(i));
-      } else {
-        result = Messenger::SetNodeForwardTxnBlock(
-            msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
-            m_mediator.m_selfKey, m_txnShardMap[i], {});
-      }
+      result = Messenger::SetNodeForwardTxnBlock(
+          msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
+          m_mediator.m_selfKey, m_txnShardMap[i], mp[i]);
     }
 
     if (!result) {
