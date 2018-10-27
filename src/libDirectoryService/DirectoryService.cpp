@@ -38,8 +38,8 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
-#include "libUtils/TxnRootComputation.h"
 
 using namespace std;
 using namespace boost::multiprecision;

@@ -72,16 +72,18 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset) {
 
 TxBlock::TxBlock(const TxBlockHeader& header,
                  const vector<bool>& isMicroBlockEmpty,
-                 const vector<MicroBlockHashSet>& microBlockHashes,
+                 const vector<BlockHash>& microBlockHashes,
                  const vector<uint32_t>& shardIds, CoSignatures&& cosigs)
     : m_header(header),
       m_isMicroBlockEmpty(isMicroBlockEmpty),
       m_microBlockHashes(microBlockHashes),
       m_shardIds(shardIds) {
-  if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size() &&
-      m_header.GetNumMicroBlockHashes() != m_shardIds.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+  if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()) {
+    LOG_GENERAL(WARNING,
+                "Num of microblocks get from header "
+                    << m_header.GetNumMicroBlockHashes()
+                    << " is not equal to the size of m_microBlockHashes "
+                    << m_microBlockHashes.size());
   }
 
   m_cosigs = move(cosigs);
@@ -89,16 +91,18 @@ TxBlock::TxBlock(const TxBlockHeader& header,
 
 TxBlock::TxBlock(const TxBlockHeader& header,
                  const vector<bool>& isMicroBlockEmpty,
-                 const vector<MicroBlockHashSet>& microBlockHashes,
+                 const vector<BlockHash>& microBlockHashes,
                  const vector<uint32_t>& shardIds)
     : m_header(header),
       m_isMicroBlockEmpty(isMicroBlockEmpty),
       m_microBlockHashes(microBlockHashes),
       m_shardIds(shardIds) {
-  if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size() &&
-      m_header.GetNumMicroBlockHashes() != m_shardIds.size()) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+  if (m_header.GetNumMicroBlockHashes() != m_microBlockHashes.size()) {
+    LOG_GENERAL(WARNING,
+                "Num of microblocks get from header "
+                    << m_header.GetNumMicroBlockHashes()
+                    << " is not equal to the size of m_microBlockHashes "
+                    << m_microBlockHashes.size());
   }
 }
 
@@ -108,7 +112,7 @@ const std::vector<bool>& TxBlock::GetIsMicroBlockEmpty() const {
   return m_isMicroBlockEmpty;
 }
 
-const vector<MicroBlockHashSet>& TxBlock::GetMicroBlockHashes() const {
+const vector<BlockHash>& TxBlock::GetMicroBlockHashes() const {
   return m_microBlockHashes;
 }
 
