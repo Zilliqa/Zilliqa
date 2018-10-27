@@ -74,6 +74,9 @@ include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
+find_package(GRPC REQUIRED)
+include_directories(${GRPC_INCLUDE_DIRS})
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
