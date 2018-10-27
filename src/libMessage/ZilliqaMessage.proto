@@ -182,27 +182,18 @@ message ProtoMicroBlock
         required bytes tranreceipthash = 16;
         required bytes committeehash   = 17;
     }
-    message CoSignatures
-    {
-        required ByteArray cs1         = 1;
-        repeated bool b1               = 2 [packed=true];
-        required ByteArray cs2         = 3;
-        repeated bool b2               = 4 [packed=true];
-    }
     required MicroBlockHeader header   = 1;
     repeated bytes tranhashes          = 2;
-    required CoSignatures cosigs       = 3;
+    required ProtoBlockBase blockbase  = 3;
 }
 
 message ProtoTxBlock
 {
     message TxBlockHashSet
     {
-        required bytes txroothash               = 1;
+        required bytes mbroothash               = 1;
         required bytes stateroothash            = 2;
-        required bytes deltaroothash            = 3;
-        required bytes statedeltahash           = 4;
-        required bytes tranreceiptroothash      = 5;
+        required bytes statedeltahash           = 3;
     }
     message TxBlockHeader
     {
@@ -222,15 +213,9 @@ message ProtoTxBlock
         required bytes dsblockheader            = 14;
         required bytes committeehash            = 15;
     }
-    message MicroBlockHashSet
-    {
-        required bytes txroothash               = 1;
-        required bytes statedeltahash           = 2;
-        required bytes tranreceipthash          = 3;
-    }
     required TxBlockHeader header               = 1;
     repeated bool ismicroblockempty             = 2 [packed=true];
-    repeated MicroBlockHashSet microblockhashes = 3;
+    repeated bytes mbhashes                     = 3;
     repeated uint32 shardids                    = 4;
     required ProtoBlockBase blockbase           = 5;
 }
@@ -338,16 +323,14 @@ message NodeFinalBlock
     required uint32 consensusid   = 3;
     required ProtoTxBlock txblock = 4;
     required bytes statedelta     = 5;
+    repeated uint32 shardids      = 6;
 }
 
 message NodeForwardTransaction
 {
     required uint64 blocknum             = 1;
-    required bytes microblocktxhash      = 2;
-    required bytes microblockdeltahash   = 3;
-    required bytes microblockreceipthash = 4;
-    required uint32 shardid              = 5;
-    repeated ByteArray txnswithreceipt   = 6;
+    required bytes microblockhash        = 2;
+    repeated ByteArray txnswithreceipt   = 3;
 }
 
 message NodeVCBlock
@@ -535,16 +518,10 @@ message LookupSetShardsFromSeed
     required ByteArray signature             = 3;
 }
 
-message MicroBlockInfo
-{
-    required uint64 blocknum      = 1;
-    repeated uint32 shards        = 2;
-}
-
 message LookupGetMicroBlockFromLookup
 {
     required uint32 portno            = 1;
-    repeated MicroBlockInfo blocknums = 2;
+    repeated bytes mbhashes           = 2;
 }
 
 message LookupSetMicroBlockFromLookup
