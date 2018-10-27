@@ -45,6 +45,29 @@
 
 class Mediator;
 
+struct PoWSolution {
+  uint64_t nonce;
+  std::array<unsigned char, 32> result;
+  std::array<unsigned char, 32> mixhash;
+
+  PoWSolution()
+      : nonce(0),
+        result({{0}}),
+        mixhash({{0}}) {
+  }  // The oldest DS (and now new shard node) will have this default value
+  PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
+              const std::array<unsigned char, 32>& m)
+      : nonce(n), result(r), mixhash(m) {}
+  bool operator==(const PoWSolution& rhs) const {
+    return (nonce == rhs.nonce) && (result == rhs.result) &&
+           (mixhash == rhs.mixhash);
+  }
+};
+
+using VectorOfPoWSoln =
+    std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
+using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;
+
 /// Implements Directory Service functionality including PoW verification, DS,
 /// Tx Block Consensus and sharding management.
 class DirectoryService : public Executable, public Broadcastable {
@@ -77,8 +100,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexAllPoWCounter;
   std::map<PubKey, uint8_t> m_AllPoWCounter;
   std::mutex m_mutexAllDSPOWs;
-  std::map<PubKey, std::array<unsigned char, 32>>
-      m_allDSPoWs;  // map<pubkey, DS PoW Sol
+  MapOfPubKeyPoW m_allDSPoWs;  // map<pubkey, DS PoW Sol
 
   // Consensus variables
   std::shared_ptr<ConsensusCommon> m_consensusObject;
@@ -186,19 +208,20 @@ class DirectoryService : public Executable, public Broadcastable {
   void SendEntireShardingStructureToShardNodes(unsigned int my_shards_lo,
                                                unsigned int my_shards_hi);
 
-  unsigned int ComputeDSBlockParameters(
-      const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
-          sortedDSPoWSolns,
-      std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
-          sortedPoWSolns,
-      std::map<PubKey, Peer>& powDSWinners, uint8_t& dsDifficulty,
-      uint8_t& difficulty, uint64_t& blockNum, BlockHash& prevHash);
-  void ComputeSharding(
-      const std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>&
-          sortedPoWSolns);
+  unsigned int ComputeDSBlockParameters(const VectorOfPoWSoln& sortedDSPoWSolns,
+                                        VectorOfPoWSoln& sortedPoWSolns,
+                                        std::map<PubKey, Peer>& powDSWinners,
+                                        uint8_t& dsDifficulty,
+                                        uint8_t& difficulty, uint64_t& blockNum,
+                                        BlockHash& prevHash);
+  void ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns);
+  void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
+                          unsigned int numOfProposedDSMembers);
 
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
-  bool VerifyPoWOrdering(const DequeOfShard& shards);
+  bool VerifyDifficulty();
+  bool VerifyPoWOrdering(const DequeOfShard& shards,
+                         const MapOfPubKeyPoW& allPoWsFromTheLeader);
   bool VerifyNodePriority(const DequeOfShard& shards);
 
   // internal calls from RunConsensusOnDSBlock
@@ -232,17 +255,17 @@ class DirectoryService : public Executable, public Broadcastable {
   // Final Block functions
   bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool RunConsensusOnFinalBlockWhenDSBackup();
-  void ComposeFinalBlock();
+  bool ComposeFinalBlock();
   bool CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num);
   void CommitMBSubmissionMsgBuffer();
   bool ProcessMicroblockSubmissionFromShard(
-      const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   bool ProcessMicroblockSubmissionFromShardCore(
       const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   bool ProcessMissingMicroblockSubmission(
-      const uint64_t blockNumber, const std::vector<MicroBlock>& microBlocks,
+      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   void ExtractDataFromMicroblocks(
       TxnHash& microblockTxnTrieRoot, StateHash& microblockDeltaTrieRoot,
@@ -250,7 +273,8 @@ class DirectoryService : public Executable, public Broadcastable {
       std::vector<MicroBlockHashSet>& microblockHashes,
       std::vector<uint32_t>& shardIds,
       boost::multiprecision::uint256_t& allGasLimit,
-      boost::multiprecision::uint256_t& allGasUsed, uint32_t& numTxs,
+      boost::multiprecision::uint256_t& allGasUsed,
+      boost::multiprecision::uint256_t& rewards, uint32_t& numTxs,
       std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
@@ -266,6 +290,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
   bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg);
+  bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockHashRoot();
   bool CheckIsMicroBlockEmpty();
   bool CheckStateRoot();
@@ -327,7 +352,7 @@ class DirectoryService : public Executable, public Broadcastable {
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
-  void ComputeNewCandidateLeader();
+  bool ComputeNewCandidateLeader();
   bool RunConsensusOnViewChangeWhenCandidateLeader();
   bool RunConsensusOnViewChangeWhenNotCandidateLeader();
   void ProcessViewChangeConsensusWhenDone();
@@ -357,6 +382,12 @@ class DirectoryService : public Executable, public Broadcastable {
     ERROR
   };
 
+  enum RunFinalBlockConsensusOptions : unsigned char {
+    NORMAL = 0x00,
+    REVERT_STATEDELTA,
+    FROM_VIEWCHANGE
+  };
+
   /// Transaction sharing assignments
   std::vector<Peer> m_DSReceivers;
   std::vector<std::vector<Peer>> m_shardReceivers;
@@ -383,8 +414,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::atomic<Mode> m_mode;
 
   std::mutex m_mutexAllPOW;
-  std::map<PubKey, std::array<unsigned char, 32>>
-      m_allPoWs;  // map<pubkey, PoW Soln>
+  MapOfPubKeyPoW m_allPoWs;  // map<pubkey, PoW Soln>
 
   // Sharding committee members
   std::mutex m_mutexShards;
@@ -422,8 +452,12 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexPrepareRunFinalblockConsensus;
   std::atomic<bool> m_startedRunFinalblockConsensus;
 
-  std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
   std::mutex m_mutexMicroBlocks;
+  std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
+  std::unordered_map<uint64_t,
+                     std::vector<std::pair<uint32_t, MicroBlockHashSet>>>
+      m_missingMicroBlocks;
+  boost::multiprecision::uint256_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
 
@@ -455,7 +489,7 @@ class DirectoryService : public Executable, public Broadcastable {
   /// network
   bool FinishRejoinAsDS();
 
-  void RunConsensusOnFinalBlock(bool revertStateDelta = false);
+  void RunConsensusOnFinalBlock(RunFinalBlockConsensusOptions options = NORMAL);
 
   // Coinbase
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
@@ -509,6 +543,10 @@ class DirectoryService : public Executable, public Broadcastable {
   void RunConsensusOnDSBlock(bool isRejoin = false);
   bool IsDSBlockVCState(unsigned char vcBlockState);
 
+  // Sort the PoW submissions. Put to public static function, so it can be
+  // covered by auto test.
+  static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows);
+
  private:
   static std::map<DirState, std::string> DirStateStrings;
   std::string GetStateString() const;
@@ -516,8 +554,8 @@ class DirectoryService : public Executable, public Broadcastable {
   std::string GetActionString(Action action) const;
   bool ValidateViewChangeState(DirState NodeState, DirState StatePropose);
 
-  void AddDSPoWs(PubKey Pubk, std::array<unsigned char, 32> DSPOWSoln);
-  std::map<PubKey, std::array<unsigned char, 32>> GetAllDSPoWs();
+  void AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln);
+  MapOfPubKeyPoW GetAllDSPoWs();
   void ClearDSPoWSolns();
   std::array<unsigned char, 32> GetDSPoWSoln(PubKey Pubk);
   bool IsNodeSubmittedDSPoWSoln(PubKey Pubk);

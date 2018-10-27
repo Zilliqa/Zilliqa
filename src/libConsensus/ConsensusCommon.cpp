@@ -51,13 +51,17 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
         MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_ROOT_HASH),
         MAKE_LITERAL_PAIR(MISSING_TXN),
         MAKE_LITERAL_PAIR(WRONG_TXN_ORDER),
+        MAKE_LITERAL_PAIR(WRONG_GASUSED),
+        MAKE_LITERAL_PAIR(WRONG_REWARDS),
         MAKE_LITERAL_PAIR(FINALBLOCK_MISSING_MICROBLOCKS),
         MAKE_LITERAL_PAIR(FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH),
         MAKE_LITERAL_PAIR(FINALBLOCK_MICROBLOCK_EMPTY_ERROR),
+        MAKE_LITERAL_PAIR(FINALBLOCK_MBS_LEGITIMACY_ERROR),
         MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_STATE_DELTA_HASH),
         MAKE_LITERAL_PAIR(INVALID_MICROBLOCK_SHARD_ID),
         MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_ROOT),
-        MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_DELTA_HASH)};
+        MAKE_LITERAL_PAIR(INVALID_FINALBLOCK_STATE_DELTA_HASH),
+        MAKE_LITERAL_PAIR(INVALID_COMMHASH)};
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                                  const vector<unsigned char>& block_hash,
@@ -108,7 +112,7 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
   return result;
 }
 
-PubKey ConsensusCommon::AggregateKeys(const vector<bool> peer_map) {
+PubKey ConsensusCommon::AggregateKeys(const vector<bool>& peer_map) {
   LOG_MARKER();
 
   vector<PubKey> keys;
@@ -317,5 +321,13 @@ string ConsensusCommon::GetStateString() const {
     return "Unknown";
   } else {
     return ConsensusStateStrings.at(m_state);
+  }
+}
+
+string ConsensusCommon::GetStateString(const State state) const {
+  if (ConsensusStateStrings.find(state) == ConsensusStateStrings.end()) {
+    return "Unknown";
+  } else {
+    return ConsensusStateStrings.at(state);
   }
 }

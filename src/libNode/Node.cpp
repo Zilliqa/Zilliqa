@@ -239,6 +239,20 @@ void Node::Init() {
   // m_committedTransactions.clear();
   AccountStore::GetInstance().Init();
 
+  m_mediator.m_blocklinkchain.GetBuiltDSComm().clear();
+  {
+    lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
+    if (m_mediator.m_initialDSCommittee->size() != 0) {
+      for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
+        m_mediator.m_blocklinkchain.GetBuiltDSComm().emplace_back(initDSCommKey,
+                                                                  Peer());
+        // Set initial ds committee with null peer
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Initial DS comm size 0 ");
+    }
+  }
+
   m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
                                          m_mediator.m_txBlockChain);
   const auto& dsBlock = m_mediator.m_dsBlockChain.GetBlock(0);
@@ -342,11 +356,8 @@ void Node::StartSynchronization() {
     }
 
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
-      m_synchronizer.FetchLatestDSBlocks(
-          m_mediator.m_lookup,
-          // m_mediator.m_dsBlockChain.GetBlockCount());
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-              1);
+      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlocks(
           m_mediator.m_lookup,
           // m_mediator.m_txBlockChain.GetBlockCount());
@@ -569,34 +580,22 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
                   << " , local: " << m_mediator.m_currentEpochNum);
   }
 
-  while (cur_offset < message.size()) {
-    Transaction submittedTransaction;
-    if (submittedTransaction.Deserialize(message, cur_offset) != 0) {
-      LOG_GENERAL(WARNING,
-                  "Deserialize transactions failed, stop at the previous "
-                  "successful one");
-      return false;
-    }
-    cur_offset += submittedTransaction.GetSerializedSize();
-
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-    auto& hashIdx = m_createdTransactions.get<MULTI_INDEX_KEY::TXN_ID>();
-    hashIdx.insert(submittedTransaction);
+  if (m_mediator.GetIsVacuousEpoch(msgBlockNum)) {
+    LOG_GENERAL(WARNING, "Get missing txn from vacuous epoch, why?");
+    return false;
   }
 
-  // vector<TxnHash> missingTxnHashes;
-  // if (!ProcessTransactionWhenShardBackup(m_txnsOrdering, missingTxnHashes))
-  // {
-  //     LOG_GENERAL(WARNING, "Wrong order after receiving missing txns");
-  //     return false;
-  // }
-  // if (!missingTxnHashes.empty())
-  // {
-  //     LOG_GENERAL(WARNING, "Still missed txns");
-  //     return false;
-  // }
+  std::vector<Transaction> txns;
+  if (!Messenger::GetTransactionArray(message, cur_offset, txns)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransactionArray failed.");
+    return false;
+  }
 
-  // AccountStore::GetInstance().SerializeDelta();
+  lock_guard<mutex> g(m_mutexCreatedTransactions);
+  for (const auto& submittedTxn : txns) {
+    m_createdTxns.insert(submittedTxn);
+  }
+
   cv_MicroBlockMissingTxn.notify_all();
   return true;
 }
@@ -628,61 +627,6 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
 
     ProcessSubmitMissingTxn(message, cur_offset, from);
   }
-  return true;
-}
-
-bool Node::ProcessCreateTransactionFromLookup(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::ProcessCreateTransactionFromLookup not expected to "
-                "be called from LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  if (IsMessageSizeInappropriate(message.size(), offset,
-                                 Transaction::GetMinSerializedSize())) {
-    return false;
-  }
-
-  unsigned int curr_offset = offset;
-
-  // Transaction tx(message, curr_offset);
-  Transaction tx;
-  if (tx.Deserialize(message, curr_offset) != 0) {
-    LOG_GENERAL(WARNING, "We failed to deserialize Transaction.");
-    return false;
-  }
-
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Recvd txns: " << tx.GetTranID()
-                           << " Signature: " << tx.GetSignature()
-                           << " toAddr: " << tx.GetToAddr().hex());
-
-  if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx)) {
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-    auto& compIdx = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
-    auto it = compIdx.find(make_tuple(tx.GetSenderPubKey(), tx.GetNonce()));
-    if (it != compIdx.end()) {
-      if (it->GetGasPrice() < tx.GetGasPrice()) {
-        compIdx.replace(it, tx);
-        return true;
-      } else {
-        // LOG_GENERAL(WARNING,
-        //             "Txn with same address and nonce already "
-        //             "exists with higher gas price");
-        return false;
-      }
-    }
-    compIdx.insert(tx);
-  } else {
-    LOG_GENERAL(WARNING, "Txn is not valid.");
-    return false;
-  }
-
   return true;
 }
 
@@ -769,9 +713,9 @@ bool Node::ProcessTxnPacketFromLookup(
   return true;
 }
 
-bool Node::ProcessTxnPacketFromLookupCore(
-    const vector<unsigned char>& message, const uint32_t shardId,
-    const vector<Transaction>& transactions) {
+bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
+                                          const uint32_t shardId,
+                                          const vector<Transaction>& txns) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -792,6 +736,12 @@ bool Node::ProcessTxnPacketFromLookupCore(
     return false;
   }
 
+  LOG_STATE(
+      "[TXNPKTPROC]["
+      << std::setw(15) << std::left
+      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] BEGN");
   // Broadcast to other shard node
   vector<Peer> toSend;
   for (auto& it : *m_myShardMembers) {
@@ -805,25 +755,14 @@ bool Node::ProcessTxnPacketFromLookupCore(
   }
 
   // Process the txns
-  unsigned int txn_sent_count = 0;
+  unsigned int processed_count = 0;
   {
     LOG_GENERAL(INFO, "Start check txn packet from lookup");
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    auto& compIdx = m_createdTransactions.get<MULTI_INDEX_KEY::PUBKEY_NONCE>();
 
-    unsigned int processed_count = 0;
-
-    for (const auto& tx : transactions) {
+    for (const auto& tx : txns) {
       if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx)) {
-        auto it = compIdx.find(make_tuple(tx.GetSenderPubKey(), tx.GetNonce()));
-        if (it != compIdx.end()) {
-          if (it->GetGasPrice() < tx.GetGasPrice()) {
-            compIdx.replace(it, tx);
-          }
-        } else {
-          compIdx.insert(tx);
-        }
-        txn_sent_count++;
+        m_createdTxns.insert(tx);
       } else {
         LOG_GENERAL(WARNING, "Txn is not valid.");
       }
@@ -835,8 +774,14 @@ bool Node::ProcessTxnPacketFromLookupCore(
       }
     }
   }
-  LOG_GENERAL(INFO, "INSERTED TXN COUNT" << txn_sent_count);
+  LOG_GENERAL(INFO, "INSERTED TXN COUNT" << processed_count);
 
+  LOG_STATE(
+      "[TXNPKTPROC]["
+      << std::setw(15) << std::left
+      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "][" << processed_count << "] DONE");
   return true;
 }
 
@@ -981,6 +926,8 @@ bool Node::CleanVariables() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlock);
     m_microblock.reset();
+    m_gasUsedTotal = 0;
+    m_txnFees = 0;
   }
   {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
@@ -1018,7 +965,7 @@ void Node::SetMyshardId(uint32_t shardId) {
 void Node::CleanCreatedTransaction() {
   {
     std::lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_createdTransactions.clear();
+    m_createdTxns.clear();
     m_addrNonceTxnMap.clear();
   }
   {
@@ -1082,12 +1029,12 @@ bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
       }
       if (!m_fromNewProcess) {
         if (ins_byte != NodeInstructionType::DSBLOCK &&
-            ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP) {
+            ins_byte != NodeInstructionType::FORWARDTXNPACKET) {
           return true;
         }
       } else {
         if (m_runFromLate && ins_byte != NodeInstructionType::DSBLOCK &&
-            ins_byte != NodeInstructionType::CREATETRANSACTIONFROMLOOKUP) {
+            ins_byte != NodeInstructionType::FORWARDTXNPACKET) {
           return true;
         }
       }
@@ -1197,7 +1144,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Node::ProcessMicroblockConsensus,
       &Node::ProcessFinalBlock,
       &Node::ProcessForwardTransaction,
-      &Node::ProcessCreateTransactionFromLookup,
       &Node::ProcessVCBlock,
       &Node::ProcessDoRejoin,
       &Node::ProcessTxnPacketFromLookup,

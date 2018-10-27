@@ -156,6 +156,11 @@ bool ConsensusUser::ProcessConsensusMessage(
     const Peer& from) {
   LOG_MARKER();
 
+  if (m_consensus == nullptr) {
+    LOG_GENERAL(WARNING, "m_consensus is not yet initialize");
+    return false;
+  }
+
   std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
   if (cv_processConsensusMessage.wait_for(
           cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),

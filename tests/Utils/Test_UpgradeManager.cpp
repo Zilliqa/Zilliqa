@@ -133,4 +133,20 @@ BOOST_AUTO_TEST_CASE(test_downloadFile_deb) {
   LOG_GENERAL(INFO, "Verify test_downloadFile_deb completed.");
 }
 
+BOOST_AUTO_TEST_CASE(test_downloadFile_dsnode) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Running test_downloadFile_dsnode");
+
+  vector<PubKey> dsNode;
+
+  if (!UpgradeManager::GetInstance().LoadInitialDS(dsNode)) {
+    LOG_GENERAL(WARNING, "Failed");
+    return;
+  } else {
+    LOG_GENERAL(INFO, "Success");
+  }
+  LOG_GENERAL(INFO, "Verify test_downloadFile_dsnode completed.");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

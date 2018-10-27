@@ -64,7 +64,7 @@ if [ "$os" = "Linux" ]
 then
     ./scripts/ci_xml_checker.sh constants.xml || exit 1
     ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
-    ./scripts/copyright_checker.sh || exit 1
+    ./scripts/license_checker.sh || exit 1
     cmake --build ${dir} --target clang-format || exit 1
     cmake --build ${dir} --target clang-tidy 2>/dev/null || exit 1
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake

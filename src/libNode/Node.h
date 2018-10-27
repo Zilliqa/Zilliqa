@@ -36,9 +36,9 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountData/TxnPool.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
-#include "libData/DataStructures/MultiIndexContainer.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
@@ -120,8 +120,7 @@ class Node : public Executable, public Broadcastable {
 
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
-  gas_txnid_comp_txns m_createdTransactions;
-
+  TxnPool m_createdTxns;
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
       m_addrNonceTxnMap;
@@ -135,6 +134,9 @@ class Node : public Executable, public Broadcastable {
   std::vector<TxnHash> m_TxnOrder;
 
   uint32_t m_numOfAbsentTxnHashes;
+
+  boost::multiprecision::uint256_t m_gasUsedTotal;
+  boost::multiprecision::uint256_t m_txnFees;
 
   // std::mutex m_mutexCommittedTransactions;
   // std::unordered_map<uint64_t, std::list<TransactionWithReceipt>>
@@ -231,7 +233,6 @@ class Node : public Executable, public Broadcastable {
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
   void StoreDSBlockToDisk(const DSBlock& dsblock);
-  void UpdateDSCommiteeComposition();
 
   // Message handlers
   bool ProcessStartPoW(const std::vector<unsigned char>& message,
@@ -249,14 +250,11 @@ class Node : public Executable, public Broadcastable {
   bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
                                  unsigned int cur_offset, const Peer& from);
   bool ProcessForwardTransactionCore(const ForwardedTxnEntry& entry);
-  bool ProcessCreateTransactionFromLookup(
-      const std::vector<unsigned char>& message, unsigned int offset,
-      const Peer& from);
   bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
-  bool ProcessTxnPacketFromLookupCore(
-      const std::vector<unsigned char>& message, const uint32_t shardId,
-      const std::vector<Transaction>& transactions);
+  bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
+                                      const uint32_t shardId,
+                                      const std::vector<Transaction>& txns);
 
 #ifdef HEARTBEAT_TEST
   bool ProcessKillPulse(const std::vector<unsigned char>& message,
@@ -276,7 +274,7 @@ class Node : public Executable, public Broadcastable {
   bool CheckStateRoot(const TxBlock& finalBlock);
 
   // View change
-  void UpdateDSCommiteeCompositionAfterVC();
+
   bool VerifyVCBlockCoSignature(const VCBlock& vcblock);
   bool ProcessVCBlock(const std::vector<unsigned char>& message,
                       unsigned int cur_offset, const Peer& from);
@@ -311,8 +309,7 @@ class Node : public Executable, public Broadcastable {
   bool CheckMicroBlockTranReceiptHash();
 
   void BroadcastMicroBlockToLookup();
-  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes,
-                          std::list<Transaction>& curTxns);
+  bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes);
 
   void ProcessTransactionWhenShardLeader();
   bool ProcessTransactionWhenShardBackup(
@@ -332,7 +329,7 @@ class Node : public Executable, public Broadcastable {
                          std::vector<unsigned char>& messageToCosign);
   void UpdateFallbackConsensusLeader();
   void SetLastKnownGoodState();
-  void ComposeFallbackBlock();
+  bool ComposeFallbackBlock();
   void RunConsensusOnFallback();
   bool RunConsensusOnFallbackWhenLeader();
   bool RunConsensusOnFallbackWhenBackup();
@@ -340,8 +337,6 @@ class Node : public Executable, public Broadcastable {
   bool ProcessFallbackConsensus(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   // Fallback block processing
-  void UpdateDSCommittee(const uint32_t& shard_id, const PubKey& leaderPubKey,
-                         const Peer& leaderNetworkInfo);
   bool VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock);
   bool ProcessFallbackBlock(const std::vector<unsigned char>& message,
                             unsigned int cur_offset, const Peer& from);
@@ -480,6 +475,16 @@ class Node : public Executable, public Broadcastable {
 
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
+
+  void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
+
+  void UpdateDSCommiteeCompositionAfterVC(
+      std::deque<std::pair<PubKey, Peer>>& dsComm);
+
+  void UpdateDSCommitteeAfterFallback(
+      const uint32_t& shard_id, const PubKey& leaderPubKey,
+      const Peer& leaderNetworkInfo,
+      std::deque<std::pair<PubKey, Peer>>& dsComm, const DequeOfShard& shards);
 
   void CommitForwardedTransactionBuffer();
 
