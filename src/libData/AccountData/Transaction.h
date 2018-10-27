@@ -35,7 +35,7 @@ using TxnHash = dev::h256;
 using KeyPair = std::pair<PrivKey, PubKey>;
 
 /// Stores information on a single transaction.
-class Transaction : public Serializable {
+class Transaction : public SerializableDataBlock {
   TxnHash m_tranID;
   boost::multiprecision::uint256_t m_version;
   boost::multiprecision::uint256_t
@@ -93,20 +93,15 @@ class Transaction : public Serializable {
   Transaction(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst,
+                 unsigned int offset) const override;
 
   unsigned int SerializeCoreFields(std::vector<unsigned char>& dst,
                                    unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-
-  /// Returns the size in bytes when serializing the transaction.
-  unsigned int GetSerializedSize() const;
-
-  /// Return the size of static typed variables for a minimum size check
-  static unsigned int GetMinSerializedSize();
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
 
   /// Returns the transaction ID.
   const TxnHash& GetTranID() const;

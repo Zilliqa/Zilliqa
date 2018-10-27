@@ -69,6 +69,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   shared_ptr<PubKey> aggregatedKey = MultiSig::AggregatePubKeys(keys);
   if (aggregatedKey == nullptr) {
     LOG_GENERAL(WARNING, "Aggregated key generation failed");
+    return;
   }
 
   vector<unsigned char> message;
@@ -314,7 +315,7 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
     case FINALBLOCK_CONSENSUS_PREP:
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Re-running finalblock consensus");
-      RunConsensusOnFinalBlock();
+      RunConsensusOnFinalBlock(FROM_VIEWCHANGE);
       break;
     case VIEWCHANGE_CONSENSUS:
     case VIEWCHANGE_CONSENSUS_PREP:

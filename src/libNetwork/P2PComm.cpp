@@ -641,6 +641,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
         ProcessSendJob(job);
       }
     }
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
   };
   DetachedFunction(1, funcCheckSendQueue);
 
@@ -682,7 +683,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
 void P2PComm::SendMessage(const vector<Peer>& peers,
                           const vector<unsigned char>& message,
                           const unsigned char& startByteType) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   if (peers.empty()) {
     return;
@@ -705,7 +706,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
 void P2PComm::SendMessage(const deque<Peer>& peers,
                           const vector<unsigned char>& message,
                           const unsigned char& startByteType) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   if (peers.empty()) {
     return;
@@ -728,7 +729,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
 void P2PComm::SendMessage(const Peer& peer,
                           const vector<unsigned char>& message,
                           const unsigned char& startByteType) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   // Make job
   SendJob* job = new SendJobPeer;
@@ -763,13 +764,15 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   job->m_message = message;
   job->m_hash = sha256.Finalize();
 
+  vector<unsigned char> hashCopy(job->m_hash);
+
   // Queue job
   while (!m_sendQueue.push(job)) {
     // Keep attempting to push until success
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
-  m_broadcastHashes.insert(job->m_hash);
+  m_broadcastHashes.insert(hashCopy);
 }
 
 void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
@@ -791,13 +794,15 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   job->m_message = message;
   job->m_hash = sha256.Finalize();
 
+  vector<unsigned char> hashCopy(job->m_hash);
+
   // Queue job
   while (!m_sendQueue.push(job)) {
     // Keep attempting to push until success
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
-  m_broadcastHashes.insert(job->m_hash);
+  m_broadcastHashes.insert(hashCopy);
 }
 
 void P2PComm::RebroadcastMessage(const vector<Peer>& peers,

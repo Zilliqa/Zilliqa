@@ -46,12 +46,12 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::UpdateDSCommiteeCompositionAfterVC() {
+void Node::UpdateDSCommiteeCompositionAfterVC(
+    deque<pair<PubKey, Peer>>& dsComm) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-  m_mediator.m_DSCommittee->emplace_back(m_mediator.m_DSCommittee->front());
-  m_mediator.m_DSCommittee->pop_front();
+  dsComm.emplace_back(dsComm.front());
+  dsComm.pop_front();
 }
 
 bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
@@ -165,6 +165,34 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // TODO State machine check
 
+  // Verify the Block Hash
+  BlockHash temp_blockHash = vcblock.GetHeader().GetMyHash();
+  if (temp_blockHash != vcblock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received VC Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << vcblock.GetBlockHash().hex());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != vcblock.GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received VC Block doesn't match. "
+                "Calculated: "
+                    << committeeHash
+                    << " Received: " << vcblock.GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   unsigned int newCandidateLeader = vcblock.GetHeader().GetViewChangeCounter();
 
   if (newCandidateLeader > m_mediator.m_DSCommittee->size()) {
@@ -209,11 +237,15 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     LOG_GENERAL(WARNING, "Failed to store VC Block");
     return false;
   }
-  for (unsigned int x = 0; x < newCandidateLeader; x++) {
-    // TODO: If VC select a random
-    // leader, we need to change the way
-    // we update ds composition.
-    UpdateDSCommiteeCompositionAfterVC();
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    for (unsigned int x = 0; x < newCandidateLeader; x++) {
+      // TODO: If VC select a random
+      // leader, we need to change the way
+      // we update ds composition.
+      UpdateDSCommiteeCompositionAfterVC(*m_mediator.m_DSCommittee);
+    }
   }
 
   return true;

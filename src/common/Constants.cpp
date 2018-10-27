@@ -78,6 +78,11 @@ unsigned int ReadGpuConstants(std::string propertyName) {
   return pt.get<unsigned int>("node.gpu." + propertyName);
 }
 
+std::string ReadGPUVariableFromConstantsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.gpu." + propertyName);
+}
+
 const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
 const unsigned int DS_MULTICAST_CLUSTER_SIZE{
     ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
@@ -112,8 +117,6 @@ const unsigned int NUM_FINAL_BLOCK_PER_POW{
 const unsigned int NUM_DS_KEEP_TX_BODY{
     ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
-const unsigned int MAXSUBMITTXNPERNODE{
-    ReadFromConstantsFile("MAXSUBMITTXNPERNODE")};
 const unsigned int MICROBLOCK_GAS_LIMIT{
     ReadFromConstantsFile("MICROBLOCK_GAS_LIMIT")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
@@ -188,6 +191,12 @@ const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{
     ReadFromConstantsFile("NUM_OF_TREEBASED_CHILD_CLUSTERS")};
 const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
     ReadFromConstantsFile("FETCH_LOOKUP_MSG_MAX_RETRY")};
+const unsigned int MAX_CONTRACT_DEPTH{
+    ReadFromConstantsFile("MAX_CONTRACT_DEPTH")};
+const unsigned int COMMIT_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("COMMIT_WINDOW_IN_SECONDS")};
+const unsigned int NUM_CONSENSUS_SUBSETS{
+    ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
@@ -203,6 +212,8 @@ const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS{
     ReadFromOptionsFile("GOSSIP_CUSTOM_ROUNDS_SETTINGS") == "true"};
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{
     ReadFromOptionsFile("BROADCAST_TREEBASED_CLUSTER_MODE") == "true"};
+const bool GET_INITIAL_DS_FROM_REPO{
+    ReadFromOptionsFile("GET_INITIAL_DS_FROM_REPO") == "true"};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
@@ -233,7 +244,7 @@ const bool USE_REMOTE_TXN_CREATOR{
     ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
 const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 
-const unsigned int NUM_DEVICE_TO_USE{ReadGpuConstants("NUM_DEVICE_TO_USE")};
+const std::string GPU_TO_USE{ReadGPUVariableFromConstantsFile("GPU_TO_USE")};
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
 const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{

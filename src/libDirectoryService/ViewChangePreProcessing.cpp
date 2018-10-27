@@ -67,6 +67,7 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
+  // Verify the Block Hash
   BlockHash temp_blockHash = m_pendingVCBlock->GetHeader().GetMyHash();
   if (temp_blockHash != m_pendingVCBlock->GetBlockHash()) {
     LOG_GENERAL(WARNING,
@@ -74,6 +75,23 @@ bool DirectoryService::ViewChangeValidator(
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << m_pendingVCBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Verify the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+  if (committeeHash != m_pendingVCBlock->GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "DS committee hash in newly received VC Block doesn't match. "
+                "Calculated: "
+                    << committeeHash << " Received: "
+                    << m_pendingVCBlock->GetHeader().GetCommitteeHash());
     return false;
   }
 
@@ -167,12 +185,6 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   LOG_MARKER();
 
-  LOG_GENERAL(WARNING, "Run view change, revert state delta");
-  AccountStore::GetInstance().InitTemp();
-  AccountStore::GetInstance().DeserializeDeltaTemp(
-      m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
-  AccountStore::GetInstance().RevertCommitTemp();
-
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
 
@@ -181,11 +193,15 @@ void DirectoryService::RunConsensusOnViewChange() {
       m_mediator.m_DSCommittee
           ->size();  // TODO: To be change to a random node using VRF
 
-  LOG_GENERAL(INFO, "The new consensus leader is at index "
-                        << to_string(m_viewChangeCounter));
+  LOG_GENERAL(INFO,
+              "The new consensus leader is at index "
+                  << to_string(m_viewChangeCounter) << " "
+                  << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
 
-  for (auto& i : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(INFO, i.second);
+  if (DEBUG_LEVEL >= 5) {
+    for (auto& i : *m_mediator.m_DSCommittee) {
+      LOG_GENERAL(INFO, i.second);
+    }
   }
 
   // Upon consensus object creation failure, one should not return from the
@@ -237,12 +253,12 @@ void DirectoryService::ScheduleViewChangeTimeout() {
   }
 }
 
-void DirectoryService::ComputeNewCandidateLeader() {
+bool DirectoryService::ComputeNewCandidateLeader() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComputeNewCandidateLeader not expected "
                 "to be called from LookUp node.");
-    return;
+    return true;
   }
 
   LOG_MARKER();
@@ -261,6 +277,15 @@ void DirectoryService::ComputeNewCandidateLeader() {
         m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
   }
 
+  // Compute the CommitteeHash member of the BlockHeaderBase
+  CommitteeHash committeeHash;
+  if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
+                                     committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSCommitteeHash failed.");
+    return false;
+  }
+
   {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
     // To-do: Handle exceptions.
@@ -271,10 +296,12 @@ void DirectoryService::ComputeNewCandidateLeader() {
             m_mediator.m_currentEpochNum, m_viewChangestate,
             m_viewChangeCounter, newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
-            m_viewChangeCounter, get_time_as_int(), CommitteeHash()),
+            m_viewChangeCounter, get_time_as_int(), committeeHash),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
+
+  return true;
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
@@ -303,7 +330,11 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the candidate leader DS node. Announcing to the rest.");
 
-  ComputeNewCandidateLeader();
+  if (!ComputeNewCandidateLeader()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DirectoryService::ComputeNewCandidateLeader failed");
+    return false;
+  }
 
   uint32_t consensusID = m_viewChangeCounter;
   // Create new consensus object
@@ -365,8 +396,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
             "I am a backup DS node (after view change). Waiting for view "
             "change announcement. "
             "Leader is at index  "
-                << m_consensusLeaderID << " "
-                << m_mediator.m_DSCommittee->at(m_consensusLeaderID).second);
+                << m_viewChangeCounter << " "
+                << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
 
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();

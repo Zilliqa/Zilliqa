@@ -103,7 +103,7 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex mutable m_mutexLookupNodes;
   std::mutex m_mutexMicroBlocksBuffer;
 
-  std::vector<unsigned char> ComposeGetDSInfoMessage();
+  std::vector<unsigned char> ComposeGetDSInfoMessage(bool initialDS = false);
   std::vector<unsigned char> ComposeGetStateMessage();
 
   std::unordered_map<uint64_t, std::vector<MicroBlock>> m_microBlocksBuffer;
@@ -141,7 +141,7 @@ class Lookup : public Executable, public Broadcastable {
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
-                    std::map<uint32_t, std::vector<unsigned char>>& mp,
+                    std::map<uint32_t, std::vector<Transaction>>& mp,
                     uint32_t numShards);
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
@@ -163,7 +163,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
-  bool GetDSInfoFromLookupNodes();
+  bool GetDSInfoFromLookupNodes(bool initialDS = false);
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBodyFromSeedNodes(std::string txHashStr);
@@ -285,7 +285,7 @@ class Lookup : public Executable, public Broadcastable {
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
 
-  void ComposeAndSendGetDirectoryBlocksFromSeed(uint64_t& index_num);
+  void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
 
   static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
