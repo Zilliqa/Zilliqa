@@ -656,7 +656,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 #endif  // VC_TEST_DS_SUSPEND_1
 
-#ifdef VC_TEST_DS_SUsPEND_3
+#ifdef VC_TEST_DS_SUSPEND_3
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
     LOG_GENERAL(
         INFO,
