@@ -101,7 +101,9 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
-    protobuf
+    protobuf \
+    autoconf \
+    libtool
 
 # install developement deps
 brew install \
