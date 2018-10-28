@@ -360,8 +360,13 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
       LOG_GENERAL(WARNING, "could not get vc block "
                                << get<BlockLinkIndex::BLOCKHASH>(bl));
     }
+    LOG_GENERAL(WARNING,
+                "Using hash of last vc block for computing candidcate leader");
     sha2.Update(prevVCBlockptr->GetBlockHash().asBytes());
   } else {
+    LOG_GENERAL(
+        WARNING,
+        "Using hash of last final block for computing candidcate leader");
     sha2.Update(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
@@ -373,6 +378,16 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
   uint32_t candidateLeaderIndex =
       lastBlockHash % (m_mediator.m_DSCommittee->size());
+
+  while (candidateLeaderIndex == m_consensusLeaderID) {
+    LOG_GENERAL(INFO, "Compute candidate leader is current ds leader. Index:"
+                          << candidateLeaderIndex);
+    sha2.Update(sha2.Finalize());
+    lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
+    candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+    LOG_GENERAL(INFO, "Re-computed candidate leader is at index: "
+                          << candidateLeaderIndex);
+  }
   sha2.Reset();
   return candidateLeaderIndex;
 }
