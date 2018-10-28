@@ -17,8 +17,8 @@
  * program files.
  */
 
-#ifndef __TXNROOTCOMPUTATION_H__
-#define __TXNROOTCOMPUTATION_H__
+#ifndef __ROOTCOMPUTATION_H__
+#define __ROOTCOMPUTATION_H__
 
 #include <list>
 #include <unordered_map>
@@ -32,26 +32,16 @@
 #include "depends/libTrie/TrieDB.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
-StateHash ComputeDeltasRoot(
-    const std::vector<MicroBlockHashSet>& microBlockHashes);
+dev::h256 ComputeRoot(const std::vector<dev::h256>& hashes);
 
-TxnHash ComputeTranReceiptsRoot(
-    const std::vector<MicroBlockHashSet>& microBlockHashes);
+TxnHash ComputeRoot(const std::list<Transaction>& receivedTransactions,
+                    const std::list<Transaction>& submittedTransactions);
 
-TxnHash ComputeTransactionsRoot(const std::vector<TxnHash>& transactionHashes);
-
-TxnHash ComputeTransactionsRoot(
-    const std::list<Transaction>& receivedTransactions,
-    const std::list<Transaction>& submittedTransactions);
-
-TxnHash ComputeTransactionsRoot(
+TxnHash ComputeRoot(
     const std::unordered_map<TxnHash, Transaction>& processedTransactions);
 
-TxnHash ComputeTransactionsRoot(
+TxnHash ComputeRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
     const std::unordered_map<TxnHash, Transaction>& submittedTransactions);
 
-TxnHash ComputeTransactionsRoot(
-    const std::vector<MicroBlockHashSet>& microBlockHashes);
-
-#endif  // __TXNROOTCOMPUTATION_H__
+#endif  // __ROOTCOMPUTATION_H__

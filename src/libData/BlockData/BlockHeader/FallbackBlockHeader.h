@@ -34,7 +34,7 @@ class FallbackBlockHeader : public BlockHeaderBase {
   uint64_t m_fallbackDSEpochNo;
   uint64_t m_fallbackEpochNo;
   unsigned char m_fallbackState;
-  FallbackBlockHashSet m_hash;
+  FallbackBlockHashSet m_hashset;
   uint32_t m_leaderConsensusId;
   Peer m_leaderNetworkInfo;
   PubKey m_leaderPubKey;

@@ -255,8 +255,8 @@ class Messenger {
 
   static bool SetNodeForwardTransaction(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t blockNum, const MicroBlockHashSet& hashes,
-      const uint32_t& shardId, const std::vector<TransactionWithReceipt>& txns);
+      const uint64_t blockNum, const BlockHash& hash,
+      const std::vector<TransactionWithReceipt>& txns);
   static bool GetNodeForwardTransaction(const std::vector<unsigned char>& src,
                                         const unsigned int offset,
                                         ForwardedTxnEntry& entry);
@@ -477,13 +477,11 @@ class Messenger {
 
   static bool SetLookupGetMicroBlockFromLookup(
       std::vector<unsigned char>& dest, const unsigned int offset,
-      const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
-      uint32_t portNo);
+      const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
   static bool GetLookupGetMicroBlockFromLookup(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
-      uint32_t& portNo);
+      std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
 
   static bool SetLookupSetMicroBlockFromLookup(
       std::vector<unsigned char>& dst, const unsigned int offset,
@@ -548,26 +546,28 @@ class Messenger {
   static bool SetConsensusChallenge(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-      const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
-      const Challenge& challenge, const std::pair<PrivKey, PubKey>& leaderKey);
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+      const PubKey& aggregatedKey, const Challenge& challenge,
+      const std::pair<PrivKey, PubKey>& leaderKey);
   static bool GetConsensusChallenge(
       const std::vector<unsigned char>& src, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-      CommitPoint& aggregatedCommit, PubKey& aggregatedKey,
-      Challenge& challenge, const PubKey& leaderKey);
+      uint16_t& subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t leaderID, CommitPoint& aggregatedCommit,
+      PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey);
 
   static bool SetConsensusResponse(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t backupID,
-      const Response& response, const std::pair<PrivKey, PubKey>& backupKey);
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t backupID, const Response& response,
+      const std::pair<PrivKey, PubKey>& backupKey);
   static bool GetConsensusResponse(
       const std::vector<unsigned char>& src, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, uint16_t& backupID,
-      Response& response,
+      uint16_t& subsetID, Response& response,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 
   static bool SetConsensusCollectiveSig(

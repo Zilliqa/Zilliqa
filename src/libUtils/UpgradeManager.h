@@ -61,6 +61,8 @@ class UpgradeManager {
   /// Should be only called internally, put in public just for testing
   std::string DownloadFile(const char* fileTail,
                            const char* releaseUrl = nullptr);
+
+  bool LoadInitialDS(std::vector<PubKey>& initialDSCommittee);
 };
 
 #endif  // __UPGRADEMANAGER_H__

@@ -238,8 +238,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  LOG_GENERAL(
-      INFO, "MicroBlock StateDeltaHash: " << microBlock.GetHeader().GetHash());
+  LOG_GENERAL(INFO, "MicroBlock StateDeltaHash: "
+                        << microBlock.GetHeader().GetHashes());
 
   lock_guard<mutex> g(m_mutexMicroBlocks);
 
@@ -494,8 +494,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         bool found = false;
         const auto& _microBlocks = m_missingMicroBlocks[epochNumber];
         for (const auto& _microBlock : _microBlocks) {
-          if (_microBlock.first == shardId &&
-              _microBlock.second == microBlock.GetHeader().GetHash()) {
+          if (_microBlock == microBlock.GetBlockHash()) {
             found = true;
             break;
           }
@@ -512,9 +511,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         bool found = false;
         const auto& _microBlocks = m_microBlocks[epochNumber];
         for (const auto& _microBlock : _microBlocks) {
-          if (_microBlock.GetHeader().GetShardId() == shardId &&
-              _microBlock.GetHeader().GetHash() ==
-                  microBlock.GetHeader().GetHash()) {
+          if (_microBlock.GetBlockHash() == microBlock.GetBlockHash()) {
             found = true;
             break;
           }
@@ -527,7 +524,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       }
 
       LOG_GENERAL(INFO,
-                  "MicroBlock Hash: " << microBlock.GetHeader().GetHash());
+                  "MicroBlock Hash: " << microBlock.GetHeader().GetHashes());
 
       if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
                         microBlock.GetHeader().GetShardId())) {
