@@ -75,9 +75,12 @@ class BlockLinkChain {
 
   bool AddBlockLink(const uint64_t& index, const uint64_t& dsindex,
                     const BlockType blocktype, const BlockHash& blockhash) {
-    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
+    
 
     uint64_t latestIndex = GetLatestIndex();
+
+    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
+
     if (index <= latestIndex) {
       LOG_GENERAL(WARNING, "the latest index in the blocklink is greater"
                                << index << " " << latestIndex);
