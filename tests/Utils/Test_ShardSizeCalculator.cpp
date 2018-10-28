@@ -17,6 +17,7 @@
  * program files.
  */
 
+#include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ShardSizeCalculator.h"
 
@@ -24,124 +25,55 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/test/unit_test.hpp>
+#include <map>
+#include <array>
+#include <vector>
 
 using namespace std;
 
+typedef std::vector<uint32_t> TestDataSet;
+typedef std::map<uint32_t, TestDataSet> ShardSizeMap;
+
+void prepareTestdata(ShardSizeMap &testData){
+	TestDataSet tds;
+	testData[651] = tds = {0, 1, 650, 651, 1000, 1367};
+	testData[684] = tds = {1368, 2131, 2132};
+	testData[711] = tds = {2133, 2200, 2867};;
+	testData[717] = tds = {2868, 2869, 3674};
+	testData[735] = tds = {3675, 4000, 4463};
+	testData[744] = tds = {4464, 5000, 5228};
+	testData[747] = tds = {5229, 6000, 6023};
+	testData[753] = tds = {6024, 6800, 6857};
+	testData[762] = tds = {6858, 7000, 7709};
+	testData[771] = tds = {7710, 8000, 8579};
+	testData[780] = tds = {8580, 9000, 9467};
+	testData[789] = tds = {9468, 10000, 10334};
+	testData[795] = tds = {10335, 11000, 14363};
+	testData[798] = tds = {14364,15000,15389};
+	testData[810] = tds = {15390,16000,18767};
+	testData[816] = tds = {18768,19000,20399};
+	testData[819] = tds = {20400,300000,std::numeric_limits<uint32_t>::max()};
+}
+
 BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 
+#define TD_i td_i
+#define EXPECTED td_i.first
+#define NUMOFNODES_v td_i.second
+
 BOOST_AUTO_TEST_CASE(test_lower_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(100);
-  BOOST_CHECK_MESSAGE(result == 651,
-                      "Expected: 651. Result: " + to_string(result));
-}
 
-BOOST_AUTO_TEST_CASE(test_one_shard_normal) {
   INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(700);
-  BOOST_CHECK_MESSAGE(result == 651,
-                      "Expected: 651. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_one_shard_lower_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(651);
-  BOOST_CHECK_MESSAGE(result == 651,
-                      "Expected: 651. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_one_shard_upper_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(1367);
-  BOOST_CHECK_MESSAGE(result == 651,
-                      "Expected: 651. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_two_shards_lower_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(1368);
-  BOOST_CHECK_MESSAGE(result == 684,
-                      "Expected: 684. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_two_shards_upper_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(2131);
-  BOOST_CHECK_MESSAGE(result == 684,
-                      "Expected: 684. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_ten_shards) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(8000);
-  BOOST_CHECK_MESSAGE(result == 771,
-                      "Expected: 771. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_ten_shards_lower_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(7710);
-  BOOST_CHECK_MESSAGE(result == 771,
-                      "Expected: 771. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_ten_shards_upper_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(8579);
-  BOOST_CHECK_MESSAGE(result == 771,
-                      "Expected: 771. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_max_shards_normal) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(20000);
-  BOOST_CHECK_MESSAGE(result == 816,
-                      "Expected: 816. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_max_shards_lower_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(19584);
-  BOOST_CHECK_MESSAGE(result == 816,
-                      "Expected: 816. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_max_shards_upper_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(20399);
-  BOOST_CHECK_MESSAGE(result == 816,
-                      "Expected: 816. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_lower_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(20400);
-  BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 819. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_normal) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(1000000);
-  BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 819. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound_minus_one) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(
-      std::numeric_limits<uint32_t>::max() - 1);
-  BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 819. Result: " + to_string(result));
-}
-
-BOOST_AUTO_TEST_CASE(test_max_shards_exceed_upper_bound) {
-  INIT_STDOUT_LOGGER();
-  uint32_t result = ShardSizeCalculator::CalculateShardSize(
-      std::numeric_limits<uint32_t>::max());
-  BOOST_CHECK_MESSAGE(result == 819,
-                      "Expected: 819. Result: " + to_string(result) + " " +
-                          to_string(std::numeric_limits<uint32_t>::max()));
+  ShardSizeMap testData;
+  prepareTestdata(testData);
+  for (auto const& TD_i : testData)
+  {
+	for(auto const& numOfNodes: NUMOFNODES_v){
+		uint32_t result = ShardSizeCalculator::CalculateShardSize(numOfNodes);
+	  	BOOST_CHECK_MESSAGE(result == EXPECTED,
+	  			"For number of nodes: " + to_string(numOfNodes) + " Expected: " + to_string(EXPECTED) + ". Result: " + to_string(result));
+	}
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

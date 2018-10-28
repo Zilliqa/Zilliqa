@@ -90,3 +90,10 @@ build_lookup
 
 # CMake files
 compile_commands.json
+/Debug/
+
+# Eclipse files
+.cproject
+.project
+.settings/
+
