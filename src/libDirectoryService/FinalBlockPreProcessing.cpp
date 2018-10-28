@@ -224,7 +224,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   }
 
 #ifdef VC_TEST_FB_SUSPEND_1
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 1) {
+  if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
     LOG_GENERAL(
         WARNING,
         "I am suspending myself to test viewchange (VC_TEST_FB_SUSPEND_1)");
@@ -233,7 +233,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 #endif  // VC_TEST_FB_SUSPEND_1
 
 #ifdef VC_TEST_FB_SUSPEND_3
-  if (m_consensusMyID == 0 && m_viewChangeCounter < 3) {
+  if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
     LOG_GENERAL(
         WARNING,
         "I am suspending myself to test viewchange (VC_TEST_FB_SUSPEND_3)");
