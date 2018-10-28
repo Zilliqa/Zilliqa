@@ -119,22 +119,23 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     for (const auto& faultyLeader :
          m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
       // find the faulty leader and identify the index
-      deque<pair<PubKey, Peer>>::iterator it;
+      deque<pair<PubKey, Peer>>::iterator iterFaultyLeader;
       if (faultyLeader.second == m_mediator.m_selfPeer) {
-        it = find(m_mediator.m_DSCommittee->begin(),
-                  m_mediator.m_DSCommittee->end(),
-                  make_pair(faultyLeader.first, Peer()));
+        iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
+                                m_mediator.m_DSCommittee->end(),
+                                make_pair(faultyLeader.first, Peer()));
       } else {
-        it = find(m_mediator.m_DSCommittee->begin(),
-                  m_mediator.m_DSCommittee->end(), faultyLeader);
+        iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
+                                m_mediator.m_DSCommittee->end(), faultyLeader);
       }
 
-      // Remove faulty leader from the current
-      if (it != m_mediator.m_DSCommittee->end()) {
-        m_mediator.m_DSCommittee->erase(it);
+      // Remove faulty leader from the current ds committee structure temporary
+      if (iterFaultyLeader != m_mediator.m_DSCommittee->end()) {
+        m_mediator.m_DSCommittee->erase(iterFaultyLeader);
       } else {
-        LOG_GENERAL(WARNING,
-                    "Cannot find " << faultyLeader.second << " to eject");
+        LOG_GENERAL(WARNING, "Cannot find "
+                                 << faultyLeader.second
+                                 << " to eject to back of ds committee");
         // TODO: Handle this situation. This siutation shouldn't be
         // encountered at all
       }
@@ -152,14 +153,17 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     pair<PubKey, Peer> selfPubKPeerPair =
         make_pair(m_mediator.m_selfKey.second, Peer());
 
-    deque<pair<PubKey, Peer>>::iterator it2 =
+    deque<pair<PubKey, Peer>>::iterator iterConsensusMyID =
         find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
              selfPubKPeerPair);
 
-    if (it2 != m_mediator.m_DSCommittee->end()) {
-      m_consensusMyID = distance(m_mediator.m_DSCommittee->begin(), it2);
+    if (iterConsensusMyID != m_mediator.m_DSCommittee->end()) {
+      m_consensusMyID =
+          distance(m_mediator.m_DSCommittee->begin(), iterConsensusMyID);
     } else {
-      LOG_GENERAL(WARNING, "Cannot find myself in the ds committee");
+      LOG_GENERAL(WARNING,
+                  "Unable to set m_consensusMyID. Cannot find myself in the ds "
+                  "committee");
       // TODO: Handle this situation. This siutation shouldn't be
       // encountered at all
     }
@@ -169,13 +173,15 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   pair<PubKey, Peer> candidateLeaderInfo =
       make_pair(m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
                 m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
-  deque<pair<PubKey, Peer>>::iterator it3 =
+  deque<pair<PubKey, Peer>>::iterator iterConsensusLeaderID =
       find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
            candidateLeaderInfo);
-  if (it3 != m_mediator.m_DSCommittee->end()) {
-    m_consensusLeaderID = distance(m_mediator.m_DSCommittee->begin(), it3);
+
+  if (iterConsensusLeaderID != m_mediator.m_DSCommittee->end()) {
+    m_consensusLeaderID =
+        distance(m_mediator.m_DSCommittee->begin(), iterConsensusLeaderID);
   } else {
-    LOG_GENERAL(WARNING, "Cannot new leader in the ds committee");
+    LOG_GENERAL(WARNING, "Cannot find new leader in the ds committee");
     // TODO: Handle this situation. This siutation shouldn't be
     // encountered at all
   }
