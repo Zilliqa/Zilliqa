@@ -69,7 +69,9 @@ apt-get install -y \
     libevent-dev \
     libprotobuf-dev \
     libcurl4-openssl-dev \
-    protobuf-compiler
+    protobuf-compiler \
+    libtool \
+    autoconf
 
 # install development dependencies
 apt-get install -y \
