@@ -37,5 +37,5 @@ fi
 
 # install gRPC c++ plugin.
 if [ ! -f /usr/bin/grpc_cpp_plugin ]; then
-  sudo cp ./bins/opt/grpc_cpp_plugin /usr/bin/grpc_cpp_plugin
+  cp ./bins/opt/grpc_cpp_plugin /usr/bin/grpc_cpp_plugin
 fi
