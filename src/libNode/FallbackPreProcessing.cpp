@@ -111,6 +111,24 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     return false;
   }
 
+  // verify the shard committee hash
+  CommitteeHash committeeHash;
+  if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
+                               committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardHash failed.");
+    return false;
+  }
+  if (committeeHash != m_pendingFallbackBlock->GetHeader().GetCommitteeHash()) {
+    LOG_GENERAL(WARNING,
+                "Fallback committee hash mismatched"
+                    << endl
+                    << "expected: " << committeeHash << endl
+                    << "received: "
+                    << m_pendingFallbackBlock->GetHeader().GetCommitteeHash());
+    return false;
+  }
+
   // leader consensus id
   if (m_consensusLeaderID !=
       m_pendingFallbackBlock->GetHeader().GetLeaderConsensusId()) {
@@ -346,12 +364,12 @@ void Node::FallbackStop() {
   m_runFallback = false;
 }
 
-void Node::ComposeFallbackBlock() {
+bool Node::ComposeFallbackBlock() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComputeNewFallbackLeader not expected "
                 "to be called from LookUp node.");
-    return;
+    return true;
   }
 
   LOG_MARKER();
@@ -370,6 +388,14 @@ void Node::ComposeFallbackBlock() {
   LOG_GENERAL(INFO, "m_mediator.m_selfPeer: " << m_mediator.m_selfPeer);
   LOG_GENERAL(INFO, "LeaderNetworkInfo: " << leaderNetworkInfo);
 
+  CommitteeHash committeeHash;
+  if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
+                               committeeHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetShardHash failed.");
+    return false;
+  }
+
   {
     lock_guard<mutex> g(m_mutexPendingFallbackBlock);
     // To-do: Handle exceptions.
@@ -380,11 +406,13 @@ void Node::ComposeFallbackBlock() {
             m_mediator.m_currentEpochNum, m_fallbackState,
             AccountStore::GetInstance().GetStateRootHash(), m_consensusLeaderID,
             leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
-            m_myshardId, get_time_as_int(), CommitteeHash()),
+            m_myshardId, get_time_as_int(), committeeHash),
         CoSignatures()));
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());
   }
+
+  return true;
 }
 
 void Node::RunConsensusOnFallback() {
@@ -436,7 +464,11 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the fallback leader node. Announcing to the rest.");
 
-  ComposeFallbackBlock();
+  if (!ComposeFallbackBlock()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Node::RunConsensusOnFallbackWhenLeader failed.");
+    return false;
+  }
 
   // Create new consensus object
   m_consensusBlockHash =

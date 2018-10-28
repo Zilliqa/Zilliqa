@@ -16,7 +16,7 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 
-# Usage: ./scripts/copyright_checker.sh
+# Usage: ./scripts/license_checker.sh
 
 set -e
 
@@ -32,18 +32,21 @@ scope=$(find . -type f \( \
             ! -path "./build/*" \
             ! -path "./src/depends/*")
 
-n_line_copyright=$(wc -l COPYRIGHT | egrep "[0-9]+" -o)
+license_file=LICENSE
+
+lc_license=$(wc -l $license_file | egrep "[0-9]+" -o)
 
 error_count=0
 
-function check_copyright() {
+function check_license() {
     source=$1
     n_row_ignore=$2
     n_col_ignore=$3
 
     has_error=0
-    cat $source | tail -n +$(($n_row_ignore + 1)) | head -n$n_line_copyright | \
-        cut -b $(($n_col_ignore+1))-  | diff -u COPYRIGHT - 2>&1 >/dev/null ||
+    cat $source | tail -n +$(($n_row_ignore + 1)) | head -n$lc_license | \
+        cut -b $(($n_col_ignore+1))- | \
+        diff -u $license_file - 2>&1 >/dev/null || \
         has_error=1
 
     if [ $has_error -ne 0 ]
@@ -58,8 +61,8 @@ do
     filename=$(basename $file)
     ext="${filename##*.}"
     case "$ext" in
-        cpp|hpp|tpp|h|c) check_copyright $file 1 3 ;;
-        py|sh) check_copyright $file 1 2 ;;
+        cpp|hpp|tpp|h|c) check_license $file 1 3 ;;
+        py|sh) check_license $file 1 2 ;;
         *) echo unsupported format;;
     esac
 done
@@ -67,6 +70,6 @@ done
 if [ $error_count -gt 0 ]
 then
     echo
-    echo "$error_count file(s) has incorrect COPYRIGHT banner"
+    echo "$error_count file(s) has incorrect LICENSE banner"
     exit 1
 fi

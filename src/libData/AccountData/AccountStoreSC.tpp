@@ -156,11 +156,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     ExportCreateContractFiles(*toAccount);
 
     bool ret = true;
-    if (!SysCommand::ExecuteCmdWithoutOutput(
-            GetCreateContractCmdStr(gasRemained))) {
+    std::string runnerPrint;
+    if (!SysCommand::ExecuteCmdWithOutput(GetCreateContractCmdStr(gasRemained),
+                                          runnerPrint)) {
       ret = false;
     }
-    if (ret && !ParseCreateContractOutput(gasRemained)) {
+    if (ret && !ParseCreateContractOutput(gasRemained, runnerPrint)) {
       ret = false;
     }
     if (!ret) {
@@ -235,6 +236,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     m_curSenderAddr = fromAddr;
+    m_curDepth = 0;
 
     Account* toAccount = this->GetAccount(toAddr);
     if (toAccount == nullptr) {
@@ -265,12 +267,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     //     return false;
     // }
     bool ret = true;
-    if (!SysCommand::ExecuteCmdWithoutOutput(
-            GetCallContractCmdStr(gasRemained))) {
+    std::string runnerPrint;
+    if (!SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr(gasRemained),
+                                          runnerPrint)) {
       ret = false;
     }
 
-    if (ret && !ParseCallContractOutput(gasRemained)) {
+    if (ret && !ParseCallContractOutput(gasRemained, runnerPrint)) {
       ret = false;
     }
     if (!ret) {
@@ -442,23 +445,32 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractOutput(
-    boost::multiprecision::uint256_t& gasRemained) {
+    boost::multiprecision::uint256_t& gasRemained,
+    const std::string& runnerPrint) {
   // LOG_MARKER();
 
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
+  Json::CharReaderBuilder builder;
+  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  Json::Value root;
+  std::string errors, outStr;
 
   if (!in.is_open()) {
     LOG_GENERAL(WARNING,
                 "Error opening output file or no output file generated");
-    return false;
+
+    // Check the printout
+    if (!runnerPrint.empty()) {
+      outStr = runnerPrint;
+    } else {
+      return false;
+    }
+  } else {
+    std::string outStr{std::istreambuf_iterator<char>(in),
+                       std::istreambuf_iterator<char>()};
   }
-  std::string outStr{std::istreambuf_iterator<char>(in),
-                     std::istreambuf_iterator<char>()};
   LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
-  Json::CharReaderBuilder builder;
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  Json::Value root;
-  std::string errors;
+
   if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                     &errors)) {
     return ParseCreateContractJsonOutput(root, gasRemained);
@@ -485,15 +497,19 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   }
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
-  if (!_json.isMember("message") || !_json.isMember("states")) {
-    LOG_GENERAL(WARNING,
-                "The json output of this contract is corrupted or create "
-                "contract failed");
+  if (!_json.isMember("message") || !_json.isMember("states") ||
+      !_json.isMember("events")) {
+    if (_json.isMember("errors")) {
+      LOG_GENERAL(WARNING, "Contract creation failed");
+    } else {
+      LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
+    }
     return false;
   }
 
   if (_json["message"] == Json::nullValue &&
-      _json["states"] == Json::arrayValue) {
+      _json["states"] == Json::arrayValue &&
+      _json["events"] == Json::arrayValue) {
     // LOG_GENERAL(INFO, "Get desired json output from the interpreter for
     // create contract");
     return true;
@@ -506,23 +522,32 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractOutput(
-    boost::multiprecision::uint256_t& gasRemained) {
+    boost::multiprecision::uint256_t& gasRemained,
+    const std::string& runnerPrint) {
   // LOG_MARKER();
 
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
+  Json::CharReaderBuilder builder;
+  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  Json::Value root;
+  std::string errors, outStr;
 
   if (!in.is_open()) {
     LOG_GENERAL(WARNING,
                 "Error opening output file or no output file generated");
-    return false;
+
+    // Check the printout
+    if (!runnerPrint.empty()) {
+      outStr = runnerPrint;
+    } else {
+      return false;
+    }
+  } else {
+    std::string outStr{std::istreambuf_iterator<char>(in),
+                       std::istreambuf_iterator<char>()};
   }
-  std::string outStr{std::istreambuf_iterator<char>(in),
-                     std::istreambuf_iterator<char>()};
   LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
-  Json::CharReaderBuilder builder;
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  Json::Value root;
-  std::string errors;
+
   if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                     &errors)) {
     return ParseCallContractJsonOutput(root, gasRemained);
@@ -551,9 +576,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
   if (!_json.isMember("message") || !_json.isMember("states") ||
       !_json.isMember("events")) {
-    LOG_GENERAL(WARNING,
-                "The json output of this contract is corrupted or call "
-                "transition failed");
+    if (_json.isMember("errors")) {
+      LOG_GENERAL(WARNING, "Call contract failed");
+    } else {
+      LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
+    }
     return false;
   }
 
@@ -630,6 +657,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return true;
   }
 
+  ++m_curDepth;
+
+  if (m_curDepth > MAX_CONTRACT_DEPTH) {
+    LOG_GENERAL(WARNING,
+                "maximum contract depth reached, cannot call another contract");
+    return false;
+  }
+
   LOG_GENERAL(INFO, "Call another contract");
 
   // check whether the recipient contract is in the same shard with the current
@@ -657,15 +692,16 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
     return false;
   }
 
-  if (!SysCommand::ExecuteCmdWithoutOutput(
-          GetCallContractCmdStr(gasRemained))) {
+  std::string runnerPrint;
+  if (!SysCommand::ExecuteCmdWithOutput(GetCallContractCmdStr(gasRemained),
+                                        runnerPrint)) {
     LOG_GENERAL(WARNING,
                 "ExecuteCmd failed: " << GetCallContractCmdStr(gasRemained));
     return false;
   }
   Address t_address = m_curContractAddr;
   m_curContractAddr = recipient;
-  if (!ParseCallContractOutput(gasRemained)) {
+  if (!ParseCallContractOutput(gasRemained, runnerPrint)) {
     LOG_GENERAL(WARNING, "ParseCallContractOutput failed of calling contract: "
                              << recipient);
     return false;

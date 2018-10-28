@@ -1,10 +1,6 @@
 link_directories(${CMAKE_BINARY_DIR}/lib)
 configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 
-add_executable(Test_Sha3 Test_Sha3.cpp)
-target_link_libraries(Test_Sha3 PUBLIC Crypto Utils Boost::unit_test_framework)
-add_test(NAME Test_Sha3 COMMAND Test_Sha3)
-
 add_executable(Test_Sha2 Test_Sha2.cpp)
 target_link_libraries(Test_Sha2 PUBLIC Crypto Utils Boost::unit_test_framework)
 add_test(NAME Test_Sha2 COMMAND Test_Sha2)
