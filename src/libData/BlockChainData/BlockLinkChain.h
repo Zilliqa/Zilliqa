@@ -75,8 +75,6 @@ class BlockLinkChain {
 
   bool AddBlockLink(const uint64_t& index, const uint64_t& dsindex,
                     const BlockType blocktype, const BlockHash& blockhash) {
-    
-
     uint64_t latestIndex = GetLatestIndex();
 
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
