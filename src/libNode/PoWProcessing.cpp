@@ -110,9 +110,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     isNoSync = true;
 
     auto func = [this]() mutable -> void {
-      this_thread::sleep_for(chrono::milliseconds(NEW_NODE_SYNC_INTERVAL +
-                                                  POW_WINDOW_IN_SECONDS +
-                                                  FALLBACK_EXTRA_TIME));
+      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL +
+                                             POW_WINDOW_IN_SECONDS +
+                                             FALLBACK_EXTRA_TIME));
       if (m_stillMiningPrimary) {
         if (!GetOfflineLookups()) {
           LOG_GENERAL(WARNING, "Cannot sync currently");
@@ -336,6 +336,29 @@ bool Node::ReadVariablesFromStartPoWMessage(
             << " Port: "
             << m_mediator.m_DSCommittee->back().second.m_listenPortHost);
     cur_offset += IP_SIZE + PORT_SIZE;
+  }
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
+    if (m_mediator.m_DSCommittee->size() !=
+        m_mediator.m_initialDSCommittee->size()) {
+      LOG_GENERAL(WARNING,
+                  "The initial DS committee from file and "
+                  "ReadVariablesFromStartPoWMessage size do not match "
+                      << m_mediator.m_DSCommittee->size() << " "
+                      << m_mediator.m_initialDSCommittee->size());
+    }
+    unsigned int i = 0;
+    for (auto const& dsNode : *m_mediator.m_DSCommittee) {
+      if (!(dsNode.first == m_mediator.m_initialDSCommittee->at(i))) {
+        LOG_GENERAL(WARNING,
+                    "PubKey from file and ReadVariablesFromStartPoWMessage do "
+                    "not match  "
+                        << dsNode.first << " "
+                        << m_mediator.m_initialDSCommittee->at(i))
+      }
+      i++;
+    }
   }
 
   return true;

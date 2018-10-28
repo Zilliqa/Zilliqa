@@ -101,7 +101,14 @@ int POW::FromHex(char _i) {
 ethash_h256_t POW::StringToBlockhash(std::string const& _s) {
   ethash_h256_t ret;
   std::vector<uint8_t> b = HexStringToBytes(_s);
-  memcpy(&ret, b.data(), b.size());
+  if (b.size() != 32) {
+    LOG_GENERAL(WARNING,
+                "Input to StringToBlockhash is not of size 32. Returning "
+                "uninitialize ethash_h256_t. Size is "
+                    << b.size());
+    return ret;
+  }
+  copy(b.begin(), b.end(), ret.b);
   return ret;
 }
 
@@ -220,7 +227,7 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
   for (auto& miningResult : m_vecMiningResult) {
     miningResult = ethash_mining_result_t{"", "", 0, false};
   }
-  for (size_t i = 0; i < NUM_DEVICE_TO_USE; ++i) {
+  for (size_t i = 0; i < m_miners.size(); ++i) {
     vecThread.push_back(std::make_unique<std::thread>(
         [&] { MineFullGPUThread(blockNum, header_hash, difficulty, nonce); }));
   }
@@ -434,13 +441,6 @@ void POW::InitOpenCL() {
 #ifdef OPENCL_MINE
   using namespace dev::eth;
 
-  if (CLMiner::getNumDevices() < NUM_DEVICE_TO_USE) {
-    LOG_GENERAL(FATAL, "NUM_DEVICE_TO_USE "
-                           << NUM_DEVICE_TO_USE
-                           << " is more than the physical OpenCL GPU number "
-                           << CLMiner::getNumDevices());
-  }
-
   CLMiner::setCLKernel(CLKernelName::Stable);
 
   if (!CLMiner::configureGPU(OPENCL_LOCAL_WORK_SIZE,
@@ -450,8 +450,17 @@ void POW::InitOpenCL() {
   }
 
   CLMiner::setNumInstances(UINT_MAX);
-  for (uint32_t i = 0; i < NUM_DEVICE_TO_USE; ++i) {
-    m_miners.push_back(std::make_unique<CLMiner>(i));
+  auto gpuToUse = GetGpuToUse();
+  auto totalGpuDevice = CLMiner::getNumDevices();
+  for (const auto gpuIndex : gpuToUse) {
+    if (gpuIndex >= totalGpuDevice) {
+      LOG_GENERAL(FATAL, "Selected GPU "
+                             << gpuIndex
+                             << " exceed the physical OpenCL GPU number "
+                             << totalGpuDevice);
+    }
+
+    m_miners.push_back(std::make_unique<CLMiner>(gpuIndex));
     m_vecMiningResult.push_back(ethash_mining_result_t{"", "", 0, false});
   }
   LOG_GENERAL(INFO, "OpenCL GPU initialized in POW");
@@ -467,21 +476,23 @@ void POW::InitCUDA() {
 #ifdef CUDA_MINE
   using namespace dev::eth;
 
-  if (CUDAMiner::getNumDevices() < NUM_DEVICE_TO_USE) {
-    LOG_GENERAL(FATAL, "NUM_DEVICE_TO_USE "
-                           << NUM_DEVICE_TO_USE
-                           << " is more than the physical CUDA GPU number "
-                           << CUDAMiner::getNumDevices());
-  }
-
   if (!CUDAMiner::configureGPU(CUDA_BLOCK_SIZE, CUDA_GRID_SIZE, CUDA_STREAM_NUM,
                                CUDA_SCHEDULE_FLAG, 0, 0, false, false)) {
     LOG_GENERAL(FATAL, "Failed to configure CUDA GPU, please check hardware");
   }
 
   CUDAMiner::setNumInstances(UINT_MAX);
-  for (uint32_t i = 0; i < NUM_DEVICE_TO_USE; ++i) {
-    m_miners.push_back(std::make_unique<CUDAMiner>(i));
+  auto gpuToUse = GetGpuToUse();
+  auto totalGpuDevice = CUDAMiner::getNumDevices();
+  for (const auto gpuIndex : gpuToUse) {
+    if (gpuIndex >= totalGpuDevice) {
+      LOG_GENERAL(FATAL, "Selected GPU "
+                             << gpuIndex
+                             << " exceed the physical OpenCL GPU number "
+                             << totalGpuDevice);
+    }
+
+    m_miners.push_back(std::make_unique<CUDAMiner>(gpuIndex));
     m_vecMiningResult.push_back(ethash_mining_result_t{"", "", 0, false});
   }
   LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
@@ -491,4 +502,15 @@ void POW::InitCUDA() {
               "build option "
               "and build software again");
 #endif
+}
+
+std::set<unsigned int> POW::GetGpuToUse() {
+  std::set<unsigned int> gpuToUse;
+  std::stringstream ss(GPU_TO_USE);
+  std::string item;
+  while (std::getline(ss, item, ',')) {
+    unsigned int index = strtol(item.c_str(), NULL, 10);
+    gpuToUse.insert(index);
+  }
+  return gpuToUse;
 }

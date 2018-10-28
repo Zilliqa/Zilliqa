@@ -264,6 +264,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   } else {
     // Coinbase
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
+    m_totalTxnFees += m_finalBlock->GetHeader().GetRewards();
   }
 
   m_mediator.UpdateDSBlockRand();
@@ -346,6 +347,15 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "[No PoW needed] Waiting for Microblock.");
 
+      LOG_STATE("[MIBLKSWAIT[" << setw(15) << left
+                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                               << "]["
+                               << m_mediator.m_txBlockChain.GetLastBlock()
+                                          .GetHeader()
+                                          .GetBlockNum() +
+                                      1
+                               << "] BEGIN");
+
       auto func1 = [this]() mutable -> void {
         m_mediator.m_node->CommitTxnPacketBuffer();
       };
@@ -360,6 +370,15 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
         LOG_GENERAL(WARNING,
                     "Timeout: Didn't receive all Microblock. Proceeds "
                     "without it");
+
+        LOG_STATE("[MIBLKSWAIT["
+                  << setw(15) << left
+                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                  << m_mediator.m_txBlockChain.GetLastBlock()
+                             .GetHeader()
+                             .GetBlockNum() +
+                         1
+                  << "] TIMEOUT: Didn't receive all Microblock.");
 
         auto func2 = [this]() mutable -> void {
           if (!m_dsStartedMicroblockConsensus) {
@@ -379,7 +398,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                       "Timeout: Didn't finish DS Microblock. Proceeds "
                       "without it");
 
-          RunConsensusOnFinalBlock(true);
+          RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
         }
       }
     }
@@ -409,6 +428,12 @@ bool DirectoryService::ProcessFinalBlockConsensus(
   }
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
+    // don't buffer the Final block consensus message if i am non-ds node
+    if (m_mode == Mode::IDLE) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Ignoring final block consensus message");
+      return false;
+    }
     {
       lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
       m_finalBlockConsensusBuffer[consensus_id].push_back(
@@ -425,7 +450,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         m_dsStartedMicroblockConsensus = true;
       }
       cv_scheduleFinalBlockConsensus.notify_all();
-      RunConsensusOnFinalBlock(true);
+      RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
     }
   } else {
     if (consensus_id < m_mediator.m_consensusID) {

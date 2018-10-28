@@ -75,12 +75,9 @@ void DirectoryService::StartSynchronization() {
       return;
     }
 
-    m_synchronizer.FetchDSInfo(m_mediator.m_lookup);
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
-      m_synchronizer.FetchLatestDSBlocks(
-          m_mediator.m_lookup,
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-              1);
+      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlocks(
           m_mediator.m_lookup,
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
@@ -208,7 +205,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
 
     if (!Messenger::SetLookupSetDSInfoFromSeed(
             setDSBootstrapNodeMessage, MessageOffset::BODY,
-            m_mediator.m_selfKey, *m_mediator.m_DSCommittee)) {
+            m_mediator.m_selfKey, *m_mediator.m_DSCommittee, false)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -240,6 +237,28 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
   // Now I need to find my index in the sorted list (this will be my ID for the
   // consensus)
   m_consensusMyID = 0;
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
+    if (m_mediator.m_DSCommittee->size() !=
+        m_mediator.m_initialDSCommittee->size()) {
+      LOG_GENERAL(WARNING,
+                  "The initial DS committee from file and ProcessSetPrimary "
+                  "size do not match "
+                      << m_mediator.m_DSCommittee->size() << " "
+                      << m_mediator.m_initialDSCommittee->size());
+    }
+    for (unsigned int i = 0; i < m_mediator.m_initialDSCommittee->size(); i++) {
+      if (!(m_mediator.m_DSCommittee->at(i).first ==
+            m_mediator.m_initialDSCommittee->at(i))) {
+        LOG_GENERAL(WARNING,
+                    "PubKey from file and ProcessSetPrimary do not match  "
+                        << m_mediator.m_DSCommittee->at(i).first << " "
+                        << m_mediator.m_initialDSCommittee->at(i))
+      }
+    }
+  }
+
   for (auto const& i : *m_mediator.m_DSCommittee) {
     if (i.first == m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -248,6 +267,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     }
     m_consensusMyID++;
   }
+
   m_consensusLeaderID = 0;
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
@@ -379,6 +399,8 @@ bool DirectoryService::CleanVariables() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
+    m_missingMicroBlocks.clear();
+    m_totalTxnFees = 0;
   }
   CleanFinalblockConsensusBuffer();
 
@@ -388,6 +410,7 @@ bool DirectoryService::CleanVariables() {
   m_mode = IDLE;
   m_consensusLeaderID = 0;
   m_mediator.m_consensusID = 0;
+
   return true;
 }
 

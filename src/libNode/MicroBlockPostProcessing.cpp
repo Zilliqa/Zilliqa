@@ -67,15 +67,13 @@ void Node::SubmitMicroblockToDSCommittee() const {
 
   vector<unsigned char> microblock = {MessageType::DIRECTORY,
                                       DSInstructionType::MICROBLOCKSUBMISSION};
-  const uint64_t& txBlockNum =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   vector<unsigned char> stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   if (!Messenger::SetDSMicroBlockSubmission(
           microblock, MessageOffset::BODY,
-          DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK, txBlockNum,
-          {*m_microblock}, stateDelta)) {
+          DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
+          m_mediator.m_currentEpochNum, {*m_microblock}, stateDelta)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return;
@@ -219,10 +217,21 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     m_microblock->SetCoSignatures(*m_consensusObject);
 
     if (m_isPrimary) {
-      LOG_STATE("[MICON][" << std::setw(15) << std::left
-                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "][" << m_mediator.m_currentEpochNum << "] DONE");
-
+      if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
+        LOG_STATE("[MICON][" << std::setw(15) << std::left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_mediator.m_currentEpochNum
+                             << "] DONE");
+      } else {
+        LOG_STATE("[DSMICON[" << setw(15) << left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "]["
+                              << m_mediator.m_txBlockChain.GetLastBlock()
+                                         .GetHeader()
+                                         .GetBlockNum() +
+                                     1
+                              << "] DONE.");
+      }
       // Multicast micro block to all DS nodes
       SubmitMicroblockToDSCommittee();
     }
@@ -253,20 +262,22 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
       lock_guard<mutex> g(
           m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
       if (!m_mediator.m_ds->m_startedRunFinalblockConsensus) {
-        m_mediator.m_ds->m_stateDeltaFromShards.clear();
+        m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
         AccountStore::GetInstance().SerializeDelta();
         AccountStore::GetInstance().GetSerializedDelta(
-            m_mediator.m_ds->m_stateDeltaFromShards);
-        m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
-                                      m_microblock->GetB2(),
-                                      m_microblock->GetHeader().GetShardId());
+            m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
         m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
         {
           lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
           m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum].emplace(
               *m_microblock);
         }
-        m_mediator.m_ds->m_toSendTxnToLookup = true;
+        if (!m_mediator.GetIsVacuousEpoch()) {
+          m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
+                                        m_microblock->GetB2(),
+                                        m_microblock->GetHeader().GetShardId());
+          m_mediator.m_ds->m_toSendTxnToLookup = true;
+        }
       }
       m_mediator.m_ds->RunConsensusOnFinalBlock();
     }
@@ -330,7 +341,8 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
                 "DS Microblock failed, discard changes on microblock and "
                 "proceed to finalblock consensus");
       m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
-      m_mediator.m_ds->RunConsensusOnFinalBlock(true);
+      m_mediator.m_ds->RunConsensusOnFinalBlock(
+          DirectoryService::REVERT_STATEDELTA);
     }
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

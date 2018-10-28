@@ -90,6 +90,9 @@ class Mediator {
   std::shared_ptr<std::deque<std::pair<PubKey, Peer>>> m_DSCommittee;
   std::mutex m_mutexDSCommittee;
 
+  std::shared_ptr<std::vector<PubKey>> m_initialDSCommittee;
+  std::mutex m_mutexInitialDSCommittee;
+
   /// The current epoch randomness from the DS blockchain.
   std::array<unsigned char, POW_SIZE> m_dsBlockRand;
 
@@ -135,6 +138,8 @@ class Mediator {
   void IncreaseEpochNum();
 
   bool GetIsVacuousEpoch();
+
+  bool GetIsVacuousEpoch(const uint64_t& epochNum);
 
   uint32_t GetShardSize(const bool& useShardStructure) const;
 };

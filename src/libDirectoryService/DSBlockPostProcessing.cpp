@@ -375,6 +375,8 @@ void DirectoryService::StartFirstTxEpoch() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
+    m_missingMicroBlocks.clear();
+    m_totalTxnFees = 0;
   }
 
   if (m_mode != IDLE) {
@@ -428,6 +430,15 @@ void DirectoryService::StartFirstTxEpoch() {
 
     // Start sharding work
     SetState(MICROBLOCK_SUBMISSION);
+
+    LOG_STATE(
+        "[MIBLKSWAIT["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] BEGIN");
+
     m_dsStartedMicroblockConsensus = false;
 
     if (BROADCAST_GOSSIP_MODE) {
@@ -452,6 +463,15 @@ void DirectoryService::StartFirstTxEpoch() {
                     "Timeout: Didn't receive all Microblock. Proceeds "
                     "without it");
 
+        LOG_STATE("[MIBLKSWAIT["
+                  << setw(15) << left
+                  << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                  << m_mediator.m_txBlockChain.GetLastBlock()
+                             .GetHeader()
+                             .GetBlockNum() +
+                         1
+                  << "] TIMEOUT: Didn't receive all Microblock.");
+
         auto func = [this]() mutable -> void {
           m_dsStartedMicroblockConsensus = true;
           m_mediator.m_node->RunConsensusOnMicroBlock();
@@ -467,7 +487,7 @@ void DirectoryService::StartFirstTxEpoch() {
           LOG_GENERAL(WARNING,
                       "Timeout: Didn't finish DS Microblock. Proceeds "
                       "without it");
-          RunConsensusOnFinalBlock(true);
+          RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
         }
       }
     };

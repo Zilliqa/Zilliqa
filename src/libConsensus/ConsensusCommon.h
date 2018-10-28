@@ -66,14 +66,18 @@ class ConsensusCommon {
     INVALID_MICROBLOCK_ROOT_HASH,
     MISSING_TXN,
     WRONG_TXN_ORDER,
+    WRONG_GASUSED,
+    WRONG_REWARDS,
     FINALBLOCK_MISSING_MICROBLOCKS,
     FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
     FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
+    FINALBLOCK_MBS_LEGITIMACY_ERROR,
     INVALID_MICROBLOCK_STATE_DELTA_HASH,
     INVALID_MICROBLOCK_SHARD_ID,
     INVALID_MICROBLOCK_TRAN_RECEIPT_HASH,
     INVALID_FINALBLOCK_STATE_ROOT,
-    INVALID_FINALBLOCK_STATE_DELTA_HASH
+    INVALID_FINALBLOCK_STATE_DELTA_HASH,
+    INVALID_COMMHASH
   };
 
   static std::map<ConsensusErrorCode, std::string> CONSENSUSERRORMSG;
@@ -173,7 +177,7 @@ class ConsensusCommon {
                      uint16_t peer_id);
 
   /// Aggregates public keys according to the response map.
-  PubKey AggregateKeys(const std::vector<bool> peer_map);
+  PubKey AggregateKeys(const std::vector<bool>& peer_map);
 
   /// Aggregates the list of received commits.
   CommitPoint AggregateCommits(const std::vector<CommitPoint>& commits);
@@ -239,6 +243,9 @@ class ConsensusCommon {
 
   /// Returns a string representation of the current state
   std::string GetStateString() const;
+
+  /// Return a string respresentation of the given state
+  std::string GetStateString(const State state) const;
 
  private:
   static std::map<State, std::string> ConsensusStateStrings;
