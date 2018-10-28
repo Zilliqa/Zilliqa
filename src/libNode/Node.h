@@ -548,6 +548,8 @@ class Node : public Executable, public Broadcastable {
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
 
+  void UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock);
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
   std::string GetStateString() const;
