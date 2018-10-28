@@ -155,7 +155,7 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
 }
 
 CoSignatures GenerateRandomCoSignatures() {
-  return CoSignatures(distUint8(rng));
+  return CoSignatures(dist1to99(rng));
 }
 
 BOOST_AUTO_TEST_SUITE(messenger_primitives_test)
