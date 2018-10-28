@@ -380,8 +380,9 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
       lastBlockHash % (m_mediator.m_DSCommittee->size());
 
   while (candidateLeaderIndex == m_consensusLeaderID) {
-    LOG_GENERAL(INFO, "Compute candidate leader is current ds leader. Index:"
-                          << candidateLeaderIndex);
+    LOG_GENERAL(INFO,
+                "Computed candidate leader is current faulty ds leader. Index:"
+                    << candidateLeaderIndex);
     sha2.Update(sha2.Finalize());
     lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
     candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
