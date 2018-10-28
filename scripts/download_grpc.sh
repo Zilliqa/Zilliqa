@@ -36,11 +36,11 @@ if [ ! -d ./libs/opt/ ]; then
 fi
 
 # install gRPC c++ plugin.
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
+if [ "$OSTYPE" = "linux-gnu" ]; then
   if [ ! -f /usr/bin/grpc_cpp_plugin ]; then
     cp ./bins/opt/grpc_cpp_plugin /usr/bin/grpc_cpp_plugin
   fi
-elif [[ "$OSTYPE" == "darwin"* ]]; then
+elif [ "$OSTYPE" = "darwin"* ]; then
   if [ ! -f /usr/local/bin/grpc_cpp_plugin ]; then
     cp ./bins/opt/grpc_cpp_plugin /usr/local/bin/grpc_cpp_plugin
   fi
