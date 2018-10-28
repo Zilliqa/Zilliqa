@@ -228,7 +228,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
         "I am suspending myself to test viewchange (VC_TEST_FB_SUSPEND_3)");
     return false;
   }
-#endif  // VC_TEST_FB_SUSPEND_1
+#endif  // VC_TEST_FB_SUSPEND_3
 
   // Create new consensus object
   m_consensusBlockHash =
