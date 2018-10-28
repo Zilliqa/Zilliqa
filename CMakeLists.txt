@@ -74,6 +74,8 @@ include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/download_grpc.sh
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/)
 find_package(GRPC REQUIRED)
 include_directories(${GRPC_INCLUDE_DIRS})
 

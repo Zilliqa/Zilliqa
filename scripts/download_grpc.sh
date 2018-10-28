@@ -19,6 +19,8 @@
 
 GRPC_VERSION="v1.15.0"
 
+echo "-- Trying to setup gRPC ${GRPC_VERSION}"
+
 cd /tmp
 if [ ! -d /tmp/grpc ]; then
   git clone -b $GRPC_VERSION https://github.com/grpc/grpc
