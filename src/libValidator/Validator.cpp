@@ -368,11 +368,11 @@ bool Validator::CheckTxBlocks(const vector<TxBlock>& txBlocks,
   const TxBlock& latestTxBlock = txBlocks.back();
 
   if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
-    LOG_GENERAL(
-        WARNING,
-        "The latest DS index does not match that of the latest tx block ds num "
-            << latestTxBlock.GetHeader().GetDSBlockNum() << " "
-            << latestDSIndex);
+    LOG_GENERAL(WARNING,
+                "The latest DS index does not match that of the latest tx "
+                "block ds num, try fetching Tx and Dir Blocks again "
+                    << latestTxBlock.GetHeader().GetDSBlockNum() << " "
+                    << latestDSIndex);
     return false;
   }
 
@@ -389,9 +389,10 @@ bool Validator::CheckTxBlocks(const vector<TxBlock>& txBlocks,
 
   for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
     if (prevBlockHash != txBlocks.at(sIndex).GetHeader().GetMyHash()) {
-      LOG_GENERAL(WARNING, "Prev hash "
-                               << prevBlockHash << " and hash of blocknum "
-                               << txBlocks.at(i).GetHeader().GetBlockNum());
+      LOG_GENERAL(WARNING,
+                  "Prev hash "
+                      << prevBlockHash << " and hash of blocknum "
+                      << txBlocks.at(sIndex).GetHeader().GetBlockNum());
       return false;
     }
     sIndex--;
