@@ -43,7 +43,7 @@ class DSBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint256_t m_timestamp;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
-  DSBlockHashSet m_hash;
+  DSBlockHashSet m_hashset;
 
  public:
   /// Default constructor.

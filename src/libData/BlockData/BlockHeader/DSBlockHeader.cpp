@@ -48,7 +48,7 @@ DSBlockHeader::DSBlockHeader(
       m_timestamp(timestamp),
       m_swInfo(swInfo),
       m_PoWDSWinners(powDSWinners),
-      m_hash(hash) {}
+      m_hashset(hash) {}
 
 bool DSBlockHeader::Serialize(vector<unsigned char>& dst,
                               unsigned int offset) const {
@@ -89,16 +89,16 @@ const map<PubKey, Peer>& DSBlockHeader::GetDSPoWWinners() const {
 }
 
 const ShardingHash& DSBlockHeader::GetShardingHash() const {
-  return m_hash.m_shardingHash;
+  return m_hashset.m_shardingHash;
 }
 
 const TxSharingHash& DSBlockHeader::GetTxSharingHash() const {
-  return m_hash.m_txSharingHash;
+  return m_hashset.m_txSharingHash;
 }
 
 const array<unsigned char, RESERVED_FIELD_SIZE>&
 DSBlockHeader::GetHashSetReservedField() const {
-  return m_hash.m_reservedField;
+  return m_hashset.m_reservedField;
 }
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const {

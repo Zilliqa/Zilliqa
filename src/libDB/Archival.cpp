@@ -39,7 +39,6 @@ void Archival::InitSync() {
     uint64_t dsBlockNum = 0;
     uint64_t txBlockNum = 0;
 
-    m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
     while (true) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
         dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
@@ -102,38 +101,28 @@ void Archival::Init() {
                                            dsBlock.GetBlockHash());
 }
 
-bool Archival::AddToFetchMicroBlockInfo(const uint64_t& blockNum,
-                                        const uint32_t shardId) {
+bool Archival::AddToFetchMicroBlockInfo(const BlockHash& microBlockHash) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexMicroBlockInfo);
-  LOG_GENERAL(INFO,
-              "Added " << blockNum << " " << shardId << " to fetch microBlock");
-  m_fetchMicroBlockInfo[blockNum].push_back(shardId);
+  LOG_GENERAL(INFO, "Added " << microBlockHash << " to fetch microBlock");
+  m_fetchMicroBlockInfo.emplace_back(microBlockHash);
 
   return true;
 }
 
-bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
-                                             const uint32_t shardId) {
+bool Archival::RemoveFromFetchMicroBlockInfo(const BlockHash& microBlockHash) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexMicroBlockInfo);
 
-  if (m_fetchMicroBlockInfo.count(blockNum) == 0) {
-    LOG_GENERAL(INFO, "Already empty " << blockNum << " shard id" << shardId);
-    return false;
-  }
-
-  vector<uint32_t>& shard_ids = m_fetchMicroBlockInfo.at(blockNum);
-
-  auto position = find(shard_ids.begin(), shard_ids.end(), shardId);
-  if (position != shard_ids.end()) {
-    shard_ids.erase(position);
+  auto position = find(m_fetchMicroBlockInfo.begin(),
+                       m_fetchMicroBlockInfo.end(), microBlockHash);
+  if (position != m_fetchMicroBlockInfo.end()) {
+    m_fetchMicroBlockInfo.erase(position);
     return true;
   } else {
-    LOG_GENERAL(WARNING,
-                "Could not find " << blockNum << " shard id " << shardId);
+    LOG_GENERAL(WARNING, "Could not find hash " << microBlockHash);
     return false;
   }
 }
@@ -141,16 +130,8 @@ bool Archival::RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
 void Archival::SendFetchMicroBlockInfo() {
   LOG_MARKER();
   lock_guard<mutex> g(m_mutexMicroBlockInfo);
-  for (const auto& info : m_fetchMicroBlockInfo) {
-    if (info.second.size() == 0) {
-      m_fetchMicroBlockInfo.erase(info.first);
-    } else {
-      LOG_GENERAL(INFO, "Sending fetch microBlock "
-                            << "..." << info.first);
-      for (const auto& shard_id : info.second) {
-        LOG_GENERAL(INFO, "Shard id " << shard_id);
-      }
-    }
+  for (const auto& mbHash : m_fetchMicroBlockInfo) {
+    LOG_GENERAL(INFO, "Sending fetch microBlock Hash " << mbHash.hex());
   }
   m_mediator.m_lookup->SendGetMicroBlockFromLookup(m_fetchMicroBlockInfo);
 }
