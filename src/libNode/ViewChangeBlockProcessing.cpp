@@ -210,6 +210,12 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
+  UpdateDSCommiteeCompositionAfterVC(vcblock);
+
+  return true;
+}
+
+void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock) {
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
     deque<pair<PubKey, Peer>>::iterator it =
         find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
@@ -225,8 +231,6 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     }
     m_mediator.m_DSCommittee->emplace_back(faultyLeader);
   }
-
-  return true;
 }
 
 void Node::SendVCBlockToOtherShardNodes(
