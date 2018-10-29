@@ -46,7 +46,7 @@ class TxBlockHeader : public BlockHeaderBase {
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
       m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
-  BlockHash m_dsBlockHeader;  // DS Block hash
+  BlockHash m_dsBlockHash;  // DS Block hash
 
  public:
   /// Default constructor.
@@ -65,7 +65,7 @@ class TxBlockHeader : public BlockHeaderBase {
                 const BlockHash& mbRootHash, const StateHash& stateRootHash,
                 const StateHash& stateDeltaHash, const uint32_t numTxs,
                 const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader,
+                const uint64_t& dsBlockNum, const BlockHash& dsBlockHash,
                 const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
@@ -128,7 +128,7 @@ class TxBlockHeader : public BlockHeaderBase {
   const uint64_t& GetDSBlockNum() const;
 
   /// Returns the digest of the parent DS block header.
-  const BlockHash& GetDSBlockHeader() const;
+  const BlockHash& GetDSBlockHash() const;
 
   /// Equality comparison operator.
   bool operator==(const TxBlockHeader& header) const;
@@ -156,7 +156,7 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl
      << "m_dsBlockNum : " << std::to_string(t.m_dsBlockNum) << std::endl
-     << "m_dsBlockHeader : " << t.m_dsBlockHeader.hex();
+     << "m_dsBlockHash : " << t.m_dsBlockHash.hex();
   return os;
 }
 

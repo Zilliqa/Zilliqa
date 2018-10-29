@@ -38,11 +38,11 @@ struct DSBlockHashSet {
            std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash);
   }
   bool operator<(const DSBlockHashSet& hashSet) const {
-    return std::tie(m_shardingHash, m_txSharingHash) >
-           std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash);
+    return std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash) <
+           std::tie(m_shardingHash, m_txSharingHash);
   }
   bool operator>(const DSBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const DSBlockHashSet& t);
@@ -125,12 +125,12 @@ struct MicroBlockHashSet {
                     hashSet.m_tranReceiptHash);
   }
   bool operator<(const MicroBlockHashSet& hashSet) const {
-    return std::tie(hashSet.m_txRootHash, hashSet.m_stateDeltaHash,
-                    hashSet.m_tranReceiptHash) >
-           std::tie(m_txRootHash, m_stateDeltaHash, m_tranReceiptHash);
+    return std::tie(m_txRootHash, m_stateDeltaHash, m_tranReceiptHash) >
+           std::tie(hashSet.m_txRootHash, hashSet.m_stateDeltaHash,
+                    hashSet.m_tranReceiptHash);
   }
   bool operator>(const MicroBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const MicroBlockHashSet& t);
@@ -207,12 +207,12 @@ struct TxBlockHashSet {
                     hashSet.m_stateDeltaHash);
   }
   bool operator<(const TxBlockHashSet& hashSet) const {
-    return std::tie(hashSet.m_mbRootHash, hashSet.m_stateRootHash,
-                    hashSet.m_stateDeltaHash) >
-           std::tie(m_mbRootHash, m_stateRootHash, m_stateDeltaHash);
+    return std::tie(m_mbRootHash, m_stateRootHash, m_stateDeltaHash) >
+           std::tie(hashSet.m_mbRootHash, hashSet.m_stateRootHash,
+                    hashSet.m_stateDeltaHash);
   }
   bool operator>(const TxBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   static constexpr unsigned int size() {
@@ -277,10 +277,10 @@ struct FallbackBlockHashSet {
     return std::tie(m_stateRootHash) == std::tie(hashSet.m_stateRootHash);
   }
   bool operator<(const FallbackBlockHashSet& hashSet) const {
-    return std::tie(hashSet.m_stateRootHash) > std::tie(m_stateRootHash);
+    return std::tie(m_stateRootHash) > std::tie(hashSet.m_stateRootHash);
   }
   bool operator>(const FallbackBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   static constexpr unsigned int size() { return STATE_HASH_SIZE; }
