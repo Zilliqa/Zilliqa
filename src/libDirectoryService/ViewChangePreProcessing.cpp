@@ -348,25 +348,18 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   // new candidate leader index is
   // H((finalblock or vc block), vc counter) % size
   // of ds committee
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
   uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
   BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
-  BlockType latestBlockType = get<BlockLinkIndex::BLOCKTYPE>(bl);
-
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  if (latestBlockType == BlockType::VC) {
-    VCBlockSharedPtr prevVCBlockptr;
-    if (!BlockStorage::GetBlockStorage().GetVCBlock(
-            get<BlockLinkIndex::BLOCKHASH>(bl), prevVCBlockptr)) {
-      LOG_GENERAL(WARNING, "could not get vc block "
-                               << get<BlockLinkIndex::BLOCKHASH>(bl));
-    }
-    LOG_GENERAL(WARNING,
+  VCBlockSharedPtr prevVCBlockptr;
+  if (CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
+    LOG_GENERAL(INFO,
                 "Using hash of last vc block for computing candidcate leader");
     sha2.Update(prevVCBlockptr->GetBlockHash().asBytes());
   } else {
     LOG_GENERAL(
-        WARNING,
-        "Using hash of last final block for computing candidcate leader");
+        INFO, "Using hash of last final block for computing candidcate leader");
     sha2.Update(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
@@ -391,6 +384,33 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   }
   sha2.Reset();
   return candidateLeaderIndex;
+}
+
+bool DirectoryService::CheckUseVCBlockInsteadOfDSBlock(
+    const BlockLink& bl, VCBlockSharedPtr& prevVCBlockptr) {
+  BlockType latestBlockType = get<BlockLinkIndex::BLOCKTYPE>(bl);
+
+  if (latestBlockType == BlockType::VC) {
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(bl), prevVCBlockptr)) {
+      LOG_GENERAL(WARNING, "could not get vc block "
+                               << get<BlockLinkIndex::BLOCKHASH>(bl));
+      return false;
+    }
+
+    if (prevVCBlockptr->GetHeader().GetViewChangeEpochNo() !=
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+            1) {
+      return false;
+    }
+
+    if (prevVCBlockptr->GetHeader().GetViewChangeState() != m_viewChangestate) {
+      return false;
+    }
+  } else {
+    return false;
+  }
+  return true;
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
