@@ -201,8 +201,10 @@ const unsigned int COMMIT_WINDOW_IN_SECONDS{
 const unsigned int NUM_CONSENSUS_SUBSETS{
     ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
 
+#ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
     ReadFromTestsFile("FALLBACK_TEST_EPOCH")};
+#endif  // FALLBACK_TEST
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
