@@ -181,7 +181,9 @@ extern const unsigned int MAX_CONTRACT_DEPTH;
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
 
+#ifdef FALLBACK_TEST
 extern const unsigned int FALLBACK_TEST_EPOCH;
+#endif  // FALLBACK_TEST
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
