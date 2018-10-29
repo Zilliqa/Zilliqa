@@ -1614,82 +1614,98 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
               "I already have the block");
     return false;
   } else {
-    if (!m_mediator.m_validator->CheckTxBlocks(
-            txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-            m_mediator.m_blocklinkchain.GetLatestBlockLink())) {
-      LOG_GENERAL(WARNING, "[TxBlockVerif]"
-                               << "Failed");
-      return false;
-    } else {
-      LOG_GENERAL(INFO, "[TxBlockVerif]"
-                            << "Success");
-    }
-
-    for (const auto& txBlock : txBlocks) {
-      LOG_EPOCH(
-          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-          "txBlock.GetHeader().GetType(): " << txBlock.GetHeader().GetType());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetVersion(): "
-                    << txBlock.GetHeader().GetVersion());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetGasLimit(): "
-                    << txBlock.GetHeader().GetGasLimit());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetGasUsed(): "
-                    << txBlock.GetHeader().GetGasUsed());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetBlockNum(): "
-                    << txBlock.GetHeader().GetBlockNum());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetNumMicroBlockHashes(): "
-                    << txBlock.GetHeader().GetNumMicroBlockHashes());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetNumTxs(): "
-                    << txBlock.GetHeader().GetNumTxs());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetMinerPubKey(): "
-                    << txBlock.GetHeader().GetMinerPubKey());
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "txBlock.GetHeader().GetStateRootHash(): "
-                    << txBlock.GetHeader().GetStateRootHash());
-
-      m_mediator.m_node->AddBlock(txBlock);
-
-      // Store Tx Block to disk
-      if (!ARCHIVAL_NODE) {
-        vector<unsigned char> serializedTxBlock;
-        txBlock.Serialize(serializedTxBlock, 0);
-        BlockStorage::GetBlockStorage().PutTxBlock(
-            txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
-      } else {
-        for (unsigned int i = 0; i < txBlock.GetShardIds().size(); i++) {
-          if (!txBlock.GetIsMicroBlockEmpty()[i]) {
-            m_mediator.m_archival->AddToFetchMicroBlockInfo(
-                txBlock.GetHeader().GetBlockNum(), txBlock.GetShardIds()[i]);
-          } else {
-            LOG_GENERAL(INFO, "MicroBlock of shard " << txBlock.GetShardIds()[i]
-                                                     << " empty");
-          }
+    auto res = m_mediator.m_validator->CheckTxBlocks(
+        txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+        m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    switch (res) {
+      case ValidatorBase::TxBlockValidationMsg::VALID:
+        CommitTxBlocks(txBlocks);
+        break;
+      case ValidatorBase::TxBlockValidationMsg::INVALID:
+        LOG_GENERAL(INFO, "[TxBlockVerif]"
+                              << "Invalid blocks");
+        break;
+      case ValidatorBase::TxBlockValidationMsg::STALEDSINFO:
+        LOG_GENERAL(INFO, "[TxBlockVerif]"
+                              << "Saved to buffer");
+        m_txBlockBuffer.clear();
+        for (const auto& txBlock : txBlocks) {
+          m_txBlockBuffer.emplace_back(txBlock);
         }
-
-        m_mediator.m_archDB->InsertTxBlock(txBlock);
-      }
-    }
-
-    m_mediator.m_currentEpochNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
-
-    m_mediator.UpdateTxBlockRand();
-
-    if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
-        !ARCHIVAL_NODE) {
-      LOG_GENERAL(INFO, "At new DS epoch now, try getting state from lookup");
-      GetStateFromLookupNodes();
+        break;
+      default:;
     }
   }
 
   return true;
+}
+
+void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
+  LOG_GENERAL(INFO, "[TxBlockVerif]"
+                        << "Success");
+
+  for (const auto& txBlock : txBlocks) {
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "txBlock.GetHeader().GetType(): " << txBlock.GetHeader().GetType());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txBlock.GetHeader().GetVersion(): "
+                  << txBlock.GetHeader().GetVersion());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txBlock.GetHeader().GetGasLimit(): "
+                  << txBlock.GetHeader().GetGasLimit());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txBlock.GetHeader().GetGasUsed(): "
+                  << txBlock.GetHeader().GetGasUsed());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txBlock.GetHeader().GetBlockNum(): "
+                  << txBlock.GetHeader().GetBlockNum());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txBlock.GetHeader().GetNumMicroBlockHashes(): "
+                  << txBlock.GetHeader().GetNumMicroBlockHashes());
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txBlock.GetHeader().GetMinerPubKey(): "
+                  << txBlock.GetHeader().GetMinerPubKey());
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "txBlock.GetHeader().GetStateRootHash(): "
+                  << txBlock.GetHeader().GetStateRootHash());
+
+    m_mediator.m_node->AddBlock(txBlock);
+
+    // Store Tx Block to disk
+    if (!ARCHIVAL_NODE) {
+      vector<unsigned char> serializedTxBlock;
+      txBlock.Serialize(serializedTxBlock, 0);
+      BlockStorage::GetBlockStorage().PutTxBlock(
+          txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
+    } else {
+      for (unsigned int i = 0; i < txBlock.GetShardIds().size(); i++) {
+        if (!txBlock.GetIsMicroBlockEmpty()[i]) {
+          m_mediator.m_archival->AddToFetchMicroBlockInfo(
+              txBlock.GetHeader().GetBlockNum(), txBlock.GetShardIds()[i]);
+        } else {
+          LOG_GENERAL(INFO, "MicroBlock of shard " << txBlock.GetShardIds()[i]
+                                                   << " empty");
+        }
+      }
+
+      m_mediator.m_archDB->InsertTxBlock(txBlock);
+    }
+  }
+
+  m_mediator.m_currentEpochNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
+  m_mediator.UpdateTxBlockRand();
+
+  if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
+      !ARCHIVAL_NODE) {
+    LOG_GENERAL(INFO, "At new DS epoch now, try getting state from lookup");
+    GetStateFromLookupNodes();
+  }
 }
 
 bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
@@ -2788,7 +2804,40 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     m_mediator.UpdateDSBlockRand();
   }
 
+  CheckBufferTxBlocks();
+
   return true;
+}
+
+void Lookup::CheckBufferTxBlocks() {
+  unique_lock<mutex> lock(m_mutexSetTxBlockFromSeed);
+
+  if (!m_txBlockBuffer.empty()) {
+    ValidatorBase::TxBlockValidationMsg res =
+        m_mediator.m_validator->CheckTxBlocks(
+            m_txBlockBuffer, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+            m_mediator.m_blocklinkchain.GetLatestBlockLink());
+
+    switch (res) {
+      case ValidatorBase::TxBlockValidationMsg::VALID:
+        CommitTxBlocks(m_txBlockBuffer);
+        m_txBlockBuffer.clear();
+        break;
+      case ValidatorBase::TxBlockValidationMsg::STALEDSINFO:
+        LOG_GENERAL(
+            WARNING,
+            "Even after the recving latest ds info, the information is stale ");
+        break;
+      case ValidatorBase::TxBlockValidationMsg::INVALID:
+        LOG_GENERAL(WARNING, "The blocks in buffer are invalid ");
+        m_txBlockBuffer.clear();
+        break;
+      default:
+        LOG_GENERAL(WARNING,
+                    "The return value of ValidatorBase::CheckTxBlocks does not "
+                    "match any type");
+    }
+  }
 }
 
 void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(

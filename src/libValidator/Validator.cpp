@@ -351,16 +351,16 @@ bool Validator::CheckDirBlocks(
   return ret;
 }
 
-bool Validator::CheckTxBlocks(const vector<TxBlock>& txBlocks,
-                              const deque<pair<PubKey, Peer>>& dsComm,
-                              const BlockLink& latestBlockLink) {
+ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
+    const vector<TxBlock>& txBlocks, const deque<pair<PubKey, Peer>>& dsComm,
+    const BlockLink& latestBlockLink) {
   // Verify the last Tx Block
   uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
 
   if (get<BlockLinkIndex::BLOCKTYPE>(latestBlockLink) != BlockType::DS) {
     if (latestDSIndex == 0) {
       LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
-      return false;
+      return TxBlockValidationMsg::INVALID;
     }
     latestDSIndex--;
   }
@@ -373,15 +373,15 @@ bool Validator::CheckTxBlocks(const vector<TxBlock>& txBlocks,
                 "block ds num, try fetching Tx and Dir Blocks again "
                     << latestTxBlock.GetHeader().GetDSBlockNum() << " "
                     << latestDSIndex);
-    return false;
+    return TxBlockValidationMsg::STALEDSINFO;
   }
 
   if (!CheckBlockCosignature(latestTxBlock, dsComm)) {
-    return false;
+    return TxBlockValidationMsg::INVALID;
   }
 
   if (txBlocks.size() < 2) {
-    return true;
+    return TxBlockValidationMsg::VALID;
   }
 
   const BlockHash& prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
@@ -393,10 +393,10 @@ bool Validator::CheckTxBlocks(const vector<TxBlock>& txBlocks,
                   "Prev hash "
                       << prevBlockHash << " and hash of blocknum "
                       << txBlocks.at(sIndex).GetHeader().GetBlockNum());
-      return false;
+      return TxBlockValidationMsg::INVALID;
     }
     sIndex--;
   }
 
-  return true;
+  return TxBlockValidationMsg::VALID;
 }

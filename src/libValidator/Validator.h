@@ -33,6 +33,7 @@ class Mediator;
 
 class ValidatorBase {
  public:
+  enum TxBlockValidationMsg { VALID = 0, STALEDSINFO, INVALID };
   virtual ~ValidatorBase() {}
   virtual std::string name() const = 0;
 
@@ -50,9 +51,10 @@ class ValidatorBase {
       const std::deque<std::pair<PubKey, Peer>>& initDsComm,
       const uint64_t& index_num,
       std::deque<std::pair<PubKey, Peer>>& newDSComm) = 0;
-  virtual bool CheckTxBlocks(const std::vector<TxBlock>& txblocks,
-                             const std::deque<std::pair<PubKey, Peer>>& dsComm,
-                             const BlockLink& latestBlockLink) = 0;
+  virtual TxBlockValidationMsg CheckTxBlocks(
+      const std::vector<TxBlock>& txblocks,
+      const std::deque<std::pair<PubKey, Peer>>& dsComm,
+      const BlockLink& latestBlockLink) = 0;
 };
 
 class Validator : public ValidatorBase {
@@ -83,9 +85,10 @@ class Validator : public ValidatorBase {
       const uint64_t& index_num,
       std::deque<std::pair<PubKey, Peer>>& newDSComm) override;
   // TxBlocks must be in increasing order or it will fail
-  bool CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
-                     const std::deque<std::pair<PubKey, Peer>>& dsComm,
-                     const BlockLink& latestBlockLink) override;
+  TxBlockValidationMsg CheckTxBlocks(
+      const std::vector<TxBlock>& txBlocks,
+      const std::deque<std::pair<PubKey, Peer>>& dsComm,
+      const BlockLink& latestBlockLink) override;
   Mediator& m_mediator;
 };
 
