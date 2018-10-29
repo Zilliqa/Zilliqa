@@ -161,9 +161,7 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
         result = false;
         return;
       }
-#if 1  // clark
       m_mediator.m_ds->SaveCoinbase(block->GetB1(), block->GetB2(), -1);
-#endif
     }
   }
 }

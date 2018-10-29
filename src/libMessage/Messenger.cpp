@@ -3641,7 +3641,6 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
   return true;
 }
 
-#if 1  // clark
 bool Messenger::SetLookupGetStateDeltaFromSeed(vector<unsigned char>& dst,
                                                const unsigned int offset,
                                                const uint64_t blockNum,
@@ -3746,7 +3745,6 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(
 
   return true;
 }
-#endif
 
 bool Messenger::SetLookupGetTxBodyFromSeed(vector<unsigned char>& dst,
                                            const unsigned int offset,
