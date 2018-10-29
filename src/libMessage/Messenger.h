@@ -400,7 +400,6 @@ class Messenger {
                                           uint64_t& highBlockNum,
                                           PubKey& lookupPubKey,
                                           std::vector<TxBlock>& txBlocks);
-#if 1  // clark
   static bool SetLookupGetStateDeltaFromSeed(std::vector<unsigned char>& dst,
                                              const unsigned int offset,
                                              const uint64_t blockNum,
@@ -416,7 +415,6 @@ class Messenger {
       const std::vector<unsigned char>& src, const unsigned int offset,
       uint64_t& blockNum, PubKey& lookupPubKey,
       std::vector<unsigned char>& stateDelta);
-#endif
   static bool SetLookupGetTxBodyFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const std::vector<unsigned char>& txHash, const uint32_t listenPort);

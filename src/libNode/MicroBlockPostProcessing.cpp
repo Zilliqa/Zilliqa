@@ -277,15 +277,12 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
                                         m_microblock->GetB2(),
                                         m_microblock->GetHeader().GetShardId());
           m_mediator.m_ds->m_toSendTxnToLookup = true;
-#if 1  // clark
           vector<unsigned char> body;
           m_microblock->Serialize(body, 0);
           if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-                  m_mediator.m_currentEpochNum - 1,
-                  m_microblock->GetHeader().GetShardId(), body)) {
+                  m_microblock->GetBlockHash(), body)) {
             LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
           }
-#endif
         }
       }
       m_mediator.m_ds->RunConsensusOnFinalBlock();

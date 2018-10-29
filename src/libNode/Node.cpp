@@ -262,7 +262,6 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     return false;
   }
 
-#if 1  // clark
   /// Retrieve lacked Tx blocks from lookup nodes
   uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
   m_mediator.m_lookup->GetTxBlockFromLookupNodes(
@@ -299,7 +298,6 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                   "block state delta from lookup node!");
     }
   }
-#endif
 
   /// Removing incompleted DS for upgrading protocol
   /// Keeping incompleted DS for node recovery
@@ -313,20 +311,11 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
       m_mediator.m_ds->m_mapNodeReputation);
   bool res = false;
 
-#if 1  // clark
   m_mediator.m_consensusID =
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
-#else
-  /// Retrieve lacked Tx blocks, relative final-block state-delta from neighbor
-  /// nodes TBD
 
-  m_mediator.m_consensusID =
-      (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1) %
-      NUM_FINAL_BLOCK_PER_POW;
-#endif
-
-#if 1  // clark
   /// Save coin base for microblock and finalblock
+#if 0  // clark
   for (uint64_t blockNum =
            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
            (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() %
@@ -351,7 +340,6 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 #endif
-
   if (st_result && ds_result && tx_result) {
     if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates()) ||
         (LOOKUP_NODE_MODE && m_retriever->ValidateStates() &&

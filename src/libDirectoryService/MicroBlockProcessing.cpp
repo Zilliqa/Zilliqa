@@ -264,15 +264,12 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-#if 1  // clark
   vector<unsigned char> body;
   microBlock.Serialize(body, 0);
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-          m_mediator.m_currentEpochNum - 1, microBlock.GetHeader().GetShardId(),
-          body)) {
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetBlockHash(),
+                                                     body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
   }
-#endif
 
   auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
   microBlocksAtEpoch.emplace(microBlock);
@@ -548,15 +545,12 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         continue;
       }
 
-#if 1  // clark
       vector<unsigned char> body;
       microBlock.Serialize(body, 0);
       if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-              m_mediator.m_currentEpochNum - 1,
-              microBlock.GetHeader().GetShardId(), body)) {
+              microBlock.GetBlockHash(), body)) {
         LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
       }
-#endif
 
       microBlocksAtEpoch.emplace(microBlock);
 
