@@ -134,6 +134,47 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   return true;
 }
 
+bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowBlockNum,
+                                       const uint64_t hiBlockNum,
+                                       const uint32_t loShardId,
+                                       const uint32_t hiShardId,
+                                       list<MicroBlockSharedPtr>& blocks) {
+  LOG_MARKER();
+
+  leveldb::Iterator* it =
+      m_microBlockDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string bns = it->key().ToString();
+    string blockString = it->value().ToString();
+    if (blockString.empty()) {
+      LOG_GENERAL(WARNING, "Lost one block in the chain");
+      delete it;
+      return false;
+    }
+    MicroBlockSharedPtr block = MicroBlockSharedPtr(new MicroBlock(
+        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
+    if (block->GetHeader().GetBlockNum() < lowBlockNum ||
+        block->GetHeader().GetBlockNum() > hiBlockNum ||
+        block->GetHeader().GetShardId() < loShardId ||
+        block->GetHeader().GetShardId() > hiShardId) {
+      continue;
+    }
+
+    blocks.emplace_back(block);
+    LOG_GENERAL(INFO, "Retrievd MicroBlock Num:" << bns);
+  }
+
+  delete it;
+
+  if (blocks.empty()) {
+    LOG_GENERAL(INFO, "Disk has no MicroBlock matching the criteria");
+    return false;
+  }
+
+  return true;
+}
+
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
                               DSBlockSharedPtr& block) {
   string blockString = m_dsBlockchainDB->Lookup(blockNum);

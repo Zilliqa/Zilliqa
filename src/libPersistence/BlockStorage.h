@@ -134,6 +134,12 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetMicroBlock(const BlockHash& blockHash,
                      MicroBlockSharedPtr& microblock);
 
+  // /// Retrieves the range Micro blocks
+  bool GetRangeMicroBlocks(const uint64_t lowBlockNum,
+                           const uint64_t hiBlockNum, const uint32_t loShardId,
+                           const uint32_t hiShardId,
+                           std::list<MicroBlockSharedPtr>& blocks);
+
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
 
