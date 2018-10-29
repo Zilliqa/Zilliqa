@@ -79,7 +79,7 @@ do
         echo "Build with VC test - Suspend DS leader for 3 times (before VC block consensus)"
     ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-12>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-6>]"
         exit 1
     ;;
     esac
