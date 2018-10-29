@@ -44,7 +44,7 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
       m_fallbackState(fallbackState),
-      m_hash{stateRootHash},
+      m_hashset{stateRootHash},
       m_leaderConsensusId(leaderConsensusId),
       m_leaderNetworkInfo(leaderNetworkInfo),
       m_leaderPubKey(leaderPubKey),
@@ -84,7 +84,7 @@ unsigned char FallbackBlockHeader::GetFallbackState() const {
 }
 
 const StateHash& FallbackBlockHeader::GetStateRootHash() const {
-  return m_hash.m_stateRootHash;
+  return m_hashset.m_stateRootHash;
 }
 
 uint32_t FallbackBlockHeader::GetLeaderConsensusId() const {
@@ -108,20 +108,20 @@ const boost::multiprecision::uint256_t& FallbackBlockHeader::GetTimeStamp()
 
 bool FallbackBlockHeader::operator==(const FallbackBlockHeader& header) const {
   return std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
-                  m_hash, m_leaderConsensusId, m_shardId, m_timestamp) ==
+                  m_hashset, m_leaderConsensusId, m_shardId, m_timestamp) ==
          std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
-                  header.m_fallbackState, header.m_hash,
+                  header.m_fallbackState, header.m_hashset,
                   header.m_leaderConsensusId, header.m_shardId,
                   header.m_timestamp);
 }
 
 bool FallbackBlockHeader::operator<(const FallbackBlockHeader& header) const {
   return std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
-                  header.m_fallbackState, header.m_hash,
+                  header.m_fallbackState, header.m_hashset,
                   header.m_leaderConsensusId, header.m_shardId,
                   header.m_timestamp) >
          std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
-                  m_hash, m_leaderConsensusId, m_shardId, m_timestamp);
+                  m_hashset, m_leaderConsensusId, m_shardId, m_timestamp);
 }
 
 bool FallbackBlockHeader::operator>(const FallbackBlockHeader& header) const {

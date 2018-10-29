@@ -104,6 +104,12 @@ class Messenger {
   static bool GetFallbackBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                FallbackBlock& fallbackBlock);
+  static bool SetTransactionCoreInfo(std::vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     const TransactionCoreInfo& transaction);
+  static bool GetTransactionCoreInfo(const std::vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     TransactionCoreInfo& transaction);
   static bool SetTransaction(std::vector<unsigned char>& dst,
                              const unsigned int offset,
                              const Transaction& transaction);
@@ -255,8 +261,8 @@ class Messenger {
 
   static bool SetNodeForwardTransaction(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t blockNum, const MicroBlockHashSet& hashes,
-      const uint32_t& shardId, const std::vector<TransactionWithReceipt>& txns);
+      const uint64_t blockNum, const BlockHash& hash,
+      const std::vector<TransactionWithReceipt>& txns);
   static bool GetNodeForwardTransaction(const std::vector<unsigned char>& src,
                                         const unsigned int offset,
                                         ForwardedTxnEntry& entry);
@@ -477,13 +483,11 @@ class Messenger {
 
   static bool SetLookupGetMicroBlockFromLookup(
       std::vector<unsigned char>& dest, const unsigned int offset,
-      const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
-      uint32_t portNo);
+      const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
   static bool GetLookupGetMicroBlockFromLookup(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
-      uint32_t& portNo);
+      std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
 
   static bool SetLookupSetMicroBlockFromLookup(
       std::vector<unsigned char>& dst, const unsigned int offset,
