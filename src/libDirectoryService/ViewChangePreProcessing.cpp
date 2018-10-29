@@ -110,14 +110,17 @@ bool DirectoryService::ViewChangeValidator(
 
   // Create a temporary local structure of ds committee and change 0.0.0.0 to
   // node's ip
+  // Used range based loop due to clang tidy  enforcement
   vector<pair<PubKey, Peer>> cumlativeFaultyLeaders = m_cumulativeFaultyLeaders;
-  for (unsigned int i = 0; i < cumlativeFaultyLeaders.size(); ++i) {
-    if (cumlativeFaultyLeaders.at(i).first == m_mediator.m_selfKey.second &&
-        cumlativeFaultyLeaders.at(i).second == Peer()) {
-      cumlativeFaultyLeaders.at(i) =
-          make_pair(cumlativeFaultyLeaders.at(i).first, m_mediator.m_selfPeer);
+  unsigned int indexToLeader = 0;
+  for (const auto& node : cumlativeFaultyLeaders) {
+    ++indexToLeader;
+    if (node.second == Peer()) {
+      break;
     }
   }
+  cumlativeFaultyLeaders.at(indexToLeader) = make_pair(
+      cumlativeFaultyLeaders.at(indexToLeader).first, m_mediator.m_selfPeer);
 
   // Verify faulty leaders
   if (m_pendingVCBlock->GetHeader().GetFaultyLeaders() !=
