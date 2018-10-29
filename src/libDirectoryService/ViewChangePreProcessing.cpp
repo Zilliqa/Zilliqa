@@ -110,7 +110,7 @@ bool DirectoryService::ViewChangeValidator(
 
   // Create a temporary local structure of ds committee and change 0.0.0.0 to
   // node's ip
-  vector<pair<PubKey, Peer>> cumlativeFaultyLeaders = m_cumlativeFaultyLeaders;
+  vector<pair<PubKey, Peer>> cumlativeFaultyLeaders = m_cumulativeFaultyLeaders;
   for (unsigned int i = 0; i < cumlativeFaultyLeaders.size(); ++i) {
     if (cumlativeFaultyLeaders.at(i).first == m_mediator.m_selfKey.second &&
         cumlativeFaultyLeaders.at(i).second == Peer()) {
@@ -244,10 +244,10 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   m_viewChangeCounter += 1;
   if (m_viewChangeCounter == 1) {
-    m_cumlativeFaultyLeaders.emplace_back(
+    m_cumulativeFaultyLeaders.emplace_back(
         m_mediator.m_DSCommittee->at(m_consensusLeaderID));
   } else {
-    m_cumlativeFaultyLeaders.emplace_back(
+    m_cumulativeFaultyLeaders.emplace_back(
         m_mediator.m_DSCommittee->at(m_candidateLeaderIndex));
   }
 
@@ -365,7 +365,7 @@ bool DirectoryService::ComputeNewCandidateLeader(
             m_mediator.m_currentEpochNum, m_viewChangestate,
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
-            m_viewChangeCounter, m_cumlativeFaultyLeaders, get_time_as_int(),
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, get_time_as_int(),
             committeeHash),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());

@@ -54,7 +54,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
 
   m_candidateLeaderIndex = 0;
-  m_cumlativeFaultyLeaders.clear();
+  m_cumulativeFaultyLeaders.clear();
 
   unsigned int index = 0;
   unsigned int count = 0;
