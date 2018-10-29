@@ -39,6 +39,11 @@ unsigned int ReadFromConstantsFile(std::string propertyName) {
   return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
+unsigned int ReadFromTestsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.tests." + propertyName);
+}
+
 std::string ReadFromOptionsFile(std::string propertyName) {
   auto pt = PTree::GetInstance();
   return pt.get<std::string>("node.options." + propertyName);
@@ -157,8 +162,6 @@ const unsigned int FALLBACK_CHECK_INTERVAL{
     ReadFromConstantsFile("FALLBACK_CHECK_INTERVAL")};
 const unsigned int FALLBACK_EXTRA_TIME{
     ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
-const unsigned int FALLBACK_TEST_EPOCH{
-    ReadFromConstantsFile("FALLBACK_TEST_EPOCH")};
 const unsigned int MAX_ROUNDS_IN_BSTATE{
     ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
 const unsigned int MAX_ROUNDS_IN_CSTATE{
@@ -197,6 +200,9 @@ const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("COMMIT_WINDOW_IN_SECONDS")};
 const unsigned int NUM_CONSENSUS_SUBSETS{
     ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
+
+const unsigned int FALLBACK_TEST_EPOCH{
+    ReadFromTestsFile("FALLBACK_TEST_EPOCH")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};

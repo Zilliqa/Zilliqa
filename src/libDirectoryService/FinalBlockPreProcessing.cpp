@@ -1230,12 +1230,15 @@ void DirectoryService::RunConsensusOnFinalBlock(
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    if ((options != SKIP_DSMICROBLOCK &&
-         CheckState(PROCESS_FINALBLOCKCONSENSUS)) ||
-        m_state == FINALBLOCK_CONSENSUS_PREP) {
+    if (!((options == SKIP_DSMICROBLOCK &&
+           CheckState(PROCESS_FINALBLOCKCONSENSUS)) ||
+          m_state == VIEWCHANGE_CONSENSUS ||
+          m_state == MICROBLOCK_SUBMISSION)) {
+      LOG_GENERAL(WARNING,
+                  "DirectoryService::RunConsensusOnFinalBlock "
+                  "is not allowed in current state "
+                      << m_state);
       return;
-    } else {
-      LOG_GENERAL(INFO, "The above CheckState failed as expected, don't panic");
     }
 
     LOG_MARKER();
