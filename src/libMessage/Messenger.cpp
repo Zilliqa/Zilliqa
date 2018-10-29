@@ -346,29 +346,60 @@ void ProtobufToTxSharingAssignments(
   }
 }
 
+void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
+                                   ProtoTransactionCoreInfo& protoTxnCoreInfo) {
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      txnCoreInfo.version, *protoTxnCoreInfo.mutable_version());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      txnCoreInfo.nonce, *protoTxnCoreInfo.mutable_nonce());
+  protoTxnCoreInfo.set_toaddr(txnCoreInfo.toAddr.data(),
+                              txnCoreInfo.toAddr.size);
+  SerializableToProtobufByteArray(txnCoreInfo.senderPubKey,
+                                  *protoTxnCoreInfo.mutable_senderpubkey());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      txnCoreInfo.amount, *protoTxnCoreInfo.mutable_amount());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      txnCoreInfo.gasPrice, *protoTxnCoreInfo.mutable_gasprice());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      txnCoreInfo.gasLimit, *protoTxnCoreInfo.mutable_gaslimit());
+  protoTxnCoreInfo.set_code(txnCoreInfo.code.data(), txnCoreInfo.code.size());
+  protoTxnCoreInfo.set_data(txnCoreInfo.data.data(), txnCoreInfo.data.size());
+}
+
+void ProtobufToTransactionCoreInfo(
+    const ProtoTransactionCoreInfo& protoTxnCoreInfo,
+    TransactionCoreInfo& txnCoreInfo) {
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoTxnCoreInfo.version(),
+                                                     txnCoreInfo.version);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoTxnCoreInfo.nonce(),
+                                                     txnCoreInfo.nonce);
+  copy(protoTxnCoreInfo.toaddr().begin(),
+       protoTxnCoreInfo.toaddr().begin() +
+           min((unsigned int)protoTxnCoreInfo.toaddr().size(),
+               (unsigned int)txnCoreInfo.toAddr.size),
+       txnCoreInfo.toAddr.asArray().begin());
+  ProtobufByteArrayToSerializable(protoTxnCoreInfo.senderpubkey(),
+                                  txnCoreInfo.senderPubKey);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoTxnCoreInfo.amount(),
+                                                     txnCoreInfo.amount);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTxnCoreInfo.gasprice(), txnCoreInfo.gasPrice);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoTxnCoreInfo.gaslimit(), txnCoreInfo.gasLimit);
+  txnCoreInfo.code.resize(protoTxnCoreInfo.code().size());
+  copy(protoTxnCoreInfo.code().begin(), protoTxnCoreInfo.code().end(),
+       txnCoreInfo.code.begin());
+  txnCoreInfo.data.resize(protoTxnCoreInfo.data().size());
+  copy(protoTxnCoreInfo.data().begin(), protoTxnCoreInfo.data().end(),
+       txnCoreInfo.data.begin());
+}
+
 void TransactionToProtobuf(const Transaction& transaction,
                            ProtoTransaction& protoTransaction) {
   protoTransaction.set_tranid(transaction.GetTranID().data(),
                               transaction.GetTranID().size);
-
-  ProtoTransaction::CoreTransactionInfo* info = protoTransaction.mutable_info();
-
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetVersion(),
-                                                     *info->mutable_version());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetNonce(),
-                                                     *info->mutable_nonce());
-  info->set_toaddr(transaction.GetToAddr().data(),
-                   transaction.GetToAddr().size);
-  SerializableToProtobufByteArray(transaction.GetSenderPubKey(),
-                                  *info->mutable_senderpubkey());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetAmount(),
-                                                     *info->mutable_amount());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetGasPrice(),
-                                                     *info->mutable_gasprice());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(transaction.GetGasLimit(),
-                                                     *info->mutable_gaslimit());
-  info->set_code(transaction.GetCode().data(), transaction.GetCode().size());
-  info->set_data(transaction.GetData().data(), transaction.GetData().size());
+  TransactionCoreInfoToProtobuf(transaction.GetCoreInfo(),
+                                *protoTransaction.mutable_info());
 
   SerializableToProtobufByteArray(transaction.GetSignature(),
                                   *protoTransaction.mutable_signature());
@@ -377,15 +408,7 @@ void TransactionToProtobuf(const Transaction& transaction,
 void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
                            Transaction& transaction) {
   TxnHash tranID;
-  uint256_t version;
-  uint256_t nonce;
-  Address toAddr;
-  PubKey senderPubKey;
-  uint256_t amount;
-  uint256_t gasPrice;
-  uint256_t gasLimit;
-  vector<unsigned char> code;
-  vector<unsigned char> data;
+  TransactionCoreInfo txnCoreInfo;
   Signature signature;
 
   copy(protoTransaction.tranid().begin(),
@@ -393,36 +416,17 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
            min((unsigned int)protoTransaction.tranid().size(),
                (unsigned int)tranID.size),
        tranID.asArray().begin());
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTransaction.info().version(), version);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTransaction.info().nonce(), nonce);
-  copy(protoTransaction.info().toaddr().begin(),
-       protoTransaction.info().toaddr().begin() +
-           min((unsigned int)protoTransaction.info().toaddr().size(),
-               (unsigned int)toAddr.size),
-       toAddr.asArray().begin());
-  ProtobufByteArrayToSerializable(protoTransaction.info().senderpubkey(),
-                                  senderPubKey);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTransaction.info().amount(), amount);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTransaction.info().gasprice(), gasPrice);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTransaction.info().gaslimit(), gasLimit);
-  code.resize(protoTransaction.info().code().size());
-  copy(protoTransaction.info().code().begin(),
-       protoTransaction.info().code().end(), code.begin());
-  data.resize(protoTransaction.info().data().size());
-  copy(protoTransaction.info().data().begin(),
-       protoTransaction.info().data().end(), data.begin());
+
+  ProtobufToTransactionCoreInfo(protoTransaction.info(), txnCoreInfo);
+
   ProtobufByteArrayToSerializable(protoTransaction.signature(), signature);
 
-  // Verify transaction ID
-  Transaction transTmp(tranID, version, nonce, toAddr, senderPubKey, amount,
-                       gasPrice, gasLimit, code, data, signature);
   vector<unsigned char> txnData;
-  transTmp.SerializeCoreFields(txnData, 0);
+  if (!SerializeToArray(protoTransaction.info(), txnData, 0)) {
+    LOG_GENERAL(WARNING, "Serialize Proto transaction core info failed.");
+    return;
+  }
+
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
   const vector<unsigned char>& hash = sha2.Finalize();
@@ -436,14 +440,16 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   }
 
   // Verify signature
-
-  if (!Schnorr::GetInstance().Verify(txnData, signature, senderPubKey)) {
+  if (!Schnorr::GetInstance().Verify(txnData, signature,
+                                     txnCoreInfo.senderPubKey)) {
     LOG_GENERAL(WARNING, "Signature verification failed.");
     return;
   }
 
-  transaction = Transaction(tranID, version, nonce, toAddr, senderPubKey,
-                            amount, gasPrice, gasLimit, code, data, signature);
+  transaction = Transaction(
+      tranID, txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
+      txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
+      txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
 }
 
 void TransactionOffsetToProtobuf(const std::vector<uint32_t>& txnOffsets,
@@ -1839,6 +1845,37 @@ bool Messenger::GetFallbackBlock(const vector<unsigned char>& src,
   }
 
   ProtobufToFallbackBlock(result, fallbackBlock);
+
+  return true;
+}
+
+bool Messenger::SetTransactionCoreInfo(std::vector<unsigned char>& dst,
+                                       const unsigned int offset,
+                                       const TransactionCoreInfo& transaction) {
+  ProtoTransactionCoreInfo result;
+
+  TransactionCoreInfoToProtobuf(transaction, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction core info initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetTransactionCoreInfo(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       TransactionCoreInfo& transaction) {
+  ProtoTransactionCoreInfo result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Transaction core info initialization failed.");
+    return false;
+  }
+
+  ProtobufToTransactionCoreInfo(result, transaction);
 
   return true;
 }
