@@ -332,7 +332,8 @@ class DirectoryService : public Executable, public Broadcastable {
                            const std::vector<unsigned char>& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
                            std::vector<unsigned char>& messageToCosign);
-
+  bool CheckUseVCBlockInsteadOfDSBlock(const BlockLink& bl,
+                                       VCBlockSharedPtr& prevVCBlockptr);
   void StoreFinalBlockToDisk();
 
   bool OnNodeMissingMicroBlocks(const std::vector<unsigned char>& errorMsg,
