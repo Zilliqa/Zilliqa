@@ -434,6 +434,14 @@ bool DirectoryService::ProcessFinalBlockConsensus(
                 "Ignoring final block consensus message");
       return false;
     }
+    // Only buffer the Final block consensus message if in MICROBLOCK_SUBMISSION
+    // or VIEWCHANGE_CONSENSUS state
+    if (!((m_state == MICROBLOCK_SUBMISSION) ||
+          (m_state == VIEWCHANGE_CONSENSUS))) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Ignoring final block consensus message");
+      return false;
+    }
     {
       lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
       m_finalBlockConsensusBuffer[consensus_id].push_back(
