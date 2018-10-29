@@ -368,6 +368,11 @@ ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
   const TxBlock& latestTxBlock = txBlocks.back();
 
   if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
+    if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
+      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale ");
+      return TxBlockValidationMsg::INVALID;
+    }
+
     LOG_GENERAL(WARNING,
                 "The latest DS index does not match that of the latest tx "
                 "block ds num, try fetching Tx and Dir Blocks again "
@@ -384,7 +389,7 @@ ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
     return TxBlockValidationMsg::VALID;
   }
 
-  const BlockHash& prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
+  BlockHash prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
   unsigned int sIndex = txBlocks.size() - 2;
 
   for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
@@ -395,6 +400,7 @@ ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
                       << txBlocks.at(sIndex).GetHeader().GetBlockNum());
       return TxBlockValidationMsg::INVALID;
     }
+    prevBlockHash = txBlocks.at(sIndex).GetHeader().GetPrevHash();
     sIndex--;
   }
 
