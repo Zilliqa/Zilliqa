@@ -335,6 +335,7 @@ bool DirectoryService::VerifyPoWOrdering(
             return item.second == toFind;
           });
 
+      std::array<unsigned char, 32> result;
       if (it == sortedPoWSolns.cend()) {
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());
@@ -346,6 +347,7 @@ bool DirectoryService::VerifyPoWOrdering(
         if (itLeaderMap != allPoWsFromTheLeader.end()) {
           LOG_GENERAL(INFO,
                       "TODO: Verify the PoW submission for this unknown node.");
+          result = itLeaderMap->second.result;
         } else {
           LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
           ret = false;
@@ -354,6 +356,8 @@ bool DirectoryService::VerifyPoWOrdering(
         if (!ret) {
           break;
         }
+      } else {
+        result = it->first;
       }
 
       auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
@@ -364,8 +368,7 @@ bool DirectoryService::VerifyPoWOrdering(
         break;
       }
 
-      copy(it->first.begin(), it->first.end(),
-           hashVec.begin() + BLOCK_HASH_SIZE);
+      copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
       const vector<unsigned char>& sortHashVec =
           HashUtils::BytesToHash(hashVec);
       if (DEBUG_LEVEL >= 5) {
