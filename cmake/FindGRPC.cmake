@@ -2,7 +2,10 @@
 #
 
 # Find the cpp plugin.
-find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+find_program(GRPC_CPP_PLUGIN
+  NAMES grpc_cpp_plugin
+  HINTS "/tmp/grpc/bins/opt"
+)
 
 # Find the gRPC libraries.
 set(GRPC_LIB_PATH "/tmp/grpc/libs/opt/")
