@@ -72,13 +72,14 @@ To run Zilliqa, we recommend the following minimum system requirements:
     sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
         libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
-        libprotobuf-dev protobuf-compiler libcurl4-openssl-dev
+        libprotobuf-dev protobuf-compiler libcurl4-openssl-dev libtool autoconf
     ```
 
 * macOS (experimental):
 
     ```bash
-    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
+    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf \
+        libtool autoconf
     ```
 
 ## Running Zilliqa locally
