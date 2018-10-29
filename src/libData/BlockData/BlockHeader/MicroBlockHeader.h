@@ -42,7 +42,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint256_t m_timestamp;
   // TxnHash m_txRootHash; // Tx merkle tree root hash
   // StateHash m_stateDeltaHash; // State Delta merkle tree root hash
-  MicroBlockHashSet m_hash;
+  MicroBlockHashSet m_hashset;
   uint32_t m_numTxs;     // Total number of txs included in the block
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
@@ -95,7 +95,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   const TxnHash& GetTxRootHash() const;
   const StateHash& GetStateDeltaHash() const;
   const TxnHash& GetTranReceiptHash() const;
-  const MicroBlockHashSet& GetHash() const;
+  const MicroBlockHashSet& GetHashes() const;
 
   // Operators
   bool operator==(const MicroBlockHeader& header) const;

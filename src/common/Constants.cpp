@@ -214,6 +214,7 @@ const bool BROADCAST_TREEBASED_CLUSTER_MODE{
     ReadFromOptionsFile("BROADCAST_TREEBASED_CLUSTER_MODE") == "true"};
 const bool GET_INITIAL_DS_FROM_REPO{
     ReadFromOptionsFile("GET_INITIAL_DS_FROM_REPO") == "true"};
+const std::string UPGRADE_HOST{ReadFromOptionsFile("UPGRADE_HOST")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
