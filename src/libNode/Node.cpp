@@ -120,6 +120,8 @@ bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
           ++m_mediator.m_ds->m_consensusMyID;
         }
 
+        m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
+
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
           m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
@@ -315,31 +317,26 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for microblock and finalblock
-#if 0  // clark
-  for (uint64_t blockNum =
-           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
-           (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() %
-            NUM_FINAL_BLOCK_PER_POW);
-       blockNum <=
-       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-       ++blockNum) {
-    for (uint32_t shardId = 0; shardId < m_mediator.m_ds->m_shards.size();
-         ++shardId) {
-      shared_ptr<MicroBlock> microBlock;
-
-      if (!BlockStorage::GetBlockStorage().GetMicroBlock(blockNum, shardId,
-                                                         microBlock)) {
-        continue;
-      }
-
-      LOG_GENERAL(INFO, "Retrieve microblock with blockNum: "
-                            << blockNum << ", shardId: " << shardId
-                            << " from persistence, and update coin base");
+  std::list<MicroBlockSharedPtr> microBlocks;
+  if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
+              (m_mediator.m_txBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetBlockNum() %
+               NUM_FINAL_BLOCK_PER_POW),
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 0,
+          m_mediator.m_ds->m_shards.size(), microBlocks)) {
+    for (const auto& microBlock : microBlocks) {
+      LOG_GENERAL(INFO,
+                  "Retrieve microblock with blockNum: "
+                      << microBlock->GetHeader().GetBlockNum()
+                      << ", shardId: " << microBlock->GetHeader().GetShardId()
+                      << " from persistence, and update coin base");
       m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
                                     microBlock->GetHeader().GetShardId());
     }
   }
-#endif
+
   if (st_result && ds_result && tx_result) {
     if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates()) ||
         (LOOKUP_NODE_MODE && m_retriever->ValidateStates() &&
