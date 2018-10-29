@@ -134,7 +134,8 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // View Change
   std::atomic<uint32_t> m_viewChangeCounter;
-  Peer m_candidateLeader;
+  std::atomic<uint32_t> m_candidateLeaderIndex;
+  std::vector<std::pair<PubKey, Peer>> m_cumlativeFaultyLeaders;
   std::shared_ptr<VCBlock> m_pendingVCBlock;
   std::mutex m_mutexPendingVCBlock;
   std::condition_variable cv_ViewChangeConsensusObj;
