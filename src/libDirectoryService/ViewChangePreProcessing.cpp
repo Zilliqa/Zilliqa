@@ -115,12 +115,13 @@ bool DirectoryService::ViewChangeValidator(
   unsigned int indexToLeader = 0;
   for (const auto& node : cumlativeFaultyLeaders) {
     if (node.second == Peer()) {
+      cumlativeFaultyLeaders.at(indexToLeader) =
+          make_pair(cumlativeFaultyLeaders.at(indexToLeader).first,
+                    m_mediator.m_selfPeer);
       break;
     }
     ++indexToLeader;
   }
-  cumlativeFaultyLeaders.at(indexToLeader) = make_pair(
-      cumlativeFaultyLeaders.at(indexToLeader).first, m_mediator.m_selfPeer);
 
   // Verify faulty leaders
   if (m_pendingVCBlock->GetHeader().GetFaultyLeaders() !=
