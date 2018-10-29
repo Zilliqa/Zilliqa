@@ -441,7 +441,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Ignoring final block consensus message");
       return false;
-    }    
+    }
     {
       lock_guard<mutex> h(m_mutexFinalBlockConsensusBuffer);
       m_finalBlockConsensusBuffer[consensus_id].push_back(
