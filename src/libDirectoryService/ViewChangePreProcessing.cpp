@@ -114,10 +114,10 @@ bool DirectoryService::ViewChangeValidator(
   vector<pair<PubKey, Peer>> cumlativeFaultyLeaders = m_cumulativeFaultyLeaders;
   unsigned int indexToLeader = 0;
   for (const auto& node : cumlativeFaultyLeaders) {
-    ++indexToLeader;
     if (node.second == Peer()) {
       break;
     }
+    ++indexToLeader;
   }
   cumlativeFaultyLeaders.at(indexToLeader) = make_pair(
       cumlativeFaultyLeaders.at(indexToLeader).first, m_mediator.m_selfPeer);
