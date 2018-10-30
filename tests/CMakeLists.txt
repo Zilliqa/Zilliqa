@@ -1,4 +1,4 @@
-#add_subdirectory (Consensus)
+add_subdirectory (Consensus)
 #add_subdirectory (Contracts)
 add_subdirectory (Crypto)
 add_subdirectory (Data)
