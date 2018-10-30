@@ -88,8 +88,6 @@ bool Node::ComposeMicroBlock() {
   uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
   const auto& lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-  uint64_t dsBlockNum = lastDSBlock.GetHeader().GetBlockNum();
-  BlockHash dsBlockHash = lastDSBlock.GetHeader().GetMyHash();
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
   CommitteeHash committeeHash;
@@ -138,10 +136,12 @@ bool Node::ComposeMicroBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
-      MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards,
-                       prevHash, blockNum, timestamp,
-                       {txRootHash, stateDeltaHash, txReceiptHash}, numTxs,
-                       minerPubKey, dsBlockNum, dsBlockHash, committeeHash),
+      MicroBlockHeader(
+          type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
+          blockNum, timestamp, {txRootHash, stateDeltaHash, txReceiptHash},
+          numTxs, minerPubKey,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          committeeHash),
       tranHashes, CoSignatures()));
   m_microblock->SetBlockHash(m_microblock->GetHeader().GetMyHash());
 

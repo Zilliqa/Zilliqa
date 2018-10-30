@@ -47,7 +47,6 @@ class MicroBlockHeader : public BlockHeaderBase {
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
       m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
-  BlockHash m_dsBlockHash;  // DS Block hash
 
  public:
   /// Default constructor.
@@ -66,7 +65,6 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const boost::multiprecision::uint256_t& timestamp,
                    const MicroBlockHashSet& hashset, const uint32_t numTxs,
                    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                   const BlockHash& dsBlockHash,
                    const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
@@ -89,7 +87,6 @@ class MicroBlockHeader : public BlockHeaderBase {
   const uint32_t& GetNumTxs() const;
   const PubKey& GetMinerPubKey() const;
   const uint64_t& GetDSBlockNum() const;
-  const BlockHash& GetDSBlockHash() const;
   const TxnHash& GetTxRootHash() const;
   const StateHash& GetStateDeltaHash() const;
   const TxnHash& GetTranReceiptHash() const;

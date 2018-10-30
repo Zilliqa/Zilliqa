@@ -178,10 +178,9 @@ message ProtoMicroBlock
         required uint32 numtxs         = 11;
         required ByteArray minerpubkey = 12;
         required uint64 dsblocknum     = 13;
-        required bytes dsblockhash     = 14;
-        required bytes statedeltahash  = 15;
-        required bytes tranreceipthash = 16;
-        required bytes committeehash   = 17;
+        required bytes statedeltahash  = 14;
+        required bytes tranreceipthash = 15;
+        required bytes committeehash   = 16;
     }
     required MicroBlockHeader header   = 1;
     repeated bytes tranhashes          = 2;
