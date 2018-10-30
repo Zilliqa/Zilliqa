@@ -164,6 +164,8 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
   // Verify the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
