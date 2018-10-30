@@ -40,13 +40,13 @@ uint8_t dist1to99();
 uint16_t distUint16();
 uint32_t distUint32();
 
-PubKey GenerateRandomPubKey();
-Peer GenerateRandomPeer();
-DSBlockHeader GenerateRandomDSBlockHeader();
-MicroBlockHeader GenerateRandomMicroBlockHeader();
-TxBlockHeader GenerateRandomTxBlockHeader();
-VCBlockHeader GenerateRandomVCBlockHeader();
-FallbackBlockHeader GenerateRandomFallbackBlockHeader();
-CoSignatures GenerateRandomCoSignatures();
+PubKey generateRandomPubKey();
+Peer generateRandomPeer();
+DSBlockHeader generateRandomDSBlockHeader();
+MicroBlockHeader generateRandomMicroBlockHeader();
+TxBlockHeader generateRandomTxBlockHeader();
+VCBlockHeader generateRandomVCBlockHeader();
+FallbackBlockHeader generateRandomFallbackBlockHeader();
+CoSignatures generateRandomCoSignatures();
 
 #endif /* TESTS_TESTLIB_TESTFUNCTIONSLIB_H_ */
