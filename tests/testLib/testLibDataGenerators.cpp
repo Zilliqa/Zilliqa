@@ -22,11 +22,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-template <typename T>
-T randomIntInRng(T n, T m) {
-  return std::uniform_int_distribution<T>{n, m}(rng);
-}
-
 uint8_t distUint8() {
   return randomIntInRng<uint8_t>(std::numeric_limits<uint8_t>::min(),
                                  std::numeric_limits<uint8_t>::max());
