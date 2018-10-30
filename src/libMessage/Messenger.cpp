@@ -848,6 +848,8 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
                                      txBlockHeader.GetStateRootHash().size);
   protoHeaderHash->set_statedeltahash(txBlockHeader.GetStateDeltaHash().data(),
                                       txBlockHeader.GetStateDeltaHash().size);
+  protoHeaderHash->set_mbinfohash(txBlockHeader.GetMbInfoHash().data(),
+                                  txBlockHeader.GetMbInfoHash().size);
 
   protoTxBlockHeader.set_numtxs(txBlockHeader.GetNumTxs());
   protoTxBlockHeader.set_nummicroblockhashes(
@@ -935,6 +937,11 @@ void ProtobufToTxBlockHeader(
            min((unsigned int)protoTxBlockHeaderHash.statedeltahash().size(),
                (unsigned int)hash.m_stateDeltaHash.size),
        hash.m_stateDeltaHash.asArray().begin());
+  copy(protoTxBlockHeaderHash.mbinfohash().begin(),
+       protoTxBlockHeaderHash.mbinfohash().begin() +
+           min((unsigned int)protoTxBlockHeaderHash.mbinfohash().size(),
+               (unsigned int)hash.m_mbInfoHash.size),
+       hash.m_mbInfoHash.asArray().begin());
 
   ProtobufByteArrayToSerializable(protoTxBlockHeader.minerpubkey(),
                                   minerPubKey);
@@ -953,9 +960,9 @@ void ProtobufToTxBlockHeader(
   txBlockHeader = TxBlockHeader(
       protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
       gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), timestamp,
-      hash.m_mbRootHash, hash.m_stateRootHash, hash.m_stateDeltaHash,
-      protoTxBlockHeader.numtxs(), protoTxBlockHeader.nummicroblockhashes(),
-      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHash, committeeHash);
+      hash, protoTxBlockHeader.numtxs(),
+      protoTxBlockHeader.nummicroblockhashes(), minerPubKey,
+      protoTxBlockHeader.dsblocknum(), dsBlockHash, committeeHash);
 }
 
 void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {

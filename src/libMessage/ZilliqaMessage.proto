@@ -195,6 +195,7 @@ message ProtoTxBlock
         required bytes mbroothash               = 1;
         required bytes stateroothash            = 2;
         required bytes statedeltahash           = 3;
+        required bytes mbinfohash               = 4;
     }
     message TxBlockHeader
     {
