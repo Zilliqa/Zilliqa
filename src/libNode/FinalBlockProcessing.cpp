@@ -741,6 +741,16 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   if (!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum())) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MicroBlock Root Hash verification failed");
+    return false;
+  }
+
+  if (m_mediator.m_ds->CalculateMBInfoHash(txBlock.GetShardIds(),
+                                           txBlock.GetIsMicroBlockEmpty()) !=
+      txBlock.GetHeader().GetMbInfoHash()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MbInfo verification failed");
     return false;
   }
 

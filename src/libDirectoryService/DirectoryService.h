@@ -292,7 +292,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockHashRoot();
-  bool CheckIsMicroBlockEmpty();
+  bool CheckExtraMicroBlockInfo();
   bool CheckStateRoot();
   bool CheckStateDeltaHash();
   void LoadUnavailableMicroBlocks();
@@ -540,6 +540,9 @@ class DirectoryService : public Executable, public Broadcastable {
   /// PoW (DS block) consensus functions
   void RunConsensusOnDSBlock(bool isRejoin = false);
   bool IsDSBlockVCState(unsigned char vcBlockState);
+
+  MBInfoHash CalculateMBInfoHash(const std::vector<uint32_t>& shardIds,
+                                 const std::vector<bool>& isMicroBlockEmpty);
 
   // Sort the PoW submissions. Put to public static function, so it can be
   // covered by auto test.

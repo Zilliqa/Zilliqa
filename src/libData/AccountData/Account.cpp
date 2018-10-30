@@ -325,7 +325,7 @@ unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
   // LOG_GENERAL(INFO, "Balance Delta: " << balanceDelta);
   // Sign
   dst.push_back(balanceDelta > 0 ? NumberSign::POSITIVE : NumberSign::NEGATIVE);
-  curOffset += 1;
+  curOffset += sizeof(unsigned char);
   uint256_t balanceDeltaNum(abs(balanceDelta));
   // Number
   SetNumber<uint256_t>(dst, curOffset, balanceDeltaNum, UINT256_SIZE);

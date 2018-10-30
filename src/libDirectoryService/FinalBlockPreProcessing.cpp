@@ -97,6 +97,29 @@ void DirectoryService::ExtractDataFromMicroblocks(
                 << microblockTrieRoot.hex());
 }
 
+MBInfoHash DirectoryService::CalculateMBInfoHash(
+    const std::vector<uint32_t>& shardIds,
+    const std::vector<bool>& isMicroBlockEmpty) {
+  vector<unsigned char> mbInfoVec;
+  unsigned int offset = 0;
+  for (const auto& id : shardIds) {
+    Serializable::SetNumber<uint32_t>(mbInfoVec, offset, id, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+  }
+  for (const auto& isEmpty : isMicroBlockEmpty) {
+    mbInfoVec.push_back(isEmpty ? BoolSign::ISTRUE : BoolSign::ISFALSE);
+    offset += sizeof(unsigned char);
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(mbInfoVec);
+  vector<unsigned char> hashVec = sha2.Finalize();
+  MBInfoHash mbInfoHash;
+  copy(hashVec.begin(), hashVec.end(), mbInfoHash.asArray().begin());
+
+  return mbInfoHash;
+}
+
 bool DirectoryService::ComposeFinalBlock() {
   LOG_MARKER();
 
@@ -123,6 +146,8 @@ bool DirectoryService::ComposeFinalBlock() {
   ExtractDataFromMicroblocks(microblockTrieRoot, microBlockHashes, shardIds,
                              allGasLimit, allGasUsed, allRewards, numTxs,
                              isMicroBlockEmpty, numMicroBlocks);
+
+  MBInfoHash mbInfoHash = CalculateMBInfoHash(shardIds, isMicroBlockEmpty);
 
   BlockHash prevHash;
   uint256_t timestamp = get_time_as_int();
@@ -168,10 +193,10 @@ bool DirectoryService::ComposeFinalBlock() {
 
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(type, version, allGasLimit, allGasUsed, allRewards,
-                    prevHash, blockNum, timestamp, microblockTrieRoot,
-                    stateRoot, stateDeltaHash, numTxs, numMicroBlocks,
-                    m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
-                    committeeHash),
+                    prevHash, blockNum, timestamp,
+                    {microblockTrieRoot, stateRoot, stateDeltaHash, mbInfoHash},
+                    numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
+                    lastDSBlockNum, dsBlockHeader, committeeHash),
       isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
@@ -737,7 +762,7 @@ bool DirectoryService::CheckMicroBlockHashRoot() {
   return true;
 }
 
-bool DirectoryService::CheckIsMicroBlockEmpty() {
+bool DirectoryService::CheckExtraMicroBlockInfo() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckIsMicroBlockEmpty not expected to "
@@ -752,6 +777,9 @@ bool DirectoryService::CheckIsMicroBlockEmpty() {
   LOG_GENERAL(INFO, "Total num of microblocks to check isEmpty: "
                         << m_finalBlock->GetIsMicroBlockEmpty().size())
 
+  vector<uint32_t> shardIds;
+  vector<bool> isMicroBlockEmpty;
+
   for (unsigned int i = 0; i < microBlockHashes.size(); i++) {
     // LOG_GENERAL(INFO,
     //             "Microblock" << i
@@ -763,15 +791,12 @@ bool DirectoryService::CheckIsMicroBlockEmpty() {
     for (auto& microBlock : microBlocks) {
       if (microBlock.GetBlockHash() == microBlockHashes[i]) {
         if (m_finalBlock->GetIsMicroBlockEmpty()[i] !=
-            (microBlock.GetHeader().GetNumTxs() == 0))
-
-        {
+            (microBlock.GetHeader().GetNumTxs() == 0)) {
           LOG_GENERAL(
               WARNING,
-              "IsMicroBlockEmpty in proposed final "
-              "block is incorrect"
+              "IsMicroBlockEmpty in proposed final block is incorrect"
                   << endl
-                  << "Hashes: " << microBlockHashes[i] << endl
+                  << "MB Hash: " << microBlockHashes[i] << endl
                   << "Expected: " << (microBlock.GetHeader().GetNumTxs() == 0)
                   << " Received: " << m_finalBlock->GetIsMicroBlockEmpty()[i]);
 
@@ -779,13 +804,26 @@ bool DirectoryService::CheckIsMicroBlockEmpty() {
               ConsensusCommon::FINALBLOCK_MICROBLOCK_EMPTY_ERROR);
 
           return false;
+        } else if (m_finalBlock->GetShardIds()[i] !=
+                   microBlock.GetHeader().GetShardId()) {
+          LOG_GENERAL(
+              WARNING,
+              "ShardIds in proposed final block is incorrect"
+                  << endl
+                  << "MB Hash: " << microBlockHashes[i] << endl
+                  << "Expected: " << (microBlock.GetHeader().GetShardId() == 0)
+                  << " Received: " << m_finalBlock->GetShardIds()[i]);
+          return false;
         }
+        shardIds.emplace_back(microBlock.GetHeader().GetShardId());
+        isMicroBlockEmpty.emplace_back(microBlock.GetHeader().GetNumTxs() == 0);
         break;
       }
     }
   }
 
-  return true;
+  return CalculateMBInfoHash(shardIds, isMicroBlockEmpty) ==
+         m_finalBlock->GetHeader().GetMbInfoHash();
 }
 
 // Check state root
@@ -906,7 +944,7 @@ bool DirectoryService::CheckFinalBlockValidity(
       !CheckFinalBlockVersion() || !CheckFinalBlockNumber() ||
       !CheckPreviousFinalBlockHash() || !CheckFinalBlockTimestamp() ||
       !CheckMicroBlocks(errorMsg) || !CheckLegitimacyOfMicroBlocks() ||
-      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() ||
+      !CheckMicroBlockHashRoot() || !CheckExtraMicroBlockInfo() ||
       !CheckStateRoot() || !CheckStateDeltaHash()) {
     Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
                                       m_mediator.m_selfPeer.m_listenPortHost,
