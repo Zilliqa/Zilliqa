@@ -342,7 +342,9 @@ bool DirectoryService::ComputeNewCandidateLeader(
                  m_mediator.m_DSCommittee->at(candidateLeaderIndex).first));
 
   Peer newLeaderNetworkInfo;
-  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second == Peer()) {
+  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
+          m_mediator.m_selfKey.second &&
+      m_mediator.m_DSCommittee->at(candidateLeaderIndex).second == Peer()) {
     // I am the leader but in the Peer store, it is put as 0.0.0.0 with port 0
     newLeaderNetworkInfo = m_mediator.m_selfPeer;
   } else {
