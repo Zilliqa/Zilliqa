@@ -17,11 +17,11 @@
  * program files.
  */
 
+#include "testLib/testLibFunctions.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libCrypto/Schnorr.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/Peer.h"
-#include "testLib/testLibFunctions.h"
 
 #define BOOST_TEST_MODULE Coinbase
 #define BOOST_TEST_DYN_LINK
@@ -33,18 +33,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-Peer generateRandomPeer() {
-  uint128_t ip_address = distUint64();
-  uint32_t listen_port_host = distUint32();
-  return Peer(ip_address, listen_port_host);
-}
 
-using KeyPair = std::pair<PrivKey, PubKey>;
-
-KeyPair generateKeyPair(){
-  PrivKey privk;
-  return KeyPair(privk, generateRandomPubKey(privk));
-}
 
 Mediator* generateHeapMediator(const KeyPair& kp, const Peer& p){
   return new Mediator(kp, p);
@@ -54,12 +43,13 @@ DirectoryService* generateHeapDirectoryService(Mediator& m){
   return new DirectoryService(m);
 }
 
+Peer pp = generateRandomPeer();
+
 //Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
 Shard generateRandomShard(size_t size){
   Shard s;
-  for (size_t i = 1; i <= size; size++)
-    (void)i; //  avoid not used varuable
-    s.push_back(std::make_tuple(generateRandomPubKey(PrivKey()), generateRandomPeer(), (short unsigned int)distUint16()));
+  for (size_t i = 1; i <= size; i++)
+    s.push_back(std::make_tuple(generateRandomPubKey(PrivKey()), (Peer)generateRandomPeer(), (short unsigned int)distUint16()));
   return s;
 }
 
@@ -114,7 +104,7 @@ BOOST_AUTO_TEST_CASE(init) {
   rng.seed(std::random_device()());
   INIT_STDOUT_LOGGER();
   kp = generateKeyPair();
-  peer = generateRandomPeer();
+//  peer = generateRandomPeer();
   m = new Mediator(kp, peer);
   ds = new DirectoryService(*m);
 }
