@@ -37,7 +37,7 @@ DSBlockHeader::DSBlockHeader(
     const uint8_t dsDifficulty, const uint8_t difficulty,
     const BlockHash& prevHash, const PubKey& leaderPubKey,
     const uint64_t& blockNum, const uint256_t& timestamp, const SWInfo& swInfo,
-    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hash,
+    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hashset,
     const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
       m_dsDifficulty(dsDifficulty),
@@ -48,7 +48,7 @@ DSBlockHeader::DSBlockHeader(
       m_timestamp(timestamp),
       m_swInfo(swInfo),
       m_PoWDSWinners(powDSWinners),
-      m_hashset(hash) {}
+      m_hashset(hashset) {}
 
 bool DSBlockHeader::Serialize(vector<unsigned char>& dst,
                               unsigned int offset) const {

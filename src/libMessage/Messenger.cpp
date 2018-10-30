@@ -788,10 +788,10 @@ void ProtobufToMicroBlockHeader(
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
       protoMicroBlockHeader.shardid(), gasLimit, gasUsed, rewards, prevHash,
-      protoMicroBlockHeader.blocknum(), timestamp, txRootHash,
+      protoMicroBlockHeader.blocknum(), timestamp,
+      {txRootHash, stateDeltaHash, tranReceiptHash},
       protoMicroBlockHeader.numtxs(), minerPubKey,
-      protoMicroBlockHeader.dsblocknum(), dsBlockHash, stateDeltaHash,
-      tranReceiptHash, committeeHash);
+      protoMicroBlockHeader.dsblocknum(), dsBlockHash, committeeHash);
 }
 
 void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
@@ -1171,7 +1171,7 @@ void ProtobufToFallbackBlockHeader(
   fallbackBlockHeader = FallbackBlockHeader(
       protoFallbackBlockHeader.fallbackdsepochno(),
       protoFallbackBlockHeader.fallbackepochno(),
-      protoFallbackBlockHeader.fallbackstate(), stateRootHash,
+      protoFallbackBlockHeader.fallbackstate(), {stateRootHash},
       protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
       leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp,
       committeeHash);
