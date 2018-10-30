@@ -86,7 +86,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
   std::vector<unsigned char> errorMsg;
   if (!m_msgContentValidator(announcement, offset, errorMsg, m_consensusID,
                              m_blockNumber, m_blockHash, m_leaderID,
-                             m_committee.at(m_leaderID).first,
+                             GetCommitteeMember(m_leaderID).first,
                              m_messageToCosign)) {
     LOG_GENERAL(WARNING, "Message validation failed");
 
@@ -106,8 +106,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
         // Unicast to the leader
         // =====================
-        P2PComm::GetInstance().SendMessage(m_committee.at(m_leaderID).second,
-                                           commitFailureMsg);
+        P2PComm::GetInstance().SendMessage(
+            GetCommitteeMember(m_leaderID).second, commitFailureMsg);
 
         return true;
       }
@@ -136,7 +136,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 
     // Unicast to the leader
     // =====================
-    P2PComm::GetInstance().SendMessage(m_committee.at(m_leaderID).second,
+    P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        commit);
   }
   return result;
@@ -160,7 +160,7 @@ bool ConsensusBackup::GenerateCommitFailureMessage(
   if (!Messenger::SetConsensusCommitFailure(
           commitFailure, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_myID, errorMsg,
-          make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
+          make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusCommitFailure failed.");
     return false;
   }
@@ -183,7 +183,7 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
   if (!Messenger::SetConsensusCommit(
           commit, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
           *m_commitPoint,
-          make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
+          make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusCommit failed.");
     return false;
   }
@@ -212,7 +212,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   if (!Messenger::GetConsensusChallenge(
           challenge, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_leaderID, aggregated_commit, aggregated_key, m_challenge,
-          m_committee.at(m_leaderID).first)) {
+          GetCommitteeMember(m_leaderID).first)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusChallenge failed.");
     return false;
   }
@@ -265,7 +265,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Unicast to the leader
     // =====================
 
-    P2PComm::GetInstance().SendMessage(m_committee.at(m_leaderID).second,
+    P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        response);
   }
 
@@ -290,7 +290,7 @@ bool ConsensusBackup::GenerateResponseMessage(vector<unsigned char>& response,
 
   if (!Messenger::SetConsensusResponse(
           response, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
-          r, make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
+          r, make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusResponse failed.");
     return false;
   }
@@ -317,7 +317,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
   if (!Messenger::GetConsensusCollectiveSig(
           collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_leaderID, m_responseMap, m_collectiveSig,
-          m_committee.at(m_leaderID).first)) {
+          GetCommitteeMember(m_leaderID).first)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCollectiveSig failed.");
     return false;
   }
@@ -366,7 +366,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
       // Unicast to the leader
       // =====================
-      P2PComm::GetInstance().SendMessage(m_committee.at(m_leaderID).second,
+      P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                          finalcommit);
     }
   } else {
