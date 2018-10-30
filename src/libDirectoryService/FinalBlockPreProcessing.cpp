@@ -170,16 +170,6 @@ bool DirectoryService::ComposeFinalBlock() {
     return false;
   }
 
-  DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-  uint64_t lastDSBlockNum = lastDSBlock.GetHeader().GetBlockNum();
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  vector<unsigned char> vec;
-  lastDSBlock.GetHeader().Serialize(vec, 0);
-  sha2.Update(vec);
-  vector<unsigned char> hashVec = sha2.Finalize();
-  BlockHash dsBlockHeader;
-  copy(hashVec.begin(), hashVec.end(), dsBlockHeader.asArray().begin());
-
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
   // Compute the CommitteeHash member of the BlockHeaderBase
@@ -192,11 +182,13 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   m_finalBlock.reset(new TxBlock(
-      TxBlockHeader(type, version, allGasLimit, allGasUsed, allRewards,
-                    prevHash, blockNum, timestamp,
-                    {microblockTrieRoot, stateRoot, stateDeltaHash, mbInfoHash},
-                    numTxs, numMicroBlocks, m_mediator.m_selfKey.second,
-                    lastDSBlockNum, dsBlockHeader, committeeHash),
+      TxBlockHeader(
+          type, version, allGasLimit, allGasUsed, allRewards, prevHash,
+          blockNum, timestamp,
+          {microblockTrieRoot, stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
+          numMicroBlocks, m_mediator.m_selfKey.second,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          committeeHash),
       isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());

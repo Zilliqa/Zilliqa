@@ -39,8 +39,7 @@ TxBlockHeader::TxBlockHeader(
     const BlockHash& prevHash, const uint64_t& blockNum,
     const uint256_t& timestamp, const TxBlockHashSet& blockHashSet,
     uint32_t numTxs, uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-    const uint64_t& dsBlockNum, const BlockHash& dsBlockHash,
-    const CommitteeHash& committeeHash)
+    const uint64_t& dsBlockNum, const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
       m_type(type),
       m_version(version),
@@ -54,8 +53,7 @@ TxBlockHeader::TxBlockHeader(
       m_numTxs(numTxs),
       m_numMicroBlockHashes(numMicroBlockHashes),
       m_minerPubKey(minerPubKey),
-      m_dsBlockNum(dsBlockNum),
-      m_dsBlockHash(dsBlockHash) {}
+      m_dsBlockNum(dsBlockNum) {}
 
 bool TxBlockHeader::Serialize(vector<unsigned char>& dst,
                               unsigned int offset) const {
@@ -119,19 +117,15 @@ const PubKey& TxBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
 
 const uint64_t& TxBlockHeader::GetDSBlockNum() const { return m_dsBlockNum; }
 
-const BlockHash& TxBlockHeader::GetDSBlockHash() const { return m_dsBlockHash; }
-
 bool TxBlockHeader::operator==(const TxBlockHeader& header) const {
   return std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_rewards,
                   m_prevHash, m_blockNum, m_timestamp, m_hashset, m_numTxs,
-                  m_numMicroBlockHashes, m_minerPubKey, m_dsBlockNum,
-                  m_dsBlockHash) ==
+                  m_numMicroBlockHashes, m_minerPubKey, m_dsBlockNum) ==
          std::tie(header.m_type, header.m_version, header.m_gasLimit,
                   header.m_gasUsed, header.m_rewards, header.m_prevHash,
                   header.m_blockNum, header.m_timestamp, header.m_hashset,
                   header.m_numTxs, header.m_numMicroBlockHashes,
-                  header.m_minerPubKey, header.m_dsBlockNum,
-                  header.m_dsBlockHash);
+                  header.m_minerPubKey, header.m_dsBlockNum);
 }
 
 bool TxBlockHeader::operator<(const TxBlockHeader& header) const {
@@ -139,12 +133,10 @@ bool TxBlockHeader::operator<(const TxBlockHeader& header) const {
                   header.m_gasUsed, header.m_rewards, header.m_prevHash,
                   header.m_blockNum, header.m_timestamp, header.m_hashset,
                   header.m_numTxs, header.m_numMicroBlockHashes,
-                  header.m_minerPubKey, header.m_dsBlockNum,
-                  header.m_dsBlockHash) >
+                  header.m_minerPubKey, header.m_dsBlockNum) >
          std::tie(m_type, m_version, m_gasLimit, m_gasUsed, m_rewards,
                   m_prevHash, m_blockNum, m_timestamp, m_hashset, m_numTxs,
-                  m_numMicroBlockHashes, m_minerPubKey, m_dsBlockNum,
-                  m_dsBlockHash);
+                  m_numMicroBlockHashes, m_minerPubKey, m_dsBlockNum);
 }
 
 bool TxBlockHeader::operator>(const TxBlockHeader& header) const {

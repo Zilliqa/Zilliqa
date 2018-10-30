@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
   TxBlock txblock(
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
                     BlockHash(), 0, get_time_as_int(), TxBlockHashSet(), 0, 5,
-                    pubKey1.second, 0, BlockHash(), CommitteeHash()),
+                    pubKey1.second, 0, CommitteeHash()),
       vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
       CoSignatures());
 
