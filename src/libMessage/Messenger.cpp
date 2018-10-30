@@ -855,8 +855,8 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
   SerializableToProtobufByteArray(txBlockHeader.GetMinerPubKey(),
                                   *protoTxBlockHeader.mutable_minerpubkey());
   protoTxBlockHeader.set_dsblocknum(txBlockHeader.GetDSBlockNum());
-  protoTxBlockHeader.set_dsblockheader(txBlockHeader.GetDSBlockHeader().data(),
-                                       txBlockHeader.GetDSBlockHeader().size);
+  protoTxBlockHeader.set_dsblockhash(txBlockHeader.GetDSBlockHash().data(),
+                                     txBlockHeader.GetDSBlockHash().size);
 
   protoTxBlockHeader.set_committeehash(txBlockHeader.GetCommitteeHash().data(),
                                        txBlockHeader.GetCommitteeHash().size);
@@ -901,7 +901,7 @@ void ProtobufToTxBlockHeader(
   uint256_t timestamp;
   TxBlockHashSet hash;
   PubKey minerPubKey;
-  BlockHash dsBlockHeader;
+  BlockHash dsBlockHash;
   CommitteeHash committeeHash;
 
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
@@ -938,11 +938,11 @@ void ProtobufToTxBlockHeader(
 
   ProtobufByteArrayToSerializable(protoTxBlockHeader.minerpubkey(),
                                   minerPubKey);
-  copy(protoTxBlockHeader.dsblockheader().begin(),
-       protoTxBlockHeader.dsblockheader().begin() +
-           min((unsigned int)protoTxBlockHeader.dsblockheader().size(),
-               (unsigned int)dsBlockHeader.size),
-       dsBlockHeader.asArray().begin());
+  copy(protoTxBlockHeader.dsblockhash().begin(),
+       protoTxBlockHeader.dsblockhash().begin() +
+           min((unsigned int)protoTxBlockHeader.dsblockhash().size(),
+               (unsigned int)dsBlockHash.size),
+       dsBlockHash.asArray().begin());
 
   copy(protoTxBlockHeader.committeehash().begin(),
        protoTxBlockHeader.committeehash().begin() +
@@ -955,8 +955,7 @@ void ProtobufToTxBlockHeader(
       gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), timestamp,
       hash.m_mbRootHash, hash.m_stateRootHash, hash.m_stateDeltaHash,
       protoTxBlockHeader.numtxs(), protoTxBlockHeader.nummicroblockhashes(),
-      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHeader,
-      committeeHash);
+      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHash, committeeHash);
 }
 
 void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {

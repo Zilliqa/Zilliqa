@@ -211,7 +211,7 @@ message ProtoTxBlock
         required uint32 nummicroblockhashes     = 11;
         required ByteArray minerpubkey          = 12;
         required uint64 dsblocknum              = 13;
-        required bytes dsblockheader            = 14;
+        required bytes dsblockhash              = 14;
         required bytes committeehash            = 15;
     }
     required TxBlockHeader header               = 1;
