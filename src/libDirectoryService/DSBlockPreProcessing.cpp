@@ -623,7 +623,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
-
+  
   // Assemble DS block
   // To-do: Handle exceptions.
   // TODO: Revise DS block structure
