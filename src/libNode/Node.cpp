@@ -90,10 +90,7 @@ bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
     }
 
     m_mediator.m_currentEpochNum =
-        (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
-            .GetHeader()
-            .GetBlockNum() +
-        1;
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
     if (wakeupForUpgrade) {
       m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
@@ -266,8 +263,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   /// Retrieve lacked Tx blocks from lookup nodes
   uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
-  m_mediator.m_lookup->GetTxBlockFromLookupNodes(
-      m_mediator.m_txBlockChain.GetBlockCount(), 0);
+  m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup,
+                                     m_mediator.m_txBlockChain.GetBlockCount());
   LOG_GENERAL(INFO, "Retrieve final block from lookup node, please wait...");
 
   unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
@@ -283,7 +280,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     return false;
   }
 
-  /// Retrieve latest final-block state-delta from lookup nodes
+  /// Retrieve lacked final-block state-delta from lookup nodes
   if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
     m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
@@ -300,6 +297,26 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                   "block state delta from lookup node!");
     }
   }
+
+#if 1  // clark
+  /// Save coin base from last DS epoch to current TX epoch
+  for (uint64_t blockNum =
+           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
+           (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() %
+            NUM_FINAL_BLOCK_PER_POW);
+       blockNum <=
+       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+       ++blockNum) {
+    LOG_GENERAL(INFO, "Update coin base for finalblock with blockNum: "
+                          << blockNum << ", reward: "
+                          << m_mediator.m_txBlockChain.GetBlock(blockNum)
+                                 .GetHeader()
+                                 .GetRewards());
+    m_mediator.m_ds->SaveCoinbase(
+        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB1(),
+        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(), -1);
+  }
+#endif
 
   /// Removing incompleted DS for upgrading protocol
   /// Keeping incompleted DS for node recovery
@@ -331,6 +348,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                   "Retrieve microblock with blockNum: "
                       << microBlock->GetHeader().GetBlockNum()
                       << ", shardId: " << microBlock->GetHeader().GetShardId()
+                      << ", reward: " << microBlock->GetHeader().GetRewards()
                       << " from persistence, and update coin base");
       m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
                                     microBlock->GetHeader().GetShardId());

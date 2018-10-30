@@ -172,7 +172,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
-  bool GetStateDeltaFromLookupNodes(uint64_t blockNum);
+  bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
   bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
 

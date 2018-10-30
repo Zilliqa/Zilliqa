@@ -419,7 +419,7 @@ bool Lookup::GetTxBlockFromLookupNodes(uint64_t lowBlockNum,
   return true;
 }
 
-bool Lookup::GetStateDeltaFromLookupNodes(uint64_t blockNum) {
+bool Lookup::GetStateDeltaFromLookupNodes(const uint64_t& blockNum) {
   LOG_MARKER();
 
   SendMessageToRandomLookupNode(ComposeGetStateDeltaMessage(blockNum));

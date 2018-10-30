@@ -146,7 +146,24 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
                 "re-join process instead");
     return;
   }
+#if 1  // clark
+  /// Retrieve final block state delta from last DS epoch to
+  /// current TX epoch
+  for (const auto& block : blocks) {
+    if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
+      std::vector<unsigned char> stateDelta;
+      BlockStorage::GetBlockStorage().GetStateDelta(
+          block->GetHeader().GetBlockNum(), stateDelta);
 
+      if (AccountStore::GetInstance().DeserializeDelta(stateDelta, 0) != 0) {
+        LOG_GENERAL(WARNING,
+                    "AccountStore::GetInstance().DeserializeDelta failed");
+        result = false;
+        return;
+      }
+    }
+  }
+#else
   /// Retrieve final block state delta and save coin base, from last DS epoch to
   /// current TX epoch
   for (const auto& block : blocks) {
@@ -161,9 +178,13 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
         result = false;
         return;
       }
+      LOG_GENERAL(INFO, "Update coin base for finalblock with blockNum: "
+                            << block->GetHeader().GetBlockNum()
+                            << ", reward: " << block->GetHeader().GetRewards());
       m_mediator.m_ds->SaveCoinbase(block->GetB1(), block->GetB2(), -1);
     }
   }
+#endif
 }
 
 bool Retriever::CleanExtraTxBodies() {
