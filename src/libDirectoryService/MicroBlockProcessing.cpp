@@ -259,8 +259,14 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
+#if 1  // clark
+  if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                    microBlock.GetHeader().GetShardId(),
+                    m_mediator.m_currentEpochNum)) {
+#else
   if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
                     microBlock.GetHeader().GetShardId())) {
+#endif
     return false;
   }
 
@@ -540,8 +546,14 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       LOG_GENERAL(INFO,
                   "MicroBlock Hash: " << microBlock.GetHeader().GetHashes());
 
+#if 1  // clark
+      if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                        microBlock.GetHeader().GetShardId(),
+                        m_mediator.m_currentEpochNum)) {
+#else
       if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
                         microBlock.GetHeader().GetShardId())) {
+#endif
         continue;
       }
 
