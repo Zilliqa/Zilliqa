@@ -263,7 +263,14 @@ void PeerManager::SetupLogLevel() {
       LOG_DISPLAY_LEVEL_ABOVE(WARNING);
       break;
     }
-    case 3:
+    case 3: {
+      LOG_DISPLAY_LEVEL_ABOVE(INFO);
+      break;
+    }
+    case 4: {
+      LOG_DISPLAY_LEVEL_ABOVE(DEBUG);
+      break;
+    }
     default: {
       LOG_DISPLAY_LEVEL_ABOVE(INFO);
       break;
