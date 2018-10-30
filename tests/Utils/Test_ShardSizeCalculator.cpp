@@ -20,14 +20,13 @@
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ShardSizeCalculator.h"
-#include "common/Constants.h"
 
 #define BOOST_TEST_MODULE ShardSizeCalculator
 #define BOOST_TEST_DYN_LINK
+#include <array>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/test/unit_test.hpp>
 #include <map>
-#include <array>
 #include <vector>
 
 using namespace std;
@@ -35,11 +34,12 @@ using namespace std;
 typedef std::vector<uint32_t> TestDataSet;
 typedef std::map<uint32_t, TestDataSet> ShardSizeMap;
 
-void prepareTestdata(ShardSizeMap &testData){
+void prepareTestdata(ShardSizeMap& testData) {
   TestDataSet tds;
   testData[651] = tds = {0, 1, 650, 651, 1000, 1367};
   testData[684] = tds = {1368, 2131, 2132};
-  testData[711] = tds = {2133, 2200, 2867};;
+  testData[711] = tds = {2133, 2200, 2867};
+  ;
   testData[717] = tds = {2868, 2869, 3674};
   testData[735] = tds = {3675, 4000, 4463};
   testData[744] = tds = {4464, 5000, 5228};
@@ -50,10 +50,10 @@ void prepareTestdata(ShardSizeMap &testData){
   testData[780] = tds = {8580, 9000, 9467};
   testData[789] = tds = {9468, 10000, 10334};
   testData[795] = tds = {10335, 11000, 14363};
-  testData[798] = tds = {14364,15000,15389};
-  testData[810] = tds = {15390,16000,18767};
-  testData[816] = tds = {18768,19000,20399};
-  testData[819] = tds = {20400,300000,std::numeric_limits<uint32_t>::max()};
+  testData[798] = tds = {14364, 15000, 15389};
+  testData[810] = tds = {15390, 16000, 18767};
+  testData[816] = tds = {18768, 19000, 20399};
+  testData[819] = tds = {20400, 300000, std::numeric_limits<uint32_t>::max()};
 }
 
 BOOST_AUTO_TEST_SUITE(shardsizecalculator)
@@ -63,16 +63,16 @@ BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 #define NUMOFNODES_v td_i.second
 
 BOOST_AUTO_TEST_CASE(test_lower_bound) {
-
   INIT_STDOUT_LOGGER();
   ShardSizeMap testData;
   prepareTestdata(testData);
-  for (auto const& TD_i : testData)
-  {
-    for(auto const& numOfNodes: NUMOFNODES_v){
+  for (auto const& TD_i : testData) {
+    for (auto const& numOfNodes : NUMOFNODES_v) {
       uint32_t result = ShardSizeCalculator::CalculateShardSize(numOfNodes);
       BOOST_CHECK_MESSAGE(result == EXPECTED,
-          "For number of nodes: " + to_string(numOfNodes) + " Expected: " + to_string(EXPECTED) + ". Result: " + to_string(result));
+                          "For number of nodes: " + to_string(numOfNodes) +
+                              " Expected: " + to_string(EXPECTED) +
+                              ". Result: " + to_string(result));
     }
   }
 }
