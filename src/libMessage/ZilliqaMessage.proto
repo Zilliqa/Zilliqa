@@ -11,6 +11,34 @@ message ByteArray
     required bytes data = 1;
 }
 
+message ProtoAccount
+{
+    message StorageData
+    {
+        required bytes keyhash       = 1;
+        required string data         = 2;
+    }
+    optional bool numbersign       = 1; // For account delta (false=neg, true=pos)
+    required ByteArray balance     = 2;
+    required ByteArray nonce       = 3;
+    optional bytes storageroot     = 4;
+    optional bytes codehash        = 5;
+    optional uint64 createblocknum = 6;
+    optional bytes initdata        = 7;
+    optional bytes code            = 8;
+    repeated StorageData storage   = 9;
+}
+
+message ProtoAccountStore
+{
+    message Account
+    {
+        required bytes address        = 1;
+        required ProtoAccount account = 2;
+    }
+    repeated Account entries          = 3;
+}
+
 message ProtoDSNode
 {
     required ByteArray pubkey = 1;

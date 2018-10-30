@@ -27,6 +27,7 @@
 
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 

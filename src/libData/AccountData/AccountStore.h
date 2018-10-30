@@ -54,13 +54,20 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
   AccountStoreTemp(AccountStore& parent);
 
-  int DeserializeDelta(const std::vector<unsigned char>& src,
-                       unsigned int offset);
+  bool DeserializeDelta(const std::vector<unsigned char>& src,
+                        unsigned int offset);
 
   /// Returns the Account associated with the specified address.
   Account* GetAccount(const Address& address) override;
 
-  const std::shared_ptr<std::map<Address, Account>>& GetAddressToAccount();
+  const std::shared_ptr<std::map<Address, Account>>& GetAddressToAccount() {
+    return this->m_addressToAccount;
+  }
+
+  void AddAccountDuringDeserialization(const Address& address,
+                                       const Account& account) {
+    (*m_addressToAccount)[address] = account;
+  }
 };
 
 class AccountStore
@@ -86,18 +93,18 @@ class AccountStore
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
 
-  int Deserialize(const std::vector<unsigned char>& src,
-                  unsigned int offset) override;
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
 
-  void SerializeDelta();
+  bool SerializeDelta();
 
-  unsigned int GetSerializedDelta(std::vector<unsigned char>& dst);
+  void GetSerializedDelta(std::vector<unsigned char>& dst);
 
-  int DeserializeDelta(const std::vector<unsigned char>& src,
-                       unsigned int offset, bool reversible = false);
+  bool DeserializeDelta(const std::vector<unsigned char>& src,
+                        unsigned int offset, bool reversible = false);
 
-  int DeserializeDeltaTemp(const std::vector<unsigned char>& src,
-                           unsigned int offset);
+  bool DeserializeDeltaTemp(const std::vector<unsigned char>& src,
+                            unsigned int offset);
 
   /// Empty the state trie, must be called explicitly otherwise will retrieve
   /// the historical data
@@ -117,6 +124,23 @@ class AccountStore
 
   void AddAccountTemp(const Address& address, const Account& account) {
     m_accountStoreTemp->AddAccount(address, account);
+  }
+
+  void AddAccountDuringDeserialization(const Address& address,
+                                       const Account& account,
+                                       const bool fullCopy = false,
+                                       const bool reversible = false) {
+    (*m_addressToAccount)[address] = account;
+
+    if (reversible) {
+      if (fullCopy) {
+        m_addressToAccountRevCreated[address] = account;
+      } else {
+        m_addressToAccountRevChanged[address] = account;
+      }
+    }
+
+    UpdateStateTrie(address, account);
   }
 
   boost::multiprecision::uint256_t GetNonceTemp(const Address& address);

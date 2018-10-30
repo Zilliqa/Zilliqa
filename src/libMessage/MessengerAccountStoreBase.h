@@ -16,44 +16,25 @@
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
  */
+#ifndef __MESSENGERACCOUNTSTOREBASE_H__
+#define __MESSENGERACCOUNTSTOREBASE_H__
 
-#include "AccountStore.h"
-#include "libMessage/Messenger.h"
+#include <vector>
 
-using namespace std;
-using namespace boost::multiprecision;
+class MessengerAccountStoreBase {
+ public:
+  // ============================================================================
+  // Primitives
+  // ============================================================================
 
-AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
+  // These are called by AccountStoreBase template class
+  template <class MAP>
+  static bool SetAccountStore(std::vector<unsigned char>& dst,
+                              const unsigned int offset,
+                              const MAP& addressToAccount);
+  template <class MAP>
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset, MAP& addressToAccount);
+};
 
-Account* AccountStoreTemp::GetAccount(const Address& address) {
-  Account* account =
-      AccountStoreBase<map<Address, Account>>::GetAccount(address);
-  if (account != nullptr) {
-    // LOG_GENERAL(INFO, "Got From Temp");
-    return account;
-  }
-
-  account = m_parent.GetAccount(address);
-  if (account) {
-    // LOG_GENERAL(INFO, "Got From Parent");
-    Account newaccount(*account);
-    m_addressToAccount->insert(make_pair(address, newaccount));
-    return &(m_addressToAccount->find(address))->second;
-  }
-
-  // LOG_GENERAL(INFO, "Got Nullptr");
-
-  return nullptr;
-}
-
-bool AccountStoreTemp::DeserializeDelta(const vector<unsigned char>& src,
-                                        unsigned int offset) {
-  LOG_MARKER();
-
-  if (!Messenger::GetAccountStoreDelta(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
-    return false;
-  }
-
-  return true;
-}
+#endif  // __MESSENGERACCOUNTSTOREBASE_H__

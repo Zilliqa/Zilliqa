@@ -26,6 +26,7 @@
 #include <string>
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
 

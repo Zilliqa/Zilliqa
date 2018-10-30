@@ -23,6 +23,7 @@
 #include "depends/common/FixedHash.h"
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
+#include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
@@ -36,7 +37,7 @@ using namespace dev;
 Account::Account() {}
 
 Account::Account(const vector<unsigned char>& src, unsigned int offset) {
-  if (DeserializeAddOffset(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init Account.");
   }
 }
@@ -111,465 +112,46 @@ void Account::InitContract() {
   }
 }
 
-unsigned int Account::Serialize(vector<unsigned char>& dst,
-                                unsigned int offset) const {
-  // LOG_MARKER();
-
-  unsigned int curOffset = offset;
-
-  // Balance
-  SetNumber<uint256_t>(dst, curOffset, m_balance, UINT256_SIZE);
-  // LOG_GENERAL(INFO, "balance: " << m_balance);
-  curOffset += UINT256_SIZE;
-  // Nonce
-  SetNumber<uint256_t>(dst, curOffset, m_nonce, UINT256_SIZE);
-  // LOG_GENERAL(INFO, "nonce: " << m_nonce);
-  curOffset += UINT256_SIZE;
-  // Storage Root
-  copy(m_storageRoot.asArray().begin(), m_storageRoot.asArray().end(),
-       back_inserter(dst));
-  // LOG_GENERAL(INFO, "storageRoot: " << m_storageRoot);
-  curOffset += COMMON_HASH_SIZE;
-  // Code Hash
-  copy(m_codeHash.asArray().begin(), m_codeHash.asArray().end(),
-       back_inserter(dst));
-  // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
-  curOffset += COMMON_HASH_SIZE;
-  // Size of Code Content
-  SetNumber<uint256_t>(dst, curOffset, uint256_t(m_codeCache.size()),
-                       UINT256_SIZE);
-  // LOG_GENERAL(INFO, "codeSize: " << m_codeCache.size());
-  curOffset += UINT256_SIZE;
-  if (m_codeCache.empty()) {
-    // non-contract account
-    return curOffset - offset;
-  }
-  // Code
-  copy(m_codeCache.begin(), m_codeCache.end(), back_inserter(dst));
-  curOffset += m_codeCache.size();
-
-  // Init Data Size
-  SetNumber<uint256_t>(dst, curOffset, uint256_t(m_initData.size()),
-                       UINT256_SIZE);
-  curOffset += UINT256_SIZE;
-  // LOG_GENERAL(INFO, "initData size: " << m_initData.size());
-  // Init Data
-  copy(m_initData.begin(), m_initData.end(), back_inserter(dst));
-  // LOG_GENERAL(INFO, "initData: " << m_initData);
-  curOffset += m_initData.size();
-
-  // Create Block Num
-  SetNumber<uint64_t>(dst, curOffset, m_createBlockNum, sizeof(uint64_t));
-  // LOG_GENERAL(INFO, "createBlockNum: " << m_createBlockNum);
-  curOffset += sizeof(uint64_t);
-
-  // States
-  // Num of Key Hashes
-  SetNumber<uint256_t>(dst, curOffset, uint256_t(GetStorageKeyHashes().size()),
-                       UINT256_SIZE);
-  // LOG_GENERAL(INFO,
-  //             "numKeyHashes: " << uint256_t(GetStorageKeyHashes().size()));
-  curOffset += UINT256_SIZE;
-
-  for (unsigned int i = 0; i < GetStorageKeyHashes().size(); i++) {
-    // Key Hash
-    h256 keyHash = GetStorageKeyHashes()[i];
-    copy(keyHash.asArray().begin(), keyHash.asArray().end(),
-         std::back_inserter(dst));
-    // LOG_GENERAL(INFO, "KeyHash: " << keyHash);
-    curOffset += COMMON_HASH_SIZE;
-
-    // RLP
-    string rlpStr = m_storage.at(keyHash);
-    // RLP size
-    SetNumber<uint256_t>(dst, curOffset, uint256_t(rlpStr.size()),
-                         UINT256_SIZE);
-    // LOG_GENERAL(INFO, "rlpSize: " << rlpStr.size());
-    curOffset += UINT256_SIZE;
-    // RLP string
-    copy(rlpStr.begin(), rlpStr.end(), std::back_inserter(dst));
-    // LOG_GENERAL(INFO, "rlpStr: " << rlpStr);
-    curOffset += rlpStr.size();
+bool Account::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
+  if (!Messenger::SetAccount(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
+    return false;
   }
 
-  return curOffset - offset;
+  return true;
 }
 
-int Account::DeserializeAddOffset(const vector<unsigned char>& src,
-                                  unsigned int& offset) {
+bool Account::Deserialize(const vector<unsigned char>& src,
+                          unsigned int offset) {
   LOG_MARKER();
 
-  try {
-    // Balance
-    m_balance = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    // LOG_GENERAL(INFO, "balance: " << m_balance);
-    offset += UINT256_SIZE;
-    // Nonce
-    m_nonce = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    // LOG_GENERAL(INFO, "nonce: " << m_nonce);
-    offset += UINT256_SIZE;
-    // Storage Root
-    h256 t_storageRoot;
-    copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
-         t_storageRoot.asArray().begin());
-    // LOG_GENERAL(INFO, "storageRoot: " << t_storageRoot);
-    offset += COMMON_HASH_SIZE;
-    // Code Hash
-    copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
-         m_codeHash.asArray().begin());
-    // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
-    offset += COMMON_HASH_SIZE;
-    // Size of Code
-    unsigned int codeSize =
-        (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    // LOG_GENERAL(INFO, "codeSize: " << codeSize);
-    offset += UINT256_SIZE;
-    // Code
-    if (codeSize > 0) {
-      vector<unsigned char> code;
-      code.resize(codeSize);
-      copy(src.begin() + offset, src.begin() + offset + codeSize, code.begin());
-      // LOG_PAYLOAD(INFO, "code: ", code, 2000);
-      offset += codeSize;
-      SetCode(code);
-
-      // Init Data Size
-      unsigned int initDataSize =
-          (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-      offset += UINT256_SIZE;
-      // LOG_GENERAL(INFO, "InitData size: " << initDataSize);
-      // Init Data
-      vector<unsigned char> initData;
-      copy(src.begin() + offset, src.begin() + offset + initDataSize,
-           back_inserter(initData));
-      // LOG_GENERAL(INFO, "InitData: " << initData);
-      offset += initDataSize;
-      if (!initData.empty()) {
-        InitContract(initData);
-      }
-
-      // Create Block Num
-      m_createBlockNum = GetNumber<uint64_t>(src, offset, sizeof(uint64_t));
-      // LOG_GENERAL(INFO, "createBlockNum: " << m_createBlockNum);
-      offset += sizeof(uint64_t);
-
-      // States
-      // Num of Key Hashes
-      unsigned int numKeyHashes =
-          (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-      // LOG_GENERAL(INFO, "numKeyHashes: " << numKeyHashes);
-      offset += UINT256_SIZE;
-      for (unsigned int i = 0; i < numKeyHashes; i++) {
-        // Key Hash
-        h256 keyHash;
-        copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
-             keyHash.asArray().begin());
-        // LOG_GENERAL(INFO, "KeyHash: " << keyHash);
-        offset += COMMON_HASH_SIZE;
-
-        // RLP
-        // RLP size
-        unsigned int rlpSize =
-            (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-        // LOG_GENERAL(INFO, "rlpSize: " << rlpSize);
-        offset += UINT256_SIZE;
-        // RLP string
-        string rlpStr;
-        copy(src.begin() + offset, src.begin() + offset + rlpSize,
-             rlpStr.begin());
-        offset += rlpSize;
-        // LOG_GENERAL(INFO, "rlpStr: " << rlpStr);
-        m_storage.insert(keyHash, rlpStr);
-        m_storageRoot = m_storage.root();
-      }
-
-      if (t_storageRoot != m_storageRoot) {
-        LOG_GENERAL(WARNING,
-                    "ERROR: StorageRoots doesn't match! Investigate why!");
-        return -1;
-      }
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Error with Account::Deserialize." << ' ' << e.what());
-    return -1;
+  if (!Messenger::GetAccount(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
+    return false;
   }
-  return 0;
+
+  return true;
 }
 
-unsigned int Account::SerializeDelta(vector<unsigned char>& dst,
-                                     unsigned int offset, Account* oldAccount,
-                                     const Account& newAccount) {
-  // LOG_MARKER();
-
-  Account acc(0, 0);
-
-  bool fullCopy = false;
-
-  if (oldAccount == nullptr) {
-    oldAccount = &acc;
-    fullCopy = true;
-  }
-  // unsigned int size_needed = ACCOUNT_SIZE;
-  // unsigned int size_remaining = dst.size() - offset;
-
-  // if (size_remaining < size_needed)
-  // {
-  //     dst.resize(size_needed + offset);
-  // }
-
-  unsigned int curOffset = offset;
-
-  // Balance Delta
-  int256_t balanceDelta =
-      int256_t(newAccount.GetBalance()) - int256_t(oldAccount->GetBalance());
-  // LOG_GENERAL(INFO, "Balance Delta: " << balanceDelta);
-  // Sign
-  dst.push_back(balanceDelta > 0 ? NumberSign::POSITIVE : NumberSign::NEGATIVE);
-  curOffset += 1;
-  uint256_t balanceDeltaNum(abs(balanceDelta));
-  // Number
-  SetNumber<uint256_t>(dst, curOffset, balanceDeltaNum, UINT256_SIZE);
-  curOffset += UINT256_SIZE;
-
-  // Nonce Delta
-  uint256_t nonceDelta = newAccount.GetNonce() - oldAccount->GetNonce();
-  // LOG_GENERAL(INFO,
-  //             "newNonce: " << newAccount.GetNonce()
-  //                          << " oldNonce: " << oldAccount->GetNonce());
-  SetNumber<uint256_t>(dst, curOffset, nonceDelta, UINT256_SIZE);
-  // LOG_GENERAL(INFO, "Nonce Delta: " << nonceDelta);
-  curOffset += UINT256_SIZE;
-
-  // Code Size
-  SetNumber<uint256_t>(dst, curOffset, uint256_t(newAccount.GetCode().size()),
-                       UINT256_SIZE);
-  // LOG_GENERAL(INFO, "codeSize: " << newAccount.GetCode().size());
-  curOffset += UINT256_SIZE;
-
-  if (newAccount.GetCode().empty()) {
-    // non-contract account
-    return curOffset - offset;
+bool Account::SerializeDelta(vector<unsigned char>& dst, unsigned int offset,
+                             Account* oldAccount, const Account& newAccount) {
+  if (!Messenger::SetAccountDelta(dst, offset, oldAccount, newAccount)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccountDelta failed.");
+    return false;
   }
 
-  if (fullCopy) {
-    // Code
-    copy(newAccount.GetCode().begin(), newAccount.GetCode().end(),
-         back_inserter(dst));
-    curOffset += newAccount.GetCode().size();
-
-    // Init Data Size
-    SetNumber<uint256_t>(dst, curOffset,
-                         uint256_t(newAccount.GetInitData().size()),
-                         UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-    // LOG_GENERAL(INFO, "initData size: " << newAccount.GetInitData().size());
-    // Init Data
-    copy(newAccount.GetInitData().begin(), newAccount.GetInitData().end(),
-         back_inserter(dst));
-    // LOG_GENERAL(INFO, "InitData: " << newAccount.GetInitData());
-    curOffset += newAccount.GetInitData().size();
-
-    // Create Block Num
-    SetNumber<uint64_t>(dst, curOffset, newAccount.GetCreateBlockNum(),
-                        sizeof(uint64_t));
-    // LOG_GENERAL(INFO, "createBlockNum: " << newAccount.GetCreateBlockNum());
-    curOffset += sizeof(uint64_t);
-  }
-
-  if (newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
-    // LOG_GENERAL(INFO, "StorageRoot Changed");
-    // Storage Root
-    copy(newAccount.GetStorageRoot().asArray().begin(),
-         newAccount.GetStorageRoot().asArray().begin() + COMMON_HASH_SIZE,
-         back_inserter(dst));
-    // LOG_GENERAL(INFO,
-    //             "new StorageRoot: " << newAccount.GetStorageRoot()
-    //                                 << " old StorageRoot: "
-    //                                 << oldAccount->GetStorageRoot());
-    curOffset += COMMON_HASH_SIZE;
-
-    // States storage
-    unsigned int diffKeyHashSizeOffset = curOffset;
-    // Num of Key Hashes
-    SetNumber<uint64_t>(dst, diffKeyHashSizeOffset, 0, sizeof(uint64_t));
-    curOffset += sizeof(uint64_t);
-
-    uint64_t diffKeyHashSize = 0;
-    for (unsigned int i = 0; i < newAccount.GetStorageKeyHashes().size(); i++) {
-      h256 keyHash = newAccount.GetStorageKeyHashes()[i];
-      string rlpStr = newAccount.GetRawStorage(keyHash);
-
-      if (rlpStr != oldAccount->GetRawStorage(keyHash)) {
-        diffKeyHashSize++;
-        // Key Hash
-        copy(keyHash.asArray().begin(),
-             keyHash.asArray().begin() + COMMON_HASH_SIZE, back_inserter(dst));
-        // LOG_GENERAL(INFO, "KeyHash: " << keyHash);
-        curOffset += COMMON_HASH_SIZE;
-
-        // RLP
-        // LOG_GENERAL(
-        //     INFO,
-        //     "RLP: " << rlpStr.substr(
-        //                    0, 50 > rlpStr.size() ? rlpStr.size() : 50)
-        //             << " ... ");
-        // RLP size
-        SetNumber<uint256_t>(dst, curOffset, uint256_t(rlpStr.size()),
-                             UINT256_SIZE);
-        curOffset += UINT256_SIZE;
-        // RLP string
-        copy(rlpStr.begin(), rlpStr.end(), back_inserter(dst));
-        curOffset += rlpStr.size();
-      }
-    }
-    // Num of Key Hashes
-    SetNumber<uint64_t>(dst, diffKeyHashSizeOffset, diffKeyHashSize,
-                        sizeof(uint64_t));
-    // LOG_GENERAL(INFO, "Num of different KeyHash: " << diffKeyHashSize);
-  }
-
-  return curOffset - offset;
+  return true;
 }
 
-int Account::DeserializeDelta(const vector<unsigned char>& src,
-                              unsigned int& offset, Account& account,
-                              bool fullCopy) {
-  // LOG_MARKER();
-
-  try {
-    // LOG_GENERAL(INFO, "Account before changing: " << account);
-    // Balance Delta
-    // Sign
-    unsigned char numsign = src[offset];
-    offset += 1;
-    // Num
-    uint256_t balanceDeltaNum = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    int balanceDelta = (numsign == NumberSign::POSITIVE)
-                           ? (int)balanceDeltaNum
-                           : 0 - (int)balanceDeltaNum;
-    // LOG_GENERAL(INFO, "balanceDelta: " << balanceDelta);
-    account.ChangeBalance(balanceDelta);
-    // Nonce Delta
-    uint256_t nonceDelta = GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    // LOG_GENERAL(INFO, "nonceDelta: " << nonceDelta);
-    account.IncreaseNonceBy(nonceDelta);
-    offset += UINT256_SIZE;
-    // Code Size
-    unsigned int codeSize =
-        (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-    offset += UINT256_SIZE;
-    // LOG_GENERAL(INFO, "codeSize: " << codeSize);
-    if (codeSize > 0) {
-      bool doInitContract = false;
-
-      if (fullCopy) {
-        // Code
-        vector<unsigned char> t_code;
-        copy(src.begin() + offset, src.begin() + offset + codeSize,
-             back_inserter(t_code));
-        offset += codeSize;
-        if (t_code != account.GetCode()) {
-          account.SetCode(t_code);
-        }
-
-        // Init Data Size
-        unsigned int initDataSize =
-            (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-        offset += UINT256_SIZE;
-        // LOG_GENERAL(INFO, "InitData size: " << initDataSize);
-        // Init Data
-        vector<unsigned char> initData;
-        copy(src.begin() + offset, src.begin() + offset + initDataSize,
-             back_inserter(initData));
-        // LOG_GENERAL(INFO, "InitData: " << initData);
-        offset += initDataSize;
-        if (!initData.empty() && account.GetInitData().empty()) {
-          account.SetInitData(initData);
-          doInitContract = true;
-        }
-
-        // Create Block Num
-        uint64_t createBlockNum =
-            GetNumber<uint64_t>(src, offset, sizeof(uint64_t));
-        // LOG_GENERAL(INFO, "createBlockNum: " << createBlockNum);
-        account.SetCreateBlockNum(createBlockNum);
-        offset += sizeof(uint64_t);
-      }
-
-      // Storage Root
-      h256 t_storageRoot;
-      copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
-           t_storageRoot.asArray().begin());
-      // LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
-      offset += COMMON_HASH_SIZE;
-
-      // LOG_GENERAL(INFO,
-      //             "t_storageRoot: " << t_storageRoot
-      //                               << " old StorageRoot: "
-      //                               << account.GetStorageRoot());
-
-      if (t_storageRoot != account.GetStorageRoot()) {
-        // LOG_GENERAL(INFO, "StorageRoot Changed");
-        if (doInitContract) {
-          account.InitContract();
-        }
-
-        // States storage
-        // Num of Key Hashes
-        unsigned int numKeyHashes =
-            (unsigned int)GetNumber<uint64_t>(src, offset, sizeof(uint64_t));
-        offset += sizeof(uint64_t);
-        // LOG_GENERAL(INFO, "numKeyHashes:" << numKeyHashes);
-
-        for (unsigned int i = 0; i < numKeyHashes; i++) {
-          // Key Hash
-          h256 keyHash;
-          copy(src.begin() + offset, src.begin() + offset + COMMON_HASH_SIZE,
-               keyHash.asArray().begin());
-          offset += COMMON_HASH_SIZE;
-          // LOG_GENERAL(INFO, "keyHash: " << keyHash);
-
-          // RLP
-          // RLP size
-          unsigned int rlpSize =
-              (unsigned int)GetNumber<uint256_t>(src, offset, UINT256_SIZE);
-          offset += UINT256_SIZE;
-          // LOG_GENERAL(INFO, "rlpSize: " << rlpSize);
-
-          // RLP string
-          string rlpStr;
-          copy(src.begin() + offset, src.begin() + offset + rlpSize,
-               back_inserter(rlpStr));
-          offset += rlpSize;
-          // LOG_GENERAL(INFO,
-          //             "RLP: " << rlpStr.substr(0,
-          //                                      50 > rlpStr.size()
-          //                                          ? rlpStr.size()
-          //                                          : 50)
-          //                     << " ... ");
-          account.SetStorage(keyHash, rlpStr);
-        }
-
-        if (t_storageRoot != account.GetStorageRoot()) {
-          // LOG_GENERAL(
-          //     WARNING,
-          //     "ERROR: StorageRoots doesn't match! Investigate why!");
-          // LOG_GENERAL(INFO, "t_storageRoot: " << t_storageRoot);
-          // LOG_GENERAL(
-          //     INFO,
-          //     "account.GetStorageRoot: " << account.GetStorageRoot());
-          return -1;
-        }
-      }
-    }
-    // LOG_GENERAL(INFO, "Account after changing: " << account);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with Account::DeserializeDelta." << ' ' << e.what());
-    return -1;
+bool Account::DeserializeDelta(const vector<unsigned char>& src,
+                               unsigned int offset, Account& account,
+                               bool fullCopy) {
+  if (!Messenger::GetAccountDelta(src, offset, account, fullCopy)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountDelta failed.");
+    return false;
   }
-  return 0;
+
+  return true;
 }
 
 bool Account::IncreaseBalance(const uint256_t& delta) {

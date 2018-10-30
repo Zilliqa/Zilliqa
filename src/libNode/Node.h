@@ -71,7 +71,9 @@ class Node : public Executable, public Broadcastable {
   enum LEGITIMACYRESULT : unsigned char {
     SUCCESS = 0x00,
     MISSEDTXN,
-    WRONGORDER
+    WRONGORDER,
+    SERIALIZATIONERROR,
+    DESERIALIZATIONERROR
   };
 
   Mediator& m_mediator;
