@@ -1,28 +1,50 @@
-# Find gRPC
-#
+set(GRPC_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/grpc)
+set(GRPC_BINARY_DIR ${CMAKE_BINARY_DIR}/src/depends/grpc)
+set(GRPC_INSTALL_LOG ${CMAKE_BINARY_DIR}/install_grpc.log)
 
-# Find the cpp plugin.
+message(STATUS "Building and installing gRPC")
+
+include(ProcessorCount)
+ProcessorCount(N)
+
+execute_process(
+    COMMAND bash -c "git submodule update --init --recursive src/depends/grpc &&
+        ${CMAKE_COMMAND} -H${GRPC_SOURCE_DIR} -B${GRPC_BINARY_DIR} \
+            -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR} &&
+        ${CMAKE_COMMAND} --build ${GRPC_BINARY_DIR} -- -j${N} &&
+        ${CMAKE_COMMAND} --build ${GRPC_BINARY_DIR} --target install"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    RESULT_VARIABLE GRPC_INSTALL_RET
+    OUTPUT_FILE ${GRPC_INSTALL_LOG}
+    ERROR_FILE ${GRPC_INSTALL_LOG}
+)
+
+if(NOT "${GRPC_INSTALL_RET}" STREQUAL "0")
+    message(FATAL_ERROR "Error when building and installing gRPC, see more in log ${GRPC_INSTALL_LOG}")
+endif()
+
 find_program(GRPC_CPP_PLUGIN
-  NAMES grpc_cpp_plugin
-  HINTS "/tmp/grpc/bins/opt"
+    NAMES grpc_cpp_plugin
+    HINTS "${GRPC_BINARY_DIR}"
 )
 
 # Find the gRPC libraries.
-set(GRPC_LIB_PATH "/tmp/grpc/libs/opt/")
 find_library(GRPC_LIBRARY
   NAMES grpc
-  HINTS ${GRPC_LIB_PATH}
+  HINTS "${GRPC_BINARY_DIR}"
 )
+
 find_library(GRPCPP_LIBRARY
   NAMES grpc++
-  HINTS ${GRPC_LIB_PATH}
+  HINTS "${GRPC_BINARY_DIR}"
 )
+
 find_library(GPR_LIBRARY
   NAMES gpr
-  HINTS ${GRPC_LIB_PATH}
+  HINTS "${GRPC_BINARY_DIR}"
 )
-set(GRPC_LIBRARIES ${GRPCPP_LIBRARY} ${GRPC_LIBRARY} ${GPR_LIBRARY})
 
+set(GRPC_LIBRARIES ${GRPCPP_LIBRARY} ${GRPC_LIBRARY} ${GPR_LIBRARY})
 
 function(GRPC_GENERATE_CPP SRCS HDRS)
   if(NOT ARGN)
