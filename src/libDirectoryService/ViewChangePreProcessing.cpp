@@ -435,8 +435,7 @@ bool DirectoryService::CheckUseVCBlockInsteadOfDSBlock(
     }
 
     if (prevVCBlockptr->GetHeader().GetViewChangeEpochNo() !=
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-            1) {
+        m_mediator.m_currentEpochNum) {
       return false;
     }
 
