@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_SUITE(ConsensusLeaderTestSuite)
 /**
 * \brief DSworkflow test case for class ConsensusLeader
 *
-* \details Leader is instationted, consensus started and message processing state machine tested
+* \details Leader is created and its state machine tested
 */
 BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
 {
@@ -63,9 +63,6 @@ BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
     pair<PubKey, Peer> dummy_pair(dummy_pubkey, dummy_peer);
     dummy_committee.push_back(dummy_pair);
     dummy_committee.push_back(dummy_pair);
-
-    [[gnu::unused]]unsigned char dummy_class_byte = 0; // class byte representing Ex =  = 0x00ecutable class using this instance of ConsensusLeader
-    [[gnu::unused]]unsigned char dummy_ins_byte = 0; // instruction byte representing consensus messages for the Executable class
 
     std::shared_ptr<ConsensusCommon> dummy_consensusObject;
     dummy_consensusObject.reset(new ConsensusLeader(

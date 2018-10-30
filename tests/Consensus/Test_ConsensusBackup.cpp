@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_SUITE(ConsensusBackupTestSuite)
 /**
 * \brief DSworkflow test case for class ConsensusLeader
 *
-* \details Leader is instationted, consensus started and message processing state machine tested
+* \details Backup is created and its state machine tested
 */
 BOOST_AUTO_TEST_CASE(ConsensusBackup_DSworkflow)
 {
@@ -65,9 +65,6 @@ BOOST_AUTO_TEST_CASE(ConsensusBackup_DSworkflow)
     dummy_committee.push_back(dummy_pair);
     dummy_committee.push_back(dummy_pair);
 
-    [[gnu::unused]]unsigned char dummy_class_byte = 0; // class byte representing Ex =  = 0x00ecutable class using this instance of ConsensusLeader
-    [[gnu::unused]]unsigned char dummy_ins_byte = 0; // instruction byte representing consensus messages for the Executable class
-
     std::shared_ptr<ConsensusCommon> dummy_consensusObjectBackup;
 
     [[gnu::unused]]auto func = [&]([[gnu::unused]]const vector<unsigned char>& input, [[gnu::unused]]unsigned int offset,
@@ -79,37 +76,36 @@ BOOST_AUTO_TEST_CASE(ConsensusBackup_DSworkflow)
         return true;
     };
 
-
     dummy_consensusObjectBackup.reset( new ConsensusBackup(
             dummy_consensus_id, dummy_block_number, dummy_block_hash,
             dummy_node_id, dummy_leader_id, dummy_privkey,
             dummy_committee, static_cast<unsigned char>(DIRECTORY),
             static_cast<unsigned char> (   DSBLOCKCONSENSUS ), func ));
 
-
-    [[gnu::unused]]ConsensusBackup* dummy_backup = dynamic_cast<ConsensusBackup*>(dummy_consensusObjectBackup.get());
+    ConsensusBackup* dummy_backup = dynamic_cast<ConsensusBackup*>(dummy_consensusObjectBackup.get());
 
     //ProcessMessage test
     vector<unsigned char> test_message(48);
     fill(test_message.begin(), test_message.end(), 0x00);
-    //Message COMMIT
+
+    ///Message PROCESS_ANNOUNCE
+    test_message[0] = 0x00;
+    BOOST_CHECK_EQUAL(dummy_backup->ProcessMessage(test_message, 0, dummy_peer), false);
+
+    ///Message PROCESS_CHALLENGE
     test_message[0] = 0x01;
     BOOST_CHECK_EQUAL(dummy_backup->ProcessMessage(test_message, 0, dummy_peer), false);
 
-    //Message COMMITFAILURE
+    ///Message PROCESS_COLLECTIVESIG
     test_message[0] = 0x02;
     BOOST_CHECK_EQUAL(dummy_backup->ProcessMessage(test_message, 0, dummy_peer), false);
 
-    //Message RESPONSE
+    ///Message PROCESS_FINALCHALLENGE
     test_message[0] = 0x03;
     BOOST_CHECK_EQUAL(dummy_backup->ProcessMessage(test_message, 0, dummy_peer), false);
 
-    //Message FINALCOMMIT
+    ///Message PROCESS_FINALCOLLECTIVESIG
     test_message[0] = 0x04;
-    BOOST_CHECK_EQUAL(dummy_backup->ProcessMessage(test_message, 0, dummy_peer), false);
-
-    //Message FINALRESPONSE
-    test_message[0] = 0x05;
     BOOST_CHECK_EQUAL(dummy_backup->ProcessMessage(test_message, 0, dummy_peer), false);
 
 }
