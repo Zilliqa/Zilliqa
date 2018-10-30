@@ -91,6 +91,10 @@ bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
                                        protoMessage.ByteSize());
 }
 
+template bool SerializeToArray<ProtoAccountStore>(
+    const ProtoAccountStore& protoMessage, vector<unsigned char>& dst,
+    const unsigned int offset);
+
 template <class T>
 bool RepeatableToArray(const T& repeatable, vector<unsigned char>& dst,
                        const unsigned int offset) {
@@ -109,6 +113,227 @@ template <class T, size_t S>
 void NumberToArray(const T& number, vector<unsigned char>& dst,
                    const unsigned int offset) {
   Serializable::SetNumber<T>(dst, offset, number, S);
+}
+
+void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      account.GetBalance(), *protoAccount.mutable_balance());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      account.GetNonce(), *protoAccount.mutable_nonce());
+  protoAccount.set_storageroot(account.GetStorageRoot().data(),
+                               account.GetStorageRoot().size);
+
+  if (account.GetCode().size() > 0) {
+    protoAccount.set_codehash(account.GetCodeHash().data(),
+                              account.GetCodeHash().size);
+    protoAccount.set_createblocknum(account.GetCreateBlockNum());
+    protoAccount.set_initdata(account.GetInitData().data(),
+                              account.GetInitData().size());
+    protoAccount.set_code(account.GetCode().data(), account.GetCode().size());
+
+    for (const auto& keyHash : account.GetStorageKeyHashes()) {
+      ProtoAccount::StorageData* entry = protoAccount.add_storage();
+      entry->set_keyhash(keyHash.data(), keyHash.size);
+      entry->set_data(account.GetRawStorage(keyHash));
+    }
+  }
+}
+
+bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
+  uint256_t tmpNumber;
+
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoAccount.balance(),
+                                                     tmpNumber);
+  account.SetBalance(tmpNumber);
+
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoAccount.nonce(),
+                                                     tmpNumber);
+  account.SetNonce(tmpNumber);
+
+  dev::h256 tmpStorageRoot;
+  copy(protoAccount.storageroot().begin(),
+       protoAccount.storageroot().begin() +
+           min((unsigned int)protoAccount.storageroot().size(),
+               (unsigned int)tmpStorageRoot.size),
+       tmpStorageRoot.asArray().begin());
+
+  if (protoAccount.code().size() > 0) {
+    vector<unsigned char> tmpVec;
+    tmpVec.resize(protoAccount.code().size());
+    copy(protoAccount.code().begin(), protoAccount.code().end(),
+         tmpVec.begin());
+    account.SetCode(tmpVec);
+
+    dev::h256 tmpHash;
+    copy(protoAccount.codehash().begin(),
+         protoAccount.codehash().begin() +
+             min((unsigned int)protoAccount.codehash().size(),
+                 (unsigned int)tmpHash.size),
+         tmpHash.asArray().begin());
+
+    if (account.GetCodeHash() != tmpHash) {
+      LOG_GENERAL(WARNING,
+                  "Code hash mismatch. Expected: "
+                      << DataConversion::charArrToHexStr(
+                             account.GetCodeHash().asArray())
+                      << " Actual: "
+                      << DataConversion::charArrToHexStr(tmpHash.asArray()));
+      return false;
+    }
+
+    account.SetCreateBlockNum(protoAccount.createblocknum());
+
+    if (protoAccount.initdata().size() > 0) {
+      tmpVec.resize(protoAccount.initdata().size());
+      copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
+           tmpVec.begin());
+      account.InitContract(tmpVec);
+    }
+
+    for (const auto& entry : protoAccount.storage()) {
+      copy(entry.keyhash().begin(),
+           entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
+                                         (unsigned int)tmpHash.size),
+           tmpHash.asArray().begin());
+      account.SetStorage(tmpHash, entry.data());
+    }
+
+    if (account.GetStorageRoot() != tmpStorageRoot) {
+      LOG_GENERAL(WARNING, "Storage root mismatch. Expected: "
+                               << DataConversion::charArrToHexStr(
+                                      account.GetStorageRoot().asArray())
+                               << " Actual: "
+                               << DataConversion::charArrToHexStr(
+                                      tmpStorageRoot.asArray()));
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void AccountDeltaToProtobuf(const Account* oldAccount,
+                            const Account& newAccount,
+                            ProtoAccount& protoAccount) {
+  Account acc(0, 0);
+
+  bool fullCopy = false;
+
+  if (oldAccount == nullptr) {
+    oldAccount = &acc;
+    fullCopy = true;
+  }
+
+  int256_t balanceDelta =
+      int256_t(newAccount.GetBalance()) - int256_t(oldAccount->GetBalance());
+  protoAccount.set_numbersign(balanceDelta > 0);
+
+  uint256_t balanceDeltaNum(abs(balanceDelta));
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      balanceDeltaNum, *protoAccount.mutable_balance());
+
+  uint256_t nonceDelta = newAccount.GetNonce() - oldAccount->GetNonce();
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      nonceDelta, *protoAccount.mutable_nonce());
+
+  if (!newAccount.GetCode().empty()) {
+    if (fullCopy) {
+      protoAccount.set_code(newAccount.GetCode().data(),
+                            newAccount.GetCode().size());
+      protoAccount.set_initdata(newAccount.GetInitData().data(),
+                                newAccount.GetInitData().size());
+      protoAccount.set_createblocknum(newAccount.GetCreateBlockNum());
+    }
+
+    if (newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
+      protoAccount.set_storageroot(newAccount.GetStorageRoot().data(),
+                                   newAccount.GetStorageRoot().size);
+
+      for (const auto& keyHash : newAccount.GetStorageKeyHashes()) {
+        string rlpStr = newAccount.GetRawStorage(keyHash);
+        if (rlpStr != oldAccount->GetRawStorage(keyHash)) {
+          ProtoAccount::StorageData* entry = protoAccount.add_storage();
+          entry->set_keyhash(keyHash.data(), keyHash.size);
+          entry->set_data(rlpStr);
+        }
+      }
+    }
+  }
+}
+
+bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
+                            const bool fullCopy) {
+  uint256_t tmpNumber;
+
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoAccount.balance(),
+                                                     tmpNumber);
+
+  int balanceDelta =
+      protoAccount.numbersign() ? (int)tmpNumber : 0 - (int)tmpNumber;
+  account.ChangeBalance(balanceDelta);
+
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoAccount.nonce(),
+                                                     tmpNumber);
+  account.IncreaseNonceBy(tmpNumber);
+
+  if (protoAccount.code().size() > 0) {
+    bool doInitContract = false;
+
+    if (fullCopy) {
+      vector<unsigned char> tmpVec;
+      tmpVec.resize(protoAccount.code().size());
+      copy(protoAccount.code().begin(), protoAccount.code().end(),
+           tmpVec.begin());
+      if (tmpVec != account.GetCode()) {
+        account.SetCode(tmpVec);
+      }
+
+      if (!protoAccount.initdata().empty() && account.GetInitData().empty()) {
+        tmpVec.resize(protoAccount.initdata().size());
+        copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
+             tmpVec.begin());
+        account.SetInitData(tmpVec);
+        doInitContract = true;
+      }
+
+      account.SetCreateBlockNum(protoAccount.createblocknum());
+    }
+
+    dev::h256 tmpStorageRoot;
+    copy(protoAccount.storageroot().begin(),
+         protoAccount.storageroot().begin() +
+             min((unsigned int)protoAccount.storageroot().size(),
+                 (unsigned int)tmpStorageRoot.size),
+         tmpStorageRoot.asArray().begin());
+
+    if (tmpStorageRoot != account.GetStorageRoot()) {
+      if (doInitContract) {
+        account.InitContract();
+      }
+
+      dev::h256 tmpHash;
+
+      for (const auto& entry : protoAccount.storage()) {
+        copy(entry.keyhash().begin(),
+             entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
+                                           (unsigned int)tmpHash.size),
+             tmpHash.asArray().begin());
+        account.SetStorage(tmpHash, entry.data());
+      }
+
+      if (tmpStorageRoot != account.GetStorageRoot()) {
+        LOG_GENERAL(WARNING, "Storage root mismatch. Expected: "
+                                 << DataConversion::charArrToHexStr(
+                                        account.GetStorageRoot().asArray())
+                                 << " Actual: "
+                                 << DataConversion::charArrToHexStr(
+                                        tmpStorageRoot.asArray()));
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 void DSCommitteeToProtobuf(const deque<pair<PubKey, Peer>>& dsCommittee,
@@ -1525,6 +1750,300 @@ bool Messenger::GetTxSharingAssignmentsHash(
   tmp = sha2.Finalize();
 
   copy(tmp.begin(), tmp.end(), dst.asArray().begin());
+
+  return true;
+}
+
+bool Messenger::SetAccount(vector<unsigned char>& dst,
+                           const unsigned int offset, const Account& account) {
+  ProtoAccount result;
+
+  AccountToProtobuf(account, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+[[gnu::unused]] bool Messenger::GetAccount(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           Account& account) {
+  ProtoAccount result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
+    return false;
+  }
+
+  if (!ProtobufToAccount(result, account)) {
+    LOG_GENERAL(WARNING, "ProtobufToAccount failed.");
+    return false;
+  }
+
+  return true;
+}
+
+bool Messenger::SetAccountDelta(vector<unsigned char>& dst,
+                                const unsigned int offset, Account* oldAccount,
+                                const Account& newAccount) {
+  ProtoAccount result;
+
+  AccountDeltaToProtobuf(oldAccount, newAccount, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetAccountDelta(const vector<unsigned char>& src,
+                                const unsigned int offset, Account& account,
+                                const bool fullCopy) {
+  ProtoAccount result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
+    return false;
+  }
+
+  if (!ProtobufToAccountDelta(result, account, fullCopy)) {
+    LOG_GENERAL(WARNING, "ProtobufToAccountDelta failed.");
+    return false;
+  }
+
+  return true;
+}
+
+template <class MAP>
+bool Messenger::SetAccountStore(vector<unsigned char>& dst,
+                                const unsigned int offset,
+                                const MAP& addressToAccount) {
+  ProtoAccountStore result;
+
+  LOG_GENERAL(INFO, "Debug: Total number of accounts to serialize: "
+                        << addressToAccount.size());
+
+  for (const auto& entry : addressToAccount) {
+    ProtoAccountStore::Account* protoEntry = result.add_entries();
+    protoEntry->set_address(entry.first.data(), entry.first.size);
+    ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
+    AccountToProtobuf(entry.second, *protoEntryAccount);
+    if (!protoEntryAccount->IsInitialized()) {
+      LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
+      return false;
+    }
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+template <class MAP>
+bool Messenger::GetAccountStore(const vector<unsigned char>& src,
+                                const unsigned int offset,
+                                MAP& addressToAccount) {
+  ProtoAccountStore result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Debug: Total number of accounts deserialized: "
+                        << result.entries().size());
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+    if (!ProtobufToAccount(entry.account(), account)) {
+      LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
+                               << entry.address());
+      return false;
+    }
+
+    addressToAccount[address] = account;
+  }
+
+  return true;
+}
+
+bool Messenger::GetAccountStore(const vector<unsigned char>& src,
+                                const unsigned int offset,
+                                AccountStore& accountStore) {
+  ProtoAccountStore result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Debug: Total number of accounts deserialized: "
+                        << result.entries().size());
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+    if (!ProtobufToAccount(entry.account(), account)) {
+      LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
+                               << entry.address());
+      return false;
+    }
+
+    accountStore.AddAccountDuringDeserialization(address, account);
+  }
+
+  return true;
+}
+
+bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     AccountStoreTemp& accountStoreTemp) {
+  ProtoAccountStore result;
+
+  LOG_GENERAL(INFO, "Debug: Total number of account deltas to serialize: "
+                        << accountStoreTemp.GetNumOfAccounts());
+
+  for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
+    ProtoAccountStore::Account* protoEntry = result.add_entries();
+    protoEntry->set_address(entry.first.data(), entry.first.size);
+    ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
+    AccountDeltaToProtobuf(accountStoreTemp.GetAccount(entry.first),
+                           entry.second, *protoEntryAccount);
+    if (!protoEntryAccount->IsInitialized()) {
+      LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
+      return false;
+    }
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     AccountStore& accountStore,
+                                     const bool reversible) {
+  ProtoAccountStore result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO,
+              "Total Number of Accounts Delta: " << result.entries().size());
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+
+    const Account* oriAccount = accountStore.GetAccount(address);
+    bool fullCopy = false;
+    if (oriAccount == nullptr) {
+      Account acc(0, 0);
+      accountStore.AddAccount(address, acc);
+      oriAccount = accountStore.GetAccount(address);
+      fullCopy = true;
+    }
+
+    account = *oriAccount;
+    if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
+      LOG_GENERAL(WARNING,
+                  "ProtobufToAccountDelta failed for account at address "
+                      << entry.address());
+      return false;
+    }
+
+    accountStore.AddAccountDuringDeserialization(address, account, fullCopy,
+                                                 reversible);
+  }
+
+  return true;
+}
+
+bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     AccountStoreTemp& accountStoreTemp) {
+  ProtoAccountStore result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO,
+              "Total Number of Accounts Delta: " << result.entries().size());
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+
+    const Account* oriAccount = accountStoreTemp.GetAccount(address);
+    bool fullCopy = false;
+    if (oriAccount == nullptr) {
+      Account acc(0, 0);
+      LOG_GENERAL(INFO, "Creating new account: " << address);
+      accountStoreTemp.AddAccount(address, acc);
+      fullCopy = true;
+    }
+
+    oriAccount = accountStoreTemp.GetAccount(address);
+    account = *oriAccount;
+
+    if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
+      LOG_GENERAL(WARNING,
+                  "ProtobufToAccountDelta failed for account at address "
+                      << entry.address());
+      return false;
+    }
+
+    accountStoreTemp.AddAccountDuringDeserialization(address, account);
+  }
 
   return true;
 }
