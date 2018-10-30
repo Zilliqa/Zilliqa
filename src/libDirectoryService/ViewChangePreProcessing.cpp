@@ -246,13 +246,23 @@ void DirectoryService::RunConsensusOnViewChange() {
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
 
+  uint16_t faultyLeaderIndex;
   m_viewChangeCounter += 1;
   if (m_viewChangeCounter == 1) {
+    faultyLeaderIndex = m_consensusLeaderID;
+  } else {
+    faultyLeaderIndex = m_candidateLeaderIndex;
+  }
+  // Ensure that one do not emplace 0.0.0.0
+  if (m_mediator.m_DSCommittee->at(faultyLeaderIndex).first ==
+          m_mediator.m_selfKey.second &&
+      m_mediator.m_DSCommittee->at(faultyLeaderIndex).second == Peer()) {
     m_cumulativeFaultyLeaders.emplace_back(
-        m_mediator.m_DSCommittee->at(m_consensusLeaderID));
+        m_mediator.m_DSCommittee->at(faultyLeaderIndex).first,
+        m_mediator.m_selfPeer);
   } else {
     m_cumulativeFaultyLeaders.emplace_back(
-        m_mediator.m_DSCommittee->at(m_candidateLeaderIndex));
+        m_mediator.m_DSCommittee->at(faultyLeaderIndex));
   }
 
   m_candidateLeaderIndex = CalculateNewLeaderIndex();
@@ -332,15 +342,6 @@ bool DirectoryService::ComputeNewCandidateLeader(
 
   // Assemble VC block header
 
-  LOG_GENERAL(
-      INFO,
-      "Composing new vc block with vc count at "
-          << m_viewChangeCounter << " and candidate leader is at index "
-          << candidateLeaderIndex << ". "
-          << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second << " "
-          << DataConversion::SerializableToHexStr(
-                 m_mediator.m_DSCommittee->at(candidateLeaderIndex).first));
-
   Peer newLeaderNetworkInfo;
   if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
           m_mediator.m_selfKey.second &&
@@ -351,6 +352,14 @@ bool DirectoryService::ComputeNewCandidateLeader(
     newLeaderNetworkInfo =
         m_mediator.m_DSCommittee->at(candidateLeaderIndex).second;
   }
+
+  LOG_GENERAL(
+      INFO,
+      "Composing new vc block with vc count at "
+          << m_viewChangeCounter << " and candidate leader is at index "
+          << candidateLeaderIndex << ". " << newLeaderNetworkInfo << " "
+          << DataConversion::SerializableToHexStr(
+                 m_mediator.m_DSCommittee->at(candidateLeaderIndex).first));
 
   // Compute the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
