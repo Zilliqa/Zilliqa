@@ -476,9 +476,6 @@ class Node : public Executable, public Broadcastable {
 
   void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
 
-  void UpdateDSCommiteeCompositionAfterVC(
-      std::deque<std::pair<PubKey, Peer>>& dsComm);
-
   void UpdateDSCommitteeAfterFallback(
       const uint32_t& shard_id, const PubKey& leaderPubKey,
       const Peer& leaderNetworkInfo,
@@ -546,7 +543,8 @@ class Node : public Executable, public Broadcastable {
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
 
-  void UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock);
+  void UpdateDSCommiteeCompositionAfterVC(
+      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
