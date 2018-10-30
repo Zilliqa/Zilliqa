@@ -75,6 +75,8 @@ void Retriever::RetrieveDSBlocks(bool& result, const bool& wakeupForUpgrade) {
   }
 
   if (isDSIncompleted[0] == '1') {
+    /// Removing incompleted DS for upgrading protocol
+    /// Keeping incompleted DS for node recovery
     if (wakeupForUpgrade) {
       LOG_GENERAL(INFO, "Has incompleted DS Block, remove it");
       if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1)) {

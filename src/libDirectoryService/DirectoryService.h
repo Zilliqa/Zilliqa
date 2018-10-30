@@ -498,14 +498,26 @@ class DirectoryService : public Executable, public Broadcastable {
   void RunConsensusOnFinalBlock(RunFinalBlockConsensusOptions options = NORMAL);
 
   // Coinbase
+#if 1  // clark
+  bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
+                    const int32_t& shard_id, const uint64_t& epochNum);
+#else
   bool SaveCoinbase(const std::vector<bool>& b1, const std::vector<bool>& b2,
                     const int32_t& shard_id);
+#endif
   void InitCoinbase();
 
+#if 1  // clark
+  template <class Container>
+  bool SaveCoinbaseCore(const std::vector<bool>& b1,
+                        const std::vector<bool>& b2, const Container& shard,
+                        const uint32_t& shard_id, const uint64_t& epochNum);
+#else
   template <class Container>
   bool SaveCoinbaseCore(const std::vector<bool>& b1,
                         const std::vector<bool>& b2, const Container& shard,
                         const uint32_t& shard_id);
+#endif
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
