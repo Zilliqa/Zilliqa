@@ -37,8 +37,7 @@ TxBlockHeader::TxBlockHeader(
     uint8_t type, uint32_t version, const uint256_t& gasLimit,
     const uint256_t& gasUsed, const uint256_t& rewards,
     const BlockHash& prevHash, const uint64_t& blockNum,
-    const uint256_t& timestamp, const BlockHash& mbRootHash,
-    const StateHash& stateRootHash, const StateHash& stateDeltaHash,
+    const uint256_t& timestamp, const TxBlockHashSet& blockHashSet,
     uint32_t numTxs, uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
     const uint64_t& dsBlockNum, const BlockHash& dsBlockHash,
     const CommitteeHash& committeeHash)
@@ -51,7 +50,7 @@ TxBlockHeader::TxBlockHeader(
       m_prevHash(prevHash),
       m_blockNum(blockNum),
       m_timestamp(timestamp),
-      m_hashset{mbRootHash, stateRootHash, stateDeltaHash},
+      m_hashset(blockHashSet),
       m_numTxs(numTxs),
       m_numMicroBlockHashes(numMicroBlockHashes),
       m_minerPubKey(minerPubKey),
@@ -104,6 +103,10 @@ const StateHash& TxBlockHeader::GetStateRootHash() const {
 
 const StateHash& TxBlockHeader::GetStateDeltaHash() const {
   return m_hashset.m_stateDeltaHash;
+}
+
+const MBInfoHash& TxBlockHeader::GetMbInfoHash() const {
+  return m_hashset.m_mbInfoHash;
 }
 
 const uint32_t& TxBlockHeader::GetNumTxs() const { return m_numTxs; }

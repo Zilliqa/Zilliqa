@@ -62,8 +62,7 @@ class TxBlockHeader : public BlockHeaderBase {
                 const boost::multiprecision::uint256_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const boost::multiprecision::uint256_t& timestamp,
-                const BlockHash& mbRootHash, const StateHash& stateRootHash,
-                const StateHash& stateDeltaHash, const uint32_t numTxs,
+                const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
                 const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
                 const uint64_t& dsBlockNum, const BlockHash& dsBlockHash,
                 const CommitteeHash& committeeHash);
@@ -113,6 +112,10 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Returns the digest that represents the hash of state delta attached to
   /// finalblock.
   const StateHash& GetStateDeltaHash() const;
+
+  /// Returns the digest that represents the hash of all the extra micro block
+  /// information in the finalblock.
+  const MBInfoHash& GetMbInfoHash() const;
 
   /// Returns the number of transactions in this block.
   const uint32_t& GetNumTxs() const;
