@@ -36,19 +36,19 @@ uint32_t distUint32() {
 }
 uint8_t dist1to99() { return randomIntInRng<uint8_t>((uint8_t)1, (uint8_t)99); }
 
-PubKey GenerateRandomPubKey() { return PubKey(PrivKey()); }
+PubKey generateRandomPubKey() { return PubKey(PrivKey()); }
 
-Peer GenerateRandomPeer() {
+Peer generateRandomPeer() {
   uint128_t ip_address = distUint32();
   uint32_t listen_port_host = distUint32();
   return Peer(ip_address, listen_port_host);
 }
 
-DSBlockHeader GenerateRandomDSBlockHeader() {
+DSBlockHeader generateRandomDSBlockHeader() {
   uint8_t dsDifficulty = distUint8();
   uint8_t difficulty = distUint8();
   BlockHash prevHash;
-  PubKey leaderPubKey = GenerateRandomPubKey();
+  PubKey leaderPubKey = generateRandomPubKey();
   uint64_t blockNum = distUint32();
   uint256_t timestamp = distUint32();
   SWInfo swInfo;
@@ -56,7 +56,7 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
   DSBlockHashSet hash;
   CommitteeHash committeeHash;
   for (unsigned int i = 0; i < 3; i++) {
-    powDSWinners.emplace(GenerateRandomPubKey(), GenerateRandomPeer());
+    powDSWinners.emplace(generateRandomPubKey(), generateRandomPeer());
   }
 
   return DSBlockHeader(dsDifficulty, difficulty, prevHash, leaderPubKey,
@@ -64,7 +64,7 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
                        committeeHash);
 }
 
-MicroBlockHeader GenerateRandomMicroBlockHeader() {
+MicroBlockHeader generateRandomMicroBlockHeader() {
   uint8_t type = distUint8();
   uint32_t version = distUint32();
   uint32_t shardId = distUint32();
@@ -76,7 +76,7 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
   uint256_t timestamp = distUint32();
   TxnHash txRootHash;
   uint32_t numTxs = dist1to99();
-  PubKey minerPubKey = GenerateRandomPubKey();
+  PubKey minerPubKey = generateRandomPubKey();
   uint64_t dsBlockNum = distUint32();
   BlockHash dsBlockHash;
   StateHash stateDeltaHash;
@@ -89,7 +89,7 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
                           tranReceiptHash, committeeHash);
 }
 
-TxBlockHeader GenerateRandomTxBlockHeader() {
+TxBlockHeader generateRandomTxBlockHeader() {
   uint8_t type = distUint8();
   uint32_t version = distUint32();
   uint256_t gasLimit = distUint32();
@@ -105,7 +105,7 @@ TxBlockHeader GenerateRandomTxBlockHeader() {
   TxnHash tranReceiptRootHash;
   uint32_t numTxs = dist1to99();
   uint32_t numMicroBlockHashes = dist1to99();
-  PubKey minerPubKey = GenerateRandomPubKey();
+  PubKey minerPubKey = generateRandomPubKey();
   uint64_t dsBlockNum = distUint32();
   BlockHash dsBlockHeader;
   CommitteeHash committeeHash;
@@ -117,13 +117,13 @@ TxBlockHeader GenerateRandomTxBlockHeader() {
                        dsBlockHeader, committeeHash);
 }
 
-VCBlockHeader GenerateRandomVCBlockHeader() {
+VCBlockHeader generateRandomVCBlockHeader() {
   uint64_t vieWChangeDSEpochNo = distUint32();
   uint64_t viewChangeEpochNo = distUint32();
   unsigned char viewChangeState = distUint8();
   uint32_t expectedCandidateLeaderIndex = distUint32();
-  Peer candidateLeaderNetworkInfo = GenerateRandomPeer();
-  PubKey candidateLeaderPubKey = GenerateRandomPubKey();
+  Peer candidateLeaderNetworkInfo = generateRandomPeer();
+  PubKey candidateLeaderPubKey = generateRandomPubKey();
   uint32_t vcCounter = distUint32();
   uint256_t timestamp = distUint32();
   CommitteeHash committeeHash;
@@ -134,14 +134,14 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
                        committeeHash);
 }
 
-FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
+FallbackBlockHeader generateRandomFallbackBlockHeader() {
   uint64_t fallbackDSEpochNo = distUint32();
   uint64_t fallbackEpochNo = distUint32();
   unsigned char fallbackState = distUint8();
   StateHash stateRootHash;
   uint32_t leaderConsensusId = distUint32();
-  Peer leaderNetworkInfo = GenerateRandomPeer();
-  PubKey leaderPubKey = GenerateRandomPubKey();
+  Peer leaderNetworkInfo = generateRandomPeer();
+  PubKey leaderPubKey = generateRandomPubKey();
   uint32_t shardId = distUint32();
   uint256_t timestamp = distUint32();
   CommitteeHash committeeHash;
@@ -152,4 +152,4 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
                              timestamp, committeeHash);
 }
 
-CoSignatures GenerateRandomCoSignatures() { return CoSignatures(dist1to99()); }
+CoSignatures generateRandomCoSignatures() { return CoSignatures(dist1to99()); }
