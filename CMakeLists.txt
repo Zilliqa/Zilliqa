@@ -47,6 +47,13 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
+include(InstallProtobuf)
+include(FindProtobuf)
+find_package(Protobuf 3.6.1 CONFIG REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
+include(InstallGRPC)
+include_directories(${GRPC_INCLUDE_DIRS})
 
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
@@ -69,15 +76,6 @@ endif()
 if(FALLBACKTEST)
 	add_definitions(-DFALLBACK_TEST)
 endif()
-
-include(FindProtobuf)
-find_package(Protobuf REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIR})
-
-execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/download_grpc.sh
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/)
-find_package(GRPC REQUIRED)
-include_directories(${GRPC_INCLUDE_DIRS})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
