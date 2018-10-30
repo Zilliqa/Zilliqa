@@ -21,6 +21,7 @@
 #include <random>
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
+#include "testLib/testLibFunctions.h"
 
 #define BOOST_TEST_MODULE message
 #define BOOST_TEST_DYN_LINK
@@ -28,135 +29,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-
-std::mt19937 rng;
-std::uniform_int_distribution<std::mt19937::result_type> dist1to99(1, 99);
-std::uniform_int_distribution<std::mt19937::result_type> distUint8(
-    std::numeric_limits<uint8_t>::min(), std::numeric_limits<uint8_t>::max());
-std::uniform_int_distribution<std::mt19937::result_type> distUint16(
-    std::numeric_limits<uint16_t>::min(), std::numeric_limits<uint16_t>::max());
-std::uniform_int_distribution<std::mt19937::result_type> distUint32(
-    std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
-
-PubKey GenerateRandomPubKey() { return PubKey(PrivKey()); }
-
-Peer GenerateRandomPeer() {
-  uint128_t ip_address = distUint32(rng);
-  uint32_t listen_port_host = distUint32(rng);
-  return Peer(ip_address, listen_port_host);
-}
-
-DSBlockHeader GenerateRandomDSBlockHeader() {
-  uint8_t dsDifficulty = distUint8(rng);
-  uint8_t difficulty = distUint8(rng);
-  BlockHash prevHash;
-  PubKey leaderPubKey = GenerateRandomPubKey();
-  uint64_t blockNum = distUint32(rng);
-  uint256_t timestamp = distUint32(rng);
-  SWInfo swInfo;
-  map<PubKey, Peer> powDSWinners;
-  DSBlockHashSet hash;
-  CommitteeHash committeeHash;
-  for (unsigned int i = 0; i < 3; i++) {
-    powDSWinners.emplace(GenerateRandomPubKey(), GenerateRandomPeer());
-  }
-
-  return DSBlockHeader(dsDifficulty, difficulty, prevHash, leaderPubKey,
-                       blockNum, timestamp, swInfo, powDSWinners, hash,
-                       committeeHash);
-}
-
-MicroBlockHeader GenerateRandomMicroBlockHeader() {
-  uint8_t type = distUint8(rng);
-  uint32_t version = distUint32(rng);
-  uint32_t shardId = distUint32(rng);
-  uint256_t gasLimit = distUint32(rng);
-  uint256_t gasUsed = distUint32(rng);
-  uint256_t rewards = distUint32(rng);
-  BlockHash prevHash;
-  uint64_t blockNum = distUint32(rng);
-  uint256_t timestamp = distUint32(rng);
-  TxnHash txRootHash;
-  uint32_t numTxs = dist1to99(rng);
-  PubKey minerPubKey = GenerateRandomPubKey();
-  uint64_t dsBlockNum = distUint32(rng);
-  BlockHash dsBlockHash;
-  StateHash stateDeltaHash;
-  TxnHash tranReceiptHash;
-  CommitteeHash committeeHash;
-
-  return MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards,
-                          prevHash, blockNum, timestamp, txRootHash, numTxs,
-                          minerPubKey, dsBlockNum, dsBlockHash, stateDeltaHash,
-                          tranReceiptHash, committeeHash);
-}
-
-TxBlockHeader GenerateRandomTxBlockHeader() {
-  uint8_t type = distUint8(rng);
-  uint32_t version = distUint32(rng);
-  uint256_t gasLimit = distUint32(rng);
-  uint256_t gasUsed = distUint32(rng);
-  uint256_t rewards = distUint32(rng);
-  BlockHash prevHash;
-  uint64_t blockNum = distUint32(rng);
-  uint256_t timestamp = distUint32(rng);
-  TxnHash txRootHash;
-  StateHash stateRootHash;
-  StateHash deltaRootHash;
-  StateHash stateDeltaHash;
-  TxnHash tranReceiptRootHash;
-  uint32_t numTxs = dist1to99(rng);
-  uint32_t numMicroBlockHashes = dist1to99(rng);
-  PubKey minerPubKey = GenerateRandomPubKey();
-  uint64_t dsBlockNum = distUint32(rng);
-  BlockHash dsBlockHeader;
-  CommitteeHash committeeHash;
-
-  return TxBlockHeader(type, version, gasLimit, gasUsed, rewards, prevHash,
-                       blockNum, timestamp, txRootHash, stateRootHash,
-                       deltaRootHash, stateDeltaHash, tranReceiptRootHash,
-                       numTxs, numMicroBlockHashes, minerPubKey, dsBlockNum,
-                       dsBlockHeader, committeeHash);
-}
-
-VCBlockHeader GenerateRandomVCBlockHeader() {
-  uint64_t vieWChangeDSEpochNo = distUint32(rng);
-  uint64_t viewChangeEpochNo = distUint32(rng);
-  unsigned char viewChangeState = distUint8(rng);
-  uint32_t expectedCandidateLeaderIndex = distUint32(rng);
-  Peer candidateLeaderNetworkInfo = GenerateRandomPeer();
-  PubKey candidateLeaderPubKey = GenerateRandomPubKey();
-  uint32_t vcCounter = distUint32(rng);
-  uint256_t timestamp = distUint32(rng);
-  CommitteeHash committeeHash;
-
-  return VCBlockHeader(vieWChangeDSEpochNo, viewChangeEpochNo, viewChangeState,
-                       expectedCandidateLeaderIndex, candidateLeaderNetworkInfo,
-                       candidateLeaderPubKey, vcCounter, timestamp,
-                       committeeHash);
-}
-
-FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
-  uint64_t fallbackDSEpochNo = distUint32(rng);
-  uint64_t fallbackEpochNo = distUint32(rng);
-  unsigned char fallbackState = distUint8(rng);
-  StateHash stateRootHash;
-  uint32_t leaderConsensusId = distUint32(rng);
-  Peer leaderNetworkInfo = GenerateRandomPeer();
-  PubKey leaderPubKey = GenerateRandomPubKey();
-  uint32_t shardId = distUint32(rng);
-  uint256_t timestamp = distUint32(rng);
-  CommitteeHash committeeHash;
-
-  return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
-                             stateRootHash, leaderConsensusId,
-                             leaderNetworkInfo, leaderPubKey, shardId,
-                             timestamp, committeeHash);
-}
-
-CoSignatures GenerateRandomCoSignatures() {
-  return CoSignatures(dist1to99(rng));
-}
 
 BOOST_AUTO_TEST_SUITE(messenger_primitives_test)
 
@@ -169,7 +41,7 @@ BOOST_AUTO_TEST_CASE(test_GetDSCommitteeHash) {
   deque<pair<PubKey, Peer>> dsCommittee;
   CommitteeHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(rng); i < count; i++) {
+  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
     dsCommittee.emplace_back(GenerateRandomPubKey(), GenerateRandomPeer());
   }
 
@@ -180,9 +52,9 @@ BOOST_AUTO_TEST_CASE(test_GetShardHash) {
   Shard shard;
   CommitteeHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(rng); i < count; i++) {
+  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
     shard.emplace_back(GenerateRandomPubKey(), GenerateRandomPeer(),
-                       distUint16(rng));
+                       distUint16());
   }
 
   BOOST_CHECK(Messenger::GetShardHash(shard, dst));
@@ -192,11 +64,11 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
   DequeOfShard shards;
   ShardingHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(rng); i < count; i++) {
+  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
     shards.emplace_back();
-    for (unsigned int j = 0, countj = dist1to99(rng); j < countj; j++) {
+    for (unsigned int j = 0, countj = dist1to99(); j < countj; j++) {
       shards.back().emplace_back(GenerateRandomPubKey(), GenerateRandomPeer(),
-                                 distUint16(rng));
+                                 distUint16());
     }
   }
 
@@ -209,14 +81,14 @@ BOOST_AUTO_TEST_CASE(test_GetTxSharingAssignmentsHash) {
   vector<vector<Peer>> shardSenders;
   TxSharingHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(rng); i < count; i++) {
+  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
     dsReceivers.emplace_back();
   }
 
-  for (unsigned int i = 0, count = dist1to99(rng); i < count; i++) {
+  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
     shardReceivers.emplace_back();
     shardSenders.emplace_back();
-    for (unsigned int j = 0, countj = dist1to99(rng); j < countj; j++) {
+    for (unsigned int j = 0, countj = dist1to99(); j < countj; j++) {
       shardReceivers.back().emplace_back();
       shardSenders.back().emplace_back();
     }
