@@ -71,9 +71,9 @@ bool FallbackBlock::operator==(const FallbackBlock& block) const {
 }
 
 bool FallbackBlock::operator<(const FallbackBlock& block) const {
-  return m_header < block.m_header;
+  return block.m_header > m_header;
 }
 
 bool FallbackBlock::operator>(const FallbackBlock& block) const {
-  return !((*this == block) || (*this < block));
+  return block < *this;
 }

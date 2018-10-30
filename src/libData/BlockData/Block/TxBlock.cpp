@@ -124,19 +124,8 @@ bool TxBlock::operator==(const TxBlock& block) const {
 }
 
 bool TxBlock::operator<(const TxBlock& block) const {
-  if (m_header < block.m_header) {
-    return true;
-  } else if (m_header > block.m_header) {
-    return false;
-  } else if (m_microBlockHashes < block.m_microBlockHashes) {
-    return true;
-  } else if (m_microBlockHashes > block.m_microBlockHashes) {
-    return false;
-  } else {
-    return false;
-  }
+  return std::tie(block.m_header, block.m_microBlockHashes) >
+         std::tie(m_header, m_microBlockHashes);
 }
 
-bool TxBlock::operator>(const TxBlock& block) const {
-  return !((*this == block) || (*this < block));
-}
+bool TxBlock::operator>(const TxBlock& block) const { return block < *this; }
