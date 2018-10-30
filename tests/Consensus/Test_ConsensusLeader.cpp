@@ -14,12 +14,14 @@
 * and which include a reference to GPLv3 in their program files.
 **/
 
+#include "libConsensus/ConsensusLeader.h"
+#include "testLib/testLibFunctions.h"
+//#include "Test_Consensus.h"
+#include "common/Messages.h"
+
 #define BOOST_TEST_MODULE ConsensusLeader
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-
-#include "libConsensus/ConsensusLeader.h"
-#include "common/Messages.h"
 
 using namespace std;
 
@@ -37,7 +39,6 @@ BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
 
     ///Generated private and public keys
     vector<unsigned char> privkey_vec(32);
-    vector<unsigned char> pubkey_vec(33);
 
     std::string in("03D2844A78C799551D34CB699D110CFADA7A473A9B725A918635B8EF3C26AF1668");
     size_t len = in.length();
@@ -47,16 +48,9 @@ BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
         instream >> std::hex >> x;
         privkey_vec.push_back(x);
     }
-    in = "03D2844A78C799551D34CB699D110CFADA7A473A9B725A918635B8EF3C26AF1668";
-    len = in.length();
-    for(size_t i = 0; i < len; i += 2) {
-        std::istringstream instream(in.substr(i, 2));
-        uint8_t x;
-        instream >> std::hex >> x;
-        pubkey_vec.push_back(x);
-    }
+
     PrivKey dummy_privkey(privkey_vec, 0); // leader's private key
-    PubKey dummy_pubkey(pubkey_vec, 0); // leader's public key
+    PubKey dummy_pubkey = GenerateRandomPubKey(); // leader's public key
 
     uint32_t dummy_consensus_id = 0; // unique identifier for this consensus session
     uint16_t dummy_block_number = 0;
@@ -65,8 +59,7 @@ BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
 
     uint16_t dummy_node_id = 0; // leader's identifier (= index in some ordered lookup table shared by all nodes)
 
-    boost::multiprecision::uint128_t dummy_ipAddress = 3232235521; // 192.168.0.1 encoded by https://www.ipaddressguide.com/ip
-    Peer dummy_peer(dummy_ipAddress, 4444); // ip , port;
+    Peer dummy_peer = GenerateRandomPeer();
     std::deque<std::pair<PubKey, Peer>> dummy_committee; //(pubkey&(),peer&()); // ordered lookup table of pubkeys for this committee (includes leader)
     pair<PubKey, Peer> dummy_pair(dummy_pubkey, dummy_peer);
     dummy_committee.push_back(dummy_pair);
