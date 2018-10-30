@@ -212,8 +212,7 @@ message ProtoTxBlock
         required uint32 nummicroblockhashes     = 11;
         required ByteArray minerpubkey          = 12;
         required uint64 dsblocknum              = 13;
-        required bytes dsblockhash              = 14;
-        required bytes committeehash            = 15;
+        required bytes committeehash            = 14;
     }
     required TxBlockHeader header               = 1;
     repeated bool ismicroblockempty             = 2 [packed=true];
