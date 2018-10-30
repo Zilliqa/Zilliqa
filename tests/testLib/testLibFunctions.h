@@ -20,14 +20,14 @@
 #ifndef TESTS_TESTLIB_TESTLIBFUNCTIONS_H_
 #define TESTS_TESTLIB_TESTLIBFUNCTIONS_H_
 
-#include <random>
 #include <limits>
-#include "libMessage/Messenger.h"
+#include <random>
 #include "libCrypto/Schnorr.h"
-#include "libNetwork/Peer.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"
 #include "libData/BlockData/BlockHeader/MicroBlockHeader.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libMessage/Messenger.h"
+#include "libNetwork/Peer.h"
 
 static std::mt19937 rng;
 
@@ -47,5 +47,3 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader();
 CoSignatures GenerateRandomCoSignatures();
 
 #endif /* TESTS_TESTLIB_TESTFUNCTIONSLIB_H_ */
-
-
