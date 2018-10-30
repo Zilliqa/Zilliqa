@@ -35,7 +35,7 @@ FallbackBlockHeader::FallbackBlockHeader(const vector<unsigned char>& src,
 
 FallbackBlockHeader::FallbackBlockHeader(
     const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
-    const unsigned char fallbackState, const StateHash& stateRootHash,
+    const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
     const uint32_t leaderConsensusId, const Peer& leaderNetworkInfo,
     const PubKey& leaderPubKey, const uint32_t shardId,
     const boost::multiprecision::uint256_t& timestamp,
@@ -44,7 +44,7 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
       m_fallbackState(fallbackState),
-      m_hashset{stateRootHash},
+      m_hashset(hashset),
       m_leaderConsensusId(leaderConsensusId),
       m_leaderNetworkInfo(leaderNetworkInfo),
       m_leaderPubKey(leaderPubKey),

@@ -64,11 +64,9 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const boost::multiprecision::uint256_t& rewards,
                    const BlockHash& prevHash, const uint64_t& blockNum,
                    const boost::multiprecision::uint256_t& timestamp,
-                   const TxnHash& txRootHash, const uint32_t numTxs,
+                   const MicroBlockHashSet& hashset, const uint32_t numTxs,
                    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
                    const BlockHash& dsBlockHash,
-                   const StateHash& stateDeltaHash,
-                   const TxnHash& tranReceiptHash,
                    const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.

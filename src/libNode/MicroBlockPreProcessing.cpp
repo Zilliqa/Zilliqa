@@ -139,9 +139,9 @@ bool Node::ComposeMicroBlock() {
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards,
-                       prevHash, blockNum, timestamp, txRootHash, numTxs,
-                       minerPubKey, dsBlockNum, dsBlockHash, stateDeltaHash,
-                       txReceiptHash, committeeHash),
+                       prevHash, blockNum, timestamp,
+                       {txRootHash, stateDeltaHash, txReceiptHash}, numTxs,
+                       minerPubKey, dsBlockNum, dsBlockHash, committeeHash),
       tranHashes, CoSignatures()));
   m_microblock->SetBlockHash(m_microblock->GetHeader().GetMyHash());
 

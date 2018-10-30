@@ -59,7 +59,8 @@ class DSBlockHeader : public BlockHeaderBase {
                 const boost::multiprecision::uint256_t& timestamp,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
-                const DSBlockHashSet& hash, const CommitteeHash& committeeHash);
+                const DSBlockHashSet& hashset,
+                const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,

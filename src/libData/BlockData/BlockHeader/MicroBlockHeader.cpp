@@ -37,10 +37,9 @@ MicroBlockHeader::MicroBlockHeader(
     uint8_t type, uint32_t version, uint32_t shardId, const uint256_t& gasLimit,
     const uint256_t& gasUsed, const uint256_t& rewards,
     const BlockHash& prevHash, const uint64_t& blockNum,
-    const uint256_t& timestamp, const TxnHash& txRootHash, uint32_t numTxs,
-    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-    const BlockHash& dsBlockHash, const StateHash& stateDeltaHash,
-    const TxnHash& tranReceiptHash, const CommitteeHash& committeeHash)
+    const uint256_t& timestamp, const MicroBlockHashSet& hashset,
+    uint32_t numTxs, const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+    const BlockHash& dsBlockHash, const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
       m_type(type),
       m_version(version),
@@ -51,7 +50,7 @@ MicroBlockHeader::MicroBlockHeader(
       m_prevHash(prevHash),
       m_blockNum(blockNum),
       m_timestamp(timestamp),
-      m_hashset{txRootHash, stateDeltaHash, tranReceiptHash},
+      m_hashset(hashset),
       m_numTxs(numTxs),
       m_minerPubKey(minerPubKey),
       m_dsBlockNum(dsBlockNum),
