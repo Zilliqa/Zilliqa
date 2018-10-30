@@ -83,6 +83,7 @@
         <GOSSIP_CUSTOM_ROUNDS_SETTINGS>true</GOSSIP_CUSTOM_ROUNDS_SETTINGS>
         <BROADCAST_TREEBASED_CLUSTER_MODE>true</BROADCAST_TREEBASED_CLUSTER_MODE>
         <GET_INITIAL_DS_FROM_REPO>false</GET_INITIAL_DS_FROM_REPO>
+        <UPGRADE_HOST>https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest</UPGRADE_HOST>
     </options>
     <smart_contract>
         <SCILLA_ROOT/>
