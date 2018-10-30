@@ -219,6 +219,7 @@ class DirectoryService : public Executable, public Broadcastable {
                           unsigned int numOfProposedDSMembers);
 
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
+  bool VerifyPoWWinner(const MapOfPubKeyPoW& allPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
                          const MapOfPubKeyPoW& allPoWsFromTheLeader);
