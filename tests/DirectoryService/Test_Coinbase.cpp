@@ -21,6 +21,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/Peer.h"
+#include "testLib/testLibFunctions.h"
 
 #define BOOST_TEST_MODULE Coinbase
 #define BOOST_TEST_DYN_LINK
@@ -32,27 +33,9 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-std::mt19937 rng;
-std::uniform_int_distribution<std::mt19937::result_type> dist1to99(1, 99);
-std::uniform_int_distribution<std::mt19937::result_type> distUint8(
-    std::numeric_limits<uint8_t>::min(), std::numeric_limits<uint8_t>::max());
-std::uniform_int_distribution<std::mt19937::result_type> distUint16(
-    std::numeric_limits<uint16_t>::min(), std::numeric_limits<uint16_t>::max());
-std::uniform_int_distribution<std::mt19937::result_type> distUint32(
-    std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
-std::uniform_int_distribution<std::mt19937::result_type> distUint64(
-    std::numeric_limits<uint64_t>::min(), std::numeric_limits<uint64_t>::max());
-
-template <typename T>
-T generateFromNtoM(T n, T m){
-  return std::uniform_int_distribution<T> {n, m};
-}
-
-PubKey generateRandomPubKey(PrivKey privK) { return PubKey(privK); }
-
 Peer generateRandomPeer() {
-  uint128_t ip_address = distUint64(rng);
-  uint32_t listen_port_host = distUint32(rng);
+  uint128_t ip_address = distUint64();
+  uint32_t listen_port_host = distUint32();
   return Peer(ip_address, listen_port_host);
 }
 
@@ -76,7 +59,7 @@ Shard generateRandomShard(size_t size){
   Shard s;
   for (size_t i = 1; i <= size; size++)
     (void)i; //  avoid not used varuable
-    s.push_back(std::make_tuple(generateRandomPubKey(PrivKey()), generateRandomPeer(), (short unsigned int)distUint16(rng)));
+    s.push_back(std::make_tuple(generateRandomPubKey(PrivKey()), generateRandomPeer(), (short unsigned int)distUint16()));
   return s;
 }
 
@@ -93,7 +76,7 @@ using coinbaseRewardees_t = std::map<uint64_t, std::unordered_map<int32_t, std::
 vector<Address> generateAddressVector(size_t size){
   vector<Address> v_a;
   for (size_t addr_i = 1; addr_i <= size; addr_i++){
-    v_a.push_back(Address(distUint32(rng)));
+    v_a.push_back(Address(distUint32()));
   }
   return v_a;
 }
@@ -105,9 +88,11 @@ vector<Address> generateAddressVector(size_t size){
  */
 coinbaseRewardees_t generateRandomCoinbaseRewardees(){
   coinbaseRewardees_t coinbaseRewardees;
-  uint8_t epoch_size = generateFromNtoM<uint8_t>(1,100);
+  uint16_t a = randomIntInRng<uint16_t>(1,100);
+  a = a + 1;
+  uint8_t epoch_size = randomIntInRng<uint8_t>(1,100);
   for (size_t epoch = 1; epoch <= epoch_size; epoch++){
-    uint8_t shard_ID_size = generateFromNtoM<uint8_t>(1,100);
+    uint8_t shard_ID_size = randomIntInRng<uint8_t>(1,100);
     std::unordered_map<int32_t, std::vector<Address>> shardID_address_m;
     for (size_t shard_ID = 1; shard_ID <= shard_ID_size; shard_ID++){
       shardID_address_m[(int32_t)shard_ID] = generateAddressVector(shard_ID);

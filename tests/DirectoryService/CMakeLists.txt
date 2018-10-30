@@ -9,6 +9,6 @@ endif(CMAKE_CONFIGURATION_TYPES)
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_executable (Test_Coinbase Test_Coinbase.cpp)
-target_include_directories (Test_Coinbase PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_Coinbase PUBLIC DirectoryService)
+target_include_directories (Test_Coinbase PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries (Test_Coinbase PUBLIC DirectoryService testLib)
 add_test(NAME Test_Coinbase COMMAND Test_Coinbase)
