@@ -46,14 +46,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::UpdateDSCommiteeCompositionAfterVC(
-    deque<pair<PubKey, Peer>>& dsComm) {
-  LOG_MARKER();
-
-  dsComm.emplace_back(dsComm.front());
-  dsComm.pop_front();
-}
-
 bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   LOG_MARKER();
 
@@ -210,26 +202,26 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
-  UpdateDSCommiteeCompositionAfterVC(vcblock);
+  UpdateDSCommiteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
 
   return true;
 }
 
-void Node::UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock) {
+void Node::UpdateDSCommiteeCompositionAfterVC(
+    const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
     deque<pair<PubKey, Peer>>::iterator it =
-        find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
-             faultyLeader);
+        find(dsComm.begin(), dsComm.end(), faultyLeader);
 
     // Remove faulty leader from the current
-    if (it != m_mediator.m_DSCommittee->end()) {
-      m_mediator.m_DSCommittee->erase(it);
+    if (it != dsComm.end()) {
+      dsComm.erase(it);
     } else {
       LOG_GENERAL(WARNING, "Cannot find the ds leader to eject");
       // TODO: Handle this situation. This siutation shouldn't be
       // encountered at all
     }
-    m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+    dsComm.emplace_back(faultyLeader);
   }
 }
 
