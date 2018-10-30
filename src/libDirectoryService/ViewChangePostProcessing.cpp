@@ -137,8 +137,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         m_mediator.m_DSCommittee->erase(iterFaultyLeader);
       } else {
         LOG_GENERAL(FATAL, "Cannot find "
-                                 << faultyLeader.second
-                                 << " to eject to back of ds committee");
+                               << faultyLeader.second
+                               << " to eject to back of ds committee");
       }
 
       // Add to the back of the ds commitee deque

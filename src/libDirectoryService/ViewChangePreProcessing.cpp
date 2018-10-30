@@ -100,7 +100,7 @@ bool DirectoryService::ViewChangeValidator(
   if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
       m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
     LOG_GENERAL(
-        WARNING,
+        FATAL,
         "Candidate network info mismatched. Expected: "
             << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
             << " Obtained: "
@@ -429,7 +429,6 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
                           << candidateLeaderIndex
                           << " VC counter: " << m_viewChangeCounter);
   }
-  sha2.Reset();
   return candidateLeaderIndex;
 }
 
