@@ -71,7 +71,8 @@ apt-get install -y \
     libcurl4-openssl-dev \
     protobuf-compiler \
     libtool \
-    autoconf
+    autoconf \
+    golang
 
 # install development dependencies
 apt-get install -y \
