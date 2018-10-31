@@ -134,7 +134,8 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // View Change
   std::atomic<uint32_t> m_viewChangeCounter;
-  Peer m_candidateLeader;
+  std::atomic<uint32_t> m_candidateLeaderIndex;
+  std::vector<std::pair<PubKey, Peer>> m_cumulativeFaultyLeaders;
   std::shared_ptr<VCBlock> m_pendingVCBlock;
   std::mutex m_mutexPendingVCBlock;
   std::condition_variable cv_ViewChangeConsensusObj;
@@ -332,7 +333,8 @@ class DirectoryService : public Executable, public Broadcastable {
                            const std::vector<unsigned char>& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
                            std::vector<unsigned char>& messageToCosign);
-
+  bool CheckUseVCBlockInsteadOfDSBlock(const BlockLink& bl,
+                                       VCBlockSharedPtr& prevVCBlockptr);
   void StoreFinalBlockToDisk();
 
   bool OnNodeMissingMicroBlocks(const std::vector<unsigned char>& errorMsg,
@@ -352,9 +354,12 @@ class DirectoryService : public Executable, public Broadcastable {
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
-  bool ComputeNewCandidateLeader();
-  bool RunConsensusOnViewChangeWhenCandidateLeader();
-  bool RunConsensusOnViewChangeWhenNotCandidateLeader();
+  bool ComputeNewCandidateLeader(const uint32_t candidateLeaderIndex);
+  uint32_t CalculateNewLeaderIndex();
+  bool RunConsensusOnViewChangeWhenCandidateLeader(
+      const uint32_t candidateLeaderIndex);
+  bool RunConsensusOnViewChangeWhenNotCandidateLeader(
+      const uint32_t candidateLeaderIndex);
   void ProcessViewChangeConsensusWhenDone();
   void ProcessNextConsensus(unsigned char viewChangeState);
 

@@ -103,15 +103,70 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
-  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second !=
+  // Verify candidate leader index
+  uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
+  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
       m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
-    LOG_GENERAL(WARNING, "Candidate network info mismatched");
+    LOG_GENERAL(
+        FATAL,
+        "Candidate network info mismatched. Expected: "
+            << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second
+            << " Obtained: "
+            << m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
     return false;
   }
 
-  if (!(m_mediator.m_DSCommittee->at(m_viewChangeCounter).first ==
+  // Create a temporary local structure of ds committee and change 0.0.0.0 to
+  // node's ip
+  // Used range based loop due to clang tidy  enforcement
+  vector<pair<PubKey, Peer>> cumlativeFaultyLeaders = m_cumulativeFaultyLeaders;
+  unsigned int indexToLeader = 0;
+  for (const auto& node : cumlativeFaultyLeaders) {
+    if (node.second == Peer()) {
+      cumlativeFaultyLeaders.at(indexToLeader) =
+          make_pair(cumlativeFaultyLeaders.at(indexToLeader).first,
+                    m_mediator.m_selfPeer);
+      break;
+    }
+    ++indexToLeader;
+  }
+
+  // Verify faulty leaders
+  if (m_pendingVCBlock->GetHeader().GetFaultyLeaders() !=
+      cumlativeFaultyLeaders) {
+    LOG_GENERAL(WARNING, "View of faulty leader do not match");
+    LOG_GENERAL(WARNING, "Local view of faulty leader");
+    for (const auto& localFaultyLeader : cumlativeFaultyLeaders) {
+      LOG_GENERAL(WARNING, "Pubkey: " << DataConversion::SerializableToHexStr(
+                                             localFaultyLeader.first)
+                                      << " " << localFaultyLeader.second);
+    }
+    LOG_GENERAL(WARNING, "Proposed view of faulty leader");
+    for (const auto& proposedFaultyLeader :
+         m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
+      LOG_GENERAL(WARNING, "Pubkey: " << DataConversion::SerializableToHexStr(
+                                             proposedFaultyLeader.first)
+                                      << " " << proposedFaultyLeader.second);
+    }
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "candidate leader is at index " << candidateLeaderIndex);
+  for (auto& i : *m_mediator.m_DSCommittee) {
+    LOG_GENERAL(
+        INFO, i.second << " " << DataConversion::SerializableToHexStr(i.first));
+  }
+
+  if (!(m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
         m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey())) {
-    LOG_GENERAL(WARNING, "Candidate pubkey mismatched");
+    LOG_GENERAL(
+        WARNING,
+        "Candidate pubkey mismatched. Expected: "
+            << DataConversion::SerializableToHexStr(
+                   m_mediator.m_DSCommittee->at(candidateLeaderIndex).first)
+            << " Obtained: "
+            << DataConversion::SerializableToHexStr(
+                   m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()));
     return false;
   }
 
@@ -128,7 +183,10 @@ bool DirectoryService::ViewChangeValidator(
 
   if (m_viewChangeCounter !=
       m_pendingVCBlock->GetHeader().GetViewChangeCounter()) {
-    LOG_GENERAL(WARNING, "View change counter mismatched");
+    LOG_GENERAL(WARNING,
+                "View change counter mismatched. Expected: "
+                    << m_viewChangeCounter << " Obtained: "
+                    << m_pendingVCBlock->GetHeader().GetViewChangeCounter());
     return false;
   }
   return true;
@@ -196,15 +254,31 @@ void DirectoryService::RunConsensusOnViewChange() {
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
 
-  m_viewChangeCounter =
-      (m_viewChangeCounter + 1) %
-      m_mediator.m_DSCommittee
-          ->size();  // TODO: To be change to a random node using VRF
+  uint16_t faultyLeaderIndex;
+  m_viewChangeCounter += 1;
+  if (m_viewChangeCounter == 1) {
+    faultyLeaderIndex = m_consensusLeaderID;
+  } else {
+    faultyLeaderIndex = m_candidateLeaderIndex;
+  }
+  // Ensure that one do not emplace 0.0.0.0
+  if (m_mediator.m_DSCommittee->at(faultyLeaderIndex).first ==
+          m_mediator.m_selfKey.second &&
+      m_mediator.m_DSCommittee->at(faultyLeaderIndex).second == Peer()) {
+    m_cumulativeFaultyLeaders.emplace_back(
+        m_mediator.m_DSCommittee->at(faultyLeaderIndex).first,
+        m_mediator.m_selfPeer);
+  } else {
+    m_cumulativeFaultyLeaders.emplace_back(
+        m_mediator.m_DSCommittee->at(faultyLeaderIndex));
+  }
 
-  LOG_GENERAL(INFO,
-              "The new consensus leader is at index "
-                  << to_string(m_viewChangeCounter) << " "
-                  << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
+  m_candidateLeaderIndex = CalculateNewLeaderIndex();
+
+  LOG_GENERAL(
+      INFO, "The new consensus leader is at index "
+                << to_string(m_candidateLeaderIndex) << " "
+                << m_mediator.m_DSCommittee->at(m_candidateLeaderIndex).second);
 
   if (DEBUG_LEVEL >= 5) {
     for (auto& i : *m_mediator.m_DSCommittee) {
@@ -218,13 +292,15 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   // We compare with empty peer is due to the fact that DSCommittee for yourself
   // is 0.0.0.0 with port 0.
-  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer()) {
-    ConsensusObjCreation = RunConsensusOnViewChangeWhenCandidateLeader();
+  if (m_mediator.m_DSCommittee->at(m_candidateLeaderIndex).second == Peer()) {
+    ConsensusObjCreation =
+        RunConsensusOnViewChangeWhenCandidateLeader(m_candidateLeaderIndex);
     if (!ConsensusObjCreation) {
       LOG_GENERAL(WARNING, "Error after RunConsensusOnDSBlockWhenDSPrimary");
     }
   } else {
-    ConsensusObjCreation = RunConsensusOnViewChangeWhenNotCandidateLeader();
+    ConsensusObjCreation =
+        RunConsensusOnViewChangeWhenNotCandidateLeader(m_candidateLeaderIndex);
     if (!ConsensusObjCreation) {
       LOG_GENERAL(WARNING,
                   "Error after "
@@ -261,7 +337,8 @@ void DirectoryService::ScheduleViewChangeTimeout() {
   }
 }
 
-bool DirectoryService::ComputeNewCandidateLeader() {
+bool DirectoryService::ComputeNewCandidateLeader(
+    const uint32_t candidateLeaderIndex) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComputeNewCandidateLeader not expected "
@@ -273,17 +350,24 @@ bool DirectoryService::ComputeNewCandidateLeader() {
 
   // Assemble VC block header
 
-  LOG_GENERAL(
-      INFO, "Composing new vc block with vc count at " << m_viewChangeCounter);
-
   Peer newLeaderNetworkInfo;
-  if (m_mediator.m_DSCommittee->at(m_viewChangeCounter).second == Peer()) {
+  if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
+          m_mediator.m_selfKey.second &&
+      m_mediator.m_DSCommittee->at(candidateLeaderIndex).second == Peer()) {
     // I am the leader but in the Peer store, it is put as 0.0.0.0 with port 0
     newLeaderNetworkInfo = m_mediator.m_selfPeer;
   } else {
     newLeaderNetworkInfo =
-        m_mediator.m_DSCommittee->at(m_viewChangeCounter).second;
+        m_mediator.m_DSCommittee->at(candidateLeaderIndex).second;
   }
+
+  LOG_GENERAL(
+      INFO,
+      "Composing new vc block with vc count at "
+          << m_viewChangeCounter << " and candidate leader is at index "
+          << candidateLeaderIndex << ". " << newLeaderNetworkInfo << " "
+          << DataConversion::SerializableToHexStr(
+                 m_mediator.m_DSCommittee->at(candidateLeaderIndex).first));
 
   // Compute the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
@@ -302,9 +386,10 @@ bool DirectoryService::ComputeNewCandidateLeader() {
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             m_mediator.m_currentEpochNum, m_viewChangestate,
-            m_viewChangeCounter, newLeaderNetworkInfo,
-            m_mediator.m_DSCommittee->at(m_viewChangeCounter).first,
-            m_viewChangeCounter, get_time_as_int(), committeeHash),
+            newLeaderNetworkInfo,
+            m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, get_time_as_int(),
+            committeeHash),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
@@ -312,7 +397,77 @@ bool DirectoryService::ComputeNewCandidateLeader() {
   return true;
 }
 
-bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
+uint32_t DirectoryService::CalculateNewLeaderIndex() {
+  // New leader is computed using the following
+  // new candidate leader index is
+  // H((finalblock or vc block), vc counter) % size
+  // of ds committee
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+  uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
+  BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);
+  VCBlockSharedPtr prevVCBlockptr;
+  if (CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
+    LOG_GENERAL(INFO,
+                "Using hash of last vc block for computing candidcate leader");
+    sha2.Update(prevVCBlockptr->GetBlockHash().asBytes());
+  } else {
+    LOG_GENERAL(
+        INFO, "Using hash of last final block for computing candidcate leader");
+    sha2.Update(
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+  }
+
+  vector<unsigned char> vcCounterBytes;
+  Serializable::SetNumber<uint32_t>(vcCounterBytes, 0, m_viewChangeCounter,
+                                    sizeof(uint32_t));
+  sha2.Update(vcCounterBytes);
+  uint16_t lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
+  uint32_t candidateLeaderIndex =
+      lastBlockHash % (m_mediator.m_DSCommittee->size());
+
+  while (candidateLeaderIndex == m_consensusLeaderID) {
+    LOG_GENERAL(INFO,
+                "Computed candidate leader is current faulty ds leader. Index: "
+                    << candidateLeaderIndex);
+    sha2.Update(sha2.Finalize());
+    lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
+    candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+    LOG_GENERAL(INFO, "Re-computed candidate leader is at index: "
+                          << candidateLeaderIndex
+                          << " VC counter: " << m_viewChangeCounter);
+  }
+  return candidateLeaderIndex;
+}
+
+bool DirectoryService::CheckUseVCBlockInsteadOfDSBlock(
+    const BlockLink& bl, VCBlockSharedPtr& prevVCBlockptr) {
+  BlockType latestBlockType = get<BlockLinkIndex::BLOCKTYPE>(bl);
+
+  if (latestBlockType == BlockType::VC) {
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(bl), prevVCBlockptr)) {
+      LOG_GENERAL(WARNING, "could not get vc block "
+                               << get<BlockLinkIndex::BLOCKHASH>(bl));
+      return false;
+    }
+
+    if (prevVCBlockptr->GetHeader().GetViewChangeEpochNo() !=
+        m_mediator.m_currentEpochNum) {
+      return false;
+    }
+
+    if (prevVCBlockptr->GetHeader().GetViewChangeState() != m_viewChangestate) {
+      return false;
+    }
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
+    const uint32_t candidateLeaderIndex) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::"
@@ -323,22 +478,28 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
 
   LOG_MARKER();
 
-  // view change testing code (for failure of candidate leader)
-  /**
-  if (true && m_viewChangeCounter < 2)
-  {
-      LOG_EPOCH(
-          WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-          "I am killing/suspending myself to test recursive view change.");
-      throw Exception();
-      // return false;
+#ifdef VC_TEST_VC_SUSPEND_1
+  if (m_viewChangeCounter < 2) {
+    LOG_GENERAL(
+        WARNING,
+        "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_1)");
+    return false;
   }
-  **/
+#endif  // VC_TEST_VC_SUSPEND_1
+
+#ifdef VC_TEST_VC_SUSPEND_3
+  if (m_viewChangeCounter < 4) {
+    LOG_GENERAL(
+        WARNING,
+        "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
+    return false;
+  }
+#endif  // VC_TEST_VC_SUSPEND_3
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am the candidate leader DS node. Announcing to the rest.");
 
-  if (!ComputeNewCandidateLeader()) {
+  if (!ComputeNewCandidateLeader(candidateLeaderIndex)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DirectoryService::ComputeNewCandidateLeader failed");
     return false;
@@ -389,7 +550,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader() {
   return true;
 }
 
-bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
+bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
+    const uint32_t candidateLeaderIndex) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -404,8 +566,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
             "I am a backup DS node (after view change). Waiting for view "
             "change announcement. "
             "Leader is at index  "
-                << m_viewChangeCounter << " "
-                << m_mediator.m_DSCommittee->at(m_viewChangeCounter).second);
+                << candidateLeaderIndex << " "
+                << m_mediator.m_DSCommittee->at(candidateLeaderIndex).second);
 
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
@@ -424,7 +586,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader() {
   uint32_t consensusID = m_viewChangeCounter;
   m_consensusObject.reset(new ConsensusBackup(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
-      m_consensusMyID, m_viewChangeCounter, m_mediator.m_selfKey.first,
+      m_consensusMyID, candidateLeaderIndex, m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
       static_cast<unsigned char>(VIEWCHANGECONSENSUS), func));
 

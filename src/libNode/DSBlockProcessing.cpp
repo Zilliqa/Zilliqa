@@ -493,13 +493,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
   uint32_t expectedViewChangeCounter = 1;
   for (const auto& vcBlock : vcBlocks) {
-    if (vcBlock.GetHeader().GetViewChangeCounter() !=
-        expectedViewChangeCounter) {
-      LOG_GENERAL(WARNING, "Unexpected VC block counter. Expected: "
-                               << expectedViewChangeCounter << " Received: "
-                               << vcBlock.GetHeader().GetViewChangeCounter());
-    }
-
     if (!ProcessVCBlockCore(vcBlock)) {
       LOG_GENERAL(WARNING, "Checking for error when processing vc blocknum "
                                << vcBlock.GetHeader().GetViewChangeCounter());

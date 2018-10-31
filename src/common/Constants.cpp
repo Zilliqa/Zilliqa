@@ -195,6 +195,8 @@ const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("COMMIT_WINDOW_IN_SECONDS")};
 const unsigned int NUM_CONSENSUS_SUBSETS{
     ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
+const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
+    ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
 
 // options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
@@ -213,7 +215,9 @@ const bool BROADCAST_TREEBASED_CLUSTER_MODE{
     ReadFromOptionsFile("BROADCAST_TREEBASED_CLUSTER_MODE") == "true"};
 const bool GET_INITIAL_DS_FROM_REPO{
     ReadFromOptionsFile("GET_INITIAL_DS_FROM_REPO") == "true"};
-const std::string UPGRADE_HOST{ReadFromOptionsFile("UPGRADE_HOST")};
+const std::string UPGRADE_HOST_ACCOUNT{
+    ReadFromOptionsFile("UPGRADE_HOST_ACCOUNT")};
+const std::string UPGRADE_HOST_REPO{ReadFromOptionsFile("UPGRADE_HOST_REPO")};
 const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 
 // gas
