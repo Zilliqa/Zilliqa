@@ -73,8 +73,8 @@ if [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ]; then
 fi
 
 # Read information from files
-accountName="$(xml_grep 'UPGRADE_HOST_ACCOUNT' ${constantFile} --text_only)"
-repoName="$(xml_grep 'UPGRADE_HOST_REPO' ${constantFile} --text_only)"
+accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
+repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
 defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
 defaultMinor="$(sed -n ${minorLine}p ${versionFile})"
 defaultFix="$(sed -n ${fixLine}p ${versionFile})"
