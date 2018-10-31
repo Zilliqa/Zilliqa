@@ -269,12 +269,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   } else {
     // Coinbase
-#if 1  // clark
     SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1,
                  m_mediator.m_currentEpochNum);
-#else
-    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
-#endif
     m_totalTxnFees += m_finalBlock->GetHeader().GetRewards();
   }
 
