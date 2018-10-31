@@ -39,14 +39,14 @@ class TxBlockHeader : public BlockHeaderBase {
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
   boost::multiprecision::uint256_t m_timestamp;
-  TxBlockHashSet m_hash;
+  TxBlockHashSet m_hashset;
   uint32_t m_numTxs;               // Total number of txs included in the block
   uint32_t m_numMicroBlockHashes;  // Total number of microblock hashes included
                                    // in the block
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
       m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
-  BlockHash m_dsBlockHeader;  // DS Block hash
+  BlockHash m_dsBlockHash;  // DS Block hash
 
  public:
   /// Default constructor.
@@ -62,11 +62,10 @@ class TxBlockHeader : public BlockHeaderBase {
                 const boost::multiprecision::uint256_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const boost::multiprecision::uint256_t& timestamp,
-                const TxnHash& txRootHash, const StateHash& stateRootHash,
-                const StateHash& deltaRootHash, const StateHash& stateDeltaHash,
-                const TxnHash& tranReceiptRootHash, const uint32_t numTxs,
+                const BlockHash& mbRootHash, const StateHash& stateRootHash,
+                const StateHash& stateDeltaHash, const uint32_t numTxs,
                 const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const BlockHash& dsBlockHeader,
+                const uint64_t& dsBlockNum, const BlockHash& dsBlockHash,
                 const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
@@ -105,23 +104,15 @@ class TxBlockHeader : public BlockHeaderBase {
 
   /// Returns the digest that represents the root of the Merkle tree that stores
   /// all microblocks in this block.
-  const TxnHash& GetTxRootHash() const;
+  const BlockHash& GetMbRootHash() const;
 
   /// Returns the digest that represents the root of the Merkle tree that stores
   /// all state uptil this block.
   const StateHash& GetStateRootHash() const;
 
-  /// Returns the digest that represents the root of the Merkle tree that stores
-  /// all state delta uptil this block.
-  const StateHash& GetDeltaRootHash() const;
-
   /// Returns the digest that represents the hash of state delta attached to
   /// finalblock.
   const StateHash& GetStateDeltaHash() const;
-
-  /// Returns the digest that represents the root of the Merkle tree that stores
-  /// all tranReceipt hash in this block.
-  const TxnHash& GetTranReceiptRootHash() const;
 
   /// Returns the number of transactions in this block.
   const uint32_t& GetNumTxs() const;
@@ -137,7 +128,7 @@ class TxBlockHeader : public BlockHeaderBase {
   const uint64_t& GetDSBlockNum() const;
 
   /// Returns the digest of the parent DS block header.
-  const BlockHash& GetDSBlockHeader() const;
+  const BlockHash& GetDSBlockHash() const;
 
   /// Equality comparison operator.
   bool operator==(const TxBlockHeader& header) const;
@@ -160,12 +151,12 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_prevHash : " << t.m_prevHash.hex() << std::endl
      << "m_blockNum : " << std::to_string(t.m_blockNum) << std::endl
      << "m_timestamp : " << t.m_timestamp.convert_to<std::string>() << std::endl
-     << t.m_hash << std::endl
+     << t.m_hashset << std::endl
      << "m_numTxs : " << t.m_numTxs << std::endl
      << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl
      << "m_dsBlockNum : " << std::to_string(t.m_dsBlockNum) << std::endl
-     << "m_dsBlockHeader : " << t.m_dsBlockHeader.hex();
+     << "m_dsBlockHash : " << t.m_dsBlockHash.hex();
   return os;
 }
 

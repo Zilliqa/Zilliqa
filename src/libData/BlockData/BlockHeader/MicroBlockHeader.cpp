@@ -51,7 +51,7 @@ MicroBlockHeader::MicroBlockHeader(
       m_prevHash(prevHash),
       m_blockNum(blockNum),
       m_timestamp(timestamp),
-      m_hash{txRootHash, stateDeltaHash, tranReceiptHash},
+      m_hashset{txRootHash, stateDeltaHash, tranReceiptHash},
       m_numTxs(numTxs),
       m_minerPubKey(minerPubKey),
       m_dsBlockNum(dsBlockNum),
@@ -106,27 +106,29 @@ const BlockHash& MicroBlockHeader::GetDSBlockHash() const {
 }
 
 const TxnHash& MicroBlockHeader::GetTxRootHash() const {
-  return m_hash.m_txRootHash;
+  return m_hashset.m_txRootHash;
 }
 
 const StateHash& MicroBlockHeader::GetStateDeltaHash() const {
-  return m_hash.m_stateDeltaHash;
+  return m_hashset.m_stateDeltaHash;
 }
 
 const TxnHash& MicroBlockHeader::GetTranReceiptHash() const {
-  return m_hash.m_tranReceiptHash;
+  return m_hashset.m_tranReceiptHash;
 }
 
-const MicroBlockHashSet& MicroBlockHeader::GetHash() const { return m_hash; }
+const MicroBlockHashSet& MicroBlockHeader::GetHashes() const {
+  return m_hashset;
+}
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const {
   return std::tie(m_type, m_version, m_shardId, m_gasLimit, m_gasUsed,
-                  m_rewards, m_prevHash, m_blockNum, m_timestamp, m_hash,
+                  m_rewards, m_prevHash, m_blockNum, m_timestamp, m_hashset,
                   m_numTxs, m_minerPubKey, m_dsBlockNum, m_dsBlockHash) ==
          std::tie(header.m_type, header.m_version, header.m_shardId,
                   header.m_gasLimit, header.m_gasUsed, header.m_rewards,
                   header.m_prevHash, header.m_blockNum, header.m_timestamp,
-                  header.m_hash, header.m_numTxs, header.m_minerPubKey,
+                  header.m_hashset, header.m_numTxs, header.m_minerPubKey,
                   header.m_dsBlockNum, header.m_dsBlockHash);
 }
 
@@ -134,10 +136,10 @@ bool MicroBlockHeader::operator<(const MicroBlockHeader& header) const {
   return std::tie(header.m_type, header.m_version, header.m_shardId,
                   header.m_gasLimit, header.m_gasUsed, header.m_rewards,
                   header.m_prevHash, header.m_blockNum, header.m_timestamp,
-                  header.m_hash, header.m_numTxs, header.m_minerPubKey,
+                  header.m_hashset, header.m_numTxs, header.m_minerPubKey,
                   header.m_dsBlockNum, header.m_dsBlockHash) >
          std::tie(m_type, m_version, m_shardId, m_gasLimit, m_gasUsed,
-                  m_rewards, m_prevHash, m_blockNum, m_timestamp, m_hash,
+                  m_rewards, m_prevHash, m_blockNum, m_timestamp, m_hashset,
                   m_numTxs, m_minerPubKey, m_dsBlockNum, m_dsBlockHash);
 }
 

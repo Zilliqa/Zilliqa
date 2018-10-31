@@ -27,8 +27,7 @@
 
 struct ForwardedTxnEntry {
   uint64_t m_blockNum;
-  MicroBlockHashSet m_hash;
-  uint32_t m_shardId;
+  BlockHash m_hash;
   std::vector<TransactionWithReceipt> m_transactions;
 
   friend std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t);
@@ -37,8 +36,7 @@ struct ForwardedTxnEntry {
 inline std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t) {
   os << "<ForwardedTxnEntry>" << std::endl
      << "m_blockNum : " << t.m_blockNum << std::endl
-     << "m_hash : " << t.m_hash << std::endl
-     << "m_shardId : " << t.m_shardId;
+     << "m_hash : " << t.m_hash.hex();
   return os;
 }
 

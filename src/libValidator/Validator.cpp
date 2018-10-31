@@ -276,11 +276,9 @@ bool Validator::CheckDirBlocks(
         ret = false;
         break;
       }
-      unsigned int newCandidateLeader =
-          vcblock.GetHeader().GetViewChangeCounter();
-      for (unsigned int i = 0; i < newCandidateLeader; i++) {
-        m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(mutable_ds_comm);
-      }
+
+      m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(vcblock,
+                                                            mutable_ds_comm);
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,
                                                vcblock.GetBlockHash());

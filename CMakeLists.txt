@@ -60,22 +60,63 @@ if(OPENCL_MINE AND CUDA_MINE)
 endif()
 
 if(OPENCL_MINE)
+    message(STATUS "OpenCL enabled")
     find_package(OpenCL REQUIRED)
     add_definitions(-DOPENCL_MINE)
 endif()
 
 if(CUDA_MINE)
+    message(STATUS "CUDA enabled")
     find_package(CUDA REQUIRED)
     add_definitions(-DCUDA_MINE)
 endif()
 
 if(HEARTBEATTEST)
+    message(STATUS "Heartbeat test enabled")
     add_definitions(-DHEARTBEAT_TEST)
 endif()
 
 if(FALLBACKTEST)
 	add_definitions(-DFALLBACK_TEST)
 endif()
+
+# VC related test scenario
+# For DS Block Consensus
+if(VC_TEST_DS_SUSPEND_1)
+    message(STATUS "VC 1 test enabled")
+	add_definitions(-DVC_TEST_DS_SUSPEND_1)
+endif()
+
+if(VC_TEST_DS_SUSPEND_3)
+    message(STATUS "VC 2 test enabled")
+	add_definitions(-DVC_TEST_DS_SUSPEND_3)
+endif()
+
+# For Final Block Consensus
+if(VC_TEST_FB_SUSPEND_1)
+    message(STATUS "VC 3 test enabled")
+	add_definitions(-DVC_TEST_FB_SUSPEND_1)
+endif()
+
+if(VC_TEST_FB_SUSPEND_3)
+    message(STATUS "VC 4 test enabled")
+	add_definitions(-DVC_TEST_FB_SUSPEND_3)
+endif()
+
+# For View change Block Consensus
+if(VC_TEST_VC_SUSPEND_1)
+    message(STATUS "VC 5 test enabled")
+	add_definitions(-DVC_TEST_VC_SUSPEND_1)
+endif()
+
+if(VC_TEST_VC_SUSPEND_3)
+    message(STATUS "VC 6 test enabled")
+	add_definitions(-DVC_TEST_VC_SUSPEND_3)
+endif()
+
+include(FindProtobuf)
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
