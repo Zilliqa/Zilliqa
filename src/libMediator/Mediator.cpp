@@ -261,7 +261,7 @@ uint32_t Mediator::GetShardSize(const bool& useShardStructure) const {
       shardNodeNum += shard.size();
     }
   } else {
-    shardNodeNum = m_ds->m_allPoWs.size();
+    shardNodeNum = m_ds->GetAllPoWSize();
   }
 
   return ShardSizeCalculator::CalculateShardSize(shardNodeNum);

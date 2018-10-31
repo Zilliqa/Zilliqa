@@ -45,8 +45,9 @@ using namespace boost::multiprecision;
 
 unsigned int DirectoryService::ComputeDSBlockParameters(
     const VectorOfPoWSoln& sortedDSPoWSolns, VectorOfPoWSoln& sortedPoWSolns,
-    map<PubKey, Peer>& powDSWinners, uint8_t& dsDifficulty, uint8_t& difficulty,
-    uint64_t& blockNum, BlockHash& prevHash) {
+    map<PubKey, Peer>& powDSWinners, MapOfPubKeyPoW& dsWinnerPoWs,
+    uint8_t& dsDifficulty, uint8_t& difficulty, uint64_t& blockNum,
+    BlockHash& prevHash) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -65,6 +66,7 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
       break;
     }
     powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
+    dsWinnerPoWs[submitter.second] = m_allDSPoWs[submitter.second];
     sortedPoWSolns.erase(
         remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
         sortedPoWSolns.end());
@@ -261,7 +263,7 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
 }
 
 bool DirectoryService::VerifyPoWWinner(
-    const MapOfPubKeyPoW& allPoWsFromLeader) {
+    const MapOfPubKeyPoW& dsWinnerPoWsFromLeader) {
   const auto& NewDSMembers = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
@@ -281,19 +283,20 @@ bool DirectoryService::VerifyPoWWinner(
                   "Cannot find DS PoW for node: "
                       << DSPowWinner.first
                       << ". Will continue look for it in PoW from leader.");
-      if (allPoWsFromLeader.find(DSPowWinner.first) !=
-          allPoWsFromLeader.end()) {
+      if (dsWinnerPoWsFromLeader.find(DSPowWinner.first) !=
+          dsWinnerPoWsFromLeader.end()) {
         uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
-        const auto& dsBlock = m_mediator.m_dsBlockChain.GetLastBlock();
         const auto& peer = m_allPoWConns.at(DSPowWinner.first);
-        const auto& dsPowSoln = allPoWsFromLeader.at(DSPowWinner.first);
+        const auto& dsPowSoln = dsWinnerPoWsFromLeader.at(DSPowWinner.first);
         // Non-genesis block
         if (m_mediator.m_currentEpochNum > 1) {
-          expectedDSDiff = dsBlock.GetHeader().GetDSDifficulty();
+          expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetDSDifficulty();
         }
 
         bool result = POW::GetInstance().PoWVerify(
-            dsBlock.GetHeader().GetBlockNum(), expectedDSDiff,
+            m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, false, dsPowSoln.nonce,
             DataConversion::charArrToHexStr(dsPowSoln.result),
@@ -630,14 +633,15 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
 
   map<PubKey, Peer> powDSWinners;
+  MapOfPubKeyPoW dsWinnerPoWs;
   uint8_t dsDifficulty = 0;
   uint8_t difficulty = 0;
   uint64_t blockNum = 0;
   BlockHash prevHash;
 
-  unsigned int numOfProposedDSMembers =
-      ComputeDSBlockParameters(sortedDSPoWSolns, sortedPoWSolns, powDSWinners,
-                               dsDifficulty, difficulty, blockNum, prevHash);
+  unsigned int numOfProposedDSMembers = ComputeDSBlockParameters(
+      sortedDSPoWSolns, sortedPoWSolns, powDSWinners, dsWinnerPoWs,
+      dsDifficulty, difficulty, blockNum, prevHash);
 
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers);
   if (DEBUG_LEVEL >= 5) {
@@ -737,16 +741,19 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] BGIN");
 
+  // Refer to Effective mordern C++. Item 32: Use init capture to move objects
+  // into closures.
   auto announcementGeneratorFunc =
-      [this](vector<unsigned char>& dst, unsigned int offset,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const vector<unsigned char>& blockHash, const uint16_t leaderID,
-             const pair<PrivKey, PubKey>& leaderKey,
-             vector<unsigned char>& messageToCosign) mutable -> bool {
+      [this, dsWinnerPoWs = std::move(dsWinnerPoWs)](
+          vector<unsigned char>& dst, unsigned int offset,
+          const uint32_t consensusID, const uint64_t blockNumber,
+          const vector<unsigned char>& blockHash, const uint16_t leaderID,
+          const pair<PrivKey, PubKey>& leaderKey,
+          vector<unsigned char>& messageToCosign) mutable -> bool {
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_pendingDSBlock, m_shards, m_DSReceivers, m_shardReceivers,
-        m_shardSenders, m_allPoWs, messageToCosign);
+        m_shardSenders, m_allPoWs, dsWinnerPoWs, messageToCosign);
   };
 
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
@@ -822,12 +829,13 @@ bool DirectoryService::DSBlockValidator(
   m_pendingDSBlock.reset(new DSBlock);
 
   MapOfPubKeyPoW allPoWsFromLeader;
+  MapOfPubKeyPoW dsWinnerPoWsFromLeader;
 
   if (!Messenger::GetDSDSBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
           m_tempShardReceivers, m_tempShardSenders, allPoWsFromLeader,
-          messageToCosign)) {
+          dsWinnerPoWsFromLeader, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
     return false;
@@ -893,7 +901,7 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  if (!VerifyPoWWinner(allPoWsFromLeader)) {
+  if (!VerifyPoWWinner(dsWinnerPoWsFromLeader)) {
     LOG_GENERAL(WARNING, "Failed to verify PoW winner");
     return false;
   }
