@@ -866,3 +866,8 @@ uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
                            NUM_FINAL_BLOCK_PER_POW;
   return estimatedBlocksOneYear;
 }
+
+int64_t DirectoryService::GetAllPoWSize() const {
+  std::lock_guard<mutex> lock(m_mutexAllPOW);
+  return m_allPoWs.size();
+}
