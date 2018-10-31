@@ -305,9 +305,14 @@ bool DirectoryService::VerifyPoWOrdering(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
-  constexpr float MISORDER_TOLERANCE = 0.02f;  // 2 Percent tolerance
+  const float MISORDER_TOLERANCE =
+      (float)MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
   const uint32_t MAX_MISORDER_NODE =
       std::ceil(m_allPoWs.size() * MISORDER_TOLERANCE);
+
+  LOG_GENERAL(INFO, "Tolerance = " << std::fixed << std::setprecision(2)
+                                   << MISORDER_TOLERANCE << " = "
+                                   << MAX_MISORDER_NODE << " nodes.");
 
   auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
   InjectPoWForDSNode(sortedPoWSolns,
