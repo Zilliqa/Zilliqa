@@ -305,9 +305,14 @@ bool DirectoryService::VerifyPoWOrdering(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
-  constexpr float MISORDER_TOLERANCE = 0.02f;  // 2 Percent tolerance
+  const float MISORDER_TOLERANCE =
+      (float)MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
   const uint32_t MAX_MISORDER_NODE =
       std::ceil(m_allPoWs.size() * MISORDER_TOLERANCE);
+
+  LOG_GENERAL(INFO, "Tolerance = " << std::fixed << std::setprecision(2)
+                                   << MISORDER_TOLERANCE << " = "
+                                   << MAX_MISORDER_NODE << " nodes.");
 
   auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
   InjectPoWForDSNode(sortedPoWSolns,
@@ -335,6 +340,7 @@ bool DirectoryService::VerifyPoWOrdering(
             return item.second == toFind;
           });
 
+      std::array<unsigned char, 32> result;
       if (it == sortedPoWSolns.cend()) {
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());
@@ -346,6 +352,7 @@ bool DirectoryService::VerifyPoWOrdering(
         if (itLeaderMap != allPoWsFromTheLeader.end()) {
           LOG_GENERAL(INFO,
                       "TODO: Verify the PoW submission for this unknown node.");
+          result = itLeaderMap->second.result;
         } else {
           LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
           ret = false;
@@ -354,6 +361,8 @@ bool DirectoryService::VerifyPoWOrdering(
         if (!ret) {
           break;
         }
+      } else {
+        result = it->first;
       }
 
       auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
@@ -364,8 +373,7 @@ bool DirectoryService::VerifyPoWOrdering(
         break;
       }
 
-      copy(it->first.begin(), it->first.end(),
-           hashVec.begin() + BLOCK_HASH_SIZE);
+      copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
       const vector<unsigned char>& sortHashVec =
           HashUtils::BytesToHash(hashVec);
       if (DEBUG_LEVEL >= 5) {
