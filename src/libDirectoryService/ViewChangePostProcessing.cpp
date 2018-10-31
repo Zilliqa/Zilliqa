@@ -166,44 +166,49 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
                   "Unable to set m_consensusMyID. Cannot find myself in the ds "
                   "committee");
     }
+
+    // Update the index for the new leader
+    pair<PubKey, Peer> candidateLeaderInfo = make_pair(
+        m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
+        m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
+    if (candidateLeaderInfo.first == m_mediator.m_selfKey.first &&
+        candidateLeaderInfo.second == m_mediator.m_selfPeer) {
+      m_consensusLeaderID = m_consensusMyID;
+    } else {
+      deque<pair<PubKey, Peer>>::iterator iterConsensusLeaderID =
+          find(m_mediator.m_DSCommittee->begin(),
+               m_mediator.m_DSCommittee->end(), candidateLeaderInfo);
+
+      if (iterConsensusLeaderID != m_mediator.m_DSCommittee->end()) {
+        m_consensusLeaderID =
+            distance(m_mediator.m_DSCommittee->begin(), iterConsensusLeaderID);
+      } else {
+        LOG_GENERAL(FATAL, "Cannot find new leader in the ds committee "
+                               << candidateLeaderInfo.second);
+      }
+    }
+
+    LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
+    LOG_GENERAL(INFO, "New view of ds committee: ");
+    for (auto& i : *m_mediator.m_DSCommittee) {
+      LOG_GENERAL(INFO, i.second);
+    }
+
+    // Consensus update for DS shard
+    m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+    m_mediator.m_node->m_consensusMyID = m_consensusMyID;
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+    if (m_mediator.m_node->m_consensusMyID ==
+        m_mediator.m_node->m_consensusLeaderID) {
+      m_mediator.m_node->m_isPrimary = true;
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "I am leader of the DS shard");
+    } else {
+      m_mediator.m_node->m_isPrimary = false;
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "I am backup member of the DS shard");
+    }
   }
-
-  // Update the index for the new leader
-  pair<PubKey, Peer> candidateLeaderInfo =
-      make_pair(m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey(),
-                m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
-  deque<pair<PubKey, Peer>>::iterator iterConsensusLeaderID =
-      find(m_mediator.m_DSCommittee->begin(), m_mediator.m_DSCommittee->end(),
-           candidateLeaderInfo);
-
-  if (iterConsensusLeaderID != m_mediator.m_DSCommittee->end()) {
-    m_consensusLeaderID =
-        distance(m_mediator.m_DSCommittee->begin(), iterConsensusLeaderID);
-  } else {
-    LOG_GENERAL(FATAL, "Cannot find new leader in the ds committee");
-  }
-
-  LOG_GENERAL(INFO, "New m_consensusLeaderID " << m_consensusLeaderID);
-  LOG_GENERAL(INFO, "New view of ds committee: ");
-  for (auto& i : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(INFO, i.second);
-  }
-
-  // Consensus update for DS shard
-  m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
-  m_mediator.m_node->m_consensusMyID = m_consensusMyID;
-  m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
-  if (m_mediator.m_node->m_consensusMyID ==
-      m_mediator.m_node->m_consensusLeaderID) {
-    m_mediator.m_node->m_isPrimary = true;
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am leader of the DS shard");
-  } else {
-    m_mediator.m_node->m_isPrimary = false;
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am backup member of the DS shard");
-  }
-
   auto func = [this, viewChangeState]() -> void {
     ProcessNextConsensus(viewChangeState);
   };

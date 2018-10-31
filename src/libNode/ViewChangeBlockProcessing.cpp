@@ -209,11 +209,20 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
   return true;
 }
 
+/// This function asssume ddsComm to indicate 0.0.0.0 for current node
 void Node::UpdateDSCommiteeCompositionAfterVC(
     const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
-    deque<pair<PubKey, Peer>>::iterator it =
-        find(dsComm.begin(), dsComm.end(), faultyLeader);
+    deque<pair<PubKey, Peer>>::iterator it;
+
+    // If faulty leader is current node, look for 0.0.0.0 is ds committee
+    if (faultyLeader.first == m_mediator.m_selfKey.second &&
+        faultyLeader.second == Peer()) {
+      pair<PubKey, Peer> selfNode = make_pair(faultyLeader.first, Peer());
+      it = find(dsComm.begin(), dsComm.end(), selfNode);
+    } else {
+      it = find(dsComm.begin(), dsComm.end(), faultyLeader);
+    }
 
     // Remove faulty leader from the current
     if (it != dsComm.end()) {
