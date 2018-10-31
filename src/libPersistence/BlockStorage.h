@@ -107,7 +107,7 @@ class BlockStorage : public Singleton<BlockStorage> {
                   const std::vector<unsigned char>& body);
 
   // /// Adds a micro block to storage.
-  bool PutMicroBlock(const uint64_t& blocknum, const uint32_t& shardId,
+  bool PutMicroBlock(const BlockHash& blockHash,
                      const std::vector<unsigned char>& body);
 
   /// Adds a transaction body to storage.
@@ -125,7 +125,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
   // /// Retrieves the requested Micro block
-  bool GetMicroBlock(const uint64_t& blocknum, const uint32_t& shardId,
+  bool GetMicroBlock(const BlockHash& blockHash,
                      MicroBlockSharedPtr& microblock);
 
   /// Retrieves the requested transaction body.

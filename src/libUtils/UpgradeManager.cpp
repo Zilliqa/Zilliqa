@@ -25,13 +25,14 @@
 #include "libUtils/Logger.h"
 using namespace std;
 
-#define DEFAULT_RELEASE_URL \
-  "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
 #define USER_AGENT "Zilliqa"
 #define VERSION_FILE_NAME "VERSION"
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
 #define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
+#define UPGRADE_HOST                                                      \
+  string(string("https://api.github.com/repos/") + UPGRADE_HOST_ACCOUNT + \
+         "/" + UPGRADE_HOST_REPO + "/releases/latest")
 
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_SHARD = 0;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP = 1;
@@ -110,7 +111,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
   string curlRes;
   curl_easy_reset(m_curl);
   curl_easy_setopt(m_curl, CURLOPT_URL,
-                   releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL);
+                   releaseUrl ? releaseUrl : UPGRADE_HOST.c_str());
   curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
   curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
   curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, WriteString);
@@ -121,7 +122,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     LOG_GENERAL(WARNING,
                 "curl_easy_perform() failed to get latest release "
                 "information from url ["
-                    << (releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL)
+                    << (releaseUrl ? releaseUrl : UPGRADE_HOST)
                     << "]: " << curl_easy_strerror(res));
     return "";
   }

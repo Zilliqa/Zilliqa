@@ -94,7 +94,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
   ret_head["Timestamp"] = txheader.GetTimestamp().str();
 
-  ret_head["TxnHash"] = txheader.GetTxRootHash().hex();
+  ret_head["TxnHash"] = txheader.GetMbRootHash().hex();
   ret_head["StateHash"] = txheader.GetStateRootHash().hex();
   ret_head["NumTxns"] = txheader.GetNumTxs();
   ret_head["NumMicroBlocks"] = txheader.GetNumMicroBlockHashes();
