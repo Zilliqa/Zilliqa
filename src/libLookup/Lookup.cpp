@@ -864,7 +864,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
   if (lowBlockNum == 1) {
     lowBlockNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
   } else if (lowBlockNum == 0) {
     // give all the blocks till now in blockchain
     lowBlockNum = 1;
