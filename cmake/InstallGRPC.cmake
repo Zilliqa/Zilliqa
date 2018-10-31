@@ -20,6 +20,7 @@ execute_process(
 )
 
 if(NOT "${GRPC_INSTALL_RET}" STREQUAL "0")
+    execute_process(COMMAND tail ${GRPC_INSTALL_LOG})
     message(FATAL_ERROR "Error when building and installing gRPC, see more in log ${GRPC_INSTALL_LOG}")
 endif()
 

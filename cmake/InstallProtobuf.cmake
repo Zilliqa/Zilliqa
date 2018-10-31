@@ -22,6 +22,7 @@ execute_process(
 )
 
 if(NOT "${PROTOBUF_INSTALL_RET}" STREQUAL "0")
+    execute_process(COMMAND tail ${PROTOBUF_INSTALL_LOG})
     message(FATAL_ERROR "Error when building and installing Protobuf, see more in log ${PROTOBUF_INSTALL_LOG}")
 endif()
 
