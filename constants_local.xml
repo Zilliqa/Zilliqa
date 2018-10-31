@@ -87,7 +87,6 @@
         <CONTRACT_INVOKE_GAS>10</CONTRACT_INVOKE_GAS>
         <NORMAL_TRAN_GAS>1</NORMAL_TRAN_GAS>
         <DEFAULT_MIN_GAS_PRICE>1</DEFAULT_MIN_GAS_PRICE>
-        <GAS_INCREASE_FACTOR>
     </gas>
     <smart_contract>
         <SCILLA_ROOT/>
