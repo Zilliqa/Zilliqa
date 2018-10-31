@@ -591,7 +591,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   }
   // Add the DS block to the chain
   StoreDSBlockToStorage();
-  DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
 
   m_mediator.UpdateDSBlockRand();
 
