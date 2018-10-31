@@ -46,6 +46,8 @@ uint16_t DistUint16();
 uint32_t DistUint32();
 
 PubKey GenerateRandomPubKey();
+PubKey GenerateRandomPubKey(PrivKey);
+KeyPair GenerateRandomKeyPair();
 Peer GenerateRandomPeer();
 DSBlockHeader GenerateRandomDSBlockHeader();
 MicroBlockHeader GenerateRandomMicroBlockHeader();

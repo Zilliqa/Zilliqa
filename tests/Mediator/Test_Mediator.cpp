@@ -22,7 +22,7 @@
 #include "libMessage/Messenger.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
-#include "testLib/testLibFunctions.h"
+#include "libTestUtils/TestUtils.h"
 
 #define BOOST_TEST_MODULE message
 #define BOOST_TEST_DYN_LINK
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(init) {
 }
 
 BOOST_AUTO_TEST_CASE(test_InitMediator) {
-  KeyPair kp = generateKeyPair();
+  KeyPair kp = TestUtils::GenerateRandomKeyPair();
   Peer p;
   Mediator m(kp, p);
 }

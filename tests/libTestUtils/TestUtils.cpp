@@ -47,6 +47,13 @@ Peer GenerateRandomPeer() {
   return Peer(ip_address, listen_port_host);
 }
 
+PubKey GenerateRandomPubKey(PrivKey privK) { return PubKey(privK); }
+
+KeyPair GenerateRandomKeyPair(){
+  PrivKey privk;
+  return KeyPair(privk, GenerateRandomPubKey(privk));
+}
+
 DSBlockHeader GenerateRandomDSBlockHeader() {
   uint8_t dsDifficulty = DistUint8();
   uint8_t difficulty = DistUint8();
