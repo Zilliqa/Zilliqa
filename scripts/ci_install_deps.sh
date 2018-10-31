@@ -69,8 +69,7 @@ apt-get install -y \
     libevent-dev \
     libprotobuf-dev \
     libcurl4-openssl-dev \
-    protobuf-compiler \
-    xml-twig-tools
+    protobuf-compiler
 
 # install development dependencies
 apt-get install -y \
