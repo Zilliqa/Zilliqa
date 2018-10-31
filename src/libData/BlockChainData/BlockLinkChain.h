@@ -79,9 +79,12 @@ class BlockLinkChain {
 
     std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
 
-    if (index <= latestIndex) {
+    if ((m_blockLinkChain.size() > 0) && (index <= latestIndex)) {
       LOG_GENERAL(WARNING, "the latest index in the blocklink is greater"
                                << index << " " << latestIndex);
+      return false;
+    } else if (m_blockLinkChain.size() == 0 && index > 0) {
+      LOG_GENERAL(WARNING, "the first index to be inserted should be 0");
       return false;
     }
     m_blockLinkChain.insert_new(
@@ -118,6 +121,11 @@ class BlockLinkChain {
 
   void SetBuiltDSComm(const std::deque<std::pair<PubKey, Peer>>& dsComm) {
     m_builtDsCommittee = dsComm;
+  }
+  const BlockLink& GetLatestBlockLink() {
+    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
+
+    return m_blockLinkChain.back();
   }
 };
 

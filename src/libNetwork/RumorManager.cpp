@@ -197,7 +197,7 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
 
     return m_rumorHolder->addRumor(m_rumorIdGenerator);
   } else {
-    LOG_GENERAL(INFO, "This Rumor was already received. No problem.");
+    LOG_GENERAL(DEBUG, "This Rumor was already received. No problem.");
   }
 
   return false;
@@ -297,8 +297,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   auto p = m_peerIdPeerBimap.right.find(from);
   if (p == m_peerIdPeerBimap.right.end()) {
     // I dont know this peer, missing in my peerlist.
-    LOG_GENERAL(INFO, "Received Rumor from peer : "
-                          << from << " which does not exist in my peerlist.");
+    LOG_GENERAL(DEBUG, "Received Rumor from peer : "
+                           << from << " which does not exist in my peerlist.");
     return false;
   }
 
@@ -338,9 +338,9 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     } else  // already received , pass it on to member for state calculations
     {
       recvdRumorId = it->second;
-      LOG_GENERAL(INFO, "Old Gossip message received from "
-                            << from << ". [ RumorId: " << recvdRumorId
-                            << ", Current Round: " << round);
+      LOG_GENERAL(DEBUG, "Old Gossip message received from "
+                             << from << ". [ RumorId: " << recvdRumorId
+                             << ", Current Round: " << round);
     }
   }
 
@@ -376,8 +376,8 @@ void RumorManager::SendMessages(const Peer& toPeer,
     if (m != m_rumorIdRumorBimap.left.end()) {
       // Add raw message to outgoing message
       cmd.insert(cmd.end(), m->second.begin(), m->second.end());
-      LOG_GENERAL(INFO, "Sending Non Empty - Gossip Message: "
-                            << k << " To Peer : " << toPeer);
+      LOG_GENERAL(DEBUG, "Sending Non Empty - Gossip Message: "
+                             << k << " To Peer : " << toPeer);
     }
 
     // Send the message to peer .

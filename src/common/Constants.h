@@ -181,6 +181,7 @@ extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
 extern const unsigned int MAX_CONTRACT_DEPTH;
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
+extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
@@ -195,7 +196,8 @@ extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
 extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
 extern const bool GET_INITIAL_DS_FROM_REPO;
-extern const std::string UPGRADE_HOST;
+extern const std::string UPGRADE_HOST_ACCOUNT;
+extern const std::string UPGRADE_HOST_REPO;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
