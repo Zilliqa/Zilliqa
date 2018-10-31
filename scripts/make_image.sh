@@ -52,7 +52,7 @@ then
     echo "Cannot find command 'aws'. Did you install 'aws-cli'?"
     exit 1
 fi
-aws ecr get-login --no-include-email --region us-east-1 >/dev/null
+aws ecr get-login --no-include-email --region us-west-2 >/dev/null
 if [ "$?" -ne 0 ]
 then
     echo "Did you have latest 'aws-cli' installed and AWS access key configured?"
