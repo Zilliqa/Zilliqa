@@ -171,6 +171,9 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieves all the TxBodiesTmp
   bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
 
+  ///Retrieve all the blocklink
+  bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
+
   /// Save Last Transactions Trie Root Hash
   bool PutMetadata(MetaType type, const std::vector<unsigned char>& data);
 

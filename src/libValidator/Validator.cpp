@@ -254,7 +254,7 @@ bool Validator::CheckDirBlocks(
       } else {
         m_mediator.m_archDB->InsertDSBlock(dsblock);
       }
-      m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm);
+      m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
 
     } else if (typeid(VCBlock) == dirBlock.type()) {

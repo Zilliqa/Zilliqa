@@ -34,6 +34,7 @@ class Retriever {
 
   void RetrieveDSBlocks(bool& result, const bool& wakeupForUpgrade);
   void RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade);
+  void RetrieveBlockLink(bool& result,const bool& wakeupForUpgrade );
   bool RetrieveStates();
   bool ValidateStates();
   bool CleanExtraTxBodies();

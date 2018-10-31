@@ -408,6 +408,36 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes) {
   return true;
 }
 
+bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
+  LOG_MARKER();
+   leveldb::Iterator* it =
+      m_blockLinkDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string bns = it->key().ToString();
+    string blockString = it->value().ToString();
+    if (blockString.empty()) {
+      LOG_GENERAL(WARNING, "Lost one blocklink in the chain");
+      delete it;
+      return false;
+    }
+    BlockLink blcklink;
+    if (!Messenger::GetBlockLink(
+            vector<unsigned char>(blockString.begin(), blockString.end()),0,
+            blcklink)) {
+      LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
+      return false;
+    }
+    blocklinks.emplace_back(blcklink);
+    LOG_GENERAL(INFO, "Retrievd BlockLink Num:" << bns);
+  }
+   delete it;
+   if (blocklinks.empty()) {
+    LOG_GENERAL(INFO, "Disk has no blocklink");
+    return false;
+  }
+   return true;
+}
+
 bool BlockStorage::PutMetadata(MetaType type,
                                const std::vector<unsigned char>& data) {
   LOG_MARKER();

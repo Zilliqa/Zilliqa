@@ -87,10 +87,10 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
       dsblock.GetBlockHash());
 }
 
-void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm) {
+void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm, const DSBlock& dsblock) {
   LOG_MARKER();
   const map<PubKey, Peer> NewDSMembers =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
+      dsblock.GetHeader().GetDSPoWWinners();
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
       dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
@@ -558,7 +558,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   m_mediator.UpdateDSBlockRand();  // Update the rand1 value for next PoW
-  UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee);
+  UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee, m_mediator.m_dsBlockChain.GetLastBlock());
 
   if (!LOOKUP_NODE_MODE) {
     uint32_t ds_size = m_mediator.m_DSCommittee->size();

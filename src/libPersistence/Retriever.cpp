@@ -167,6 +167,88 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
   }
 }
 
+void Retriever::RetrieveBlockLink(bool& result, const bool& wakeupForUpgrade)
+{
+  std::list<BlockLink> blocklinks;
+
+  bool ds_res = false;
+
+  RetrieveDSBlocks(ds_res, wakeupForUpgrade);
+
+  if(!ds_res)
+  {
+    return ;
+  }
+
+  std::deque<std::pair<PubKey, Peer>>& dsComm = m_mediator.m_blocklinkchain.GetBuiltDSComm();
+
+  if(!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks))
+  {
+    result = false;
+    return;
+  }
+  blocklinks.sort([](const BlockLink& a, const BlockLink& b)
+  {
+    return std::get<BlockLinkIndex::INDEX>(a) < std::get<BlockLinkIndex::INDEX>(b);
+  });
+
+
+  for(const auto& blocklink : blocklinks)
+  {
+    
+    if(std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS)
+    {
+      DSBlockSharedPtr dsblock;
+      if(!BlockStorage::GetBlockStorage().GetDSBlock(std::get<BlockLinkIndex::DSINDEX>(blocklink),dsblock))
+      {
+        LOG_GENERAL(WARNING,"Could not find ds block num "<<std::get<BlockLinkIndex::DSINDEX>(blocklink));
+        result = false;
+        return;
+      }
+      m_mediator.m_node->UpdateDSCommiteeComposition(dsComm,*dsblock);
+    }
+    else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC)
+    {
+      VCBlockSharedPtr vcblock;
+
+      if(!BlockStorage::GetBlockStorage().GetVCBlock(std::get<BlockLinkIndex::BLOCKHASH>(blocklink),vcblock))
+      {
+        LOG_GENERAL(WARNING,"Could not find vc with blockHash "<<std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
+        result = false;
+        return;
+      }
+      unsigned int newCandidateLeader =
+          vcblock->GetHeader().GetViewChangeCounter();
+      for (unsigned int i = 0; i < newCandidateLeader; i++) {
+        m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(dsComm);
+      }
+    }
+    else if(std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::FB)
+    {
+      FallbackBlockSharedPtr fallbackwshardingstruct;
+      if(!BlockStorage::GetBlockStorage().GetFallbackBlock(std::get<BlockLinkIndex::BLOCKHASH>(blocklink),fallbackwshardingstruct))
+      {
+        LOG_GENERAL(WARNING,"Could not find vc with blockHash "<<std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
+        result = false;
+        return;
+      }
+      uint32_t shard_id = fallbackwshardingstruct->m_fallbackblock.GetHeader().GetShardId();
+      const PubKey& leaderPubKey = fallbackwshardingstruct->m_fallbackblock.GetHeader().GetLeaderPubKey();
+      const Peer& leaderNetworkInfo =
+          fallbackwshardingstruct->m_fallbackblock.GetHeader().GetLeaderNetworkInfo();
+      const DequeOfShard& shards = fallbackwshardingstruct->m_shards;
+      m_mediator.m_node->UpdateDSCommitteeAfterFallback(
+          shard_id, leaderPubKey, leaderNetworkInfo,dsComm, shards);
+
+    }
+
+    m_mediator.m_blocklinkchain.AddBlockLink(std::get<BlockLinkIndex::INDEX>(blocklink), std::get<BlockLinkIndex::DSINDEX>(blocklink),std::get<BlockLinkIndex::BLOCKTYPE>(blocklink), std::get<BlockLinkIndex::BLOCKHASH>(blocklink));
+
+  }
+
+  result = true;
+}
+
 bool Retriever::CleanExtraTxBodies() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
