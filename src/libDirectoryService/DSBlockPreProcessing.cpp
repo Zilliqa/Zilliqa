@@ -632,11 +632,12 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
-                      SWInfo(), powDSWinners, dsBlockHashSet, committeeHash),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(
+        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  get_time_as_int(), m_mediator.m_curSWInfo,
+                                  powDSWinners, dsBlockHashSet, committeeHash),
+                    CoSignatures(m_mediator.m_DSCommittee->size())));
     m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
 
