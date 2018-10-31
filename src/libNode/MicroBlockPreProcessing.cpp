@@ -87,7 +87,6 @@ bool Node::ComposeMicroBlock() {
   TxnHash txRootHash, txReceiptHash;
   uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-  const auto& lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
   CommitteeHash committeeHash;
