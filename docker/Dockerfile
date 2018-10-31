@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libtool \
     autoconf \
+    golang \
     python python-pip \
     && rm -rf /var/lib/apt/lists/* \
     && pip install netaddr
