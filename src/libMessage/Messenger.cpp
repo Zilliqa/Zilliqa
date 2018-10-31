@@ -132,6 +132,28 @@ void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
   }
 }
 
+void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
+                            ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
+  for (const auto& node : faultyLeaders) {
+    ProtoDSNode* protodsnode = protoVCBlockHeader.add_faultyleaders();
+    SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
+    SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
+  }
+}
+
+void ProtobufToFaultyDSMembers(
+    const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
+    vector<pair<PubKey, Peer>>& faultyDSMembers) {
+  for (const auto& dsnode : protoVCBlockHeader.faultyleaders()) {
+    PubKey pubkey;
+    Peer peer;
+
+    ProtobufByteArrayToSerializable(dsnode.pubkey(), pubkey);
+    ProtobufByteArrayToSerializable(dsnode.peer(), peer);
+    faultyDSMembers.emplace_back(pubkey, peer);
+  }
+}
+
 void DSCommitteeToProtoCommittee(const deque<pair<PubKey, Peer>>& dsCommittee,
                                  ProtoCommittee& protoCommittee) {
   for (const auto& node : dsCommittee) {
@@ -1005,8 +1027,6 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
   protoVCBlockHeader.set_viewchangeepochno(
       vcBlockHeader.GetViewChangeEpochNo());
   protoVCBlockHeader.set_viewchangestate(vcBlockHeader.GetViewChangeState());
-  protoVCBlockHeader.set_candidateleaderindex(
-      vcBlockHeader.GetCandidateLeaderIndex());
   SerializableToProtobufByteArray(
       vcBlockHeader.GetCandidateLeaderNetworkInfo(),
       *protoVCBlockHeader.mutable_candidateleadernetworkinfo());
@@ -1014,9 +1034,9 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
       vcBlockHeader.GetCandidateLeaderPubKey(),
       *protoVCBlockHeader.mutable_candidateleaderpubkey());
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
+  FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       vcBlockHeader.GetTimeStamp(), *protoVCBlockHeader.mutable_timestamp());
-
   protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
                                        vcBlockHeader.GetCommitteeHash().size);
 }
@@ -1044,6 +1064,7 @@ void ProtobufToVCBlockHeader(
   PubKey candidateLeaderPubKey;
   uint256_t timestamp;
   CommitteeHash committeeHash;
+  vector<pair<PubKey, Peer>> faultyLeaders;
 
   ProtobufByteArrayToSerializable(
       protoVCBlockHeader.candidateleadernetworkinfo(),
@@ -1053,19 +1074,20 @@ void ProtobufToVCBlockHeader(
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoVCBlockHeader.timestamp(), timestamp);
 
+  ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
+
   copy(protoVCBlockHeader.committeehash().begin(),
        protoVCBlockHeader.committeehash().begin() +
            min((unsigned int)protoVCBlockHeader.committeehash().size(),
                (unsigned int)committeeHash.size),
        committeeHash.asArray().begin());
 
-  vcBlockHeader =
-      VCBlockHeader(protoVCBlockHeader.viewchangedsepochno(),
-                    protoVCBlockHeader.viewchangeepochno(),
-                    protoVCBlockHeader.viewchangestate(),
-                    protoVCBlockHeader.candidateleaderindex(),
-                    candidateLeaderNetworkInfo, candidateLeaderPubKey,
-                    protoVCBlockHeader.vccounter(), timestamp, committeeHash);
+  vcBlockHeader = VCBlockHeader(
+      protoVCBlockHeader.viewchangedsepochno(),
+      protoVCBlockHeader.viewchangeepochno(),
+      protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
+      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
+      timestamp, committeeHash);
 }
 
 void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {

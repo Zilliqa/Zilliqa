@@ -650,14 +650,23 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   m_consensusBlockHash =
       m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  // kill first ds leader (used for view change testing)
-  // Either do killing of ds leader or make ds leader do nothing.
-  /*if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-  {
-      LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
-      // throw exception();
-      return false;
-  }*/
+#ifdef VC_TEST_DS_SUSPEND_1
+  if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
+    LOG_GENERAL(
+        INFO,
+        "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_1)");
+    return false;
+  }
+#endif  // VC_TEST_DS_SUSPEND_1
+
+#ifdef VC_TEST_DS_SUSPEND_3
+  if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
+    LOG_GENERAL(
+        INFO,
+        "I am suspending myself to test viewchange (VC_TEST_DS_SUsPEND_3)");
+    return false;
+  }
+#endif  // VC_TEST_DS_SUSPEND_3
 
   m_consensusObject.reset(new ConsensusLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
