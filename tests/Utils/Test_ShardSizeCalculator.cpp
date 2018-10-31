@@ -18,6 +18,7 @@
  */
 
 #include "common/Constants.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ShardSizeCalculator.h"
 
@@ -36,24 +37,46 @@ typedef std::map<uint32_t, TestDataSet> ShardSizeMap;
 
 void prepareTestdata(ShardSizeMap& testData) {
   TestDataSet tds;
-  testData[651] = tds = {0, 1, 650, 651, 1000, 1367};
-  testData[684] = tds = {1368, 2131, 2132};
-  testData[711] = tds = {2133, 2200, 2867};
-  ;
-  testData[717] = tds = {2868, 2869, 3674};
-  testData[735] = tds = {3675, 4000, 4463};
-  testData[744] = tds = {4464, 5000, 5228};
-  testData[747] = tds = {5229, 6000, 6023};
-  testData[753] = tds = {6024, 6800, 6857};
-  testData[762] = tds = {6858, 7000, 7709};
-  testData[771] = tds = {7710, 8000, 8579};
-  testData[780] = tds = {8580, 9000, 9467};
-  testData[789] = tds = {9468, 10000, 10334};
-  testData[795] = tds = {10335, 11000, 14363};
-  testData[798] = tds = {14364, 15000, 15389};
-  testData[810] = tds = {15390, 16000, 18767};
-  testData[816] = tds = {18768, 19000, 20399};
-  testData[819] = tds = {20400, 300000, std::numeric_limits<uint32_t>::max()};
+  testData[651] =
+      tds = {0,   TestUtils::RandomIntInRng<uint32_t>(1, 649),    650,
+             651, TestUtils::RandomIntInRng<uint32_t>(652, 1366), 1367};
+  testData[684] =
+      tds = {1368, TestUtils::RandomIntInRng<uint32_t>(1369, 2131), 2132};
+  testData[711] =
+      tds = {2133, TestUtils::RandomIntInRng<uint32_t>(2134, 2866), 2867};
+  testData[717] =
+      tds = {2868, TestUtils::RandomIntInRng<uint32_t>(2869, 3673), 3674};
+  testData[735] =
+      tds = {3675, TestUtils::RandomIntInRng<uint32_t>(3676, 4462), 4463};
+  testData[744] =
+      tds = {4464, TestUtils::RandomIntInRng<uint32_t>(4465, 5227), 5228};
+  testData[747] =
+      tds = {5229, TestUtils::RandomIntInRng<uint32_t>(5230, 6022), 6023};
+  testData[753] =
+      tds = {6024, TestUtils::RandomIntInRng<uint32_t>(6025, 6856), 6857};
+  testData[762] =
+      tds = {6858, TestUtils::RandomIntInRng<uint32_t>(6859, 7708), 7709};
+  testData[771] =
+      tds = {7710, TestUtils::RandomIntInRng<uint32_t>(7711, 8578), 8579};
+  testData[780] =
+      tds = {8580, TestUtils::RandomIntInRng<uint32_t>(8581, 9466), 9467};
+  testData[789] =
+      tds = {9468, TestUtils::RandomIntInRng<uint32_t>(9469, 10333), 10334};
+  testData[795] =
+      tds = {10335, TestUtils::RandomIntInRng<uint32_t>(10336, 14362), 14363};
+  testData[798] =
+      tds = {14364, TestUtils::RandomIntInRng<uint32_t>(14365, 15388), 15389};
+  testData[810] =
+      tds = {15390, TestUtils::RandomIntInRng<uint32_t>(15391, 18766), 18767};
+  testData[816] =
+      tds = {18768, TestUtils::RandomIntInRng<uint32_t>(18769, 19582), 19583};
+  testData[816] =
+      tds = {19584, TestUtils::RandomIntInRng<uint32_t>(19585, 20398), 20399};
+  testData[819] =
+      tds = {20400, TestUtils::RandomIntInRng<uint32_t>(20401, 21293), 21294,
+             TestUtils::RandomIntInRng<uint32_t>(
+                 21295, std::numeric_limits<uint32_t>::max() - 1),
+             std::numeric_limits<uint32_t>::max()};
 }
 
 BOOST_AUTO_TEST_SUITE(shardsizecalculator)
@@ -62,7 +85,7 @@ BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 #define EXPECTED td_i.first
 #define NUMOFNODES_v td_i.second
 
-BOOST_AUTO_TEST_CASE(test_lower_bound) {
+BOOST_AUTO_TEST_CASE(test_shard_size_bounds) {
   INIT_STDOUT_LOGGER();
   ShardSizeMap testData;
   prepareTestdata(testData);
