@@ -23,8 +23,6 @@
 
 # [MUST BE FILLED IN] User configuration settings
 GitHubToken=""
-ownerName="Zilliqa"
-repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
 packageName=""
 releaseTitle=""
 releaseDescription=""
@@ -34,6 +32,7 @@ dsNodeFile="dsnodes.xml"
 # Environment variables
 releaseDir="release"
 versionFile="VERSION"
+constantFile="constants_local.xml"
 majorLine=2
 minorLine=4
 fixLine=6
@@ -73,7 +72,9 @@ if [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ]; then
     return 1
 fi
 
-# Read current version information from version file
+# Read information from files
+accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
+repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
 defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
 defaultMinor="$(sed -n ${minorLine}p ${versionFile})"
 defaultFix="$(sed -n ${fixLine}p ${versionFile})"
@@ -140,7 +141,7 @@ fullCommit="$(git rev-parse HEAD)"
 releaseLog="release.log"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" "https://api.github.com/repos/${ownerName}/${repoName}/releases" \
+  -H "Content-Type:application/json" "https://api.github.com/repos/${accountName}/${repoName}/releases" \
   -d '{
   "tag_name": "'"${newVer}"'", 
   "target_commitish": "'"${fullCommit}"'",
@@ -161,21 +162,21 @@ curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/octet-stream" \
   --data-binary @${pubKeyFile} \
-  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})"
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/vnd.debian.binary-package" \
   --data-binary @${releaseDir}/${debFile} \
-  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${debFile}"
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${debFile}"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/octet-stream" \
   --data-binary @${releaseDir}/${versionFile} \
-  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}"
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}"
 curl -v -s  \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/octet-stream"  \
   --data-binary @"${dsNodeFile}" \
-  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${dsNodeFile}"
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${dsNodeFile}"
 rm ${releaseLog}
 echo -e "\nA new draft release with package is created on Github sucessfully, please proceed to publishing the draft release on Github webpage.\n"

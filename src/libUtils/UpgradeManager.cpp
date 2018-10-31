@@ -30,6 +30,9 @@ using namespace std;
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
 #define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
+#define UPGRADE_HOST                                                      \
+  string(string("https://api.github.com/repos/") + UPGRADE_HOST_ACCOUNT + \
+         "/" + UPGRADE_HOST_REPO + "/releases/latest")
 
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_SHARD = 0;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP = 1;
