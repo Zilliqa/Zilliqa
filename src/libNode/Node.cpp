@@ -263,16 +263,21 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   /// Retrieve lacked Tx blocks from lookup nodes
   uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
-  m_synchronizer.FetchLatestTxBlocks(m_mediator.m_lookup,
-                                     m_mediator.m_txBlockChain.GetBlockCount());
-  LOG_GENERAL(INFO, "Retrieve final block from lookup node, please wait...");
+  if (!GetOfflineLookups()) {
+    LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
+    return false;
+  }
+  {
+    unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
 
-  unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
-  if (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
-          lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) == cv_status::timeout) {
-    LOG_GENERAL(WARNING,
-                "GetTxBlockFromLookupNodes Timeout, cannot get final block "
-                "from lookup node!");
+    do {
+      m_synchronizer.FetchLatestTxBlocks(
+          m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+      LOG_GENERAL(INFO,
+                  "Retrieve final block from lookup node, please wait...");
+    } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
+                 lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
+             cv_status::timeout);
   }
 
   if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
@@ -282,20 +287,18 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   /// Retrieve lacked final-block state-delta from lookup nodes
   if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
-    m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
-    LOG_GENERAL(
-        INFO,
-        "Retrieve final block state delta from lookup node, please wait...");
     unique_lock<mutex> lock(
         m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
-    if (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
-            lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
-        cv_status::timeout) {
-      LOG_GENERAL(WARNING,
-                  "GetStateDeltaFromLookupNodes Timeout, cannot get final "
-                  "block state delta from lookup node!");
-    }
+
+    do {
+      m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
+      LOG_GENERAL(
+          INFO,
+          "Retrieve final block state delta from lookup node, please wait...");
+    } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
+                 lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
+             cv_status::timeout);
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch

@@ -1777,7 +1777,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   }
 
   cv_setTxBlockFromSeed.notify_all();
-  return true;
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
