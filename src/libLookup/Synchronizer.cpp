@@ -47,14 +47,15 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   PubKey pubKey(tmppubkey, 0);
   std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
   uint64_t genesisBlockNumer = 0;
+  uint64_t genesisEpochNumer = 0;
   uint256_t genesisTimestamp = 0;
   std::map<PubKey, Peer> powDSWinners;
 
   // FIXME: Handle exceptions.
   DSBlock dsBlock(
       DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
-                    genesisBlockNumer, genesisTimestamp, SWInfo(), powDSWinners,
-                    DSBlockHashSet(), CommitteeHash()),
+                    genesisBlockNumer, genesisEpochNumer, genesisTimestamp,
+                    SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
   dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;

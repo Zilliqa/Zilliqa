@@ -540,6 +540,7 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
                                   *protoDSBlockHeader.mutable_leaderpubkey());
 
   protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
+  protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       dsBlockHeader.GetTimestamp(), *protoDSBlockHeader.mutable_timestamp());
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
@@ -641,10 +642,11 @@ void ProtobufToDSBlockHeader(
 
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(
-      protoDSBlockHeader.dsdifficulty(), protoDSBlockHeader.difficulty(),
-      prevHash, leaderPubKey, protoDSBlockHeader.blocknum(), timestamp, swInfo,
-      powDSWinners, hash, committeeHash);
+  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
+                                protoDSBlockHeader.difficulty(), prevHash,
+                                leaderPubKey, protoDSBlockHeader.blocknum(),
+                                protoDSBlockHeader.epochnum(), timestamp,
+                                swInfo, powDSWinners, hash, committeeHash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -680,7 +682,7 @@ void MicroBlockHeaderToProtobuf(
       microBlockHeader.GetRewards(), *protoMicroBlockHeader.mutable_rewards());
   protoMicroBlockHeader.set_prevhash(microBlockHeader.GetPrevHash().data(),
                                      microBlockHeader.GetPrevHash().size);
-  protoMicroBlockHeader.set_blocknum(microBlockHeader.GetBlockNum());
+  protoMicroBlockHeader.set_epochnum(microBlockHeader.GetEpochNum());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       microBlockHeader.GetTimestamp(),
       *protoMicroBlockHeader.mutable_timestamp());
@@ -780,7 +782,7 @@ void ProtobufToMicroBlockHeader(
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
       protoMicroBlockHeader.shardid(), gasLimit, gasUsed, rewards, prevHash,
-      protoMicroBlockHeader.blocknum(), timestamp,
+      protoMicroBlockHeader.epochnum(), timestamp,
       {txRootHash, stateDeltaHash, tranReceiptHash},
       protoMicroBlockHeader.numtxs(), minerPubKey,
       protoMicroBlockHeader.dsblocknum(), committeeHash);
