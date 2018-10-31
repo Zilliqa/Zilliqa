@@ -233,6 +233,20 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_dsBlockChain.Reset();
+  m_mediator.m_blocklinkchain.Reset();
+  m_mediator.m_blocklinkchain.GetBuiltDSComm().clear();
+  {
+    lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
+    if (m_mediator.m_initialDSCommittee->size() != 0) {
+      for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
+        m_mediator.m_blocklinkchain.GetBuiltDSComm().emplace_back(initDSCommKey,
+                                                                  Peer());
+        // Set initial ds committee with null peer
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Initial DS comm size 0 ");
+    }
+  }
   m_retriever = make_shared<Retriever>(m_mediator);
 
   if (LOOKUP_NODE_MODE) {
@@ -254,7 +268,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   /// Retrieve DS blocks
   bool ds_result;
-  m_retriever->RetrieveDSBlocks(ds_result, wakeupForUpgrade);
+  m_retriever->RetrieveDirectoryBlocks(ds_result, wakeupForUpgrade);
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
