@@ -148,6 +148,14 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          fallbackblock.GetHeader().GetFallbackDSEpochNo(),
+          fallbackblock.GetHeader().GetFallbackEpochNo())) {
+    LOG_GENERAL(WARNING,
+                "ProcessFallbackBlock CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
   BlockHash temp_blockHash = fallbackblock.GetHeader().GetMyHash();
   if (temp_blockHash != fallbackblock.GetBlockHash()) {
     LOG_GENERAL(WARNING,
@@ -155,17 +163,6 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << fallbackblock.GetBlockHash().hex());
-    return false;
-  }
-
-  if (fallbackblock.GetHeader().GetFallbackEpochNo() !=
-      m_mediator.m_currentEpochNum) {
-    LOG_GENERAL(WARNING,
-                "Received wrong fallbackblock."
-                    << endl
-                    << "current epoch: " << m_mediator.m_currentEpochNum << endl
-                    << "fallback epoch: "
-                    << fallbackblock.GetHeader().GetFallbackEpochNo());
     return false;
   }
 

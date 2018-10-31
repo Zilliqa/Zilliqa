@@ -267,7 +267,6 @@ class Node : public Executable, public Broadcastable {
   bool ProcessDoRejoin(const std::vector<unsigned char>& message,
                        unsigned int offset, const Peer& from);
 
-  bool CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum);
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
   bool VerifyFinalBlockCoSignature(const TxBlock& txblock);
   bool CheckStateRoot(const TxBlock& finalBlock);

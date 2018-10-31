@@ -196,6 +196,15 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
   const MicroBlock& microBlock = microBlocks.at(0);
 
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          microBlock.GetHeader().GetDSBlockNum() + 1,
+          microBlock.GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING,
+                "ProcessMicroblockSubmissionFromShardCore "
+                "CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
   uint32_t shardId = microBlock.GetHeader().GetShardId();
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "shard_id " << shardId);
@@ -267,20 +276,14 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   if (microBlocksAtEpoch.size() == m_shards.size()) {
-    LOG_STATE(
-        "[MICRO]["
-        << std::setw(15) << std::left
-        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] LAST RECVD");
-    LOG_STATE(
-        "[MIBLKSWAIT["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] DONE");
+    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_currentEpochNum
+                         << "] LAST RECVD");
+    LOG_STATE("[MIBLKSWAIT[" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_mediator.m_currentEpochNum
+                             << "] DONE");
 
     for (auto& mb : microBlocksAtEpoch) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -314,13 +317,10 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
     DetachedFunction(1, func2);
   } else if (microBlocks.size() == 1) {
-    LOG_STATE(
-        "[MICRO]["
-        << std::setw(15) << std::left
-        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] FRST RECVD");
+    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_currentEpochNum
+                         << "] FRST RECVD");
   }
 
   // TODO: Re-request from shard leader if microblock is not received after a
@@ -364,7 +364,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   // }
 
   LOG_GENERAL(
-      INFO, "Received microblock submission for block number " << epochNumber);
+      INFO, "Received microblock submission for epoch number " << epochNumber);
 
   if (m_mediator.m_currentEpochNum < epochNumber) {
     lock_guard<mutex> g(m_mutexMBSubmissionBuffer);
@@ -382,11 +382,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
     }
   }
 
-  LOG_GENERAL(
-      WARNING,
-      "Current block num: "
-          << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-          << " this microblock submission is too late");
+  LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "This microblock submission is too late");
 
   return false;
 }
@@ -444,6 +441,15 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     auto& microBlocksAtEpoch = m_microBlocks[epochNumber];
 
     for (const auto& microBlock : microBlocks) {
+      if (!m_mediator.CheckWhetherBlockIsLatest(
+              microBlock.GetHeader().GetDSBlockNum() + 1,
+              microBlock.GetHeader().GetEpochNum())) {
+        LOG_GENERAL(WARNING,
+                    "ProcessMicroblockSubmissionFromShardCore "
+                    "CheckWhetherBlockIsLatest failed");
+        return false;
+      }
+
       uint32_t shardId = microBlock.GetHeader().GetShardId();
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "shard_id " << shardId);

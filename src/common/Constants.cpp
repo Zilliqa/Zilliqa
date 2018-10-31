@@ -44,9 +44,9 @@ std::string ReadFromOptionsFile(std::string propertyName) {
   return pt.get<std::string>("node.options." + propertyName);
 }
 
-std::string ReadFromGasFile(std::string propertyName) {
+unsigned int ReadFromGasFile(std::string propertyName) {
   auto pt = PTree::GetInstance();
-  return pt.get<std::string>("node.gas." + propertyName); 
+  return pt.get<unsigned int>("node.gas." + propertyName);
 }
 
 std::string ReadSmartContractConstants(std::string propertyName) {
@@ -219,12 +219,11 @@ const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 // gas
 const unsigned int MICROBLOCK_GAS_LIMIT{
     ReadFromGasFile("MICROBLOCK_GAS_LIMIT")};
-const unsigned int CONTRACT_CREATE_GAS{
-    ReadFromGasFile("CONTRACT_CREATE_GAS")};
-const unsigned int CONTRACT_INVOKE_GAS{
-    ReadFromGasFile("CONTRACT_INVOKE_GAS")};
+const unsigned int CONTRACT_CREATE_GAS{ReadFromGasFile("CONTRACT_CREATE_GAS")};
+const unsigned int CONTRACT_INVOKE_GAS{ReadFromGasFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromGasFile("NORMAL_TRAN_GAS")};
-const unsigned int DEFAULT_MIN_GAS_PRICE{ReadFromGasFile("DEFAULT_MIN_GAS_PRICE")};
+const unsigned int DEFAULT_MIN_GAS_PRICE{
+    ReadFromGasFile("DEFAULT_MIN_GAS_PRICE")};
 
 // accounts
 const std::vector<std::string> GENESIS_WALLETS{

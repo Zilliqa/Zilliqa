@@ -67,6 +67,14 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_pendingVCBlock->GetHeader().GetVieWChangeDSEpochNo(),
+          m_pendingVCBlock->GetHeader().GetViewChangeEpochNo())) {
+    LOG_GENERAL(WARNING,
+                "ViewChangeValidator CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
   // Verify the Block Hash
   BlockHash temp_blockHash = m_pendingVCBlock->GetHeader().GetMyHash();
   if (temp_blockHash != m_pendingVCBlock->GetBlockHash()) {

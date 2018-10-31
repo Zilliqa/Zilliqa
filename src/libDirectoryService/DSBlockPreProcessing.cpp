@@ -631,8 +631,9 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
     m_pendingDSBlock.reset(new DSBlock(
         DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
-                      SWInfo(), powDSWinners, dsBlockHashSet, committeeHash),
+                      m_mediator.m_selfKey.second, blockNum,
+                      m_mediator.m_currentEpochNum, get_time_as_int(), SWInfo(),
+                      powDSWinners, dsBlockHashSet, committeeHash),
         CoSignatures(m_mediator.m_DSCommittee->size())));
     m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
@@ -771,6 +772,27 @@ bool DirectoryService::DSBlockValidator(
           messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
+    return false;
+  }
+
+  // Check DS Block Num
+  if ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+       1) != m_pendingDSBlock->GetHeader().GetBlockNum()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Received DS Block Num "
+                  << m_pendingDSBlock->GetHeader().GetBlockNum()
+                  << " is not current DS Block Num + 1 = "
+                  << (m_mediator.m_dsBlockChain.GetLastBlock()
+                          .GetHeader()
+                          .GetBlockNum() +
+                      1));
+    return false;
+  }
+
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_pendingDSBlock->GetHeader().GetBlockNum(),
+          m_pendingDSBlock->GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING, "DSBlockValidator CheckWhetherBlockIsLatest failed");
     return false;
   }
 
