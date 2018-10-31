@@ -40,8 +40,7 @@ using namespace std;
 
 const vector<string> programName = {"zilliqa"};
 
-const string restart_zilliqa =
-    "python /zilliqa/tests/Zilliqa/daemon_restart.py";
+const string restart_zilliqa = "python tests/Zilliqa/daemon_restart.py";
 
 const string proj_dir = "~/zilliqa-test";
 

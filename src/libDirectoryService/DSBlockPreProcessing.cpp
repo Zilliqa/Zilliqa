@@ -885,7 +885,6 @@ bool DirectoryService::DSBlockValidator(
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
-
   if (shardingHash != m_pendingDSBlock->GetHeader().GetShardingHash()) {
     LOG_GENERAL(WARNING,
                 "Sharding structure hash in newly received DS Block doesn't "

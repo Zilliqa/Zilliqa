@@ -298,7 +298,6 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 
-#if 1  // clark
   /// Save coin base for final block, from last DS epoch to current TX epoch
   for (uint64_t blockNum =
            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
@@ -318,7 +317,6 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     m_mediator.m_ds->m_totalTxnFees +=
         m_mediator.m_txBlockChain.GetBlock(blockNum).GetHeader().GetRewards();
   }
-#endif
 
   bool ds_result;
   m_retriever->RetrieveDSBlocks(ds_result, wakeupForUpgrade);
@@ -350,14 +348,9 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                       << ", shardId: " << microBlock->GetHeader().GetShardId()
                       << ", reward: " << microBlock->GetHeader().GetRewards()
                       << " from persistence, and update coin base");
-#if 1  // clark
       m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
                                     microBlock->GetHeader().GetShardId(),
                                     microBlock->GetHeader().GetBlockNum());
-#else
-      m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
-                                    microBlock->GetHeader().GetShardId());
-#endif
     }
   }
 

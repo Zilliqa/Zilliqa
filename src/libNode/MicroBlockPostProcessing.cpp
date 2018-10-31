@@ -273,16 +273,10 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
               *m_microblock);
         }
         if (!m_mediator.GetIsVacuousEpoch()) {
-#if 1  // clark
           m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
                                         m_microblock->GetB2(),
                                         m_microblock->GetHeader().GetShardId(),
                                         m_mediator.m_currentEpochNum);
-#else
-          m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
-                                        m_microblock->GetB2(),
-                                        m_microblock->GetHeader().GetShardId());
-#endif
           m_mediator.m_ds->m_toSendTxnToLookup = true;
           vector<unsigned char> body;
           m_microblock->Serialize(body, 0);

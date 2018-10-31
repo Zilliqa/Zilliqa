@@ -1818,16 +1818,10 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
     return false;
   }
-#if 1  // clark
   m_mediator.m_ds->SaveCoinbase(
       m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
       m_mediator.m_txBlockChain.GetLastBlock().GetB2(), -1,
       m_mediator.m_currentEpochNum);
-#else
-  m_mediator.m_ds->SaveCoinbase(
-      m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
-      m_mediator.m_txBlockChain.GetLastBlock().GetB2(), -1);
-#endif
   cv_setStateDeltaFromSeed.notify_all();
   return true;
 }
