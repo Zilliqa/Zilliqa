@@ -219,9 +219,7 @@ void Node::UpdateDSCommiteeCompositionAfterVC(
     if (it != dsComm.end()) {
       dsComm.erase(it);
     } else {
-      LOG_GENERAL(WARNING, "Cannot find the ds leader to eject");
-      // TODO: Handle this situation. This siutation shouldn't be
-      // encountered at all
+      LOG_GENERAL(FATAL, "Cannot find the ds leader to eject");
     }
     dsComm.emplace_back(faultyLeader);
   }
