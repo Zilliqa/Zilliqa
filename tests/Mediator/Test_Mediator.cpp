@@ -23,6 +23,8 @@
 #include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
 #include "libTestUtils/TestUtils.h"
+#include "libDB/ArchiveDB.h"
+#include "libDB/Archival.h"
 
 #define BOOST_TEST_MODULE message
 #define BOOST_TEST_DYN_LINK
@@ -33,15 +35,31 @@ using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_SUITE(messenger_primitives_test)
 
+Mediator* m;
+KeyPair kp;
+Peer p;
+
+
 BOOST_AUTO_TEST_CASE(init) {
   INIT_STDOUT_LOGGER();
   rng.seed(std::random_device()());
+  kp = TestUtils::GenerateRandomKeyPair();
+  p = Peer();
+  m = new Mediator (kp, p);
 }
 
-BOOST_AUTO_TEST_CASE(test_InitMediator) {
-  KeyPair kp = TestUtils::GenerateRandomKeyPair();
-  Peer p;
-  Mediator m(kp, p);
+BOOST_AUTO_TEST_CASE(test_RegisterColleagues) {
+  DirectoryService ds(*m);
+  //DirectoryService& ds = DirectoryService(*m);
+  Node node(*m, 0, false);
+  //Node& node = Node(m, 0, false);
+  Lookup lookup(*m);
+  //Lookup lookup = Lookup(m);
+  Validator validator(*m);
+  ArchiveDB archDB("name", "txn", "txBlock", "dsBlock", "accountState");
+  Archival arch(*m);
+
+  m->RegisterColleagues(&ds, &node, &lookup, &validator, &archDB, &arch);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
