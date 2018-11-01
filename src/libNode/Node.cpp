@@ -922,24 +922,31 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
   // Process the txns
   unsigned int processed_count = 0;
-  {
-    LOG_GENERAL(INFO, "Start check txn packet from lookup");
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    for (const auto& tx : txns) {
-      if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx)) {
-        m_createdTxns.insert(tx);
-      } else {
-        LOG_GENERAL(WARNING, "Txn is not valid.");
-      }
+  LOG_GENERAL(INFO, "Start check txn packet from lookup");
 
-      processed_count++;
+  std::vector<Transaction> checkedTxns;
+  for (const auto& txn : txns) {
+    if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn)) {
+      checkedTxns.push_back(txn);
+    } else {
+      LOG_GENERAL(WARNING, "Txn is not valid.");
+    }
 
-      if (processed_count % 100 == 0) {
-        LOG_GENERAL(INFO, processed_count << " txns from packet processed");
-      }
+    processed_count++;
+
+    if (processed_count % 100 == 0) {
+      LOG_GENERAL(INFO, processed_count << " txns from packet processed");
     }
   }
+
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+    for (const auto& txn : checkedTxns) {
+      m_createdTxns.insert(txn);
+    }
+  }
+
   LOG_GENERAL(INFO, "INSERTED TXN COUNT" << processed_count);
 
   LOG_STATE(
