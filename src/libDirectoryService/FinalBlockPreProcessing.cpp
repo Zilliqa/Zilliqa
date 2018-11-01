@@ -97,29 +97,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
                 << microblockTrieRoot.hex());
 }
 
-MBInfoHash DirectoryService::CalculateMBInfoHash(
-    const std::vector<uint32_t>& shardIds,
-    const std::vector<bool>& isMicroBlockEmpty) {
-  vector<unsigned char> mbInfoVec;
-  unsigned int offset = 0;
-  for (const auto& id : shardIds) {
-    Serializable::SetNumber<uint32_t>(mbInfoVec, offset, id, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-  }
-  for (const auto& isEmpty : isMicroBlockEmpty) {
-    mbInfoVec.push_back(isEmpty ? BoolSign::ISTRUE : BoolSign::ISFALSE);
-    offset += sizeof(unsigned char);
-  }
-
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(mbInfoVec);
-  vector<unsigned char> hashVec = sha2.Finalize();
-  MBInfoHash mbInfoHash;
-  copy(hashVec.begin(), hashVec.end(), mbInfoHash.asArray().begin());
-
-  return mbInfoHash;
-}
-
 bool DirectoryService::ComposeFinalBlock() {
   LOG_MARKER();
 
@@ -147,7 +124,13 @@ bool DirectoryService::ComposeFinalBlock() {
                              allGasLimit, allGasUsed, allRewards, numTxs,
                              isMicroBlockEmpty, numMicroBlocks);
 
-  MBInfoHash mbInfoHash = CalculateMBInfoHash(shardIds, isMicroBlockEmpty);
+  // Compute the MBInfoHash of the extra MicroBlock information
+  MBInfoHash mbInfoHash;
+  if (!Messenger::GetExtraMbInfoHash(isMicroBlockEmpty, shardIds, mbInfoHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetExtraMbInfoHash failed.");
+    return false;
+  }
 
   BlockHash prevHash;
   uint256_t timestamp = get_time_as_int();
@@ -824,8 +807,15 @@ bool DirectoryService::CheckExtraMicroBlockInfo() {
     }
   }
 
-  return CalculateMBInfoHash(shardIds, isMicroBlockEmpty) ==
-         m_finalBlock->GetHeader().GetMbInfoHash();
+  // Compute the MBInfoHash of the extra MicroBlock information
+  MBInfoHash mbInfoHash;
+  if (!Messenger::GetExtraMbInfoHash(isMicroBlockEmpty, shardIds, mbInfoHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetExtraMbInfoHash failed.");
+    return false;
+  }
+
+  return mbInfoHash == m_finalBlock->GetHeader().GetMbInfoHash();
 }
 
 // Check state root

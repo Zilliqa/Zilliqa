@@ -187,6 +187,12 @@ message ProtoMicroBlock
     required ProtoBlockBase blockbase  = 3;
 }
 
+message ProtoExtraMbInfo
+{
+    repeated bool ismicroblockempty = 1 [packed=true];
+    repeated uint32 shardids        = 2;
+}
+
 message ProtoTxBlock
 {
     message TxBlockHashSet
@@ -214,10 +220,9 @@ message ProtoTxBlock
         required bytes committeehash            = 14;
     }
     required TxBlockHeader header               = 1;
-    repeated bool ismicroblockempty             = 2 [packed=true];
-    repeated bytes mbhashes                     = 3;
-    repeated uint32 shardids                    = 4;
-    required ProtoBlockBase blockbase           = 5;
+    repeated bytes mbhashes                     = 2;
+    required ProtoExtraMbInfo extrambinfo       = 3;
+    required ProtoBlockBase blockbase           = 4;
 }
 
 message ProtoVCBlock
