@@ -89,6 +89,12 @@ message ProtoTxSharingAssignments
     repeated AssignedNodes shardnodes = 2;
 }
 
+message ProtoDSWinnerPoW
+{
+     required ByteArray pubkey         = 1;
+     required ProtoPoWSolution powsoln = 2;
+}
+
 message ProtoTransactionCoreInfo
 {
     required ByteArray version      = 1;
@@ -188,6 +194,12 @@ message ProtoMicroBlock
     required ProtoBlockBase blockbase  = 3;
 }
 
+message ProtoExtraMbInfo
+{
+    repeated bool ismicroblockempty = 1 [packed=true];
+    repeated uint32 shardids        = 2;
+}
+
 message ProtoTxBlock
 {
     message TxBlockHashSet
@@ -215,10 +227,9 @@ message ProtoTxBlock
         required bytes committeehash            = 14;
     }
     required TxBlockHeader header               = 1;
-    repeated bool ismicroblockempty             = 2 [packed=true];
-    repeated bytes mbhashes                     = 3;
-    repeated uint32 shardids                    = 4;
-    required ProtoBlockBase blockbase           = 5;
+    repeated bytes mbhashes                     = 2;
+    required ProtoExtraMbInfo extrambinfo       = 3;
+    required ProtoBlockBase blockbase           = 4;
 }
 
 message ProtoVCBlock
@@ -291,7 +302,7 @@ message DSDSBlockAnnouncement
     required ProtoDSBlock dsblock                        = 1;
     required ProtoShardingStructureWithPoWSolns sharding = 2;
     required ProtoTxSharingAssignments assignments       = 3;
-    // TODO: Also send the PoW Solutions for the DS winners
+    repeated ProtoDSWinnerPoW dswinnerpows               = 4;
 }
 
 message DSFinalBlockAnnouncement
