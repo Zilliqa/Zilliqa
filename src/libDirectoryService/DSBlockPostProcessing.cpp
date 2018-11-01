@@ -81,6 +81,7 @@ void DirectoryService::StoreDSBlockToStorage() {
 
   // Store to blocklink
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+
   m_mediator.m_blocklinkchain.AddBlockLink(
       latestInd, m_pendingDSBlock->GetHeader().GetBlockNum(), BlockType::DS,
       m_pendingDSBlock->GetBlockHash());
@@ -590,7 +591,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   }
   // Add the DS block to the chain
   StoreDSBlockToStorage();
-  DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
 
   m_mediator.UpdateDSBlockRand();
 

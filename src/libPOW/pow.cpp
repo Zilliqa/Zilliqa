@@ -380,8 +380,8 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const std::array<unsigned char, UINT256_SIZE>& rand2,
                     const boost::multiprecision::uint128_t& ipAddr,
                     const PubKey& pubKey, bool fullDataset,
-                    uint64_t winning_nonce, std::string& winning_result,
-                    std::string& winning_mixhash) {
+                    uint64_t winning_nonce, const std::string& winning_result,
+                    const std::string& winning_mixhash) {
   LOG_MARKER();
   EthashConfigureLightClient(blockNum);
   ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);

@@ -536,6 +536,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
 
   POW::GetInstance().EthashConfigureLightClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+
   if (m_mode == PRIMARY_DS) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
@@ -864,4 +865,9 @@ uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
   estimatedBlocksOneYear = (estimatedBlocksOneYear / NUM_FINAL_BLOCK_PER_POW) *
                            NUM_FINAL_BLOCK_PER_POW;
   return estimatedBlocksOneYear;
+}
+
+int64_t DirectoryService::GetAllPoWSize() const {
+  std::lock_guard<mutex> lock(m_mutexAllPOW);
+  return m_allPoWs.size();
 }

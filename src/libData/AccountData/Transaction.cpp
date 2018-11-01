@@ -216,11 +216,11 @@ bool Transaction::operator==(const Transaction& tran) const {
 }
 
 bool Transaction::operator<(const Transaction& tran) const {
-  return (m_tranID < tran.m_tranID);
+  return tran.m_tranID > m_tranID;
 }
 
 bool Transaction::operator>(const Transaction& tran) const {
-  return !((*this == tran) || (*this < tran));
+  return tran < *this;
 }
 
 Transaction& Transaction::operator=(const Transaction& src) {

@@ -46,14 +46,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::UpdateDSCommiteeCompositionAfterVC(
-    deque<pair<PubKey, Peer>>& dsComm) {
-  LOG_MARKER();
-
-  dsComm.emplace_back(dsComm.front());
-  dsComm.pop_front();
-}
-
 bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   LOG_MARKER();
 
@@ -139,10 +131,6 @@ bool Node::ProcessVCBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  // TDOO
-  // Add to block chain and Store the VC block to disk.
-  // StoreVCBlockToDisk(dsblock);
-
   if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
     SendVCBlockToOtherShardNodes(message);
   }
@@ -165,6 +153,14 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // TODO State machine check
 
+  // Check is block latest
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          vcblock.GetHeader().GetVieWChangeDSEpochNo(),
+          vcblock.GetHeader().GetViewChangeEpochNo())) {
+    LOG_GENERAL(WARNING, "ProcessVCBlockCore CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
   // Verify the Block Hash
   BlockHash temp_blockHash = vcblock.GetHeader().GetMyHash();
   if (temp_blockHash != vcblock.GetBlockHash()) {
@@ -175,6 +171,8 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
                     << " Received: " << vcblock.GetBlockHash().hex());
     return false;
   }
+
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
   // Verify the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
@@ -190,30 +188,6 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
                 "Calculated: "
                     << committeeHash
                     << " Received: " << vcblock.GetHeader().GetCommitteeHash());
-    return false;
-  }
-
-  unsigned int newCandidateLeader = vcblock.GetHeader().GetViewChangeCounter();
-
-  if (newCandidateLeader > m_mediator.m_DSCommittee->size()) {
-    LOG_GENERAL(WARNING,
-                "View change counter is more than size of ds commitee. "
-                "This may be due view of ds committee is wrong. "
-                    << m_mediator.m_currentEpochNum << "vc epoch: "
-                    << vcblock.GetHeader().GetViewChangeEpochNo());
-    newCandidateLeader = newCandidateLeader % m_mediator.m_DSCommittee->size();
-  }
-
-  if (!(m_mediator.m_DSCommittee->at(newCandidateLeader).second ==
-            vcblock.GetHeader().GetCandidateLeaderNetworkInfo() &&
-        m_mediator.m_DSCommittee->at(newCandidateLeader).first ==
-            vcblock.GetHeader().GetCandidateLeaderPubKey())) {
-    LOG_GENERAL(WARNING,
-                "View change expectation mismatched "
-                "expected new leader: "
-                    << m_mediator.m_DSCommittee->at(newCandidateLeader).second
-                    << "actual vc new leader "
-                    << vcblock.GetHeader().GetCandidateLeaderNetworkInfo());
     return false;
   }
 
@@ -238,17 +212,34 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
     return false;
   }
 
-  {
-    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-    for (unsigned int x = 0; x < newCandidateLeader; x++) {
-      // TODO: If VC select a random
-      // leader, we need to change the way
-      // we update ds composition.
-      UpdateDSCommiteeCompositionAfterVC(*m_mediator.m_DSCommittee);
-    }
-  }
+  UpdateDSCommiteeCompositionAfterVC(vcblock, *m_mediator.m_DSCommittee);
 
   return true;
+}
+
+/// This function asssume ddsComm to indicate 0.0.0.0 for current node
+void Node::UpdateDSCommiteeCompositionAfterVC(
+    const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
+  for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
+    deque<pair<PubKey, Peer>>::iterator it;
+
+    // If faulty leader is current node, look for 0.0.0.0 is ds committee
+    if (faultyLeader.first == m_mediator.m_selfKey.second &&
+        faultyLeader.second == Peer()) {
+      pair<PubKey, Peer> selfNode = make_pair(faultyLeader.first, Peer());
+      it = find(dsComm.begin(), dsComm.end(), selfNode);
+    } else {
+      it = find(dsComm.begin(), dsComm.end(), faultyLeader);
+    }
+
+    // Remove faulty leader from the current
+    if (it != dsComm.end()) {
+      dsComm.erase(it);
+    } else {
+      LOG_GENERAL(FATAL, "Cannot find the ds leader to eject");
+    }
+    dsComm.emplace_back(faultyLeader);
+  }
 }
 
 void Node::SendVCBlockToOtherShardNodes(
