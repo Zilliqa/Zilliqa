@@ -17,8 +17,8 @@
  * program files.
  */
 
-#ifndef TESTS_TESTLIB_TESTLIBFUNCTIONS_H_
-#define TESTS_TESTLIB_TESTLIBFUNCTIONS_H_
+#ifndef __TESTUTILS_H__
+#define __TESTUTILS_H__
 
 #include <limits>
 #include <random>
@@ -31,11 +31,19 @@
 
 static std::mt19937 rng;
 
+namespace TestUtils {
+void Initialize();
+
+// Data Generation Functions
+
 template <typename T>
-T randomIntInRng(T n, T m);
-uint8_t dist1to99();
-uint16_t distUint16();
-uint32_t distUint32();
+T RandomIntInRng(T n, T m) {
+  return std::uniform_int_distribution<T>{n, m}(rng);
+}
+
+uint8_t Dist1to99();
+uint16_t DistUint16();
+uint32_t DistUint32();
 
 PubKey GenerateRandomPubKey();
 Peer GenerateRandomPeer();
@@ -45,5 +53,6 @@ TxBlockHeader GenerateRandomTxBlockHeader();
 VCBlockHeader GenerateRandomVCBlockHeader();
 FallbackBlockHeader GenerateRandomFallbackBlockHeader();
 CoSignatures GenerateRandomCoSignatures();
+}  // namespace TestUtils
 
-#endif /* TESTS_TESTLIB_TESTFUNCTIONSLIB_H_ */
+#endif  // __TESTUTILS_H__

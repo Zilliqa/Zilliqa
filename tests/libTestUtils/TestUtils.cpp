@@ -17,45 +17,43 @@
  * program files.
  */
 
-#include "testLibFunctions.h"
+#include "TestUtils.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-template <typename T>
-T randomIntInRng(T n, T m) {
-  return std::uniform_int_distribution<T>{n, m}(rng);
-}
+namespace TestUtils {
+void Initialize() { rng.seed(std::random_device()()); }
 
-uint8_t distUint8() {
-  return randomIntInRng<uint8_t>(std::numeric_limits<uint8_t>::min(),
+uint8_t DistUint8() {
+  return RandomIntInRng<uint8_t>(std::numeric_limits<uint8_t>::min(),
                                  std::numeric_limits<uint8_t>::max());
 }
-uint16_t distUint16() {
-  return randomIntInRng<uint16_t>(std::numeric_limits<uint16_t>::min(),
+uint16_t DistUint16() {
+  return RandomIntInRng<uint16_t>(std::numeric_limits<uint16_t>::min(),
                                   std::numeric_limits<uint16_t>::max());
 }
-uint32_t distUint32() {
-  return randomIntInRng<uint32_t>(std::numeric_limits<uint32_t>::min(),
+uint32_t DistUint32() {
+  return RandomIntInRng<uint32_t>(std::numeric_limits<uint32_t>::min(),
                                   std::numeric_limits<uint32_t>::max());
 }
-uint8_t dist1to99() { return randomIntInRng<uint8_t>((uint8_t)1, (uint8_t)99); }
+uint8_t Dist1to99() { return RandomIntInRng<uint8_t>((uint8_t)1, (uint8_t)99); }
 
 PubKey GenerateRandomPubKey() { return PubKey(PrivKey()); }
 
 Peer GenerateRandomPeer() {
-  uint128_t ip_address = distUint32();
-  uint32_t listen_port_host = distUint32();
+  uint128_t ip_address = DistUint32();
+  uint32_t listen_port_host = DistUint32();
   return Peer(ip_address, listen_port_host);
 }
 
 DSBlockHeader GenerateRandomDSBlockHeader() {
-  uint8_t dsDifficulty = distUint8();
-  uint8_t difficulty = distUint8();
+  uint8_t dsDifficulty = DistUint8();
+  uint8_t difficulty = DistUint8();
   BlockHash prevHash;
   PubKey leaderPubKey = GenerateRandomPubKey();
-  uint64_t blockNum = distUint32();
-  uint256_t timestamp = distUint32();
+  uint64_t blockNum = DistUint32();
+  uint256_t timestamp = DistUint32();
   SWInfo swInfo;
   map<PubKey, Peer> powDSWinners;
   DSBlockHashSet hash;
@@ -70,19 +68,19 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
 }
 
 MicroBlockHeader GenerateRandomMicroBlockHeader() {
-  uint8_t type = distUint8();
-  uint32_t version = distUint32();
-  uint32_t shardId = distUint32();
-  uint256_t gasLimit = distUint32();
-  uint256_t gasUsed = distUint32();
-  uint256_t rewards = distUint32();
+  uint8_t type = DistUint8();
+  uint32_t version = DistUint32();
+  uint32_t shardId = DistUint32();
+  uint256_t gasLimit = DistUint32();
+  uint256_t gasUsed = DistUint32();
+  uint256_t rewards = DistUint32();
   BlockHash prevHash;
-  uint64_t blockNum = distUint32();
-  uint256_t timestamp = distUint32();
+  uint64_t blockNum = DistUint32();
+  uint256_t timestamp = DistUint32();
   TxnHash txRootHash;
-  uint32_t numTxs = dist1to99();
+  uint32_t numTxs = Dist1to99();
   PubKey minerPubKey = GenerateRandomPubKey();
-  uint64_t dsBlockNum = distUint32();
+  uint64_t dsBlockNum = DistUint32();
   BlockHash dsBlockHash;
   StateHash stateDeltaHash;
   TxnHash tranReceiptHash;
@@ -95,23 +93,23 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
 }
 
 TxBlockHeader GenerateRandomTxBlockHeader() {
-  uint8_t type = distUint8();
-  uint32_t version = distUint32();
-  uint256_t gasLimit = distUint32();
-  uint256_t gasUsed = distUint32();
-  uint256_t rewards = distUint32();
+  uint8_t type = DistUint8();
+  uint32_t version = DistUint32();
+  uint256_t gasLimit = DistUint32();
+  uint256_t gasUsed = DistUint32();
+  uint256_t rewards = DistUint32();
   BlockHash prevHash;
-  uint64_t blockNum = distUint32();
-  uint256_t timestamp = distUint32();
+  uint64_t blockNum = DistUint32();
+  uint256_t timestamp = DistUint32();
   TxnHash txRootHash;
   StateHash stateRootHash;
   StateHash deltaRootHash;
   StateHash stateDeltaHash;
   TxnHash tranReceiptRootHash;
-  uint32_t numTxs = dist1to99();
-  uint32_t numMicroBlockHashes = dist1to99();
+  uint32_t numTxs = Dist1to99();
+  uint32_t numMicroBlockHashes = Dist1to99();
   PubKey minerPubKey = GenerateRandomPubKey();
-  uint64_t dsBlockNum = distUint32();
+  uint64_t dsBlockNum = DistUint32();
   BlockHash dsBlockHeader;
   CommitteeHash committeeHash;
 
@@ -123,14 +121,14 @@ TxBlockHeader GenerateRandomTxBlockHeader() {
 }
 
 VCBlockHeader GenerateRandomVCBlockHeader() {
-  uint64_t vieWChangeDSEpochNo = distUint32();
-  uint64_t viewChangeEpochNo = distUint32();
-  unsigned char viewChangeState = distUint8();
-  uint32_t expectedCandidateLeaderIndex = distUint32();
+  uint64_t vieWChangeDSEpochNo = DistUint32();
+  uint64_t viewChangeEpochNo = DistUint32();
+  unsigned char viewChangeState = DistUint8();
+  uint32_t expectedCandidateLeaderIndex = DistUint32();
   Peer candidateLeaderNetworkInfo = GenerateRandomPeer();
   PubKey candidateLeaderPubKey = GenerateRandomPubKey();
-  uint32_t vcCounter = distUint32();
-  uint256_t timestamp = distUint32();
+  uint32_t vcCounter = DistUint32();
+  uint256_t timestamp = DistUint32();
   CommitteeHash committeeHash;
 
   return VCBlockHeader(vieWChangeDSEpochNo, viewChangeEpochNo, viewChangeState,
@@ -140,15 +138,15 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
 }
 
 FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
-  uint64_t fallbackDSEpochNo = distUint32();
-  uint64_t fallbackEpochNo = distUint32();
-  unsigned char fallbackState = distUint8();
+  uint64_t fallbackDSEpochNo = DistUint32();
+  uint64_t fallbackEpochNo = DistUint32();
+  unsigned char fallbackState = DistUint8();
   StateHash stateRootHash;
-  uint32_t leaderConsensusId = distUint32();
+  uint32_t leaderConsensusId = DistUint32();
   Peer leaderNetworkInfo = GenerateRandomPeer();
   PubKey leaderPubKey = GenerateRandomPubKey();
-  uint32_t shardId = distUint32();
-  uint256_t timestamp = distUint32();
+  uint32_t shardId = DistUint32();
+  uint256_t timestamp = DistUint32();
   CommitteeHash committeeHash;
 
   return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
@@ -157,4 +155,5 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
                              timestamp, committeeHash);
 }
 
-CoSignatures GenerateRandomCoSignatures() { return CoSignatures(dist1to99()); }
+CoSignatures GenerateRandomCoSignatures() { return CoSignatures(Dist1to99()); }
+}  // namespace TestUtils

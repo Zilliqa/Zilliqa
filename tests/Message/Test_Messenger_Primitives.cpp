@@ -20,8 +20,8 @@
 #include <limits>
 #include <random>
 #include "libMessage/Messenger.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
-#include "testLib/testLibFunctions.h"
 
 #define BOOST_TEST_MODULE message
 #define BOOST_TEST_DYN_LINK
@@ -34,15 +34,16 @@ BOOST_AUTO_TEST_SUITE(messenger_primitives_test)
 
 BOOST_AUTO_TEST_CASE(init) {
   INIT_STDOUT_LOGGER();
-  rng.seed(std::random_device()());
+  TestUtils::Initialize();
 }
 
 BOOST_AUTO_TEST_CASE(test_GetDSCommitteeHash) {
   deque<pair<PubKey, Peer>> dsCommittee;
   CommitteeHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
-    dsCommittee.emplace_back(GenerateRandomPubKey(), GenerateRandomPeer());
+  for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
+    dsCommittee.emplace_back(TestUtils::GenerateRandomPubKey(),
+                             TestUtils::GenerateRandomPeer());
   }
 
   BOOST_CHECK(Messenger::GetDSCommitteeHash(dsCommittee, dst));
@@ -52,9 +53,10 @@ BOOST_AUTO_TEST_CASE(test_GetShardHash) {
   Shard shard;
   CommitteeHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
-    shard.emplace_back(GenerateRandomPubKey(), GenerateRandomPeer(),
-                       distUint16());
+  for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
+    shard.emplace_back(TestUtils::GenerateRandomPubKey(),
+                       TestUtils::GenerateRandomPeer(),
+                       TestUtils::DistUint16());
   }
 
   BOOST_CHECK(Messenger::GetShardHash(shard, dst));
@@ -64,11 +66,12 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
   DequeOfShard shards;
   ShardingHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
+  for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
     shards.emplace_back();
-    for (unsigned int j = 0, countj = dist1to99(); j < countj; j++) {
-      shards.back().emplace_back(GenerateRandomPubKey(), GenerateRandomPeer(),
-                                 distUint16());
+    for (unsigned int j = 0, countj = TestUtils::Dist1to99(); j < countj; j++) {
+      shards.back().emplace_back(TestUtils::GenerateRandomPubKey(),
+                                 TestUtils::GenerateRandomPeer(),
+                                 TestUtils::DistUint16());
     }
   }
 
@@ -81,14 +84,14 @@ BOOST_AUTO_TEST_CASE(test_GetTxSharingAssignmentsHash) {
   vector<vector<Peer>> shardSenders;
   TxSharingHash dst;
 
-  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
+  for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
     dsReceivers.emplace_back();
   }
 
-  for (unsigned int i = 0, count = dist1to99(); i < count; i++) {
+  for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
     shardReceivers.emplace_back();
     shardSenders.emplace_back();
-    for (unsigned int j = 0, countj = dist1to99(); j < countj; j++) {
+    for (unsigned int j = 0, countj = TestUtils::Dist1to99(); j < countj; j++) {
       shardReceivers.back().emplace_back();
       shardSenders.back().emplace_back();
     }
@@ -102,7 +105,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
 
-  DSBlockHeader dsBlockHeader = GenerateRandomDSBlockHeader();
+  DSBlockHeader dsBlockHeader = TestUtils::GenerateRandomDSBlockHeader();
 
   BOOST_CHECK(Messenger::SetDSBlockHeader(dst, offset, dsBlockHeader));
 
@@ -118,7 +121,8 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
 
-  DSBlock dsBlock(GenerateRandomDSBlockHeader(), GenerateRandomCoSignatures());
+  DSBlock dsBlock(TestUtils::GenerateRandomDSBlockHeader(),
+                  TestUtils::GenerateRandomCoSignatures());
 
   BOOST_CHECK(Messenger::SetDSBlock(dst, offset, dsBlock));
 
@@ -132,7 +136,8 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
 BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlockHeader) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
-  MicroBlockHeader microBlockHeader = GenerateRandomMicroBlockHeader();
+  MicroBlockHeader microBlockHeader =
+      TestUtils::GenerateRandomMicroBlockHeader();
 
   BOOST_CHECK(Messenger::SetMicroBlockHeader(dst, offset, microBlockHeader));
 
@@ -148,7 +153,8 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
 
-  MicroBlockHeader microBlockHeader = GenerateRandomMicroBlockHeader();
+  MicroBlockHeader microBlockHeader =
+      TestUtils::GenerateRandomMicroBlockHeader();
   vector<TxnHash> tranHashes;
 
   for (unsigned int i = 0; i < microBlockHeader.GetNumTxs(); i++) {
@@ -156,7 +162,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
   }
 
   MicroBlock microBlock(microBlockHeader, tranHashes,
-                        GenerateRandomCoSignatures());
+                        TestUtils::GenerateRandomCoSignatures());
 
   BOOST_CHECK(Messenger::SetMicroBlock(dst, offset, microBlock));
 
@@ -170,7 +176,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
 BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlockHeader) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
-  TxBlockHeader txBlockHeader = GenerateRandomTxBlockHeader();
+  TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
 
   BOOST_CHECK(Messenger::SetTxBlockHeader(dst, offset, txBlockHeader));
 
@@ -186,13 +192,13 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
 
-  TxBlockHeader txBlockHeader = GenerateRandomTxBlockHeader();
+  TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
   vector<bool> isMicroBlockEmpty(txBlockHeader.GetNumMicroBlockHashes());
   vector<MicroBlockHashSet> microBlockHashes;
   vector<uint32_t> shardIds(txBlockHeader.GetNumMicroBlockHashes());
 
   TxBlock txBlock(txBlockHeader, isMicroBlockEmpty, microBlockHashes, shardIds,
-                  GenerateRandomCoSignatures());
+                  TestUtils::GenerateRandomCoSignatures());
 
   BOOST_CHECK(Messenger::SetTxBlock(dst, offset, txBlock));
 
@@ -206,7 +212,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
-  VCBlockHeader vcBlockHeader = GenerateRandomVCBlockHeader();
+  VCBlockHeader vcBlockHeader = TestUtils::GenerateRandomVCBlockHeader();
 
   BOOST_CHECK(Messenger::SetVCBlockHeader(dst, offset, vcBlockHeader));
 
@@ -221,7 +227,8 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
-  VCBlock vcBlock(GenerateRandomVCBlockHeader(), GenerateRandomCoSignatures());
+  VCBlock vcBlock(TestUtils::GenerateRandomVCBlockHeader(),
+                  TestUtils::GenerateRandomCoSignatures());
 
   BOOST_CHECK(Messenger::SetVCBlock(dst, offset, vcBlock));
 
@@ -235,7 +242,8 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
 BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlockHeader) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
-  FallbackBlockHeader fallbackBlockHeader = GenerateRandomFallbackBlockHeader();
+  FallbackBlockHeader fallbackBlockHeader =
+      TestUtils::GenerateRandomFallbackBlockHeader();
 
   BOOST_CHECK(
       Messenger::SetFallbackBlockHeader(dst, offset, fallbackBlockHeader));
@@ -251,8 +259,8 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlockHeader) {
 BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlock) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
-  FallbackBlock fallbackBlock(GenerateRandomFallbackBlockHeader(),
-                              GenerateRandomCoSignatures());
+  FallbackBlock fallbackBlock(TestUtils::GenerateRandomFallbackBlockHeader(),
+                              TestUtils::GenerateRandomCoSignatures());
 
   BOOST_CHECK(Messenger::SetFallbackBlock(dst, offset, fallbackBlock));
 
