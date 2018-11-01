@@ -31,12 +31,12 @@ message ProtoAccount
 
 message ProtoAccountStore
 {
-    message Account
+    message AddressAccount
     {
         required bytes address        = 1;
         required ProtoAccount account = 2;
     }
-    repeated Account entries          = 3;
+    repeated AddressAccount entries   = 3;
 }
 
 message ProtoDSNode

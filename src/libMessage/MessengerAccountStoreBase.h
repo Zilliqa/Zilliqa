@@ -21,13 +21,17 @@
 
 #include <vector>
 
+// This class is only used by AccountStoreBase template class
+// If AccountStoreBase.tpp included Messenger.h, we enter into some circular
+// dependency issue Putting the messenger functions below into this new class
+// avoids that issue
+
 class MessengerAccountStoreBase {
  public:
   // ============================================================================
   // Primitives
   // ============================================================================
 
-  // These are called by AccountStoreBase template class
   template <class MAP>
   static bool SetAccountStore(std::vector<unsigned char>& dst,
                               const unsigned int offset,

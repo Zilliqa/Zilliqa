@@ -63,7 +63,7 @@ bool MessengerAccountStoreBase::SetAccountStore(vector<unsigned char>& dst,
                         << addressToAccount.size());
 
   for (const auto& entry : addressToAccount) {
-    ProtoAccountStore::Account* protoEntry = result.add_entries();
+    ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
     AccountToProtobuf(entry.second, *protoEntryAccount);
