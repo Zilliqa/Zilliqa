@@ -263,7 +263,10 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
           m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
       if (!m_mediator.m_ds->m_startedRunFinalblockConsensus) {
         m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
-        AccountStore::GetInstance().SerializeDelta();
+        if (!AccountStore::GetInstance().SerializeDelta()) {
+          LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+          return false;
+        }
         AccountStore::GetInstance().GetSerializedDelta(
             m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
         m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();

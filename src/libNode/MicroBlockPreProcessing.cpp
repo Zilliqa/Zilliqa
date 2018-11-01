@@ -760,7 +760,10 @@ bool Node::RunConsensusOnMicroBlock() {
 
       m_mediator.m_ds->InitCoinbase();
       m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
-      AccountStore::GetInstance().SerializeDelta();
+      if (!AccountStore::GetInstance().SerializeDelta()) {
+        LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+        return false;
+      }
       AccountStore::GetInstance().GetSerializedDelta(
           m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
     }
@@ -976,14 +979,20 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
       AccountStore::GetInstance().InitTemp();
       if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
         LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
-        AccountStore::GetInstance().DeserializeDeltaTemp(
-            m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
+        if (!AccountStore::GetInstance().DeserializeDeltaTemp(
+                m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0)) {
+          LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
+          return LEGITIMACYRESULT::DESERIALIZATIONERROR;
+        }
       }
 
       return LEGITIMACYRESULT::MISSEDTXN;
     }
 
-    AccountStore::GetInstance().SerializeDelta();
+    if (!AccountStore::GetInstance().SerializeDelta()) {
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+      return LEGITIMACYRESULT::SERIALIZATIONERROR;
+    }
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Vacuous epoch: Skipping processing transactions");

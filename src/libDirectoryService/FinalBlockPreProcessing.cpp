@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -1042,6 +1041,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 
 void DirectoryService::RunConsensusOnFinalBlock(
     RunFinalBlockConsensusOptions options) {
+  LOG_MARKER();
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnFinalBlock not expected "
@@ -1059,8 +1060,6 @@ void DirectoryService::RunConsensusOnFinalBlock(
       LOG_GENERAL(INFO, "The above CheckState failed as expected, don't panic");
     }
 
-    LOG_MARKER();
-
 #ifdef FALLBACK_TEST
     if (m_mediator.m_currentEpochNum == FALLBACK_TEST_EPOCH &&
         m_mediator.m_consensusID > 1) {
@@ -1075,15 +1074,19 @@ void DirectoryService::RunConsensusOnFinalBlock(
 
     switch (options) {
       case NORMAL:
-        AccountStore::GetInstance().SerializeDelta();
+        if (!AccountStore::GetInstance().SerializeDelta()) {
+          LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+        }
         AccountStore::GetInstance().CommitTempReversible();
         break;
       case REVERT_STATEDELTA:
         LOG_GENERAL(WARNING,
                     "Failed DS microblock consensus, revert state delta");
         AccountStore::GetInstance().InitTemp();
-        AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards,
-                                                         0);
+        if (!AccountStore::GetInstance().DeserializeDeltaTemp(
+                m_stateDeltaFromShards, 0)) {
+          LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
+        }
         break;
       case FROM_VIEWCHANGE:
       default:

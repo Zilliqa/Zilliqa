@@ -16,6 +16,9 @@
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
  */
+#ifndef __MESSENGER_H__
+#define __MESSENGER_H__
+
 #include <boost/variant.hpp>
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
@@ -25,9 +28,6 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
-
-#ifndef __MESSENGER_H__
-#define __MESSENGER_H__
 
 class Messenger {
  public:
@@ -46,9 +46,48 @@ class Messenger {
       const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders, TxSharingHash& dst);
+
+  static bool SetAccount(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const Account& account);
+  [[gnu::unused]] static bool GetAccount(const std::vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         Account& account);
+
+  static bool SetAccountDelta(std::vector<unsigned char>& dst,
+                              const unsigned int offset, Account* oldAccount,
+                              const Account& newAccount);
+  static bool GetAccountDelta(const std::vector<unsigned char>& src,
+                              const unsigned int offset, Account& account,
+                              const bool fullCopy);
+
+  // These are called by AccountStoreBase template class
+  template <class MAP>
+  static bool SetAccountStore(std::vector<unsigned char>& dst,
+                              const unsigned int offset,
+                              const MAP& addressToAccount);
+  template <class MAP>
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset, MAP& addressToAccount);
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset,
+                              AccountStore& accountStore);
+
+  // These are called by AccountStore class
+  static bool SetAccountStoreDelta(std::vector<unsigned char>& dst,
+                                   const unsigned int offset,
+                                   AccountStoreTemp& accountStoreTemp);
+  static bool GetAccountStoreDelta(const std::vector<unsigned char>& src,
+                                   const unsigned int offset,
+                                   AccountStore& accountStore,
+                                   const bool reversible);
+  static bool GetAccountStoreDelta(const std::vector<unsigned char>& src,
+                                   const unsigned int offset,
+                                   AccountStoreTemp& accountStoreTemp);
+
   static bool GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
                                  const std::vector<uint32_t>& shardIds,
                                  MBInfoHash& dst);
+
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
                                const DSBlockHeader& dsBlockHeader);

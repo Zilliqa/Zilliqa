@@ -19,6 +19,7 @@
 
 #include <type_traits>
 
+#include "libMessage/MessengerAccountStoreBase.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
@@ -33,88 +34,27 @@ void AccountStoreBase<MAP>::Init() {
 }
 
 template <class MAP>
-unsigned int AccountStoreBase<MAP>::Serialize(std::vector<unsigned char>& dst,
-                                              unsigned int offset) const {
-  // [Total number of accounts (uint256_t)] [Addr 1] [Account 1] [Addr 2]
-  // [Account 2] .... [Addr n] [Account n]
-
-  // LOG_MARKER();
-
-  unsigned int size_needed = UINT256_SIZE;
-  unsigned int size_remaining = dst.size() - offset;
-  unsigned int totalSerializedSize = size_needed;
-
-  if (size_remaining < size_needed) {
-    dst.resize(size_needed + offset);
+bool AccountStoreBase<MAP>::Serialize(std::vector<unsigned char>& dst,
+                                      unsigned int offset) const {
+  if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
+                                                  *m_addressToAccount)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
+    return false;
   }
 
-  unsigned int curOffset = offset;
-
-  // [Total number of accounts]
-  LOG_GENERAL(INFO, "Debug: Total number of accounts to serialize: "
-                        << GetNumOfAccounts());
-  boost::multiprecision::uint256_t totalNumOfAccounts = GetNumOfAccounts();
-  SetNumber<boost::multiprecision::uint256_t>(dst, curOffset,
-                                              totalNumOfAccounts, UINT256_SIZE);
-  curOffset += UINT256_SIZE;
-
-  std::vector<unsigned char> address_vec;
-  // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-  for (auto entry : *m_addressToAccount) {
-    // Address
-    address_vec = entry.first.asBytes();
-
-    copy(address_vec.begin(), address_vec.end(), std::back_inserter(dst));
-    curOffset += ACC_ADDR_SIZE;
-    totalSerializedSize += ACC_ADDR_SIZE;
-
-    // Account
-    size_needed = entry.second.Serialize(dst, curOffset);
-    curOffset += size_needed;
-    totalSerializedSize += size_needed;
-  }
-
-  return totalSerializedSize;
+  return true;
 }
 
 template <class MAP>
-int AccountStoreBase<MAP>::Deserialize(const std::vector<unsigned char>& src,
-                                       unsigned int offset) {
-  // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] ....
-  // [Addr n] [Account n] LOG_MARKER();
-
-  try {
-    unsigned int curOffset = offset;
-    boost::multiprecision::uint256_t totalNumOfAccounts =
-        GetNumber<boost::multiprecision::uint256_t>(src, curOffset,
-                                                    UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-
-    Address address;
-    Account account;
-    unsigned int numberOfAccountDeserialze = 0;
-    while (numberOfAccountDeserialze < totalNumOfAccounts) {
-      numberOfAccountDeserialze++;
-
-      // Deserialize address
-      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
-           address.asArray().begin());
-      curOffset += ACC_ADDR_SIZE;
-
-      // Deserialize account
-      // account.Deserialize(src, curOffset);
-      if (account.DeserializeAddOffset(src, curOffset) < 0) {
-        LOG_GENERAL(WARNING, "We failed to init account.");
-        return -1;
-      }
-      (*m_addressToAccount)[address] = account;
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with AccountStoreBase::Deserialize." << ' ' << e.what());
-    return -1;
+bool AccountStoreBase<MAP>::Deserialize(const std::vector<unsigned char>& src,
+                                        unsigned int offset) {
+  if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
+                                                  *m_addressToAccount)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+    return false;
   }
-  return 0;
+
+  return true;
 }
 
 template <class MAP>
