@@ -44,9 +44,9 @@ class RumorHolder : public RumorSpreadingInterface {
     NumPeers,
     NumMessagesReceived,
     Rounds,
-    NumPushMessages,
+    NumLazyPushMessages,
     NumEmptyPushMessages,
-    NumPullMessages,
+    NumLazyPullMessages,
     NumEmptyPullMessages,
   };
 

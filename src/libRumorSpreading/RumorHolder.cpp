@@ -33,9 +33,9 @@ std::map<RumorHolder::StatisticKey, std::string>
         {StatisticKey::NumPeers, LITERAL(NumPeers)},
         {StatisticKey::NumMessagesReceived, LITERAL(NumMessagesReceived)},
         {StatisticKey::Rounds, LITERAL(Rounds)},
-        {StatisticKey::NumPushMessages, LITERAL(NumPushMessages)},
+        {StatisticKey::NumLazyPushMessages, LITERAL(NumLazyPushMessages)},
         {StatisticKey::NumEmptyPushMessages, LITERAL(NumEmptyPushMessages)},
-        {StatisticKey::NumPullMessages, LITERAL(NumPullMessages)},
+        {StatisticKey::NumLazyPullMessages, LITERAL(NumLazyPullMessages)},
         {StatisticKey::NumEmptyPullMessages, LITERAL(NumEmptyPullMessages)},
 };
 
@@ -171,12 +171,12 @@ std::pair<int, std::vector<Message>> RumorHolder::receivedMessage(
   // If this is the first time 'fromPeer' sent a PUSH/EMPTY_PUSH message in this
   // round then respond with a PULL message for each rumor
   std::vector<Message> pullMessages;
-  if (isNewPeer && (message.type() == Message::Type::PUSH ||
+  if (isNewPeer && (message.type() == Message::Type::LAZY_PUSH ||
                     message.type() == Message::Type::EMPTY_PUSH)) {
     for (auto& kv : m_rumors) {
       RumorStateMachine& stateMach = kv.second;
       if (stateMach.rounds() > 0 and !stateMach.isOld()) {
-        pullMessages.emplace_back(Message::Type::PULL, kv.first,
+        pullMessages.emplace_back(Message::Type::LAZY_PULL, kv.first,
                                   kv.second.rounds());
       }
     }
@@ -187,7 +187,7 @@ std::pair<int, std::vector<Message>> RumorHolder::receivedMessage(
       pullMessages.emplace_back(Message(Message::Type::EMPTY_PULL, -1, 0));
       increaseStatValue(StatisticKey::NumEmptyPullMessages, 1);
     } else {
-      increaseStatValue(StatisticKey::NumPullMessages, pullMessages.size());
+      increaseStatValue(StatisticKey::NumLazyPullMessages, pullMessages.size());
       m_nonPriorityPeers.insert(fromPeer);
     }
   }
@@ -258,9 +258,9 @@ std::pair<std::vector<int>, std::vector<Message>> RumorHolder::advanceRound() {
   }
   // if still no enough neighbors, try to add from nonPriorPeers list
   if (neighborC < m_maxNeighborsPerRound) {
-    LOG_GENERAL(INFO, "Got " << neighborC << " neighbors. Expected: "
-                             << m_maxNeighborsPerRound);
-    LOG_GENERAL(WARNING,
+    LOG_GENERAL(DEBUG, "Got " << neighborC << " neighbors. Expected: "
+                              << m_maxNeighborsPerRound);
+    LOG_GENERAL(DEBUG,
                 "Didn't find enough neighbors from priority peer list. "
                 "Will try selecting from NonPriority peer list");
     for (const auto& i : m_nonPriorityPeers) {
@@ -272,9 +272,9 @@ std::pair<std::vector<int>, std::vector<Message>> RumorHolder::advanceRound() {
       }
     }
     if (neighborC == m_maxNeighborsPerRound) {
-      LOG_GENERAL(INFO, "Finally got enough neighbors");
+      LOG_GENERAL(DEBUG, "Finally got enough neighbors");
     } else {
-      LOG_GENERAL(INFO,
+      LOG_GENERAL(DEBUG,
                   "Didn't found enough neighbors. Will send gossip "
                   "to those we found.");
     }
@@ -293,10 +293,10 @@ std::pair<std::vector<int>, std::vector<Message>> RumorHolder::advanceRound() {
     stateMach.advanceRound(m_peersInCurrentRound);
     if (!stateMach.isOld()) {
       pushMessages.emplace_back(
-          Message(Message::Type::PUSH, r.first, r.second.rounds()));
+          Message(Message::Type::LAZY_PUSH, r.first, r.second.rounds()));
     }
   }
-  increaseStatValue(StatisticKey::NumPushMessages, pushMessages.size());
+  increaseStatValue(StatisticKey::NumLazyPushMessages, pushMessages.size());
 
   // No PUSH messages but still want to sent a response to peer.
   if (pushMessages.empty()) {
