@@ -318,6 +318,13 @@ class Messenger {
                                    const unsigned int offset,
                                    FallbackBlock& fallbackBlock);
 
+  static bool ShardStructureToArray(std::vector<unsigned char>& dst,
+                                    const unsigned int offset,
+                                    const DequeOfShard& shards);
+  static bool ArrayToShardStructure(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    DequeOfShard& shards);
+
   // ============================================================================
   // Lookup messages
   // ============================================================================
@@ -393,6 +400,21 @@ class Messenger {
                                           uint64_t& highBlockNum,
                                           PubKey& lookupPubKey,
                                           std::vector<TxBlock>& txBlocks);
+  static bool SetLookupGetStateDeltaFromSeed(std::vector<unsigned char>& dst,
+                                             const unsigned int offset,
+                                             const uint64_t blockNum,
+                                             const uint32_t listenPort);
+  static bool GetLookupGetStateDeltaFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNum, uint32_t& listenPort);
+  static bool SetLookupSetStateDeltaFromSeed(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint64_t blockNum, const std::pair<PrivKey, PubKey>& lookupKey,
+      const std::vector<unsigned char>& stateDelta);
+  static bool GetLookupSetStateDeltaFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNum, PubKey& lookupPubKey,
+      std::vector<unsigned char>& stateDelta);
   static bool SetLookupGetTxBodyFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const std::vector<unsigned char>& txHash, const uint32_t listenPort);

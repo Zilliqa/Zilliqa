@@ -773,6 +773,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   ProcessStateDeltaFromFinalBlock(stateDelta,
                                   txBlock.GetHeader().GetStateDeltaHash());
 
+  BlockStorage::GetBlockStorage().PutStateDelta(
+      txBlock.GetHeader().GetBlockNum(), stateDelta);
+
   if (!LOOKUP_NODE_MODE &&
       (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
     RejoinAsNormal();
@@ -796,11 +799,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     StoreState();
     StoreFinalBlock(txBlock);
-
-    if (!LOOKUP_NODE_MODE) {
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
-    }
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   }
 
   m_mediator.HeartBeatPulse();

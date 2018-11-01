@@ -73,6 +73,12 @@ void DirectoryService::StoreFinalBlockToDisk() {
   m_finalBlock->Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(
       m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock);
+
+  vector<unsigned char> stateDelta;
+  AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+  BlockStorage::GetBlockStorage().PutStateDelta(
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+      stateDelta);
 }
 
 bool DirectoryService::SendFinalBlockToLookupNodes() {
@@ -263,7 +269,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   } else {
     // Coinbase
-    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
+    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1,
+                 m_mediator.m_currentEpochNum);
     m_totalTxnFees += m_finalBlock->GetHeader().GetRewards();
   }
 

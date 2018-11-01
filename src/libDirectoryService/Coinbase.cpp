@@ -33,7 +33,8 @@ template <class Container>
 bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
                                         const vector<bool>& b2,
                                         const Container& shard,
-                                        const uint32_t& shard_id) {
+                                        const uint32_t& shard_id,
+                                        const uint64_t& epochNum) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SaveCoinbaseCore not "
@@ -43,7 +44,7 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
 
   LOG_MARKER();
 
-  auto it = m_coinbaseRewardees.find(m_mediator.m_currentEpochNum);
+  auto it = m_coinbaseRewardees.find(epochNum);
   if (it != m_coinbaseRewardees.end()) {
     if (it->second.find(shard_id) != it->second.end()) {
       LOG_GENERAL(INFO, "Already have cosigs of shard " << shard_id);
@@ -70,14 +71,14 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
   for (const auto& kv : shard) {
     const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(kv);
     if (b1.at(i)) {
-      m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id].push_back(
+      m_coinbaseRewardees[epochNum][shard_id].push_back(
           Account::GetAddressFromPublicKey(pubKey));
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
       }
     }
     if (b2.at(i)) {
-      m_coinbaseRewardees[m_mediator.m_currentEpochNum][shard_id].push_back(
+      m_coinbaseRewardees[epochNum][shard_id].push_back(
           Account::GetAddressFromPublicKey(pubKey));
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
@@ -102,7 +103,8 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
 
 bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
                                     const vector<bool>& b2,
-                                    const int32_t& shard_id) {
+                                    const int32_t& shard_id,
+                                    const uint64_t& epochNum) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SaveCoinbase not "
@@ -111,15 +113,18 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
   }
 
   LOG_MARKER();
+  LOG_GENERAL(INFO, "Save coin base for shardId: " << shard_id << ", epochNum: "
+                                                   << epochNum);
   if (shard_id == (int32_t)m_shards.size() || shard_id == -1) {
     // DS
     lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);
     lock_guard<mutex> g1(m_mutexCoinbaseRewardees, adopt_lock);
-    return SaveCoinbaseCore(b1, b2, *m_mediator.m_DSCommittee, shard_id);
+    return SaveCoinbaseCore(b1, b2, *m_mediator.m_DSCommittee, shard_id,
+                            epochNum);
   } else {
     lock_guard<mutex> g(m_mutexCoinbaseRewardees);
-    return SaveCoinbaseCore(b1, b2, m_shards.at(shard_id), shard_id);
+    return SaveCoinbaseCore(b1, b2, m_shards.at(shard_id), shard_id, epochNum);
   }
 }
 
