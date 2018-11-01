@@ -1543,6 +1543,12 @@ bool Messenger::GetTxSharingAssignmentsHash(
   return true;
 }
 
+bool Messenger::GetMbinfoHash(const std::vector<uint32_t>& shardIds,
+                              const std::vector<bool>& isMicroBlockEmpty,
+                              MBInfoHash& dst) {
+  
+}
+
 bool Messenger::SetDSBlockHeader(vector<unsigned char>& dst,
                                  const unsigned int offset,
                                  const DSBlockHeader& dsBlockHeader) {
