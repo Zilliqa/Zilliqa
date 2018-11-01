@@ -47,6 +47,10 @@ class Messenger {
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders, TxSharingHash& dst);
 
+  static bool GetMbinfoHash(const std::vector<uint32_t>& shardIds,
+                            const std::vector<bool>& isMicroBlockEmpty,
+                            MBInfoHash& dst);
+
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
                                const DSBlockHeader& dsBlockHeader);
