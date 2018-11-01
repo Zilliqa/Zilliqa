@@ -24,12 +24,8 @@
         <NUM_FINAL_BLOCK_PER_POW>5</NUM_FINAL_BLOCK_PER_POW>
         <NUM_DS_KEEP_TX_BODY>5</NUM_DS_KEEP_TX_BODY>
         <MAXMESSAGE>32</MAXMESSAGE>
-        <MICROBLOCK_GAS_LIMIT>500000</MICROBLOCK_GAS_LIMIT>
         <NEW_NODE_POW_DELAY>5</NEW_NODE_POW_DELAY>
         <POST_VIEWCHANGE_BUFFER>5</POST_VIEWCHANGE_BUFFER>
-        <CONTRACT_CREATE_GAS>50</CONTRACT_CREATE_GAS>
-        <CONTRACT_INVOKE_GAS>10</CONTRACT_INVOKE_GAS>
-        <NORMAL_TRAN_GAS>1</NORMAL_TRAN_GAS>
         <COINBASE_REWARD>10000</COINBASE_REWARD>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
         <BROADCAST_INTERVAL>60</BROADCAST_INTERVAL>
@@ -64,7 +60,7 @@
         <DS_DELAY_WAKEUP_IN_SECONDS>5</DS_DELAY_WAKEUP_IN_SECONDS>
         <SHARD_DELAY_WAKEUP_IN_SECONDS>10</SHARD_DELAY_WAKEUP_IN_SECONDS>
         <NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD>2</NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD>
-        <NUM_OF_TREEBASED_CHILD_CLUSTERS>2</NUM_OF_TREEBASED_CHILD_CLUSTERS>
+        <NUM_OF_TREEBASED_CHILD_CLUSTERS>3</NUM_OF_TREEBASED_CHILD_CLUSTERS>
         <FETCH_LOOKUP_MSG_MAX_RETRY>3</FETCH_LOOKUP_MSG_MAX_RETRY>
         <MAX_CONTRACT_DEPTH>5</MAX_CONTRACT_DEPTH>
         <COMMIT_WINDOW_IN_SECONDS>5</COMMIT_WINDOW_IN_SECONDS>
@@ -87,6 +83,13 @@
         <UPGRADE_HOST_ACCOUNT>Zilliqa</UPGRADE_HOST_ACCOUNT>
         <UPGRADE_HOST_REPO>Zilliqa</UPGRADE_HOST_REPO>
     </options>
+    <gas>
+        <MICROBLOCK_GAS_LIMIT>50000</MICROBLOCK_GAS_LIMIT>
+        <CONTRACT_CREATE_GAS>50</CONTRACT_CREATE_GAS>
+        <CONTRACT_INVOKE_GAS>10</CONTRACT_INVOKE_GAS>
+        <NORMAL_TRAN_GAS>1</NORMAL_TRAN_GAS>
+        <DEFAULT_MIN_GAS_PRICE>1</DEFAULT_MIN_GAS_PRICE>
+    </gas>
     <smart_contract>
         <SCILLA_ROOT/>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
@@ -116,26 +119,6 @@
         <peer>
             <ip>127.0.0.1</ip>
             <port>4001</port>
-            <pubkey/>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4002</port>
-            <pubkey/>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4003</port>
-            <pubkey/>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4004</port>
-            <pubkey/>
-        </peer>
-        <peer>
-            <ip>127.0.0.1</ip>
-            <port>4005</port>
             <pubkey/>
         </peer>
     </lookups>

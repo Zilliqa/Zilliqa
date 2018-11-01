@@ -864,7 +864,7 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
 
   if (lowBlockNum == 1) {
     lowBlockNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
   } else if (lowBlockNum == 0) {
     // give all the blocks till now in blockchain
     lowBlockNum = 1;
@@ -1156,7 +1156,7 @@ bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
 
 bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
   TxBlock txblk =
-      m_mediator.m_txBlockChain.GetBlock(microblock.GetHeader().GetBlockNum());
+      m_mediator.m_txBlockChain.GetBlock(microblock.GetHeader().GetEpochNum());
   LOG_GENERAL(INFO, "[SendMB]"
                         << "Add MicroBlock hash: "
                         << microblock.GetBlockHash());
@@ -1269,7 +1269,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
 
   for (const auto& mb : mbs) {
     LOG_GENERAL(INFO, "[SendMB]"
-                          << " Recvd " << mb.GetHeader().GetBlockNum()
+                          << " Recvd " << mb.GetHeader().GetEpochNum()
                           << " MBHash:" << mb.GetBlockHash());
 
     if (ARCHIVAL_NODE) {

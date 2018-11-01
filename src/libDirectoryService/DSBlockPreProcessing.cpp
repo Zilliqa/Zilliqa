@@ -700,6 +700,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     m_pendingDSBlock.reset(
         new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
                                   m_mediator.m_selfKey.second, blockNum,
+                                  m_mediator.m_currentEpochNum,
                                   get_time_as_int(), m_mediator.m_curSWInfo,
                                   powDSWinners, dsBlockHashSet, committeeHash),
                     CoSignatures(m_mediator.m_DSCommittee->size())));
@@ -853,6 +854,13 @@ bool DirectoryService::DSBlockValidator(
           dsWinnerPoWsFromLeader, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
+    return false;
+  }
+
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_pendingDSBlock->GetHeader().GetBlockNum(),
+          m_pendingDSBlock->GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING, "DSBlockValidator CheckWhetherBlockIsLatest failed");
     return false;
   }
 
