@@ -551,6 +551,8 @@ class Node : public Executable, public Broadcastable {
 
   void UpdateDSCommiteeCompositionAfterVC(
       const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
+  void UpdateRetrieveDSCommiteeCompositionAfterVC(
+      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
