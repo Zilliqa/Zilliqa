@@ -69,15 +69,7 @@ bool DSBlock::operator==(const DSBlock& block) const {
 }
 
 bool DSBlock::operator<(const DSBlock& block) const {
-  if (m_header < block.m_header) {
-    return true;
-  } else if (m_header > block.m_header) {
-    return false;
-  } else {
-    return false;
-  }
+  return block.m_header > m_header;
 }
 
-bool DSBlock::operator>(const DSBlock& block) const {
-  return !((*this == block) || (*this < block));
-}
+bool DSBlock::operator>(const DSBlock& block) const { return block < *this; }

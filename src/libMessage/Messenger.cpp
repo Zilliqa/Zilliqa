@@ -369,6 +369,28 @@ void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
   }
 }
 
+void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
+                            ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
+  for (const auto& node : faultyLeaders) {
+    ProtoDSNode* protodsnode = protoVCBlockHeader.add_faultyleaders();
+    SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
+    SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
+  }
+}
+
+void ProtobufToFaultyDSMembers(
+    const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
+    vector<pair<PubKey, Peer>>& faultyDSMembers) {
+  for (const auto& dsnode : protoVCBlockHeader.faultyleaders()) {
+    PubKey pubkey;
+    Peer peer;
+
+    ProtobufByteArrayToSerializable(dsnode.pubkey(), pubkey);
+    ProtobufByteArrayToSerializable(dsnode.peer(), peer);
+    faultyDSMembers.emplace_back(pubkey, peer);
+  }
+}
+
 void DSCommitteeToProtoCommittee(const deque<pair<PubKey, Peer>>& dsCommittee,
                                  ProtoCommittee& protoCommittee) {
   for (const auto& node : dsCommittee) {
@@ -777,6 +799,7 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
                                   *protoDSBlockHeader.mutable_leaderpubkey());
 
   protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
+  protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       dsBlockHeader.GetTimestamp(), *protoDSBlockHeader.mutable_timestamp());
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
@@ -878,10 +901,11 @@ void ProtobufToDSBlockHeader(
 
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(
-      protoDSBlockHeader.dsdifficulty(), protoDSBlockHeader.difficulty(),
-      prevHash, leaderPubKey, protoDSBlockHeader.blocknum(), timestamp, swInfo,
-      powDSWinners, hash, committeeHash);
+  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
+                                protoDSBlockHeader.difficulty(), prevHash,
+                                leaderPubKey, protoDSBlockHeader.blocknum(),
+                                protoDSBlockHeader.epochnum(), timestamp,
+                                swInfo, powDSWinners, hash, committeeHash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -917,7 +941,7 @@ void MicroBlockHeaderToProtobuf(
       microBlockHeader.GetRewards(), *protoMicroBlockHeader.mutable_rewards());
   protoMicroBlockHeader.set_prevhash(microBlockHeader.GetPrevHash().data(),
                                      microBlockHeader.GetPrevHash().size);
-  protoMicroBlockHeader.set_blocknum(microBlockHeader.GetBlockNum());
+  protoMicroBlockHeader.set_epochnum(microBlockHeader.GetEpochNum());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       microBlockHeader.GetTimestamp(),
       *protoMicroBlockHeader.mutable_timestamp());
@@ -927,9 +951,6 @@ void MicroBlockHeaderToProtobuf(
   SerializableToProtobufByteArray(microBlockHeader.GetMinerPubKey(),
                                   *protoMicroBlockHeader.mutable_minerpubkey());
   protoMicroBlockHeader.set_dsblocknum(microBlockHeader.GetDSBlockNum());
-  protoMicroBlockHeader.set_dsblockhash(
-      microBlockHeader.GetDSBlockHash().data(),
-      microBlockHeader.GetDSBlockHash().size);
   protoMicroBlockHeader.set_statedeltahash(
       microBlockHeader.GetStateDeltaHash().data(),
       microBlockHeader.GetStateDeltaHash().size);
@@ -1000,11 +1021,6 @@ void ProtobufToMicroBlockHeader(
        txRootHash.asArray().begin());
   ProtobufByteArrayToSerializable(protoMicroBlockHeader.minerpubkey(),
                                   minerPubKey);
-  copy(protoMicroBlockHeader.dsblockhash().begin(),
-       protoMicroBlockHeader.dsblockhash().begin() +
-           min((unsigned int)protoMicroBlockHeader.dsblockhash().size(),
-               (unsigned int)dsBlockHash.size),
-       dsBlockHash.asArray().begin());
   copy(protoMicroBlockHeader.statedeltahash().begin(),
        protoMicroBlockHeader.statedeltahash().begin() +
            min((unsigned int)protoMicroBlockHeader.statedeltahash().size(),
@@ -1025,10 +1041,10 @@ void ProtobufToMicroBlockHeader(
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
       protoMicroBlockHeader.shardid(), gasLimit, gasUsed, rewards, prevHash,
-      protoMicroBlockHeader.blocknum(), timestamp, txRootHash,
+      protoMicroBlockHeader.epochnum(), timestamp,
+      {txRootHash, stateDeltaHash, tranReceiptHash},
       protoMicroBlockHeader.numtxs(), minerPubKey,
-      protoMicroBlockHeader.dsblocknum(), dsBlockHash, stateDeltaHash,
-      tranReceiptHash, committeeHash);
+      protoMicroBlockHeader.dsblocknum(), committeeHash);
 }
 
 void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
@@ -1061,6 +1077,30 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
   ProtobufToBlockBase(protoBlockBase, microBlock);
 }
 
+void ExtraMbInfoToProtobuf(const vector<bool>& isMicroBlockEmpty,
+                           const vector<uint32_t>& shardIds,
+                           ProtoExtraMbInfo& protoExtraMbInfo) {
+  for (const auto& i : isMicroBlockEmpty) {
+    protoExtraMbInfo.add_ismicroblockempty(i);
+  }
+
+  for (const auto& i : shardIds) {
+    protoExtraMbInfo.add_shardids(i);
+  }
+}
+
+void ProtobufToExtraMbInfo(const ProtoExtraMbInfo& protoExtraMbInfo,
+                           vector<bool>& isMicroBlockEmpty,
+                           vector<uint32_t>& shardIds) {
+  for (const auto& i : protoExtraMbInfo.ismicroblockempty()) {
+    isMicroBlockEmpty.emplace_back(i);
+  }
+
+  for (const auto& i : protoExtraMbInfo.shardids()) {
+    shardIds.emplace_back(i);
+  }
+}
+
 void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
                              ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
   protoTxBlockHeader.set_type(txBlockHeader.GetType());
@@ -1085,6 +1125,8 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
                                      txBlockHeader.GetStateRootHash().size);
   protoHeaderHash->set_statedeltahash(txBlockHeader.GetStateDeltaHash().data(),
                                       txBlockHeader.GetStateDeltaHash().size);
+  protoHeaderHash->set_mbinfohash(txBlockHeader.GetMbInfoHash().data(),
+                                  txBlockHeader.GetMbInfoHash().size);
 
   protoTxBlockHeader.set_numtxs(txBlockHeader.GetNumTxs());
   protoTxBlockHeader.set_nummicroblockhashes(
@@ -1092,8 +1134,6 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
   SerializableToProtobufByteArray(txBlockHeader.GetMinerPubKey(),
                                   *protoTxBlockHeader.mutable_minerpubkey());
   protoTxBlockHeader.set_dsblocknum(txBlockHeader.GetDSBlockNum());
-  protoTxBlockHeader.set_dsblockheader(txBlockHeader.GetDSBlockHeader().data(),
-                                       txBlockHeader.GetDSBlockHeader().size);
 
   protoTxBlockHeader.set_committeehash(txBlockHeader.GetCommitteeHash().data(),
                                        txBlockHeader.GetCommitteeHash().size);
@@ -1110,17 +1150,15 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
   TxBlockHeaderToProtobuf(header, *protoHeader);
 
   // Serialize body
-  for (const auto& i : txBlock.GetIsMicroBlockEmpty()) {
-    protoTxBlock.add_ismicroblockempty(i);
-  }
-
   for (const auto& hash : txBlock.GetMicroBlockHashes()) {
     protoTxBlock.add_mbhashes(hash.data(), hash.size);
   }
 
-  for (const auto& i : txBlock.GetShardIds()) {
-    protoTxBlock.add_shardids(i);
-  }
+  ZilliqaMessage::ProtoExtraMbInfo* protoExtraMbInfo =
+      protoTxBlock.mutable_extrambinfo();
+
+  ExtraMbInfoToProtobuf(txBlock.GetIsMicroBlockEmpty(), txBlock.GetShardIds(),
+                        *protoExtraMbInfo);
 
   ZilliqaMessage::ProtoBlockBase* protoBlockBase =
       protoTxBlock.mutable_blockbase();
@@ -1138,7 +1176,6 @@ void ProtobufToTxBlockHeader(
   uint256_t timestamp;
   TxBlockHashSet hash;
   PubKey minerPubKey;
-  BlockHash dsBlockHeader;
   CommitteeHash committeeHash;
 
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
@@ -1172,14 +1209,14 @@ void ProtobufToTxBlockHeader(
            min((unsigned int)protoTxBlockHeaderHash.statedeltahash().size(),
                (unsigned int)hash.m_stateDeltaHash.size),
        hash.m_stateDeltaHash.asArray().begin());
+  copy(protoTxBlockHeaderHash.mbinfohash().begin(),
+       protoTxBlockHeaderHash.mbinfohash().begin() +
+           min((unsigned int)protoTxBlockHeaderHash.mbinfohash().size(),
+               (unsigned int)hash.m_mbInfoHash.size),
+       hash.m_mbInfoHash.asArray().begin());
 
   ProtobufByteArrayToSerializable(protoTxBlockHeader.minerpubkey(),
                                   minerPubKey);
-  copy(protoTxBlockHeader.dsblockheader().begin(),
-       protoTxBlockHeader.dsblockheader().begin() +
-           min((unsigned int)protoTxBlockHeader.dsblockheader().size(),
-               (unsigned int)dsBlockHeader.size),
-       dsBlockHeader.asArray().begin());
 
   copy(protoTxBlockHeader.committeehash().begin(),
        protoTxBlockHeader.committeehash().begin() +
@@ -1190,10 +1227,9 @@ void ProtobufToTxBlockHeader(
   txBlockHeader = TxBlockHeader(
       protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
       gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), timestamp,
-      hash.m_mbRootHash, hash.m_stateRootHash, hash.m_stateDeltaHash,
-      protoTxBlockHeader.numtxs(), protoTxBlockHeader.nummicroblockhashes(),
-      minerPubKey, protoTxBlockHeader.dsblocknum(), dsBlockHeader,
-      committeeHash);
+      hash, protoTxBlockHeader.numtxs(),
+      protoTxBlockHeader.nummicroblockhashes(), minerPubKey,
+      protoTxBlockHeader.dsblocknum(), committeeHash);
 }
 
 void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
@@ -1207,14 +1243,9 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
   ProtobufToTxBlockHeader(protoHeader, header);
 
   // Deserialize body
-
-  vector<bool> isMicroBlockEmpty;
   vector<BlockHash> microBlockHashes;
+  vector<bool> isMicroBlockEmpty;
   vector<uint32_t> shardIds;
-
-  for (const auto& i : protoTxBlock.ismicroblockempty()) {
-    isMicroBlockEmpty.emplace_back(i);
-  }
 
   for (const auto& hash : protoTxBlock.mbhashes()) {
     microBlockHashes.emplace_back();
@@ -1224,9 +1255,10 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
          microBlockHashes.back().asArray().begin());
   }
 
-  for (const auto& i : protoTxBlock.shardids()) {
-    shardIds.emplace_back(i);
-  }
+  const ZilliqaMessage::ProtoExtraMbInfo& protoExtraMbInfo =
+      protoTxBlock.extrambinfo();
+
+  ProtobufToExtraMbInfo(protoExtraMbInfo, isMicroBlockEmpty, shardIds);
 
   txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds);
 
@@ -1243,8 +1275,6 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
   protoVCBlockHeader.set_viewchangeepochno(
       vcBlockHeader.GetViewChangeEpochNo());
   protoVCBlockHeader.set_viewchangestate(vcBlockHeader.GetViewChangeState());
-  protoVCBlockHeader.set_candidateleaderindex(
-      vcBlockHeader.GetCandidateLeaderIndex());
   SerializableToProtobufByteArray(
       vcBlockHeader.GetCandidateLeaderNetworkInfo(),
       *protoVCBlockHeader.mutable_candidateleadernetworkinfo());
@@ -1252,9 +1282,9 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
       vcBlockHeader.GetCandidateLeaderPubKey(),
       *protoVCBlockHeader.mutable_candidateleaderpubkey());
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
+  FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       vcBlockHeader.GetTimeStamp(), *protoVCBlockHeader.mutable_timestamp());
-
   protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
                                        vcBlockHeader.GetCommitteeHash().size);
 }
@@ -1282,6 +1312,7 @@ void ProtobufToVCBlockHeader(
   PubKey candidateLeaderPubKey;
   uint256_t timestamp;
   CommitteeHash committeeHash;
+  vector<pair<PubKey, Peer>> faultyLeaders;
 
   ProtobufByteArrayToSerializable(
       protoVCBlockHeader.candidateleadernetworkinfo(),
@@ -1291,19 +1322,20 @@ void ProtobufToVCBlockHeader(
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoVCBlockHeader.timestamp(), timestamp);
 
+  ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
+
   copy(protoVCBlockHeader.committeehash().begin(),
        protoVCBlockHeader.committeehash().begin() +
            min((unsigned int)protoVCBlockHeader.committeehash().size(),
                (unsigned int)committeeHash.size),
        committeeHash.asArray().begin());
 
-  vcBlockHeader =
-      VCBlockHeader(protoVCBlockHeader.viewchangedsepochno(),
-                    protoVCBlockHeader.viewchangeepochno(),
-                    protoVCBlockHeader.viewchangestate(),
-                    protoVCBlockHeader.candidateleaderindex(),
-                    candidateLeaderNetworkInfo, candidateLeaderPubKey,
-                    protoVCBlockHeader.vccounter(), timestamp, committeeHash);
+  vcBlockHeader = VCBlockHeader(
+      protoVCBlockHeader.viewchangedsepochno(),
+      protoVCBlockHeader.viewchangeepochno(),
+      protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
+      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
+      timestamp, committeeHash);
 }
 
 void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
@@ -1402,7 +1434,7 @@ void ProtobufToFallbackBlockHeader(
   fallbackBlockHeader = FallbackBlockHeader(
       protoFallbackBlockHeader.fallbackdsepochno(),
       protoFallbackBlockHeader.fallbackepochno(),
-      protoFallbackBlockHeader.fallbackstate(), stateRootHash,
+      protoFallbackBlockHeader.fallbackstate(), {stateRootHash},
       protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
       leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp,
       committeeHash);
@@ -2056,6 +2088,31 @@ bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
 
     accountStoreTemp.AddAccountDuringDeserialization(address, account);
   }
+
+bool Messenger::GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
+                                   const std::vector<uint32_t>& shardIds,
+                                   MBInfoHash& dst) {
+  ProtoExtraMbInfo protoExtraMbInfo;
+
+  ExtraMbInfoToProtobuf(isMicroBlockEmpty, shardIds, protoExtraMbInfo);
+
+  if (!protoExtraMbInfo.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoExtraMbInfo initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp;
+
+  if (!SerializeToArray(protoExtraMbInfo, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoExtraMbInfo serialization failed.");
+    return false;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(tmp);
+  tmp = sha2.Finalize();
+
+  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
 
   return true;
 }
@@ -2717,6 +2774,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const DequeOfShard& shards, const vector<Peer>& dsReceivers,
     const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders, const MapOfPubKeyPoW& allPoWs,
+    const MapOfPubKeyPoW& dsWinnerPoWs,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -2733,6 +2791,17 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
   TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
                                  *dsblock->mutable_assignments());
+
+  for (const auto& kv : dsWinnerPoWs) {
+    auto protoDSWinnerPoW = dsblock->add_dswinnerpows();
+    SerializableToProtobufByteArray(kv.first,
+                                    *protoDSWinnerPoW->mutable_pubkey());
+    ProtoPoWSolution* proto_soln = protoDSWinnerPoW->mutable_powsoln();
+    const auto soln = kv.second;
+    proto_soln->set_nonce(soln.nonce);
+    proto_soln->set_result(soln.result.data(), soln.result.size());
+    proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
+  }
 
   if (!dsblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed. Debug: "
@@ -2770,7 +2839,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
     vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
     vector<vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
-    vector<unsigned char>& messageToCosign) {
+    MapOfPubKeyPoW& dsWinnerPoWs, vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -2809,6 +2878,28 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   ProtobufToTxSharingAssignments(dsblock.assignments(), dsReceivers,
                                  shardReceivers, shardSenders);
+
+  dsWinnerPoWs.clear();
+  for (const auto& protoDSWinnerPoW : dsblock.dswinnerpows()) {
+    PubKey key;
+    std::array<unsigned char, 32> result;
+    std::array<unsigned char, 32> mixhash;
+
+    ProtobufByteArrayToSerializable(protoDSWinnerPoW.pubkey(), key);
+
+    copy(protoDSWinnerPoW.powsoln().result().begin(),
+         protoDSWinnerPoW.powsoln().result().begin() +
+             min((unsigned int)protoDSWinnerPoW.powsoln().result().size(),
+                 (unsigned int)result.size()),
+         result.begin());
+    copy(protoDSWinnerPoW.powsoln().mixhash().begin(),
+         protoDSWinnerPoW.powsoln().mixhash().begin() +
+             min((unsigned int)protoDSWinnerPoW.powsoln().mixhash().size(),
+                 (unsigned int)mixhash.size()),
+         mixhash.begin());
+    dsWinnerPoWs.emplace(
+        key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash));
+  }
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus

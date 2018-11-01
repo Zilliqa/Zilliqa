@@ -38,11 +38,11 @@ struct DSBlockHashSet {
            std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash);
   }
   bool operator<(const DSBlockHashSet& hashSet) const {
-    return std::tie(m_shardingHash, m_txSharingHash) >
-           std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash);
+    return std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash) >
+           std::tie(m_shardingHash, m_txSharingHash);
   }
   bool operator>(const DSBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const DSBlockHashSet& t);
@@ -130,7 +130,7 @@ struct MicroBlockHashSet {
            std::tie(m_txRootHash, m_stateDeltaHash, m_tranReceiptHash);
   }
   bool operator>(const MicroBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const MicroBlockHashSet& t);
@@ -159,11 +159,14 @@ struct hash<MicroBlockHashSet> {
 };
 }  // namespace std
 
+using MBInfoHash = dev::h256;
+
 struct TxBlockHashSet {
   BlockHash m_mbRootHash;      // root hash concated from all microblock hash
   StateHash m_stateRootHash;   // State merkle tree root hash only valid in
                                // vacuous epoch
   StateHash m_stateDeltaHash;  // State Delta Hash on DS
+  MBInfoHash m_mbInfoHash;
 
   /// Implements the Serialize function inherited from Serializable.
   unsigned int Serialize(std::vector<unsigned char>& dst,
@@ -175,6 +178,9 @@ struct TxBlockHashSet {
          dst.begin() + offset);
     offset += STATE_HASH_SIZE;
     copy(m_stateDeltaHash.asArray().begin(), m_stateDeltaHash.asArray().end(),
+         dst.begin() + offset);
+    offset += STATE_HASH_SIZE;
+    copy(m_mbInfoHash.asArray().begin(), m_mbInfoHash.asArray().end(),
          dst.begin() + offset);
     offset += STATE_HASH_SIZE;
     return offset;
@@ -192,6 +198,9 @@ struct TxBlockHashSet {
       copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
            m_stateDeltaHash.asArray().begin());
       offset += STATE_HASH_SIZE;
+      copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
+           m_mbInfoHash.asArray().begin());
+      offset += STATE_HASH_SIZE;
     } catch (const std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Error with TxBlockHashSet::Deserialize." << ' ' << e.what());
@@ -202,21 +211,24 @@ struct TxBlockHashSet {
   }
 
   bool operator==(const TxBlockHashSet& hashSet) const {
-    return std::tie(m_mbRootHash, m_stateRootHash, m_stateDeltaHash) ==
+    return std::tie(m_mbRootHash, m_stateRootHash, m_stateDeltaHash,
+                    m_mbInfoHash) ==
            std::tie(hashSet.m_mbRootHash, hashSet.m_stateRootHash,
-                    hashSet.m_stateDeltaHash);
+                    hashSet.m_stateDeltaHash, hashSet.m_mbInfoHash);
   }
   bool operator<(const TxBlockHashSet& hashSet) const {
     return std::tie(hashSet.m_mbRootHash, hashSet.m_stateRootHash,
-                    hashSet.m_stateDeltaHash) >
-           std::tie(m_mbRootHash, m_stateRootHash, m_stateDeltaHash);
+                    hashSet.m_stateDeltaHash, hashSet.m_mbInfoHash) >
+           std::tie(m_mbRootHash, m_stateRootHash, m_stateDeltaHash,
+                    m_mbInfoHash);
   }
   bool operator>(const TxBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   static constexpr unsigned int size() {
-    return BLOCK_HASH_SIZE + STATE_HASH_SIZE + STATE_HASH_SIZE;
+    return BLOCK_HASH_SIZE + STATE_HASH_SIZE + STATE_HASH_SIZE +
+           STATE_HASH_SIZE;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t);
@@ -231,6 +243,7 @@ struct hash<TxBlockHashSet> {
     boost::hash_combine(seed, hashSet.m_mbRootHash.hex());
     boost::hash_combine(seed, hashSet.m_stateRootHash.hex());
     boost::hash_combine(seed, hashSet.m_stateDeltaHash.hex());
+    boost::hash_combine(seed, hashSet.m_mbInfoHash.hex());
 
     return seed;
   }
@@ -241,7 +254,8 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t) {
   os << "<TxBlockHashSet> " << std::endl
      << "m_mbRootHash : " << t.m_mbRootHash.hex() << std::endl
      << "m_stateRootHash : " << t.m_stateRootHash.hex() << std::endl
-     << "m_stateDeltaHash : " << t.m_stateDeltaHash.hex();
+     << "m_stateDeltaHash : " << t.m_stateDeltaHash.hex() << std::endl
+     << "m_mbInfoHash : " << t.m_mbInfoHash.hex();
   return os;
 }
 
@@ -280,7 +294,7 @@ struct FallbackBlockHashSet {
     return std::tie(hashSet.m_stateRootHash) > std::tie(m_stateRootHash);
   }
   bool operator>(const FallbackBlockHashSet& hashSet) const {
-    return !((*this == hashSet) || (*this < hashSet));
+    return hashSet < *this;
   }
 
   static constexpr unsigned int size() { return STATE_HASH_SIZE; }
