@@ -299,7 +299,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockHashRoot();
-  bool CheckIsMicroBlockEmpty();
+  bool CheckExtraMicroBlockInfo();
   bool CheckStateRoot();
   bool CheckStateDeltaHash();
   void LoadUnavailableMicroBlocks();

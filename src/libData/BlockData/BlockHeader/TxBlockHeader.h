@@ -46,7 +46,6 @@ class TxBlockHeader : public BlockHeaderBase {
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
       m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
-  BlockHash m_dsBlockHash;  // DS Block hash
 
  public:
   /// Default constructor.
@@ -62,11 +61,9 @@ class TxBlockHeader : public BlockHeaderBase {
                 const boost::multiprecision::uint256_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const boost::multiprecision::uint256_t& timestamp,
-                const BlockHash& mbRootHash, const StateHash& stateRootHash,
-                const StateHash& stateDeltaHash, const uint32_t numTxs,
+                const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
                 const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const BlockHash& dsBlockHash,
-                const CommitteeHash& committeeHash);
+                const uint64_t& dsBlockNum, const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,
@@ -114,6 +111,10 @@ class TxBlockHeader : public BlockHeaderBase {
   /// finalblock.
   const StateHash& GetStateDeltaHash() const;
 
+  /// Returns the digest that represents the hash of all the extra micro block
+  /// information in the finalblock.
+  const MBInfoHash& GetMbInfoHash() const;
+
   /// Returns the number of transactions in this block.
   const uint32_t& GetNumTxs() const;
 
@@ -126,9 +127,6 @@ class TxBlockHeader : public BlockHeaderBase {
 
   /// Returns the parent DS block number.
   const uint64_t& GetDSBlockNum() const;
-
-  /// Returns the digest of the parent DS block header.
-  const BlockHash& GetDSBlockHash() const;
 
   /// Equality comparison operator.
   bool operator==(const TxBlockHeader& header) const;
@@ -155,8 +153,7 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_numTxs : " << t.m_numTxs << std::endl
      << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl
-     << "m_dsBlockNum : " << std::to_string(t.m_dsBlockNum) << std::endl
-     << "m_dsBlockHash : " << t.m_dsBlockHash.hex();
+     << "m_dsBlockNum : " << std::to_string(t.m_dsBlockNum);
   return os;
 }
 

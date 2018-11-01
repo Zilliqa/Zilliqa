@@ -184,14 +184,19 @@ message ProtoMicroBlock
         required uint32 numtxs         = 11;
         required ByteArray minerpubkey = 12;
         required uint64 dsblocknum     = 13;
-        required bytes dsblockhash     = 14;
-        required bytes statedeltahash  = 15;
-        required bytes tranreceipthash = 16;
-        required bytes committeehash   = 17;
+        required bytes statedeltahash  = 14;
+        required bytes tranreceipthash = 15;
+        required bytes committeehash   = 16;
     }
     required MicroBlockHeader header   = 1;
     repeated bytes tranhashes          = 2;
     required ProtoBlockBase blockbase  = 3;
+}
+
+message ProtoExtraMbInfo
+{
+    repeated bool ismicroblockempty = 1 [packed=true];
+    repeated uint32 shardids        = 2;
 }
 
 message ProtoTxBlock
@@ -201,6 +206,7 @@ message ProtoTxBlock
         required bytes mbroothash               = 1;
         required bytes stateroothash            = 2;
         required bytes statedeltahash           = 3;
+        required bytes mbinfohash               = 4;
     }
     message TxBlockHeader
     {
@@ -217,14 +223,12 @@ message ProtoTxBlock
         required uint32 nummicroblockhashes     = 11;
         required ByteArray minerpubkey          = 12;
         required uint64 dsblocknum              = 13;
-        required bytes dsblockhash              = 14;
-        required bytes committeehash            = 15;
+        required bytes committeehash            = 14;
     }
     required TxBlockHeader header               = 1;
-    repeated bool ismicroblockempty             = 2 [packed=true];
-    repeated bytes mbhashes                     = 3;
-    repeated uint32 shardids                    = 4;
-    required ProtoBlockBase blockbase           = 5;
+    repeated bytes mbhashes                     = 2;
+    required ProtoExtraMbInfo extrambinfo       = 3;
+    required ProtoBlockBase blockbase           = 4;
 }
 
 message ProtoVCBlock
