@@ -838,6 +838,30 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
   ProtobufToBlockBase(protoBlockBase, microBlock);
 }
 
+void ExtraMbInfoToProtobuf(const vector<bool>& isMicroBlockEmpty,
+                           const vector<uint32_t>& shardIds,
+                           ProtoExtraMbInfo& protoExtraMbInfo) {
+  for (const auto& i : isMicroBlockEmpty) {
+    protoExtraMbInfo.add_ismicroblockempty(i);
+  }
+
+  for (const auto& i : shardIds) {
+    protoExtraMbInfo.add_shardids(i);
+  }
+}
+
+void ProtobufToExtraMbInfo(const ProtoExtraMbInfo& protoExtraMbInfo,
+                           vector<bool>& isMicroBlockEmpty,
+                           vector<uint32_t>& shardIds) {
+  for (const auto& i : protoExtraMbInfo.ismicroblockempty()) {
+    isMicroBlockEmpty.emplace_back(i);
+  }
+
+  for (const auto& i : protoExtraMbInfo.shardids()) {
+    shardIds.emplace_back(i);
+  }
+}
+
 void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
                              ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
   protoTxBlockHeader.set_type(txBlockHeader.GetType());
@@ -887,17 +911,15 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
   TxBlockHeaderToProtobuf(header, *protoHeader);
 
   // Serialize body
-  for (const auto& i : txBlock.GetIsMicroBlockEmpty()) {
-    protoTxBlock.add_ismicroblockempty(i);
-  }
-
   for (const auto& hash : txBlock.GetMicroBlockHashes()) {
     protoTxBlock.add_mbhashes(hash.data(), hash.size);
   }
 
-  for (const auto& i : txBlock.GetShardIds()) {
-    protoTxBlock.add_shardids(i);
-  }
+  ZilliqaMessage::ProtoExtraMbInfo* protoExtraMbInfo =
+      protoTxBlock.mutable_extrambinfo();
+
+  ExtraMbInfoToProtobuf(txBlock.GetIsMicroBlockEmpty(), txBlock.GetShardIds(),
+                        *protoExtraMbInfo);
 
   ZilliqaMessage::ProtoBlockBase* protoBlockBase =
       protoTxBlock.mutable_blockbase();
@@ -982,14 +1004,9 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
   ProtobufToTxBlockHeader(protoHeader, header);
 
   // Deserialize body
-
-  vector<bool> isMicroBlockEmpty;
   vector<BlockHash> microBlockHashes;
+  vector<bool> isMicroBlockEmpty;
   vector<uint32_t> shardIds;
-
-  for (const auto& i : protoTxBlock.ismicroblockempty()) {
-    isMicroBlockEmpty.emplace_back(i);
-  }
 
   for (const auto& hash : protoTxBlock.mbhashes()) {
     microBlockHashes.emplace_back();
@@ -999,9 +1016,10 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
          microBlockHashes.back().asArray().begin());
   }
 
-  for (const auto& i : protoTxBlock.shardids()) {
-    shardIds.emplace_back(i);
-  }
+  const ZilliqaMessage::ProtoExtraMbInfo& protoExtraMbInfo =
+      protoTxBlock.extrambinfo();
+
+  ProtobufToExtraMbInfo(protoExtraMbInfo, isMicroBlockEmpty, shardIds);
 
   txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds);
 
@@ -1529,6 +1547,34 @@ bool Messenger::GetTxSharingAssignmentsHash(
 
   if (!SerializeToArray(protoTxSharingAssignments, tmp, 0)) {
     LOG_GENERAL(WARNING, "ProtoTxSharingAssignments serialization failed.");
+    return false;
+  }
+
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(tmp);
+  tmp = sha2.Finalize();
+
+  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
+
+  return true;
+}
+
+bool Messenger::GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
+                                   const std::vector<uint32_t>& shardIds,
+                                   MBInfoHash& dst) {
+  ProtoExtraMbInfo protoExtraMbInfo;
+
+  ExtraMbInfoToProtobuf(isMicroBlockEmpty, shardIds, protoExtraMbInfo);
+
+  if (!protoExtraMbInfo.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoExtraMbInfo initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp;
+
+  if (!SerializeToArray(protoExtraMbInfo, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoExtraMbInfo serialization failed.");
     return false;
   }
 
