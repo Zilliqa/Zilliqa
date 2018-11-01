@@ -124,6 +124,14 @@ bool DirectoryService::ComposeFinalBlock() {
                              allGasLimit, allGasUsed, allRewards, numTxs,
                              isMicroBlockEmpty, numMicroBlocks);
 
+  // Compute the MBInfoHash of the extra MicroBlock information
+  MBInfoHash mbInfoHash;
+  if (!Messenger::GetExtraMbInfoHash(isMicroBlockEmpty, shardIds, mbInfoHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetExtraMbInfoHash failed.");
+    return false;
+  }
+
   BlockHash prevHash;
   uint256_t timestamp = get_time_as_int();
 
@@ -145,16 +153,6 @@ bool DirectoryService::ComposeFinalBlock() {
     return false;
   }
 
-  DSBlock lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-  uint64_t lastDSBlockNum = lastDSBlock.GetHeader().GetBlockNum();
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  vector<unsigned char> vec;
-  lastDSBlock.GetHeader().Serialize(vec, 0);
-  sha2.Update(vec);
-  vector<unsigned char> hashVec = sha2.Finalize();
-  BlockHash dsBlockHeader;
-  copy(hashVec.begin(), hashVec.end(), dsBlockHeader.asArray().begin());
-
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
   // Compute the CommitteeHash member of the BlockHeaderBase
@@ -167,11 +165,13 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   m_finalBlock.reset(new TxBlock(
-      TxBlockHeader(type, version, allGasLimit, allGasUsed, allRewards,
-                    prevHash, blockNum, timestamp, microblockTrieRoot,
-                    stateRoot, stateDeltaHash, numTxs, numMicroBlocks,
-                    m_mediator.m_selfKey.second, lastDSBlockNum, dsBlockHeader,
-                    committeeHash),
+      TxBlockHeader(
+          type, version, allGasLimit, allGasUsed, allRewards, prevHash,
+          blockNum, timestamp,
+          {microblockTrieRoot, stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
+          numMicroBlocks, m_mediator.m_selfKey.second,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          committeeHash),
       isMicroBlockEmpty, microBlockHashes, shardIds,
       CoSignatures(m_mediator.m_DSCommittee->size())));
   m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
@@ -747,7 +747,7 @@ bool DirectoryService::CheckMicroBlockHashRoot() {
   return true;
 }
 
-bool DirectoryService::CheckIsMicroBlockEmpty() {
+bool DirectoryService::CheckExtraMicroBlockInfo() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckIsMicroBlockEmpty not expected to "
@@ -762,6 +762,9 @@ bool DirectoryService::CheckIsMicroBlockEmpty() {
   LOG_GENERAL(INFO, "Total num of microblocks to check isEmpty: "
                         << m_finalBlock->GetIsMicroBlockEmpty().size())
 
+  vector<uint32_t> shardIds;
+  vector<bool> isMicroBlockEmpty;
+
   for (unsigned int i = 0; i < microBlockHashes.size(); i++) {
     // LOG_GENERAL(INFO,
     //             "Microblock" << i
@@ -773,15 +776,12 @@ bool DirectoryService::CheckIsMicroBlockEmpty() {
     for (auto& microBlock : microBlocks) {
       if (microBlock.GetBlockHash() == microBlockHashes[i]) {
         if (m_finalBlock->GetIsMicroBlockEmpty()[i] !=
-            (microBlock.GetHeader().GetNumTxs() == 0))
-
-        {
+            (microBlock.GetHeader().GetNumTxs() == 0)) {
           LOG_GENERAL(
               WARNING,
-              "IsMicroBlockEmpty in proposed final "
-              "block is incorrect"
+              "IsMicroBlockEmpty in proposed final block is incorrect"
                   << endl
-                  << "Hashes: " << microBlockHashes[i] << endl
+                  << "MB Hash: " << microBlockHashes[i] << endl
                   << "Expected: " << (microBlock.GetHeader().GetNumTxs() == 0)
                   << " Received: " << m_finalBlock->GetIsMicroBlockEmpty()[i]);
 
@@ -789,13 +789,33 @@ bool DirectoryService::CheckIsMicroBlockEmpty() {
               ConsensusCommon::FINALBLOCK_MICROBLOCK_EMPTY_ERROR);
 
           return false;
+        } else if (m_finalBlock->GetShardIds()[i] !=
+                   microBlock.GetHeader().GetShardId()) {
+          LOG_GENERAL(
+              WARNING,
+              "ShardIds in proposed final block is incorrect"
+                  << endl
+                  << "MB Hash: " << microBlockHashes[i] << endl
+                  << "Expected: " << (microBlock.GetHeader().GetShardId() == 0)
+                  << " Received: " << m_finalBlock->GetShardIds()[i]);
+          return false;
         }
+        shardIds.emplace_back(microBlock.GetHeader().GetShardId());
+        isMicroBlockEmpty.emplace_back(microBlock.GetHeader().GetNumTxs() == 0);
         break;
       }
     }
   }
 
-  return true;
+  // Compute the MBInfoHash of the extra MicroBlock information
+  MBInfoHash mbInfoHash;
+  if (!Messenger::GetExtraMbInfoHash(isMicroBlockEmpty, shardIds, mbInfoHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetExtraMbInfoHash failed.");
+    return false;
+  }
+
+  return mbInfoHash == m_finalBlock->GetHeader().GetMbInfoHash();
 }
 
 // Check state root
@@ -916,7 +936,7 @@ bool DirectoryService::CheckFinalBlockValidity(
       !CheckFinalBlockVersion() || !CheckFinalBlockNumber() ||
       !CheckPreviousFinalBlockHash() || !CheckFinalBlockTimestamp() ||
       !CheckMicroBlocks(errorMsg) || !CheckLegitimacyOfMicroBlocks() ||
-      !CheckMicroBlockHashRoot() || !CheckIsMicroBlockEmpty() ||
+      !CheckMicroBlockHashRoot() || !CheckExtraMicroBlockInfo() ||
       !CheckStateRoot() || !CheckStateDeltaHash()) {
     Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
                                       m_mediator.m_selfPeer.m_listenPortHost,
