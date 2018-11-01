@@ -334,7 +334,7 @@ Json::Value Server::GetBalance(const string& address) {
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
                                    << nonce.convert_to<unsigned int>());
     } else if (account == nullptr) {
-      ret["balance"] = 0;
+      ret["balance"] = "0";
       ret["nonce"] = 0;
     }
 
