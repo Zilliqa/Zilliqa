@@ -15,8 +15,7 @@
 **/
 
 #include "libConsensus/ConsensusLeader.h"
-#include "testLib/testLibFunctions.h"
-//#include "Test_Consensus.h"
+#include "libTestUtils/TestUtils.h"
 #include "common/Messages.h"
 
 #define BOOST_TEST_MODULE ConsensusLeader
@@ -30,7 +29,7 @@ BOOST_AUTO_TEST_SUITE(ConsensusLeaderTestSuite)
 /**
 * \brief DSworkflow test case for class ConsensusLeader
 *
-* \details Leader is instationted, consensus started and message processing state machine tested
+* \details Leader is created and its state machine tested
 */
 BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
 {
@@ -50,7 +49,7 @@ BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
     }
 
     PrivKey dummy_privkey(privkey_vec, 0); // leader's private key
-    PubKey dummy_pubkey = GenerateRandomPubKey(); // leader's public key
+    PubKey dummy_pubkey = TestUtils::GenerateRandomPubKey(); // leader's public key
 
     uint32_t dummy_consensus_id = 0; // unique identifier for this consensus session
     uint16_t dummy_block_number = 0;
@@ -59,14 +58,11 @@ BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
 
     uint16_t dummy_node_id = 0; // leader's identifier (= index in some ordered lookup table shared by all nodes)
 
-    Peer dummy_peer = GenerateRandomPeer();
+    Peer dummy_peer = TestUtils::GenerateRandomPeer();
     std::deque<std::pair<PubKey, Peer>> dummy_committee; //(pubkey&(),peer&()); // ordered lookup table of pubkeys for this committee (includes leader)
     pair<PubKey, Peer> dummy_pair(dummy_pubkey, dummy_peer);
     dummy_committee.push_back(dummy_pair);
     dummy_committee.push_back(dummy_pair);
-
-    [[gnu::unused]]unsigned char dummy_class_byte = 0; // class byte representing Ex =  = 0x00ecutable class using this instance of ConsensusLeader
-    [[gnu::unused]]unsigned char dummy_ins_byte = 0; // instruction byte representing consensus messages for the Executable class
 
     std::shared_ptr<ConsensusCommon> dummy_consensusObject;
     dummy_consensusObject.reset(new ConsensusLeader(
