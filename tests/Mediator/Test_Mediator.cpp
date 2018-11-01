@@ -48,18 +48,48 @@ BOOST_AUTO_TEST_CASE(init) {
   m = new Mediator (kp, p);
 }
 
+/*TODO: Decision to let it as testcase
+ *We can test of the member equals to the initializers
+ */
 BOOST_AUTO_TEST_CASE(test_RegisterColleagues) {
   DirectoryService ds(*m);
-  //DirectoryService& ds = DirectoryService(*m);
   Node node(*m, 0, false);
-  //Node& node = Node(m, 0, false);
   Lookup lookup(*m);
-  //Lookup lookup = Lookup(m);
   Validator validator(*m);
   ArchiveDB archDB("name", "txn", "txBlock", "dsBlock", "accountState");
   Archival arch(*m);
 
   m->RegisterColleagues(&ds, &node, &lookup, &validator, &archDB, &arch);
 }
+
+/*TODO: Decision to let it as testcase
+ *Possible testing of the member m_dsBlockRand
+ */
+BOOST_AUTO_TEST_CASE(UpdateDSBlockRand) {
+  m->UpdateDSBlockRand(false);
+  m->UpdateDSBlockRand(true);
+}
+
+/*TODO: Decision to let it as testcase
+ *Possible testing of the member m_dsBlockRand
+ */
+BOOST_AUTO_TEST_CASE(UpdateTxBlockRand) {
+  m->UpdateTxBlockRand();
+  m->UpdateDSBlockRand(true);
+}
+
+/*TODO: Decision to let it as testcase
+ *Possible testing of the member m_dsBlockRand
+ */
+BOOST_AUTO_TEST_CASE(GetNodeMode) {
+  std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>
+  m->m_DSCommittee =
+  m->GetNodeMode(p);
+
+}
+
+
+
+
 
 BOOST_AUTO_TEST_SUITE_END()

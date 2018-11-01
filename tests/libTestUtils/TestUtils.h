@@ -55,6 +55,9 @@ TxBlockHeader GenerateRandomTxBlockHeader();
 VCBlockHeader GenerateRandomVCBlockHeader();
 FallbackBlockHeader GenerateRandomFallbackBlockHeader();
 CoSignatures GenerateRandomCoSignatures();
+
+using DS_Comitte_t = std::deque<std::pair<PubKey, Peer>>;
+DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
 }  // namespace TestUtils
 
 #endif  // __TESTUTILS_H__

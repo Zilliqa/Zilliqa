@@ -163,4 +163,15 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
 }
 
 CoSignatures GenerateRandomCoSignatures() { return CoSignatures(Dist1to99()); }
+
+DS_Comitte_t GenerateRandomDSCommittee(uint32_t size){
+
+}
+
+
+
+
+
+
+
 }  // namespace TestUtils
