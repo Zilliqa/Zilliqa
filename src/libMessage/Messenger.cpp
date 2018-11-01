@@ -2089,6 +2089,9 @@ bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
     accountStoreTemp.AddAccountDuringDeserialization(address, account);
   }
 
+  return true;
+}
+
 bool Messenger::GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
                                    const std::vector<uint32_t>& shardIds,
                                    MBInfoHash& dst) {
