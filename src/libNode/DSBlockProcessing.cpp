@@ -443,6 +443,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
+
   if (shardingHash != dsblock.GetHeader().GetShardingHash()) {
     LOG_GENERAL(WARNING,
                 "Sharding structure hash in newly received DS Block doesn't "
@@ -469,6 +470,8 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   m_myshardId = shardId;
+  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
+                                                    m_myshardId);
 
   LogReceivedDSBlockDetails(dsblock);
 
@@ -664,6 +667,9 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   for (const auto& member : *m_mediator.m_DSCommittee) {
     LOG_GENERAL(INFO, member.second);
   }
+
+  BlockStorage::GetBlockStorage().PutDSCommittee(
+      m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
 
   return true;
 }

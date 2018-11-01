@@ -260,8 +260,16 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                    microBlock.GetHeader().GetShardId())) {
+                    microBlock.GetHeader().GetShardId(),
+                    m_mediator.m_currentEpochNum)) {
     return false;
+  }
+
+  vector<unsigned char> body;
+  microBlock.Serialize(body, 0);
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetBlockHash(),
+                                                     body)) {
+    LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
   }
 
   auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
@@ -452,7 +460,8 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
 
       uint32_t shardId = microBlock.GetHeader().GetShardId();
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "shard_id " << shardId);
+                "shard_id: " << shardId << ", pubkey: "
+                             << microBlock.GetHeader().GetMinerPubKey());
 
       const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
@@ -533,8 +542,16 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
                   "MicroBlock Hash: " << microBlock.GetHeader().GetHashes());
 
       if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                        microBlock.GetHeader().GetShardId())) {
+                        microBlock.GetHeader().GetShardId(),
+                        m_mediator.m_currentEpochNum)) {
         continue;
+      }
+
+      vector<unsigned char> body;
+      microBlock.Serialize(body, 0);
+      if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+              microBlock.GetBlockHash(), body)) {
+        LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
       }
 
       microBlocksAtEpoch.emplace(microBlock);

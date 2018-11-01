@@ -607,6 +607,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     ProcessTxnBodySharingAssignment();
   }
 
+  BlockStorage::GetBlockStorage().PutShardStructure(
+      m_shards, m_mediator.m_node->m_myshardId);
+
   {
     // USe mutex during the composition and sending of vcds block message
     lock_guard<mutex> g(m_mutexVCBlockVector);
@@ -688,6 +691,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   for (const auto& member : *m_mediator.m_DSCommittee) {
     LOG_GENERAL(INFO, member.second);
   }
+
+  BlockStorage::GetBlockStorage().PutDSCommittee(m_mediator.m_DSCommittee,
+                                                 m_consensusLeaderID);
 
   StartFirstTxEpoch();
 }

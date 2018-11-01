@@ -3095,6 +3095,35 @@ bool Messenger::GetNodeFallbackBlock(const vector<unsigned char>& src,
   return true;
 }
 
+bool Messenger::ShardStructureToArray(std::vector<unsigned char>& dst,
+                                      const unsigned int offset,
+                                      const DequeOfShard& shards) {
+  ProtoShardingStructure protoShardingStructure;
+  ShardingStructureToProtobuf(shards, protoShardingStructure);
+
+  if (!protoShardingStructure.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoShardingStructure initialization failed.");
+    return false;
+  }
+
+  if (!SerializeToArray(protoShardingStructure, dst, offset)) {
+    LOG_GENERAL(WARNING, "ProtoShardingStructure serialization failed.");
+    return false;
+  }
+
+  return true;
+}
+
+bool Messenger::ArrayToShardStructure(const std::vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      DequeOfShard& shards) {
+  ProtoShardingStructure protoShardingStructure;
+  protoShardingStructure.ParseFromArray(src.data() + offset,
+                                        src.size() - offset);
+  ProtobufToShardingStructure(protoShardingStructure, shards);
+  return true;
+}
+
 // ============================================================================
 // Lookup messages
 // ============================================================================
@@ -3604,6 +3633,111 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
       LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
       return false;
     }
+  }
+
+  return true;
+}
+
+bool Messenger::SetLookupGetStateDeltaFromSeed(vector<unsigned char>& dst,
+                                               const unsigned int offset,
+                                               const uint64_t blockNum,
+                                               const uint32_t listenPort) {
+  LOG_MARKER();
+
+  LookupGetStateDeltaFromSeed result;
+
+  result.set_blocknum(blockNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetStateDeltaFromSeed(const vector<unsigned char>& src,
+                                               const unsigned int offset,
+                                               uint64_t& blockNum,
+                                               uint32_t& listenPort) {
+  LOG_MARKER();
+
+  LookupGetStateDeltaFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  blockNum = result.blocknum();
+  listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::SetLookupSetStateDeltaFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t blockNum, const std::pair<PrivKey, PubKey>& lookupKey,
+    const vector<unsigned char>& stateDelta) {
+  LOG_MARKER();
+
+  LookupSetStateDeltaFromSeed result;
+
+  result.set_blocknum(blockNum);
+
+  result.set_statedelta(stateDelta.data(), stateDelta.size());
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+
+  if (!Schnorr::GetInstance().Sign(stateDelta, lookupKey.first,
+                                   lookupKey.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign state delta.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetStateDeltaFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetStateDeltaFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint64_t& blockNum, PubKey& lookupPubKey,
+    vector<unsigned char>& stateDelta) {
+  LOG_MARKER();
+
+  LookupSetStateDeltaFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetStateDeltaFromSeed initialization failed.");
+    return false;
+  }
+
+  blockNum = result.blocknum();
+
+  stateDelta.resize(result.statedelta().size());
+  std::copy(result.statedelta().begin(), result.statedelta().end(),
+            stateDelta.begin());
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(stateDelta, signature, lookupPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in state delta.");
+    return false;
   }
 
   return true;

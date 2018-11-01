@@ -275,8 +275,15 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         if (!m_mediator.GetIsVacuousEpoch()) {
           m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
                                         m_microblock->GetB2(),
-                                        m_microblock->GetHeader().GetShardId());
+                                        m_microblock->GetHeader().GetShardId(),
+                                        m_mediator.m_currentEpochNum);
           m_mediator.m_ds->m_toSendTxnToLookup = true;
+          vector<unsigned char> body;
+          m_microblock->Serialize(body, 0);
+          if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+                  m_microblock->GetBlockHash(), body)) {
+            LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
+          }
         }
       }
       m_mediator.m_ds->RunConsensusOnFinalBlock();
