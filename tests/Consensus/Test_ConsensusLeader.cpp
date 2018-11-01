@@ -17,9 +17,9 @@
  * program files.
  */
 
+#include "common/Messages.h"
 #include "libConsensus/ConsensusLeader.h"
 #include "libTestUtils/TestUtils.h"
-#include "common/Messages.h"
 
 #define BOOST_TEST_MODULE ConsensusLeader
 #define BOOST_TEST_DYN_LINK
@@ -30,91 +30,105 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(ConsensusLeaderTestSuite)
 
 /**
-* \brief DSworkflow test case for class ConsensusLeader
-*
-* \details Leader is created and its state machine tested
-*/
-BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow)
-{
-    ///Test initialization
-    BOOST_TEST_MESSAGE("Running test ConsensusLeader_DSworkflow");
+ * \brief DSworkflow test case for class ConsensusLeader
+ *
+ * \details Leader is created and its state machine tested
+ */
+BOOST_AUTO_TEST_CASE(ConsensusLeader_DSworkflow) {
+  /// Test initialization
+  BOOST_TEST_MESSAGE("Running test ConsensusLeader_DSworkflow");
 
-    ///Generated private and public keys
-    vector<unsigned char> privkey_vec(32);
+  /// Generated private and public keys
+  vector<unsigned char> privkey_vec(32);
 
-    std::string in("03D2844A78C799551D34CB699D110CFADA7A473A9B725A918635B8EF3C26AF1668");
-    size_t len = in.length();
-    for(size_t i = 0; i < len; i += 2) {
-        std::istringstream instream(in.substr(i, 2));
-        uint8_t x;
-        instream >> std::hex >> x;
-        privkey_vec.push_back(x);
-    }
+  std::string in(
+      "03D2844A78C799551D34CB699D110CFADA7A473A9B725A918635B8EF3C26AF1668");
+  size_t len = in.length();
+  for (size_t i = 0; i < len; i += 2) {
+    std::istringstream instream(in.substr(i, 2));
+    uint8_t x;
+    instream >> std::hex >> x;
+    privkey_vec.push_back(x);
+  }
 
-    PrivKey dummy_privkey(privkey_vec, 0); // leader's private key
-    PubKey dummy_pubkey = TestUtils::GenerateRandomPubKey(); // leader's public key
+  PrivKey dummy_privkey(privkey_vec, 0);  // leader's private key
+  PubKey dummy_pubkey =
+      TestUtils::GenerateRandomPubKey();  // leader's public key
 
-    uint32_t dummy_consensus_id = 0; // unique identifier for this consensus session
-    uint16_t dummy_block_number = 0;
-    vector<unsigned char> dummy_block_hash(BLOCK_HASH_SIZE);
-    fill(dummy_block_hash.begin(), dummy_block_hash.end(), 0xF0);
+  uint32_t dummy_consensus_id =
+      0;  // unique identifier for this consensus session
+  uint16_t dummy_block_number = 0;
+  vector<unsigned char> dummy_block_hash(BLOCK_HASH_SIZE);
+  fill(dummy_block_hash.begin(), dummy_block_hash.end(), 0xF0);
 
-    uint16_t dummy_node_id = 0; // leader's identifier (= index in some ordered lookup table shared by all nodes)
+  uint16_t dummy_node_id = 0;  // leader's identifier (= index in some ordered
+                               // lookup table shared by all nodes)
 
-    Peer dummy_peer = TestUtils::GenerateRandomPeer();
-    std::deque<std::pair<PubKey, Peer>> dummy_committee; //(pubkey&(),peer&()); // ordered lookup table of pubkeys for this committee (includes leader)
-    pair<PubKey, Peer> dummy_pair(dummy_pubkey, dummy_peer);
-    dummy_committee.push_back(dummy_pair);
-    dummy_committee.push_back(dummy_pair);
+  Peer dummy_peer = TestUtils::GenerateRandomPeer();
+  std::deque<std::pair<PubKey, Peer>>
+      dummy_committee;  //(pubkey&(),peer&()); // ordered lookup table of
+                        //pubkeys for this committee (includes leader)
+  pair<PubKey, Peer> dummy_pair(dummy_pubkey, dummy_peer);
+  dummy_committee.push_back(dummy_pair);
+  dummy_committee.push_back(dummy_pair);
 
-    std::shared_ptr<ConsensusCommon> dummy_consensusObject;
-    dummy_consensusObject.reset(new ConsensusLeader(
-        dummy_consensus_id, dummy_block_number, dummy_block_hash,
-        dummy_node_id, dummy_privkey, dummy_committee,
-        static_cast<unsigned char>(DIRECTORY),
-        static_cast<unsigned char>(DSBLOCKCONSENSUS),
-        NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
+  std::shared_ptr<ConsensusCommon> dummy_consensusObject;
+  dummy_consensusObject.reset(new ConsensusLeader(
+      dummy_consensus_id, dummy_block_number, dummy_block_hash, dummy_node_id,
+      dummy_privkey, dummy_committee, static_cast<unsigned char>(DIRECTORY),
+      static_cast<unsigned char>(DSBLOCKCONSENSUS),
+      NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
 
-    ConsensusLeader* dummy_leader = dynamic_cast<ConsensusLeader*>(dummy_consensusObject.get());
+  ConsensusLeader* dummy_leader =
+      dynamic_cast<ConsensusLeader*>(dummy_consensusObject.get());
 
-    auto announcementGeneratorFunc =
-        [&]([[gnu::unused]]vector<unsigned char>& dst, [[gnu::unused]]unsigned int offset,
-        [[gnu::unused]]const uint32_t consensusID, [[gnu::unused]]const uint64_t blockNumber,
-        [[gnu::unused]]const vector<unsigned char>& blockHash, [[gnu::unused]]const uint16_t leaderID,
-        [[gnu::unused]]const pair<PrivKey, PubKey>& leaderKey,
-        [[gnu::unused]]vector<unsigned char>& messageToCosign) mutable -> bool {
-        return true;
-    };
+  auto announcementGeneratorFunc =
+      [&]([[gnu::unused]] vector<unsigned char>& dst,
+          [[gnu::unused]] unsigned int offset,
+          [[gnu::unused]] const uint32_t consensusID,
+          [[gnu::unused]] const uint64_t blockNumber,
+          [[gnu::unused]] const vector<unsigned char>& blockHash,
+          [[gnu::unused]] const uint16_t leaderID,
+          [[gnu::unused]] const pair<PrivKey, PubKey>& leaderKey,
+          [[gnu::unused]] vector<unsigned char>& messageToCosign) mutable
+      -> bool { return true; };
 
-    ///Start consensus
-    dummy_leader->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
+  /// Start consensus
+  dummy_leader->StartConsensus(announcementGeneratorFunc,
+                               BROADCAST_GOSSIP_MODE);
 
-    ///ProcessMessage test
-    vector<unsigned char> test_message(64);//48
-    vector<unsigned char> comit;
-    fill(test_message.begin(), test_message.end(), 0x00);
-    ///Message COMMIT
-    test_message[0] = 0x01;
-    BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer), false);
+  /// ProcessMessage test
+  vector<unsigned char> test_message(64);  // 48
+  vector<unsigned char> comit;
+  fill(test_message.begin(), test_message.end(), 0x00);
+  /// Message COMMIT
+  test_message[0] = 0x01;
+  BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer),
+                    false);
 
-    ///Message COMMITFAILURE
-    test_message[0] = 0x09;
-    BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer), false);
+  /// Message COMMITFAILURE
+  test_message[0] = 0x09;
+  BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer),
+                    false);
 
-    ///Message RESPONSE
-    test_message[0] = 0x03;
-    BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer), false);
+  /// Message RESPONSE
+  test_message[0] = 0x03;
+  BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer),
+                    false);
 
-    ///Message FINALCOMMIT
-    test_message[0] = 0x05;
-    BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer), false);
+  /// Message FINALCOMMIT
+  test_message[0] = 0x05;
+  BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer),
+                    false);
 
-    ///Message FINALRESPONSE
-    test_message[0] = 0x07;
-    BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer), false);
+  /// Message FINALRESPONSE
+  test_message[0] = 0x07;
+  BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer),
+                    false);
 
-    ///Invalid message
-    test_message[0] = 0x0F;
-    BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer), false);
+  /// Invalid message
+  test_message[0] = 0x0F;
+  BOOST_CHECK_EQUAL(dummy_leader->ProcessMessage(test_message, 0, dummy_peer),
+                    false);
 }
 BOOST_AUTO_TEST_SUITE_END()
