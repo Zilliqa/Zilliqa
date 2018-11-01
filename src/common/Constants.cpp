@@ -197,6 +197,8 @@ const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("COMMIT_WINDOW_IN_SECONDS")};
 const unsigned int NUM_CONSENSUS_SUBSETS{
     ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
+const unsigned int MAX_CODE_SIZE_IN_BYTES{
+    ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
 
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};

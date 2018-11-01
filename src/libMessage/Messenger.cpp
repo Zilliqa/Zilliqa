@@ -232,7 +232,12 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       balanceDeltaNum, *protoAccount.mutable_balance());
 
-  uint256_t nonceDelta = newAccount.GetNonce() - oldAccount->GetNonce();
+  uint256_t nonceDelta = 0;
+  if (!SafeMath<uint256_t>::sub(newAccount.GetNonce(), oldAccount->GetNonce(),
+                                nonceDelta)) {
+    return;
+  }
+
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       nonceDelta, *protoAccount.mutable_nonce());
 
@@ -281,6 +286,13 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
     if (fullCopy) {
       vector<unsigned char> tmpVec;
+      if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
+        LOG_GENERAL(WARNING, "Code size "
+                                 << protoAccount.code().size()
+                                 << " greater than MAX_CODE_SIZE_IN_BYTES "
+                                 << MAX_CODE_SIZE_IN_BYTES);
+        return false;
+      }
       tmpVec.resize(protoAccount.code().size());
       copy(protoAccount.code().begin(), protoAccount.code().end(),
            tmpVec.begin());
