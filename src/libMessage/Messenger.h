@@ -46,11 +46,9 @@ class Messenger {
       const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders, TxSharingHash& dst);
-
-  static bool GetMbinfoHash(const std::vector<uint32_t>& shardIds,
-                            const std::vector<bool>& isMicroBlockEmpty,
-                            MBInfoHash& dst);
-
+  static bool GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
+                                 const std::vector<uint32_t>& shardIds,
+                                 MBInfoHash& dst);
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
                                const DSBlockHeader& dsBlockHeader);
@@ -184,7 +182,7 @@ class Messenger {
       const DequeOfShard& shards, const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders,
-      const MapOfPubKeyPoW& allPoWs,
+      const MapOfPubKeyPoW& allPoWs, const MapOfPubKeyPoW& dsWinnerPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool GetDSDSBlockAnnouncement(
@@ -195,6 +193,7 @@ class Messenger {
       std::vector<Peer>& dsReceivers,
       std::vector<std::vector<Peer>>& shardReceivers,
       std::vector<std::vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
+      MapOfPubKeyPoW& dsWinnerPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool SetDSFinalBlockAnnouncement(
