@@ -81,6 +81,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
                                   m_mediator.m_ds->m_latestActiveDSBlockNum)));
 
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+
   m_mediator.m_blocklinkchain.AddBlockLink(
       latestInd, dsblock.GetHeader().GetBlockNum(), BlockType::DS,
       dsblock.GetBlockHash());
@@ -98,30 +99,6 @@ void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm) {
     }
     dsComm.pop_back();
   }
-}
-
-bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum) {
-  LOG_MARKER();
-
-  uint64_t latestBlockNumInBlockchain =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  if (dsblockNum < latestBlockNumInBlockchain + 1) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "We are processing duplicated blocks\n"
-                  << "cur block num: " << latestBlockNumInBlockchain << "\n"
-                  << "incoming block num: " << dsblockNum);
-    return false;
-  } else if (dsblockNum > latestBlockNumInBlockchain + 1) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Missing of some DS blocks. Requested: "
-                  << dsblockNum
-                  << " while Present: " << latestBlockNumInBlockchain);
-    // Todo: handle missing DS blocks.
-    return false;
-  }
-
-  return true;
 }
 
 bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
@@ -506,7 +483,11 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   // Checking for freshness of incoming DS Block
-  if (!CheckWhetherDSBlockNumIsLatest(dsblock.GetHeader().GetBlockNum())) {
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          dsblock.GetHeader().GetBlockNum(),
+          dsblock.GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING,
+                "ProcessVCDSBlocksMessage CheckWhetherBlockIsLatest failed");
     return false;
   }
 

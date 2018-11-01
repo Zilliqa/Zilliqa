@@ -153,6 +153,14 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // TODO State machine check
 
+  // Check is block latest
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          vcblock.GetHeader().GetVieWChangeDSEpochNo(),
+          vcblock.GetHeader().GetViewChangeEpochNo())) {
+    LOG_GENERAL(WARNING, "ProcessVCBlockCore CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
   // Verify the Block Hash
   BlockHash temp_blockHash = vcblock.GetHeader().GetMyHash();
   if (temp_blockHash != vcblock.GetBlockHash()) {

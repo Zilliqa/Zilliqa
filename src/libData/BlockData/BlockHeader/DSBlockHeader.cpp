@@ -33,18 +33,22 @@ DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
   }
 }
 
-DSBlockHeader::DSBlockHeader(
-    const uint8_t dsDifficulty, const uint8_t difficulty,
-    const BlockHash& prevHash, const PubKey& leaderPubKey,
-    const uint64_t& blockNum, const uint256_t& timestamp, const SWInfo& swInfo,
-    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hashset,
-    const CommitteeHash& committeeHash)
+DSBlockHeader::DSBlockHeader(const uint8_t dsDifficulty,
+                             const uint8_t difficulty,
+                             const BlockHash& prevHash,
+                             const PubKey& leaderPubKey,
+                             const uint64_t& blockNum, const uint64_t& epochNum,
+                             const uint256_t& timestamp, const SWInfo& swInfo,
+                             const map<PubKey, Peer>& powDSWinners,
+                             const DSBlockHashSet& hashset,
+                             const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
       m_dsDifficulty(dsDifficulty),
       m_difficulty(difficulty),
       m_prevHash(prevHash),
       m_leaderPubKey(leaderPubKey),
       m_blockNum(blockNum),
+      m_epochNum(epochNum),
       m_timestamp(timestamp),
       m_swInfo(swInfo),
       m_PoWDSWinners(powDSWinners),
@@ -79,6 +83,8 @@ const BlockHash& DSBlockHeader::GetPrevHash() const { return m_prevHash; }
 const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
 
 const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
+
+const uint64_t& DSBlockHeader::GetEpochNum() const { return m_epochNum; }
 
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 

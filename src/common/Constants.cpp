@@ -44,6 +44,11 @@ std::string ReadFromOptionsFile(std::string propertyName) {
   return pt.get<std::string>("node.options." + propertyName);
 }
 
+unsigned int ReadFromGasFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.gas." + propertyName);
+}
+
 std::string ReadSmartContractConstants(std::string propertyName) {
   auto pt = PTree::GetInstance();
   return pt.get<std::string>("node.smart_contract." + propertyName);
@@ -117,19 +122,12 @@ const unsigned int NUM_FINAL_BLOCK_PER_POW{
 const unsigned int NUM_DS_KEEP_TX_BODY{
     ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
-const unsigned int MICROBLOCK_GAS_LIMIT{
-    ReadFromConstantsFile("MICROBLOCK_GAS_LIMIT")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
 const unsigned int NEW_NODE_POW_DELAY{
     ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
 const unsigned int POST_VIEWCHANGE_BUFFER{
     ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
-const unsigned int CONTRACT_CREATE_GAS{
-    ReadFromConstantsFile("CONTRACT_CREATE_GAS")};
-const unsigned int CONTRACT_INVOKE_GAS{
-    ReadFromConstantsFile("CONTRACT_INVOKE_GAS")};
-const unsigned int NORMAL_TRAN_GAS{ReadFromConstantsFile("NORMAL_TRAN_GAS")};
 const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
 const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
 const unsigned int BROADCAST_INTERVAL{
@@ -200,6 +198,7 @@ const unsigned int NUM_CONSENSUS_SUBSETS{
 const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
 
+// options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
 const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
@@ -219,10 +218,24 @@ const bool GET_INITIAL_DS_FROM_REPO{
 const std::string UPGRADE_HOST_ACCOUNT{
     ReadFromOptionsFile("UPGRADE_HOST_ACCOUNT")};
 const std::string UPGRADE_HOST_REPO{ReadFromOptionsFile("UPGRADE_HOST_REPO")};
+const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
+
+// gas
+const unsigned int MICROBLOCK_GAS_LIMIT{
+    ReadFromGasFile("MICROBLOCK_GAS_LIMIT")};
+const unsigned int CONTRACT_CREATE_GAS{ReadFromGasFile("CONTRACT_CREATE_GAS")};
+const unsigned int CONTRACT_INVOKE_GAS{ReadFromGasFile("CONTRACT_INVOKE_GAS")};
+const unsigned int NORMAL_TRAN_GAS{ReadFromGasFile("NORMAL_TRAN_GAS")};
+const unsigned int DEFAULT_MIN_GAS_PRICE{
+    ReadFromGasFile("DEFAULT_MIN_GAS_PRICE")};
+
+// accounts
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
     ReadAccountsFromConstantsFile("private_key")};
+
+// smart contract
 const std::string SCILLA_ROOT{ReadSmartContractConstants("SCILLA_ROOT")};
 const std::string SCILLA_BINARY{SCILLA_ROOT + '/' +
                                 ReadSmartContractConstants("SCILLA_BINARY")};
@@ -243,12 +256,15 @@ const std::string OUTPUT_JSON{SCILLA_FILES + '/' +
 const std::string INPUT_CODE{SCILLA_FILES + '/' +
                              ReadSmartContractConstants("INPUT_CODE")};
 
+// dispatcher
 const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
-const std::string DB_HOST{ReadArchivalConstants("DB_HOST")};
 const bool USE_REMOTE_TXN_CREATOR{
     ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
-const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 
+// archival
+const std::string DB_HOST{ReadArchivalConstants("DB_HOST")};
+
+// GPU
 const std::string GPU_TO_USE{ReadGPUVariableFromConstantsFile("GPU_TO_USE")};
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
     ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};

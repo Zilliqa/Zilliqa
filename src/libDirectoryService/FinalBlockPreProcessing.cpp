@@ -345,24 +345,12 @@ bool DirectoryService::CheckFinalBlockNumber() {
 
   LOG_MARKER();
 
-  const uint64_t& finalblockBlocknum = m_finalBlock->GetHeader().GetBlockNum();
-  uint64_t expectedBlocknum = 0;
-  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
-    expectedBlocknum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
-  }
-  if (finalblockBlocknum != expectedBlocknum) {
-    LOG_GENERAL(WARNING, "Block number check failed. Expected: "
-                             << expectedBlocknum
-                             << " Actual: " << finalblockBlocknum);
-
-    m_consensusObject->SetConsensusErrorCode(
-        ConsensusCommon::INVALID_FINALBLOCK_NUMBER);
-
+  // Check block number
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_finalBlock->GetHeader().GetDSBlockNum() + 1,
+          m_finalBlock->GetHeader().GetBlockNum())) {
+    LOG_GENERAL(WARNING, "CheckWhetherBlockIsLatest failed");
     return false;
-  } else {
-    LOG_GENERAL(INFO,
-                "finalblockBlocknum = expectedBlocknum = " << expectedBlocknum);
   }
 
   return true;

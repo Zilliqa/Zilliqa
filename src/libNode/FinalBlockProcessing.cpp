@@ -695,7 +695,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   // Check block number
-  if (!CheckWhetherDSBlockNumIsLatest(dsBlockNumber + 1)) {
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
+    LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
     return false;
   }
 

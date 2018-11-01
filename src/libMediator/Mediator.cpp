@@ -266,3 +266,40 @@ uint32_t Mediator::GetShardSize(const bool& useShardStructure) const {
 
   return ShardSizeCalculator::CalculateShardSize(shardNodeNum);
 }
+
+bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
+                                         const uint64_t& epochNum) {
+  LOG_MARKER();
+
+  uint64_t latestDSBlockNumInBlockchain =
+      m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (dsblockNum < latestDSBlockNumInBlockchain + 1) {
+    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+              "We are processing duplicated blocks\n"
+                  << "cur block num: " << latestDSBlockNumInBlockchain << "\n"
+                  << "incoming block num: " << dsblockNum);
+    return false;
+  } else if (dsblockNum > latestDSBlockNumInBlockchain + 1) {
+    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+              "Missing of some DS blocks. Requested: "
+                  << dsblockNum
+                  << " while Present: " << latestDSBlockNumInBlockchain);
+    // Todo: handle missing DS blocks.
+    return false;
+  }
+
+  if (epochNum < m_currentEpochNum) {
+    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+              "We are processing duplicated blocks\n"
+                  << "incoming block epoch num: " << epochNum);
+    return false;
+  } else if (epochNum > m_currentEpochNum) {
+    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+              "Missing of some Tx blocks. Requested: " << epochNum);
+    // Todo: handle missing Tx blocks.
+    return false;
+  }
+
+  return true;
+}
