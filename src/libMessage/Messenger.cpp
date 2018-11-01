@@ -2244,6 +2244,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const DequeOfShard& shards, const vector<Peer>& dsReceivers,
     const vector<vector<Peer>>& shardReceivers,
     const vector<vector<Peer>>& shardSenders, const MapOfPubKeyPoW& allPoWs,
+    const MapOfPubKeyPoW& dsWinnerPoWs,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -2260,6 +2261,17 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
   TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
                                  *dsblock->mutable_assignments());
+
+  for (const auto& kv : dsWinnerPoWs) {
+    auto protoDSWinnerPoW = dsblock->add_dswinnerpows();
+    SerializableToProtobufByteArray(kv.first,
+                                    *protoDSWinnerPoW->mutable_pubkey());
+    ProtoPoWSolution* proto_soln = protoDSWinnerPoW->mutable_powsoln();
+    const auto soln = kv.second;
+    proto_soln->set_nonce(soln.nonce);
+    proto_soln->set_result(soln.result.data(), soln.result.size());
+    proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
+  }
 
   if (!dsblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "DSDSBlockAnnouncement initialization failed. Debug: "
@@ -2297,7 +2309,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
     vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
     vector<vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
-    vector<unsigned char>& messageToCosign) {
+    MapOfPubKeyPoW& dsWinnerPoWs, vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -2336,6 +2348,28 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   ProtobufToTxSharingAssignments(dsblock.assignments(), dsReceivers,
                                  shardReceivers, shardSenders);
+
+  dsWinnerPoWs.clear();
+  for (const auto& protoDSWinnerPoW : dsblock.dswinnerpows()) {
+    PubKey key;
+    std::array<unsigned char, 32> result;
+    std::array<unsigned char, 32> mixhash;
+
+    ProtobufByteArrayToSerializable(protoDSWinnerPoW.pubkey(), key);
+
+    copy(protoDSWinnerPoW.powsoln().result().begin(),
+         protoDSWinnerPoW.powsoln().result().begin() +
+             min((unsigned int)protoDSWinnerPoW.powsoln().result().size(),
+                 (unsigned int)result.size()),
+         result.begin());
+    copy(protoDSWinnerPoW.powsoln().mixhash().begin(),
+         protoDSWinnerPoW.powsoln().mixhash().begin() +
+             min((unsigned int)protoDSWinnerPoW.powsoln().mixhash().size(),
+                 (unsigned int)mixhash.size()),
+         mixhash.begin());
+    dsWinnerPoWs.emplace(
+        key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash));
+  }
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus

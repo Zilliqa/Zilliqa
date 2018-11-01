@@ -99,6 +99,10 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexAllPoWCounter;
   std::map<PubKey, uint8_t> m_AllPoWCounter;
+
+  mutable std::mutex m_mutexAllPOW;
+  MapOfPubKeyPoW m_allPoWs;  // map<pubkey, PoW Soln>
+
   std::mutex m_mutexAllDSPOWs;
   MapOfPubKeyPoW m_allDSPoWs;  // map<pubkey, DS PoW Sol
 
@@ -212,6 +216,7 @@ class DirectoryService : public Executable, public Broadcastable {
   unsigned int ComputeDSBlockParameters(const VectorOfPoWSoln& sortedDSPoWSolns,
                                         VectorOfPoWSoln& sortedPoWSolns,
                                         std::map<PubKey, Peer>& powDSWinners,
+                                        MapOfPubKeyPoW& dsWinnerPoWs,
                                         uint8_t& dsDifficulty,
                                         uint8_t& difficulty, uint64_t& blockNum,
                                         BlockHash& prevHash);
@@ -220,6 +225,7 @@ class DirectoryService : public Executable, public Broadcastable {
                           unsigned int numOfProposedDSMembers);
 
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
+  bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
                          const MapOfPubKeyPoW& allPoWsFromTheLeader);
@@ -418,9 +424,6 @@ class DirectoryService : public Executable, public Broadcastable {
   /// committee.
   std::atomic<Mode> m_mode;
 
-  std::mutex m_mutexAllPOW;
-  MapOfPubKeyPoW m_allPoWs;  // map<pubkey, PoW Soln>
-
   // Sharding committee members
   std::mutex m_mutexShards;
   DequeOfShard m_shards;
@@ -549,6 +552,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // Sort the PoW submissions. Put to public static function, so it can be
   // covered by auto test.
   static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows);
+  int64_t GetAllPoWSize() const;
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

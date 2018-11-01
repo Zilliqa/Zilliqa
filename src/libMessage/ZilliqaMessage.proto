@@ -89,6 +89,12 @@ message ProtoTxSharingAssignments
     repeated AssignedNodes shardnodes = 2;
 }
 
+message ProtoDSWinnerPoW
+{
+     required ByteArray pubkey         = 1;
+     required ProtoPoWSolution powsoln = 2;
+}
+
 message ProtoTransactionCoreInfo
 {
     required ByteArray version      = 1;
@@ -295,7 +301,7 @@ message DSDSBlockAnnouncement
     required ProtoDSBlock dsblock                        = 1;
     required ProtoShardingStructureWithPoWSolns sharding = 2;
     required ProtoTxSharingAssignments assignments       = 3;
-    // TODO: Also send the PoW Solutions for the DS winners
+    repeated ProtoDSWinnerPoW dswinnerpows               = 4;
 }
 
 message DSFinalBlockAnnouncement
