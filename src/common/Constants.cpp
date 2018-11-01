@@ -199,6 +199,8 @@ const unsigned int NUM_CONSENSUS_SUBSETS{
     ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
 const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
+const unsigned int MAX_CODE_SIZE_IN_BYTES{
+    ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
 
 // options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};

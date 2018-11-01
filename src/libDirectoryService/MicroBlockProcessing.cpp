@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -171,14 +170,18 @@ bool DirectoryService::ProcessStateDelta(
     return false;
   }
 
-  if (AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0) != 0) {
-    LOG_GENERAL(WARNING,
-                "AccountStore::GetInstance().DeserializeDeltaTemp failed");
+  if (!AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0)) {
+    LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
     return false;
   }
 
   m_stateDeltaFromShards.clear();
-  AccountStore::GetInstance().SerializeDelta();
+
+  if (!AccountStore::GetInstance().SerializeDelta()) {
+    LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+    return false;
+  }
+
   AccountStore::GetInstance().GetSerializedDelta(m_stateDeltaFromShards);
 
   return true;
@@ -595,12 +598,15 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       return false;
     }
 
-    if (AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0) != 0) {
-      LOG_GENERAL(WARNING,
-                  "AccountStore::GetInstance().DeserializeDelta failed");
+    if (!AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0)) {
+      LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed");
       return false;
     }
-    AccountStore::GetInstance().SerializeDelta();
+
+    if (!AccountStore::GetInstance().SerializeDelta()) {
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
+      return false;
+    }
   } else {
     LOG_GENERAL(INFO,
                 "State Delta Hash is empty, skip processing final state delta");

@@ -905,7 +905,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return false;
   }
 
-  if (AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0) != 0) {
+  if (!AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0)) {
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
     return false;
   }

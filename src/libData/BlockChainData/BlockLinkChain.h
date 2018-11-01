@@ -17,13 +17,13 @@
  * program files.
  */
 
+#ifndef __BLOCKLINKCHAIN_H__
+#define __BLOCKLINKCHAIN_H__
+
 #include "libData/BlockData/Block.h"
 #include "libData/DataStructures/CircularArray.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
-
-#ifndef __BLOCKLINKCHAIN_H__
-#define __BLOCKLINKCHAIN_H__
 
 typedef std::tuple<uint64_t, uint64_t, BlockType, BlockHash> BlockLink;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;

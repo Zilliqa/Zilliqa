@@ -180,6 +180,7 @@ extern const unsigned int MAX_CONTRACT_DEPTH;
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
+extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
