@@ -1833,7 +1833,7 @@ bool Messenger::SetAccountStore(vector<unsigned char>& dst,
                         << addressToAccount.size());
 
   for (const auto& entry : addressToAccount) {
-    ProtoAccountStore::Account* protoEntry = result.add_entries();
+    ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
     AccountToProtobuf(entry.second, *protoEntryAccount);
@@ -1931,7 +1931,7 @@ bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
                         << accountStoreTemp.GetNumOfAccounts());
 
   for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
-    ProtoAccountStore::Account* protoEntry = result.add_entries();
+    ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
     AccountDeltaToProtobuf(accountStoreTemp.GetAccount(entry.first),
