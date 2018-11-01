@@ -155,6 +155,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Deletes the requested transaction body
   bool DeleteTxBody(const dev::h256& key);
 
+  bool DeleteVCBlock(const BlockHash& blockhash);
+
+  bool DeleteFallbackBlock(const BlockHash& blockhash);
+
   // /// Adds a transaction body to storage.
   // bool PutTxBody(const std::string & key, const std::vector<unsigned char> &
   // body);
@@ -171,7 +175,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieves all the TxBodiesTmp
   bool GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes);
 
-  ///Retrieve all the blocklink
+  /// Retrieve all the blocklink
   bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
 
   /// Save Last Transactions Trie Root Hash

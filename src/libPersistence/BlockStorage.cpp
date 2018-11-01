@@ -287,6 +287,16 @@ bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
   return (ret == 0);
 }
 
+bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
+  int ret = m_VCBlockDB->DeleteKey(blockhash);
+  return (ret == 0);
+}
+
+bool BlockStorage::DeleteFallbackBlock(const BlockHash& blockhash) {
+  int ret = m_fallbackBlockDB->DeleteKey(blockhash);
+  return (ret == 0);
+}
+
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
   int ret = m_txBlockchainDB->DeleteKey(blocknum);
@@ -410,7 +420,7 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes) {
 
 bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
   LOG_MARKER();
-   leveldb::Iterator* it =
+  leveldb::Iterator* it =
       m_blockLinkDB->GetDB()->NewIterator(leveldb::ReadOptions());
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string bns = it->key().ToString();
@@ -422,7 +432,7 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
     }
     BlockLink blcklink;
     if (!Messenger::GetBlockLink(
-            vector<unsigned char>(blockString.begin(), blockString.end()),0,
+            vector<unsigned char>(blockString.begin(), blockString.end()), 0,
             blcklink)) {
       LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
       return false;
@@ -430,12 +440,12 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
     blocklinks.emplace_back(blcklink);
     LOG_GENERAL(INFO, "Retrievd BlockLink Num:" << bns);
   }
-   delete it;
-   if (blocklinks.empty()) {
+  delete it;
+  if (blocklinks.empty()) {
     LOG_GENERAL(INFO, "Disk has no blocklink");
     return false;
   }
-   return true;
+  return true;
 }
 
 bool BlockStorage::PutMetadata(MetaType type,
