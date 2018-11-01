@@ -42,7 +42,7 @@ RRS::Message::Type convertType(uint8_t type) {
 RumorManager::RumorManager()
     : m_peerIdPeerBimap(),
       m_peerIdSet(),
-      m_rumorIdRumorBimap(),
+      m_rumorIdHashBimap(),
       m_selfPeer(),
       m_rumorIdGenerator(0),
       m_mutex(),
@@ -128,7 +128,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
 
   m_rumorIdGenerator = 0;
   m_peerIdPeerBimap.clear();
-  m_rumorIdRumorBimap.clear();
+  m_rumorIdHashBimap.clear();
   m_peerIdSet.clear();
   m_selfPeer = myself;
 
@@ -177,9 +177,9 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
     return true;
   }
 
-  auto it = m_rumorIdRumorBimap.right.find(message);
-  if (it == m_rumorIdRumorBimap.right.end()) {
-    m_rumorIdRumorBimap.insert(
+  auto it = m_rumorIdHashBimap.right.find(message);
+  if (it == m_rumorIdHashBimap.right.end()) {
+    m_rumorIdHashBimap.insert(
         RumorIdRumorBimap::value_type(++m_rumorIdGenerator, message));
 
     if (message.size() > 0) {
@@ -197,7 +197,7 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
 
     return m_rumorHolder->addRumor(m_rumorIdGenerator);
   } else {
-    LOG_GENERAL(INFO, "This Rumor was already received. No problem.");
+    LOG_GENERAL(DEBUG, "This Rumor was already received. No problem.");
   }
 
   return false;
@@ -297,8 +297,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   auto p = m_peerIdPeerBimap.right.find(from);
   if (p == m_peerIdPeerBimap.right.end()) {
     // I dont know this peer, missing in my peerlist.
-    LOG_GENERAL(INFO, "Received Rumor from peer : "
-                          << from << " which does not exist in my peerlist.");
+    LOG_GENERAL(DEBUG, "Received Rumor from peer : "
+                           << from << " which does not exist in my peerlist.");
     return false;
   }
 
@@ -310,38 +310,95 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     /* Don't add it to local RumorMap because it's not the rumor itself */
     LOG_GENERAL(DEBUG, "Received empty message of type: "
                            << RRS::Message::s_enumKeyToString[t]);
-  } else {
-    auto it = m_rumorIdRumorBimap.right.find(message);
-    if (it == m_rumorIdRumorBimap.right.end()) {
+  } else if (RRS::Message::Type::LAZY_PUSH == t ||
+             RRS::Message::Type::LAZY_PULL == t) {
+    auto it = m_rumorIdHashBimap.right.find(message);
+    if (it == m_rumorIdHashBimap.right.end()) {
       recvdRumorId = ++m_rumorIdGenerator;
 
-      m_rumorIdRumorBimap.insert(
+      m_rumorIdHashBimap.insert(
           RumorIdRumorBimap::value_type(recvdRumorId, message));
 
-      if (message.size() > 0)  // if someone malaciously sends empty message of
-                               // type PUSH/PULL),sha2 will assert fail
-      {
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-        sha256.Update(message);  // raw_message hash
-        LOG_PAYLOAD(INFO,
-                    "New Gossip message received from Peer: "
-                        << from << ". [ RumorId: " << recvdRumorId
-                        << ", Current Round: " << round
-                        << ", Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(sha256.Finalize())
-                               .substr(0, 6)
-                        << " ]",
-                    message, Logger::MAX_BYTES_TO_DISPLAY);
+      // Now that's the new hash message. So we dont have the real message.
+      // So lets ask the sender for it.
+      RRS::Message pullMsg(RRS::Message::Type::PULL, recvdRumorId, -1);
+      SendMessages(from, {pullMsg});
+    } else {
+      recvdRumorId = it->second;
+      LOG_GENERAL(DEBUG, "Old Gossip message received from "
+                             << from << ". [ RumorId: " << recvdRumorId
+                             << ", Current Round: " << round);
+      // check if we have received the real message for this old rumor.
+      auto it = m_rumorHashRawMsgBimap.left.find(message);
+      if (it == m_rumorHashRawMsgBimap.left.end()) {
+        // didn't receive real message (PUSH) yet :( Lets ask this peer.
+        RRS::Message pullMsg(RRS::Message::Type::PULL, recvdRumorId, -1);
+        SendMessages(from, {pullMsg});
+      }
+    }
+  } else if (RRS::Message::Type::PULL == t) {
+    // Now that sender wan't the real message, lets send it to him.
+    auto it = m_rumorHashRawMsgBimap.left.find(message);
+    if (it != m_rumorHashRawMsgBimap.left.end()) {
+      auto it = m_rumorIdHashBimap.right.find(message);
+      if (it == m_rumorIdHashBimap.right.end()) {
+        recvdRumorId = it->second;
+        RRS::Message pushMsg(RRS::Message::Type::PUSH, recvdRumorId, -1);
+        SendMessages(from, {pushMsg});
+      }
+    } else  // I dont have it as of now. Add this peer to subscriber list for
+            // this hash message.
+    {
+      auto it = m_hashesSubscriberMap.find(message);
+      if (it == m_hashesSubscriberMap.end()) {
+        m_hashesSubscriberMap.insert(
+            RumorHashesPeersMap::value_type(message, std::set<Peer>()));
+      }
+      m_hashesSubscriberMap[message].insert(from);
+    }
+    return false;
+  } else if (RRS::Message::Type::PUSH == t) {
+    // I got it from my peer for what i asked him
+    RawBytes hash;
+    if (message.size() >
+        0)  // if someone malaciously sends empty message, sha2 will assert fail
+    {
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+      sha256.Update(message);  // raw_message hash
+      hash = sha256.Finalize();
+      LOG_PAYLOAD(
+          INFO,
+          "New Gossip message received from Peer: "
+              << from << ". [ RumorId: " << recvdRumorId
+              << ", Current Round: " << round << ", Gossip_Message_Hash: "
+              << DataConversion::Uint8VecToHexStr(hash).substr(0, 6) << " ]",
+          message, Logger::MAX_BYTES_TO_DISPLAY);
+
+      auto it1 = m_rumorIdHashBimap.right.find(message);
+      if (it1 == m_rumorIdHashBimap.right.end()) {
+        recvdRumorId = it1->second;
       }
 
-      toBeDispatched = true;
-    } else  // already received , pass it on to member for state calculations
-    {
-      recvdRumorId = it->second;
-      LOG_GENERAL(INFO, "Old Gossip message received from "
-                            << from << ". [ RumorId: " << recvdRumorId
-                            << ", Current Round: " << round);
+      toBeDispatched =
+          m_rumorHashRawMsgBimap
+              .insert(RumorHashRumorBiMap::value_type(hash, message))
+              .second;
+
+      // Do i have any peers subscribed with me for this hash.
+      auto it2 = m_hashesSubscriberMap.find(message);
+      if (it2 != m_hashesSubscriberMap.end()) {
+        // Send PUSH
+        for (auto& p : it2->second) {
+          RRS::Message pushMsg(RRS::Message::Type::PUSH, recvdRumorId, -1);
+          SendMessages(p, {pushMsg});
+        }
+      }
+
+      return toBeDispatched;
     }
+  } else {
+    LOG_GENERAL(WARNING, "Unknown Message type received");
+    return false;
   }
 
   RRS::Message recvMsg(t, recvdRumorId, round);
@@ -349,7 +406,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   std::pair<int, std::vector<RRS::Message>> pullMsgs =
       m_rumorHolder->receivedMessage(recvMsg, p->second);
 
-  LOG_GENERAL(DEBUG, "Sending " << pullMsgs.second.size() << " PULL Messages");
+  LOG_GENERAL(DEBUG, "Sending " << pullMsgs.second.size()
+                                << " EMPTY_PULL or LAZY_PULL Messages");
 
   SendMessages(from, pullMsgs.second);
 
@@ -372,12 +430,12 @@ void RumorManager::SendMessages(const Peer& toPeer,
         cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
 
     // Get the raw messages based on rumor ids.
-    auto m = m_rumorIdRumorBimap.left.find(k.rumorId());
-    if (m != m_rumorIdRumorBimap.left.end()) {
+    auto m = m_rumorIdHashBimap.left.find(k.rumorId());
+    if (m != m_rumorIdHashBimap.left.end()) {
       // Add raw message to outgoing message
       cmd.insert(cmd.end(), m->second.begin(), m->second.end());
-      LOG_GENERAL(INFO, "Sending Non Empty - Gossip Message: "
-                            << k << " To Peer : " << toPeer);
+      LOG_GENERAL(DEBUG, "Sending Non Empty - Gossip Message: "
+                             << k << " To Peer : " << toPeer);
     }
 
     // Send the message to peer .
@@ -387,7 +445,7 @@ void RumorManager::SendMessages(const Peer& toPeer,
 
 // PUBLIC CONST METHODS
 const RumorManager::RumorIdRumorBimap& RumorManager::rumors() const {
-  return m_rumorIdRumorBimap;
+  return m_rumorIdHashBimap;
 }
 
 void RumorManager::PrintStatistics() {
@@ -396,8 +454,8 @@ void RumorManager::PrintStatistics() {
   // in network.
   for (const auto& i : m_rumorHolder->rumorsMap()) {
     uint32_t rumorId = i.first;
-    auto it = m_rumorIdRumorBimap.left.find(rumorId);
-    if (it != m_rumorIdRumorBimap.left.end()) {
+    auto it = m_rumorIdHashBimap.left.find(rumorId);
+    if (it != m_rumorIdHashBimap.left.end()) {
       SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
       sha256.Update(it->second);  // raw_message hash
       std::vector<unsigned char> this_msg_hash = sha256.Finalize();
