@@ -134,8 +134,8 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   return true;
 }
 
-bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowBlockNum,
-                                       const uint64_t hiBlockNum,
+bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
+                                       const uint64_t hiEpochNum,
                                        const uint32_t loShardId,
                                        const uint32_t hiShardId,
                                        list<MicroBlockSharedPtr>& blocks) {
@@ -154,8 +154,8 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowBlockNum,
     MicroBlockSharedPtr block = MicroBlockSharedPtr(new MicroBlock(
         std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
 
-    if (block->GetHeader().GetBlockNum() < lowBlockNum ||
-        block->GetHeader().GetBlockNum() > hiBlockNum ||
+    if (block->GetHeader().GetEpochNum() < lowEpochNum ||
+        block->GetHeader().GetEpochNum() > hiEpochNum ||
         block->GetHeader().GetShardId() < loShardId ||
         block->GetHeader().GetShardId() > hiShardId) {
       continue;

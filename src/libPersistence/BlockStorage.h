@@ -135,8 +135,8 @@ class BlockStorage : public Singleton<BlockStorage> {
                      MicroBlockSharedPtr& microblock);
 
   // /// Retrieves the range Micro blocks
-  bool GetRangeMicroBlocks(const uint64_t lowBlockNum,
-                           const uint64_t hiBlockNum, const uint32_t loShardId,
+  bool GetRangeMicroBlocks(const uint64_t lowEpochNum,
+                           const uint64_t hiEpochNum, const uint32_t loShardId,
                            const uint32_t hiShardId,
                            std::list<MicroBlockSharedPtr>& blocks);
 
