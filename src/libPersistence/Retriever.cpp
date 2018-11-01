@@ -267,8 +267,9 @@ void Retriever::RetrieveBlockLink(bool& result, const bool& wakeupForUpgrade) {
         result = false;
         return;
       }
-      m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(*vcblock,dsComm);
-      
+      m_mediator.m_node->UpdateRetrieveDSCommiteeCompositionAfterVC(*vcblock,
+                                                                    dsComm);
+
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
                BlockType::FB) {
       FallbackBlockSharedPtr fallbackwshardingstruct;

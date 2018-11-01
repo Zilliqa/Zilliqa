@@ -277,8 +277,8 @@ bool Validator::CheckDirBlocks(
         break;
       }
 
-      m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(vcblock,
-                                                            mutable_ds_comm);
+      m_mediator.m_node->UpdateRetrieveDSCommiteeCompositionAfterVC(
+          vcblock, mutable_ds_comm);
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,
                                                vcblock.GetBlockHash());
