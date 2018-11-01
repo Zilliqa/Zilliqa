@@ -239,19 +239,36 @@ void DirectoryService::SendDSBlockToShardNodes(
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
       // Choose N other Shard nodes to be recipient of DS block
       std::vector<Peer> shardDSBlockReceivers;
-
+      unsigned int numOfDSBlockReceivers =
+          NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+      if (numOfDSBlockReceivers <= NUM_DS_ELECTION) {
+        LOG_GENERAL(WARNING,
+                    "Adjusting NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD to be "
+                    "greater than NUM_DS_ELECTION. Why not correct the "
+                    "constant.xml next time.");
+        numOfDSBlockReceivers = NUM_DS_ELECTION + 1;
+      }
       LOG_GENERAL(
           INFO,
           "Sending message with hash: ["
               << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
               << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
-              << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD << " shard peers");
+              << numOfDSBlockReceivers << " shard peers");
 
-      unsigned int numOfDSBlockReceivers = std::min(
-          NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
+      numOfDSBlockReceivers =
+          std::min(numOfDSBlockReceivers, (uint32_t)p->size());
 
       for (unsigned int i = 0; i < numOfDSBlockReceivers; i++) {
         shardDSBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(p->at(i)));
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            " PubKey: "
+                << DataConversion::SerializableToHexStr(
+                       std::get<SHARD_NODE_PUBKEY>(p->at(i)))
+                << " IP: "
+                << std::get<SHARD_NODE_PEER>(p->at(i)).GetPrintableIPAddress()
+                << " Port: "
+                << std::get<SHARD_NODE_PEER>(p->at(i)).m_listenPortHost);
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,

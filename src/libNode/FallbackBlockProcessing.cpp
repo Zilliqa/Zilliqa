@@ -314,11 +314,18 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 void Node::SendFallbackBlockToOtherShardNodes(
     const vector<unsigned char>& fallbackblock_message) {
   LOG_MARKER();
+  unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+  if (cluster_size <= NUM_DS_ELECTION) {
+    LOG_GENERAL(
+        WARNING,
+        "Adjusting NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD to be greater than "
+        "NUM_DS_ELECTION. Why not correct the constant.xml next time.");
+    cluster_size = NUM_DS_ELECTION + 1;
+  }
   LOG_GENERAL(INFO,
               "Primary CLUSTER SIZE used is "
               "(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD):"
-                  << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
-  SendBlockToOtherShardNodes(fallbackblock_message,
-                             NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                  << cluster_size);
+  SendBlockToOtherShardNodes(fallbackblock_message, cluster_size,
                              NUM_OF_TREEBASED_CHILD_CLUSTERS);
 }
