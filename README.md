@@ -19,7 +19,7 @@ Zilliqa is a new blockchain platform capable of processing thousands of transact
   
 ## _D24_ Testnet with [Scilla](https://scilla-lang.org/) support
 
-* [Interpreter IDE](https://ide.zilliqa.com/)  
+* [Interpreter IDE](https://savant-ide.zilliqa.com/)  
 * [Block Explorer](https://explorer-scilla.zilliqa.com)  
 * [Wallet](https://wallet-scilla.zilliqa.com/)  
 
