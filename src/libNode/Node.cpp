@@ -268,7 +268,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   /// Retrieve DS blocks
   bool ds_result;
-  m_retriever->RetrieveDirectoryBlocks(ds_result, wakeupForUpgrade);
+  m_retriever->RetrieveBlockLink(ds_result, wakeupForUpgrade);
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();

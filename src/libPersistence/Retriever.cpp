@@ -267,11 +267,8 @@ void Retriever::RetrieveBlockLink(bool& result, const bool& wakeupForUpgrade) {
         result = false;
         return;
       }
-      unsigned int newCandidateLeader =
-          vcblock->GetHeader().GetViewChangeCounter();
-      for (unsigned int i = 0; i < newCandidateLeader; i++) {
-        m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(dsComm);
-      }
+      m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(*vcblock,dsComm);
+      
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
                BlockType::FB) {
       FallbackBlockSharedPtr fallbackwshardingstruct;
