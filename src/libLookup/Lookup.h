@@ -124,11 +124,6 @@ class Lookup : public Executable, public Broadcastable {
 
   std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
-  // Append time stamp to the message to avoid discarding due to same message
-  // hash
-  void AppendTimestamp(std::vector<unsigned char>& message,
-                       unsigned int& offset);
-
  public:
   /// Constructor.
   Lookup(Mediator& mediator);
