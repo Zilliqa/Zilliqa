@@ -813,21 +813,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer requestingNode(ipAddr, portNo);
-
-  // TODO: Revamp the sendmessage and sendbroadcastmessage
-  // Currently, we use sendbroadcastmessage instead of sendmessage. The reason
-  // is a new node who want to join will received similar response from mulitple
-  // lookup node. It will process them in full. Currently, we want the
-  // duplicated message to be drop so to ensure it do not do redundant
-  // processing. In the long term, we need to track all the incoming messages
-  // from lookup or seed node more grandularly,. and ensure 2/3 of such
-  // identical message is received in order to move on.
-
-  // vector<Peer> node;
-  // node.emplace_back(requestingNode);
-
+  Peer requestingNode(from.m_ipAddress, portNo);
   vector<unsigned char> setStateMessage = {
       MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
 
@@ -1009,9 +995,7 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer requestingNode(ipAddr, portNo);
-  LOG_GENERAL(INFO, requestingNode);
+  Peer requestingNode(from.m_ipAddress, portNo);
   P2PComm::GetInstance().SendMessage(requestingNode, txBodyMessage);
 
   // #endif // IS_LOOKUP_NODE
@@ -1112,8 +1096,7 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
       Serializable::GetNumber<uint32_t>(message, offset, sizeof(uint32_t));
   offset += sizeof(uint32_t);
 
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer requestingNode(ipAddr, portNo);
+  Peer requestingNode(from.m_ipAddress, portNo);
 
   vector<unsigned char> networkIdMessage = {
       MessageType::LOOKUP, LookupInstructionType::SETNETWORKIDFROMSEED};
