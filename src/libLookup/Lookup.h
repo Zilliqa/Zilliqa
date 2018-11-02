@@ -114,8 +114,6 @@ class Lookup : public Executable, public Broadcastable {
 
   std::unordered_map<uint64_t, std::vector<MicroBlock>> m_microBlocksBuffer;
 
-  void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
-                        uint64_t& highBlockNum);
   std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
                                                       uint64_t highBlockNum);
   std::vector<unsigned char> ComposeGetTxBlockMessage(uint64_t lowBlockNum,
@@ -126,6 +124,11 @@ class Lookup : public Executable, public Broadcastable {
   std::vector<unsigned char> ComposeGetLookupOnlineMessage();
 
   std::vector<unsigned char> ComposeGetOfflineLookupNodes();
+
+  void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
+                        uint64_t& highBlockNum);
+  void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
+                        uint64_t& highBlockNum);
 
  public:
   /// Constructor.
