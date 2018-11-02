@@ -397,7 +397,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       return toBeDispatched;
     }
   } else {
-    LOG_GENERAL(WARNING, "Unknown Message type received");
+    LOG_GENERAL(WARNING, "Unknown message type received");
     return false;
   }
 
@@ -414,32 +414,55 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   return toBeDispatched;
 }
 
+void RumorManager::SendMessage(const Peer& toPeer,
+                               const RRS::Message& message) {
+  // Add round and type to outgoing message
+  RRS::Message::Type t = message.type();
+  RawBytes cmd = {(unsigned char)t};
+  unsigned int cur_offset = RRSMessageOffset::R_ROUNDS;
+
+  Serializable::SetNumber<uint32_t>(cmd, cur_offset, message.rounds(),
+                                    sizeof(uint32_t));
+
+  cur_offset += sizeof(uint32_t);
+
+  Serializable::SetNumber<uint32_t>(
+      cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+
+  // Get the raw messages based on rumor ids.
+  auto it1 = m_rumorIdHashBimap.left.find(message.rumorId());
+  if (it1 != m_rumorIdHashBimap.left.end()) {
+    if (t == RRS::Message::Type::PUSH) {
+      auto it2 = m_rumorHashRawMsgBimap.left.find(it1->second);
+      if (it2 != m_rumorHashRawMsgBimap.left.end()) {
+        // Add raw message to outgoing message
+        cmd.insert(cmd.end(), it2->second.begin(), it2->second.end());
+        LOG_GENERAL(INFO, "Sending Non Empty - Gossip Message: "
+                              << message << " To Peer : " << toPeer);
+      } else {
+        // Nothing to send.
+        return;
+      }
+    } else if (t == RRS::Message::Type::LAZY_PUSH ||
+               t == RRS::Message::Type::LAZY_PULL ||
+               t == RRS::Message::Type::PULL) {
+      // Add hash message to outgoing message for types LAZY_PULL/LAZY_PUSH/PULL
+      cmd.insert(cmd.end(), it1->second.begin(), it1->second.end());
+      LOG_GENERAL(DEBUG, "Sending Non Empty - Gossip Message: "
+                             << message << " To Peer : " << toPeer);
+    } else {
+      return;
+    }
+  }
+
+  // Send the message to peer .
+  P2PComm::GetInstance().SendMessage(toPeer, cmd, START_BYTE_GOSSIP);
+}
+
 void RumorManager::SendMessages(const Peer& toPeer,
                                 const std::vector<RRS::Message>& messages) {
   for (auto& k : messages) {
-    // Add round and type to outgoing message
-    RawBytes cmd = {(unsigned char)k.type()};
-    unsigned int cur_offset = RRSMessageOffset::R_ROUNDS;
-
-    Serializable::SetNumber<uint32_t>(cmd, cur_offset, k.rounds(),
-                                      sizeof(uint32_t));
-
-    cur_offset += sizeof(uint32_t);
-
-    Serializable::SetNumber<uint32_t>(
-        cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
-
-    // Get the raw messages based on rumor ids.
-    auto m = m_rumorIdHashBimap.left.find(k.rumorId());
-    if (m != m_rumorIdHashBimap.left.end()) {
-      // Add raw message to outgoing message
-      cmd.insert(cmd.end(), m->second.begin(), m->second.end());
-      LOG_GENERAL(DEBUG, "Sending Non Empty - Gossip Message: "
-                             << k << " To Peer : " << toPeer);
-    }
-
-    // Send the message to peer .
-    P2PComm::GetInstance().SendMessage(toPeer, cmd, START_BYTE_GOSSIP);
+    SendMessage(toPeer, k);
   }
 }
 
