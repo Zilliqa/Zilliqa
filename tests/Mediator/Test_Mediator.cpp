@@ -33,7 +33,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BOOST_AUTO_TEST_SUITE(messenger_primitives_test)
+BOOST_AUTO_TEST_SUITE(mediator_test)
 
 Mediator* m;
 KeyPair kp;
@@ -78,16 +78,66 @@ BOOST_AUTO_TEST_CASE(UpdateTxBlockRand) {
   m->UpdateDSBlockRand(true);
 }
 
-/*TODO: Decision to let it as testcase
- *Possible testing of the member m_dsBlockRand
- */
-BOOST_AUTO_TEST_CASE(GetNodeMode) {
-  std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>
-  m->m_DSCommittee =
-  m->GetNodeMode(p);
-
+void replacePeerDSCommittee(TestUtils::DS_Comitte_t& dsCommittee, Peer& p){
+  size_t dsc_size = dsCommittee.size();
+  size_t peer_i = TestUtils::RandomIntInRng<size_t>(0, dsc_size - 1);
+  dsCommittee[peer_i].second = p;
 }
 
+BOOST_AUTO_TEST_CASE(GetNodeMode) {
+  uint32_t size = TestUtils::RandomIntInRng<uint32_t>(2,100);
+  for (uint32_t i = 1; i <= size; i++){
+    m->m_DSCommittee->push_front(std::make_pair(TestUtils::GenerateRandomPubKey(), TestUtils::GenerateRandomPeer(0,true)));
+  }
+
+  Peer p_unknown = TestUtils::GenerateRandomPeer(0,false);
+
+  string EXPECTED_MODE = "SHRD";
+  string mode = m->GetNodeMode(p_unknown);
+  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
+
+  EXPECTED_MODE = "DSBU";
+  size_t dsc_size = m->m_DSCommittee->size();
+  size_t pair_i = TestUtils::RandomIntInRng<size_t>(1, dsc_size - 1);
+  (*m->m_DSCommittee)[pair_i].second = p_unknown;
+  mode = m->GetNodeMode(p_unknown);
+  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
+
+  EXPECTED_MODE = "DSLD";
+  (*m->m_DSCommittee)[0].second = p_unknown;
+  mode = m->GetNodeMode(p_unknown);
+  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
+}
+
+BOOST_AUTO_TEST_CASE(GetShardSize) {
+  Directory
+
+
+
+
+  uint32_t size = TestUtils::RandomIntInRng<uint32_t>(2,100);
+  for (uint32_t i = 1; i <= size; i++){
+    m->m_DSCommittee->push_front(std::make_pair(TestUtils::GenerateRandomPubKey(), TestUtils::GenerateRandomPeer(0,true)));
+  }
+
+  Peer p_unknown = TestUtils::GenerateRandomPeer(0,false);
+
+  string EXPECTED_MODE = "SHRD";
+  string mode = m->GetNodeMode(p_unknown);
+  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
+
+  EXPECTED_MODE = "DSBU";
+  size_t dsc_size = m->m_DSCommittee->size();
+  size_t pair_i = TestUtils::RandomIntInRng<size_t>(1, dsc_size - 1);
+  (*m->m_DSCommittee)[pair_i].second = p_unknown;
+  mode = m->GetNodeMode(p_unknown);
+  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
+
+  EXPECTED_MODE = "DSLD";
+  (*m->m_DSCommittee)[0].second = p_unknown;
+  mode = m->GetNodeMode(p_unknown);
+  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
+}
 
 
 

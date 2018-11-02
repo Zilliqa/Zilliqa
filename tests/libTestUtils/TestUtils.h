@@ -22,6 +22,7 @@
 
 #include <limits>
 #include <random>
+#include <tuple>
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"
 #include "libData/BlockData/BlockHeader/MicroBlockHeader.h"
@@ -44,11 +45,14 @@ T RandomIntInRng(T n, T m) {
 uint8_t Dist1to99();
 uint16_t DistUint16();
 uint32_t DistUint32();
+uint32_t DistUint64();
+uint32_t DistUint128();
 
 PubKey GenerateRandomPubKey();
 PubKey GenerateRandomPubKey(PrivKey);
 KeyPair GenerateRandomKeyPair();
 Peer GenerateRandomPeer();
+Peer GenerateRandomPeer(uint8_t, bool);
 DSBlockHeader GenerateRandomDSBlockHeader();
 MicroBlockHeader GenerateRandomMicroBlockHeader();
 TxBlockHeader GenerateRandomTxBlockHeader();
