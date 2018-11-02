@@ -866,7 +866,42 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
+  vector<TxBlock> txBlocks;
+  RetrieveTxBlocks(txBlocks, lowBlockNum, highBlockNum);
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ProcessGetTxBlockFromSeed requested by " << from << " for blocks "
+                                                      << lowBlockNum << " to "
+                                                      << highBlockNum);
+  vector<unsigned char> txBlockMessage = {
+      MessageType::LOOKUP, LookupInstructionType::SETTXBLOCKFROMSEED};
+  if (!Messenger::SetLookupSetTxBlockFromSeed(
+          txBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
+          m_mediator.m_selfKey, txBlocks)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetLookupSetTxBlockFromSeed failed.");
+    return false;
+  }
+
+  Peer requestingNode(from.m_ipAddress, portNo);
+  P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
+
+  // #endif // IS_LOOKUP_NODE
+
+  return true;
+}
+
+// TODO: Refactor the code to remove the following assumption
+// lowBlockNum = 1 => Latest block number
+// lowBlockNum = 0 => lowBlockNum set to 1
+// highBlockNum = 0 => Latest block number
+void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
+                              uint64_t& highBlockNum) {
+  lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
+
   if (lowBlockNum == 1) {
+    // To get block num from dsblockchain instead of txblock chain as node
+    // recover from the last ds epoch
     lowBlockNum =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
   } else if (lowBlockNum == 0) {
@@ -879,27 +914,16 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "ProcessGetTxBlockFromSeed requested by " << from << " for blocks "
-                                                      << lowBlockNum << " to "
-                                                      << highBlockNum);
-
-  vector<TxBlock> txBlocks;
   uint64_t blockNum;
-
-  {
-    lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
-
-    for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
-      try {
-        txBlocks.emplace_back(m_mediator.m_txBlockChain.GetBlock(blockNum));
-      } catch (const char* e) {
-        LOG_GENERAL(INFO, "Block Number " << blockNum
-                                          << " absent. Didn't include it in "
-                                             "response message. Reason: "
-                                          << e);
-        break;
-      }
+  for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
+    try {
+      txBlocks.emplace_back(m_mediator.m_txBlockChain.GetBlock(blockNum));
+    } catch (const char* e) {
+      LOG_GENERAL(INFO, "Block Number " << blockNum
+                                        << " absent. Didn't include it in "
+                                           "response message. Reason: "
+                                        << e);
+      break;
     }
   }
 
@@ -908,26 +932,6 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
   if (blockNum != highBlockNum + 1) {
     highBlockNum = blockNum - 1;
   }
-
-  vector<unsigned char> txBlockMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETTXBLOCKFROMSEED};
-
-  if (!Messenger::SetLookupSetTxBlockFromSeed(
-          txBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
-          m_mediator.m_selfKey, txBlocks)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetLookupSetTxBlockFromSeed failed.");
-    return false;
-  }
-
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer requestingNode(ipAddr, portNo);
-  LOG_GENERAL(INFO, requestingNode);
-  P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
-
-  // #endif // IS_LOOKUP_NODE
-
-  return true;
 }
 
 bool Lookup::ProcessGetStateDeltaFromSeed(const vector<unsigned char>& message,
