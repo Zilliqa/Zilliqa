@@ -68,6 +68,8 @@ class RumorManager {
   void SendMessages(const Peer& toPeer,
                     const std::vector<RRS::Message>& messages);
 
+  void SendMessage(const Peer& toPeer, const RRS::Message& message);
+
   RawBytes GenerateGossipForwardMessage(const RawBytes& message);
 
  public:
