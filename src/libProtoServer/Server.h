@@ -30,6 +30,7 @@ class Mediator;
 
 class ProtoServer final : public ZilliqaMessage::Server::Service {
   Mediator& m_mediator;
+  const unsigned int m_serverPort;
   std::pair<uint64_t, boost::multiprecision::uint256_t> m_BlockTxPair;
   std::pair<uint64_t, boost::multiprecision::uint256_t> m_TxBlockCountSumPair;
   boost::multiprecision::uint256_t m_StartTimeTx;
@@ -44,7 +45,7 @@ class ProtoServer final : public ZilliqaMessage::Server::Service {
   void AddToRecentTransactions(const dev::h256& txhash);
 
  public:
-  explicit ProtoServer(Mediator& mediator);
+  explicit ProtoServer(Mediator& mediator, const unsigned int serverPort);
 
   void StartServer();
   void StopServer();

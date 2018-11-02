@@ -64,7 +64,7 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
 
-ProtoServer::ProtoServer(Mediator& mediator) : m_mediator(mediator) {
+ProtoServer::ProtoServer(Mediator& mediator, const unsigned int serverPort) : m_mediator(mediator), m_serverPort(serverPort) {
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -77,7 +77,7 @@ ProtoServer::ProtoServer(Mediator& mediator) : m_mediator(mediator) {
 }
 
 void ProtoServer::StartServer() {
-  std::string server_address("0.0.0.0:4202");
+  string server_address("0.0.0.0:" + m_serverPort);
 
   ServerBuilder builder;
   builder.AddListeningPort(server_address, InsecureServerCredentials());
