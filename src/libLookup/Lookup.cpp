@@ -18,14 +18,14 @@
  */
 
 #include <arpa/inet.h>
+#include <cstring>
 #include <errno.h>
+#include <exception>
+#include <fstream>
 #include <netinet/in.h>
 #include <stdint.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <cstring>
-#include <exception>
-#include <fstream>
 #include <random>
 
 #include <boost/property_tree/ptree.hpp>
