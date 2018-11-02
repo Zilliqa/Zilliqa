@@ -157,7 +157,7 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
       BlockStorage::GetBlockStorage().GetStateDelta(
           block->GetHeader().GetBlockNum(), stateDelta);
 
-      if (AccountStore::GetInstance().DeserializeDelta(stateDelta, 0) != 0) {
+      if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
         LOG_GENERAL(WARNING,
                     "AccountStore::GetInstance().DeserializeDelta failed");
         result = false;
