@@ -16,7 +16,7 @@ Zilliqa is a new blockchain platform capable of processing thousands of transact
 
 * [Block Explorer](https://explorer.zilliqa.com/home)
 * [Wallet](https://wallet.zilliqa.com/)  
-  
+
 ## _D24_ Testnet with [Scilla](https://scilla-lang.org/) support
 
 * [Interpreter IDE](https://savant-ide.zilliqa.com/)  
@@ -31,10 +31,10 @@ The current release has the following features implemented:
 * Network sharding
 * Transaction sharding
 * Directory Service
-* Consensus for DS block (with sharding structure), Shard microblock, DS microblock, and Final block 
+* Consensus for DS block (with sharding structure), Shard microblock, DS microblock, and Final block
 * [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
-* Data layer and accounts store 
-* Looking up nodes to allow new nodes to join 
+* Data layer and accounts store
+* Looking up nodes to allow new nodes to join
 * Persistent storage for transactions
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification
@@ -79,7 +79,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 
     ```bash
     brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf \
-        libtool autoconf
+        libtool autoconf go boost
     ```
 
 ## Running Zilliqa locally
@@ -101,9 +101,9 @@ To run Zilliqa, we recommend the following minimum system requirements:
 4. To terminate Zilliqa,   
     ```
     pkill zilliqa
-    ``` 
+    ```
 
-## Joining public testnet 
+## Joining public testnet
 
 If you are interested in running a node on the Zilliqa testnet, please register [here](https://docs.google.com/forms/d/e/1FAIpQLSesn-MxThl4ocKCrjUYSPGc463E7-1I1O1v_GGccYbqfFr7zg/viewform).
 
@@ -117,4 +117,3 @@ If you are interested in running a node on the Zilliqa testnet, please register 
 ## Licence
 
 You can view our [licence here](https://github.com/Zilliqa/zilliqa/blob/master/LICENSE).
-
