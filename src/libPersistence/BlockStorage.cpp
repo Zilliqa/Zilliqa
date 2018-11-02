@@ -473,7 +473,14 @@ bool BlockStorage::GetDSCommittee(
   LOG_MARKER();
 
   unsigned int index = 0;
-  consensusLeaderID = stoul(m_dsCommitteeDB->Lookup(index++));
+  string strConsensusLeaderID = m_dsCommitteeDB->Lookup(index++);
+
+  if (strConsensusLeaderID.empty()) {
+    LOG_GENERAL(WARNING, "Cannot retrieve DS committee!");
+    return false;
+  }
+
+  consensusLeaderID = stoul(strConsensusLeaderID);
   LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
   string dataStr;
 
@@ -537,7 +544,14 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards,
   LOG_MARKER();
 
   unsigned int index = 0;
-  myshardId = stoul(m_shardStructureDB->Lookup(index++));
+  string strMyshardId = m_shardStructureDB->Lookup(index++);
+
+  if (strMyshardId.empty()) {
+    LOG_GENERAL(WARNING, "Cannot retrieve sharding structure!");
+    return false;
+  }
+
+  myshardId = stoul(strMyshardId);
   LOG_GENERAL(INFO, "Retrieved shard ID: " << myshardId);
   string dataStr = m_shardStructureDB->Lookup(index++);
   Messenger::ArrayToShardStructure(
