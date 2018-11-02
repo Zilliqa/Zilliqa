@@ -18,6 +18,7 @@
  */
 
 #include "UpgradeManager.h"
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
@@ -26,8 +27,10 @@
 using namespace std;
 
 #define USER_AGENT "Zilliqa"
+#define DOWNLOAD_FOLDER "download"
 #define VERSION_FILE_NAME "VERSION"
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
+#define CONSTANT_FILE_NAME "constants.xml"
 #define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
 #define UPGRADE_HOST                                                      \
@@ -48,7 +51,6 @@ struct PTree {
   static boost::property_tree::ptree& GetInstance() {
     static boost::property_tree::ptree pt;
     read_xml(dsNodeFile.c_str(), pt);
-
     return pt;
   }
   PTree() = delete;
@@ -80,6 +82,8 @@ UpgradeManager::UpgradeManager() {
     LOG_GENERAL(WARNING, "curl initialization fail!");
     curl_global_cleanup();
   }
+
+  boost::filesystem::create_directories(DOWNLOAD_FOLDER);
 }
 
 UpgradeManager::~UpgradeManager() {
@@ -157,14 +161,15 @@ string UpgradeManager::DownloadFile(const char* fileTail,
   string downloadFilePath;
 
   for (auto s : downloadFilePaths) {
-    LOG_GENERAL(INFO, "downloadFilePath: " << s);
     if (string::npos != s.rfind(fileTail)) {
       downloadFilePath = s;
       break;
     }
   }
 
-  string fileName = downloadFilePath.substr(downloadFilePath.rfind('/') + 1);
+  LOG_GENERAL(INFO, "downloadFilePath: " << downloadFilePath);
+  string fileName = string(DOWNLOAD_FOLDER) + "/" +
+                    downloadFilePath.substr(downloadFilePath.rfind('/') + 1);
 
   /// Get the redirection url (if applicable)
   curl_easy_reset(m_curl);
@@ -239,7 +244,7 @@ bool UpgradeManager::HasNewSW() {
 
   vector<PubKey> pubKeys;
   {
-    fstream pubKeyFile(PUBLIC_KEY_FILE_NAME, ios::in);
+    fstream pubKeyFile(pubKeyFileName, ios::in);
     string pubKey;
 
     while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
@@ -251,7 +256,7 @@ bool UpgradeManager::HasNewSW() {
 
   string shaStr, sigStr;
   {
-    fstream versionFile(VERSION_FILE_NAME, ios::in);
+    fstream versionFile(versionName, ios::in);
     int line_no = 0;
 
     /// Read SHA-256 hash
@@ -299,6 +304,15 @@ bool UpgradeManager::DownloadSW() {
 
   LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
 
+  m_constantFileName = DownloadFile(CONSTANT_FILE_NAME);
+
+  if (m_constantFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download constant file!");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Constant file has been downloaded successfully.");
+
   m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
 
   if (m_packageFileName.empty()) {
@@ -313,7 +327,7 @@ bool UpgradeManager::DownloadSW() {
   string sha;
 
   try {
-    fstream versionFile(VERSION_FILE_NAME, ios::in);
+    fstream versionFile(versionName, ios::in);
     int line_no = 0;
     string line;
 
@@ -431,6 +445,10 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
                                               {'1'});
 
   /// Deploy downloaded software
+  boost::filesystem::copy_file(
+      m_constantFileName, CONSTANT_FILE_NAME,
+      boost::filesystem::copy_option::overwrite_if_exists);
+
   /// TBD: The call of "dpkg" should be removed.
   /// (https://github.com/Zilliqa/Issues/issues/185)
   if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr) <
@@ -448,8 +466,10 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
   string downloadUrl = "";
   try {
     if (GET_INITIAL_DS_FROM_REPO) {
-      DownloadFile("xml", downloadUrl.c_str());
-
+      string dsnodeFile = DownloadFile(dsNodeFile.data(), downloadUrl.c_str());
+      boost::filesystem::copy_file(
+          dsnodeFile, dsNodeFile,
+          boost::filesystem::copy_option::overwrite_if_exists);
       auto pt = PTree::GetInstance();
 
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
