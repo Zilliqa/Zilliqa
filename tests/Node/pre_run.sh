@@ -38,5 +38,5 @@ python tests/Zilliqa/test_zilliqa_local.py prestart 10
 # clean up persistence storage
 rm -rf lookup_local_run/node*
 
-python tests/Zilliqa/test_zilliqa_lookup.py setup 5
+python tests/Zilliqa/test_zilliqa_lookup.py setup 1
 

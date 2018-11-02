@@ -695,7 +695,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   // Check block number
-  if (!CheckWhetherDSBlockNumIsLatest(dsBlockNumber + 1)) {
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
+    LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
     return false;
   }
 
@@ -741,6 +743,23 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   if (!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum())) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MicroBlock Root Hash verification failed");
+    return false;
+  }
+
+  // Compute the MBInfoHash of the extra MicroBlock information
+  MBInfoHash mbInfoHash;
+  if (!Messenger::GetExtraMbInfoHash(txBlock.GetIsMicroBlockEmpty(),
+                                     txBlock.GetShardIds(), mbInfoHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetExtraMbInfoHash failed.");
+    return false;
+  }
+
+  if (mbInfoHash != txBlock.GetHeader().GetMbInfoHash()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MbInfo verification failed");
     return false;
   }
 
@@ -753,6 +772,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   ProcessStateDeltaFromFinalBlock(stateDelta,
                                   txBlock.GetHeader().GetStateDeltaHash());
+
+  BlockStorage::GetBlockStorage().PutStateDelta(
+      txBlock.GetHeader().GetBlockNum(), stateDelta);
 
   if (!LOOKUP_NODE_MODE &&
       (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
@@ -777,11 +799,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     StoreState();
     StoreFinalBlock(txBlock);
-
-    if (!LOOKUP_NODE_MODE) {
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
-    }
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   }
 
   m_mediator.HeartBeatPulse();
@@ -887,7 +905,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return false;
   }
 
-  if (AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0) != 0) {
+  if (!AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0)) {
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
     return false;
   }

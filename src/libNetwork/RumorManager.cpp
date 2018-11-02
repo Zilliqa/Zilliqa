@@ -43,6 +43,7 @@ RumorManager::RumorManager()
     : m_peerIdPeerBimap(),
       m_peerIdSet(),
       m_rumorIdHashBimap(),
+      m_tmpRumorHashSet(),
       m_selfPeer(),
       m_rumorIdGenerator(0),
       m_mutex(),
@@ -131,6 +132,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   m_rumorIdHashBimap.clear();
   m_peerIdSet.clear();
   m_selfPeer = myself;
+  m_tmpRumorHashSet.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {
@@ -282,17 +284,34 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       {
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
         sha256.Update(message);  // raw_message hash
-        LOG_GENERAL(WARNING,
-                    "Round is not running. Will accept the msg received from "
-                        << from
-                        << ", but will not "
-                           "gossip it further. [Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(sha256.Finalize())
-                               .substr(0, 6)
-                        << " ]");
+        std::string hash = DataConversion::Uint8VecToHexStr(sha256.Finalize());
+        {
+          std::lock_guard<std::mutex> guard(m_mutex);
+          // Is it old rumor message. If so then we have already dispatched it.
+          // Don't do it again.
+          auto it = m_rumorIdHashBimap.right.find(message);
+          if (it == m_rumorIdHashBimap.right.end()) {
+            // Now that round is not running , And i may receive same message
+            // multiple times from my other peers. So avoid sending it to
+            // dispatcher multiple times.
+            if (m_tmpRumorHashSet.insert(hash).second) {
+              LOG_GENERAL(
+                  WARNING,
+                  "Round is not running. Will accept the msg received from "
+                      << from
+                      << ", but will not "
+                         "gossip it further. [Gossip_Message_Hash: "
+                      << hash.substr(0, 6) << " ]");
+              return true;
+            } else {
+              LOG_GENERAL(WARNING,
+                          "Ignoring duplicate mesage.[Gossip_Message_Hash: "
+                              << hash.substr(0, 6));
+            }
+          }
+        }
       }
-
-      return true;
+      return false;
     }
   }
 

@@ -67,9 +67,7 @@ bool VCBlock::operator==(const VCBlock& block) const {
 }
 
 bool VCBlock::operator<(const VCBlock& block) const {
-  return m_header < block.m_header;
+  return block.m_header > m_header;
 }
 
-bool VCBlock::operator>(const VCBlock& block) const {
-  return !((*this == block) || (*this < block));
-}
+bool VCBlock::operator>(const VCBlock& block) const { return block < *this; }

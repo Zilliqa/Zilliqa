@@ -32,8 +32,8 @@ class Retriever {
  public:
   Retriever(Mediator& mediator);
 
-  void RetrieveDSBlocks(bool& result);
-  void RetrieveTxBlocks(bool& result);
+  void RetrieveDSBlocks(bool& result, const bool& wakeupForUpgrade);
+  void RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade);
   bool RetrieveStates();
   bool ValidateStates();
   bool CleanExtraTxBodies();
@@ -41,8 +41,6 @@ class Retriever {
 
  private:
   Mediator& m_mediator;
-
-  bool hasIncompletedDS = false;
 };
 
 #endif  // __RETRIEVER_H__

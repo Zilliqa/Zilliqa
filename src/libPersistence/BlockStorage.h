@@ -52,19 +52,23 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_VCBlockDB;
   std::shared_ptr<LevelDB> m_fallbackBlockDB;
   std::shared_ptr<LevelDB> m_blockLinkDB;
+  std::shared_ptr<LevelDB> m_shardStructureDB;
+  std::shared_ptr<LevelDB> m_stateDeltaDB;
 
   BlockStorage()
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
+        m_microBlockDB(std::make_shared<LevelDB>("microBlocks")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
         m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks")),
-        m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")) {
+        m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
+        m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
+        m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
-      m_microBlockDB = std::make_shared<LevelDB>("microBlocks");
     }
   };
   ~BlockStorage() = default;
@@ -83,7 +87,9 @@ class BlockStorage : public Singleton<BlockStorage> {
     DS_COMMITTEE,
     VC_BLOCK,
     FB_BLOCK,
-    BLOCKLINK
+    BLOCKLINK,
+    SHARD_STRUCTURE,
+    STATE_DELTA
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -127,6 +133,12 @@ class BlockStorage : public Singleton<BlockStorage> {
   // /// Retrieves the requested Micro block
   bool GetMicroBlock(const BlockHash& blockHash,
                      MicroBlockSharedPtr& microblock);
+
+  // /// Retrieves the range Micro blocks
+  bool GetRangeMicroBlocks(const uint64_t lowEpochNum,
+                           const uint64_t hiEpochNum, const uint32_t loShardId,
+                           const uint32_t hiShardId,
+                           std::list<MicroBlockSharedPtr>& blocks);
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
@@ -174,6 +186,21 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetDSCommittee(
       std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& dsCommittee,
       uint16_t& consensusLeaderID);
+
+  /// Save shard structure
+  bool PutShardStructure(const DequeOfShard& shards, const uint32_t myshardId);
+
+  /// Retrieve shard structure
+  bool GetShardStructure(DequeOfShard& shards,
+                         std::atomic<uint32_t>& myshardId);
+
+  /// Save state delta
+  bool PutStateDelta(const uint64_t& finalBlockNum,
+                     const std::vector<unsigned char>& stateDelta);
+
+  /// Retrieve state delta
+  bool GetStateDelta(const uint64_t& finalBlockNum,
+                     std::vector<unsigned char>& stateDelta);
 
   /// Clean a DB
   bool ResetDB(DBTYPE type);

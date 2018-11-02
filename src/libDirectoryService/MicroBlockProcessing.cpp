@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -171,14 +170,18 @@ bool DirectoryService::ProcessStateDelta(
     return false;
   }
 
-  if (AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0) != 0) {
-    LOG_GENERAL(WARNING,
-                "AccountStore::GetInstance().DeserializeDeltaTemp failed");
+  if (!AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0)) {
+    LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
     return false;
   }
 
   m_stateDeltaFromShards.clear();
-  AccountStore::GetInstance().SerializeDelta();
+
+  if (!AccountStore::GetInstance().SerializeDelta()) {
+    LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+    return false;
+  }
+
   AccountStore::GetInstance().GetSerializedDelta(m_stateDeltaFromShards);
 
   return true;
@@ -195,6 +198,15 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   const MicroBlock& microBlock = microBlocks.at(0);
+
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          microBlock.GetHeader().GetDSBlockNum() + 1,
+          microBlock.GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING,
+                "ProcessMicroblockSubmissionFromShardCore "
+                "CheckWhetherBlockIsLatest failed");
+    return false;
+  }
 
   uint32_t shardId = microBlock.GetHeader().GetShardId();
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -251,8 +263,16 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                    microBlock.GetHeader().GetShardId())) {
+                    microBlock.GetHeader().GetShardId(),
+                    m_mediator.m_currentEpochNum)) {
     return false;
+  }
+
+  vector<unsigned char> body;
+  microBlock.Serialize(body, 0);
+  if (!BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetBlockHash(),
+                                                     body)) {
+    LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
   }
 
   auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
@@ -267,20 +287,14 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   if (microBlocksAtEpoch.size() == m_shards.size()) {
-    LOG_STATE(
-        "[MICRO]["
-        << std::setw(15) << std::left
-        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] LAST RECVD");
-    LOG_STATE(
-        "[MIBLKSWAIT["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] DONE");
+    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_currentEpochNum
+                         << "] LAST RECVD");
+    LOG_STATE("[MIBLKSWAIT[" << setw(15) << left
+                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                             << "][" << m_mediator.m_currentEpochNum
+                             << "] DONE");
 
     for (auto& mb : microBlocksAtEpoch) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -314,13 +328,10 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
     DetachedFunction(1, func2);
   } else if (microBlocks.size() == 1) {
-    LOG_STATE(
-        "[MICRO]["
-        << std::setw(15) << std::left
-        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] FRST RECVD");
+    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_currentEpochNum
+                         << "] FRST RECVD");
   }
 
   // TODO: Re-request from shard leader if microblock is not received after a
@@ -364,7 +375,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   // }
 
   LOG_GENERAL(
-      INFO, "Received microblock submission for block number " << epochNumber);
+      INFO, "Received microblock submission for epoch number " << epochNumber);
 
   if (m_mediator.m_currentEpochNum < epochNumber) {
     lock_guard<mutex> g(m_mutexMBSubmissionBuffer);
@@ -382,11 +393,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
     }
   }
 
-  LOG_GENERAL(
-      WARNING,
-      "Current block num: "
-          << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-          << " this microblock submission is too late");
+  LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "This microblock submission is too late");
 
   return false;
 }
@@ -444,9 +452,19 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     auto& microBlocksAtEpoch = m_microBlocks[epochNumber];
 
     for (const auto& microBlock : microBlocks) {
+      if (!m_mediator.CheckWhetherBlockIsLatest(
+              microBlock.GetHeader().GetDSBlockNum() + 1,
+              microBlock.GetHeader().GetEpochNum())) {
+        LOG_GENERAL(WARNING,
+                    "ProcessMicroblockSubmissionFromShardCore "
+                    "CheckWhetherBlockIsLatest failed");
+        return false;
+      }
+
       uint32_t shardId = microBlock.GetHeader().GetShardId();
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "shard_id " << shardId);
+                "shard_id: " << shardId << ", pubkey: "
+                             << microBlock.GetHeader().GetMinerPubKey());
 
       const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
@@ -527,8 +545,16 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
                   "MicroBlock Hash: " << microBlock.GetHeader().GetHashes());
 
       if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                        microBlock.GetHeader().GetShardId())) {
+                        microBlock.GetHeader().GetShardId(),
+                        m_mediator.m_currentEpochNum)) {
         continue;
+      }
+
+      vector<unsigned char> body;
+      microBlock.Serialize(body, 0);
+      if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+              microBlock.GetBlockHash(), body)) {
+        LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
       }
 
       microBlocksAtEpoch.emplace(microBlock);
@@ -572,12 +598,15 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       return false;
     }
 
-    if (AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0) != 0) {
-      LOG_GENERAL(WARNING,
-                  "AccountStore::GetInstance().DeserializeDelta failed");
+    if (!AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0)) {
+      LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed");
       return false;
     }
-    AccountStore::GetInstance().SerializeDelta();
+
+    if (!AccountStore::GetInstance().SerializeDelta()) {
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
+      return false;
+    }
   } else {
     LOG_GENERAL(INFO,
                 "State Delta Hash is empty, skip processing final state delta");

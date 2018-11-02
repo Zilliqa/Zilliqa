@@ -76,133 +76,89 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
 
 Node::~Node() {}
 
-void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
+bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
   LOG_MARKER();
 
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
 
   if (toRetrieveHistory) {
-    if (StartRetrieveHistory()) {
-      m_mediator.m_currentEpochNum =
-          (uint64_t)m_mediator.m_txBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetBlockNum() +
-          1;
-      m_mediator.m_consensusID = 0;
-      m_consensusLeaderID = 0;
-      runInitializeGenesisBlocks = false;
+    bool wakeupForUpgrade = false;
 
-      if (LOOKUP_NODE_MODE) {
-        m_mediator.m_DSCommittee->clear();
-      }
+    if (!StartRetrieveHistory(wakeupForUpgrade)) {
+      return false;
+    }
 
-      BlockStorage::GetBlockStorage().GetDSCommittee(
-          m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
-      m_mediator.UpdateDSBlockRand();
-      m_mediator.UpdateTxBlockRand();
+    m_mediator.m_currentEpochNum =
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
-      if (LOOKUP_NODE_MODE) {
-        LOG_GENERAL(INFO, "Lookup node, wakeup immediately.");
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'1'});
-        return;
-      }
+    if (wakeupForUpgrade) {
+      m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+    }
 
-      /// If this node is inside ds committee, mark it as DS node
-      for (const auto& ds : *m_mediator.m_DSCommittee) {
-        if (ds.first == m_mediator.m_selfKey.second) {
-          LOG_GENERAL(INFO, "DS node, wait "
-                                << DS_DELAY_WAKEUP_IN_SECONDS
-                                << " seconds for lookup wakeup...");
-          this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
-          SetState(POW_SUBMISSION);
-          m_mediator.m_ds->m_consensusMyID = 0;
+    m_consensusLeaderID = 0;
+    runInitializeGenesisBlocks = false;
+    m_mediator.UpdateDSBlockRand();
+    m_mediator.UpdateTxBlockRand();
+    m_mediator.m_ds->m_mode = DirectoryService::IDLE;
 
-          for (auto const& i : *m_mediator.m_DSCommittee) {
-            if (i.first == m_mediator.m_selfKey.second) {
-              LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                        "My node ID for this PoW consensus is "
-                            << m_mediator.m_ds->m_consensusMyID);
-              break;
-            }
+    for (const auto& ds : *m_mediator.m_DSCommittee) {
+      if (ds.first == m_mediator.m_selfKey.second) {
+        m_mediator.m_ds->m_consensusMyID = 0;
 
-            ++m_mediator.m_ds->m_consensusMyID;
+        for (auto const& i : *m_mediator.m_DSCommittee) {
+          if (i.first == m_mediator.m_selfKey.second) {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "My node ID for this PoW consensus is "
+                          << m_mediator.m_ds->m_consensusMyID);
+            break;
           }
 
-          if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
-                  .first == m_mediator.m_selfKey.second) {
-            m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
-            LOG_GENERAL(INFO,
-                        "Set as DS leader: "
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
-            LOG_STATE("[IDENT]["
-                      << std::setw(15) << std::left
-                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << std::setw(6) << std::left
-                      << m_mediator.m_ds->m_consensusMyID << "] DSLD");
-          } else {
-            m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
-            LOG_GENERAL(INFO,
-                        "Set as DS backup: "
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
-            LOG_STATE("[IDENT]["
-                      << std::setw(15) << std::left
-                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << std::setw(6) << std::left
-                      << m_mediator.m_ds->m_consensusMyID << "] DSBK");
-          }
-
-          LOG_EPOCH(
-              INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
-                                           .GetHeader()
-                                           .GetBlockNum() +
-                                       1);
-
-          auto func = [this]() mutable -> void {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Waiting " << POW_WINDOW_IN_SECONDS
-                                 << " seconds, accepting PoW "
-                                    "submissions...");
-            this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Starting consensus on ds block");
-            m_mediator.m_ds->RunConsensusOnDSBlock();
-          };
-          DetachedFunction(1, func);
-          return;
+          ++m_mediator.m_ds->m_consensusMyID;
         }
+
+        m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
+
+        if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
+                .first == m_mediator.m_selfKey.second) {
+          m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
+
+          if (!wakeupForUpgrade) {
+            LOG_GENERAL(INFO,
+                        "Node recovery cannot be applied on DS leader, apply "
+                        "re-join process instead");
+            return false;
+          }
+
+          LOG_GENERAL(INFO, "Set as DS leader: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+          LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                               << "][" << std::setw(6) << std::left
+                               << m_mediator.m_ds->m_consensusMyID << "] DSLD");
+        } else {
+          m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
+          LOG_GENERAL(INFO, "Set as DS backup: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+          LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                               << "][" << std::setw(6) << std::left
+                               << m_mediator.m_ds->m_consensusMyID << "] DSBK");
+        }
+
+        break;
       }
+    }
 
-      /// If this node is shard node, start pow
-      LOG_GENERAL(INFO, "Set as shard node: "
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
-      uint64_t block_num =
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-          1;
-      uint8_t dsDifficulty = m_mediator.m_dsBlockChain.GetLastBlock()
-                                 .GetHeader()
-                                 .GetDSDifficulty();
-      uint8_t difficulty =
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
-      SetState(POW_SUBMISSION);
-
-      auto func = [this, block_num, dsDifficulty,
-                   difficulty]() mutable -> void {
-        LOG_GENERAL(INFO, "Shard node, wait "
-                              << SHARD_DELAY_WAKEUP_IN_SECONDS
-                              << " seconds for lookup and DS nodes wakeup...");
-        this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
-        StartPoW(block_num, dsDifficulty, difficulty, m_mediator.m_dsBlockRand,
-                 m_mediator.m_txBlockRand);
-      };
-      DetachedFunction(1, func);
+    if (wakeupForUpgrade) {
+      WakeupForUpgrade();
     } else {
-      LOG_GENERAL(INFO, "RetrieveHistory cancelled");
+      WakeupForRecovery();
+      return true;
     }
   }
 
@@ -219,6 +175,7 @@ void Node::Install(unsigned int syncType, bool toRetrieveHistory) {
   }
 
   this->Prepare(runInitializeGenesisBlocks);
+  return true;
 }
 
 void Node::Init() {
@@ -271,41 +228,250 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 }
 
-bool Node::StartRetrieveHistory() {
+bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_dsBlockChain.Reset();
-
   m_retriever = make_shared<Retriever>(m_mediator);
 
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_DSCommittee->clear();
+  }
+
+  BlockStorage::GetBlockStorage().GetDSCommittee(
+      m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+
+  std::vector<unsigned char> metaRes;
+  if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::WAKEUPFORUPGRADE,
+                                                  metaRes)) {
+    if (metaRes[0] == '1') {
+      wakeupForUpgrade = true;
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
+                                                  {'0'});
+    }
+  }
+
+  /// Retrieve DS blocks
   bool ds_result;
-  std::thread tDS(&Retriever::RetrieveDSBlocks, m_retriever.get(),
-                  std::ref(ds_result));
-  // retriever->RetrieveDSBlocks(ds_result);
+  m_retriever->RetrieveDSBlocks(ds_result, wakeupForUpgrade);
 
-  bool tx_result;
-  std::thread tTx(&Retriever::RetrieveTxBlocks, m_retriever.get(),
-                  std::ref(tx_result));
-  // retriever->RetrieveTxBlocks(tx_result);
-
+  /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
+  bool tx_result;
+  m_retriever->RetrieveTxBlocks(tx_result, wakeupForUpgrade);
 
-  tDS.join();
-  tTx.join();
+  if (!tx_result) {
+    return false;
+  }
+
+  /// Retrieve lacked Tx blocks from lookup nodes
+  uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
+  if (!GetOfflineLookups()) {
+    LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
+    return false;
+  }
+  {
+    unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
+
+    do {
+      m_synchronizer.FetchLatestTxBlocks(
+          m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+      LOG_GENERAL(INFO,
+                  "Retrieve final block from lookup node, please wait...");
+    } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
+                 lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
+             cv_status::timeout);
+  }
+
+  if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
+    LOG_GENERAL(INFO, "Node recovery too late, apply re-join process instead");
+    return false;
+  }
+
+  /// Retrieve lacked final-block state-delta from lookup nodes
+  if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
+    unique_lock<mutex> lock(
+        m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
+
+    do {
+      m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
+      LOG_GENERAL(
+          INFO,
+          "Retrieve final block state delta from lookup node, please wait...");
+    } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
+                 lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
+             cv_status::timeout);
+  }
+
+  /// Save coin base for final block, from last DS epoch to current TX epoch
+  for (uint64_t blockNum =
+           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+       blockNum <=
+       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+       ++blockNum) {
+    LOG_GENERAL(INFO, "Update coin base for finalblock with blockNum: "
+                          << blockNum << ", reward: "
+                          << m_mediator.m_txBlockChain.GetBlock(blockNum)
+                                 .GetHeader()
+                                 .GetRewards());
+    m_mediator.m_ds->SaveCoinbase(
+        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB1(),
+        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(), -1, blockNum + 1);
+    m_mediator.m_ds->m_totalTxnFees +=
+        m_mediator.m_txBlockChain.GetBlock(blockNum).GetHeader().GetRewards();
+  }
+
+  /// Retrieve sharding structure and setup relative variables
+  BlockStorage::GetBlockStorage().GetShardStructure(
+      m_mediator.m_ds->m_shards, m_mediator.m_node->m_myshardId);
+  LoadShardingStructure();
+  m_mediator.m_ds->ProcessShardingStructure(
+      m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+      m_mediator.m_ds->m_mapNodeReputation);
+  m_mediator.m_consensusID =
+      (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
+
+  /// Save coin base for micro block, from last DS epoch to current TX epoch
+  std::list<MicroBlockSharedPtr> microBlocks;
+  if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 0,
+          m_mediator.m_ds->m_shards.size(), microBlocks)) {
+    for (const auto& microBlock : microBlocks) {
+      LOG_GENERAL(INFO,
+                  "Retrieve microblock with epochNum: "
+                      << microBlock->GetHeader().GetEpochNum()
+                      << ", shardId: " << microBlock->GetHeader().GetShardId()
+                      << ", reward: " << microBlock->GetHeader().GetRewards()
+                      << " from persistence, and update coin base");
+      m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
+                                    microBlock->GetHeader().GetShardId(),
+                                    microBlock->GetHeader().GetEpochNum());
+    }
+  }
 
   bool res = false;
+
   if (st_result && ds_result && tx_result) {
     if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates()) ||
         (LOOKUP_NODE_MODE && m_retriever->ValidateStates() &&
          m_retriever->CleanExtraTxBodies())) {
       LOG_GENERAL(INFO, "RetrieveHistory Successed");
       m_mediator.m_isRetrievedHistory = true;
-      m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
       res = true;
     }
   }
+
   return res;
+}
+
+void Node::WakeupForUpgrade() {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(INFO, "Lookup node, wakeup immediately.");
+    return;
+  }
+
+  /// If this node is DS node, run DS consensus
+  if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
+    LOG_GENERAL(INFO, "DS node, wait " << DS_DELAY_WAKEUP_IN_SECONDS
+                                       << " seconds for lookup wakeup...");
+    this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
+    SetState(POW_SUBMISSION);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetBlockNum() +
+                                       1);
+
+    auto func = [this]() mutable -> void {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Waiting " << POW_WINDOW_IN_SECONDS
+                           << " seconds, accepting PoW "
+                              "submissions...");
+      this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Starting consensus on ds block");
+      m_mediator.m_ds->RunConsensusOnDSBlock();
+    };
+    DetachedFunction(1, func);
+    return;
+  }
+
+  /// If this node is shard node, start pow
+  LOG_GENERAL(INFO, "Set as shard node: "
+                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << ":"
+                        << m_mediator.m_selfPeer.m_listenPortHost);
+  uint64_t block_num =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+  uint8_t dsDifficulty =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
+  uint8_t difficulty =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
+  SetState(POW_SUBMISSION);
+
+  auto func = [this, block_num, dsDifficulty, difficulty]() mutable -> void {
+    LOG_GENERAL(INFO, "Shard node, wait "
+                          << SHARD_DELAY_WAKEUP_IN_SECONDS
+                          << " seconds for lookup and DS nodes wakeup...");
+    this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
+    StartPoW(block_num, dsDifficulty, difficulty, m_mediator.m_dsBlockRand,
+             m_mediator.m_txBlockRand);
+  };
+  DetachedFunction(1, func);
+}
+
+void Node::WakeupForRecovery() {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(INFO, "Lookup node, do nothing temporarily");
+    return;
+  }
+
+  if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
+    m_myShardMembers = m_mediator.m_DSCommittee;
+  }
+
+  m_consensusLeaderID =
+      DataConversion::charArrTo16Bits(
+          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+      m_myShardMembers->size();
+
+  if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
+    if (BROADCAST_GOSSIP_MODE) {
+      std::vector<Peer> peers;
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        if (i.second.m_listenPortHost != 0) {
+          peers.emplace_back(i.second);
+        }
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
+    m_mediator.m_ds->SetState(
+        DirectoryService::DirState::MICROBLOCK_SUBMISSION);
+    auto func = [this]() mutable -> void {
+      m_mediator.m_ds->RunConsensusOnFinalBlock();
+    };
+    DetachedFunction(1, func);
+    return;
+  }
+
+  if (BROADCAST_GOSSIP_MODE) {
+    std::vector<Peer> peers;
+    for (const auto& i : *m_myShardMembers) {
+      if (i.second.m_listenPortHost != 0) {
+        peers.emplace_back(i.second);
+      }
+    }
+    // Initialize every start of DS Epoch
+    P2PComm::GetInstance().InitializeRumorManager(peers);
+  }
+
+  SetState(WAITING_FINALBLOCK);
 }
 
 bool Node::GetOfflineLookups(bool endless) {
@@ -756,24 +922,31 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
   // Process the txns
   unsigned int processed_count = 0;
-  {
-    LOG_GENERAL(INFO, "Start check txn packet from lookup");
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-    for (const auto& tx : txns) {
-      if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(tx)) {
-        m_createdTxns.insert(tx);
-      } else {
-        LOG_GENERAL(WARNING, "Txn is not valid.");
-      }
+  LOG_GENERAL(INFO, "Start check txn packet from lookup");
 
-      processed_count++;
+  std::vector<Transaction> checkedTxns;
+  for (const auto& txn : txns) {
+    if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn)) {
+      checkedTxns.push_back(txn);
+    } else {
+      LOG_GENERAL(WARNING, "Txn is not valid.");
+    }
 
-      if (processed_count % 100 == 0) {
-        LOG_GENERAL(INFO, processed_count << " txns from packet processed");
-      }
+    processed_count++;
+
+    if (processed_count % 100 == 0) {
+      LOG_GENERAL(INFO, processed_count << " txns from packet processed");
     }
   }
+
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+    for (const auto& txn : checkedTxns) {
+      m_createdTxns.insert(txn);
+    }
+  }
+
   LOG_GENERAL(INFO, "INSERTED TXN COUNT" << processed_count);
 
   LOG_STATE(

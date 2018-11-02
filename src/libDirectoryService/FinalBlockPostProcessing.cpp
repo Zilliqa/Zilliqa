@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -73,6 +72,12 @@ void DirectoryService::StoreFinalBlockToDisk() {
   m_finalBlock->Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(
       m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock);
+
+  vector<unsigned char> stateDelta;
+  AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+  BlockStorage::GetBlockStorage().PutStateDelta(
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+      stateDelta);
 }
 
 bool DirectoryService::SendFinalBlockToLookupNodes() {
@@ -263,7 +268,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   } else {
     // Coinbase
-    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1);
+    SaveCoinbase(m_finalBlock->GetB1(), m_finalBlock->GetB2(), -1,
+                 m_mediator.m_currentEpochNum);
     m_totalTxnFees += m_finalBlock->GetHeader().GetRewards();
   }
 
@@ -430,6 +436,14 @@ bool DirectoryService::ProcessFinalBlockConsensus(
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
     // don't buffer the Final block consensus message if i am non-ds node
     if (m_mode == Mode::IDLE) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Ignoring final block consensus message");
+      return false;
+    }
+    // Only buffer the Final block consensus message if in MICROBLOCK_SUBMISSION
+    // or VIEWCHANGE_CONSENSUS state
+    if (!((m_state == MICROBLOCK_SUBMISSION) ||
+          (m_state == VIEWCHANGE_CONSENSUS))) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Ignoring final block consensus message");
       return false;
