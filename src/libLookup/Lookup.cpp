@@ -365,9 +365,10 @@ vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
   return getDSBlockMessage;
 }
 
-// low and high denote the range of blocknumbers being requested(inclusive).
-// use 0 to denote the latest blocknumber since obviously no one will request
-// for the genesis block
+// TODO: Refactor the code to remove the following assumption
+// lowBlockNum = 1 => Latest block number
+// lowBlockNum = 0 => lowBlockNum set to 1
+// highBlockNum = 0 => Latest block number
 bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
                                        uint64_t highBlockNum) {
   LOG_MARKER();
@@ -411,9 +412,10 @@ vector<unsigned char> Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
   return getStateDeltaMessage;
 }
 
-// low and high denote the range of blocknumbers being requested(inclusive).
-// use 0 to denote the latest blocknumber since obviously no one will request
-// for the genesis block
+// TODO: Refactor the code to remove the following assumption
+// lowBlockNum = 1 => Latest block number
+// lowBlockNum = 0 => lowBlockNum set to 1
+// highBlockNum = 0 => Latest block number
 bool Lookup::GetTxBlockFromLookupNodes(uint64_t lowBlockNum,
                                        uint64_t highBlockNum) {
   LOG_MARKER();
