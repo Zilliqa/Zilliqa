@@ -79,7 +79,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 
     ```bash
     brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf \
-        libtool autoconf go boost
+        libtool autoconf go boost cmake
     ```
 
 ## Running Zilliqa locally
