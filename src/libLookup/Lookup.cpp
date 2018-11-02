@@ -1813,7 +1813,7 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
             "ProcessSetStateDeltaFromSeed sent by " << from << " for block "
                                                     << blockNum);
 
-  if (AccountStore::GetInstance().DeserializeDelta(stateDelta, 0) != 0) {
+  if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
     return false;
   }
