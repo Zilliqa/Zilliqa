@@ -33,6 +33,7 @@
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
 #include "libDirectoryService/ShardStruct.h"
@@ -113,6 +114,8 @@ class Lookup : public Executable, public Broadcastable {
 
   std::unordered_map<uint64_t, std::vector<MicroBlock>> m_microBlocksBuffer;
 
+  void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
+                        uint64_t& highBlockNum);
   std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
                                                       uint64_t highBlockNum);
   std::vector<unsigned char> ComposeGetTxBlockMessage(uint64_t lowBlockNum,

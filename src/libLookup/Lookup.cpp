@@ -735,47 +735,11 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
   }
 
   vector<DSBlock> dsBlocks;
-  uint64_t blockNum;
-
-  {
-    lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
-
-    if (lowBlockNum == 1) {
-      lowBlockNum =
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    } else if (lowBlockNum == 0) {
-      // give all the blocks in the ds blockchain
-      lowBlockNum = 1;
-    }
-
-    if (highBlockNum == 0) {
-      highBlockNum =
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-    }
-
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "ProcessGetDSBlockFromSeed requested by "
-                  << from << " for blocks " << lowBlockNum << " to "
-                  << highBlockNum);
-
-    for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
-      try {
-        dsBlocks.emplace_back(m_mediator.m_dsBlockChain.GetBlock(blockNum));
-      } catch (const char* e) {
-        LOG_GENERAL(INFO, "Block Number " << blockNum
-                                          << " absent. Didn't include it in "
-                                             "response message. Reason: "
-                                          << e);
-        break;
-      }
-    }
-  }
-
-  // if serialization got interrupted in between, reset the highBlockNum value
-  // in msg
-  if (blockNum != highBlockNum + 1) {
-    highBlockNum = blockNum - 1;
-  }
+  RetrieveDSBlocks(dsBlocks, lowBlockNum, highBlockNum);
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ProcessGetDSBlockFromSeed requested by " << from << " for blocks "
+                                                      << lowBlockNum << " to "
+                                                      << highBlockNum);
 
   vector<unsigned char> dsBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::SETDSBLOCKFROMSEED};
@@ -788,15 +752,53 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer requestingNode(ipAddr, portNo);
+  Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
-
   P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
 
   //#endif // IS_LOOKUP_NODE
 
   return true;
+}
+
+// TODO: Refactor the code to remove the following assumption
+// lowBlockNum = 1 => Latest block number
+// lowBlockNum = 0 => lowBlockNum set to 1
+// highBlockNum = 0 => Latest block number
+void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
+                              uint64_t& highBlockNum) {
+  lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
+
+  if (lowBlockNum == 1) {
+    lowBlockNum =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  } else if (lowBlockNum == 0) {
+    // give all the blocks in the ds blockchain
+    lowBlockNum = 1;
+  }
+
+  if (highBlockNum == 0) {
+    highBlockNum =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  }
+
+  uint64_t blockNum;
+  for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
+    try {
+      dsBlocks.emplace_back(m_mediator.m_dsBlockChain.GetBlock(blockNum));
+    } catch (const char* e) {
+      LOG_GENERAL(INFO, "Block Number " << blockNum
+                                        << " absent. Didn't include it in "
+                                           "response message. Reason: "
+                                        << e);
+      break;
+    }
+  }
+
+  // Reset the highBlockNum value if retrieval failed
+  if (blockNum != highBlockNum + 1) {
+    highBlockNum = blockNum - 1;
+  }
 }
 
 bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
