@@ -253,6 +253,11 @@ void Lookup::SendMessageToRandomLookupNode(
 
   // int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
   // - NUM_LOOKUP_USE_FOR_SYNC;
+  if (0 == m_lookupNodes.size()) {
+    LOG_GENERAL(WARNING, "There is no lookup node existed yet!");
+    return;
+  }
+
   int index = rand() % m_lookupNodes.size();
 
   P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
