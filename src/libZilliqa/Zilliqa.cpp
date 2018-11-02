@@ -100,7 +100,8 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
       ,
       m_msgQueue(MSGQUEUE_SIZE),
       m_httpserver(SERVER_PORT),
-      m_server(m_mediator, m_httpserver)
+      m_server(m_mediator, m_httpserver),
+      m_protoServer(m_mediator)
 
 {
   LOG_MARKER();

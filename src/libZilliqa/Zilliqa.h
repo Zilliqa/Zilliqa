@@ -33,6 +33,7 @@
 #include "libNetwork/PeerManager.h"
 #include "libNetwork/PeerStore.h"
 #include "libNode/Node.h"
+#include "libProtoServer/Server.h"
 #include "libServer/Server.h"
 #include "libUtils/ThreadPool.h"
 
@@ -53,6 +54,7 @@ class Zilliqa {
 
   jsonrpc::HttpServer m_httpserver;
   Server m_server;
+  ProtoServer m_protoServer;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 

@@ -114,10 +114,6 @@ if(VC_TEST_VC_SUSPEND_3)
 	add_definitions(-DVC_TEST_VC_SUSPEND_3)
 endif()
 
-include(FindProtobuf)
-find_package(Protobuf REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIR})
-
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
@@ -143,7 +139,7 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 
 # compiler and linker options
 
-add_compile_options(-Wall)
+#add_compile_options(-Wall)
 add_compile_options(-Werror)
 add_compile_options(-Wextra)
 
