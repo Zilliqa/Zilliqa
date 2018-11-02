@@ -18,14 +18,14 @@
  */
 
 #include <arpa/inet.h>
-#include <cstring>
 #include <errno.h>
-#include <exception>
-#include <fstream>
 #include <netinet/in.h>
 #include <stdint.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <cstring>
+#include <exception>
+#include <fstream>
 #include <random>
 
 #include <boost/property_tree/ptree.hpp>
@@ -61,19 +61,6 @@ Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
 }
 
 Lookup::~Lookup() {}
-
-void Lookup::AppendTimestamp(vector<unsigned char>& message,
-                             unsigned int& offset) {
-  // Append a sending time to avoid message to be discarded
-  uint256_t milliseconds_since_epoch =
-      std::chrono::system_clock::now().time_since_epoch() /
-      std::chrono::seconds(1);
-
-  Serializable::SetNumber<uint256_t>(message, offset, milliseconds_since_epoch,
-                                     UINT256_SIZE);
-
-  offset += UINT256_SIZE;
-}
 
 void Lookup::SetLookupNodes() {
   LOG_MARKER();
