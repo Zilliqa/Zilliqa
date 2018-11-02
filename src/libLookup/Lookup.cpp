@@ -739,6 +739,10 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
+// TODO: Refactor the code to remove the following assumption
+// lowBlockNum = 1 => Latest block number
+// lowBlockNum = 0 => lowBlockNum set to 1
+// highBlockNum = 0 => Latest block number
 bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from) {
   //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
@@ -877,6 +881,10 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
+// TODO: Refactor the code to remove the following assumption
+// lowBlockNum = 1 => Latest block number
+// lowBlockNum = 0 => lowBlockNum set to 1
+// highBlockNum = 0 => Latest block number
 bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                                        unsigned int offset, const Peer& from) {
   // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
