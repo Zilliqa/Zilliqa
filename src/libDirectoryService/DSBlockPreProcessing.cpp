@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -45,8 +44,9 @@ using namespace boost::multiprecision;
 
 unsigned int DirectoryService::ComputeDSBlockParameters(
     const VectorOfPoWSoln& sortedDSPoWSolns, VectorOfPoWSoln& sortedPoWSolns,
-    map<PubKey, Peer>& powDSWinners, uint8_t& dsDifficulty, uint8_t& difficulty,
-    uint64_t& blockNum, BlockHash& prevHash) {
+    map<PubKey, Peer>& powDSWinners, MapOfPubKeyPoW& dsWinnerPoWs,
+    uint8_t& dsDifficulty, uint8_t& difficulty, uint64_t& blockNum,
+    BlockHash& prevHash) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -65,6 +65,7 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
       break;
     }
     powDSWinners[submitter.second] = m_allPoWConns[submitter.second];
+    dsWinnerPoWs[submitter.second] = m_allDSPoWs[submitter.second];
     sortedPoWSolns.erase(
         remove(sortedPoWSolns.begin(), sortedPoWSolns.end(), submitter),
         sortedPoWSolns.end());
@@ -260,6 +261,63 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
   }
 }
 
+bool DirectoryService::VerifyPoWWinner(
+    const MapOfPubKeyPoW& dsWinnerPoWsFromLeader) {
+  const auto& NewDSMembers = m_pendingDSBlock->GetHeader().GetDSPoWWinners();
+  for (const auto& DSPowWinner : NewDSMembers) {
+    if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
+      if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second) {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "WARNING: Why is the IP of the winner different from "
+                  "what I have in m_allPoWConns???");
+        return false;
+      }
+    } else {
+      // I don't know the winner -> store the IP given by the leader
+      m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
+    }
+
+    if (m_allDSPoWs.find(DSPowWinner.first) == m_allDSPoWs.end()) {
+      LOG_GENERAL(INFO,
+                  "Cannot find DS PoW for node: "
+                      << DSPowWinner.first
+                      << ". Will continue look for it in PoW from leader.");
+      if (dsWinnerPoWsFromLeader.find(DSPowWinner.first) !=
+          dsWinnerPoWsFromLeader.end()) {
+        uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
+        const auto& peer = m_allPoWConns.at(DSPowWinner.first);
+        const auto& dsPowSoln = dsWinnerPoWsFromLeader.at(DSPowWinner.first);
+        // Non-genesis block
+        if (m_mediator.m_currentEpochNum > 1) {
+          expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetDSDifficulty();
+        }
+
+        bool result = POW::GetInstance().PoWVerify(
+            m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
+            m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
+            peer.m_ipAddress, DSPowWinner.first, false, dsPowSoln.nonce,
+            DataConversion::charArrToHexStr(dsPowSoln.result),
+            DataConversion::charArrToHexStr(dsPowSoln.mixhash));
+        if (!result) {
+          LOG_EPOCH(WARNING,
+                    std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "WARNING: Failed to verify DS PoW from node "
+                        << DSPowWinner.first);
+          return false;
+        }
+      } else {
+        LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "WARNING: Cannot find the DS winner PoW in DS PoW list from "
+                  "leader.");
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 bool DirectoryService::VerifyDifficulty() {
   auto remoteDSDifficulty = m_pendingDSBlock->GetHeader().GetDSDifficulty();
   auto localDSDifficulty = CalculateNewDSDifficulty(
@@ -305,9 +363,14 @@ bool DirectoryService::VerifyPoWOrdering(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
-  constexpr float MISORDER_TOLERANCE = 0.02f;  // 2 Percent tolerance
+  const float MISORDER_TOLERANCE =
+      (float)MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
   const uint32_t MAX_MISORDER_NODE =
       std::ceil(m_allPoWs.size() * MISORDER_TOLERANCE);
+
+  LOG_GENERAL(INFO, "Tolerance = " << std::fixed << std::setprecision(2)
+                                   << MISORDER_TOLERANCE << " = "
+                                   << MAX_MISORDER_NODE << " nodes.");
 
   auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
   InjectPoWForDSNode(sortedPoWSolns,
@@ -335,6 +398,7 @@ bool DirectoryService::VerifyPoWOrdering(
             return item.second == toFind;
           });
 
+      std::array<unsigned char, 32> result;
       if (it == sortedPoWSolns.cend()) {
         LOG_GENERAL(WARNING, "Failed to find key in the PoW ordering "
                                  << toFind << " " << sortedPoWSolns.size());
@@ -346,6 +410,7 @@ bool DirectoryService::VerifyPoWOrdering(
         if (itLeaderMap != allPoWsFromTheLeader.end()) {
           LOG_GENERAL(INFO,
                       "TODO: Verify the PoW submission for this unknown node.");
+          result = itLeaderMap->second.result;
         } else {
           LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
           ret = false;
@@ -354,6 +419,8 @@ bool DirectoryService::VerifyPoWOrdering(
         if (!ret) {
           break;
         }
+      } else {
+        result = it->first;
       }
 
       auto r = keyset.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
@@ -364,8 +431,7 @@ bool DirectoryService::VerifyPoWOrdering(
         break;
       }
 
-      copy(it->first.begin(), it->first.end(),
-           hashVec.begin() + BLOCK_HASH_SIZE);
+      copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
       const vector<unsigned char>& sortHashVec =
           HashUtils::BytesToHash(hashVec);
       if (DEBUG_LEVEL >= 5) {
@@ -571,14 +637,15 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
 
   map<PubKey, Peer> powDSWinners;
+  MapOfPubKeyPoW dsWinnerPoWs;
   uint8_t dsDifficulty = 0;
   uint8_t difficulty = 0;
   uint64_t blockNum = 0;
   BlockHash prevHash;
 
-  unsigned int numOfProposedDSMembers =
-      ComputeDSBlockParameters(sortedDSPoWSolns, sortedPoWSolns, powDSWinners,
-                               dsDifficulty, difficulty, blockNum, prevHash);
+  unsigned int numOfProposedDSMembers = ComputeDSBlockParameters(
+      sortedDSPoWSolns, sortedPoWSolns, powDSWinners, dsWinnerPoWs,
+      dsDifficulty, difficulty, blockNum, prevHash);
 
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers);
   if (DEBUG_LEVEL >= 5) {
@@ -607,6 +674,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
+
+  BlockStorage::GetBlockStorage().PutShardStructure(
+      m_shards, m_mediator.m_node->m_myshardId);
+
   if (!Messenger::GetTxSharingAssignmentsHash(m_DSReceivers, m_shardReceivers,
                                               m_shardSenders,
                                               dsBlockHashSet.m_txSharingHash)) {
@@ -629,11 +700,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum, get_time_as_int(),
-                      SWInfo(), powDSWinners, dsBlockHashSet, committeeHash),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(
+        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  m_mediator.m_currentEpochNum,
+                                  get_time_as_int(), m_mediator.m_curSWInfo,
+                                  powDSWinners, dsBlockHashSet, committeeHash),
+                    CoSignatures(m_mediator.m_DSCommittee->size())));
     m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
 
@@ -647,14 +720,23 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   m_consensusBlockHash =
       m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  // kill first ds leader (used for view change testing)
-  // Either do killing of ds leader or make ds leader do nothing.
-  /*if (m_consensusMyID == 0 && m_viewChangeCounter < 1)
-  {
-      LOG_GENERAL(INFO, "I am killing/suspending myself to test view change");
-      // throw exception();
-      return false;
-  }*/
+#ifdef VC_TEST_DS_SUSPEND_1
+  if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
+    LOG_GENERAL(
+        INFO,
+        "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_1)");
+    return false;
+  }
+#endif  // VC_TEST_DS_SUSPEND_1
+
+#ifdef VC_TEST_DS_SUSPEND_3
+  if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
+    LOG_GENERAL(
+        INFO,
+        "I am suspending myself to test viewchange (VC_TEST_DS_SUsPEND_3)");
+    return false;
+  }
+#endif  // VC_TEST_DS_SUSPEND_3
 
   m_consensusObject.reset(new ConsensusLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
@@ -678,16 +760,19 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] BGIN");
 
+  // Refer to Effective mordern C++. Item 32: Use init capture to move objects
+  // into closures.
   auto announcementGeneratorFunc =
-      [this](vector<unsigned char>& dst, unsigned int offset,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const vector<unsigned char>& blockHash, const uint16_t leaderID,
-             const pair<PrivKey, PubKey>& leaderKey,
-             vector<unsigned char>& messageToCosign) mutable -> bool {
+      [this, dsWinnerPoWs = std::move(dsWinnerPoWs)](
+          vector<unsigned char>& dst, unsigned int offset,
+          const uint32_t consensusID, const uint64_t blockNumber,
+          const vector<unsigned char>& blockHash, const uint16_t leaderID,
+          const pair<PrivKey, PubKey>& leaderKey,
+          vector<unsigned char>& messageToCosign) mutable -> bool {
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_pendingDSBlock, m_shards, m_DSReceivers, m_shardReceivers,
-        m_shardSenders, m_allPoWs, messageToCosign);
+        m_shardSenders, m_allPoWs, dsWinnerPoWs, messageToCosign);
   };
 
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
@@ -762,33 +847,24 @@ bool DirectoryService::DSBlockValidator(
 
   m_pendingDSBlock.reset(new DSBlock);
 
-  MapOfPubKeyPoW allPoWsFromTheLeader;
+  MapOfPubKeyPoW allPoWsFromLeader;
+  MapOfPubKeyPoW dsWinnerPoWsFromLeader;
 
   if (!Messenger::GetDSDSBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
-          m_tempShardReceivers, m_tempShardSenders, allPoWsFromTheLeader,
-          messageToCosign)) {
+          m_tempShardReceivers, m_tempShardSenders, allPoWsFromLeader,
+          dsWinnerPoWsFromLeader, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
     return false;
   }
 
-  // To-do: Put in the logic here for checking the proposed DS block
-  const map<PubKey, Peer> NewDSMembers =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
-  for (const auto& DSPowWinner : NewDSMembers) {
-    if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
-      if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "WARNING: Why is the IP of the winner different from "
-                  "what I have in m_allPoWConns???");
-        return false;
-      }
-    } else {
-      // I don't know the winner -> store the IP given by the leader
-      m_allPoWConns.emplace(DSPowWinner.first, DSPowWinner.second);
-    }
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_pendingDSBlock->GetHeader().GetBlockNum(),
+          m_pendingDSBlock->GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING, "DSBlockValidator CheckWhetherBlockIsLatest failed");
+    return false;
   }
 
   BlockHash temp_blockHash = m_pendingDSBlock->GetHeader().GetMyHash();
@@ -816,6 +892,7 @@ bool DirectoryService::DSBlockValidator(
                     << m_pendingDSBlock->GetHeader().GetShardingHash());
     return false;
   }
+
   TxSharingHash txSharingHash;
   if (!Messenger::GetTxSharingAssignmentsHash(
           m_tempDSReceivers, m_tempShardReceivers, m_tempShardSenders,
@@ -850,6 +927,11 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  if (!VerifyPoWWinner(dsWinnerPoWsFromLeader)) {
+    LOG_GENERAL(WARNING, "Failed to verify PoW winner");
+    return false;
+  }
+
   // Start to verify difficulty from DS block number 2.
   if (m_pendingDSBlock->GetHeader().GetBlockNum() > 1) {
     if (!VerifyDifficulty()) {
@@ -862,8 +944,8 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  if (!VerifyPoWOrdering(m_tempShards, allPoWsFromTheLeader)) {
-    LOG_GENERAL(INFO, "Failed to verify ordering");
+  if (!VerifyPoWOrdering(m_tempShards, allPoWsFromLeader)) {
+    LOG_GENERAL(WARNING, "Failed to verify ordering");
     return false;
   }
 

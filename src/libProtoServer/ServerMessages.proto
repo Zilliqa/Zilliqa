@@ -2,8 +2,6 @@ syntax = "proto2";
 
 package ZilliqaMessage;
 
-import "ZilliqaMessage.proto";
-
 
 message ProtoTxId
 {
@@ -29,11 +27,6 @@ message ProtoAddress
 message ProtoBlockNum
 {
     required uint64 blocknum = 1;
-}
-
-message ProtoStorageInfo
-{
-
 }
 
 message ProtoShardingStruct

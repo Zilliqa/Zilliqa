@@ -71,7 +71,9 @@ class Node : public Executable, public Broadcastable {
   enum LEGITIMACYRESULT : unsigned char {
     SUCCESS = 0x00,
     MISSEDTXN,
-    WRONGORDER
+    WRONGORDER,
+    SERIALIZATIONERROR,
+    DESERIALIZATIONERROR
   };
 
   Mediator& m_mediator;
@@ -267,7 +269,6 @@ class Node : public Executable, public Broadcastable {
   bool ProcessDoRejoin(const std::vector<unsigned char>& message,
                        unsigned int offset, const Peer& from);
 
-  bool CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum);
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
   bool VerifyFinalBlockCoSignature(const TxBlock& txblock);
   bool CheckStateRoot(const TxBlock& finalBlock);
@@ -362,6 +363,10 @@ class Node : public Executable, public Broadcastable {
       uint32_t cluster_size, uint32_t num_of_child_clusters, uint32_t& nodes_lo,
       uint32_t& nodes_hi);
 
+  void WakeupForUpgrade();
+
+  void WakeupForRecovery();
+
  public:
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
@@ -431,7 +436,7 @@ class Node : public Executable, public Broadcastable {
   ~Node();
 
   /// Install the Node
-  void Install(unsigned int syncType, bool toRetrieveHistory = true);
+  bool Install(unsigned int syncType, bool toRetrieveHistory = true);
 
   /// Set initial state, variables, and clean-up storage
   void Init();
@@ -462,7 +467,7 @@ class Node : public Executable, public Broadcastable {
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory();
+  bool StartRetrieveHistory(bool& wakeupForUpgrade);
 
   // Erase m_committedTransactions for given epoch number
   // void EraseCommittedTransactions(uint64_t epochNum)
@@ -475,9 +480,6 @@ class Node : public Executable, public Broadcastable {
   void AddBlock(const TxBlock& block);
 
   void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
-
-  void UpdateDSCommiteeCompositionAfterVC(
-      std::deque<std::pair<PubKey, Peer>>& dsComm);
 
   void UpdateDSCommitteeAfterFallback(
       const uint32_t& shard_id, const PubKey& leaderPubKey,
@@ -545,6 +547,9 @@ class Node : public Executable, public Broadcastable {
 
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
+
+  void UpdateDSCommiteeCompositionAfterVC(
+      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

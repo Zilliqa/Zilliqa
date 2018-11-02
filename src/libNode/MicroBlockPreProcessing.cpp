@@ -82,14 +82,10 @@ bool Node::ComposeMicroBlock() {
   BlockHash prevHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetMyHash();
 
-  uint64_t blockNum = m_mediator.m_currentEpochNum;
   uint256_t timestamp = get_time_as_int();
   TxnHash txRootHash, txReceiptHash;
   uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
-  const auto& lastDSBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-  uint64_t dsBlockNum = lastDSBlock.GetHeader().GetBlockNum();
-  BlockHash dsBlockHash = lastDSBlock.GetHeader().GetMyHash();
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
   CommitteeHash committeeHash;
@@ -116,7 +112,8 @@ bool Node::ComposeMicroBlock() {
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
 
-    auto& processedTransactions = m_processedTransactions[blockNum];
+    auto& processedTransactions =
+        m_processedTransactions[m_mediator.m_currentEpochNum];
 
     txRootHash = ComputeRoot(m_TxnOrder);
 
@@ -138,10 +135,12 @@ bool Node::ComposeMicroBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
-      MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards,
-                       prevHash, blockNum, timestamp, txRootHash, numTxs,
-                       minerPubKey, dsBlockNum, dsBlockHash, stateDeltaHash,
-                       txReceiptHash, committeeHash),
+      MicroBlockHeader(
+          type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
+          m_mediator.m_currentEpochNum, timestamp,
+          {txRootHash, stateDeltaHash, txReceiptHash}, numTxs, minerPubKey,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          committeeHash),
       tranHashes, CoSignatures()));
   m_microblock->SetBlockHash(m_microblock->GetHeader().GetMyHash());
 
@@ -761,7 +760,10 @@ bool Node::RunConsensusOnMicroBlock() {
 
       m_mediator.m_ds->InitCoinbase();
       m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
-      AccountStore::GetInstance().SerializeDelta();
+      if (!AccountStore::GetInstance().SerializeDelta()) {
+        LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+        return false;
+      }
       AccountStore::GetInstance().GetSerializedDelta(
           m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
     }
@@ -977,14 +979,20 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
       AccountStore::GetInstance().InitTemp();
       if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
         LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
-        AccountStore::GetInstance().DeserializeDeltaTemp(
-            m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0);
+        if (!AccountStore::GetInstance().DeserializeDeltaTemp(
+                m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0)) {
+          LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
+          return LEGITIMACYRESULT::DESERIALIZATIONERROR;
+        }
       }
 
       return LEGITIMACYRESULT::MISSEDTXN;
     }
 
-    AccountStore::GetInstance().SerializeDelta();
+    if (!AccountStore::GetInstance().SerializeDelta()) {
+      LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
+      return LEGITIMACYRESULT::SERIALIZATIONERROR;
+    }
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Vacuous epoch: Skipping processing transactions");
@@ -1189,6 +1197,14 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
           leaderKey, *m_microblock, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeMicroBlockAnnouncement failed.");
+    return false;
+  }
+
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_microblock->GetHeader().GetDSBlockNum() + 1,
+          m_microblock->GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING,
+                "MicroBlockValidator CheckWhetherBlockIsLatest failed");
     return false;
   }
 

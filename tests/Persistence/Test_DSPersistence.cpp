@@ -67,8 +67,8 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
   }
 
   return DSBlock(
-      DSBlockHeader(50, 20, prevHash1, pubKey1.second, blocknum, 789, SWInfo(),
-                    powDSWinners, DSBlockHashSet(), CommitteeHash()),
+      DSBlockHeader(50, 20, prevHash1, pubKey1.second, blocknum, 0, 789,
+                    SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
 }
 

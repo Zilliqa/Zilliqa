@@ -24,7 +24,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-VCBlockHeader::VCBlockHeader() : m_CandidateLeaderIndex(1) {}
+VCBlockHeader::VCBlockHeader() {}
 
 VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {
@@ -36,20 +36,20 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
 VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
                              const uint64_t& viewChangeEpochNo,
                              const unsigned char viewChangeState,
-                             const uint32_t expectedCandidateLeaderIndex,
                              const Peer& candidateLeaderNetworkInfo,
                              const PubKey& candidateLeaderPubKey,
                              const uint32_t vcCounter,
+                             const vector<pair<PubKey, Peer>>& faultyLeaders,
                              const boost::multiprecision::uint256_t& timestamp,
                              const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
       m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
       m_VieWChangeEpochNo(viewChangeEpochNo),
       m_ViewChangeState(viewChangeState),
-      m_CandidateLeaderIndex(expectedCandidateLeaderIndex),
       m_CandidateLeaderNetworkInfo(candidateLeaderNetworkInfo),
       m_CandidateLeaderPubKey(candidateLeaderPubKey),
       m_VCCounter(vcCounter),
+      m_FaultyLeaders(faultyLeaders),
       m_Timestamp(timestamp) {}
 
 bool VCBlockHeader::Serialize(vector<unsigned char>& dst,
@@ -84,10 +84,6 @@ unsigned char VCBlockHeader::GetViewChangeState() const {
   return m_ViewChangeState;
 }
 
-uint32_t VCBlockHeader::GetCandidateLeaderIndex() const {
-  return m_CandidateLeaderIndex;
-}
-
 const Peer& VCBlockHeader::GetCandidateLeaderNetworkInfo() const {
   return m_CandidateLeaderNetworkInfo;
 }
@@ -98,6 +94,10 @@ const PubKey& VCBlockHeader::GetCandidateLeaderPubKey() const {
 
 uint32_t VCBlockHeader::GetViewChangeCounter() const { return m_VCCounter; }
 
+const vector<pair<PubKey, Peer>>& VCBlockHeader::GetFaultyLeaders() const {
+  return m_FaultyLeaders;
+};
+
 const boost::multiprecision::uint256_t& VCBlockHeader::GetTimeStamp() const {
   return m_Timestamp;
 }
@@ -107,10 +107,10 @@ bool VCBlockHeader::operator==(const VCBlockHeader& header) const {
       (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
       (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
       (m_ViewChangeState == header.m_ViewChangeState) &&
-      (m_CandidateLeaderIndex == header.m_CandidateLeaderIndex) &&
       (m_CandidateLeaderNetworkInfo == header.m_CandidateLeaderNetworkInfo) &&
       (m_CandidateLeaderPubKey == header.m_CandidateLeaderPubKey) &&
       (m_VCCounter == header.m_VCCounter) &&
+      (m_FaultyLeaders == header.m_FaultyLeaders) &&
       (m_Timestamp == header.m_Timestamp));
 }
 

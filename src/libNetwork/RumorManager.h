@@ -56,7 +56,7 @@ class RumorManager {
   RumorIdRumorBimap m_rumorIdHashBimap;
   RumorHashRumorBiMap m_rumorHashRawMsgBimap;
   RumorHashesPeersMap m_hashesSubscriberMap;
-  // std::unordered_set<RawBytes> m_tmpRumorHashSet;
+  std::set<std::string> m_tmpRumorHashSet;
   Peer m_selfPeer;
 
   int64_t m_rumorIdGenerator;

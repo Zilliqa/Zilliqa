@@ -34,6 +34,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block/MicroBlock.h"
+#include "libData/BlockData/Block/TxBlock.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
@@ -98,10 +99,14 @@ class Lookup : public Executable, public Broadcastable {
 
   std::mutex m_mutexSetDSBlockFromSeed;
   std::mutex m_mutexSetTxBlockFromSeed;
+  std::mutex m_mutexSetStateDeltaFromSeed;
   std::mutex m_mutexSetTxBodyFromSeed;
   std::mutex m_mutexSetState;
   std::mutex mutable m_mutexLookupNodes;
   std::mutex m_mutexMicroBlocksBuffer;
+
+  // TxBlockBuffer
+  std::vector<TxBlock> m_txBlockBuffer;
 
   std::vector<unsigned char> ComposeGetDSInfoMessage(bool initialDS = false);
   std::vector<unsigned char> ComposeGetStateMessage();
@@ -112,6 +117,7 @@ class Lookup : public Executable, public Broadcastable {
                                                       uint64_t highBlockNum);
   std::vector<unsigned char> ComposeGetTxBlockMessage(uint64_t lowBlockNum,
                                                       uint64_t highBlockNum);
+  std::vector<unsigned char> ComposeGetStateDeltaMessage(uint64_t blockNum);
 
   std::vector<unsigned char> ComposeGetLookupOfflineMessage();
   std::vector<unsigned char> ComposeGetLookupOnlineMessage();
@@ -166,6 +172,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+  bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
   bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
 
@@ -197,6 +204,8 @@ class Lookup : public Executable, public Broadcastable {
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
+  void CheckBufferTxBlocks();
+
   bool DeleteTxnShardMap(uint32_t shardId);
 
   void SetServerTrue();
@@ -216,6 +225,8 @@ class Lookup : public Executable, public Broadcastable {
                                  unsigned int offset, const Peer& from);
   bool ProcessGetTxBlockFromSeed(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
+  bool ProcessGetStateDeltaFromSeed(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
   bool ProcessGetTxBodyFromSeed(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   bool ProcessGetStateFromSeed(const std::vector<unsigned char>& message,
@@ -255,6 +266,9 @@ class Lookup : public Executable, public Broadcastable {
                                  unsigned int offset, const Peer& from);
   bool ProcessSetTxBlockFromSeed(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
+  void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
+  bool ProcessSetStateDeltaFromSeed(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
   bool ProcessSetTxBodyFromSeed(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   bool ProcessSetStateFromSeed(const std::vector<unsigned char>& message,
@@ -298,6 +312,11 @@ class Lookup : public Executable, public Broadcastable {
   bool m_fetchedLatestDSBlock = false;
   std::mutex m_mutexLatestDSBlockUpdation;
   std::condition_variable cv_latestDSBlock;
+
+  std::mutex m_MutexCVSetTxBlockFromSeed;
+  std::condition_variable cv_setTxBlockFromSeed;
+  std::mutex m_MutexCVSetStateDeltaFromSeed;
+  std::condition_variable cv_setStateDeltaFromSeed;
 
   bool InitMining();
 

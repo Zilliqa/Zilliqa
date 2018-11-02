@@ -276,11 +276,9 @@ bool Validator::CheckDirBlocks(
         ret = false;
         break;
       }
-      unsigned int newCandidateLeader =
-          vcblock.GetHeader().GetViewChangeCounter();
-      for (unsigned int i = 0; i < newCandidateLeader; i++) {
-        m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(mutable_ds_comm);
-      }
+
+      m_mediator.m_node->UpdateDSCommiteeCompositionAfterVC(vcblock,
+                                                            mutable_ds_comm);
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,
                                                vcblock.GetBlockHash());
@@ -349,4 +347,60 @@ bool Validator::CheckDirBlocks(
 
   newDSComm = move(mutable_ds_comm);
   return ret;
+}
+
+ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
+    const vector<TxBlock>& txBlocks, const deque<pair<PubKey, Peer>>& dsComm,
+    const BlockLink& latestBlockLink) {
+  // Verify the last Tx Block
+  uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
+
+  if (get<BlockLinkIndex::BLOCKTYPE>(latestBlockLink) != BlockType::DS) {
+    if (latestDSIndex == 0) {
+      LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
+      return TxBlockValidationMsg::INVALID;
+    }
+    latestDSIndex--;
+  }
+
+  const TxBlock& latestTxBlock = txBlocks.back();
+
+  if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
+    if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
+      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale ");
+      return TxBlockValidationMsg::INVALID;
+    }
+
+    LOG_GENERAL(WARNING,
+                "The latest DS index does not match that of the latest tx "
+                "block ds num, try fetching Tx and Dir Blocks again "
+                    << latestTxBlock.GetHeader().GetDSBlockNum() << " "
+                    << latestDSIndex);
+    return TxBlockValidationMsg::STALEDSINFO;
+  }
+
+  if (!CheckBlockCosignature(latestTxBlock, dsComm)) {
+    return TxBlockValidationMsg::INVALID;
+  }
+
+  if (txBlocks.size() < 2) {
+    return TxBlockValidationMsg::VALID;
+  }
+
+  BlockHash prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
+  unsigned int sIndex = txBlocks.size() - 2;
+
+  for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
+    if (prevBlockHash != txBlocks.at(sIndex).GetHeader().GetMyHash()) {
+      LOG_GENERAL(WARNING,
+                  "Prev hash "
+                      << prevBlockHash << " and hash of blocknum "
+                      << txBlocks.at(sIndex).GetHeader().GetBlockNum());
+      return TxBlockValidationMsg::INVALID;
+    }
+    prevBlockHash = txBlocks.at(sIndex).GetHeader().GetPrevHash();
+    sIndex--;
+  }
+
+  return TxBlockValidationMsg::VALID;
 }
