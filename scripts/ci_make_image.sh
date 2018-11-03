@@ -32,7 +32,7 @@ aws --version
 [ -n "$1" ] && jobs=$1 || jobs=2
 commit=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
-region_id=us-east-1
+region_id=us-west-2
 registry_url=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})

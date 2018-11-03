@@ -439,7 +439,7 @@ bool ConsensusLeader::GenerateChallengeMessage(vector<unsigned char>& challenge,
           challenge, offset, m_consensusID, m_blockNumber, subsetID,
           m_blockHash, m_myID, aggregated_commit, aggregated_key,
           subset.challenge,
-          make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
+          make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusChallenge failed.");
     return false;
   }
@@ -509,7 +509,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   }
 
   if (!MultiSig::VerifyResponse(r, subset.challenge,
-                                m_committee.at(backupID).first,
+                                GetCommitteeMember(backupID).first,
                                 subset.commitPointMap.at(backupID))) {
     LOG_GENERAL(WARNING, "Invalid response for this backup");
     return false;
@@ -712,7 +712,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
   if (!Messenger::SetConsensusCollectiveSig(
           collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_myID, subset.collectiveSig, subset.responseMap,
-          make_pair(m_myPrivKey, m_committee.at(m_myID).first))) {
+          make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusCollectiveSig failed.");
     return false;
   }
@@ -796,7 +796,7 @@ bool ConsensusLeader::StartConsensus(
   if (!announcementGeneratorFunc(
           announcement_message, MessageOffset::BODY + sizeof(unsigned char),
           m_consensusID, m_blockNumber, m_blockHash, m_myID,
-          make_pair(m_myPrivKey, m_committee.at(m_myID).first),
+          make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first),
           m_messageToCosign)) {
     LOG_GENERAL(WARNING, "Failed to generate announcement message.");
     return false;

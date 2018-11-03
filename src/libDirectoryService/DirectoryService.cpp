@@ -404,6 +404,7 @@ bool DirectoryService::CleanVariables() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
+    m_fetchedMicroBlocks.clear();
     m_missingMicroBlocks.clear();
     m_totalTxnFees = 0;
   }
@@ -870,4 +871,9 @@ uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
   estimatedBlocksOneYear = (estimatedBlocksOneYear / NUM_FINAL_BLOCK_PER_POW) *
                            NUM_FINAL_BLOCK_PER_POW;
   return estimatedBlocksOneYear;
+}
+
+int64_t DirectoryService::GetAllPoWSize() const {
+  std::lock_guard<mutex> lock(m_mutexAllPOW);
+  return m_allPoWs.size();
 }

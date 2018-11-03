@@ -34,6 +34,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block/MicroBlock.h"
+#include "libData/BlockData/Block/TxBlock.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
@@ -102,6 +103,9 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_mutexSetState;
   std::mutex mutable m_mutexLookupNodes;
   std::mutex m_mutexMicroBlocksBuffer;
+
+  // TxBlockBuffer
+  std::vector<TxBlock> m_txBlockBuffer;
 
   std::vector<unsigned char> ComposeGetDSInfoMessage(bool initialDS = false);
   std::vector<unsigned char> ComposeGetStateMessage();
@@ -197,6 +201,8 @@ class Lookup : public Executable, public Broadcastable {
 
   bool AddToTxnShardMap(const Transaction& tx, uint32_t shardId);
 
+  void CheckBufferTxBlocks();
+
   bool DeleteTxnShardMap(uint32_t shardId);
 
   void SetServerTrue();
@@ -255,6 +261,7 @@ class Lookup : public Executable, public Broadcastable {
                                  unsigned int offset, const Peer& from);
   bool ProcessSetTxBlockFromSeed(const std::vector<unsigned char>& message,
                                  unsigned int offset, const Peer& from);
+  void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
   bool ProcessSetTxBodyFromSeed(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   bool ProcessSetStateFromSeed(const std::vector<unsigned char>& message,

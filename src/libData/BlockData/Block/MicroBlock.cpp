@@ -105,15 +105,10 @@ bool MicroBlock::operator==(const MicroBlock& block) const {
 }
 
 bool MicroBlock::operator<(const MicroBlock& block) const {
-  if (m_header < block.m_header) {
-    return true;
-  } else if (m_header > block.m_header) {
-    return false;
-  } else {
-    return false;
-  }
+  return std::tie(block.m_header, block.m_tranHashes) >
+         std::tie(m_header, m_tranHashes);
 }
 
 bool MicroBlock::operator>(const MicroBlock& block) const {
-  return !((*this == block) || (*this < block));
+  return block < *this;
 }

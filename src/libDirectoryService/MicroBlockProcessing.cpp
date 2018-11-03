@@ -336,13 +336,23 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
     const vector<unsigned char>& stateDelta) {
   LOG_MARKER();
 
-  // if (!CheckState(PROCESS_MICROBLOCKSUBMISSION))
-  // {
-  //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-  //               "Not at MICROBLOCK_SUBMISSION. Current state is " <<
-  //               m_state);
-  //     return false;
-  // }
+#ifdef DM_TEST_DM_LESSMB_ONE
+  if (m_mediator.m_ds->m_consensusMyID ==
+      ((m_mediator.m_ds->m_consensusLeaderID + 1) %
+       m_mediator.m_DSCommittee->size())) {
+    LOG_GENERAL(INFO,
+                "Letting one of the backups refuse some Microblock submission");
+    return false;
+  }
+#endif  // DM_TEST_DM_LESSMB_ONE
+
+#ifdef DM_TEST_DM_LESSMB_ALL
+  if (m_mediator.m_ds->m_mode == BACKUP_DS) {
+    LOG_GENERAL(INFO,
+                "Letting all of the backups refuse some Microblock submission");
+    return false;
+  }
+#endif  // DM_TEST_DM_LESSMB_ALL
 
   LOG_GENERAL(
       INFO, "Received microblock submission for block number " << epochNumber);
@@ -509,12 +519,15 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       LOG_GENERAL(INFO,
                   "MicroBlock Hash: " << microBlock.GetHeader().GetHashes());
 
-      if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
-                        microBlock.GetHeader().GetShardId())) {
-        continue;
+      if (microBlock.GetHeader().GetShardId() != m_shards.size()) {
+        if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
+                          microBlock.GetHeader().GetShardId())) {
+          continue;
+        }
       }
 
       microBlocksAtEpoch.emplace(microBlock);
+      m_fetchedMicroBlocks.emplace(microBlock);
 
       LOG_GENERAL(INFO, microBlocksAtEpoch.size()
                             << " of " << m_shards.size() + 1

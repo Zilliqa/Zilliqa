@@ -43,6 +43,7 @@ RumorManager::RumorManager()
     : m_peerIdPeerBimap(),
       m_peerIdSet(),
       m_rumorIdRumorBimap(),
+      m_tmpRumorHashSet(),
       m_selfPeer(),
       m_rumorIdGenerator(0),
       m_mutex(),
@@ -131,6 +132,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   m_rumorIdRumorBimap.clear();
   m_peerIdSet.clear();
   m_selfPeer = myself;
+  m_tmpRumorHashSet.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {
@@ -197,7 +199,7 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
 
     return m_rumorHolder->addRumor(m_rumorIdGenerator);
   } else {
-    LOG_GENERAL(INFO, "This Rumor was already received. No problem.");
+    LOG_GENERAL(DEBUG, "This Rumor was already received. No problem.");
   }
 
   return false;
@@ -278,17 +280,34 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       {
         SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
         sha256.Update(message);  // raw_message hash
-        LOG_GENERAL(WARNING,
-                    "Round is not running. Will accept the msg received from "
-                        << from
-                        << ", but will not "
-                           "gossip it further. [Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(sha256.Finalize())
-                               .substr(0, 6)
-                        << " ]");
+        std::string hash = DataConversion::Uint8VecToHexStr(sha256.Finalize());
+        {
+          std::lock_guard<std::mutex> guard(m_mutex);
+          // Is it old rumor message. If so then we have already dispatched it.
+          // Don't do it again.
+          auto it = m_rumorIdRumorBimap.right.find(message);
+          if (it == m_rumorIdRumorBimap.right.end()) {
+            // Now that round is not running , And i may receive same message
+            // multiple times from my other peers. So avoid sending it to
+            // dispatcher multiple times.
+            if (m_tmpRumorHashSet.insert(hash).second) {
+              LOG_GENERAL(
+                  WARNING,
+                  "Round is not running. Will accept the msg received from "
+                      << from
+                      << ", but will not "
+                         "gossip it further. [Gossip_Message_Hash: "
+                      << hash.substr(0, 6) << " ]");
+              return true;
+            } else {
+              LOG_GENERAL(WARNING,
+                          "Ignoring duplicate mesage.[Gossip_Message_Hash: "
+                              << hash.substr(0, 6));
+            }
+          }
+        }
       }
-
-      return true;
+      return false;
     }
   }
 
@@ -297,8 +316,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   auto p = m_peerIdPeerBimap.right.find(from);
   if (p == m_peerIdPeerBimap.right.end()) {
     // I dont know this peer, missing in my peerlist.
-    LOG_GENERAL(INFO, "Received Rumor from peer : "
-                          << from << " which does not exist in my peerlist.");
+    LOG_GENERAL(DEBUG, "Received Rumor from peer : "
+                           << from << " which does not exist in my peerlist.");
     return false;
   }
 
@@ -338,9 +357,9 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     } else  // already received , pass it on to member for state calculations
     {
       recvdRumorId = it->second;
-      LOG_GENERAL(INFO, "Old Gossip message received from "
-                            << from << ". [ RumorId: " << recvdRumorId
-                            << ", Current Round: " << round);
+      LOG_GENERAL(DEBUG, "Old Gossip message received from "
+                             << from << ". [ RumorId: " << recvdRumorId
+                             << ", Current Round: " << round);
     }
   }
 
@@ -376,8 +395,8 @@ void RumorManager::SendMessages(const Peer& toPeer,
     if (m != m_rumorIdRumorBimap.left.end()) {
       // Add raw message to outgoing message
       cmd.insert(cmd.end(), m->second.begin(), m->second.end());
-      LOG_GENERAL(INFO, "Sending Non Empty - Gossip Message: "
-                            << k << " To Peer : " << toPeer);
+      LOG_GENERAL(DEBUG, "Sending Non Empty - Gossip Message: "
+                             << k << " To Peer : " << toPeer);
     }
 
     // Send the message to peer .

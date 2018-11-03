@@ -85,7 +85,8 @@ class POW {
                  const std::array<unsigned char, UINT256_SIZE>& rand2,
                  const boost::multiprecision::uint128_t& ipAddr,
                  const PubKey& pubKey, bool fullDataset, uint64_t winning_nonce,
-                 std::string& winning_result, std::string& winning_mixhash);
+                 const std::string& winning_result,
+                 const std::string& winning_mixhash);
   std::vector<unsigned char> ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,

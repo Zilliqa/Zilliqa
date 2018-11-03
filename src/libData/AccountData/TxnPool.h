@@ -36,8 +36,7 @@ struct TxnPool {
   };
 
   std::unordered_map<TxnHash, Transaction> HashIndex;
-  std::map<boost::multiprecision::uint256_t,
-           std::unordered_map<TxnHash, Transaction>,
+  std::map<boost::multiprecision::uint256_t, std::map<TxnHash, Transaction>,
            std::greater<boost::multiprecision::uint256_t>>
       GasIndex;
   std::unordered_map<std::pair<PubKey, boost::multiprecision::uint256_t>,
@@ -54,6 +53,15 @@ struct TxnPool {
 
   bool exist(const TxnHash& th) {
     return HashIndex.find(th) != HashIndex.end();
+  }
+
+  bool get(const TxnHash& th, Transaction& t) {
+    if (!exist(th)) {
+      return false;
+    }
+    t = HashIndex[th];
+
+    return true;
   }
 
   bool insert(const Transaction& t) {

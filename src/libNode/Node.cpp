@@ -756,6 +756,26 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
   LOG_GENERAL(INFO, "TxnPool size before processing: " << m_createdTxns.size());
 
+#ifdef DM_TEST_DM_LESSTXN_ONE
+  if (m_mediator.m_ds->m_consensusMyID ==
+      ((m_mediator.m_ds->m_consensusLeaderID + 1) %
+       m_mediator.m_DSCommittee->size())) {
+    LOG_GENERAL(INFO,
+                "Letting one of the backups accept less txns from lookup "
+                "comparing to the others");
+    return false;
+  }
+#endif  // DM_TEST_DM_LESSTXN_ONE
+
+#ifdef DM_TEST_DM_LESSTXN_ALL
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::BACKUP_DS) {
+    LOG_GENERAL(INFO,
+                "Letting all of the backups accept less txns from lookup "
+                "comparing to the leader");
+    return false;
+  }
+#endif  // DM_TEST_DM_LESSTXN_ALL
+
   // Process the txns
   unsigned int processed_count = 0;
   {
@@ -936,6 +956,7 @@ bool Node::CleanVariables() {
   {
     std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
     m_processedTransactions.clear();
+    t_processedTransactions.clear();
   }
   // {
   //     std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
@@ -970,7 +991,9 @@ void Node::CleanCreatedTransaction() {
   {
     std::lock_guard<mutex> g(m_mutexCreatedTransactions);
     m_createdTxns.clear();
+    t_createdTxns.clear();
     m_addrNonceTxnMap.clear();
+    t_addrNonceTxnMap.clear();
   }
   {
     std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);

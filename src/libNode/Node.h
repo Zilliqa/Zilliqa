@@ -95,7 +95,6 @@ class Node : public Executable, public Broadcastable {
   // Consensus variables
   std::mutex m_mutexProcessConsensusMessage;
   std::condition_variable cv_processConsensusMessage;
-  std::shared_ptr<ConsensusCommon> m_consensusObject;
   std::mutex m_MutexCVMicroblockConsensus;
   std::mutex m_MutexCVMicroblockConsensusObject;
   std::condition_variable cv_microblockConsensusObject;
@@ -115,16 +114,16 @@ class Node : public Executable, public Broadcastable {
 
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
-  TxnPool m_createdTxns;
+  TxnPool m_createdTxns, t_createdTxns;
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
-      m_addrNonceTxnMap;
+      m_addrNonceTxnMap, t_addrNonceTxnMap;
   std::vector<TxnHash> m_txnsOrdering;
-
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
                      std::unordered_map<TxnHash, TransactionWithReceipt>>
       m_processedTransactions;
+  std::unordered_map<TxnHash, TransactionWithReceipt> t_processedTransactions;
   // operates under m_mutexProcessedTransaction
   std::vector<TxnHash> m_TxnOrder;
 
@@ -395,6 +394,7 @@ class Node : public Executable, public Broadcastable {
   std::atomic<uint32_t> m_consensusMyID;
   std::atomic<bool> m_isPrimary;
   std::atomic<uint32_t> m_consensusLeaderID;
+  std::shared_ptr<ConsensusCommon> m_consensusObject;
 
   // Finalblock Processing
   std::mutex m_mutexFinalBlock;
@@ -468,9 +468,6 @@ class Node : public Executable, public Broadcastable {
   void AddBlock(const TxBlock& block);
 
   void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
-
-  void UpdateDSCommiteeCompositionAfterVC(
-      std::deque<std::pair<PubKey, Peer>>& dsComm);
 
   void UpdateDSCommitteeAfterFallback(
       const uint32_t& shard_id, const PubKey& leaderPubKey,
@@ -547,6 +544,11 @@ class Node : public Executable, public Broadcastable {
 
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
+
+  void UpdateDSCommiteeCompositionAfterVC(
+      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
+
+  void UpdateProcessedTransactions();
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
