@@ -195,6 +195,8 @@ class ConsensusCommon {
                          const CommitPoint& aggregated_commit,
                          const PubKey& aggregated_key);
 
+  std::pair<PubKey, Peer> GetCommitteeMember(const unsigned int index);
+
  public:
   /// Consensus message processing function
   virtual bool ProcessMessage(

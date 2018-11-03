@@ -88,8 +88,9 @@ Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
   LOG_MARKER();
 
   Signature signature;
-  bool result = Schnorr::GetInstance().Sign(
-      msg, offset, size, m_myPrivKey, m_committee.at(m_myID).first, signature);
+  bool result =
+      Schnorr::GetInstance().Sign(msg, offset, size, m_myPrivKey,
+                                  GetCommitteeMember(m_myID).first, signature);
   if (!result) {
     return Signature();
   }
@@ -101,13 +102,13 @@ bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
                                     const Signature& toverify,
                                     uint16_t peer_id) {
   LOG_MARKER();
-  bool result = Schnorr::GetInstance().Verify(msg, offset, size, toverify,
-                                              m_committee.at(peer_id).first);
+  bool result = Schnorr::GetInstance().Verify(
+      msg, offset, size, toverify, GetCommitteeMember(peer_id).first);
 
   if (!result) {
     LOG_GENERAL(INFO, "Peer id: " << peer_id << " pubkey: 0x"
                                   << DataConversion::SerializableToHexStr(
-                                         m_committee.at(peer_id).first));
+                                         GetCommitteeMember(peer_id).first));
     LOG_GENERAL(INFO, "pubkeys size: " << m_committee.size());
   }
   return result;
@@ -176,6 +177,17 @@ Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
   LOG_MARKER();
 
   return Challenge(aggregated_commit, aggregated_key, msg);
+}
+
+pair<PubKey, Peer> ConsensusCommon::GetCommitteeMember(
+    const unsigned int index) {
+  if (m_committee.size() <= index) {
+    LOG_GENERAL(WARNING, "Committee size " << m_committee.size() << " <= index "
+                                           << index
+                                           << ". Returning default values.");
+    return make_pair(PubKey(), Peer());
+  }
+  return m_committee.at(index);
 }
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }

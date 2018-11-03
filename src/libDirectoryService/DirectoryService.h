@@ -99,6 +99,10 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexAllPoWCounter;
   std::map<PubKey, uint8_t> m_AllPoWCounter;
+
+  mutable std::mutex m_mutexAllPOW;
+  MapOfPubKeyPoW m_allPoWs;  // map<pubkey, PoW Soln>
+
   std::mutex m_mutexAllDSPOWs;
   MapOfPubKeyPoW m_allDSPoWs;  // map<pubkey, DS PoW Sol
 
@@ -140,7 +144,8 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // View Change
   std::atomic<uint32_t> m_viewChangeCounter;
-  Peer m_candidateLeader;
+  std::atomic<uint32_t> m_candidateLeaderIndex;
+  std::vector<std::pair<PubKey, Peer>> m_cumulativeFaultyLeaders;
   std::shared_ptr<VCBlock> m_pendingVCBlock;
   std::mutex m_mutexPendingVCBlock;
   std::condition_variable cv_ViewChangeConsensusObj;
@@ -217,6 +222,7 @@ class DirectoryService : public Executable, public Broadcastable {
   unsigned int ComputeDSBlockParameters(const VectorOfPoWSoln& sortedDSPoWSolns,
                                         VectorOfPoWSoln& sortedPoWSolns,
                                         std::map<PubKey, Peer>& powDSWinners,
+                                        MapOfPubKeyPoW& dsWinnerPoWs,
                                         uint8_t& dsDifficulty,
                                         uint8_t& difficulty, uint64_t& blockNum,
                                         BlockHash& prevHash);
@@ -225,6 +231,7 @@ class DirectoryService : public Executable, public Broadcastable {
                           unsigned int numOfProposedDSMembers);
 
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
+  bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
                          const MapOfPubKeyPoW& allPoWsFromTheLeader);
@@ -296,10 +303,11 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckPreviousFinalBlockHash();
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
-  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg);
+  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
+                        bool fromShards = false);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockHashRoot();
-  bool CheckIsMicroBlockEmpty();
+  bool CheckExtraMicroBlockInfo();
   bool CheckStateRoot();
   bool CheckStateDeltaHash();
   void LoadUnavailableMicroBlocks();
@@ -336,7 +344,8 @@ class DirectoryService : public Executable, public Broadcastable {
                            const std::vector<unsigned char>& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
                            std::vector<unsigned char>& messageToCosign);
-
+  bool CheckUseVCBlockInsteadOfDSBlock(const BlockLink& bl,
+                                       VCBlockSharedPtr& prevVCBlockptr);
   void StoreFinalBlockToDisk();
 
   bool OnNodeFinalConsensusError(const std::vector<unsigned char>& errorMsg,
@@ -358,9 +367,12 @@ class DirectoryService : public Executable, public Broadcastable {
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
-  bool ComputeNewCandidateLeader();
-  bool RunConsensusOnViewChangeWhenCandidateLeader();
-  bool RunConsensusOnViewChangeWhenNotCandidateLeader();
+  bool ComputeNewCandidateLeader(const uint32_t candidateLeaderIndex);
+  uint32_t CalculateNewLeaderIndex();
+  bool RunConsensusOnViewChangeWhenCandidateLeader(
+      const uint32_t candidateLeaderIndex);
+  bool RunConsensusOnViewChangeWhenNotCandidateLeader(
+      const uint32_t candidateLeaderIndex);
   void ProcessViewChangeConsensusWhenDone();
   void ProcessNextConsensus(unsigned char viewChangeState);
 
@@ -426,9 +438,6 @@ class DirectoryService : public Executable, public Broadcastable {
   /// committee.
   std::atomic<Mode> m_mode;
 
-  std::mutex m_mutexAllPOW;
-  MapOfPubKeyPoW m_allPoWs;  // map<pubkey, PoW Soln>
-
   // Sharding committee members
   std::mutex m_mutexShards;
   DequeOfShard m_shards;
@@ -467,6 +476,7 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
+  std::set<MicroBlock> m_fetchedMicroBlocks;
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
   boost::multiprecision::uint256_t m_totalTxnFees;
 
@@ -557,6 +567,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // Sort the PoW submissions. Put to public static function, so it can be
   // covered by auto test.
   static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows);
+  int64_t GetAllPoWSize() const;
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

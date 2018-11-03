@@ -404,9 +404,10 @@ bool Node::ComposeFallbackBlock() {
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             m_mediator.m_currentEpochNum, m_fallbackState,
-            AccountStore::GetInstance().GetStateRootHash(), m_consensusLeaderID,
-            leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
-            m_myshardId, get_time_as_int(), committeeHash),
+            {AccountStore::GetInstance().GetStateRootHash()},
+            m_consensusLeaderID, leaderNetworkInfo,
+            m_myShardMembers->at(m_consensusLeaderID).first, m_myshardId,
+            get_time_as_int(), committeeHash),
         CoSignatures()));
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());

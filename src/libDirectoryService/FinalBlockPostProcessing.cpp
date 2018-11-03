@@ -327,6 +327,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   AccountStore::GetInstance().InitTemp();
+  AccountStore::GetInstance().InitReversibles();
+  m_fetchedMicroBlocks.clear();
   m_stateDeltaFromShards.clear();
   m_allPoWConns.clear();
   ClearDSPoWSolns();
@@ -432,6 +434,14 @@ bool DirectoryService::ProcessFinalBlockConsensus(
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
     // don't buffer the Final block consensus message if i am non-ds node
     if (m_mode == Mode::IDLE) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Ignoring final block consensus message");
+      return false;
+    }
+    // Only buffer the Final block consensus message if in MICROBLOCK_SUBMISSION
+    // or VIEWCHANGE_CONSENSUS state
+    if (!((m_state == MICROBLOCK_SUBMISSION) ||
+          (m_state == VIEWCHANGE_CONSENSUS))) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Ignoring final block consensus message");
       return false;
@@ -581,6 +591,9 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
         auto rerunconsensus = [this, message, offset, from]() {
           AccountStore::GetInstance().RevertCommitTemp();
+          AccountStore::GetInstance().SerializeDelta();
+          AccountStore::GetInstance().CommitTempReversible();
+          m_needCheckMicroBlock = false;
 
           ProcessFinalBlockConsensusCore(message, offset, from);
         };

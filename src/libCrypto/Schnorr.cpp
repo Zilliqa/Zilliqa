@@ -362,7 +362,8 @@ int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
 }
 
 PubKey& PubKey::operator=(const PubKey& src) {
-  m_initialized = (EC_POINT_copy(m_P.get(), src.m_P.get()) == 1);
+  m_initialized =
+      src.m_initialized && (EC_POINT_copy(m_P.get(), src.m_P.get()) == 1);
   return *this;
 }
 

@@ -741,6 +741,23 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   if (!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum())) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MicroBlock Root Hash verification failed");
+    return false;
+  }
+
+  // Compute the MBInfoHash of the extra MicroBlock information
+  MBInfoHash mbInfoHash;
+  if (!Messenger::GetExtraMbInfoHash(txBlock.GetIsMicroBlockEmpty(),
+                                     txBlock.GetShardIds(), mbInfoHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetExtraMbInfoHash failed.");
+    return false;
+  }
+
+  if (mbInfoHash != txBlock.GetHeader().GetMbInfoHash()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MbInfo verification failed");
     return false;
   }
 
@@ -861,6 +878,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     LOG_GENERAL(INFO,
                 "State Delta hash received from finalblock is null, "
                 "skip processing state delta");
+    AccountStore::GetInstance().CommitTempReversible();
     return true;
   }
 

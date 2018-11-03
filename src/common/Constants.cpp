@@ -200,6 +200,8 @@ const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("COMMIT_WINDOW_IN_SECONDS")};
 const unsigned int NUM_CONSENSUS_SUBSETS{
     ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
+const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
+    ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
@@ -222,6 +224,9 @@ const bool BROADCAST_TREEBASED_CLUSTER_MODE{
     ReadFromOptionsFile("BROADCAST_TREEBASED_CLUSTER_MODE") == "true"};
 const bool GET_INITIAL_DS_FROM_REPO{
     ReadFromOptionsFile("GET_INITIAL_DS_FROM_REPO") == "true"};
+const std::string UPGRADE_HOST_ACCOUNT{
+    ReadFromOptionsFile("UPGRADE_HOST_ACCOUNT")};
+const std::string UPGRADE_HOST_REPO{ReadFromOptionsFile("UPGRADE_HOST_REPO")};
 const std::vector<std::string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const std::vector<std::string> GENESIS_KEYS{
