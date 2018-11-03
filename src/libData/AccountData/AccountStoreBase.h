@@ -32,7 +32,7 @@
 #include "libCrypto/Schnorr.h"
 
 template <class MAP>
-class AccountStoreBase : public Serializable {
+class AccountStoreBase : public SerializableDataBlock {
  protected:
   std::shared_ptr<MAP> m_addressToAccount;
 
@@ -47,12 +47,11 @@ class AccountStoreBase : public Serializable {
   virtual void Init();
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual int Deserialize(const std::vector<unsigned char>& src,
-                          unsigned int offset);
+  virtual bool Deserialize(const std::vector<unsigned char>& src,
+                           unsigned int offset);
 
   virtual Account* GetAccount(const Address& address);
 

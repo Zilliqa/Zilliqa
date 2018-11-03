@@ -19,7 +19,7 @@ Zilliqa is a new blockchain platform capable of processing thousands of transact
   
 ## _D24_ Testnet with [Scilla](https://scilla-lang.org/) support
 
-* [Interpreter IDE](https://ide.zilliqa.com/)  
+* [Interpreter IDE](https://savant-ide.zilliqa.com/)  
 * [Block Explorer](https://explorer-scilla.zilliqa.com)  
 * [Wallet](https://wallet-scilla.zilliqa.com/)  
 
@@ -72,13 +72,14 @@ To run Zilliqa, we recommend the following minimum system requirements:
     sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
         libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
-        libprotobuf-dev protobuf-compiler libcurl4-openssl-dev
+        libprotobuf-dev protobuf-compiler libcurl4-openssl-dev libtool autoconf golang
     ```
 
 * macOS (experimental):
 
     ```bash
-    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
+    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf \
+        libtool autoconf
     ```
 
 ## Running Zilliqa locally

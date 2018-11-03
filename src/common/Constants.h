@@ -76,6 +76,7 @@ enum MetaType : unsigned char {
   STATEROOT = 0x00,
   DSINCOMPLETED,
   LATESTACTIVEDSBLOCKNUM,
+  WAKEUPFORUPGRADE,
 };
 
 // Sync Type
@@ -122,6 +123,7 @@ extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
+extern const unsigned int RECOVERY_SYNC_TIMEOUT;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
@@ -136,13 +138,9 @@ extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
-extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
-extern const unsigned int CONTRACT_CREATE_GAS;
-extern const unsigned int CONTRACT_INVOKE_GAS;
-extern const unsigned int NORMAL_TRAN_GAS;
 extern const unsigned int COINBASE_REWARD;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
@@ -181,6 +179,14 @@ extern const unsigned int MAX_CONTRACT_DEPTH;
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
+extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
+
+// gas
+extern const unsigned int MICROBLOCK_GAS_LIMIT;
+extern const unsigned int CONTRACT_CREATE_GAS;
+extern const unsigned int CONTRACT_INVOKE_GAS;
+extern const unsigned int NORMAL_TRAN_GAS;
+extern const unsigned int DEFAULT_MIN_GAS_PRICE;
 
 #ifdef FALLBACK_TEST
 extern const unsigned int FALLBACK_TEST_EPOCH;

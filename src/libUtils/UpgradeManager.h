@@ -32,6 +32,7 @@ class UpgradeManager {
   std::shared_ptr<SWInfo> m_latestSWInfo;
   std::vector<unsigned char> m_latestSHA;
   CURL* m_curl;
+  std::string m_constantFileName;
   std::string m_packageFileName;
   std::mutex m_downloadMutex;
 

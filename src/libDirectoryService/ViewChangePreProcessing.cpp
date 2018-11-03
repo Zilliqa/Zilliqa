@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -64,6 +63,14 @@ bool DirectoryService::ViewChangeValidator(
           leaderKey, *m_pendingVCBlock, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSVCBlockAnnouncement failed.");
+    return false;
+  }
+
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_pendingVCBlock->GetHeader().GetVieWChangeDSEpochNo(),
+          m_pendingVCBlock->GetHeader().GetViewChangeEpochNo())) {
+    LOG_GENERAL(WARNING,
+                "ViewChangeValidator CheckWhetherBlockIsLatest failed");
     return false;
   }
 

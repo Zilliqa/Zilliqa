@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -675,6 +674,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
+
+  BlockStorage::GetBlockStorage().PutShardStructure(
+      m_shards, m_mediator.m_node->m_myshardId);
+
   if (!Messenger::GetTxSharingAssignmentsHash(m_DSReceivers, m_shardReceivers,
                                               m_shardSenders,
                                               dsBlockHashSet.m_txSharingHash)) {
@@ -700,6 +703,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     m_pendingDSBlock.reset(
         new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
                                   m_mediator.m_selfKey.second, blockNum,
+                                  m_mediator.m_currentEpochNum,
                                   get_time_as_int(), m_mediator.m_curSWInfo,
                                   powDSWinners, dsBlockHashSet, committeeHash),
                     CoSignatures(m_mediator.m_DSCommittee->size())));
@@ -853,6 +857,13 @@ bool DirectoryService::DSBlockValidator(
           dsWinnerPoWsFromLeader, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
+    return false;
+  }
+
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_pendingDSBlock->GetHeader().GetBlockNum(),
+          m_pendingDSBlock->GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING, "DSBlockValidator CheckWhetherBlockIsLatest failed");
     return false;
   }
 

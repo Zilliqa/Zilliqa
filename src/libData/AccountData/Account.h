@@ -44,7 +44,7 @@
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
-class Account : public Serializable {
+class Account : public SerializableDataBlock {
   boost::multiprecision::uint256_t m_balance;
   boost::multiprecision::uint256_t m_nonce;
   dev::h256 m_storageRoot, m_prevRoot;
@@ -87,18 +87,10 @@ class Account : public Serializable {
   const uint64_t& GetCreateBlockNum() const { return m_createBlockNum; }
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int DeserializeAddOffset(const std::vector<unsigned char>& src,
-                           unsigned int& offset);
-
-  [[deprecated("not used anymore")]] int Deserialize(
-      [[gnu::unused]] const std::vector<unsigned char>& src,
-      [[gnu::unused]] unsigned int offset) {
-    return -1;
-  }
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Increases account balance by the specified delta amount.
   bool IncreaseBalance(const boost::multiprecision::uint256_t& delta);
@@ -121,6 +113,10 @@ class Account : public Serializable {
   bool IncreaseNonce();
 
   bool IncreaseNonceBy(const boost::multiprecision::uint256_t& nonceDelta);
+
+  void SetNonce(const boost::multiprecision::uint256_t& nonce) {
+    m_nonce = nonce;
+  }
 
   /// Returns the account nonce.
   const boost::multiprecision::uint256_t& GetNonce() const { return m_nonce; }
@@ -176,13 +172,13 @@ class Account : public Serializable {
   friend inline std::ostream& operator<<(std::ostream& out,
                                          Account const& account);
 
-  static unsigned int SerializeDelta(std::vector<unsigned char>& dst,
-                                     unsigned int offset, Account* oldAccount,
-                                     const Account& newAccount);
+  static bool SerializeDelta(std::vector<unsigned char>& dst,
+                             unsigned int offset, Account* oldAccount,
+                             const Account& newAccount);
 
-  static int DeserializeDelta(const std::vector<unsigned char>& src,
-                              unsigned int& offset, Account& account,
-                              bool fullCopy);
+  static bool DeserializeDelta(const std::vector<unsigned char>& src,
+                               unsigned int offset, Account& account,
+                               bool fullCopy);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account) {
