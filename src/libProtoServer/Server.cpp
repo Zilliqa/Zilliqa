@@ -64,7 +64,8 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock);
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock);
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
 
-ProtoServer::ProtoServer(Mediator& mediator, const unsigned int serverPort) : m_mediator(mediator), m_serverPort(serverPort) {
+ProtoServer::ProtoServer(Mediator& mediator, const unsigned int serverPort)
+    : m_mediator(mediator), m_serverPort(serverPort) {
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -87,9 +88,7 @@ void ProtoServer::StartServer() {
   server->Wait();
 }
 
-void ProtoServer::StopServer() {
-
-}
+void ProtoServer::StopServer() {}
 
 boost::multiprecision::uint256_t ProtoServer::GetNumTransactions(
     uint64_t blockNum) {
