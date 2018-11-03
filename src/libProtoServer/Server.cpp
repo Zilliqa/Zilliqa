@@ -77,7 +77,7 @@ ProtoServer::ProtoServer(Mediator& mediator, const unsigned int serverPort) : m_
 }
 
 void ProtoServer::StartServer() {
-  string server_address("0.0.0.0:" + m_serverPort);
+  string server_address("0.0.0.0:" + to_string(m_serverPort));
 
   ServerBuilder builder;
   builder.AddListeningPort(server_address, InsecureServerCredentials());
