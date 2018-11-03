@@ -22,6 +22,7 @@
 #include "AccountStore.h"
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
+#include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/SysCommand.h"
@@ -61,161 +62,55 @@ AccountStore& AccountStore::GetInstance() {
   return accountstore;
 }
 
-int AccountStore::Deserialize(const vector<unsigned char>& src,
-                              unsigned int offset) {
-  // [Total number of accounts] [Addr 1] [Account 1] [Addr 2] [Account 2] ....
-  // [Addr n] [Account n] LOG_MARKER();
-
-  try {
-    unsigned int curOffset = offset;
-    uint256_t totalNumOfAccounts =
-        GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    curOffset += UINT256_SIZE;
-
-    Address address;
-    Account account;
-    unsigned int numberOfAccountDeserialze = 0;
-    this->Init();
-    while (numberOfAccountDeserialze < totalNumOfAccounts) {
-      numberOfAccountDeserialze++;
-
-      // Deserialize address
-      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
-           address.asArray().begin());
-      curOffset += ACC_ADDR_SIZE;
-
-      // Deserialize account
-      if (account.DeserializeAddOffset(src, curOffset) < 0) {
-        LOG_GENERAL(WARNING, "failed to deserialize account: " << address);
-        continue;
-      }
-      (*m_addressToAccount)[address] = account;
-      UpdateStateTrie(address, account);
-      // MoveUpdatesToDisk();
-    }
-    // PrintAccountState();
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with AccountStore::Deserialize." << ' ' << e.what());
-    return -1;
+bool AccountStore::Deserialize(const vector<unsigned char>& src,
+                               unsigned int offset) {
+  if (!Messenger::GetAccountStore(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+    return false;
   }
-  return 0;
+
+  return true;
 }
 
-void AccountStore::SerializeDelta() {
+bool AccountStore::SerializeDelta() {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexDelta);
 
   m_stateDeltaSerialized.clear();
-  // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr
-  // 2] [Account 2] .... [Addr n] [Account n]
-  unsigned int curOffset = 0;
 
-  uint256_t totalNumOfAccounts = m_accountStoreTemp->GetNumOfAccounts();
-  LOG_GENERAL(INFO, "Debug: Total number of account deltas to serialize: "
-                        << totalNumOfAccounts);
-  SetNumber<uint256_t>(m_stateDeltaSerialized, curOffset, totalNumOfAccounts,
-                       UINT256_SIZE);
-  curOffset += UINT256_SIZE;
-
-  vector<unsigned char> address_vec;
-  // [Addr 1] [Account 1] [Addr 2] [Account 2] .... [Addr n] [Account n]
-  for (const auto& entry : *m_accountStoreTemp->GetAddressToAccount()) {
-    // LOG_GENERAL(INFO, "Addr: " << entry.first);
-
-    // Address
-    address_vec = entry.first.asBytes();
-
-    copy(address_vec.begin(), address_vec.end(),
-         std::back_inserter(m_stateDeltaSerialized));
-    curOffset += ACC_ADDR_SIZE;
-
-    // Account
-    Account* account = GetAccount(entry.first);
-    unsigned int size_needed = Account::SerializeDelta(
-        m_stateDeltaSerialized, curOffset, account, entry.second);
-    curOffset += size_needed;
+  if (!Messenger::SetAccountStoreDelta(m_stateDeltaSerialized, 0,
+                                       *m_accountStoreTemp)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccountStoreDelta failed.");
+    return false;
   }
+
+  return true;
 }
 
-unsigned int AccountStore::GetSerializedDelta(vector<unsigned char>& dst) {
-  // LOG_MARKER();
+void AccountStore::GetSerializedDelta(vector<unsigned char>& dst) {
   lock_guard<mutex> g(m_mutexDelta);
 
   copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
        back_inserter(dst));
-
-  return m_stateDeltaSerialized.size();
 }
 
-int AccountStore::DeserializeDelta(const vector<unsigned char>& src,
-                                   unsigned int offset, bool reversible) {
+bool AccountStore::DeserializeDelta(const vector<unsigned char>& src,
+                                    unsigned int offset, bool reversible) {
   LOG_MARKER();
-  // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr
-  // 2] [Account 2] .... [Addr n] [Account n]
 
-  try {
-    lock_guard<mutex> g(m_mutexDelta);
+  lock_guard<mutex> g(m_mutexDelta);
 
-    unsigned int curOffset = offset;
-    uint256_t totalNumOfAccounts =
-        GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    LOG_GENERAL(INFO, "Total Number of Accounts Delta: " << totalNumOfAccounts);
-    curOffset += UINT256_SIZE;
-
-    Address address;
-    Account account;
-    unsigned int numberOfAccountDeserialze = 0;
-    while (numberOfAccountDeserialze < totalNumOfAccounts) {
-      numberOfAccountDeserialze++;
-
-      // Deserialize address
-      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
-           address.asArray().begin());
-      curOffset += ACC_ADDR_SIZE;
-
-      // Deserialize accountDelta
-      Account* oriAccount = GetAccount(address);
-      bool fullCopy = false;
-      if (oriAccount == nullptr) {
-        Account acc(0, 0);
-        // LOG_GENERAL(INFO, "Creating new account: " << address);
-        AddAccount(address, acc);
-        oriAccount = GetAccount(address);
-        fullCopy = true;
-      }
-
-      // LOG_GENERAL(INFO, "Diff account: " << address);
-      account = *oriAccount;
-      if (Account::DeserializeDelta(src, curOffset, account, fullCopy) < 0) {
-        LOG_GENERAL(WARNING,
-                    "We failed to parse accountDelta for account: " << address);
-
-        continue;
-      }
-      (*m_addressToAccount)[address] = account;
-
-      if (reversible) {
-        if (fullCopy) {
-          m_addressToAccountRevCreated[address] = account;
-        } else {
-          m_addressToAccountRevChanged[address] = account;
-        }
-      }
-
-      UpdateStateTrie(address, account);
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with AccountStore::Deserialize." << ' ' << e.what());
-    return -1;
+  if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
+    return false;
   }
-  return 0;
+
+  return true;
 }
 
-int AccountStore::DeserializeDeltaTemp(const vector<unsigned char>& src,
-                                       unsigned int offset) {
+bool AccountStore::DeserializeDeltaTemp(const vector<unsigned char>& src,
+                                        unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
@@ -367,8 +262,9 @@ StateHash AccountStore::GetStateDeltaHash() {
 
 void AccountStore::CommitTemp() {
   LOG_MARKER();
-
-  DeserializeDelta(m_stateDeltaSerialized, 0);
+  if (!DeserializeDelta(m_stateDeltaSerialized, 0)) {
+    LOG_GENERAL(WARNING, "DeserializeDelta failed.");
+  }
 }
 
 void AccountStore::InitTemp() {
@@ -385,7 +281,9 @@ void AccountStore::CommitTempReversible() {
 
   InitReversibles();
 
-  DeserializeDelta(m_stateDeltaSerialized, 0, true);
+  if (!DeserializeDelta(m_stateDeltaSerialized, 0, true)) {
+    LOG_GENERAL(WARNING, "DeserializeDelta failed.");
+  }
 }
 
 void AccountStore::RevertCommitTemp() {

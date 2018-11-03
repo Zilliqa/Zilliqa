@@ -11,6 +11,34 @@ message ByteArray
     required bytes data = 1;
 }
 
+message ProtoAccount
+{
+    message StorageData
+    {
+        required bytes keyhash       = 1;
+        required string data         = 2;
+    }
+    optional bool numbersign       = 1; // For account delta (false=neg, true=pos)
+    required ByteArray balance     = 2;
+    required ByteArray nonce       = 3;
+    optional bytes storageroot     = 4;
+    optional bytes codehash        = 5;
+    optional uint64 createblocknum = 6;
+    optional bytes initdata        = 7;
+    optional bytes code            = 8;
+    repeated StorageData storage   = 9;
+}
+
+message ProtoAccountStore
+{
+    message AddressAccount
+    {
+        required bytes address        = 1;
+        required ProtoAccount account = 2;
+    }
+    repeated AddressAccount entries   = 3;
+}
+
 message ProtoDSNode
 {
     required ByteArray pubkey = 1;
@@ -152,16 +180,17 @@ message ProtoDSBlock
         required bytes prevhash         = 3; // 32 bytes
         required ByteArray leaderpubkey = 4;
         required uint64 blocknum        = 5;
-        required ByteArray timestamp    = 6;
-        required ByteArray swinfo       = 7;
+        required uint64 epochnum        = 6;
+        required ByteArray timestamp    = 7;
+        required ByteArray swinfo       = 8;
         message PowDSWinners
         {
             required ByteArray key      = 1;
             required ByteArray val      = 2;
         }
-        repeated PowDSWinners dswinners = 8;
-        required DSBlockHashSet hash    = 9;
-        required bytes committeehash    = 10;
+        repeated PowDSWinners dswinners = 9;
+        required DSBlockHashSet hash    = 10;
+        required bytes committeehash    = 11;
     }
     required DSBlockHeader header       = 1;
     required ProtoBlockBase blockbase   = 2;
@@ -178,7 +207,7 @@ message ProtoMicroBlock
         required ByteArray gasused     = 5;
         required ByteArray rewards     = 6;
         required bytes prevhash        = 7;
-        required uint64 blocknum       = 8;
+        required uint64 epochnum       = 8;
         required ByteArray timestamp   = 9;
         required bytes txroothash      = 10;
         required uint32 numtxs         = 11;
@@ -440,6 +469,20 @@ message LookupSetTxBlockFromSeed
     repeated ProtoTxBlock txblocks = 3;
     required ByteArray pubkey      = 4;
     required ByteArray signature   = 5;
+}
+
+message LookupGetStateDeltaFromSeed
+{
+    required uint64 blocknum     = 1;
+    required uint32 listenport   = 2;
+}
+
+message LookupSetStateDeltaFromSeed
+{
+    required uint64 blocknum     = 1;
+    required bytes statedelta    = 2;
+    required ByteArray pubkey    = 3;
+    required ByteArray signature = 4;
 }
 
 message LookupGetTxBodyFromSeed

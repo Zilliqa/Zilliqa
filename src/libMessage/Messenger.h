@@ -16,6 +16,9 @@
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
  */
+#ifndef __MESSENGER_H__
+#define __MESSENGER_H__
+
 #include <boost/variant.hpp>
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
@@ -25,9 +28,6 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
-
-#ifndef __MESSENGER_H__
-#define __MESSENGER_H__
 
 class Messenger {
  public:
@@ -46,6 +46,44 @@ class Messenger {
       const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders, TxSharingHash& dst);
+
+  static bool SetAccount(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const Account& account);
+  [[gnu::unused]] static bool GetAccount(const std::vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         Account& account);
+
+  static bool SetAccountDelta(std::vector<unsigned char>& dst,
+                              const unsigned int offset, Account* oldAccount,
+                              const Account& newAccount);
+  static bool GetAccountDelta(const std::vector<unsigned char>& src,
+                              const unsigned int offset, Account& account,
+                              const bool fullCopy);
+
+  // These are called by AccountStoreBase template class
+  template <class MAP>
+  static bool SetAccountStore(std::vector<unsigned char>& dst,
+                              const unsigned int offset,
+                              const MAP& addressToAccount);
+  template <class MAP>
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset, MAP& addressToAccount);
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset,
+                              AccountStore& accountStore);
+
+  // These are called by AccountStore class
+  static bool SetAccountStoreDelta(std::vector<unsigned char>& dst,
+                                   const unsigned int offset,
+                                   AccountStoreTemp& accountStoreTemp);
+  static bool GetAccountStoreDelta(const std::vector<unsigned char>& src,
+                                   const unsigned int offset,
+                                   AccountStore& accountStore,
+                                   const bool reversible);
+  static bool GetAccountStoreDelta(const std::vector<unsigned char>& src,
+                                   const unsigned int offset,
+                                   AccountStoreTemp& accountStoreTemp);
+
   static bool GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
                                  const std::vector<uint32_t>& shardIds,
                                  MBInfoHash& dst);
@@ -321,6 +359,13 @@ class Messenger {
                                    const unsigned int offset,
                                    FallbackBlock& fallbackBlock);
 
+  static bool ShardStructureToArray(std::vector<unsigned char>& dst,
+                                    const unsigned int offset,
+                                    const DequeOfShard& shards);
+  static bool ArrayToShardStructure(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    DequeOfShard& shards);
+
   // ============================================================================
   // Lookup messages
   // ============================================================================
@@ -396,6 +441,21 @@ class Messenger {
                                           uint64_t& highBlockNum,
                                           PubKey& lookupPubKey,
                                           std::vector<TxBlock>& txBlocks);
+  static bool SetLookupGetStateDeltaFromSeed(std::vector<unsigned char>& dst,
+                                             const unsigned int offset,
+                                             const uint64_t blockNum,
+                                             const uint32_t listenPort);
+  static bool GetLookupGetStateDeltaFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNum, uint32_t& listenPort);
+  static bool SetLookupSetStateDeltaFromSeed(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint64_t blockNum, const std::pair<PrivKey, PubKey>& lookupKey,
+      const std::vector<unsigned char>& stateDelta);
+  static bool GetLookupSetStateDeltaFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNum, PubKey& lookupPubKey,
+      std::vector<unsigned char>& stateDelta);
   static bool SetLookupGetTxBodyFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const std::vector<unsigned char>& txHash, const uint32_t listenPort);

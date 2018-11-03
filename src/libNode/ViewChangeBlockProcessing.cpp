@@ -153,6 +153,14 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // TODO State machine check
 
+  // Check is block latest
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          vcblock.GetHeader().GetVieWChangeDSEpochNo(),
+          vcblock.GetHeader().GetViewChangeEpochNo())) {
+    LOG_GENERAL(WARNING, "ProcessVCBlockCore CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
   // Verify the Block Hash
   BlockHash temp_blockHash = vcblock.GetHeader().GetMyHash();
   if (temp_blockHash != vcblock.GetBlockHash()) {
@@ -237,11 +245,19 @@ void Node::UpdateDSCommiteeCompositionAfterVC(
 void Node::SendVCBlockToOtherShardNodes(
     const vector<unsigned char>& vcblock_message) {
   LOG_MARKER();
+  unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+  if (cluster_size <= NUM_DS_ELECTION) {
+    LOG_GENERAL(
+        WARNING,
+        "Adjusting NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD to be greater than "
+        "NUM_DS_ELECTION. Why not correct the constant.xml next time.");
+    cluster_size = NUM_DS_ELECTION + 1;
+  }
+
   LOG_GENERAL(INFO,
               "Primary CLUSTER SIZE used is "
               "(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD):"
-                  << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
-  SendBlockToOtherShardNodes(vcblock_message,
-                             NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                  << cluster_size);
+  SendBlockToOtherShardNodes(vcblock_message, cluster_size,
                              NUM_OF_TREEBASED_CHILD_CLUSTERS);
 }

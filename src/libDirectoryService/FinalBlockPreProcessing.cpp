@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -400,24 +399,12 @@ bool DirectoryService::CheckFinalBlockNumber() {
 
   LOG_MARKER();
 
-  const uint64_t& finalblockBlocknum = m_finalBlock->GetHeader().GetBlockNum();
-  uint64_t expectedBlocknum = 0;
-  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
-    expectedBlocknum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
-  }
-  if (finalblockBlocknum != expectedBlocknum) {
-    LOG_GENERAL(WARNING, "Block number check failed. Expected: "
-                             << expectedBlocknum
-                             << " Actual: " << finalblockBlocknum);
-
-    m_consensusObject->SetConsensusErrorCode(
-        ConsensusCommon::INVALID_FINALBLOCK_NUMBER);
-
+  // Check block number
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_finalBlock->GetHeader().GetDSBlockNum() + 1,
+          m_finalBlock->GetHeader().GetBlockNum())) {
+    LOG_GENERAL(WARNING, "CheckWhetherBlockIsLatest failed");
     return false;
-  } else {
-    LOG_GENERAL(INFO,
-                "finalblockBlocknum = expectedBlocknum = " << expectedBlocknum);
   }
 
   return true;
@@ -1278,6 +1265,8 @@ void DirectoryService::SkipDSMicroBlock() {
 
 void DirectoryService::RunConsensusOnFinalBlock(
     RunFinalBlockConsensusOptions options) {
+  LOG_MARKER();
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::RunConsensusOnFinalBlock not expected "
@@ -1298,8 +1287,6 @@ void DirectoryService::RunConsensusOnFinalBlock(
                       << m_state);
       return;
     }
-
-    LOG_MARKER();
 
 #ifdef FALLBACK_TEST
     if (m_mediator.m_currentEpochNum == FALLBACK_TEST_EPOCH &&

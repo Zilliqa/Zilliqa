@@ -81,6 +81,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
                                   m_mediator.m_ds->m_latestActiveDSBlockNum)));
 
   uint64_t latestInd = m_mediator.m_blocklinkchain.GetLatestIndex() + 1;
+
   m_mediator.m_blocklinkchain.AddBlockLink(
       latestInd, dsblock.GetHeader().GetBlockNum(), BlockType::DS,
       dsblock.GetBlockHash());
@@ -98,30 +99,6 @@ void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm) {
     }
     dsComm.pop_back();
   }
-}
-
-bool Node::CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum) {
-  LOG_MARKER();
-
-  uint64_t latestBlockNumInBlockchain =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  if (dsblockNum < latestBlockNumInBlockchain + 1) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "We are processing duplicated blocks\n"
-                  << "cur block num: " << latestBlockNumInBlockchain << "\n"
-                  << "incoming block num: " << dsblockNum);
-    return false;
-  } else if (dsblockNum > latestBlockNumInBlockchain + 1) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Missing of some DS blocks. Requested: "
-                  << dsblockNum
-                  << " while Present: " << latestBlockNumInBlockchain);
-    // Todo: handle missing DS blocks.
-    return false;
-  }
-
-  return true;
 }
 
 bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
@@ -466,6 +443,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
+
   if (shardingHash != dsblock.GetHeader().GetShardingHash()) {
     LOG_GENERAL(WARNING,
                 "Sharding structure hash in newly received DS Block doesn't "
@@ -492,6 +470,8 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   m_myshardId = shardId;
+  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
+                                                    m_myshardId);
 
   LogReceivedDSBlockDetails(dsblock);
 
@@ -506,7 +486,11 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   // Checking for freshness of incoming DS Block
-  if (!CheckWhetherDSBlockNumIsLatest(dsblock.GetHeader().GetBlockNum())) {
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          dsblock.GetHeader().GetBlockNum(),
+          dsblock.GetHeader().GetEpochNum())) {
+    LOG_GENERAL(WARNING,
+                "ProcessVCDSBlocksMessage CheckWhetherBlockIsLatest failed");
     return false;
   }
 
@@ -684,17 +668,27 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     LOG_GENERAL(INFO, member.second);
   }
 
+  BlockStorage::GetBlockStorage().PutDSCommittee(
+      m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+
   return true;
 }
 
 void Node::SendDSBlockToOtherShardNodes(
     const vector<unsigned char>& dsblock_message) {
   LOG_MARKER();
+  unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+  if (cluster_size <= NUM_DS_ELECTION) {
+    LOG_GENERAL(
+        WARNING,
+        "Adjusting NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD to be greater than "
+        "NUM_DS_ELECTION. Why not correct the constant.xml next time.");
+    cluster_size = NUM_DS_ELECTION + 1;
+  }
   LOG_GENERAL(INFO,
               "Primary CLUSTER SIZE used is "
               "(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD):"
-                  << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
-  SendBlockToOtherShardNodes(dsblock_message,
-                             NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                  << cluster_size);
+  SendBlockToOtherShardNodes(dsblock_message, cluster_size,
                              NUM_OF_TREEBASED_CHILD_CLUSTERS);
 }
