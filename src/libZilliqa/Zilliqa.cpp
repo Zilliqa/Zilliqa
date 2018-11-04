@@ -202,6 +202,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
       // m_mediator.HeartBeatLaunch();
     } else {
       LOG_GENERAL(INFO, "I am a lookup node.");
+
       if (m_server.StartListening()) {
         LOG_GENERAL(INFO, "API Server started successfully");
         m_lookup.SetServerTrue();
@@ -209,8 +210,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         LOG_GENERAL(WARNING, "API Server couldn't start");
       }
     }
+
   };
   DetachedFunction(1, func);
+
+  m_protoServer.StartServer();
 }
 
 Zilliqa::~Zilliqa() {
