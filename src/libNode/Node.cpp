@@ -1126,11 +1126,6 @@ bool Node::CleanVariables() {
     m_gasUsedTotal = 0;
     m_txnFees = 0;
   }
-  {
-    std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
-    m_processedTransactions.clear();
-    t_processedTransactions.clear();
-  }
   // {
   //     std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
   //     m_committedTransactions.clear();
@@ -1161,6 +1156,7 @@ void Node::SetMyshardId(uint32_t shardId) {
 }
 
 void Node::CleanCreatedTransaction() {
+  LOG_MARKER();
   {
     std::lock_guard<mutex> g(m_mutexCreatedTransactions);
     m_createdTxns.clear();
@@ -1172,6 +1168,12 @@ void Node::CleanCreatedTransaction() {
     std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     m_txnPacketBuffer.clear();
   }
+  {
+    std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
+    m_processedTransactions.clear();
+    t_processedTransactions.clear();
+  }
+  m_TxnOrder.clear();
 }
 
 bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,

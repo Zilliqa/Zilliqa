@@ -170,7 +170,7 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
       Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
   offset += sizeof(uint32_t);
 
-  uint64_t blockNum =
+  uint64_t epochNum =
       Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
   offset += sizeof(uint64_t);
 
@@ -199,26 +199,28 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
   cur_offset += MessageOffset::BODY;
   tx_message.push_back(SUBMITTRANSACTIONTYPE::MISSINGTXN);
   cur_offset += MessageOffset::INST;
-  Serializable::SetNumber<uint64_t>(tx_message, cur_offset, blockNum,
+  Serializable::SetNumber<uint64_t>(tx_message, cur_offset, epochNum,
                                     sizeof(uint64_t));
   cur_offset += sizeof(uint64_t);
 
   std::vector<Transaction> txns;
+
+  const std::unordered_map<TxnHash, TransactionWithReceipt>&
+      processedTransactions = (epochNum == m_mediator.m_currentEpochNum)
+                                  ? t_processedTransactions
+                                  : m_processedTransactions[epochNum];
+
   for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
     // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn "
     // << missingTransactions[i])
-
-    Transaction t;
-
-    if (t_processedTransactions.find(missingTransactions[i]) !=
-        t_processedTransactions.end()) {
-      t = t_processedTransactions[missingTransactions[i]].GetTransaction();
+    auto found = processedTransactions.find(missingTransactions[i]);
+    if (found != processedTransactions.end()) {
+      txns.push_back(found->second.GetTransaction());
     } else {
       LOG_GENERAL(INFO, "Leader unable to find txn proposed in microblock "
                             << missingTransactions[i]);
       continue;
     }
-    txns.push_back(t);
   }
 
   if (!Messenger::SetTransactionArray(tx_message, cur_offset, txns)) {
@@ -592,6 +594,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
   }
 
+  m_TxnOrder.clear();
+
   if (!m_mediator.GetIsVacuousEpoch()) {
     ProcessTransactionWhenShardLeader();
     AccountStore::GetInstance().SerializeDelta();
@@ -656,23 +660,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
         *m_microblock, messageToCosign);
   };
 
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    LOG_STATE(
-        "[DSMICON]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] BGIN.");
-  } else {
-    LOG_STATE(
-        "[MICON]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] BGIN.");
-  }
+  LOG_STATE(
+      "[MICON]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] BGIN.");
+
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
   return true;
@@ -751,28 +745,6 @@ bool Node::RunConsensusOnMicroBlock() {
   LOG_MARKER();
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
-
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    m_mediator.m_ds->m_toSendTxnToLookup = false;
-    m_mediator.m_ds->m_startedRunFinalblockConsensus = false;
-    m_mediator.m_ds->m_stateDeltaWhenRunDSMB =
-        m_mediator.m_ds->m_stateDeltaFromShards;
-
-    if (m_mediator.GetIsVacuousEpoch()) {
-      // Coinbase
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "[CNBSE]");
-
-      m_mediator.m_ds->InitCoinbase();
-      m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
-      if (!AccountStore::GetInstance().SerializeDelta()) {
-        LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
-        return false;
-      }
-      AccountStore::GetInstance().GetSerializedDelta(
-          m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
-    }
-  }
 
   if (m_isPrimary) {
     if (!RunConsensusOnMicroBlockWhenShardLeader()) {
@@ -981,9 +953,11 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
       if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
         LOG_GENERAL(WARNING, "Got missing txns, revert state delta");
         if (!AccountStore::GetInstance().DeserializeDeltaTemp(
-                m_mediator.m_ds->m_stateDeltaWhenRunDSMB, 0)) {
+                m_mediator.m_ds->m_stateDeltaFromShards, 0)) {
           LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed.");
           return LEGITIMACYRESULT::DESERIALIZATIONERROR;
+        } else {
+          AccountStore::GetInstance().SerializeDelta();
         }
       }
 

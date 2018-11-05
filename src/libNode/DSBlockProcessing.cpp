@@ -604,9 +604,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       // Process txn sharing assignments as a DS node
       m_mediator.m_ds->ProcessTxnBodySharingAssignment();
 
-      //(We're getting rid of this eventually Clean up my txns coz I am DS)
-      m_mediator.m_node->CleanCreatedTransaction();
-
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
         LOG_GENERAL(INFO,

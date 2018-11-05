@@ -462,10 +462,10 @@ void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
               "Number of transactions to broadcast for block "
                   << blocknum << " = " << txns_to_send.size());
 
-    {
-      lock_guard<mutex> g(m_mutexProcessedTransactions);
-      m_processedTransactions.erase(blocknum);
-    }
+    // {
+    //   lock_guard<mutex> g(m_mutexProcessedTransactions);
+    //   m_processedTransactions.erase(blocknum);
+    // }
   }
 }
 
@@ -493,7 +493,7 @@ bool Node::FindTxnInProcessedTxnsList(
 
     // Move entry from submitted Tx list to committed Tx list
     // committedTransactions.push_back(txnIt->second);
-    processedTransactions.erase(txnIt);
+    // processedTransactions.erase(txnIt);
 
     // Move on to next transaction in block
     return true;

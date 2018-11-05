@@ -287,6 +287,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
                 "Enough error commit for ds microblock received, skip ds block "
                 "and rerun finalblock consensus");
       m_skippedDSMB = true;
+      this_thread::sleep_for(chrono::milliseconds(FINALBLOCK_DELAY_IN_MS));
       RunConsensusOnFinalBlock(SKIP_DSMICROBLOCK);
     }
 
@@ -497,7 +498,7 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
     // If its slow on benchmarking, may be first populate an unordered_set and
     // then std::find
     for (unsigned int i = 0; i < m_finalBlock->GetShardIds().size(); ++i) {
-      if (fromShards && m_finalBlock->GetShardIds()[i] == m_shards.size()) {
+      if (m_finalBlock->GetShardIds()[i] == m_shards.size()) {
         continue;
       }
 
@@ -763,6 +764,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
   auto& microBlocks = m_microBlocks[epochNum];
 
   vector<MicroBlock> microBlocksSent;
+  vector<vector<unsigned char>> stateDeltasSent;
 
   for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
     bool found = false;
@@ -776,22 +778,37 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
         break;
       }
     }
+
+    if (microBlockIter->GetHeader().GetShardId() == m_shards.size()) {
+      LOG_GENERAL(WARNING, "Ignore the fetching of DS microblock");
+      continue;
+    }
+
     if (!found) {
       LOG_GENERAL(WARNING, "cannot find missing microblock: (hash)"
                                << missingMicroBlocks[i].hex());
       continue;
     }
+
+    auto found_delta =
+        m_microBlockStateDeltas[epochNum].find(microBlockIter->GetBlockHash());
+    if (found_delta != m_microBlockStateDeltas[epochNum].end()) {
+      stateDeltasSent.emplace_back(found_delta->second);
+    } else {
+      stateDeltasSent.push_back({});
+    }
+
     microBlocksSent.emplace_back(*microBlockIter);
   }
 
-  // Final state delta
-  vector<unsigned char> stateDelta;
-  if (m_finalBlock->GetHeader().GetStateDeltaHash() != StateHash()) {
-    AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-  } else {
-    LOG_GENERAL(INFO,
-                "State Delta Hash is empty, skip sharing final state delta");
-  }
+  // // Final state delta
+  // vector<unsigned char> stateDelta;
+  // if (m_finalBlock->GetHeader().GetStateDeltaHash() != StateHash()) {
+  //   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
+  // } else {
+  //   LOG_GENERAL(INFO,
+  //               "State Delta Hash is empty, skip sharing final state delta");
+  // }
 
   vector<unsigned char> mb_message = {MessageType::DIRECTORY,
                                       DSInstructionType::MICROBLOCKSUBMISSION};
@@ -799,7 +816,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
   if (!Messenger::SetDSMicroBlockSubmission(
           mb_message, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, epochNum,
-          microBlocksSent, stateDelta)) {
+          microBlocksSent, stateDeltasSent)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return false;
@@ -1158,14 +1175,14 @@ bool DirectoryService::FinalBlockValidator(
       }
       m_mediator.m_node->UpdateProcessedTransactions();
       m_needCheckMicroBlock = false;
-      m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
       AccountStore::GetInstance().SerializeDelta();
-      AccountStore::GetInstance().GetSerializedDelta(
-          m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
       AccountStore::GetInstance().CommitTempReversible();
     }
   } else {
     m_mediator.m_node->m_microblock = nullptr;
+    AccountStore::GetInstance().InitTemp();
+    AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
+    AccountStore::GetInstance().SerializeDelta();
   }
 
   if (!CheckFinalBlockValidity(errorMsg)) {
@@ -1256,11 +1273,35 @@ void DirectoryService::SkipDSMicroBlock() {
   }
 
   LOG_MARKER();
+
+  LOG_GENERAL(WARNING, "Failed DS microblock consensus, revert state delta");
+
   AccountStore::GetInstance().RevertCommitTemp();
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
   AccountStore::GetInstance().SerializeDelta();
   AccountStore::GetInstance().CommitTempReversible();
+}
+
+void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::SkipDSMicroBlock not expected "
+                "to be called from LookUp node.");
+    return;
+  }
+
+  LOG_MARKER();
+  m_needCheckMicroBlock = true;
+  m_toSendTxnToLookup = false;
+
+  if (m_mediator.GetIsVacuousEpoch()) {
+    // Coinbase
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "[CNBSE]");
+
+    InitCoinbase();
+    AccountStore::GetInstance().SerializeDelta();
+  }
 }
 
 void DirectoryService::RunConsensusOnFinalBlock(
@@ -1303,58 +1344,15 @@ void DirectoryService::RunConsensusOnFinalBlock(
     switch (options) {
       case NORMAL: {
         LOG_GENERAL(INFO, "RunConsensusOnFinalBlock NORMAL");
-        m_needCheckMicroBlock = true;
-        m_toSendTxnToLookup = false;
-        m_stateDeltaWhenRunDSMB = m_stateDeltaFromShards;
-
-        if (m_mediator.GetIsVacuousEpoch()) {
-          // Coinbase
-          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "[CNBSE]");
-
-          InitCoinbase();
-          m_stateDeltaWhenRunDSMB.clear();
-          AccountStore::GetInstance().SerializeDelta();
-          AccountStore::GetInstance().GetSerializedDelta(
-              m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
-        }
+        PrepareRunConsensusOnFinalBlockNormal();
         break;
       }
       case SKIP_DSMICROBLOCK: {
         LOG_GENERAL(INFO, "RunConsensusOnFinalBlock SKIP_DSMICROBLOCK");
-        LOG_GENERAL(WARNING,
-                    "Failed DS microblock consensus, revert state delta");
         SkipDSMicroBlock();
         break;
       }
-      case FROM_VIEWCHANGE: {
-        LOG_GENERAL(INFO, "RunConsensusOnFinalBlock FROM_VIEWCHANGE");
-        if (!m_fetchedMicroBlocks.empty()) {
-          LOG_GENERAL(INFO, "Remove fetched microblocks from leader");
-          // remove the old micro block if there is
-          m_needCheckMicroBlock = true;
-          auto& microBlocksAtEpoch =
-              m_microBlocks[m_mediator.m_currentEpochNum];
-
-          for (auto iter = microBlocksAtEpoch.begin();
-               iter != microBlocksAtEpoch.end();) {
-            auto find = m_fetchedMicroBlocks.find(*iter);
-            if (find != m_fetchedMicroBlocks.end()) {
-              LOG_GENERAL(INFO,
-                          "Erase fetched microblock " << iter->GetBlockHash());
-              iter = microBlocksAtEpoch.erase(iter);
-            } else {
-              iter++;
-            }
-          }
-          m_fetchedMicroBlocks.clear();
-          AccountStore::GetInstance().RevertCommitTemp();
-          AccountStore::GetInstance().InitTemp();
-          AccountStore::GetInstance().DeserializeDeltaTemp(
-              m_stateDeltaFromShards, 0);
-          AccountStore::GetInstance().SerializeDelta();
-        }
-      }
+      case FROM_VIEWCHANGE:
       default:
         break;
     }

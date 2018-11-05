@@ -274,7 +274,7 @@ bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
   uint64_t latestDSBlockNumInBlockchain =
       m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  if (dsblockNum < latestDSBlockNumInBlockchain + 1) {
+  if (epochNum < latestDSBlockNumInBlockchain + 1) {
     LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
               "We are processing duplicated blocks\n"
                   << "cur block num: " << latestDSBlockNumInBlockchain << "\n"
