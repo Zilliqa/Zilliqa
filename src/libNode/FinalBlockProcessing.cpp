@@ -461,11 +461,6 @@ void Node::GetMyShardsMicroBlock(const uint64_t& blocknum, uint8_t sharing_mode,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Number of transactions to broadcast for block "
                   << blocknum << " = " << txns_to_send.size());
-
-    // {
-    //   lock_guard<mutex> g(m_mutexProcessedTransactions);
-    //   m_processedTransactions.erase(blocknum);
-    // }
   }
 }
 
