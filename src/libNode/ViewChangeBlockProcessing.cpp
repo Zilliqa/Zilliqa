@@ -242,6 +242,25 @@ void Node::UpdateDSCommiteeCompositionAfterVC(
   }
 }
 
+// Only compares the pubkeys to kickout
+void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(
+    const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
+  for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
+    auto it = find_if(dsComm.begin(), dsComm.end(),
+                      [faultyLeader](const pair<PubKey, Peer>& p) {
+                        return p.first == faultyLeader.first;
+                      });
+
+    // Remove faulty leader from the current
+    if (it != dsComm.end()) {
+      dsComm.erase(it);
+    } else {
+      LOG_GENERAL(FATAL, "Cannot find the ds leader to eject");
+    }
+    dsComm.emplace_back(faultyLeader);
+  }
+}
+
 void Node::SendVCBlockToOtherShardNodes(
     const vector<unsigned char>& vcblock_message) {
   LOG_MARKER();
