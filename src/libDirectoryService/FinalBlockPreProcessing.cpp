@@ -155,7 +155,10 @@ bool DirectoryService::ComposeFinalBlock() {
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
 #ifdef DM_TEST_DM_BAD_ANNOUNCE
-  stateRoot = StateHash();
+  if (m_viewChangeCounter == 0) {
+    LOG_GENERAL(INFO, "Leader compose wrong state root");
+    stateRoot = StateHash();
+  }
 #endif  // DM_TEST_DM_BAD_ANNOUNCE
 
   // Compute the CommitteeHash member of the BlockHeaderBase
