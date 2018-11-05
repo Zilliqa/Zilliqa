@@ -344,11 +344,12 @@ void Node::ProcessTransactionWhenShardLeader() {
       // m_addrNonceTxnMap
       if (t.GetNonce() >
           AccountStore::GetInstance().GetNonceTemp(senderAddr) + 1) {
-        // LOG_GENERAL(INFO,
-        //             "High nonce: "
-        //                 << t.GetNonce() << " cur sender nonce: "
-        //                 << AccountStore::GetInstance().GetNonceTemp(
-        //                        senderAddr));
+        // LOG_GENERAL(INFO, "High nonce: "
+        //                     << t.GetNonce() << " cur sender " <<
+        //                     senderAddr.hex()
+        //                     << " nonce: "
+        //                     <<
+        //                     AccountStore::GetInstance().GetNonceTemp(senderAddr));
         auto it1 = t_addrNonceTxnMap.find(senderAddr);
         if (it1 != t_addrNonceTxnMap.end()) {
           auto it2 = it1->second.find(t.GetNonce());
@@ -369,8 +370,8 @@ void Node::ProcessTransactionWhenShardLeader() {
         // LOG_GENERAL(INFO,
         //             "Nonce too small"
         //                 << " Expected "
-        //                 << AccountStore::GetInstance().GetNonceTemp(
-        //                        senderAddr)
+        //                 <<
+        //                 AccountStore::GetInstance().GetNonceTemp(senderAddr)
         //                 << " Found " << t.GetNonce());
       }
       // if nonce correct, process it
