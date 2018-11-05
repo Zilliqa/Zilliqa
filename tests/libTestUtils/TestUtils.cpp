@@ -41,11 +41,7 @@ uint32_t DistUint64() {
   return RandomIntInRng<uint64_t>(std::numeric_limits<uint64_t>::min(),
                                   std::numeric_limits<uint64_t>::max());
 }
-// Doesn't work!
-//uint32_t DistUint128() {
-//  return RandomIntInRng<uint128_t>(std::numeric_limits<uint128_t>::min(),
-//                                  std::numeric_limits<uint128_t>::max());
-//}
+
 uint8_t Dist1to99() { return RandomIntInRng<uint8_t>((uint8_t)1, (uint8_t)99); }
 
 PubKey GenerateRandomPubKey() { return PubKey(PrivKey()); }
@@ -59,10 +55,9 @@ Peer GenerateRandomPeer() {
 Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
   uint128_t ip_address = DistUint32();
   uint32_t listen_port_host = DistUint32();
-  if (setreset){
+  if (setreset) {
     ip_address |= 1UL << bit_i;
-  }
-  else{
+  } else {
     ip_address &= ~(1UL << bit_i);
   }
   return Peer(ip_address, listen_port_host);
@@ -70,7 +65,7 @@ Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
 
 PubKey GenerateRandomPubKey(PrivKey privK) { return PubKey(privK); }
 
-KeyPair GenerateRandomKeyPair(){
+KeyPair GenerateRandomKeyPair() {
   PrivKey privk;
   return KeyPair(privk, GenerateRandomPubKey(privk));
 }
@@ -185,27 +180,26 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
 
 CoSignatures GenerateRandomCoSignatures() { return CoSignatures(Dist1to99()); }
 
-DS_Comitte_t GenerateRandomDSCommittee(uint32_t size){
+DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
   DS_Comitte_t ds_c;
-  for (uint32_t i = 1; i <= size; i++){
+  for (uint32_t i = 1; i <= size; i++) {
     ds_c.push_front(std::make_pair(GenerateRandomPubKey(), Peer()));
   }
   return ds_c;
 }
 
-Shard generateRandomShard(size_t size){
+Shard generateRandomShard(size_t size) {
   Shard s;
   for (size_t i = 1; i <= size; i++)
-    s.push_back(std::make_tuple(GenerateRandomPubKey(PrivKey()), GenerateRandomPeer(), DistUint16()));
+    s.push_back(std::make_tuple(GenerateRandomPubKey(PrivKey()),
+                                GenerateRandomPeer(), DistUint16()));
   return s;
 }
 
-DequeOfShard generateDequeueOfShard(size_t size){
+DequeOfShard generateDequeueOfShard(size_t size) {
   DequeOfShard dos;
-  for (size_t i = 1; i <= size; i++)
-    dos.push_front(generateRandomShard(i));
+  for (size_t i = 1; i <= size; i++) dos.push_front(generateRandomShard(i));
   return dos;
 }
-
 
 }  // namespace TestUtils
