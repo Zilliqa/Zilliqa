@@ -124,11 +124,11 @@ class DirectoryService : public Executable, public Broadcastable {
   std::shared_ptr<TxBlock> m_finalBlock;
 
   struct MBSubmissionBufferEntry {
-    std::vector<MicroBlock> m_microBlocks;
+    MicroBlock m_microBlock;
     std::vector<unsigned char> m_stateDelta;
-    MBSubmissionBufferEntry(const std::vector<MicroBlock>& microBlocks,
+    MBSubmissionBufferEntry(const MicroBlock& microBlock,
                             const std::vector<unsigned char>& stateDelta)
-        : m_microBlocks(microBlocks), m_stateDelta(stateDelta) {}
+        : m_microBlock(microBlock), m_stateDelta(stateDelta) {}
   };
   std::mutex m_mutexMBSubmissionBuffer;
   std::unordered_map<uint64_t, std::vector<MBSubmissionBufferEntry>>
@@ -272,13 +272,13 @@ class DirectoryService : public Executable, public Broadcastable {
   void CommitMBSubmissionMsgBuffer();
   bool ProcessMicroblockSubmissionFromShard(
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<unsigned char>& stateDelta);
+      const std::vector<std::vector<unsigned char>>& stateDelta);
   bool ProcessMicroblockSubmissionFromShardCore(
-      const std::vector<MicroBlock>& microBlocks,
+      const MicroBlock& microBlocks,
       const std::vector<unsigned char>& stateDelta);
   bool ProcessMissingMicroblockSubmission(
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<unsigned char>& stateDelta);
+      const std::vector<std::vector<unsigned char>>& stateDeltas);
   void ExtractDataFromMicroblocks(BlockHash& microblockTrieRoot,
                                   std::vector<BlockHash>& microblockHashes,
                                   std::vector<uint32_t>& shardIds,
@@ -291,8 +291,10 @@ class DirectoryService : public Executable, public Broadcastable {
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,
-                         const StateHash& microBlockStateDeltaHash);
+                         const StateHash& microBlockStateDeltaHash,
+                         const BlockHash& microBlockHash);
   void SkipDSMicroBlock();
+  void PrepareRunConsensusOnFinalBlockNormal();
 
   // FinalBlockValidator functions
   bool CheckBlockHash();
@@ -461,7 +463,6 @@ class DirectoryService : public Executable, public Broadcastable {
   /// Serialized account store temp to revert to if ds microblock consensus
   /// failed
   std::vector<unsigned char> m_stateDeltaFromShards;
-  std::vector<unsigned char> m_stateDeltaWhenRunDSMB;
 
   /// Whether to send txn from ds microblock to lookup at finalblock consensus
   /// done
@@ -476,8 +477,10 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
-  std::set<MicroBlock> m_fetchedMicroBlocks;
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
+  std::unordered_map<uint64_t,
+                     std::unordered_map<BlockHash, std::vector<unsigned char>>>
+      m_microBlockStateDeltas;
   boost::multiprecision::uint256_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;

@@ -450,10 +450,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
   // LOG_MARKER();
 
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
-  Json::CharReaderBuilder builder;
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  Json::Value root;
-  std::string errors, outStr;
+  std::string outStr;
 
   if (!in.is_open()) {
     LOG_GENERAL(WARNING,
@@ -466,18 +463,22 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
       return false;
     }
   } else {
-    std::string outStr{std::istreambuf_iterator<char>(in),
-                       std::istreambuf_iterator<char>()};
+    std::string outStr = {std::istreambuf_iterator<char>(in),
+                          std::istreambuf_iterator<char>()};
   }
   LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
+
+  Json::CharReaderBuilder builder;
+  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  Json::Value root;
+  std::string errors;
 
   if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
                     &errors)) {
     return ParseCreateContractJsonOutput(root, gasRemained);
-  } else {
-    LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
-    return false;
   }
+  LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
+  return false;
 }
 
 template <class MAP>

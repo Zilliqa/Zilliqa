@@ -205,13 +205,12 @@ class Messenger {
       std::vector<unsigned char>& dst, const unsigned int offset,
       const unsigned char microBlockType, const uint64_t epochNumber,
       const std::vector<MicroBlock>& microBlocks,
-      const std::vector<unsigned char>& stateDelta);
-  static bool GetDSMicroBlockSubmission(const std::vector<unsigned char>& src,
-                                        const unsigned int offset,
-                                        unsigned char& microBlockType,
-                                        uint64_t& epochNumber,
-                                        std::vector<MicroBlock>& microBlocks,
-                                        std::vector<unsigned char>& stateDelta);
+      const std::vector<std::vector<unsigned char>>& stateDeltas);
+  static bool GetDSMicroBlockSubmission(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      unsigned char& microBlockType, uint64_t& epochNumber,
+      std::vector<MicroBlock>& microBlocks,
+      std::vector<std::vector<unsigned char>>& stateDeltas);
 
   static bool SetDSDSBlockAnnouncement(
       std::vector<unsigned char>& dst, const unsigned int offset,

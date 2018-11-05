@@ -61,10 +61,6 @@ void Node::SubmitMicroblockToDSCommittee() const {
     return;
   }
 
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    return;
-  }
-
   vector<unsigned char> microblock = {MessageType::DIRECTORY,
                                       DSInstructionType::MICROBLOCKSUBMISSION};
   vector<unsigned char> stateDelta;
@@ -73,7 +69,7 @@ void Node::SubmitMicroblockToDSCommittee() const {
   if (!Messenger::SetDSMicroBlockSubmission(
           microblock, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
-          m_mediator.m_currentEpochNum, {*m_microblock}, stateDelta)) {
+          m_mediator.m_currentEpochNum, {*m_microblock}, {stateDelta})) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return;
@@ -220,21 +216,9 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     m_microblock->SetCoSignatures(*m_consensusObject);
 
     if (m_isPrimary) {
-      if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-        LOG_STATE("[MICON][" << std::setw(15) << std::left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_mediator.m_currentEpochNum
-                             << "] DONE");
-      } else {
-        LOG_STATE("[DSMICON[" << setw(15) << left
-                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                              << "]["
-                              << m_mediator.m_txBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetBlockNum() +
-                                     1
-                              << "] DONE.");
-      }
+      LOG_STATE("[MICON][" << std::setw(15) << std::left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "][" << m_mediator.m_currentEpochNum << "] DONE");
       // Multicast micro block to all DS nodes
       SubmitMicroblockToDSCommittee();
     }
@@ -258,10 +242,8 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
 
     SetState(WAITING_FINALBLOCK);
 
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-      lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
-      cv_FBWaitMB.notify_all();
-    }
+    lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+    cv_FBWaitMB.notify_all();
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Oops, no consensus reached - consensus error. "
@@ -303,21 +285,12 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     LOG_GENERAL(WARNING, "ConsensusCommon::State::ERROR here, but we move on.");
 
     SetState(WAITING_FINALBLOCK);  // Move on to next Epoch.
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "If I received a new Finalblock from DS committee. I will "
-                "still process it");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "If I received a new Finalblock from DS committee. I will "
+              "still process it");
 
-      lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
-      cv_FBWaitMB.notify_all();
-    } else {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "DS Microblock failed, discard changes on microblock and "
-                "proceed to finalblock consensus");
-      m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
-      m_mediator.m_ds->RunConsensusOnFinalBlock(
-          DirectoryService::SKIP_DSMICROBLOCK);
-    }
+    lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+    cv_FBWaitMB.notify_all();
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus state = " << m_consensusObject->GetStateString());

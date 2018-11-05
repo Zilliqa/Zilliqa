@@ -334,7 +334,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().InitReversibles();
-  m_fetchedMicroBlocks.clear();
   m_stateDeltaFromShards.clear();
   m_allPoWConns.clear();
   ClearDSPoWSolns();
@@ -468,7 +467,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
         m_stopRecvNewMBSubmission = true;
       }
       cv_scheduleFinalBlockConsensus.notify_all();
-      RunConsensusOnFinalBlock(DirectoryService::SKIP_DSMICROBLOCK);
+      RunConsensusOnFinalBlock();
     }
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
@@ -596,11 +595,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
             ConsensusCommon::INITIAL);
 
         auto rerunconsensus = [this, message, offset, from]() {
-          AccountStore::GetInstance().RevertCommitTemp();
-          AccountStore::GetInstance().SerializeDelta();
-          AccountStore::GetInstance().CommitTempReversible();
-          m_needCheckMicroBlock = false;
-
+          PrepareRunConsensusOnFinalBlockNormal();
           ProcessFinalBlockConsensusCore(message, offset, from);
         };
         DetachedFunction(1, rerunconsensus);
