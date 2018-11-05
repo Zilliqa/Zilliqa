@@ -84,7 +84,6 @@ void ProtoServer::StartServer() {
   builder.AddListeningPort(server_address, InsecureServerCredentials());
   builder.RegisterService(this);
   unique_ptr<grpc::Server> server(builder.BuildAndStart());
-  cout << "ProtoServer listening on " << server_address << endl;
   server->Wait();
 }
 
