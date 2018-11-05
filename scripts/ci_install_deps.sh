@@ -67,9 +67,7 @@ apt-get install -y \
     libjsonrpccpp-dev \
     libminiupnpc-dev \
     libevent-dev \
-    libprotobuf-dev \
-    libcurl4-openssl-dev \
-    protobuf-compiler
+    libcurl4-openssl-dev
 
 # install development dependencies
 apt-get install -y \
@@ -81,7 +79,8 @@ apt-get install -y \
     curl \
     libxml2-utils \
     python-pip \
-    git
+    git \
+    golang
 
 pip install pyyaml
 }
@@ -99,7 +98,7 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
-    protobuf
+    golang
 
 # install developement deps
 brew install \
