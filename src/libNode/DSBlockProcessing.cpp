@@ -377,6 +377,8 @@ void Node::StartFirstTxEpoch() {
     P2PComm::GetInstance().InitializeRumorManager(peers);
   }
 
+  SetState(MICROBLOCK_CONSENSUS_PREP);
+
   auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
   DetachedFunction(1, main_func3);
