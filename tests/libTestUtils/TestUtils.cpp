@@ -193,10 +193,19 @@ DS_Comitte_t GenerateRandomDSCommittee(uint32_t size){
   return ds_c;
 }
 
+Shard generateRandomShard(size_t size){
+  Shard s;
+  for (size_t i = 1; i <= size; i++)
+    s.push_back(std::make_tuple(GenerateRandomPubKey(PrivKey()), GenerateRandomPeer(), DistUint16()));
+  return s;
+}
 
-
-
-
+DequeOfShard generateDequeueOfShard(size_t size){
+  DequeOfShard dos;
+  for (size_t i = 1; i <= size; i++)
+    dos.push_front(generateRandomShard(i));
+  return dos;
+}
 
 
 }  // namespace TestUtils

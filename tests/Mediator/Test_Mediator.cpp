@@ -48,10 +48,7 @@ BOOST_AUTO_TEST_CASE(init) {
   m = new Mediator (kp, p);
 }
 
-/*TODO: Decision to let it as testcase
- *We can test of the member equals to the initializers
- */
-BOOST_AUTO_TEST_CASE(test_RegisterColleagues) {
+BOOST_AUTO_TEST_CASE(RegisterColleagues) {
   DirectoryService ds(*m);
   Node node(*m, 0, false);
   Lookup lookup(*m);
@@ -62,26 +59,32 @@ BOOST_AUTO_TEST_CASE(test_RegisterColleagues) {
   m->RegisterColleagues(&ds, &node, &lookup, &validator, &archDB, &arch);
 }
 
-/*TODO: Decision to let it as testcase
- *Possible testing of the member m_dsBlockRand
- */
 BOOST_AUTO_TEST_CASE(UpdateDSBlockRand) {
   m->UpdateDSBlockRand(false);
   m->UpdateDSBlockRand(true);
 }
 
-/*TODO: Decision to let it as testcase
- *Possible testing of the member m_dsBlockRand
- */
 BOOST_AUTO_TEST_CASE(UpdateTxBlockRand) {
-  m->UpdateTxBlockRand();
-  m->UpdateDSBlockRand(true);
+  m->UpdateTxBlockRand(false);
+  m->UpdateTxBlockRand(true);
 }
 
-void replacePeerDSCommittee(TestUtils::DS_Comitte_t& dsCommittee, Peer& p){
-  size_t dsc_size = dsCommittee.size();
-  size_t peer_i = TestUtils::RandomIntInRng<size_t>(0, dsc_size - 1);
-  dsCommittee[peer_i].second = p;
+BOOST_AUTO_TEST_CASE(HeartBeat) {
+  m->HeartBeatLaunch();
+}
+
+BOOST_AUTO_TEST_CASE(VacuousEpoch) {
+  uint64_t VACUOUS_EPOCH = NUM_FINAL_BLOCK_PER_POW - 1;
+  uint64_t ve = (NUM_FINAL_BLOCK_PER_POW * TestUtils::RandomIntInRng<uint64_t>(1,200000)) - 1;
+  BOOST_CHECK_MESSAGE(m->GetIsVacuousEpoch(ve), "Incorrect Vacuous epoch. POW period:" + std::to_string(NUM_FINAL_BLOCK_PER_POW) + ". Current block: " + std::to_string(ve));
+
+  uint64_t i = 1;
+  for (; i < VACUOUS_EPOCH; i++){
+    m->IncreaseEpochNum();
+    BOOST_CHECK_MESSAGE(!m->GetIsVacuousEpoch(), "Incorrect Vacuous epoch. Final block number per POW " + std::to_string(NUM_FINAL_BLOCK_PER_POW) + ". Current block: " + std::to_string(i));
+  }
+  m->IncreaseEpochNum();
+  BOOST_CHECK_MESSAGE(m->GetIsVacuousEpoch(), "Missed Vacuous epoch. Final block number per POW " + std::to_string(NUM_FINAL_BLOCK_PER_POW) + ". Current block: " + std::to_string(i));
 }
 
 BOOST_AUTO_TEST_CASE(GetNodeMode) {
@@ -110,33 +113,14 @@ BOOST_AUTO_TEST_CASE(GetNodeMode) {
 }
 
 BOOST_AUTO_TEST_CASE(GetShardSize) {
-  Directory
+  DirectoryService ds(*m);
+  ds.m_shards = TestUtils::generateDequeueOfShard(10);
+  m->m_ds = &ds;
 
+  uint32_t EXPECTED_SHARDSIZE = 651;
+  uint32_t shardsize = m->GetShardSize(true);
 
-
-
-  uint32_t size = TestUtils::RandomIntInRng<uint32_t>(2,100);
-  for (uint32_t i = 1; i <= size; i++){
-    m->m_DSCommittee->push_front(std::make_pair(TestUtils::GenerateRandomPubKey(), TestUtils::GenerateRandomPeer(0,true)));
-  }
-
-  Peer p_unknown = TestUtils::GenerateRandomPeer(0,false);
-
-  string EXPECTED_MODE = "SHRD";
-  string mode = m->GetNodeMode(p_unknown);
-  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
-
-  EXPECTED_MODE = "DSBU";
-  size_t dsc_size = m->m_DSCommittee->size();
-  size_t pair_i = TestUtils::RandomIntInRng<size_t>(1, dsc_size - 1);
-  (*m->m_DSCommittee)[pair_i].second = p_unknown;
-  mode = m->GetNodeMode(p_unknown);
-  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
-
-  EXPECTED_MODE = "DSLD";
-  (*m->m_DSCommittee)[0].second = p_unknown;
-  mode = m->GetNodeMode(p_unknown);
-  BOOST_CHECK_MESSAGE(mode == EXPECTED_MODE, "Wrong mode. Expected " + EXPECTED_MODE + ". Result: " + mode);
+  BOOST_CHECK_MESSAGE(std::to_string(shardsize) == std::to_string(EXPECTED_SHARDSIZE), "Wrong mode. Expected " + std::to_string(EXPECTED_SHARDSIZE) + ". Result: " + std::to_string(shardsize));
 }
 
 
