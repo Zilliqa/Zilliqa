@@ -435,6 +435,7 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
             vector<unsigned char>(blockString.begin(), blockString.end()), 0,
             blcklink)) {
       LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
+      delete it;
       return false;
     }
     blocklinks.emplace_back(blcklink);
