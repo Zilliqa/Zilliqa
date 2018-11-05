@@ -42,6 +42,7 @@ T RandomIntInRng(T n, T m) {
 }
 
 uint8_t Dist1to99();
+uint8_t DistUint8();
 uint16_t DistUint16();
 uint32_t DistUint32();
 
