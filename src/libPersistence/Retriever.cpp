@@ -226,9 +226,8 @@ void Retriever::RetrieveBlockLink(bool& result, const bool& wakeupForUpgrade) {
   const BlockType lastType =
       std::get<BlockLinkIndex::BLOCKTYPE>(blocklinks.back());
   if (lastType != BlockType::DS) {
-    if(lastDsIndex == 0)
-    {
-      LOG_GENERAL(FATAL,"last ds index is 0 and blockType not 0");
+    if (lastDsIndex == 0) {
+      LOG_GENERAL(FATAL, "last ds index is 0 and blockType not 0");
     }
     lastDsIndex--;
   }
