@@ -244,7 +244,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
         // Set initial ds committee with null peer
       }
     } else {
-      LOG_GENERAL(WARNING, "Initial DS comm size 0 ");
+      LOG_GENERAL(FATAL, "Initial DS comm size 0 ");
     }
   }
   m_retriever = make_shared<Retriever>(m_mediator);
