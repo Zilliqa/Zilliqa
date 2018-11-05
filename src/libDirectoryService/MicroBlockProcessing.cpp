@@ -606,46 +606,6 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     return false;
   }
 
-  // State delta
-  // AccountStore::GetInstance().InitTemp();
-
-  // LOG_GENERAL(INFO, "Received FinalBlock State Delta root : "
-  //                       <<
-  //                       m_finalBlock->GetHeader().GetStateDeltaHash().hex());
-
-  // if (m_finalBlock->GetHeader().GetStateDeltaHash() != StateHash()) {
-  //   if (stateDelta.empty()) {
-  //     LOG_GENERAL(WARNING, "Cannot get state delta from message");
-  //     return false;
-  //   }
-
-  //   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  //   sha2.Update(stateDelta);
-  //   StateHash stateDeltaHash(sha2.Finalize());
-
-  //   LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
-
-  //   if (stateDeltaHash != m_finalBlock->GetHeader().GetStateDeltaHash()) {
-  //     LOG_GENERAL(WARNING,
-  //                 "State delta hash calculated does not match finalblock");
-  //     return false;
-  //   }
-
-  //   if (!AccountStore::GetInstance().DeserializeDeltaTemp(stateDelta, 0)) {
-  //     LOG_GENERAL(WARNING, "AccountStore::DeserializeDeltaTemp failed");
-  //     return false;
-  //   }
-
-  //   if (!AccountStore::GetInstance().SerializeDelta()) {
-  //     LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
-  //     return false;
-  //   }
-  // } else {
-  //   LOG_GENERAL(INFO,
-  //               "State Delta Hash is empty, skip processing final state
-  //               delta");
-  // }
-
   cv_MissingMicroBlock.notify_all();
   return true;
 }
