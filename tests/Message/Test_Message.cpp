@@ -19,13 +19,9 @@
 
 #include <iostream>
 #include "libData/AccountData/Transaction.h"
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libMessage/Message.pb.h"
 #include "libMessage/Messenger.h"
 #include "libMessage/ZilliqaMessage.pb.h"
-#pragma GCC diagnostic pop
-
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE message
