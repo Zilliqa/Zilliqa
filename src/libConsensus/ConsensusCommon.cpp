@@ -21,7 +21,12 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libMessage/ZilliqaMessage.pb.h"
+#pragma GCC diagnostic pop
+
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"

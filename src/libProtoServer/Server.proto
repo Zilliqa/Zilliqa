@@ -1,0 +1,56 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+import "ServerRequest.proto";
+import "ServerResponse.proto";
+import "ServerMessages.proto";
+
+service Server
+{
+    rpc GetClientVersion(Empty) returns(DefaultResponse) {}
+    rpc GetNetworkId(Empty) returns(DefaultResponse) {}
+    rpc GetProtocolVersion(Empty) returns(DefaultResponse) {}
+    rpc GetGasPrice(Empty) returns(DefaultResponse) {}
+    rpc GetStorageAt(GetStorageAtRequest) returns(DefaultResponse) {}
+    rpc GetBlockTransactionCount(GetBlockTransactionCountRequest) returns(DefaultResponse) {}
+    rpc CreateMessage(Empty) returns(DefaultResponse) {}
+    rpc GetGasEstimate(Empty) returns(DefaultResponse) {}
+    rpc GetTransactionReceipt(GetTransactionRequest) returns(DefaultResponse) {}
+    rpc isNodeSyncing(Empty) returns(DefaultResponse) {}
+    rpc isNodeMining(Empty) returns(DefaultResponse) {}
+    rpc GetHashrate(Empty) returns(DefaultResponse) {}
+    rpc CreateTransaction(CreateTransactionRequest) returns(CreateTransactionResponse) {}
+    rpc GetTransaction(GetTransactionRequest) returns(GetTransactionResponse) {}
+    rpc GetDSBlock(ProtoBlockNum) returns(GetDSBlockResponse) {}
+    rpc GetTxBlock(ProtoBlockNum) returns(GetTxBlockResponse) {}
+    rpc GetLatestDsBlock(Empty) returns(GetDSBlockResponse) {}
+    rpc GetLatestTxBlock(Empty) returns(GetTxBlockResponse) {}
+    rpc GetBalance(ProtoAddress) returns(GetBalanceResponse) {}
+    rpc GetSmartContractState(ProtoAddress) returns(GetSmartContractStateResponse) {}
+    rpc GetSmartContractInit(ProtoAddress) returns(GetSmartContractInitResponse) {}
+    rpc GetSmartContractCode(ProtoAddress) returns(GetSmartContractCodeResponse) {}
+    rpc GetSmartContracts(ProtoAddress) returns(GetSmartContractResponse) {}
+    rpc GetContractAddressFromTransactionID(ProtoTxId) returns(StringResponse) {}
+    rpc GetNumPeers(Empty) returns(UIntResponse) {}
+    rpc GetNumTxBlocks(Empty) returns(StringResponse) {}
+    rpc GetNumDSBlocks(Empty) returns(StringResponse) {}
+    rpc GetNumTransactions(Empty) returns(StringResponse) {}
+    rpc GetTransactionRate(Empty) returns(DoubleResponse) {}
+    rpc GetDSBlockRate(Empty) returns(DoubleResponse) {}
+    rpc GetTxBlockRate(Empty) returns(DoubleResponse) {}
+    rpc GetCurrentMiniEpoch(Empty) returns(UInt64Response) {}
+    rpc GetCurrentDSEpoch(Empty) returns(UInt64Response) {}
+    rpc DSBlockListing(ProtoPage) returns(ProtoBlockListing) {}
+    rpc TxBlockListing(ProtoPage) returns(ProtoBlockListing) {}
+    rpc GetBlockchainInfo(Empty) returns(ProtoBlockChainInfo) {}
+    rpc GetRecentTransactions(Empty) returns(ProtoTxHashes) {}
+    rpc GetShardingStructure(Empty) returns(ProtoShardingStruct) {}
+    rpc GetNumTxnsTxEpoch(Empty) returns(UIntResponse) {}
+    rpc GetNumTxnsDSEpoch(Empty) returns(StringResponse) {}
+}
+
+message Empty
+{
+
+}

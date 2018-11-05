@@ -36,7 +36,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
-
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
@@ -48,9 +47,6 @@
 using namespace grpc;
 using namespace std;
 using namespace ZilliqaMessage;
-
-CircularArray<std::string> Server::m_RecentTransactions;
-std::mutex Server::m_mutexRecentTxns;
 
 const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
@@ -70,7 +66,6 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock);
 
 ProtoServer::ProtoServer(Mediator& mediator, const unsigned int serverPort)
     : m_mediator(mediator), m_serverPort(serverPort) {
-
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;

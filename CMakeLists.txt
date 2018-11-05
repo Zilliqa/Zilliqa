@@ -45,6 +45,13 @@ endif()
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
+include(InstallGRPC)
+include_directories(${GRPC_INCLUDE_DIRS})
+
+include(FindProtobuf)
+find_package(Protobuf 3.6.1 CONFIG REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
 find_package(LevelDB REQUIRED)
 
 if(OPENCL_MINE AND CUDA_MINE)
