@@ -26,13 +26,12 @@ GitHubToken=""
 packageName=""
 releaseTitle=""
 releaseDescription=""
-dsNodeFile="dsnodes.xml"
 
 
 # Environment variables
 releaseDir="release"
 versionFile="VERSION"
-constantFile="constants_local.xml"
+dsNodeFile="dsnodes.xml"
 majorLine=2
 minorLine=4
 fixLine=6
@@ -42,8 +41,8 @@ shaLine=14
 sigLine=16
 
 # Validate input argument
-if [ "$#" -ne 2 ]; then
-    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName constantFileName"
     return 1
 fi
 
@@ -54,6 +53,11 @@ fi
 
 if [ ! -f "$2" ]; then
     echo "*ERROR* File : $2 not found!"
+    return 1
+fi
+
+if [ ! -f "$3" ]; then
+    echo "*ERROR* File : $3 not found!"
     return 1
 fi
 
@@ -73,6 +77,7 @@ if [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ]; then
 fi
 
 # Read information from files
+constantFile="$(realpath $3)"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
 defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
@@ -178,5 +183,10 @@ curl -v -s  \
   -H "Content-Type:application/octet-stream"  \
   --data-binary @"${dsNodeFile}" \
   "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${dsNodeFile}"
+curl -v -s  \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/octet-stream"  \
+  --data-binary @"${constantFile}" \
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantFile##*/}"
 rm ${releaseLog}
 echo -e "\nA new draft release with package is created on Github sucessfully, please proceed to publishing the draft release on Github webpage.\n"
