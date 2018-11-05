@@ -210,7 +210,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         LOG_GENERAL(WARNING, "API Server couldn't start");
       }
     }
-
   };
   DetachedFunction(1, func);
 
