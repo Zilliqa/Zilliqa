@@ -724,8 +724,6 @@ message ProtoSingleDirectoryBlock
     }
 }
     
-
-
 message LookupGetDirectoryBlocksFromSeed
 {
     required uint32 portno      = 1;
@@ -738,3 +736,29 @@ message LookupSetDirectoryBlocksFromSeed
     repeated ProtoSingleDirectoryBlock dirblocks = 2;
 }
 
+// ============================================================================
+// View change pre check messages
+// ============================================================================
+
+// From node undergoing vc pre check to fetch latest blocks
+message LookupGetDSTxBlockFromSeed
+{
+    required uint64 dslowblocknum            = 1;
+    required uint64 dshighblocknum           = 2;
+    required uint64 txlowblocknum            = 3;
+    required uint64 txhighblocknum           = 4;
+    required uint32 listenport               = 5;
+}
+
+// From lookup nodes to node under going vc pre check
+message VCNodeSetDSTxBlockFromSeed
+{
+    required uint64 dslowblocknum    = 1; 
+    required uint64 dshighblocknum   = 2;
+    repeated ProtoDSBlock dsblocks   = 3;
+    required uint64 txlowblocknum    = 4; 
+    required uint64 txhighblocknum   = 5;
+    repeated ProtoTxBlock txblocks   = 6;
+    required ByteArray pubkey        = 7;
+    required ByteArray signature     = 8;
+}
