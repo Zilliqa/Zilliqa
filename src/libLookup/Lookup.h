@@ -298,6 +298,10 @@ class Lookup : public Executable, public Broadcastable {
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
 
+  bool ProcessVCGetLatestDSTxBlockFromSeed(
+      const std::vector<unsigned char>& message, unsigned int offset,
+      const Peer& from);
+
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
 
   static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,

@@ -371,11 +371,11 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
   vector<unsigned char> getTxBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
 
-  if (!Messenger::SetLookupGetTxBlockFromSeed(
+  if (!Messenger::GetLookupGetTxBlockFromSeed(
           getTxBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetLookupGetTxBlockFromSeed failed.");
+              "Messenger::GetLookupGetTxBlockFromSeed failed.");
     return {};
   }
 
@@ -2929,7 +2929,8 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Lookup::ProcessGetDirectoryBlocksFromSeed,
       &Lookup::ProcessSetDirectoryBlocksFromSeed,
       &Lookup::ProcessGetStateDeltaFromSeed,
-      &Lookup::ProcessSetStateDeltaFromSeed};
+      &Lookup::ProcessSetStateDeltaFromSeed,
+      &Lookup::ProcessVCGetLatestDSTxBlockFromSeed};
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
       sizeof(ins_handlers) / sizeof(InstructionHandler);
@@ -3129,4 +3130,61 @@ bool Lookup::VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
                      return node.first == pubKeyToVerify;
                    });
   return vecLookupNodes.cend() != iter;
+}
+
+bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
+    const vector<unsigned char>& message, unsigned int offset,
+    const Peer& from) {
+  LOG_MARKER();
+
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Lookup::ProcessVCGetLatestDSTxBlockFromSeed not expected to be "
+        "called from other than the LookUp node.");
+    return true;
+  }
+
+  uint64_t dsLowBlockNum = 0;
+  uint64_t dsHighBlockNum = 0;
+  uint64_t txLowBlockNum = 0;
+  uint64_t txHighBlockNum = 0;
+  uint32_t listenPort = 0;
+
+  if (!Messenger::GetLookupGetDSTxBlockFromSeed(message, offset, dsLowBlockNum,
+                                                dsHighBlockNum, txLowBlockNum,
+                                                txHighBlockNum, listenPort)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupGetSeedPeers failed.");
+    return false;
+  }
+
+  vector<DSBlock> dsBlocks;
+  RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum);
+
+  vector<TxBlock> txBlocks;
+  RetrieveTxBlocks(txBlocks, txLowBlockNum, txHighBlockNum);
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ProcessVCGetLatestDSTxBlockFromSeed requested by "
+                << from << " for ds blocks " << dsLowBlockNum << " to "
+                << dsHighBlockNum << " and tx blocks " << txLowBlockNum
+                << " to " << txHighBlockNum << " with receiving port "
+                << listenPort);
+
+  vector<unsigned char> dsTxBlocksMessage = {
+      MessageType::DIRECTORY, DSInstructionType::VCPUSHLATESTDSTXBLOCK};
+
+  if (!Messenger::SetVCNodeSetDSTxBlockFromSeed(
+          dsTxBlocksMessage, MessageOffset::BODY, dsLowBlockNum, dsHighBlockNum,
+          txLowBlockNum, txHighBlockNum, m_mediator.m_selfKey, dsBlocks,
+          txBlocks)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetVCNodeSetDSTxBlockFromSeed failed.");
+    return false;
+  }
+
+  Peer requestingNode(from.m_ipAddress, listenPort);
+  P2PComm::GetInstance().SendMessage(requestingNode, dsTxBlocksMessage);
+  return true;
 }
