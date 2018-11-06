@@ -140,8 +140,6 @@ BOOST_AUTO_TEST_CASE(GetShardSize) {
           ". Result: " + std::to_string(shardsize));
 }
 
-BOOST_AUTO_TEST_CASE(CleanUp) {
-  delete m;
-}
+BOOST_AUTO_TEST_CASE(CleanUp) { delete m; }
 
 BOOST_AUTO_TEST_SUITE_END()

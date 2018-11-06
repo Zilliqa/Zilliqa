@@ -170,8 +170,8 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
   CommitteeHash committeeHash;
 
   return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
-      hashset, leaderConsensusId, leaderNetworkInfo,
-      leaderPubKey, shardId, timestamp, committeeHash);
+                             hashset, leaderConsensusId, leaderNetworkInfo,
+                             leaderPubKey, shardId, timestamp, committeeHash);
 }
 
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
