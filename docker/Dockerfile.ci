@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright (c) 2018 Zilliqa
 # This source code is being disclosed to you solely for the purpose of your
 # participation in testing Zilliqa. You may view, compile and run the code for
@@ -15,42 +14,25 @@
 # are governed by GPLv3.0 are those programs that are located in the folders
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
+
+# This Dockerfile provides a standard environment for CI
 #
-# The script is dedicated for CI use
+# It includes dependencies and tools
+# * that are necessary for style checking, code coverage in CI
+# * that are too heavy to be installed during CI
+# * that are common and not subject to frequent change
 #
-# Usage:
-#
-#    ./scripts/ci_make_image.sh zilliqa # make k8s-zilliqa
-#    ./scripts/ci_make_image.sh scilla  # make k8s-scilla
+# It should not include
+# * things are specific to commit (they should go to scripts/ci_install_deps.sh
 
-set -e
-
-target=$1
-
-ext=""
-case $target in
-    zilliqa)
-        # Do nothing
-    ;;
-    scilla)
-        ext=".scilla"
-    ;;
-    *)
-        echo "Usage: $0 [zilliqa|scilla]"
-        exit 1
-    ;;
-esac
-
-docker --version
-aws --version
-
-commit=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
-account_id=$(aws sts get-caller-identity --output text --query 'Account')
-region_id=us-west-2
-source_image=zilliqa:${commit}${ext}
-target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}${ext}
-
-eval $(aws ecr get-login --no-include-email --region ${region_id})
-make -C docker k8s-${target} COMMIT=${commit}
-docker tag ${source_image} ${target_image}
-docker push ${target_image}
+FROM ubuntu:16.04
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && echo "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main" >> /etc/apt/sources.list.d/llvm.list \
+    && echo "deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main" >> /etc/apt/sources.list.d/llvm.list \
+    && curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    clang-format-7 \
+    clang-tidy-7 \
+    && rm -rf /var/lib/apt/lists/*
