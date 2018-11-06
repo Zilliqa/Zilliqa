@@ -249,6 +249,10 @@ void DirectoryService::RunConsensusOnViewChange() {
   }
 
   LOG_MARKER();
+  if (!IsNodeInSync()) {
+    // Rejoin as DS node
+    return;
+  }
 
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
@@ -395,6 +399,8 @@ bool DirectoryService::ComputeNewCandidateLeader(
 
   return true;
 }
+
+bool DirectoryService::IsNodeInSync() { return true; }
 
 uint32_t DirectoryService::CalculateNewLeaderIndex() {
   // New leader is computed using the following
@@ -592,6 +598,56 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Error: Unable to create consensus object");
+    return false;
+  }
+
+  return true;
+}
+
+bool DirectoryService::VCFetchLatestDSTxBlockFromLookupNodes() {
+  LOG_MARKER();
+  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+      ComposeVCGetDSTxBlockMessage());
+  return true;
+}
+
+vector<unsigned char> DirectoryService::ComposeVCGetDSTxBlockMessage() {
+  LOG_MARKER();
+  vector<unsigned char> getDSTxBlockMessage = {
+      MessageType::LOOKUP, LookupInstructionType::VCGETLATESTDSTXBLOCK};
+
+  uint64_t dslowBlockNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+  uint64_t txlowBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+  if (!Messenger::SetLookupGetDSTxBlockFromSeed(
+          getDSTxBlockMessage, MessageOffset::BODY, dslowBlockNum, 0,
+          txlowBlockNum, 0, m_mediator.m_selfPeer.m_listenPortHost)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetLookupGetDSTxBlockFromSeed failed.");
+    return {};
+  }
+
+  return getDSTxBlockMessage;
+}
+
+bool DirectoryService::ProcessGetDSTxBlockMessage(
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+  // Check for consensus prep state
+  uint64_t dsLowBlockNum = 0;
+  uint64_t dsHighBlockNum = 0;
+  vector<DSBlock> dsBlocks;
+  uint64_t txLowBlockNum = 0;
+  uint64_t txHighBlockNum = 0;
+  vector<TxBlock> txBlocks;
+
+  if (!Messenger::GetVCNodeSetDSTxBlockFromSeed(
+          message, offset, dsLowBlockNum, dsHighBlockNum, dsBlocks,
+          txLowBlockNum, txHighBlockNum, txBlocks)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetVCNodeSetDSTxBlockFromSeed failed.");
     return false;
   }
 
