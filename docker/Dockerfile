@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     cmake \
     git \
+    golang \
     libboost-filesystem-dev \
     libboost-system-dev \
     libboost-test-dev \
