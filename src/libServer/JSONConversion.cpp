@@ -85,16 +85,16 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
 
   const TxBlockHeader& txheader = txblock.GetHeader();
 
-  ret_head["type"] = txheader.GetType();
-  ret_head["version"] = txheader.GetVersion();
+  ret_head["Type"] = txheader.GetType();
+  ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = txheader.GetGasLimit().str();
   ret_head["GasUsed"] = txheader.GetGasUsed().str();
   ret_head["Rewards"] = txheader.GetRewards().str();
-  ret_head["prevBlockHash"] = txheader.GetPrevHash().hex();
+  ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
   ret_head["Timestamp"] = txheader.GetTimestamp().str();
 
-  ret_head["TxnHash"] = txheader.GetTxRootHash().hex();
+  ret_head["TxnHash"] = txheader.GetMbRootHash().hex();
   ret_head["StateHash"] = txheader.GetStateRootHash().hex();
   ret_head["NumTxns"] = txheader.GetNumTxs();
   ret_head["NumMicroBlocks"] = txheader.GetNumMicroBlockHashes();
@@ -145,7 +145,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string nonce_str = _json["nonce"].asString();
   uint256_t nonce(nonce_str);
 
-  string toAddr_str = _json["to"].asString();
+  string toAddr_str = _json["toAddr"].asString();
   vector<unsigned char> toAddr_ser =
       DataConversion::HexStrToUint8Vec(toAddr_str);
   Address toAddr(toAddr_ser);
@@ -184,7 +184,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   ret = ret && _json.isObject();
   ret = ret && (_json.size() == JSON_TRAN_OBJECT_SIZE);
   ret = ret && _json.isMember("nonce");
-  ret = ret && _json.isMember("to");
+  ret = ret && _json.isMember("toAddr");
   ret = ret && _json.isMember("amount");
   ret = ret && _json.isMember("pubKey");
   ret = ret && _json.isMember("signature");
@@ -197,8 +197,15 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
       LOG_GENERAL(INFO, "Fault in nonce");
       return false;
     }
-    if (!_json["amount"].isIntegral()) {
-      LOG_GENERAL(INFO, "Fault in amount");
+    if (_json["amount"].isString()) {
+      try {
+        uint256_t amount(_json["amount"].asString());
+      } catch (exception& e) {
+        LOG_GENERAL(INFO, "Fault in amount " << e.what());
+        return false;
+      }
+    } else {
+      LOG_GENERAL(INFO, "Amount not string");
       return false;
     }
     if (!_json["version"].isIntegral()) {
@@ -215,9 +222,9 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
                             << _json["signature"].asString().size());
       return false;
     }
-    if (_json["to"].asString().size() != ACC_ADDR_SIZE * 2) {
-      LOG_GENERAL(INFO, "To Address size wrong "
-                            << _json["signature"].asString().size());
+    if (_json["toAddr"].asString().size() != ACC_ADDR_SIZE * 2) {
+      LOG_GENERAL(
+          INFO, "To Address size wrong " << _json["toAddr"].asString().size());
       return false;
     }
   } else {
@@ -240,6 +247,8 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["amount"] = twr.GetTransaction().GetAmount().str();
   _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
+  _json["gasPrice"] = twr.GetTransaction().GetGasPrice().str();
+  _json["gasLimit"] = twr.GetTransaction().GetGasLimit().str();
 
   return _json;
 }

@@ -26,7 +26,6 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
@@ -38,8 +37,8 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
-#include "libUtils/TxnRootComputation.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -75,7 +74,6 @@ void DirectoryService::StartSynchronization() {
       return;
     }
 
-    m_synchronizer.FetchInitialDSInfo(m_mediator.m_lookup);
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
@@ -238,6 +236,28 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
   // Now I need to find my index in the sorted list (this will be my ID for the
   // consensus)
   m_consensusMyID = 0;
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexInitialDSCommittee);
+    if (m_mediator.m_DSCommittee->size() !=
+        m_mediator.m_initialDSCommittee->size()) {
+      LOG_GENERAL(WARNING,
+                  "The initial DS committee from file and ProcessSetPrimary "
+                  "size do not match "
+                      << m_mediator.m_DSCommittee->size() << " "
+                      << m_mediator.m_initialDSCommittee->size());
+    }
+    for (unsigned int i = 0; i < m_mediator.m_initialDSCommittee->size(); i++) {
+      if (!(m_mediator.m_DSCommittee->at(i).first ==
+            m_mediator.m_initialDSCommittee->at(i))) {
+        LOG_GENERAL(WARNING,
+                    "PubKey from file and ProcessSetPrimary do not match  "
+                        << m_mediator.m_DSCommittee->at(i).first << " "
+                        << m_mediator.m_initialDSCommittee->at(i))
+      }
+    }
+  }
+
   for (auto const& i : *m_mediator.m_DSCommittee) {
     if (i.first == m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -246,6 +266,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     }
     m_consensusMyID++;
   }
+
   m_consensusLeaderID = 0;
   if (m_mediator.m_currentEpochNum > 1) {
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
@@ -515,6 +536,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
 
   POW::GetInstance().EthashConfigureLightClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+
   if (m_mode == PRIMARY_DS) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
@@ -843,4 +865,9 @@ uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
   estimatedBlocksOneYear = (estimatedBlocksOneYear / NUM_FINAL_BLOCK_PER_POW) *
                            NUM_FINAL_BLOCK_PER_POW;
   return estimatedBlocksOneYear;
+}
+
+int64_t DirectoryService::GetAllPoWSize() const {
+  std::lock_guard<mutex> lock(m_mutexAllPOW);
+  return m_allPoWs.size();
 }

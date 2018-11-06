@@ -16,8 +16,6 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 
-# clean up persistent storage
-rm -rf local_run/node*
 
 sudo sysctl net.core.somaxconn=102400; 
 sudo sysctl net.core.netdev_max_backlog=65536; 
@@ -30,8 +28,6 @@ ulimit -Sc unlimited;
 ulimit -Hc unlimited;
 ulimit -s unlimited; 
 
-python tests/Zilliqa/test_zilliqa_local.py stop
-python tests/Zilliqa/test_zilliqa_local.py setup 20
 python tests/Zilliqa/test_zilliqa_local.py start 10
 
 sleep 40

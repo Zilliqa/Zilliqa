@@ -61,7 +61,7 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
   std::map<PubKey, Peer> powDSWinners;
   DSBlock dsblock(
-      DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0, SWInfo(),
+      DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0, 0, SWInfo(),
                     powDSWinners, DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
 
@@ -123,10 +123,9 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
 
   TxBlock txblock(
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
-                    BlockHash(), 0, get_time_as_int(), TxnHash(), StateHash(),
-                    StateHash(), StateHash(), TxnHash(), 0, 5, pubKey1.second,
-                    0, BlockHash(), CommitteeHash()),
-      vector<bool>(1), vector<MicroBlockHashSet>(5), vector<uint32_t>(5),
+                    BlockHash(), 0, get_time_as_int(), TxBlockHashSet(), 0, 5,
+                    pubKey1.second, 0, CommitteeHash()),
+      vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
       CoSignatures());
 
   curr_offset += txblock.Serialize(txblockmsg, curr_offset);

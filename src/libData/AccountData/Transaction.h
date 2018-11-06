@@ -34,19 +34,43 @@
 using TxnHash = dev::h256;
 using KeyPair = std::pair<PrivKey, PubKey>;
 
-/// Stores information on a single transaction.
-class Transaction : public Serializable {
-  TxnHash m_tranID;
-  boost::multiprecision::uint256_t m_version;
+struct TransactionCoreInfo {
+  TransactionCoreInfo() = default;
+  TransactionCoreInfo(const boost::multiprecision::uint256_t& versionInput,
+                      const boost::multiprecision::uint256_t& nonceInput,
+                      const Address& toAddrInput,
+                      const PubKey& senderPubKeyInput,
+                      const boost::multiprecision::uint256_t& amountInput,
+                      const boost::multiprecision::uint256_t& gasPriceInput,
+                      const boost::multiprecision::uint256_t& gasLimitInput,
+                      const std::vector<unsigned char>& codeInput,
+                      const std::vector<unsigned char>& dataInput)
+      : version(versionInput),
+        nonce(nonceInput),
+        toAddr(toAddrInput),
+        senderPubKey(senderPubKeyInput),
+        amount(amountInput),
+        gasPrice(gasPriceInput),
+        gasLimit(gasLimitInput),
+        code(codeInput),
+        data(dataInput) {}
+
+  boost::multiprecision::uint256_t version;
   boost::multiprecision::uint256_t
-      m_nonce;  // counter: the number of tx from m_fromAddr
-  Address m_toAddr;
-  PubKey m_senderPubKey;
-  boost::multiprecision::uint256_t m_amount;
-  boost::multiprecision::uint256_t m_gasPrice;
-  boost::multiprecision::uint256_t m_gasLimit;
-  std::vector<unsigned char> m_code;
-  std::vector<unsigned char> m_data;
+      nonce;  // counter: the number of tx from m_fromAddr
+  Address toAddr;
+  PubKey senderPubKey;
+  boost::multiprecision::uint256_t amount;
+  boost::multiprecision::uint256_t gasPrice;
+  boost::multiprecision::uint256_t gasLimit;
+  std::vector<unsigned char> code;
+  std::vector<unsigned char> data;
+};
+
+/// Stores information on a single transaction.
+class Transaction : public SerializableDataBlock {
+  TxnHash m_tranID;
+  TransactionCoreInfo m_coreInfo;
   Signature m_signature;
 
  public:
@@ -89,27 +113,29 @@ class Transaction : public Serializable {
               const std::vector<unsigned char>& data,
               const Signature& signature);
 
+  /// Constructor with core information.
+  Transaction(const TxnHash& tranID, const TransactionCoreInfo coreInfo,
+              const Signature& signature);
+
   /// Constructor for loading transaction information from a byte stream.
   Transaction(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst,
+                 unsigned int offset) const override;
 
-  unsigned int SerializeCoreFields(std::vector<unsigned char>& dst,
-                                   unsigned int offset) const;
+  bool SerializeCoreFields(std::vector<unsigned char>& dst,
+                           unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
-
-  /// Returns the size in bytes when serializing the transaction.
-  unsigned int GetSerializedSize() const;
-
-  /// Return the size of static typed variables for a minimum size check
-  static unsigned int GetMinSerializedSize();
+  bool Deserialize(const std::vector<unsigned char>& src,
+                   unsigned int offset) override;
 
   /// Returns the transaction ID.
   const TxnHash& GetTranID() const;
+
+  /// Returns the core information of transaction
+  const TransactionCoreInfo& GetCoreInfo() const;
 
   /// Returns the current version.
   const boost::multiprecision::uint256_t& GetVersion() const;

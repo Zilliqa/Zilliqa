@@ -23,15 +23,15 @@
 
 # [MUST BE FILLED IN] User configuration settings
 GitHubToken=""
-ownerName="Zilliqa"
-repoName="PreRelease"    # Change to Zilliqa after PreRelease is ok
 packageName=""
 releaseTitle=""
 releaseDescription=""
 
+
 # Environment variables
 releaseDir="release"
 versionFile="VERSION"
+dsNodeFile="dsnodes.xml"
 majorLine=2
 minorLine=4
 fixLine=6
@@ -41,8 +41,8 @@ shaLine=14
 sigLine=16
 
 # Validate input argument
-if [ "$#" -ne 2 ]; then
-    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName constantFileName"
     return 1
 fi
 
@@ -53,6 +53,11 @@ fi
 
 if [ ! -f "$2" ]; then
     echo "*ERROR* File : $2 not found!"
+    return 1
+fi
+
+if [ ! -f "$3" ]; then
+    echo "*ERROR* File : $3 not found!"
     return 1
 fi
 
@@ -71,7 +76,10 @@ if [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ]; then
     return 1
 fi
 
-# Read current version information from version file
+# Read information from files
+constantFile="$(realpath $3)"
+accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
+repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
 defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
 defaultMinor="$(sed -n ${minorLine}p ${versionFile})"
 defaultFix="$(sed -n ${fixLine}p ${versionFile})"
@@ -123,13 +131,22 @@ sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
 echo -e "SHA-256 & multi-signature are written into ${versionFile} successfully.\n"
 
+#Sign the ds nodes and update the xml
+cd ${releaseDir}
+echo -e "Updating ds xml file"
+cp ../constants_local.xml ./constants.xml
+cp ../${dsNodeFile} ./${dsNodeFile}
+ret="$(./bin/gensigninitialds   ${privKeyFile} ${pubKeyFile})"
+cp ./${dsNodeFile} ../${dsNodeFile}
+cd - 
+
 # Upload package onto GitHub
 echo -e "Creating new release and uploading package onto GitHub..."
 fullCommit="$(git rev-parse HEAD)"
 releaseLog="release.log"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/json" "https://api.github.com/repos/${ownerName}/${repoName}/releases" \
+  -H "Content-Type:application/json" "https://api.github.com/repos/${accountName}/${repoName}/releases" \
   -d '{
   "tag_name": "'"${newVer}"'", 
   "target_commitish": "'"${fullCommit}"'",
@@ -150,17 +167,26 @@ curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/octet-stream" \
   --data-binary @${pubKeyFile} \
-  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})"
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=$(basename {pubKeyFile})"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/vnd.debian.binary-package" \
   --data-binary @${releaseDir}/${debFile} \
-  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${debFile}"
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${debFile}"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/octet-stream" \
   --data-binary @${releaseDir}/${versionFile} \
-  "https://uploads.github.com/repos/${ownerName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}"
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${versionFile}"
+curl -v -s  \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/octet-stream"  \
+  --data-binary @"${dsNodeFile}" \
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${dsNodeFile}"
+curl -v -s  \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/octet-stream"  \
+  --data-binary @"${constantFile}" \
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantFile##*/}"
 rm ${releaseLog}
 echo -e "\nA new draft release with package is created on Github sucessfully, please proceed to publishing the draft release on Github webpage.\n"
-

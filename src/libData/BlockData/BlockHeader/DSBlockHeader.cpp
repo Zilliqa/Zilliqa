@@ -33,22 +33,26 @@ DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
   }
 }
 
-DSBlockHeader::DSBlockHeader(
-    const uint8_t dsDifficulty, const uint8_t difficulty,
-    const BlockHash& prevHash, const PubKey& leaderPubKey,
-    const uint64_t& blockNum, const uint256_t& timestamp, const SWInfo& swInfo,
-    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hash,
-    const CommitteeHash& committeeHash)
+DSBlockHeader::DSBlockHeader(const uint8_t dsDifficulty,
+                             const uint8_t difficulty,
+                             const BlockHash& prevHash,
+                             const PubKey& leaderPubKey,
+                             const uint64_t& blockNum, const uint64_t& epochNum,
+                             const uint256_t& timestamp, const SWInfo& swInfo,
+                             const map<PubKey, Peer>& powDSWinners,
+                             const DSBlockHashSet& hashset,
+                             const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
       m_dsDifficulty(dsDifficulty),
       m_difficulty(difficulty),
       m_prevHash(prevHash),
       m_leaderPubKey(leaderPubKey),
       m_blockNum(blockNum),
+      m_epochNum(epochNum),
       m_timestamp(timestamp),
       m_swInfo(swInfo),
       m_PoWDSWinners(powDSWinners),
-      m_hash(hash) {}
+      m_hashset(hashset) {}
 
 bool DSBlockHeader::Serialize(vector<unsigned char>& dst,
                               unsigned int offset) const {
@@ -80,6 +84,8 @@ const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
 
 const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 
+const uint64_t& DSBlockHeader::GetEpochNum() const { return m_epochNum; }
+
 const uint256_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 
 const SWInfo& DSBlockHeader::GetSWInfo() const { return m_swInfo; }
@@ -89,16 +95,16 @@ const map<PubKey, Peer>& DSBlockHeader::GetDSPoWWinners() const {
 }
 
 const ShardingHash& DSBlockHeader::GetShardingHash() const {
-  return m_hash.m_shardingHash;
+  return m_hashset.m_shardingHash;
 }
 
 const TxSharingHash& DSBlockHeader::GetTxSharingHash() const {
-  return m_hash.m_txSharingHash;
+  return m_hashset.m_txSharingHash;
 }
 
 const array<unsigned char, RESERVED_FIELD_SIZE>&
 DSBlockHeader::GetHashSetReservedField() const {
-  return m_hash.m_reservedField;
+  return m_hashset.m_reservedField;
 }
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const {

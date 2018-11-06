@@ -54,8 +54,32 @@ do
         CMAKE_EXTRA_OPTIONS="-DFALLBACKTEST=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with Fallback test"
     ;;
+    vc1)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test - Suspend DS leader for 1 time (before DS block consensus)"
+    ;;
+    vc2)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_DS_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test - Suspend DS leader for 3 times (before DS block consensus)"
+    ;;
+    vc3)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test - Suspend DS leader for 1 time (before Final block consensus)"
+    ;;
+    vc4)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_FB_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test - Suspend DS leader for 3 times (before Final block consensus)"
+    ;;
+    vc5)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_1=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test - Suspend DS leader for 1 time (before VC block consensus)"
+    ;;
+    vc6)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test - Suspend DS leader for 3 times (before VC block consensus)"
+    ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-6>]"
         exit 1
     ;;
     esac
@@ -64,5 +88,5 @@ done
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DENABLE_COVERAGE=ON
 cmake --build ${dir} -- -j4
 cmake --build ${dir} --target Zilliqa_coverage
-./scripts/copyright_checker.sh
+./scripts/license_checker.sh
 [ ${run_clang_format_fix} -ne 0 ] && cmake --build ${dir} --target clang-format-fix

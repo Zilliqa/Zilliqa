@@ -36,9 +36,8 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountData/TxnPool.h"
 #include "libData/BlockData/Block.h"
-#include "libData/BlockData/BlockHeader/UnavailableMicroBlock.h"
-#include "libData/DataStructures/MultiIndexContainer.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
@@ -72,7 +71,9 @@ class Node : public Executable, public Broadcastable {
   enum LEGITIMACYRESULT : unsigned char {
     SUCCESS = 0x00,
     MISSEDTXN,
-    WRONGORDER
+    WRONGORDER,
+    SERIALIZATIONERROR,
+    DESERIALIZATIONERROR
   };
 
   Mediator& m_mediator;
@@ -120,8 +121,7 @@ class Node : public Executable, public Broadcastable {
 
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
-  gas_txnid_comp_txns m_createdTransactions;
-
+  TxnPool m_createdTxns;
   std::unordered_map<Address,
                      std::map<boost::multiprecision::uint256_t, Transaction>>
       m_addrNonceTxnMap;
@@ -251,14 +251,11 @@ class Node : public Executable, public Broadcastable {
   bool ProcessForwardTransaction(const std::vector<unsigned char>& message,
                                  unsigned int cur_offset, const Peer& from);
   bool ProcessForwardTransactionCore(const ForwardedTxnEntry& entry);
-  bool ProcessCreateTransactionFromLookup(
-      const std::vector<unsigned char>& message, unsigned int offset,
-      const Peer& from);
   bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
-  bool ProcessTxnPacketFromLookupCore(
-      const std::vector<unsigned char>& message, const uint32_t shardId,
-      const std::vector<Transaction>& transactions);
+  bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
+                                      const uint32_t shardId,
+                                      const std::vector<Transaction>& txns);
 
 #ifdef HEARTBEAT_TEST
   bool ProcessKillPulse(const std::vector<unsigned char>& message,
@@ -272,7 +269,6 @@ class Node : public Executable, public Broadcastable {
   bool ProcessDoRejoin(const std::vector<unsigned char>& message,
                        unsigned int offset, const Peer& from);
 
-  bool CheckWhetherDSBlockNumIsLatest(const uint64_t dsblockNum);
   bool VerifyDSBlockCoSignature(const DSBlock& dsblock);
   bool VerifyFinalBlockCoSignature(const TxBlock& txblock);
   bool CheckStateRoot(const TxBlock& finalBlock);
@@ -367,6 +363,10 @@ class Node : public Executable, public Broadcastable {
       uint32_t cluster_size, uint32_t num_of_child_clusters, uint32_t& nodes_lo,
       uint32_t& nodes_hi);
 
+  void WakeupForUpgrade();
+
+  void WakeupForRecovery();
+
  public:
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
@@ -400,8 +400,7 @@ class Node : public Executable, public Broadcastable {
 
   // Transaction body sharing variables
   std::mutex m_mutexUnavailableMicroBlocks;
-  std::unordered_map<uint64_t, std::vector<UnavailableMicroBlock>>
-      m_unavailableMicroBlocks;
+  std::unordered_map<uint64_t, std::vector<BlockHash>> m_unavailableMicroBlocks;
 
   /// Sharding variables
   std::atomic<uint32_t> m_myshardId;
@@ -437,7 +436,7 @@ class Node : public Executable, public Broadcastable {
   ~Node();
 
   /// Install the Node
-  void Install(unsigned int syncType, bool toRetrieveHistory = true);
+  bool Install(unsigned int syncType, bool toRetrieveHistory = true);
 
   /// Set initial state, variables, and clean-up storage
   void Init();
@@ -468,7 +467,7 @@ class Node : public Executable, public Broadcastable {
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory();
+  bool StartRetrieveHistory(bool& wakeupForUpgrade);
 
   // Erase m_committedTransactions for given epoch number
   // void EraseCommittedTransactions(uint64_t epochNum)
@@ -481,9 +480,6 @@ class Node : public Executable, public Broadcastable {
   void AddBlock(const TxBlock& block);
 
   void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
-
-  void UpdateDSCommiteeCompositionAfterVC(
-      std::deque<std::pair<PubKey, Peer>>& dsComm);
 
   void UpdateDSCommitteeAfterFallback(
       const uint32_t& shard_id, const PubKey& leaderPubKey,
@@ -551,6 +547,9 @@ class Node : public Executable, public Broadcastable {
 
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
+
+  void UpdateDSCommiteeCompositionAfterVC(
+      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

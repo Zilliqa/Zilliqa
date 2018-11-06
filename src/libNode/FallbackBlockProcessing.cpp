@@ -148,6 +148,14 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          fallbackblock.GetHeader().GetFallbackDSEpochNo(),
+          fallbackblock.GetHeader().GetFallbackEpochNo())) {
+    LOG_GENERAL(WARNING,
+                "ProcessFallbackBlock CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
   BlockHash temp_blockHash = fallbackblock.GetHeader().GetMyHash();
   if (temp_blockHash != fallbackblock.GetBlockHash()) {
     LOG_GENERAL(WARNING,
@@ -155,17 +163,6 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << fallbackblock.GetBlockHash().hex());
-    return false;
-  }
-
-  if (fallbackblock.GetHeader().GetFallbackEpochNo() !=
-      m_mediator.m_currentEpochNum) {
-    LOG_GENERAL(WARNING,
-                "Received wrong fallbackblock."
-                    << endl
-                    << "current epoch: " << m_mediator.m_currentEpochNum << endl
-                    << "fallback epoch: "
-                    << fallbackblock.GetHeader().GetFallbackEpochNo());
     return false;
   }
 
@@ -317,11 +314,18 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 void Node::SendFallbackBlockToOtherShardNodes(
     const vector<unsigned char>& fallbackblock_message) {
   LOG_MARKER();
+  unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+  if (cluster_size <= NUM_DS_ELECTION) {
+    LOG_GENERAL(
+        WARNING,
+        "Adjusting NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD to be greater than "
+        "NUM_DS_ELECTION. Why not correct the constant.xml next time.");
+    cluster_size = NUM_DS_ELECTION + 1;
+  }
   LOG_GENERAL(INFO,
               "Primary CLUSTER SIZE used is "
               "(NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD):"
-                  << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD);
-  SendBlockToOtherShardNodes(fallbackblock_message,
-                             NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD,
+                  << cluster_size);
+  SendBlockToOtherShardNodes(fallbackblock_message, cluster_size,
                              NUM_OF_TREEBASED_CHILD_CLUSTERS);
 }

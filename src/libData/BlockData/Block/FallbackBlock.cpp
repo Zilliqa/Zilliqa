@@ -41,6 +41,9 @@ FallbackBlock::FallbackBlock(const FallbackBlockHeader& header,
   m_cosigs = move(cosigs);
 }
 
+FallbackBlock::FallbackBlock(const FallbackBlockHeader& header)
+    : m_header(header) {}
+
 bool FallbackBlock::Serialize(vector<unsigned char>& dst,
                               unsigned int offset) const {
   if (!Messenger::SetFallbackBlock(dst, offset, *this)) {
@@ -68,15 +71,9 @@ bool FallbackBlock::operator==(const FallbackBlock& block) const {
 }
 
 bool FallbackBlock::operator<(const FallbackBlock& block) const {
-  return m_header < block.m_header;
+  return block.m_header > m_header;
 }
 
 bool FallbackBlock::operator>(const FallbackBlock& block) const {
-  return !((*this == block) || (*this < block));
-}
-
-const BlockHash& FallbackBlock::GetBlockHash() const { return m_blockHash; }
-
-void FallbackBlock::SetBlockHash(const BlockHash& blockHash) {
-  m_blockHash = blockHash;
+  return block < *this;
 }

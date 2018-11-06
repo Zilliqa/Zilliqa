@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
 
   TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
   vector<bool> isMicroBlockEmpty(txBlockHeader.GetNumMicroBlockHashes());
-  vector<MicroBlockHashSet> microBlockHashes;
+  vector<BlockHash> microBlockHashes(txBlockHeader.GetNumMicroBlockHashes());
   vector<uint32_t> shardIds(txBlockHeader.GetNumMicroBlockHashes());
 
   TxBlock txBlock(txBlockHeader, isMicroBlockEmpty, microBlockHashes, shardIds,

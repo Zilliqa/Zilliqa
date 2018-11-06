@@ -36,7 +36,7 @@ class Archival : public Executable, public Broadcastable {
   Synchronizer m_synchronizer;
 
   std::mutex m_mutexMicroBlockInfo;
-  std::map<uint64_t, std::vector<uint32_t>> m_fetchMicroBlockInfo;
+  std::vector<BlockHash> m_fetchMicroBlockInfo;
 
   std::mutex m_mutexUnfetchedTxns;
   std::set<TxnHash> m_unfetchedTxns;
@@ -50,10 +50,8 @@ class Archival : public Executable, public Broadcastable {
   bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                const Peer& from);
 
-  bool AddToFetchMicroBlockInfo(const uint64_t& blockNum,
-                                const uint32_t shardId);
-  bool RemoveFromFetchMicroBlockInfo(const uint64_t& blockNum,
-                                     const uint32_t shardId);
+  bool AddToFetchMicroBlockInfo(const BlockHash& microBlockHash);
+  bool RemoveFromFetchMicroBlockInfo(const BlockHash& microBlockHash);
   void SendFetchMicroBlockInfo();
   void AddToUnFetchedTxn(const std::vector<TxnHash>& txnhashes);
   void AddTxnToDB(const std::vector<TransactionWithReceipt>& txns, BaseDB& db);

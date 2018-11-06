@@ -142,8 +142,11 @@ bool PeerManager::ProcessPingAll(const vector<unsigned char>& message,
 
   vector<unsigned char> ping_message = {MessageType::PEER,
                                         PeerManager::InstructionType::PING};
-  ping_message.resize(ping_message.size() + message.size() - offset);
-  copy(message.begin() + offset, message.end(),
+
+  const unsigned int message_size = min(message.size() - offset, (size_t)1024);
+
+  ping_message.resize(ping_message.size() + message_size);
+  copy(message.begin() + offset, message.begin() + offset + message_size,
        ping_message.begin() + MessageOffset::BODY);
   P2PComm::GetInstance().SendMessage(PeerStore::GetStore().GetAllPeers(),
                                      ping_message);

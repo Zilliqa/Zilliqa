@@ -112,43 +112,65 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
   return (ret == 0);
 }
 
-string MakeKey(const uint64_t& blockNum, const uint32_t& shardId) {
-  unsigned int curr_offset = 0;
-  vector<unsigned char> vec;
-  Serializable::SetNumber<uint64_t>(vec, curr_offset, blockNum,
-                                    sizeof(uint64_t));
-  curr_offset += sizeof(uint64_t);
-  Serializable::SetNumber<uint32_t>(vec, curr_offset, shardId,
-                                    sizeof(uint32_t));
-
-  string key = DataConversion::Uint8VecToHexStr(vec);
-  LOG_GENERAL(INFO, "blockNum: " << blockNum << " shardId:" << shardId);
-
-  return key;
-}
-
-bool BlockStorage::PutMicroBlock(const uint64_t& blocknum,
-                                 const uint32_t& shardId,
+bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const vector<unsigned char>& body) {
-  string key = MakeKey(blocknum, shardId);
-  int ret = m_microBlockDB->Insert(key, body);
+  int ret = m_microBlockDB->Insert(blockHash, body);
 
   return (ret == 0);
 }
 
-bool BlockStorage::GetMicroBlock(const uint64_t& blocknum,
-                                 const uint32_t& shardId,
+bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
                                  MicroBlockSharedPtr& microblock) {
   LOG_MARKER();
-  string key = MakeKey(blocknum, shardId);
 
-  string blockString = m_microBlockDB->Lookup(key);
+  string blockString = m_microBlockDB->Lookup(blockHash);
 
   if (blockString.empty()) {
     return false;
   }
   microblock = make_shared<MicroBlock>(
       vector<unsigned char>(blockString.begin(), blockString.end()), 0);
+
+  return true;
+}
+
+bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
+                                       const uint64_t hiEpochNum,
+                                       const uint32_t loShardId,
+                                       const uint32_t hiShardId,
+                                       list<MicroBlockSharedPtr>& blocks) {
+  LOG_MARKER();
+
+  leveldb::Iterator* it =
+      m_microBlockDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string bns = it->key().ToString();
+    string blockString = it->value().ToString();
+    if (blockString.empty()) {
+      LOG_GENERAL(WARNING, "Lost one block in the chain");
+      delete it;
+      return false;
+    }
+    MicroBlockSharedPtr block = MicroBlockSharedPtr(new MicroBlock(
+        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+
+    if (block->GetHeader().GetEpochNum() < lowEpochNum ||
+        block->GetHeader().GetEpochNum() > hiEpochNum ||
+        block->GetHeader().GetShardId() < loShardId ||
+        block->GetHeader().GetShardId() > hiShardId) {
+      continue;
+    }
+
+    blocks.emplace_back(block);
+    LOG_GENERAL(INFO, "Retrievd MicroBlock Num:" << bns);
+  }
+
+  delete it;
+
+  if (blocks.empty()) {
+    LOG_GENERAL(INFO, "Disk has no MicroBlock matching the criteria");
+    return false;
+  }
 
   return true;
 }
@@ -412,7 +434,7 @@ bool BlockStorage::PutDSCommittee(
     const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
     const uint16_t& consensusLeaderID) {
   LOG_MARKER();
-
+  m_dsCommitteeDB->ResetDB();
   unsigned int index = 0;
   string leaderId = to_string(consensusLeaderID);
 
@@ -451,7 +473,14 @@ bool BlockStorage::GetDSCommittee(
   LOG_MARKER();
 
   unsigned int index = 0;
-  consensusLeaderID = stoul(m_dsCommitteeDB->Lookup(index++));
+  string strConsensusLeaderID = m_dsCommitteeDB->Lookup(index++);
+
+  if (strConsensusLeaderID.empty()) {
+    LOG_GENERAL(WARNING, "Cannot retrieve DS committee!");
+    return false;
+  }
+
+  consensusLeaderID = stoul(strConsensusLeaderID);
   LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
   string dataStr;
 
@@ -474,6 +503,89 @@ bool BlockStorage::GetDSCommittee(
                                                  << dsCommittee->back().second);
   }
 
+  return true;
+}
+
+bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
+                                     const uint32_t myshardId) {
+  LOG_MARKER();
+
+  m_shardStructureDB->ResetDB();
+  unsigned int index = 0;
+  string shardId = to_string(myshardId);
+
+  if (0 !=
+      m_shardStructureDB->Insert(
+          index++, vector<unsigned char>(shardId.begin(), shardId.end()))) {
+    LOG_GENERAL(WARNING, "Failed to store shard ID:" << myshardId);
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Stored shard ID:" << myshardId);
+
+  vector<unsigned char> shardStructure;
+
+  if (!Messenger::ShardStructureToArray(shardStructure, 0, shards)) {
+    LOG_GENERAL(WARNING, "Failed to serialize sharding structure");
+    return false;
+  }
+
+  if (0 != m_shardStructureDB->Insert(index++, shardStructure)) {
+    LOG_GENERAL(WARNING, "Failed to store sharding structure");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Stored sharding structure");
+  return true;
+}
+
+bool BlockStorage::GetShardStructure(DequeOfShard& shards,
+                                     atomic<uint32_t>& myshardId) {
+  LOG_MARKER();
+
+  unsigned int index = 0;
+  string strMyshardId = m_shardStructureDB->Lookup(index++);
+
+  if (strMyshardId.empty()) {
+    LOG_GENERAL(WARNING, "Cannot retrieve sharding structure!");
+    return false;
+  }
+
+  myshardId = stoul(strMyshardId);
+  LOG_GENERAL(INFO, "Retrieved shard ID: " << myshardId);
+  string dataStr = m_shardStructureDB->Lookup(index++);
+  Messenger::ArrayToShardStructure(
+      vector<unsigned char>(dataStr.begin(), dataStr.end()), 0, shards);
+  LOG_GENERAL(INFO, "Retrieved sharding structure");
+  return true;
+}
+
+bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
+                                 const std::vector<unsigned char>& stateDelta) {
+  LOG_MARKER();
+
+  if (0 != m_stateDeltaDB->Insert(finalBlockNum, stateDelta)) {
+    LOG_GENERAL(WARNING, "Failed to store state delta of final block["
+                             << finalBlockNum << "]: "
+                             << DataConversion::Uint8VecToHexStr(stateDelta));
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Stored state delta of final block["
+                        << finalBlockNum << "]: "
+                        << DataConversion::Uint8VecToHexStr(stateDelta));
+  return true;
+}
+
+bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
+                                 std::vector<unsigned char>& stateDelta) {
+  LOG_MARKER();
+
+  string dataStr = m_stateDeltaDB->Lookup(finalBlockNum);
+  stateDelta = vector<unsigned char>(dataStr.begin(), dataStr.end());
+  LOG_GENERAL(INFO, "Retrieved state delta of final block["
+                        << finalBlockNum << "]: "
+                        << DataConversion::Uint8VecToHexStr(stateDelta));
   return true;
 }
 
@@ -509,6 +621,12 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       break;
     case BLOCKLINK:
       ret = m_blockLinkDB->ResetDB();
+      break;
+    case SHARD_STRUCTURE:
+      ret = m_shardStructureDB->ResetDB();
+      break;
+    case STATE_DELTA:
+      ret = m_stateDeltaDB->ResetDB();
       break;
   }
   if (!ret) {
@@ -550,6 +668,12 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
     case BLOCKLINK:
       ret.push_back(m_blockLinkDB->GetDBName());
       break;
+    case SHARD_STRUCTURE:
+      ret.push_back(m_shardStructureDB->GetDBName());
+      break;
+    case STATE_DELTA:
+      ret.push_back(m_stateDeltaDB->GetDBName());
+      break;
   }
 
   return ret;
@@ -558,13 +682,15 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
-           ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) &&
-           ResetDB(BLOCKLINK);
+           ResetDB(MICROBLOCK) && ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) &&
+           ResetDB(FB_BLOCK) && ResetDB(BLOCKLINK) &&
+           ResetDB(SHARD_STRUCTURE) && ResetDB(STATE_DELTA);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
            ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP) && ResetDB(MICROBLOCK) &&
            ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) &&
-           ResetDB(BLOCKLINK);
+           ResetDB(BLOCKLINK) && ResetDB(SHARD_STRUCTURE) &&
+           ResetDB(STATE_DELTA);
   }
 }

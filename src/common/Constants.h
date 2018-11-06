@@ -76,6 +76,7 @@ enum MetaType : unsigned char {
   STATEROOT = 0x00,
   DSINCOMPLETED,
   LATESTACTIVEDSBLOCKNUM,
+  WAKEUPFORUPGRADE,
 };
 
 // Sync Type
@@ -100,6 +101,8 @@ const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
 const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
+const std::string dsNodeFile = "dsnodes.xml";
+
 extern const std::string SCILLA_ROOT;
 extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;
@@ -120,6 +123,7 @@ extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
+extern const unsigned int RECOVERY_SYNC_TIMEOUT;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
@@ -134,13 +138,9 @@ extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
-extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
-extern const unsigned int CONTRACT_CREATE_GAS;
-extern const unsigned int CONTRACT_INVOKE_GAS;
-extern const unsigned int NORMAL_TRAN_GAS;
 extern const unsigned int COINBASE_REWARD;
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int BROADCAST_INTERVAL;
@@ -177,7 +177,17 @@ extern const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
 extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
 extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
 extern const unsigned int MAX_CONTRACT_DEPTH;
+extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
+extern const unsigned int NUM_CONSENSUS_SUBSETS;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
+extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
+
+// gas
+extern const unsigned int MICROBLOCK_GAS_LIMIT;
+extern const unsigned int CONTRACT_CREATE_GAS;
+extern const unsigned int CONTRACT_INVOKE_GAS;
+extern const unsigned int NORMAL_TRAN_GAS;
+extern const unsigned int DEFAULT_MIN_GAS_PRICE;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
@@ -191,6 +201,9 @@ extern const bool ARCHIVAL_NODE;
 extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
 extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
+extern const bool GET_INITIAL_DS_FROM_REPO;
+extern const std::string UPGRADE_HOST_ACCOUNT;
+extern const std::string UPGRADE_HOST_REPO;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;

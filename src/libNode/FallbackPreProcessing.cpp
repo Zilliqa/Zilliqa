@@ -69,34 +69,10 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     return false;
   }
 
-  // ds epoch No
-  if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 !=
-      m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo()) {
-    LOG_GENERAL(
-        WARNING,
-        "Fallback DS epoch mismatched"
-            << endl
-            << "expected: "
-            << m_mediator.m_dsBlockChain.GetLastBlock()
-                       .GetHeader()
-                       .GetBlockNum() +
-                   1
-            << endl
-            << "received: "
-            << m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo());
-    return false;
-  }
-
-  // epoch No
-  if (m_mediator.m_currentEpochNum !=
-      m_pendingFallbackBlock->GetHeader().GetFallbackEpochNo()) {
-    LOG_GENERAL(
-        WARNING,
-        "Fallback epoch mismatched"
-            << endl
-            << "expected: " << m_mediator.m_currentEpochNum << endl
-            << "received: "
-            << m_pendingFallbackBlock->GetHeader().GetFallbackEpochNo());
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo(),
+          m_pendingFallbackBlock->GetHeader().GetFallbackEpochNo())) {
+    LOG_GENERAL(WARNING, "FallbackValidator CheckWhetherBlockIsLatest failed");
     return false;
   }
 
@@ -404,9 +380,10 @@ bool Node::ComposeFallbackBlock() {
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             m_mediator.m_currentEpochNum, m_fallbackState,
-            AccountStore::GetInstance().GetStateRootHash(), m_consensusLeaderID,
-            leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
-            m_myshardId, get_time_as_int(), committeeHash),
+            {AccountStore::GetInstance().GetStateRootHash()},
+            m_consensusLeaderID, leaderNetworkInfo,
+            m_myShardMembers->at(m_consensusLeaderID).first, m_myshardId,
+            get_time_as_int(), committeeHash),
         CoSignatures()));
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());

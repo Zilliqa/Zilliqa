@@ -16,5 +16,29 @@
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
  */
+#ifndef __MESSENGERACCOUNTSTOREBASE_H__
+#define __MESSENGERACCOUNTSTOREBASE_H__
 
-#include "depends/Sha3/Sha3.c"
+#include <vector>
+
+// This class is only used by AccountStoreBase template class
+// If AccountStoreBase.tpp included Messenger.h, we enter into some circular
+// dependency issue Putting the messenger functions below into this new class
+// avoids that issue
+
+class MessengerAccountStoreBase {
+ public:
+  // ============================================================================
+  // Primitives
+  // ============================================================================
+
+  template <class MAP>
+  static bool SetAccountStore(std::vector<unsigned char>& dst,
+                              const unsigned int offset,
+                              const MAP& addressToAccount);
+  template <class MAP>
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset, MAP& addressToAccount);
+};
+
+#endif  // __MESSENGERACCOUNTSTOREBASE_H__

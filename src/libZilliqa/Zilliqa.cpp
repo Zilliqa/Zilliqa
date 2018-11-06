@@ -32,6 +32,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 using namespace jsonrpc;
@@ -128,62 +129,87 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   } else {
     m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
   }
-  m_n.Install(syncType, toRetrieveHistory);
 
-  LogSelfNodeInfo(key, peer);
+  {
+    lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
+    if (!UpgradeManager::GetInstance().LoadInitialDS(
+            *m_mediator.m_initialDSCommittee)) {
+      LOG_GENERAL(WARNING, "Unable to load initial DS comm");
+    }
+  }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
 
-  switch (syncType) {
-    case SyncType::NO_SYNC:
-      LOG_GENERAL(INFO, "No Sync Needed");
-      Whitelist::GetInstance().Init();
-      break;
-    case SyncType::NEW_SYNC:
-      LOG_GENERAL(INFO, "Sync as a new node");
-      if (!toRetrieveHistory) {
-        m_mediator.m_lookup->m_syncType = SyncType::NEW_SYNC;
+  auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
+    if (!m_n.Install(syncType, toRetrieveHistory)) {
+      if (LOOKUP_NODE_MODE) {
+        syncType = SyncType::LOOKUP_SYNC;
+      } else {
+        syncType = SyncType::NORMAL_SYNC;
+
+        for (const auto& ds : *m_mediator.m_DSCommittee) {
+          if (ds.first == m_mediator.m_selfKey.second) {
+            syncType = SyncType::DS_SYNC;
+            break;
+          }
+        }
+      }
+    }
+
+    LogSelfNodeInfo(key, peer);
+
+    switch (syncType) {
+      case SyncType::NO_SYNC:
+        LOG_GENERAL(INFO, "No Sync Needed");
+        Whitelist::GetInstance().Init();
+        break;
+      case SyncType::NEW_SYNC:
+        LOG_GENERAL(INFO, "Sync as a new node");
+        if (!toRetrieveHistory) {
+          m_mediator.m_lookup->m_syncType = SyncType::NEW_SYNC;
+          m_n.m_runFromLate = true;
+          m_n.StartSynchronization();
+        } else {
+          LOG_GENERAL(WARNING,
+                      "Error: Sync for new node shouldn't retrieve history");
+        }
+        break;
+      case SyncType::NORMAL_SYNC:
+        LOG_GENERAL(INFO, "Sync as a normal node");
+        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
-      } else {
-        LOG_GENERAL(WARNING,
-                    "Error: Sync for new node shouldn't retrieve history");
-      }
-      break;
-    case SyncType::NORMAL_SYNC:
-      LOG_GENERAL(INFO, "Sync as a normal node");
-      m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
-      m_n.m_runFromLate = true;
-      m_n.StartSynchronization();
-      break;
-    case SyncType::DS_SYNC:
-      LOG_GENERAL(INFO, "Sync as a ds node");
-      m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
-      m_ds.StartSynchronization();
-      break;
-    case SyncType::LOOKUP_SYNC:
-      LOG_GENERAL(INFO, "Sync as a lookup node");
-      m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
-      m_lookup.StartSynchronization();
-      break;
-    default:
-      LOG_GENERAL(WARNING, "Invalid Sync Type");
-      break;
-  }
-
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(INFO, "I am a normal node.");
-
-    // m_mediator.HeartBeatLaunch();
-  } else {
-    LOG_GENERAL(INFO, "I am a lookup node.");
-    if (m_server.StartListening()) {
-      LOG_GENERAL(INFO, "API Server started successfully");
-      m_lookup.SetServerTrue();
-    } else {
-      LOG_GENERAL(WARNING, "API Server couldn't start");
+        break;
+      case SyncType::DS_SYNC:
+        LOG_GENERAL(INFO, "Sync as a ds node");
+        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_ds.StartSynchronization();
+        break;
+      case SyncType::LOOKUP_SYNC:
+        LOG_GENERAL(INFO, "Sync as a lookup node");
+        m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
+        m_lookup.StartSynchronization();
+        break;
+      default:
+        LOG_GENERAL(WARNING, "Invalid Sync Type");
+        break;
     }
-  }
+
+    if (!LOOKUP_NODE_MODE) {
+      LOG_GENERAL(INFO, "I am a normal node.");
+
+      // m_mediator.HeartBeatLaunch();
+    } else {
+      LOG_GENERAL(INFO, "I am a lookup node.");
+      if (m_server.StartListening()) {
+        LOG_GENERAL(INFO, "API Server started successfully");
+        m_lookup.SetServerTrue();
+      } else {
+        LOG_GENERAL(WARNING, "API Server couldn't start");
+      }
+    }
+  };
+  DetachedFunction(1, func);
 }
 
 Zilliqa::~Zilliqa() {

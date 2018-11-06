@@ -36,14 +36,12 @@ using namespace boost::multiprecision;
 BOOST_AUTO_TEST_SUITE(mediator_test)
 
 Mediator* m;
-KeyPair kp;
-Peer p;
 
 BOOST_AUTO_TEST_CASE(init) {
   INIT_STDOUT_LOGGER();
   rng.seed(std::random_device()());
-  kp = TestUtils::GenerateRandomKeyPair();
-  p = Peer();
+  KeyPair kp = TestUtils::GenerateRandomKeyPair();
+  Peer p = Peer();
   m = new Mediator(kp, p);
 }
 
@@ -140,6 +138,10 @@ BOOST_AUTO_TEST_CASE(GetShardSize) {
       std::to_string(shardsize) == std::to_string(EXPECTED_SHARDSIZE),
       "Wrong mode. Expected " + std::to_string(EXPECTED_SHARDSIZE) +
           ". Result: " + std::to_string(shardsize));
+}
+
+BOOST_AUTO_TEST_CASE(CleanUp) {
+  delete m;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

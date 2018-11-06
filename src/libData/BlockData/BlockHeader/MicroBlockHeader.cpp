@@ -24,7 +24,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-MicroBlockHeader::MicroBlockHeader() { m_blockNum = (uint64_t)-1; }
+MicroBlockHeader::MicroBlockHeader() { m_epochNum = (uint64_t)-1; }
 
 MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
                                    unsigned int offset) {
@@ -36,11 +36,10 @@ MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
 MicroBlockHeader::MicroBlockHeader(
     uint8_t type, uint32_t version, uint32_t shardId, const uint256_t& gasLimit,
     const uint256_t& gasUsed, const uint256_t& rewards,
-    const BlockHash& prevHash, const uint64_t& blockNum,
-    const uint256_t& timestamp, const TxnHash& txRootHash, uint32_t numTxs,
-    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-    const BlockHash& dsBlockHash, const StateHash& stateDeltaHash,
-    const TxnHash& tranReceiptHash, const CommitteeHash& committeeHash)
+    const BlockHash& prevHash, const uint64_t& epochNum,
+    const uint256_t& timestamp, const MicroBlockHashSet& hashset,
+    uint32_t numTxs, const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+    const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
       m_type(type),
       m_version(version),
@@ -49,13 +48,12 @@ MicroBlockHeader::MicroBlockHeader(
       m_gasUsed(gasUsed),
       m_rewards(rewards),
       m_prevHash(prevHash),
-      m_blockNum(blockNum),
+      m_epochNum(epochNum),
       m_timestamp(timestamp),
-      m_hash{txRootHash, stateDeltaHash, tranReceiptHash},
+      m_hashset(hashset),
       m_numTxs(numTxs),
       m_minerPubKey(minerPubKey),
-      m_dsBlockNum(dsBlockNum),
-      m_dsBlockHash(dsBlockHash) {}
+      m_dsBlockNum(dsBlockNum) {}
 
 bool MicroBlockHeader::Serialize(vector<unsigned char>& dst,
                                  unsigned int offset) const {
@@ -91,7 +89,7 @@ const uint256_t& MicroBlockHeader::GetRewards() const { return m_rewards; }
 
 const BlockHash& MicroBlockHeader::GetPrevHash() const { return m_prevHash; }
 
-const uint64_t& MicroBlockHeader::GetBlockNum() const { return m_blockNum; }
+const uint64_t& MicroBlockHeader::GetEpochNum() const { return m_epochNum; }
 
 const uint256_t& MicroBlockHeader::GetTimestamp() const { return m_timestamp; }
 
@@ -101,44 +99,42 @@ const PubKey& MicroBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
 
 const uint64_t& MicroBlockHeader::GetDSBlockNum() const { return m_dsBlockNum; }
 
-const BlockHash& MicroBlockHeader::GetDSBlockHash() const {
-  return m_dsBlockHash;
-}
-
 const TxnHash& MicroBlockHeader::GetTxRootHash() const {
-  return m_hash.m_txRootHash;
+  return m_hashset.m_txRootHash;
 }
 
 const StateHash& MicroBlockHeader::GetStateDeltaHash() const {
-  return m_hash.m_stateDeltaHash;
+  return m_hashset.m_stateDeltaHash;
 }
 
 const TxnHash& MicroBlockHeader::GetTranReceiptHash() const {
-  return m_hash.m_tranReceiptHash;
+  return m_hashset.m_tranReceiptHash;
 }
 
-const MicroBlockHashSet& MicroBlockHeader::GetHash() const { return m_hash; }
+const MicroBlockHashSet& MicroBlockHeader::GetHashes() const {
+  return m_hashset;
+}
 
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const {
   return std::tie(m_type, m_version, m_shardId, m_gasLimit, m_gasUsed,
-                  m_rewards, m_prevHash, m_blockNum, m_timestamp, m_hash,
-                  m_numTxs, m_minerPubKey, m_dsBlockNum, m_dsBlockHash) ==
+                  m_rewards, m_prevHash, m_epochNum, m_timestamp, m_hashset,
+                  m_numTxs, m_minerPubKey, m_dsBlockNum) ==
          std::tie(header.m_type, header.m_version, header.m_shardId,
                   header.m_gasLimit, header.m_gasUsed, header.m_rewards,
-                  header.m_prevHash, header.m_blockNum, header.m_timestamp,
-                  header.m_hash, header.m_numTxs, header.m_minerPubKey,
-                  header.m_dsBlockNum, header.m_dsBlockHash);
+                  header.m_prevHash, header.m_epochNum, header.m_timestamp,
+                  header.m_hashset, header.m_numTxs, header.m_minerPubKey,
+                  header.m_dsBlockNum);
 }
 
 bool MicroBlockHeader::operator<(const MicroBlockHeader& header) const {
   return std::tie(header.m_type, header.m_version, header.m_shardId,
                   header.m_gasLimit, header.m_gasUsed, header.m_rewards,
-                  header.m_prevHash, header.m_blockNum, header.m_timestamp,
-                  header.m_hash, header.m_numTxs, header.m_minerPubKey,
-                  header.m_dsBlockNum, header.m_dsBlockHash) >
+                  header.m_prevHash, header.m_epochNum, header.m_timestamp,
+                  header.m_hashset, header.m_numTxs, header.m_minerPubKey,
+                  header.m_dsBlockNum) >
          std::tie(m_type, m_version, m_shardId, m_gasLimit, m_gasUsed,
-                  m_rewards, m_prevHash, m_blockNum, m_timestamp, m_hash,
-                  m_numTxs, m_minerPubKey, m_dsBlockNum, m_dsBlockHash);
+                  m_rewards, m_prevHash, m_epochNum, m_timestamp, m_hashset,
+                  m_numTxs, m_minerPubKey, m_dsBlockNum);
 }
 
 bool MicroBlockHeader::operator>(const MicroBlockHeader& header) const {

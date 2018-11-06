@@ -47,14 +47,15 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   PubKey pubKey(tmppubkey, 0);
   std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
   uint64_t genesisBlockNumer = 0;
+  uint64_t genesisEpochNumer = 0;
   uint256_t genesisTimestamp = 0;
   std::map<PubKey, Peer> powDSWinners;
 
   // FIXME: Handle exceptions.
   DSBlock dsBlock(
       DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
-                    genesisBlockNumer, genesisTimestamp, SWInfo(), powDSWinners,
-                    DSBlockHashSet(), CommitteeHash()),
+                    genesisBlockNumer, genesisEpochNumer, genesisTimestamp,
+                    SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
   dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;
@@ -92,10 +93,9 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
 
   TxBlock txBlock(
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
-                    BlockHash(), 0, 151384616955606, TxnHash(), StateHash(),
-                    StateHash(), StateHash(), TxnHash(), 0, 5, keypair.second,
-                    0, BlockHash(), CommitteeHash()),
-      vector<bool>(1), vector<MicroBlockHashSet>(5), vector<uint32_t>(5),
+                    BlockHash(), 0, 151384616955606, TxBlockHashSet(), 0, 5,
+                    keypair.second, 0, CommitteeHash()),
+      vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
       CoSignatures());
   txBlock.SetBlockHash(txBlock.GetHeader().GetMyHash());
   return txBlock;
@@ -140,19 +140,6 @@ bool Synchronizer::FetchDSInfo(Lookup* lookup) {
 
   lookup->GetDSInfoFromLookupNodes();
   // lookup->GetDSInfoFromSeedNodes();
-  return true;
-}
-
-bool Synchronizer::FetchInitialDSInfo(Lookup* lookup) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Synchronizer::FetchInitialDSInfo not expected to be called "
-                "from Lookup Node");
-    return true;
-  }
-
-  lookup->GetDSInfoFromLookupNodes(true);
-
   return true;
 }
 

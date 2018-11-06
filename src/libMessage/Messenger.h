@@ -16,6 +16,9 @@
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
  */
+#ifndef __MESSENGER_H__
+#define __MESSENGER_H__
+
 #include <boost/variant.hpp>
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
@@ -25,9 +28,6 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
-
-#ifndef __MESSENGER_H__
-#define __MESSENGER_H__
 
 class Messenger {
  public:
@@ -46,6 +46,47 @@ class Messenger {
       const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders, TxSharingHash& dst);
+
+  static bool SetAccount(std::vector<unsigned char>& dst,
+                         const unsigned int offset, const Account& account);
+  [[gnu::unused]] static bool GetAccount(const std::vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         Account& account);
+
+  static bool SetAccountDelta(std::vector<unsigned char>& dst,
+                              const unsigned int offset, Account* oldAccount,
+                              const Account& newAccount);
+  static bool GetAccountDelta(const std::vector<unsigned char>& src,
+                              const unsigned int offset, Account& account,
+                              const bool fullCopy);
+
+  // These are called by AccountStoreBase template class
+  template <class MAP>
+  static bool SetAccountStore(std::vector<unsigned char>& dst,
+                              const unsigned int offset,
+                              const MAP& addressToAccount);
+  template <class MAP>
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset, MAP& addressToAccount);
+  static bool GetAccountStore(const std::vector<unsigned char>& src,
+                              const unsigned int offset,
+                              AccountStore& accountStore);
+
+  // These are called by AccountStore class
+  static bool SetAccountStoreDelta(std::vector<unsigned char>& dst,
+                                   const unsigned int offset,
+                                   AccountStoreTemp& accountStoreTemp);
+  static bool GetAccountStoreDelta(const std::vector<unsigned char>& src,
+                                   const unsigned int offset,
+                                   AccountStore& accountStore,
+                                   const bool reversible);
+  static bool GetAccountStoreDelta(const std::vector<unsigned char>& src,
+                                   const unsigned int offset,
+                                   AccountStoreTemp& accountStoreTemp);
+
+  static bool GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
+                                 const std::vector<uint32_t>& shardIds,
+                                 MBInfoHash& dst);
 
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
@@ -104,6 +145,42 @@ class Messenger {
   static bool GetFallbackBlock(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                FallbackBlock& fallbackBlock);
+  static bool SetTransactionCoreInfo(std::vector<unsigned char>& dst,
+                                     const unsigned int offset,
+                                     const TransactionCoreInfo& transaction);
+  static bool GetTransactionCoreInfo(const std::vector<unsigned char>& src,
+                                     const unsigned int offset,
+                                     TransactionCoreInfo& transaction);
+  static bool SetTransaction(std::vector<unsigned char>& dst,
+                             const unsigned int offset,
+                             const Transaction& transaction);
+  static bool GetTransaction(const std::vector<unsigned char>& src,
+                             const unsigned int offset,
+                             Transaction& transaction);
+  static bool SetTransactionFileOffset(std::vector<unsigned char>& dst,
+                                       const unsigned int offset,
+                                       const std::vector<uint32_t>& txnOffsets);
+  static bool GetTransactionFileOffset(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       std::vector<uint32_t>& txnOffsets);
+  static bool SetTransactionArray(std::vector<unsigned char>& dst,
+                                  const unsigned int offset,
+                                  const std::vector<Transaction>& txns);
+  static bool GetTransactionArray(const std::vector<unsigned char>& src,
+                                  const unsigned int offset,
+                                  std::vector<Transaction>& txns);
+  static bool SetTransactionReceipt(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const TransactionReceipt& transactionReceipt);
+  static bool GetTransactionReceipt(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    TransactionReceipt& transactionReceipt);
+  static bool SetTransactionWithReceipt(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const TransactionWithReceipt& transactionWithReceipt);
+  static bool GetTransactionWithReceipt(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      TransactionWithReceipt& transactionWithReceipt);
 
   // ============================================================================
   // Directory Service messages
@@ -144,7 +221,7 @@ class Messenger {
       const DequeOfShard& shards, const std::vector<Peer>& dsReceivers,
       const std::vector<std::vector<Peer>>& shardReceivers,
       const std::vector<std::vector<Peer>>& shardSenders,
-      const MapOfPubKeyPoW& allPoWs,
+      const MapOfPubKeyPoW& allPoWs, const MapOfPubKeyPoW& dsWinnerPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool GetDSDSBlockAnnouncement(
@@ -155,6 +232,7 @@ class Messenger {
       std::vector<Peer>& dsReceivers,
       std::vector<std::vector<Peer>>& shardReceivers,
       std::vector<std::vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
+      MapOfPubKeyPoW& dsWinnerPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool SetDSFinalBlockAnnouncement(
@@ -225,8 +303,8 @@ class Messenger {
 
   static bool SetNodeForwardTransaction(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t blockNum, const MicroBlockHashSet& hashes,
-      const uint32_t& shardId, const std::vector<TransactionWithReceipt>& txns);
+      const uint64_t blockNum, const BlockHash& hash,
+      const std::vector<TransactionWithReceipt>& txns);
   static bool GetNodeForwardTransaction(const std::vector<unsigned char>& src,
                                         const unsigned int offset,
                                         ForwardedTxnEntry& entry);
@@ -236,7 +314,7 @@ class Messenger {
       const uint64_t epochNumber, const uint32_t shardId,
       const std::pair<PrivKey, PubKey>& lookupKey,
       const std::vector<Transaction>& txnsCurrent,
-      const std::vector<unsigned char>& txnsGenerated);
+      const std::vector<Transaction>& txnsGenerated);
   static bool GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                      const unsigned int offset,
                                      uint64_t& epochNumber, uint32_t& shardId,
@@ -278,6 +356,13 @@ class Messenger {
   static bool GetNodeFallbackBlock(const std::vector<unsigned char>& src,
                                    const unsigned int offset,
                                    FallbackBlock& fallbackBlock);
+
+  static bool ShardStructureToArray(std::vector<unsigned char>& dst,
+                                    const unsigned int offset,
+                                    const DequeOfShard& shards);
+  static bool ArrayToShardStructure(const std::vector<unsigned char>& src,
+                                    const unsigned int offset,
+                                    DequeOfShard& shards);
 
   // ============================================================================
   // Lookup messages
@@ -354,6 +439,21 @@ class Messenger {
                                           uint64_t& highBlockNum,
                                           PubKey& lookupPubKey,
                                           std::vector<TxBlock>& txBlocks);
+  static bool SetLookupGetStateDeltaFromSeed(std::vector<unsigned char>& dst,
+                                             const unsigned int offset,
+                                             const uint64_t blockNum,
+                                             const uint32_t listenPort);
+  static bool GetLookupGetStateDeltaFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNum, uint32_t& listenPort);
+  static bool SetLookupSetStateDeltaFromSeed(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint64_t blockNum, const std::pair<PrivKey, PubKey>& lookupKey,
+      const std::vector<unsigned char>& stateDelta);
+  static bool GetLookupSetStateDeltaFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNum, PubKey& lookupPubKey,
+      std::vector<unsigned char>& stateDelta);
   static bool SetLookupGetTxBodyFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const std::vector<unsigned char>& txHash, const uint32_t listenPort);
@@ -447,13 +547,11 @@ class Messenger {
 
   static bool SetLookupGetMicroBlockFromLookup(
       std::vector<unsigned char>& dest, const unsigned int offset,
-      const std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
-      uint32_t portNo);
+      const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
   static bool GetLookupGetMicroBlockFromLookup(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      std::map<uint64_t, std::vector<uint32_t>>& microBlockInfo,
-      uint32_t& portNo);
+      std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
 
   static bool SetLookupSetMicroBlockFromLookup(
       std::vector<unsigned char>& dst, const unsigned int offset,
@@ -518,26 +616,28 @@ class Messenger {
   static bool SetConsensusChallenge(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-      const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
-      const Challenge& challenge, const std::pair<PrivKey, PubKey>& leaderKey);
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t leaderID, const CommitPoint& aggregatedCommit,
+      const PubKey& aggregatedKey, const Challenge& challenge,
+      const std::pair<PrivKey, PubKey>& leaderKey);
   static bool GetConsensusChallenge(
       const std::vector<unsigned char>& src, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-      CommitPoint& aggregatedCommit, PubKey& aggregatedKey,
-      Challenge& challenge, const PubKey& leaderKey);
+      uint16_t& subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t leaderID, CommitPoint& aggregatedCommit,
+      PubKey& aggregatedKey, Challenge& challenge, const PubKey& leaderKey);
 
   static bool SetConsensusResponse(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
-      const std::vector<unsigned char>& blockHash, const uint16_t backupID,
-      const Response& response, const std::pair<PrivKey, PubKey>& backupKey);
+      const uint16_t subsetID, const std::vector<unsigned char>& blockHash,
+      const uint16_t backupID, const Response& response,
+      const std::pair<PrivKey, PubKey>& backupKey);
   static bool GetConsensusResponse(
       const std::vector<unsigned char>& src, const unsigned int offset,
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, uint16_t& backupID,
-      Response& response,
+      uint16_t& subsetID, Response& response,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 
   static bool SetConsensusCollectiveSig(

@@ -18,23 +18,61 @@
  */
 
 #include "UpgradeManager.h"
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
 using namespace std;
 
-#define DEFAULT_RELEASE_URL \
-  "https://api.github.com/repos/Zilliqa/Zilliqa/releases/latest"
 #define USER_AGENT "Zilliqa"
+#define DOWNLOAD_FOLDER "download"
 #define VERSION_FILE_NAME "VERSION"
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
+#define CONSTANT_FILE_NAME "constants.xml"
 #define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
+#define UPGRADE_HOST                                                      \
+  string(string("https://api.github.com/repos/") + UPGRADE_HOST_ACCOUNT + \
+         "/" + UPGRADE_HOST_REPO + "/releases/latest")
 
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_SHARD = 0;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP = 1;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_LEADER = 2;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_LOOKUP = 3;
+
+namespace {
+
+const string dsNodePubProp = "pubk";
+const string publicKeyProp = "publicKey";
+const string signatureProp = "signature";
+struct PTree {
+  static boost::property_tree::ptree& GetInstance() {
+    static boost::property_tree::ptree pt;
+    read_xml(dsNodeFile.c_str(), pt);
+    return pt;
+  }
+  PTree() = delete;
+  ~PTree() = delete;
+};
+
+const vector<string> ReadDSCommFromFile() {
+  auto pt = PTree::GetInstance();
+  std::vector<std::string> result;
+  for (auto& pubk : pt.get_child("dsnodes")) {
+    if (pubk.first == dsNodePubProp) {
+      result.emplace_back(pubk.second.data());
+    }
+  }
+  return result;
+}
+
+const string ReadDSCommFile(string propName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<string>(propName);
+}
+}  // namespace
 
 UpgradeManager::UpgradeManager() {
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -44,6 +82,8 @@ UpgradeManager::UpgradeManager() {
     LOG_GENERAL(WARNING, "curl initialization fail!");
     curl_global_cleanup();
   }
+
+  boost::filesystem::create_directories(DOWNLOAD_FOLDER);
 }
 
 UpgradeManager::~UpgradeManager() {
@@ -75,7 +115,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
   string curlRes;
   curl_easy_reset(m_curl);
   curl_easy_setopt(m_curl, CURLOPT_URL,
-                   releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL);
+                   releaseUrl ? releaseUrl : UPGRADE_HOST.c_str());
   curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
   curl_easy_setopt(m_curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
   curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, WriteString);
@@ -86,7 +126,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     LOG_GENERAL(WARNING,
                 "curl_easy_perform() failed to get latest release "
                 "information from url ["
-                    << (releaseUrl ? releaseUrl : DEFAULT_RELEASE_URL)
+                    << (releaseUrl ? releaseUrl : UPGRADE_HOST)
                     << "]: " << curl_easy_strerror(res));
     return "";
   }
@@ -127,7 +167,9 @@ string UpgradeManager::DownloadFile(const char* fileTail,
     }
   }
 
-  string fileName = downloadFilePath.substr(downloadFilePath.rfind('/') + 1);
+  LOG_GENERAL(INFO, "downloadFilePath: " << downloadFilePath);
+  string fileName = string(DOWNLOAD_FOLDER) + "/" +
+                    downloadFilePath.substr(downloadFilePath.rfind('/') + 1);
 
   /// Get the redirection url (if applicable)
   curl_easy_reset(m_curl);
@@ -136,7 +178,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
   res = curl_easy_perform(m_curl);
 
   if (res != CURLE_OK) {
-    LOG_GENERAL(WARNING,
+    LOG_GENERAL(INFO,
                 "curl_easy_perform() failed to get redirect url from url ["
                     << downloadFilePath << "]: " << curl_easy_strerror(res));
     return "";
@@ -170,9 +212,9 @@ string UpgradeManager::DownloadFile(const char* fileTail,
   res = curl_easy_perform(m_curl);
 
   if (res != CURLE_OK) {
-    LOG_GENERAL(WARNING, "curl_easy_perform() failed to download file from url["
-                             << downloadFilePath
-                             << "]: " << curl_easy_strerror(res));
+    LOG_GENERAL(INFO, "curl_easy_perform() failed to download file from url["
+                          << downloadFilePath
+                          << "]: " << curl_easy_strerror(res));
     return "";
   }
 
@@ -185,7 +227,7 @@ bool UpgradeManager::HasNewSW() {
   string pubKeyFileName = DownloadFile(PUBLIC_KEY_FILE_NAME);
 
   if (pubKeyFileName.empty()) {
-    LOG_GENERAL(WARNING, "Cannot download public key file!");
+    LOG_GENERAL(INFO, "Cannot download public key file!");
     return false;
   }
 
@@ -194,7 +236,7 @@ bool UpgradeManager::HasNewSW() {
   string versionName = DownloadFile(VERSION_FILE_NAME);
 
   if (versionName.empty()) {
-    LOG_GENERAL(WARNING, "Cannot download version file!");
+    LOG_GENERAL(INFO, "Cannot download version file!");
     return false;
   }
 
@@ -202,7 +244,7 @@ bool UpgradeManager::HasNewSW() {
 
   vector<PubKey> pubKeys;
   {
-    fstream pubKeyFile(PUBLIC_KEY_FILE_NAME, ios::in);
+    fstream pubKeyFile(pubKeyFileName, ios::in);
     string pubKey;
 
     while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
@@ -214,7 +256,7 @@ bool UpgradeManager::HasNewSW() {
 
   string shaStr, sigStr;
   {
-    fstream versionFile(VERSION_FILE_NAME, ios::in);
+    fstream versionFile(versionName, ios::in);
     int line_no = 0;
 
     /// Read SHA-256 hash
@@ -262,6 +304,15 @@ bool UpgradeManager::DownloadSW() {
 
   LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
 
+  m_constantFileName = DownloadFile(CONSTANT_FILE_NAME);
+
+  if (m_constantFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download constant file!");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Constant file has been downloaded successfully.");
+
   m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
 
   if (m_packageFileName.empty()) {
@@ -276,7 +327,7 @@ bool UpgradeManager::DownloadSW() {
   string sha;
 
   try {
-    fstream versionFile(VERSION_FILE_NAME, ios::in);
+    fstream versionFile(versionName, ios::in);
     int line_no = 0;
     string line;
 
@@ -390,10 +441,14 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
     }
   }
 
-  BlockStorage::GetBlockStorage().PutDSCommittee(
-      mediator.m_DSCommittee, mediator.m_ds->m_consensusLeaderID);
+  BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
+                                              {'1'});
 
   /// Deploy downloaded software
+  boost::filesystem::copy_file(
+      m_constantFileName, CONSTANT_FILE_NAME,
+      boost::filesystem::copy_option::overwrite_if_exists);
+
   /// TBD: The call of "dpkg" should be removed.
   /// (https://github.com/Zilliqa/Issues/issues/185)
   if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr) <
@@ -405,4 +460,57 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
   /// Kill current node, then the recovery procedure will wake up node with
   /// stored data
   return raise(SIGKILL) == 0;
+}
+
+bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
+  string downloadUrl = "";
+  try {
+    if (GET_INITIAL_DS_FROM_REPO) {
+      string dsnodeFile = DownloadFile(dsNodeFile.data(), downloadUrl.c_str());
+      boost::filesystem::copy_file(
+          dsnodeFile, dsNodeFile,
+          boost::filesystem::copy_option::overwrite_if_exists);
+      auto pt = PTree::GetInstance();
+
+      vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
+      initialDSCommittee.clear();
+      for (auto ds_string : tempDsComm_string) {
+        initialDSCommittee.push_back(
+            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+      }
+
+      vector<unsigned char> message;
+
+      unsigned int curr_offset = 0;
+      for (auto& dsKey : initialDSCommittee) {
+        dsKey.Serialize(message, curr_offset);
+        curr_offset += PUB_KEY_SIZE;
+      }
+
+      string sig_str = ReadDSCommFile(signatureProp);
+      string pubKey_str = ReadDSCommFile(publicKeyProp);
+
+      PubKey pubKey(DataConversion::HexStrToUint8Vec(pubKey_str), 0);
+      Signature sig(DataConversion::HexStrToUint8Vec(sig_str), 0);
+
+      if (!Schnorr::GetInstance().Verify(message, sig, pubKey)) {
+        LOG_GENERAL(WARNING, "Unable to verify file");
+        return false;
+      }
+      return true;
+
+    } else {
+      vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
+      initialDSCommittee.clear();
+      for (auto ds_string : tempDsComm_string) {
+        initialDSCommittee.push_back(
+            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+      }
+    }
+
+    return true;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, e.what());
+    return false;
+  }
 }

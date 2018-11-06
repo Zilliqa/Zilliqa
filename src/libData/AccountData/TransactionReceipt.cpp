@@ -18,6 +18,7 @@
  */
 
 #include "TransactionReceipt.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/JsonUtils.h"
 
 using namespace std;
@@ -25,54 +26,35 @@ using namespace boost::multiprecision;
 
 TransactionReceipt::TransactionReceipt() { update(); }
 
-unsigned int TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
-                                           unsigned int offset) const {
-  vector<unsigned char> receiptBytes =
-      DataConversion::StringToCharArray(m_tranReceiptStr);
+bool TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
+                                   unsigned int offset) const {
+  if (!Messenger::SetTransactionReceipt(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetTransactionReceipt failed.");
+    return false;
+  }
 
-  // size of JsonStr
-  SetNumber<uint32_t>(dst, offset, (uint32_t)receiptBytes.size(),
-                      sizeof(uint32_t));
-  offset += sizeof(uint32_t);
-
-  // JsonStr
-  copy(receiptBytes.begin(), receiptBytes.end(), back_inserter(dst));
-  offset += receiptBytes.size();
-
-  return offset;
+  return true;
 }
 
-int TransactionReceipt::Deserialize(const std::vector<unsigned char>& src,
-                                    unsigned int offset) {
+bool TransactionReceipt::Deserialize(const std::vector<unsigned char>& src,
+                                     unsigned int offset) {
   try {
-    unsigned int t_offset = offset;
-
-    uint32_t receipt_size = GetNumber<uint32_t>(src, offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-
-    vector<unsigned char> receipt_bytes;
-    if (receipt_size > 0) {
-      copy(src.begin() + offset, src.begin() + offset + receipt_size,
-           back_inserter(receipt_bytes));
+    if (!Messenger::GetTransactionReceipt(src, offset, *this)) {
+      LOG_GENERAL(WARNING, "Messenger::GetTransactionReceipt failed.");
+      return false;
     }
-    offset += receipt_size;
-
-    m_serialized_size = offset - t_offset;
-
-    m_tranReceiptStr.clear();
-    m_tranReceiptStr = string(receipt_bytes.begin(), receipt_bytes.end());
 
     if (!JSONUtils::convertStrtoJson(m_tranReceiptStr, m_tranReceiptObj)) {
       LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
-      return -1;
+      return false;
     }
     update();
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Error with TransactionReceipt::Deserialize."
                              << ' ' << e.what());
-    return -1;
+    return false;
   }
-  return 0;
+  return true;
 }
 
 void TransactionReceipt::SetResult(const bool& result) {
@@ -86,6 +68,20 @@ void TransactionReceipt::SetResult(const bool& result) {
 void TransactionReceipt::SetCumGas(const uint256_t& cumGas) {
   m_cumGas = cumGas;
   m_tranReceiptObj["cumulative_gas"] = m_cumGas.convert_to<string>();
+}
+
+void TransactionReceipt::SetString(const std::string& tranReceiptStr) {
+  try {
+    if (!JSONUtils::convertStrtoJson(tranReceiptStr, m_tranReceiptObj)) {
+      LOG_GENERAL(WARNING, "Error with convert receipt string to json object");
+      return;
+    }
+    m_tranReceiptStr = tranReceiptStr;
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Error with TransactionReceipt::SetString." << ' ' << e.what());
+    return;
+  }
 }
 
 void TransactionReceipt::AddEntry(const LogEntry& entry) {
@@ -110,4 +106,24 @@ void TransactionReceipt::update() {
   m_tranReceiptStr.erase(
       std::remove(m_tranReceiptStr.begin(), m_tranReceiptStr.end(), '\n'),
       m_tranReceiptStr.end());
+}
+
+/// Implements the Serialize function inherited from Serializable.
+bool TransactionWithReceipt::Serialize(std::vector<unsigned char>& dst,
+                                       unsigned int offset) const {
+  if (!Messenger::SetTransactionWithReceipt(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetTransactionWithReceipt failed.");
+    return false;
+  }
+  return true;
+}
+
+/// Implements the Deserialize function inherited from Serializable.
+bool TransactionWithReceipt::Deserialize(const std::vector<unsigned char>& src,
+                                         unsigned int offset) {
+  if (!Messenger::GetTransactionWithReceipt(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransactionWithReceipt failed.");
+    return false;
+  }
+  return true;
 }

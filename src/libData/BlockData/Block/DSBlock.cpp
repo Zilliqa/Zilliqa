@@ -41,6 +41,8 @@ DSBlock::DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs)
   m_cosigs = move(cosigs);
 }
 
+DSBlock::DSBlock(const DSBlockHeader& header) : m_header(header) {}
+
 bool DSBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   if (!Messenger::SetDSBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetDSBlock failed.");
@@ -67,21 +69,7 @@ bool DSBlock::operator==(const DSBlock& block) const {
 }
 
 bool DSBlock::operator<(const DSBlock& block) const {
-  if (m_header < block.m_header) {
-    return true;
-  } else if (m_header > block.m_header) {
-    return false;
-  } else {
-    return false;
-  }
+  return block.m_header > m_header;
 }
 
-bool DSBlock::operator>(const DSBlock& block) const {
-  return !((*this == block) || (*this < block));
-}
-
-const BlockHash& DSBlock::GetBlockHash() const { return m_blockHash; }
-
-void DSBlock::SetBlockHash(const BlockHash& blockHash) {
-  m_blockHash = blockHash;
-}
+bool DSBlock::operator>(const DSBlock& block) const { return block < *this; }

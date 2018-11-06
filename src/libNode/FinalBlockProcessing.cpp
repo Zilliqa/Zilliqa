@@ -47,10 +47,10 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/TxnRootComputation.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -126,28 +126,29 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
-  const auto& hashesInMicroBlocks = finalBlock.GetMicroBlockHashes();
-  const auto& shardIdsInMicroBlocks = finalBlock.GetShardIds();
+  const auto& microBlockHashes = finalBlock.GetMicroBlockHashes();
   const auto& isMicroBlockEmptys = finalBlock.GetIsMicroBlockEmpty();
+  const auto& shardIds = finalBlock.GetShardIds();
 
-  if (hashesInMicroBlocks.size() != shardIdsInMicroBlocks.size() ||
-      shardIdsInMicroBlocks.size() != isMicroBlockEmptys.size()) {
-    LOG_GENERAL(WARNING,
-                "size of hashesInMicroBlocks & shardIdsInMicroBlocks & "
-                "isMicroBlockEmptys is not equal");
+  if (microBlockHashes.size() != isMicroBlockEmptys.size() ||
+      shardIds.size() != isMicroBlockEmptys.size()) {
+    LOG_GENERAL(WARNING, "size of microBlockHashes("
+                             << microBlockHashes.size()
+                             << ") & isMicroBlockEmptys("
+                             << isMicroBlockEmptys.size() << ") & shardIds("
+                             << shardIds.size() << ") is not equal");
     return false;
   }
 
   // bool doRejoin = false;
 
-  for (unsigned int i = 0; i < hashesInMicroBlocks.size(); i++) {
+  for (unsigned int i = 0; i < microBlockHashes.size(); i++) {
     if (LOOKUP_NODE_MODE) {
       if (!isMicroBlockEmptys[i]) {
-        m_unavailableMicroBlocks[blocknum].push_back(
-            {hashesInMicroBlocks[i], shardIdsInMicroBlocks[i]});
+        m_unavailableMicroBlocks[blocknum].emplace_back(microBlockHashes[i]);
       }
     } else {
-      if (shardIdsInMicroBlocks[i] == m_myshardId) {
+      if (shardIds[i] == m_myshardId) {
         if (m_microblock == nullptr) {
           LOG_GENERAL(WARNING,
                       "Found my shard microblock but microblock obj "
@@ -159,7 +160,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                       "Found my shard microblock but Cosig not updated");
           // doRejoin = true;
         } else {
-          if (m_microblock->GetHeader().GetHash() == hashesInMicroBlocks[i]) {
+          if (m_microblock->GetBlockHash() == microBlockHashes[i]) {
             if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
               if (!isMicroBlockEmptys[i]) {
                 toSendTxnToLookup = true;
@@ -178,9 +179,9 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                         "The microblock hashes in finalblock doesn't "
                         "match with the local one"
                             << endl
-                            << "expected: "
-                            << m_microblock->GetHeader().GetHash() << endl
-                            << "received: " << hashesInMicroBlocks[i])
+                            << "expected: " << m_microblock->GetBlockHash()
+                            << endl
+                            << "received: " << microBlockHashes[i])
             return false;
           }
         }
@@ -206,7 +207,7 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
     const ForwardedTxnEntry& entry) {
   for (auto it = m_unavailableMicroBlocks.at(entry.m_blockNum).begin();
        it != m_unavailableMicroBlocks.at(entry.m_blockNum).end(); it++) {
-    if (it->m_hash == entry.m_hash && it->m_shardId == entry.m_shardId) {
+    if (*it == entry.m_hash) {
       LOG_GENERAL(INFO, "Remove microblock" << *it);
       LOG_GENERAL(INFO,
                   "Microblocks count before removing: "
@@ -279,13 +280,12 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
 
 bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
                                    [[gnu::unused]] const uint64_t& blocknum) {
-  TxnHash microBlocksHash =
-      ComputeTransactionsRoot(finalBlock.GetMicroBlockHashes());
+  TxnHash microBlocksHash = ComputeRoot(finalBlock.GetMicroBlockHashes());
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Expected FinalBlock TxRoot hash: " << microBlocksHash.hex());
 
-  if (finalBlock.GetHeader().GetTxRootHash() != microBlocksHash) {
+  if (finalBlock.GetHeader().GetMbRootHash() != microBlocksHash) {
     LOG_GENERAL(INFO,
                 "TxRootHash in Final Block Header doesn't match root of "
                 "microblock hashes");
@@ -329,8 +329,7 @@ void Node::BroadcastTransactionsToLookup(
 
     if (!Messenger::SetNodeForwardTransaction(
             forwardtxn_message, MessageOffset::BODY, blocknum,
-            m_microblock->GetHeader().GetHash(),
-            m_microblock->GetHeader().GetShardId(), txns_to_send)) {
+            m_microblock->GetBlockHash(), txns_to_send)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetNodeForwardTransaction failed.");
       return;
@@ -696,7 +695,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   // Check block number
-  if (!CheckWhetherDSBlockNumIsLatest(dsBlockNumber + 1)) {
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
+    LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
     return false;
   }
 
@@ -742,6 +743,23 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   }
 
   if (!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum())) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MicroBlock Root Hash verification failed");
+    return false;
+  }
+
+  // Compute the MBInfoHash of the extra MicroBlock information
+  MBInfoHash mbInfoHash;
+  if (!Messenger::GetExtraMbInfoHash(txBlock.GetIsMicroBlockEmpty(),
+                                     txBlock.GetShardIds(), mbInfoHash)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetExtraMbInfoHash failed.");
+    return false;
+  }
+
+  if (mbInfoHash != txBlock.GetHeader().GetMbInfoHash()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "TxBlock MbInfo verification failed");
     return false;
   }
 
@@ -754,6 +772,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   ProcessStateDeltaFromFinalBlock(stateDelta,
                                   txBlock.GetHeader().GetStateDeltaHash());
+
+  BlockStorage::GetBlockStorage().PutStateDelta(
+      txBlock.GetHeader().GetBlockNum(), stateDelta);
 
   if (!LOOKUP_NODE_MODE &&
       (!CheckStateRoot(txBlock) || m_doRejoinAtStateRoot)) {
@@ -778,11 +799,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     StoreState();
     StoreFinalBlock(txBlock);
-
-    if (!LOOKUP_NODE_MODE) {
-      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                  {'0'});
-    }
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   }
 
   m_mediator.HeartBeatPulse();
@@ -888,7 +905,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return false;
   }
 
-  if (AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0) != 0) {
+  if (!AccountStore::GetInstance().DeserializeDelta(stateDeltaBytes, 0)) {
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
     return false;
   }
@@ -1015,42 +1032,6 @@ bool Node::ProcessForwardTransactionCore(const ForwardedTxnEntry& entry) {
   LOG_MARKER();
 
   LOG_GENERAL(INFO, entry);
-
-  vector<TxnHash> txns_order;
-  unordered_map<TxnHash, TransactionWithReceipt> txns_map;
-  TxnHash txRootHash;
-  TxnHash txReceiptHash;
-
-  for (const auto& txr : entry.m_transactions) {
-    txns_order.emplace_back(txr.GetTransaction().GetTranID());
-    txns_map.emplace(txr.GetTransaction().GetTranID(), txr);
-  }
-
-  txRootHash = ComputeTransactionsRoot(txns_order);
-
-  if (txRootHash != entry.m_hash.m_txRootHash) {
-    LOG_GENERAL(WARNING, "TxRoot computed doesn't match"
-                             << endl
-                             << "received: " << entry.m_hash.m_txRootHash
-                             << endl
-                             << "calculated: " << txRootHash);
-    return false;
-  }
-
-  if (!TransactionWithReceipt::ComputeTransactionReceiptsHash(
-          txns_order, txns_map, txReceiptHash)) {
-    LOG_GENERAL(WARNING, "Cannot compute transaction receipts hash");
-    return false;
-  }
-
-  if (txReceiptHash != entry.m_hash.m_tranReceiptHash) {
-    LOG_GENERAL(WARNING, "TxRoot computed doesn't match"
-                             << endl
-                             << "received: " << entry.m_hash.m_tranReceiptHash
-                             << endl
-                             << "calculated: " << txReceiptHash);
-    return false;
-  }
 
   {
     lock_guard<mutex> gi(m_mutexIsEveryMicroBlockAvailable);

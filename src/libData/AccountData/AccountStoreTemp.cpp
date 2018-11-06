@@ -18,6 +18,7 @@
  */
 
 #include "AccountStore.h"
+#include "libMessage/Messenger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -45,60 +46,14 @@ Account* AccountStoreTemp::GetAccount(const Address& address) {
   return nullptr;
 }
 
-const shared_ptr<map<Address, Account>>&
-AccountStoreTemp::GetAddressToAccount() {
-  return this->m_addressToAccount;
-}
-
-int AccountStoreTemp::DeserializeDelta(const vector<unsigned char>& src,
-                                       unsigned int offset) {
+bool AccountStoreTemp::DeserializeDelta(const vector<unsigned char>& src,
+                                        unsigned int offset) {
   LOG_MARKER();
-  // [Total number of acount deltas (uint256_t)] [Addr 1] [AccountDelta 1] [Addr
-  // 2] [Account 2] .... [Addr n] [Account n]
 
-  try {
-    unsigned int curOffset = offset;
-    uint256_t totalNumOfAccounts =
-        GetNumber<uint256_t>(src, curOffset, UINT256_SIZE);
-    LOG_GENERAL(INFO, "Total Number of Accounts Delta: " << totalNumOfAccounts);
-    curOffset += UINT256_SIZE;
-
-    Address address;
-    Account account;
-    unsigned int numberOfAccountDeserialze = 0;
-    while (numberOfAccountDeserialze < totalNumOfAccounts) {
-      numberOfAccountDeserialze++;
-
-      // Deserialize address
-      copy(src.begin() + curOffset, src.begin() + curOffset + ACC_ADDR_SIZE,
-           address.asArray().begin());
-      curOffset += ACC_ADDR_SIZE;
-
-      // Deserialize accountDelta
-      Account* oriAccount = GetAccount(address);
-      bool fullCopy = false;
-      if (oriAccount == nullptr) {
-        Account acc(0, 0);
-        LOG_GENERAL(INFO, "Creating new account: " << address);
-        AddAccount(address, acc);
-        fullCopy = true;
-      }
-
-      // LOG_GENERAL(INFO, "Diff account: " << address);
-      oriAccount = GetAccount(address);
-      account = *oriAccount;
-      if (Account::DeserializeDelta(src, curOffset, account, fullCopy) < 0) {
-        LOG_GENERAL(WARNING,
-                    "We failed to parse accountDelta for account: " << address);
-
-        continue;
-      }
-      (*m_addressToAccount)[address] = account;
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Error with AccountStoreTemp::Deserialize." << ' ' << e.what());
-    return -1;
+  if (!Messenger::GetAccountStoreDelta(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
+    return false;
   }
-  return 0;
+
+  return true;
 }

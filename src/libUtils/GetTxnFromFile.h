@@ -29,21 +29,54 @@
 
 #include "Logger.h"
 #include "libData/AccountData/Transaction.h"
-
-unsigned int TXN_SIZE = Transaction::GetMinSerializedSize();
+#include "libMessage/Messenger.h"
 
 bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
                              unsigned int totalNum,
-                             std::vector<unsigned char>& vec) {
-  f.seekg(startNum * TXN_SIZE, std::ios::beg);
-  // vec.resize(TXN_SIZE * totalNum);
-  for (unsigned int i = 0; i < TXN_SIZE * totalNum; i++) {
-    if (!f.good()) {
-      LOG_GENERAL(WARNING, "Bad byte accessed");
+                             std::vector<Transaction>& txns) {
+  f.seekg(0, std::ios::beg);
+
+  std::vector<unsigned char> buffOffsetInfo(sizeof(uint32_t));
+  f.read((char*)&buffOffsetInfo[0], sizeof(uint32_t));
+  uint32_t txnOffsetInfoSize = SerializableDataBlock::GetNumber<uint32_t>(
+      buffOffsetInfo, 0, sizeof(uint32_t));
+  if (txnOffsetInfoSize <= 0 && txnOffsetInfoSize >= 1000000) {
+    LOG_GENERAL(WARNING, "The txn offset information size" << txnOffsetInfoSize
+                                                           << " is invalid.");
+    return false;
+  }
+
+  std::vector<unsigned char> buffTxnOffsets(txnOffsetInfoSize);
+  f.read((char*)&buffTxnOffsets[0], txnOffsetInfoSize);
+
+  uint32_t txnDataStart = f.tellg();
+
+  std::vector<uint32_t> txnOffsets;
+  if (!Messenger::GetTransactionFileOffset(buffTxnOffsets, 0, txnOffsets)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTransactionFileOffset failed.");
+    return false;
+  }
+
+  if (txnOffsets.empty()) {
+    LOG_GENERAL(WARNING, "The transaction offset information is empty.");
+    return false;
+  }
+
+  f.seekg(txnDataStart + txnOffsets[startNum], std::ios::beg);
+  for (unsigned int i = startNum;
+       i < startNum + totalNum && i < (txnOffsets.size() - 1); ++i) {
+    uint32_t txnSize = txnOffsets[i + 1] - txnOffsets[i];
+    std::vector<unsigned char> buffTxn(txnSize);
+    f.read((char*)&buffTxn[0], txnSize);
+
+    Transaction txn;
+    if (!Messenger::GetTransaction(buffTxn, 0, txn)) {
+      LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
       return false;
     }
-    vec.emplace_back(f.get());
+    txns.push_back(txn);
   }
+
   return true;
 }
 
@@ -52,14 +85,14 @@ class GetTxnFromFile {
   // clears vec
   static bool GetFromFile(Address addr, unsigned int startNum,
                           unsigned int totalNum,
-                          std::vector<unsigned char>& vec) {
+                          std::vector<Transaction>& txns) {
     if (NUM_TXN_TO_SEND_PER_ACCOUNT == 0) {
       return true;
     }
 
     const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
     std::fstream file;
-    vec.clear();
+    txns.clear();
 
     if (totalNum > num_txn) {
       LOG_GENERAL(WARNING, "A single file is holding too many txns ("
@@ -85,7 +118,7 @@ class GetTxnFromFile {
     unsigned int fileNum = (startNum - 1) / num_txn;
     bool breakCall = false;
     bool b = false;
-    std::vector<unsigned char> remainTxn;
+    std::vector<Transaction> remainTxn;
     unsigned int startNumInFile = (startNum - 1) % num_txn;
     if (startNumInFile + totalNum > num_txn) {
       breakCall = true;
@@ -109,7 +142,7 @@ class GetTxnFromFile {
       return false;
     }
 
-    b = getTransactionsFromFile(file, startNumInFile, totalNum, vec);
+    b = getTransactionsFromFile(file, startNumInFile, totalNum, txns);
 
     file.close();
 
@@ -118,7 +151,7 @@ class GetTxnFromFile {
     }
 
     if (breakCall) {
-      copy(remainTxn.begin(), remainTxn.end(), back_inserter(vec));
+      copy(remainTxn.begin(), remainTxn.end(), back_inserter(txns));
     }
 
     return true;
