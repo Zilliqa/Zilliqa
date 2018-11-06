@@ -85,7 +85,8 @@ bool Node::GetLatestDSBlock() {
 bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand1,
-                    const array<unsigned char, UINT256_SIZE>& rand2) {
+                    const array<unsigned char, UINT256_SIZE>& rand2,
+                    const uint32_t lookupId) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -160,23 +161,27 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
+    uint32_t gasPrice = 0;  //[ToDo] Change this dummy value
     if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
             winning_result.result, ds_difficulty)) {
       LOG_GENERAL(INFO,
                   "Found PoW solution that met requirement for both ds "
                   "commitee and shard.");
 
-      if (!SendPoWResultToDSComm(
-              block_num, ds_difficulty, winning_result.winning_nonce,
-              winning_result.result, winning_result.mix_hash)) {
+      if (!SendPoWResultToDSComm(block_num, ds_difficulty,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 lookupId, gasPrice)) {
         return false;
       }
     } else {
       // If solution does not meet targeted ds difficulty, send the initial
       // solution to ds commitee and continue to do PoW
-      if (!SendPoWResultToDSComm(
-              block_num, difficulty, winning_result.winning_nonce,
-              winning_result.result, winning_result.mix_hash)) {
+
+      if (!SendPoWResultToDSComm(block_num, difficulty,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 lookupId, gasPrice)) {
         return false;
       }
 
@@ -198,7 +203,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         // Submission of PoW for ds commitee
         if (!SendPoWResultToDSComm(
                 block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
-                ds_pow_winning_result.result, ds_pow_winning_result.mix_hash)) {
+                ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
+                lookupId, gasPrice)) {
           return false;
         }
       } else {
@@ -220,16 +226,18 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const uint8_t& difficultyLevel,
                                  const uint64_t winningNonce,
                                  const string& powResultHash,
-                                 const string& powMixhash) {
+                                 const string& powMixhash,
+                                 const uint32_t& lookupId,
+                                 const uint32_t& gasPrice) {
   LOG_MARKER();
 
   vector<unsigned char> powmessage = {MessageType::DIRECTORY,
                                       DSInstructionType::POWSUBMISSION};
 
-  if (!Messenger::SetDSPoWSubmission(powmessage, MessageOffset::BODY, block_num,
-                                     difficultyLevel, m_mediator.m_selfPeer,
-                                     m_mediator.m_selfKey, winningNonce,
-                                     powResultHash, powMixhash)) {
+  if (!Messenger::SetDSPoWSubmission(
+          powmessage, MessageOffset::BODY, block_num, difficultyLevel,
+          m_mediator.m_selfPeer, m_mediator.m_selfKey, winningNonce,
+          powResultHash, powMixhash, lookupId, gasPrice)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSPoWSubmission failed.");
     return false;

@@ -81,10 +81,12 @@ bool DirectoryService::ProcessPoWSubmission(
   string resultingHash;
   string mixHash;
   Signature signature;
+  uint32_t lookupId, gasPrice;
 
-  if (!Messenger::GetDSPoWSubmission(
-          message, offset, blockNumber, difficultyLevel, submitterPeer,
-          submitterPubKey, nonce, resultingHash, mixHash, signature)) {
+  if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
+                                     difficultyLevel, submitterPeer,
+                                     submitterPubKey, nonce, resultingHash,
+                                     mixHash, signature, lookupId, gasPrice)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSPoWSubmission failed.");
     return false;
@@ -184,7 +186,8 @@ bool DirectoryService::ProcessPoWSubmission(
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
       PoWSolution soln(nonce, DataConversion::HexStrToStdArray(resultingHash),
-                       DataConversion::HexStrToStdArray(mixHash));
+                       DataConversion::HexStrToStdArray(mixHash),
+                       difficultyLevel, lookupId, gasPrice, signature);
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {

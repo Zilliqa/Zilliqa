@@ -189,7 +189,7 @@ bool Synchronizer::AttemptPoW(Lookup* lookup) {
     return true;
   }
 
-  if (lookup->InitMining()) {
+  if (lookup->InitMining(uint32_t() - 1)) {
     LOG_GENERAL(INFO, "new node attempted pow");
     return true;
   } else {

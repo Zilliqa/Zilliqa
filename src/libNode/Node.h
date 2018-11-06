@@ -505,14 +505,17 @@ class Node : public Executable, public Broadcastable {
   bool StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                 uint8_t difficulty,
                 const std::array<unsigned char, UINT256_SIZE>& rand1,
-                const std::array<unsigned char, UINT256_SIZE>& rand2);
+                const std::array<unsigned char, UINT256_SIZE>& rand2,
+                const uint32_t lookupId = uint32_t() - 1);
 
   /// Send PoW soln to DS Commitee
   bool SendPoWResultToDSComm(const uint64_t& block_num,
                              const uint8_t& difficultyLevel,
                              const uint64_t winningNonce,
                              const std::string& powResultHash,
-                             const std::string& powMixhash);
+                             const std::string& powMixhash,
+                             const uint32_t& lookupId,
+                             const uint32_t& gasPrice);
 
   /// Used by oldest DS node to configure shard ID as a new shard node
   void SetMyshardId(uint32_t shardId);
