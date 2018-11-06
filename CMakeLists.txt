@@ -49,7 +49,7 @@ include(InstallGRPC)
 include_directories(${GRPC_INCLUDE_DIRS})
 
 include(FindProtobuf)
-find_package(Protobuf 3.6.1 CONFIG REQUIRED)
+find_package(Protobuf CONFIG REQUIRED HINTS "${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/protobuf")
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)

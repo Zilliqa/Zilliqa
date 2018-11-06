@@ -7,13 +7,26 @@ target_compile_options(ProtoServer PRIVATE "-Wno-unused-parameter")
 target_include_directories(ProtoServer
                            SYSTEM PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src/libProtoServer ${CMAKE_BINARY_DIR}/src/libMessage ${CMAKE_BINARY_DIR}/include)
 
-target_link_libraries(ProtoServer
-                        PUBLIC
-                            ${PROTOBUF_LIBRARY} ${GRPC_LIBRARIES}
-                        PRIVATE
-                            ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/boringssl/ssl/libssl.a
-                            ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/boringssl/crypto/libcrypto.a
-                            z ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/cares/cares/lib/libcares.a
-                            ${CMAKE_BINARY_DIR}/src/depends/grpc/libaddress_sorting.a)
 
-add_dependencies(ProtoServer AccountData Message)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    target_link_libraries(ProtoServer
+                            PUBLIC
+                                ${PROTOBUF_LIBRARY} ${GRPC_LIBRARIES}
+                            PRIVATE
+                                ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/boringssl/ssl/libssl.a
+                                ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/boringssl/crypto/libcrypto.a
+                                z ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/cares/cares/lib/libcares.a
+                                ${CMAKE_BINARY_DIR}/src/depends/grpc/libaddress_sorting.a)
+
+    add_dependencies(ProtoServer AccountData Message Lookup POW DirectoryService Node Mediator)
+
+else()
+    target_link_libraries(ProtoServer
+                            PUBLIC
+                                ${PROTOBUF_LIBRARY} ${GRPC_LIBRARIES} AccountData Message Lookup POW DirectoryService Node Mediator
+                            PRIVATE
+                                ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/boringssl/ssl/libssl.a
+                                ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/boringssl/crypto/libcrypto.a
+                                z ${CMAKE_BINARY_DIR}/src/depends/grpc/third_party/cares/cares/lib/libcares.a
+                                ${CMAKE_BINARY_DIR}/src/depends/grpc/libaddress_sorting.a)
+endif()
