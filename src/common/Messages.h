@@ -40,6 +40,7 @@ enum DSInstructionType : unsigned char {
   MICROBLOCKSUBMISSION = 0x03,
   FINALBLOCKCONSENSUS = 0x04,
   VIEWCHANGECONSENSUS = 0x05,
+  VCPUSHLATESTDSTXBLOCK = 0x06,
 };
 
 enum NodeInstructionType : unsigned char {
@@ -92,6 +93,7 @@ enum LookupInstructionType : unsigned char {
   SETDIRBLOCKSFROMSEED = 0x1D,
   GETSTATEDELTAFROMSEED = 0x1E,
   SETSTATEDELTAFROMSEED = 0x1F,
+  VCGETLATESTDSTXBLOCK = 0x20,
 };
 
 enum TxSharingMode : unsigned char {
