@@ -23,20 +23,29 @@
 #include <grpcpp/create_channel.h>
 #include <grpcpp/security/credentials.h>
 
-#include "Server.grpc.pb.h"
+#include "Client.h"
 
-using grpc::Channel;
 using grpc::ClientContext;
-using grpc::ClientReader;
-using grpc::ClientReaderWriter;
-using grpc::ClientWriter;
 using grpc::Status;
 
+using namespace grpc;
+using namespace std;
+using namespace ZilliqaMessage;
 
-class ProtoClient {
-public:
-  ProtoClient(std::shared_ptr<Channel> channel)
-      : stub_(RouteGuide::NewStub(channel)) {
-    routeguide::ParseDb(db, &feature_list_);
+std::string ProtoClient::GetClientVersion() {
+  Empty request;
+  DefaultResponse response;
+  ClientContext context;
+
+  Status status = stub_->GetClientVersion(&context, request, &response);
+
+  if (!status.ok()) {
+    return "";
   }
-};
+
+  if (!response.has_result()) {
+    return "";
+  }
+
+  return response.result();
+}
