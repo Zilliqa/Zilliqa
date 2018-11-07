@@ -69,7 +69,5 @@ BOOST_AUTO_TEST_CASE(RRS_Initialization)
     if (dummy_message_push != dummy_message_undefined) {
         BOOST_TEST_MESSAGE("Dummy push message: " << dummy_message_push);
     }
-
-    RRS::RumorStateMachine dummy_RSM(dummy_networkconfig);
 }
 BOOST_AUTO_TEST_SUITE_END()
