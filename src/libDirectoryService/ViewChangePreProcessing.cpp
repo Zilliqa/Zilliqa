@@ -249,13 +249,13 @@ void DirectoryService::RunConsensusOnViewChange() {
   }
 
   LOG_MARKER();
-  if (!IsNodeInSync()) {
-    // Rejoin as DS node
-    return;
-  }
 
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
+  if (!NodeVCPrecheck()) {
+    RejoinAsDS();
+    return;
+  }
 
   uint16_t faultyLeaderIndex;
   m_viewChangeCounter += 1;
@@ -400,7 +400,37 @@ bool DirectoryService::ComputeNewCandidateLeader(
   return true;
 }
 
-bool DirectoryService::IsNodeInSync() { return true; }
+bool DirectoryService::NodeVCPrecheck() {
+  {
+    lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
+    m_vcPreCheckDSBlocks.clear();
+    m_vcPreCheckTxBlocks.clear();
+  }
+
+  std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangePrecheck);
+  if (cv_viewChangePrecheck.wait_for(
+          cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT)) ==
+      std::cv_status::timeout) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Timeout while waiting for precheck. ");
+  }
+
+  {
+    lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
+    if (m_vcPreCheckDSBlocks.size() == 0 && m_vcPreCheckTxBlocks.size() == 0) {
+      return true;
+    }
+
+    for (const auto& dsblock : m_vcPreCheckDSBlocks) {
+      m_mediator.m_dsBlockChain.AddBlock(dsblock);
+    }
+
+    for (const auto& txblock : m_vcPreCheckTxBlocks) {
+      m_mediator.m_txBlockChain.AddBlock(txblock);
+    }
+  }
+  return false;
+}
 
 uint32_t DirectoryService::CalculateNewLeaderIndex() {
   // New leader is computed using the following
@@ -635,21 +665,33 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
     const vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
-  // Check for consensus prep state
-  uint64_t dsLowBlockNum = 0;
-  uint64_t dsHighBlockNum = 0;
-  vector<DSBlock> dsBlocks;
-  uint64_t txLowBlockNum = 0;
-  uint64_t txHighBlockNum = 0;
-  vector<TxBlock> txBlocks;
 
+  if (m_state != VIEWCHANGE_CONSENSUS_PREP) {
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "Unable to process ProcessGetDSTxBlockMessage as current state is "
+            << to_string(m_state));
+  }
+
+  lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
+
+  PubKey lookupPubKey;
   if (!Messenger::GetVCNodeSetDSTxBlockFromSeed(
-          message, offset, dsLowBlockNum, dsHighBlockNum, dsBlocks,
-          txLowBlockNum, txHighBlockNum, txBlocks)) {
+          message, offset, m_vcPreCheckDSBlocks, m_vcPreCheckTxBlocks,
+          lookupPubKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetVCNodeSetDSTxBlockFromSeed failed.");
     return false;
   }
 
+  if (!m_mediator.m_lookup->VerifyLookupNode(
+          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  cv_viewChangePrecheck.notify_all();
   return true;
 }

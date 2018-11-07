@@ -362,7 +362,7 @@ class DirectoryService : public Executable, public Broadcastable {
                                   unsigned int offset, const Peer& from);
 
   // View change
-  bool IsNodeInSync();
+  bool NodeVCPrecheck();
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
@@ -475,6 +475,14 @@ class DirectoryService : public Executable, public Broadcastable {
   boost::multiprecision::uint256_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
+
+  // For view change pre check
+  std::vector<DSBlock> m_vcPreCheckDSBlocks;
+  std::vector<TxBlock> m_vcPreCheckTxBlocks;
+  std::mutex m_MutexCVViewChangePrecheckBlocks;
+
+  std::mutex m_MutexCVViewChangePrecheck;
+  std::condition_variable cv_viewChangePrecheck;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
