@@ -470,15 +470,15 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
 
     for (unsigned int i = 0; i < microBlocks.size(); ++i) {
       if (!m_mediator.CheckWhetherBlockIsLatest(
-              microBlocks[i].GetHeader().GetDSBlockNum() + 1,
-              microBlocks[i].GetHeader().GetEpochNum())) {
+              microBlocks.at(i).GetHeader().GetDSBlockNum() + 1,
+              microBlocks.at(i).GetHeader().GetEpochNum())) {
         LOG_GENERAL(WARNING,
                     "ProcessMissingMicroblockSubmission "
                     "CheckWhetherBlockIsLatest failed");
         return false;
       }
 
-      uint32_t shardId = microBlocks[i].GetHeader().GetShardId();
+      uint32_t shardId = microBlocks.at(i).GetHeader().GetShardId();
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "shard_id: " << shardId << ", pubkey: "
                              << microBlocks[i].GetHeader().GetMinerPubKey());

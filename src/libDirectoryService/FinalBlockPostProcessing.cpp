@@ -387,28 +387,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                          1
                   << "] TIMEOUT: Didn't receive all Microblock.");
 
-        // auto func2 = [this]() mutable -> void {
-        //   if (!m_stopRecvNewMBSubmission) {
         m_stopRecvNewMBSubmission = true;
-        // m_mediator.m_node->RunConsensusOnMicroBlock();
-        //   }
-        // };
-
-        // DetachedFunction(1, func2);
-
-        // std::unique_lock<std::mutex>
-        // cv_lk(m_MutexScheduleFinalBlockConsensus); if
-        // (cv_scheduleFinalBlockConsensus.wait_for(
-        //         cv_lk,
-        //         std::chrono::seconds(DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT))
-        //         ==
-        //     std::cv_status::timeout) {
-        //   LOG_GENERAL(WARNING,
-        //               "Timeout: Didn't finish DS Microblock. Proceeds "
-        //               "without it");
 
         RunConsensusOnFinalBlock();
-        // }
       }
     }
   };
