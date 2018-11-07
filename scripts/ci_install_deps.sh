@@ -69,10 +69,7 @@ apt-get install -y \
     libevent-dev \
     libprotobuf-dev \
     libcurl4-openssl-dev \
-    protobuf-compiler \
-    libtool \
-    autoconf \
-    golang
+    protobuf-compiler
 
 # install development dependencies
 apt-get install -y \
@@ -102,9 +99,7 @@ brew install \
     libjson-rpc-cpp \
     miniupnpc \
     libevent \
-    protobuf \
-    autoconf \
-    libtool
+    protobuf
 
 # install developement deps
 brew install \
