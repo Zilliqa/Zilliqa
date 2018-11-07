@@ -714,15 +714,12 @@ class Messenger {
       uint64_t& txLowBlockNum, uint64_t& txHighBlockNum, uint32_t& listenPort);
   static bool SetVCNodeSetDSTxBlockFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t dsLowBlockNum, const uint64_t dsHighBlockNum,
-      const uint64_t txLowBlockNum, const uint64_t txHighBlockNum,
       const std::pair<PrivKey, PubKey>& lookupKey,
       const std::vector<DSBlock>& DSBlocks,
       const std::vector<TxBlock>& txBlocks);
   static bool GetVCNodeSetDSTxBlockFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      uint64_t& dsLowBlockNum, uint64_t& dsHighBlockNum,
-      std::vector<DSBlock>& dsBlocks, uint64_t& txLowBlockNum,
-      uint64_t& txHighBlockNum, std::vector<TxBlock>& txBlocks);
+      std::vector<DSBlock>& dsBlocks, std::vector<TxBlock>& txBlocks,
+      PubKey& lookupPubKey);
 };
 #endif  // __MESSENGER_H__

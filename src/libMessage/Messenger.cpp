@@ -6035,23 +6035,15 @@ bool Messenger::GetLookupGetDSTxBlockFromSeed(
 
 bool Messenger::SetVCNodeSetDSTxBlockFromSeed(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t dsLowBlockNum, const uint64_t dsHighBlockNum,
-    const uint64_t txLowBlockNum, const uint64_t txHighBlockNum,
     const std::pair<PrivKey, PubKey>& lookupKey,
     const vector<DSBlock>& DSBlocks, const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   VCNodeSetDSTxBlockFromSeed result;
 
-  result.set_dslowblocknum(dsLowBlockNum);
-  result.set_dshighblocknum(dsHighBlockNum);
-
   for (const auto& dsblock : DSBlocks) {
     DSBlockToProtobuf(dsblock, *result.add_dsblocks());
   }
-
-  result.set_txlowblocknum(txLowBlockNum);
-  result.set_txhighblocknum(txHighBlockNum);
 
   for (const auto& txblock : txBlocks) {
     TxBlockToProtobuf(txblock, *result.add_txblocks());
@@ -6093,11 +6085,11 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetVCNodeSetDSTxBlockFromSeed(
-    const vector<unsigned char>& src, const unsigned int offset,
-    uint64_t& dsLowBlockNum, uint64_t& dsHighBlockNum,
-    vector<DSBlock>& dsBlocks, uint64_t& txLowBlockNum,
-    uint64_t& txHighBlockNum, vector<TxBlock>& txBlocks) {
+bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
+                                              const unsigned int offset,
+                                              vector<DSBlock>& dsBlocks,
+                                              vector<TxBlock>& txBlocks,
+                                              PubKey& lookupPubKey) {
   LOG_MARKER();
   VCNodeSetDSTxBlockFromSeed result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -6107,17 +6099,11 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(
     return false;
   }
 
-  dsLowBlockNum = result.dslowblocknum();
-  dsHighBlockNum = result.dshighblocknum();
-
   for (const auto& proto_dsblock : result.dsblocks()) {
     DSBlock dsblock;
     ProtobufToDSBlock(proto_dsblock, dsblock);
     dsBlocks.emplace_back(dsblock);
   }
-
-  txLowBlockNum = result.txlowblocknum();
-  txHighBlockNum = result.txhighblocknum();
 
   for (const auto& txblock : result.txblocks()) {
     TxBlock block;
@@ -6125,7 +6111,6 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(
     txBlocks.emplace_back(block);
   }
 
-  PubKey lookupPubKey;
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
   Signature signature;
