@@ -106,6 +106,11 @@ if(VC_TEST_VC_SUSPEND_3)
 	add_definitions(-DVC_TEST_VC_SUSPEND_3)
 endif()
 
+if(VC_TEST_VC_PRECHECK)
+    message(STATUS "VC 7 test enabled")
+	add_definitions(-DVC_TEST_VC_PRECHECK)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
