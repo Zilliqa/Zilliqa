@@ -472,7 +472,8 @@ class Node : public Executable, public Broadcastable {
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
 
-  void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm);
+  void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm,
+                                   const DSBlock& dsblock);
 
   void UpdateDSCommitteeAfterFallback(
       const uint32_t& shard_id, const PubKey& leaderPubKey,
@@ -551,6 +552,8 @@ class Node : public Executable, public Broadcastable {
   bool GetLatestDSBlock();
 
   void UpdateDSCommiteeCompositionAfterVC(
+      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
+  void UpdateRetrieveDSCommiteeCompositionAfterVC(
       const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
 
   void UpdateProcessedTransactions();

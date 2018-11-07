@@ -21,6 +21,65 @@
 #     ./scripts/make_image.sh         # using current HEAD
 #     ./scripts/make_image.sh COMMIT  # using a specific commit
 
+cmd=$0
+
+function usage() {
+cat <<EOF
+Usage: $cmd [-t TARGET] [COMMIT]
+
+Positional arguments:
+    COMMIT                  The commit used to build zilliqa binaries. If it's
+                            not set, the current HEAD will be used
+Options:
+    -t,--target TARGET      TARGET can be 'zilliqa' or 'scilla'. If it's not
+                            set, 'zilliqa' is used by default
+    -h,--help               Show this help message
+
+EOF
+}
+
+commit=""
+
+while [ $# -gt 0 ]
+do
+    opt=$1
+    case $opt in
+        -t|--target)
+            target=$2
+            case $target in
+                zilliqa|scilla) ;;
+                *) usage; exit 1; ;;
+            esac
+            shift 2
+        ;;
+        -h|--help)
+            usage
+            exit 1
+        ;;
+        -*|--*)
+            echo "Unrecognized option $opt"
+            echo
+            usage
+            exit 1
+        ;;
+        *)
+            if [ -z "$commit" ]
+            then
+                commit=$opt
+                shift 1
+            else
+                echo "At most one positional argument needed"
+                echo ""
+                usage
+                exit 1
+            fi
+        ;;
+    esac
+done
+
+[ -z "$target" ] && target="zilliqa"
+[ -z "$commit" ] && commit=$(git rev-parse HEAD)
+
 # Checking running directory
 if [ ! -d .git ]
 then
@@ -60,8 +119,7 @@ then
 fi
 
 # Handling commit
-[ -z "$1" ] && commit=$(git rev-parse HEAD) || commit=$1
-echo "Making images using commit $commit"
+echo "Making images using commit '$commit' for target '$target'"
 
 # Checking commit availability on Github repo
 github_commit=https://github.com/Zilliqa/Zilliqa/commit/$commit
@@ -72,21 +130,8 @@ then
     exit 1
 fi
 
-# set n_parallel to fully utilize the resources
-case "$(uname)" in
-    'Linux')
-        jobs=$(nproc)
-        ;;
-    'Darwin')
-        jobs=$(sysctl -n hw.ncpu)
-        ;;
-    *)
-        jobs=2
-        ;;
-esac
-
 # Making images and checking result
-TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh $jobs
+TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh $target
 if [ "$?" -ne 0 ]
 then
     echo "Making image failed"
