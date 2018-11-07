@@ -2108,6 +2108,13 @@ bool Messenger::GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
     return false;
   }
 
+  // Fix software crash because of tmp is empty triggered assertion in
+  // sha2.update.git
+  if (tmp.empty()) {
+    LOG_GENERAL(WARNING, "ProtoExtraMbInfo is empty, proceed without it.");
+    return true;
+  }
+
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
