@@ -187,11 +187,12 @@ extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
-extern const unsigned int DEFAULT_MIN_GAS_PRICE;
 extern const unsigned int UNFILLED_RATIO_LOW;
 extern const unsigned int UNFILLED_RATIO_HIGH;
+extern const unsigned int GAS_PRICE_PRECISION;
 extern const unsigned int GAS_PRICE_DROP_RATIO;
 extern const unsigned int GAS_PRICE_RAISE_RATIO;
+extern const boost::multiprecision::uint256_t DEFAULT_MIN_GAS_PRICE;
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

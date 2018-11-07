@@ -1063,6 +1063,8 @@ bool DirectoryService::ProcessShardingStructure(
   return true;
 }
 
+void DirectoryService::CalculateGasPrice() {}
+
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1096,6 +1098,8 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   }
 
   m_mediator.m_node->m_txnSharingIAmSender = false;
+
+  CalculateGasPrice();
 
   // Upon consensus object creation failure, one should not return from the
   // function, but rather wait for view change.
