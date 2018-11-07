@@ -3159,6 +3159,13 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
     return false;
   }
 
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ProcessVCGetLatestDSTxBlockFromSeed (pre) requested by "
+                << from << " for ds blocks " << dsLowBlockNum << " to "
+                << dsHighBlockNum << " and tx blocks " << txLowBlockNum
+                << " to " << txHighBlockNum << " with receiving port "
+                << listenPort);
+
   vector<DSBlock> dsBlocks;
   RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum);
 
@@ -3166,7 +3173,7 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
   RetrieveTxBlocks(txBlocks, txLowBlockNum, txHighBlockNum);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "ProcessVCGetLatestDSTxBlockFromSeed requested by "
+            "ProcessVCGetLatestDSTxBlockFromSeed (final) requested by "
                 << from << " for ds blocks " << dsLowBlockNum << " to "
                 << dsHighBlockNum << " and tx blocks " << txLowBlockNum
                 << " to " << txHighBlockNum << " with receiving port "
