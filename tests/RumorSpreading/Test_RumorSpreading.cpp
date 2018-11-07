@@ -18,15 +18,15 @@
  */
 
 #include "common/Constants.h"
-#include "libTestUtils/TestUtils.h"
-#include "libCrypto/Schnorr.h"
 #include "common/Messages.h"
-#include "libRumorSpreading/RumorHolder.h"
-#include "libRumorSpreading/RumorStateMachine.h"
-#include "libRumorSpreading/RumorSpreadingInterface.h"
-#include "libRumorSpreading/NetworkConfig.h"
-#include "libRumorSpreading/Message.h"
+#include "libCrypto/Schnorr.h"
 #include "libRumorSpreading/MemberID.h"
+#include "libRumorSpreading/Message.h"
+#include "libRumorSpreading/NetworkConfig.h"
+#include "libRumorSpreading/RumorHolder.h"
+#include "libRumorSpreading/RumorSpreadingInterface.h"
+#include "libRumorSpreading/RumorStateMachine.h"
+#include "libTestUtils/TestUtils.h"
 
 #define BOOST_TEST_MODULE RumorSpreading
 #define BOOST_TEST_DYN_LINK
@@ -37,37 +37,39 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(RumorSpreadingTestSuite)
 
 /**
-* \brief Rumor Spreading test initialization
-*
-* \details
-*/
-BOOST_AUTO_TEST_CASE(RRS_Initialization)
-{
-    ///Test initialization
-    std::unordered_set<int> dummy_peerIdSet;
-    for(int i = 0; i < 16; i++) {
-        dummy_peerIdSet.insert(i);
-    }
-    //Copy constructor
-    RRS::RumorHolder dummy_holder(dummy_peerIdSet, 2);
-    RRS::RumorHolder dummy_holder_copy(dummy_holder);
-    ///Rumor Holder == operator check
-    BOOST_CHECK_EQUAL(dummy_holder == dummy_holder_copy, true);
+ * \brief Rumor Spreading test initialization
+ *
+ * \details
+ */
+BOOST_AUTO_TEST_CASE(RRS_Initialization) {
+  /// Test initialization
+  std::unordered_set<int> dummy_peerIdSet;
+  for (int i = 0; i < 16; i++) {
+    dummy_peerIdSet.insert(i);
+  }
+  // Copy constructor
+  RRS::RumorHolder dummy_holder(dummy_peerIdSet, 2);
+  RRS::RumorHolder dummy_holder_copy(dummy_holder);
+  /// Rumor Holder == operator check
+  BOOST_CHECK_EQUAL(dummy_holder == dummy_holder_copy, true);
 
-    ///NetworkConfig
-    RRS::NetworkConfig dummy_networkconfig(16);
-    BOOST_TEST_MESSAGE("Rumor Spreading max rounds total: " << dummy_networkconfig.maxRoundsTotal());
-    BOOST_TEST_MESSAGE("Rumor Spreading max rounds in B phase: " << dummy_networkconfig.maxRoundsInB());
-    BOOST_TEST_MESSAGE("Rumor Spreading max rounds in C phase: " << dummy_networkconfig.maxRoundsInC());
+  /// NetworkConfig
+  RRS::NetworkConfig dummy_networkconfig(16);
+  BOOST_TEST_MESSAGE("Rumor Spreading max rounds total: "
+                     << dummy_networkconfig.maxRoundsTotal());
+  BOOST_TEST_MESSAGE("Rumor Spreading max rounds in B phase: "
+                     << dummy_networkconfig.maxRoundsInB());
+  BOOST_TEST_MESSAGE("Rumor Spreading max rounds in C phase: "
+                     << dummy_networkconfig.maxRoundsInC());
 
-    //Messaging
-    RRS::Message dummy_message_undefined(RRS::Message::Type::UNDEFINED, 0, 0);
-    RRS::Message dummy_message_push(RRS::Message::Type::PUSH, 0, 0);
-    if (dummy_message_push == dummy_message_undefined) {
-        BOOST_TEST_MESSAGE("Dummy undefined message: "<< dummy_message_undefined);
-    }
-    if (dummy_message_push != dummy_message_undefined) {
-        BOOST_TEST_MESSAGE("Dummy push message: " << dummy_message_push);
-    }
+  // Messaging
+  RRS::Message dummy_message_undefined(RRS::Message::Type::UNDEFINED, 0, 0);
+  RRS::Message dummy_message_push(RRS::Message::Type::PUSH, 0, 0);
+  if (dummy_message_push == dummy_message_undefined) {
+    BOOST_TEST_MESSAGE("Dummy undefined message: " << dummy_message_undefined);
+  }
+  if (dummy_message_push != dummy_message_undefined) {
+    BOOST_TEST_MESSAGE("Dummy push message: " << dummy_message_push);
+  }
 }
 BOOST_AUTO_TEST_SUITE_END()
