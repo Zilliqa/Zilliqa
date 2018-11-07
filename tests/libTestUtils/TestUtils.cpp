@@ -38,7 +38,7 @@ uint32_t DistUint32() {
                                   std::numeric_limits<uint32_t>::max());
 }
 
-uint32_t DistUint64() {
+uint64_t DistUint64() {
   return RandomIntInRng<uint64_t>(std::numeric_limits<uint64_t>::min(),
                                   std::numeric_limits<uint64_t>::max());
 }
@@ -182,17 +182,20 @@ DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
   return ds_c;
 }
 
-Shard generateRandomShard(size_t size) {
+Shard GenerateRandomShard(size_t size) {
   Shard s;
-  for (size_t i = 1; i <= size; i++)
+  for (size_t i = 1; i <= size; i++) {
     s.push_back(std::make_tuple(GenerateRandomPubKey(PrivKey()),
                                 GenerateRandomPeer(), DistUint16()));
+  }
   return s;
 }
 
 DequeOfShard generateDequeueOfShard(size_t size) {
   DequeOfShard dos;
-  for (size_t i = 1; i <= size; i++) dos.push_front(generateRandomShard(i));
+  for (size_t i = 1; i <= size; i++) {
+    dos.push_front(GenerateRandomShard(i));
+  }
   return dos;
 }
 

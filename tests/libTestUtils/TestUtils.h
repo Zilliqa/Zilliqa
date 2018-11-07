@@ -46,8 +46,7 @@ uint8_t Dist1to99();
 uint8_t DistUint8();
 uint16_t DistUint16();
 uint32_t DistUint32();
-uint32_t DistUint64();
-uint32_t DistUint128();
+uint64_t DistUint64();
 
 PubKey GenerateRandomPubKey();
 PubKey GenerateRandomPubKey(PrivKey);
@@ -64,7 +63,7 @@ CoSignatures GenerateRandomCoSignatures();
 using DS_Comitte_t = std::deque<std::pair<PubKey, Peer>>;
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
 
-Shard generateRandomShard(size_t);
+Shard GenerateRandomShard(size_t);
 DequeOfShard generateDequeueOfShard(size_t);
 }  // namespace TestUtils
 
