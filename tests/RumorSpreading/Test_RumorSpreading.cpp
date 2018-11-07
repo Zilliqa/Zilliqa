@@ -65,11 +65,12 @@ BOOST_AUTO_TEST_CASE(RRS_Initialization) {
   // Messaging
   RRS::Message dummy_message_undefined(RRS::Message::Type::UNDEFINED, 0, 0);
   RRS::Message dummy_message_push(RRS::Message::Type::PUSH, 0, 0);
+  //Test comparison and stream oeprator
   if (dummy_message_push == dummy_message_undefined) {
-    BOOST_TEST_MESSAGE("Dummy undefined message: " << dummy_message_undefined);
+    BOOST_TEST_MESSAGE("RRS Message comparison failed for undefined message: " << dummy_message_undefined);
   }
-  if (dummy_message_push != dummy_message_undefined) {
-    BOOST_TEST_MESSAGE("Dummy push message: " << dummy_message_push);
+  if (dummy_message_push != dummy_message_push) {
+    BOOST_TEST_MESSAGE("RRS Message comparison failed for push message: " << dummy_message_push);
   }
 }
 BOOST_AUTO_TEST_SUITE_END()
