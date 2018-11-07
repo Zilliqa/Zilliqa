@@ -80,9 +80,13 @@ apt-get install -y \
     libxml2-utils \
     python-pip \
     git \
-    golang
+    golang \
+    dpkg
 
 pip install pyyaml
+
+# install grpc.deb
+dpkg -i ./scripts/grpc.deb
 }
 
 function on_osx() {
