@@ -252,6 +252,7 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
+  VCFetchLatestDSTxBlockFromLookupNodes();
 
 #ifdef VC_TEST_VC_PRECHECK
   if (m_consensusMyID == 9) {
