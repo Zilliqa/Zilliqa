@@ -33,6 +33,8 @@ class UpgradeManager {
   std::vector<unsigned char> m_latestSHA;
   CURL* m_curl;
   std::string m_constantFileName;
+  std::string m_constantLookupFileName;
+  std::string m_constantArchivalFileName;
   std::string m_packageFileName;
   std::mutex m_downloadMutex;
 
