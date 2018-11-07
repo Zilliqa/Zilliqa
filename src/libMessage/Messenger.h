@@ -75,7 +75,8 @@ class Messenger {
   // These are called by AccountStore class
   static bool SetAccountStoreDelta(std::vector<unsigned char>& dst,
                                    const unsigned int offset,
-                                   AccountStoreTemp& accountStoreTemp);
+                                   AccountStoreTemp& accountStoreTemp,
+                                   AccountStore& accountStore);
   static bool GetAccountStoreDelta(const std::vector<unsigned char>& src,
                                    const unsigned int offset,
                                    AccountStore& accountStore,
