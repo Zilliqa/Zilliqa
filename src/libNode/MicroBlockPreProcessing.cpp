@@ -405,11 +405,13 @@ bool Node::ProcessTransactionWhenShardBackup(
     const vector<TxnHash>& tranHashes, vector<TxnHash>& missingtranHashes) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexCreatedTransactions);
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
 
-  for (const auto& tranHash : tranHashes) {
-    if (!m_createdTxns.exist(tranHash)) {
-      missingtranHashes.emplace_back(tranHash);
+    for (const auto& tranHash : tranHashes) {
+      if (!m_createdTxns.exist(tranHash)) {
+        missingtranHashes.emplace_back(tranHash);
+      }
     }
   }
 
