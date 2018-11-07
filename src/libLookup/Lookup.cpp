@@ -2801,6 +2801,8 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
   uint64_t index_num;
   uint32_t portNo;
 
+  LOG_MARKER();
+
   if (!Messenger::GetLookupGetDirectoryBlocksFromSeed(message, offset, portNo,
                                                       index_num)) {
     LOG_GENERAL(WARNING,
