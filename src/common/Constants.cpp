@@ -230,14 +230,15 @@ const unsigned int MICROBLOCK_GAS_LIMIT{
 const unsigned int CONTRACT_CREATE_GAS{ReadFromGasFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{ReadFromGasFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromGasFile("NORMAL_TRAN_GAS")};
-const unsigned int DEFAULT_MIN_GAS_PRICE{
-    ReadFromGasFile("DEFAULT_MIN_GAS_PRICE")};
 const unsigned int UNFILLED_RATIO_LOW{ReadFromGasFile("UNFILLED_RATIO_LOW")};
 const unsigned int UNFILLED_RATIO_HIGH{ReadFromGasFile("UNFILLED_RATIO_HIGH")};
+const unsigned int GAS_PRICE_PRECISION{ReadFromGasFile("GAS_PRICE_PRECISION")};
 const unsigned int GAS_PRICE_DROP_RATIO{
     ReadFromGasFile("GAS_PRICE_DROP_RATIO")};
 const unsigned int GAS_PRICE_RAISE_RATIO{
     ReadFromGasFile("GAS_PRICE_RAISE_RATIO")};
+const boost::multiprecision::uint256_t DEFAULT_MIN_GAS_PRICE{
+    std::pow(10, GAS_PRICE_PRECISION)};
 
 // accounts
 const std::vector<std::string> GENESIS_WALLETS{
