@@ -409,7 +409,7 @@ bool DirectoryService::NodeVCPrecheck() {
 
   std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangePrecheck);
   if (cv_viewChangePrecheck.wait_for(
-          cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT)) ==
+          cv_lk, std::chrono::seconds(VIEWCHANGE_PRECHECK_TIME)) ==
       std::cv_status::timeout) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Timeout while waiting for precheck. ");
