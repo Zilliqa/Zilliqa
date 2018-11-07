@@ -1965,7 +1965,8 @@ bool Messenger::GetAccountStore(const vector<unsigned char>& src,
 
 bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
                                      const unsigned int offset,
-                                     AccountStoreTemp& accountStoreTemp) {
+                                     AccountStoreTemp& accountStoreTemp,
+                                     AccountStore& accountStore) {
   ProtoAccountStore result;
 
   LOG_GENERAL(INFO, "Debug: Total number of account deltas to serialize: "
@@ -1975,8 +1976,8 @@ bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountDeltaToProtobuf(accountStoreTemp.GetAccount(entry.first),
-                           entry.second, *protoEntryAccount);
+    AccountDeltaToProtobuf(accountStore.GetAccount(entry.first), entry.second,
+                           *protoEntryAccount);
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
       return false;
