@@ -59,7 +59,7 @@ struct TxnPool {
     if (!exist(th)) {
       return false;
     }
-    t = HashIndex[th];
+    t = HashIndex.at(th);
 
     return true;
   }
