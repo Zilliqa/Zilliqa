@@ -78,8 +78,12 @@ do
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_SUSPEND_3=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Suspend DS leader for 3 times (before VC block consensus)"
     ;;
+    vc7)
+        CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_PRECHECK=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with VC test - Caused the node to lag behind"
+    ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-6>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-7>]"
         exit 1
     ;;
     esac

@@ -252,7 +252,20 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
+
+#ifdef VC_TEST_VC_PRECHECK
+  if (m_consensusMyID == 9) {
+    LOG_GENERAL(
+        WARNING,
+        "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK)");
+    this_thread::sleep_for(chrono::seconds(45));
+  }
+#endif  // VC_TEST_VC_PRECHECK
+
   if (!NodeVCPrecheck()) {
+    LOG_GENERAL(
+        WARNING,
+        "Failed the vc precheck. Node is lagging behind the whole network.");
     RejoinAsDS();
     return;
   }
@@ -401,6 +414,7 @@ bool DirectoryService::ComputeNewCandidateLeader(
 }
 
 bool DirectoryService::NodeVCPrecheck() {
+  LOG_MARKER();
   {
     lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
     m_vcPreCheckDSBlocks.clear();
@@ -418,6 +432,8 @@ bool DirectoryService::NodeVCPrecheck() {
   {
     lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
     if (m_vcPreCheckDSBlocks.size() == 0 && m_vcPreCheckTxBlocks.size() == 0) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Passed precheck. ");
       return true;
     }
 
