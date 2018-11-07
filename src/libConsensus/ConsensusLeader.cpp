@@ -103,7 +103,6 @@ void ConsensusLeader::SetStateSubset(uint16_t subsetID, State newState) {
 
 void ConsensusLeader::GenerateConsensusSubsets() {
   LOG_MARKER();
-  lock_guard<mutex> g(m_mutex);
 
   // Get the list of all the peers who committed, by peer index
   vector<unsigned int> peersWhoCommitted;
@@ -173,7 +172,6 @@ void ConsensusLeader::GenerateConsensusSubsets() {
 
 void ConsensusLeader::StartConsensusSubsets() {
   LOG_MARKER();
-  lock_guard<mutex> g(m_mutex);
 
   ConsensusMessageType type;
   // Update overall internal state
@@ -328,12 +326,21 @@ bool ConsensusLeader::ProcessMessageCommitCore(
       m_commitRedundantCounter++;
     }
 
-    // notify the waiting thread to start with subset creations and subset
-    // consensus.
-    if (m_commitCounter == m_committee.size()) {
-      lock_guard<mutex> g(m_mutexAnnounceSubsetConsensus);
-      m_allCommitsReceived = true;
-      cv_scheduleSubsetConsensus.notify_all();
+    if (NUM_CONSENSUS_SUBSETS > 1) {
+      // notify the waiting thread to start with subset creations and subset
+      // consensus.
+      if (m_commitCounter == m_committee.size()) {
+        lock_guard<mutex> g(m_mutexAnnounceSubsetConsensus);
+        m_allCommitsReceived = true;
+        cv_scheduleSubsetConsensus.notify_all();
+      }
+    } else {
+      if (m_commitCounter == m_numForConsensus) {
+        LOG_GENERAL(INFO, "Sufficient commits obtained. Required/Actual = "
+                              << m_commitCounter);
+        GenerateConsensusSubsets();
+        StartConsensusSubsets();
+      }
     }
   }
 
@@ -613,7 +620,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
         P2PComm::GetInstance().SendMessage(peerInfo, collectivesig);
       }
 
-      if (m_state == COLLECTIVESIG_DONE) {
+      if ((m_state == COLLECTIVESIG_DONE) && (NUM_CONSENSUS_SUBSETS > 1)) {
         // Start timer for accepting final commits
         // =================================
         auto func = [this]() -> void {
@@ -641,6 +648,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
                 INFO,
                 "Sufficient final commits obtained after timeout. Required = "
                     << m_numForConsensus << " Actual = " << m_commitCounter);
+            lock_guard<mutex> g(m_mutex);
             GenerateConsensusSubsets();
             StartConsensusSubsets();
           }
@@ -826,35 +834,39 @@ bool ConsensusLeader::StartConsensus(
 
     P2PComm::GetInstance().SendMessage(peer, announcement_message);
   }
-  // Start timer for accepting commits
-  // =================================
-  auto func = [this]() -> void {
-    std::unique_lock<std::mutex> cv_lk(m_mutexAnnounceSubsetConsensus);
-    m_allCommitsReceived = false;
-    if (cv_scheduleSubsetConsensus.wait_for(
-            cv_lk, std::chrono::seconds(COMMIT_WINDOW_IN_SECONDS),
-            [&] { return m_allCommitsReceived; })) {
-      LOG_GENERAL(INFO, "Received all commits within the Commit window. !!");
-    } else {
-      LOG_GENERAL(
-          INFO,
-          "Timeout - Commit window closed. Will process commits received !!");
-    }
 
-    if (m_commitCounter < m_numForConsensus) {
-      LOG_GENERAL(WARNING,
-                  "Insufficient commits obtained after timeout. Required = "
+  if (NUM_CONSENSUS_SUBSETS > 1) {
+    // Start timer for accepting commits
+    // =================================
+    auto func = [this]() -> void {
+      std::unique_lock<std::mutex> cv_lk(m_mutexAnnounceSubsetConsensus);
+      m_allCommitsReceived = false;
+      if (cv_scheduleSubsetConsensus.wait_for(
+              cv_lk, std::chrono::seconds(COMMIT_WINDOW_IN_SECONDS),
+              [&] { return m_allCommitsReceived; })) {
+        LOG_GENERAL(INFO, "Received all commits within the Commit window. !!");
+      } else {
+        LOG_GENERAL(
+            INFO,
+            "Timeout - Commit window closed. Will process commits received !!");
+      }
+
+      if (m_commitCounter < m_numForConsensus) {
+        LOG_GENERAL(WARNING,
+                    "Insufficient commits obtained after timeout. Required = "
+                        << m_numForConsensus
+                        << " Actual = " << m_commitCounter);
+        m_state = ERROR;
+      } else {
+        LOG_GENERAL(
+            INFO, "Sufficient commits obtained after timeout. Required = "
                       << m_numForConsensus << " Actual = " << m_commitCounter);
-      m_state = ERROR;
-    } else {
-      LOG_GENERAL(INFO, "Sufficient commits obtained after timeout. Required = "
-                            << m_numForConsensus
-                            << " Actual = " << m_commitCounter);
-      GenerateConsensusSubsets();
-      StartConsensusSubsets();
-    }
-  };
-  DetachedFunction(1, func);
+        GenerateConsensusSubsets();
+        StartConsensusSubsets();
+      }
+    };
+    DetachedFunction(1, func);
+  }
 
   return true;
 }
