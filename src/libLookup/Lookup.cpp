@@ -3176,9 +3176,8 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
       MessageType::DIRECTORY, DSInstructionType::VCPUSHLATESTDSTXBLOCK};
 
   if (!Messenger::SetVCNodeSetDSTxBlockFromSeed(
-          dsTxBlocksMessage, MessageOffset::BODY, dsLowBlockNum, dsHighBlockNum,
-          txLowBlockNum, txHighBlockNum, m_mediator.m_selfKey, dsBlocks,
-          txBlocks)) {
+          dsTxBlocksMessage, MessageOffset::BODY, m_mediator.m_selfKey,
+          dsBlocks, txBlocks)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetVCNodeSetDSTxBlockFromSeed failed.");
     return false;
