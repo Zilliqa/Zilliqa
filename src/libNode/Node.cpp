@@ -267,6 +267,13 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 
+  if (wakeupForUpgrade && !LOOKUP_NODE_MODE) {
+    LOG_GENERAL(INFO, "Non-lookup node, wait "
+                          << DS_DELAY_WAKEUP_IN_SECONDS
+                          << " seconds for lookup wakeup...");
+    this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
+  }
+
   /// Retrieve DS blocks
   bool ds_result;
   m_retriever->RetrieveBlockLink(ds_result, wakeupForUpgrade);
@@ -281,43 +288,46 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes
-  uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
-  if (!GetOfflineLookups()) {
-    LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
-    return false;
-  }
-  {
-    unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
+  if (!LOOKUP_NODE_MODE) {
+    uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
+    if (!GetOfflineLookups()) {
+      LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
+      return false;
+    }
+    {
+      unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
 
-    do {
-      m_synchronizer.FetchLatestTxBlocks(
-          m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+      do {
+        m_synchronizer.FetchLatestTxBlocks(
+            m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+        LOG_GENERAL(INFO,
+                    "Retrieve final block from lookup node, please wait...");
+      } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
+                   lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
+               cv_status::timeout);
+    }
+
+    if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
       LOG_GENERAL(INFO,
-                  "Retrieve final block from lookup node, please wait...");
-    } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
-                 lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
-             cv_status::timeout);
-  }
+                  "Node recovery too late, apply re-join process instead");
+      return false;
+    }
 
-  if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
-    LOG_GENERAL(INFO, "Node recovery too late, apply re-join process instead");
-    return false;
-  }
+    /// Retrieve lacked final-block state-delta from lookup nodes
+    if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
+      unique_lock<mutex> lock(
+          m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
 
-  /// Retrieve lacked final-block state-delta from lookup nodes
-  if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
-    unique_lock<mutex> lock(
-        m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
-
-    do {
-      m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
-          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
-      LOG_GENERAL(
-          INFO,
-          "Retrieve final block state delta from lookup node, please wait...");
-    } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
-                 lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
-             cv_status::timeout);
+      do {
+        m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
+        LOG_GENERAL(INFO,
+                    "Retrieve final block state delta from lookup node, please "
+                    "wait...");
+      } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
+                   lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
+               cv_status::timeout);
+    }
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
@@ -393,9 +403,6 @@ void Node::WakeupForUpgrade() {
 
   /// If this node is DS node, run DS consensus
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
-    LOG_GENERAL(INFO, "DS node, wait " << DS_DELAY_WAKEUP_IN_SECONDS
-                                       << " seconds for lookup wakeup...");
-    this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
     SetState(POW_SUBMISSION);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
@@ -430,10 +437,12 @@ void Node::WakeupForUpgrade() {
   SetState(POW_SUBMISSION);
 
   auto func = [this, block_num, dsDifficulty, difficulty]() mutable -> void {
-    LOG_GENERAL(INFO, "Shard node, wait "
-                          << SHARD_DELAY_WAKEUP_IN_SECONDS
-                          << " seconds for lookup and DS nodes wakeup...");
-    this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS));
+    LOG_GENERAL(
+        INFO, "Shard node, wait "
+                  << SHARD_DELAY_WAKEUP_IN_SECONDS - DS_DELAY_WAKEUP_IN_SECONDS
+                  << " more seconds for lookup and DS nodes wakeup...");
+    this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS -
+                                           DS_DELAY_WAKEUP_IN_SECONDS));
     StartPoW(block_num, dsDifficulty, difficulty, m_mediator.m_dsBlockRand,
              m_mediator.m_txBlockRand);
   };

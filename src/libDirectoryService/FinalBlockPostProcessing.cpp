@@ -324,7 +324,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
     if (0 == (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW) &&
-        m_mediator.m_curSWInfo.GetUpgradeDS() ==
+        m_mediator.m_curSWInfo.GetUpgradeDS() + 1 ==
             ((m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) +
              INIT_DS_EPOCH_NUM)) {
       auto func = [this]() mutable -> void {
