@@ -155,6 +155,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     ExportCreateContractFiles(*toAccount);
 
+    // Undergo scilla checker
+    bool ret_checker = true;
+    std::string checkerPrint;
+    if (!SysCommand::ExecuteCmdWithOutput(GetContractCheckerCmdStr(),
+                                          checkerPrint)) {
+      ret_checker = false;
+    }
+    if (ret_checker && !ParseContractCheckerOutput(checkerPrint)) {
+      ret_checker = false;
+    }
+
+    // Undergo scilla runner
     bool ret = true;
     std::string runnerPrint;
     if (!SysCommand::ExecuteCmdWithOutput(GetCreateContractCmdStr(gasRemained),
@@ -175,7 +187,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
     this->IncreaseBalance(fromAddr, gasRefund);
-    if (!ret) {
+    if (!ret || !ret_checker) {
       this->m_addressToAccount->erase(toAddr);
 
       receipt.SetResult(false);
@@ -420,6 +432,14 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
 }
 
 template <class MAP>
+std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr() {
+  std::string ret =
+      SCILLA_CHECKER + " -libdir " + SCILLA_LIB + " " + INPUT_CODE;
+  LOG_GENERAL(INFO, ret);
+  return ret;
+}
+
+template <class MAP>
 std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
     const boost::multiprecision::uint256_t& available_gas) {
   std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain " +
@@ -441,6 +461,26 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
                     available_gas.convert_to<std::string>();
   LOG_GENERAL(INFO, ret);
   return ret;
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
+    const std::string& checkerPrint) {
+  Json::CharReaderBuilder builder;
+  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  Json::Value root;
+  std::string errors;
+
+  if (!reader->parse(checkerPrint.c_str(),
+                     checkerPrint.c_str() + checkerPrint.size(), &root,
+                     &errors)) {
+    LOG_GENERAL(WARNING, "Failed to parse contract checker output: "
+                             << checkerPrint << std::endl
+                             << "errors: " << errors);
+    return false;
+  }
+
+  return true;
 }
 
 template <class MAP>
