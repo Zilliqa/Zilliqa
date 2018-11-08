@@ -463,8 +463,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
       return false;
     }
   } else {
-    std::string outStr = {std::istreambuf_iterator<char>(in),
-                          std::istreambuf_iterator<char>()};
+    outStr = {std::istreambuf_iterator<char>(in),
+              std::istreambuf_iterator<char>()};
   }
   LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
 
@@ -541,8 +541,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
       return false;
     }
   } else {
-    std::string outStr = {std::istreambuf_iterator<char>(in),
-                          std::istreambuf_iterator<char>()};
+    outStr = {std::istreambuf_iterator<char>(in),
+              std::istreambuf_iterator<char>()};
   }
   LOG_GENERAL(INFO, "Output: " << std::endl << outStr);
 
