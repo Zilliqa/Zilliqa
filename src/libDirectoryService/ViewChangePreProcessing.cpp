@@ -252,7 +252,6 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
-  VCFetchLatestDSTxBlockFromLookupNodes();
 
 #ifdef VC_TEST_VC_PRECHECK
   if (m_consensusMyID == 9) {
@@ -263,12 +262,25 @@ void DirectoryService::RunConsensusOnViewChange() {
   }
 #endif  // VC_TEST_VC_PRECHECK
 
-  if (!NodeVCPrecheck()) {
-    LOG_GENERAL(
-        WARNING,
-        "Failed the vc precheck. Node is lagging behind the whole network.");
-    RejoinAsDS();
-    return;
+  uint64_t dsCurBlockNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t txCurBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  // Note: Special check as 0 and 1 have special usage when fetching ds block
+  // and final block No need check for 1 as
+  // VCFetchLatestDSTxBlockFromLookupNodes always check for current block + 1
+  // i.e in first epoch, it will request for block 1, which means fetch latest
+  // block (including block 0)
+  if (dsCurBlockNum != 0 && txCurBlockNum != 0) {
+    VCFetchLatestDSTxBlockFromLookupNodes();
+    if (!NodeVCPrecheck()) {
+      LOG_GENERAL(
+          WARNING,
+          "Failed the vc precheck. Node is lagging behind the whole network.");
+      RejoinAsDS();
+      return;
+    }
   }
 
   uint16_t faultyLeaderIndex;
@@ -447,8 +459,8 @@ bool DirectoryService::NodeVCPrecheck() {
     }
   }
   LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Failed precheck. m_vcPreCheckDSBlocks size << "
-                << m_vcPreCheckDSBlocks.size() << " m_vcPreCheckTxBlocks size "
+            "Failed precheck. m_vcPreCheckDSBlocks size: "
+                << m_vcPreCheckDSBlocks.size() << " m_vcPreCheckTxBlocks size: "
                 << m_vcPreCheckTxBlocks.size());
   return false;
 }
@@ -666,7 +678,6 @@ vector<unsigned char> DirectoryService::ComposeVCGetDSTxBlockMessage() {
   LOG_MARKER();
   vector<unsigned char> getDSTxBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::VCGETLATESTDSTXBLOCK};
-
   uint64_t dslowBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
   uint64_t txlowBlockNum =
@@ -678,6 +689,9 @@ vector<unsigned char> DirectoryService::ComposeVCGetDSTxBlockMessage() {
               "Messenger::SetLookupGetDSTxBlockFromSeed failed.");
     return {};
   }
+  LOG_GENERAL(INFO, "Checking for new blocks. new (if any) dslowBlockNum: "
+                        << dslowBlockNum
+                        << " new (if any) txlowBlockNum: " << txlowBlockNum);
 
   return getDSTxBlockMessage;
 }
