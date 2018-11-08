@@ -357,16 +357,18 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   if (m_mediator.m_ds->m_consensusMyID ==
       ((m_mediator.m_ds->m_consensusLeaderID + 1) %
        m_mediator.m_DSCommittee->size())) {
-    LOG_GENERAL(INFO,
-                "Letting one of the backups refuse some Microblock submission");
+    LOG_GENERAL(WARNING,
+                "Letting one of the backups refuse some Microblock submission "
+                "(DM_TEST_DM_LESSMB_ONE)");
     return false;
   }
 #endif  // DM_TEST_DM_LESSMB_ONE
 
 #ifdef DM_TEST_DM_LESSMB_ALL
   if (m_mediator.m_ds->m_mode == BACKUP_DS) {
-    LOG_GENERAL(INFO,
-                "Letting all of the backups refuse some Microblock submission");
+    LOG_GENERAL(WARNING,
+                "Letting all of the backups refuse some Microblock submission "
+                "(DM_TEST_DM_LESSMB_ALL)");
     return false;
   }
 #endif  // DM_TEST_DM_LESSMB_ALL
@@ -462,9 +464,11 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     auto& microBlocksAtEpoch = m_microBlocks[epochNumber];
 
     if (microBlocks.size() != stateDeltas.size()) {
-      LOG_GENERAL(WARNING,
-                  "MicroBlocks fetched from leader have different size with "
-                  "stateDeltas");
+      LOG_GENERAL(WARNING, "size of microBlocks fetched "
+                               << microBlocks.size()
+                               << " is different from size of "
+                                  "stateDeltas fetched "
+                               << stateDeltas.size());
       return false;
     }
 
@@ -481,9 +485,9 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       uint32_t shardId = microBlocks.at(i).GetHeader().GetShardId();
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "shard_id: " << shardId << ", pubkey: "
-                             << microBlocks[i].GetHeader().GetMinerPubKey());
+                             << microBlocks.at(i).GetHeader().GetMinerPubKey());
 
-      const PubKey& pubKey = microBlocks[i].GetHeader().GetMinerPubKey();
+      const PubKey& pubKey = microBlocks.at(i).GetHeader().GetMinerPubKey();
 
       // Check public key - shard ID mapping
       if (shardId == m_shards.size()) {
@@ -560,10 +564,10 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
       }
 
-      LOG_GENERAL(
-          INFO, "MicroBlock Hash: " << microBlocks[i].GetHeader().GetHashes());
+      LOG_GENERAL(INFO, "MicroBlock Hash: "
+                            << microBlocks.at(i).GetHeader().GetHashes());
 
-      if (microBlocks[i].GetHeader().GetShardId() != m_shards.size()) {
+      if (microBlocks.at(i).GetHeader().GetShardId() != m_shards.size()) {
         if (!SaveCoinbase(microBlocks[i].GetB1(), microBlocks[i].GetB2(),
                           microBlocks[i].GetHeader().GetShardId(),
                           m_mediator.m_currentEpochNum)) {
@@ -572,9 +576,10 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       }
 
       if (!m_mediator.GetIsVacuousEpoch(epochNumber)) {
-        if (!ProcessStateDelta(stateDeltas[i],
-                               microBlocks[i].GetHeader().GetStateDeltaHash(),
-                               microBlocks[i].GetBlockHash())) {
+        if (!ProcessStateDelta(
+                stateDeltas.at(i),
+                microBlocks.at(i).GetHeader().GetStateDeltaHash(),
+                microBlocks.at(i).GetBlockHash())) {
           LOG_GENERAL(WARNING,
                       "State delta attached to the microblock is invalid");
           continue;
@@ -588,7 +593,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
       }
 
-      microBlocksAtEpoch.emplace(microBlocks[i]);
+      microBlocksAtEpoch.emplace(microBlocks.at(i));
       // m_fetchedMicroBlocks.emplace(microBlock);
 
       LOG_GENERAL(INFO, microBlocksAtEpoch.size()

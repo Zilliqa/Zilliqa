@@ -156,7 +156,8 @@ bool DirectoryService::ComposeFinalBlock() {
 
 #ifdef DM_TEST_DM_BAD_ANNOUNCE
   if (m_viewChangeCounter == 0) {
-    LOG_GENERAL(INFO, "Leader compose wrong state root");
+    LOG_GENERAL(WARNING,
+                "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
     stateRoot = StateHash();
   }
 #endif  // DM_TEST_DM_BAD_ANNOUNCE
@@ -286,7 +287,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
         !m_skippedDSMB) {
       // Enough failure received due to ds microblock
       // Rerun Finalblock without ds microblock
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Enough error commit for ds microblock received, skip ds block "
                 "and rerun finalblock consensus");
       m_skippedDSMB = true;
@@ -501,11 +502,11 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
     // If its slow on benchmarking, may be first populate an unordered_set and
     // then std::find
     for (unsigned int i = 0; i < m_finalBlock->GetShardIds().size(); ++i) {
-      if (m_finalBlock->GetShardIds()[i] == m_shards.size()) {
+      if (m_finalBlock->GetShardIds().at(i) == m_shards.size()) {
         continue;
       }
 
-      BlockHash hash = m_finalBlock->GetMicroBlockHashes()[i];
+      BlockHash hash = m_finalBlock->GetMicroBlockHashes().at(i);
       LOG_GENERAL(INFO, "MicroBlock hash: " << hash);
       bool found = false;
       auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
@@ -709,7 +710,7 @@ bool DirectoryService::OnNodeFinalConsensusError(
       return OnNodeMissingMicroBlocks(t_errorMsg, from);
     }
     default:
-      LOG_GENERAL(WARNING, "Wrong Consensus Error Type");
+      LOG_GENERAL(WARNING, "Wrong Consensus Error Type: " << type);
       return false;
   }
 }
