@@ -104,6 +104,7 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 const std::string dsNodeFile = "dsnodes.xml";
 
 extern const std::string SCILLA_ROOT;
+extern const std::string SCILLA_CHECKER;
 extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;
 extern const std::string SCILLA_LOG;
