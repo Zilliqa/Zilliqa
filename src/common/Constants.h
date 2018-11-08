@@ -187,6 +187,7 @@ extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
+extern const unsigned int GAS_CONGESTION_RATE;
 extern const unsigned int UNFILLED_RATIO_LOW;
 extern const unsigned int UNFILLED_RATIO_HIGH;
 extern const unsigned int GAS_PRICE_PRECISION;
