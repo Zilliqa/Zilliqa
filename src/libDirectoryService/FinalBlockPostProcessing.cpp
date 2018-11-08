@@ -549,8 +549,6 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     ProcessFinalBlockConsensusWhenDone();
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Oops,     - what to do now???");
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Oops, no consensus reached - consensus error. "
               "error number: "
                   << to_string(m_consensusObject->GetConsensusErrorCode())

@@ -941,18 +941,18 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   if (m_mediator.m_ds->m_consensusMyID ==
       ((m_mediator.m_ds->m_consensusLeaderID + 1) %
        m_mediator.m_DSCommittee->size())) {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(WARNING,
                 "Letting one of the backups accept less txns from lookup "
-                "comparing to the others");
+                "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
     return false;
   }
 #endif  // DM_TEST_DM_LESSTXN_ONE
 
 #ifdef DM_TEST_DM_LESSTXN_ALL
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::BACKUP_DS) {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(WARNING,
                 "Letting all of the backups accept less txns from lookup "
-                "comparing to the leader");
+                "comparing to the leader (DM_TEST_DM_LESSTXN_ALL)");
     return false;
   }
 #endif  // DM_TEST_DM_LESSTXN_ALL
