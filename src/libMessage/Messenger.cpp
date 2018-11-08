@@ -516,6 +516,8 @@ void AnnouncementShardingStructureToProtobuf(
                              soln->second.result.size());
       proto_soln->set_mixhash(soln->second.mixhash.data(),
                               soln->second.mixhash.size());
+      NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+        soln->second.gasprice, *proto_soln.mutable_gasprice());
     }
   }
 }
@@ -525,6 +527,7 @@ void ProtobufToShardingStructureAnnouncement(
     DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
+  uint256_t gasprice;
 
   for (const auto& proto_shard : protoShardingStructure.shards()) {
     shards.emplace_back();
@@ -548,8 +551,10 @@ void ProtobufToShardingStructureAnnouncement(
                min((unsigned int)proto_member.powsoln().mixhash().size(),
                    (unsigned int)mixhash.size()),
            mixhash.begin());
+      ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(proto_member.gasprice(),
+                                                         gasprice);
       allPoWs.emplace(
-          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash));
+          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash, gasprice));
     }
   }
 }
@@ -2625,7 +2630,8 @@ bool Messenger::SetDSPoWSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint64_t blockNumber, const uint8_t difficultyLevel,
     const Peer& submitterPeer, const pair<PrivKey, PubKey>& submitterKey,
-    const uint64_t nonce, const string& resultingHash, const string& mixHash) {
+    const uint64_t& nonce, const string& resultingHash, const string& mixHash,
+    const uint256_t& gasprice) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2641,6 +2647,9 @@ bool Messenger::SetDSPoWSubmission(
   result.mutable_data()->set_nonce(nonce);
   result.mutable_data()->set_resultinghash(resultingHash);
   result.mutable_data()->set_mixhash(mixHash);
+
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(gasprice,
+      *result.mutable_data()->mutable_gasprice());
 
   if (result.data().IsInitialized()) {
     vector<unsigned char> tmp(result.data().ByteSize());
@@ -2673,7 +2682,7 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
                                    uint8_t& difficultyLevel,
                                    Peer& submitterPeer, PubKey& submitterPubKey,
                                    uint64_t& nonce, string& resultingHash,
-                                   string& mixHash, Signature& signature) {
+                                   string& mixHash, uint256_t& gasprice, Signature& signature) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2694,6 +2703,9 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
   resultingHash = result.data().resultinghash();
   mixHash = result.data().mixhash();
   ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+    result.data().gasprice(), gasprice);
 
   vector<unsigned char> tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
@@ -2801,6 +2813,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     proto_soln->set_nonce(soln.nonce);
     proto_soln->set_result(soln.result.data(), soln.result.size());
     proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
+    NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(soln.gasprice, *proto_soln.mutable_data());
   }
 
   if (!dsblock->IsInitialized()) {
@@ -2884,6 +2897,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     PubKey key;
     std::array<unsigned char, 32> result;
     std::array<unsigned char, 32> mixhash;
+    uint256_t gasprice;
 
     ProtobufByteArrayToSerializable(protoDSWinnerPoW.pubkey(), key);
 
@@ -2897,6 +2911,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
              min((unsigned int)protoDSWinnerPoW.powsoln().mixhash().size(),
                  (unsigned int)mixhash.size()),
          mixhash.begin());
+    ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoDSWinnerPoW.powsoln().gasprice(), gasprice);
     dsWinnerPoWs.emplace(
         key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash));
   }

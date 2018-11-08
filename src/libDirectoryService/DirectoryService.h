@@ -49,18 +49,19 @@ struct PoWSolution {
   uint64_t nonce;
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
+  boost::multiprecision::uint256_t gasprice;
 
   PoWSolution()
       : nonce(0),
         result({{0}}),
-        mixhash({{0}}) {
+        mixhash({{0}}),
+        gasprice(0) {
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
-              const std::array<unsigned char, 32>& m)
-      : nonce(n), result(r), mixhash(m) {}
+              const std::array<unsigned char, 32>& m, const boost::multiprecision::uint256_t& gp)
+      : nonce(n), result(r), mixhash(m), gasprice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
-    return (nonce == rhs.nonce) && (result == rhs.result) &&
-           (mixhash == rhs.mixhash);
+    return std::tie(nonce, result, mixhash, gasprice) == std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.gasprice);
   }
 };
 

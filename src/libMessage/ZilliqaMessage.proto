@@ -50,6 +50,7 @@ message ProtoPoWSolution
     required uint64 nonce  = 1;
     required bytes result  = 2;
     required bytes mixhash = 3;
+    required ByteArray gasprice = 4;
 }
 
 message ProtoDSCommittee
@@ -312,6 +313,7 @@ message DSPoWSubmission
         required uint64 nonce              = 5;
         required string resultinghash      = 6;
         required string mixhash            = 7;
+        required ByteArray gasprice        = 8;
     }
     required Data data                     = 1;
     required ByteArray signature           = 2;
