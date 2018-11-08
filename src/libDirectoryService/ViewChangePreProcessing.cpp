@@ -253,15 +253,6 @@ void DirectoryService::RunConsensusOnViewChange() {
   SetLastKnownGoodState();
   SetState(VIEWCHANGE_CONSENSUS_PREP);
 
-#ifdef VC_TEST_VC_PRECHECK
-  if (m_consensusMyID == 9) {
-    LOG_GENERAL(
-        WARNING,
-        "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK)");
-    this_thread::sleep_for(chrono::seconds(45));
-  }
-#endif  // VC_TEST_VC_PRECHECK
-
   uint64_t dsCurBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   uint64_t txCurBlockNum =
