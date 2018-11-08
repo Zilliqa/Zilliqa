@@ -3,6 +3,7 @@ syntax = "proto2";
 package ZilliqaMessage;
 
 import "ZilliqaMessage.proto";
+import "ServerMessages.proto";
 
 
 message DefaultResponse
