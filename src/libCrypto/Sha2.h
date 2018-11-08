@@ -54,7 +54,7 @@ class SHA2 {
 
   /// Hash update function.
   void Update(const std::vector<unsigned char>& input) {
-    if (input.size() <= 0) {
+    if (input.size() == 0) {
       LOG_GENERAL(WARNING, "Nothing to update");
       return;
     }
