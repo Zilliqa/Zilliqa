@@ -516,6 +516,10 @@ void AnnouncementShardingStructureToProtobuf(
                              soln->second.result.size());
       proto_soln->set_mixhash(soln->second.mixhash.data(),
                               soln->second.mixhash.size());
+      proto_soln->set_lookupid(soln->second.lookupId);
+      proto_soln->set_lookupid(soln->second.gasPrice);
+      SerializableToProtobufByteArray(soln->second.signature,
+                                      *proto_soln->mutable_signature());
     }
   }
 }
@@ -2854,6 +2858,10 @@ bool Messenger::SetDSDSBlockAnnouncement(
     proto_soln->set_nonce(soln.nonce);
     proto_soln->set_result(soln.result.data(), soln.result.size());
     proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
+    proto_soln->set_lookupid(soln.lookupId);
+    proto_soln->set_gasprice(soln.gasPrice);
+    SerializableToProtobufByteArray(soln.signature,
+                                    *proto_soln->mutable_signature());
   }
 
   if (!dsblock->IsInitialized()) {

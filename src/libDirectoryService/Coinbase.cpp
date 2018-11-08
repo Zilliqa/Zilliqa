@@ -101,6 +101,54 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
   return true;
 }
 
+void DirectoryService::LookupCoinbase(const DequeOfShard& shards,
+                                      const MapOfPubKeyPoW& allPow,
+                                      const map<PubKey, Peer>& powDSWinner,
+                                      const MapOfPubKeyPoW& dsPow) {
+  VectorOfLookupNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
+  const auto& epochNum = m_mediator.m_currentEpochNum;
+
+  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+  for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      auto toFind = get<SHARD_NODE_PUBKEY>(shardNode);
+      auto it = allPow.find(toFind);
+      if (it == allPow.end()) {
+        LOG_GENERAL(FATAL, "Could not find the node " << toFind);
+      }
+      const auto& lookupId = it->second.lookupId;
+      // Verify
+
+      if (lookupId >= vecLookup.size()) {
+        LOG_GENERAL(WARNING, "Lookup id greater than lookup Size " << lookupId);
+        continue;
+      }
+
+      const auto& lookupPubkey = vecLookup.at(lookupId).first;
+      m_coinbaseRewardees[epochNum][-2].push_back(
+          Account::GetAddressFromPublicKey(lookupPubkey));
+    }
+  }
+
+  for (const auto& dsWinner : powDSWinner) {
+    auto toFind = dsWinner.first;
+    auto it = dsPow.find(toFind);
+
+    if (it == dsPow.end()) {
+      LOG_GENERAL(FATAL, "Could not find " << toFind);
+    }
+    const auto& lookupId = it->second.lookupId;
+    if (lookupId >= vecLookup.size()) {
+      LOG_GENERAL(WARNING, "Lookup id greater than lookup Size " << lookupId);
+      continue;
+    }
+
+    const auto& lookupPubkey = vecLookup.at(lookupId).first;
+    m_coinbaseRewardees[epochNum][-2].push_back(
+        Account::GetAddressFromPublicKey(lookupPubkey));
+  }
+}
+
 bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
                                     const vector<bool>& b2,
                                     const int32_t& shard_id,
