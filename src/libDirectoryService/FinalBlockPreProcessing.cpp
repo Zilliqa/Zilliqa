@@ -213,8 +213,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 
 #ifdef VC_TEST_FB_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
-    LOG_GENERAL(
-        WARNING,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_FB_SUSPEND_1)");
     return false;
   }
@@ -222,8 +222,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
 
 #ifdef VC_TEST_FB_SUSPEND_3
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
-    LOG_GENERAL(
-        WARNING,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_FB_SUSPEND_3)");
     return false;
   }
@@ -1002,8 +1002,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 
 #ifdef VC_TEST_VC_PRECHECK_2
   if (m_consensusMyID == 3) {
-    LOG_GENERAL(
-        WARNING,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_2)");
     this_thread::sleep_for(chrono::seconds(45));
     return false;
