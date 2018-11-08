@@ -87,7 +87,7 @@ do
         echo "Build with VC test - Caused the node to lag behind at tx epoch"
     ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-7>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>]"
         exit 1
     ;;
     esac
