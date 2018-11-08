@@ -58,10 +58,12 @@ struct PoWSolution {
         gasprice(0) {
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
-              const std::array<unsigned char, 32>& m, const boost::multiprecision::uint256_t& gp)
+              const std::array<unsigned char, 32>& m,
+              const boost::multiprecision::uint256_t& gp)
       : nonce(n), result(r), mixhash(m), gasprice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
-    return std::tie(nonce, result, mixhash, gasprice) == std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.gasprice);
+    return std::tie(nonce, result, mixhash, gasprice) ==
+           std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.gasprice);
   }
 };
 
@@ -225,6 +227,8 @@ class DirectoryService : public Executable, public Broadcastable {
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers);
   void CalculateGasPrice();
+  void IncreaseGasPrice();
+  void DecreaseGasPrice();
 
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);

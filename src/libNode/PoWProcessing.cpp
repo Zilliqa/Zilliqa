@@ -166,17 +166,19 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                   "Found PoW solution that met requirement for both ds "
                   "commitee and shard.");
 
-      if (!SendPoWResultToDSComm(
-              block_num, ds_difficulty, winning_result.winning_nonce,
-              winning_result.result, winning_result.mix_hash)) {
+      if (!SendPoWResultToDSComm(block_num, ds_difficulty,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 m_proposedGasPrice)) {
         return false;
       }
     } else {
       // If solution does not meet targeted ds difficulty, send the initial
       // solution to ds commitee and continue to do PoW
-      if (!SendPoWResultToDSComm(
-              block_num, difficulty, winning_result.winning_nonce,
-              winning_result.result, winning_result.mix_hash)) {
+      if (!SendPoWResultToDSComm(block_num, difficulty,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 m_proposedGasPrice)) {
         return false;
       }
 
@@ -198,7 +200,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         // Submission of PoW for ds commitee
         if (!SendPoWResultToDSComm(
                 block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
-                ds_pow_winning_result.result, ds_pow_winning_result.mix_hash)) {
+                ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
+                m_proposedGasPrice)) {
           return false;
         }
       } else {
@@ -220,7 +223,8 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const uint8_t& difficultyLevel,
                                  const uint64_t winningNonce,
                                  const string& powResultHash,
-                                 const string& powMixhash) {
+                                 const string& powMixhash,
+                                 const uint256_t& gasPrice) {
   LOG_MARKER();
 
   vector<unsigned char> powmessage = {MessageType::DIRECTORY,
@@ -229,7 +233,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   if (!Messenger::SetDSPoWSubmission(powmessage, MessageOffset::BODY, block_num,
                                      difficultyLevel, m_mediator.m_selfPeer,
                                      m_mediator.m_selfKey, winningNonce,
-                                     powResultHash, powMixhash)) {
+                                     powResultHash, powMixhash, gasPrice)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSPoWSubmission failed.");
     return false;
