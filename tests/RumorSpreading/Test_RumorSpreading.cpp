@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(RRS_Initialization) {
   RRS::RumorHolder dummy_holder(dummy_peerIdSet, 2);
   RRS::RumorHolder dummy_holder_copy(dummy_holder);
   /// Rumor Holder == operator check
-  BOOST_CHECK_EQUAL(dummy_holder == dummy_holder_copy, true);
+  BOOST_CHECK_EQUAL(dummy_holder == dummy_holder_copy);
 
   /// NetworkConfig
   RRS::NetworkConfig dummy_networkconfig(16);
@@ -66,8 +66,8 @@ BOOST_AUTO_TEST_CASE(RRS_Initialization) {
   RRS::Message dummy_message_undefined(RRS::Message::Type::UNDEFINED, 0, 0);
   RRS::Message dummy_message_push(RRS::Message::Type::PUSH, 0, 0);
   // Test comparison and stream oeprator
-  BOOST_CHECK_EQUAL(dummy_message_push != dummy_message_undefined, true);
-  BOOST_CHECK_EQUAL(dummy_message_push == dummy_message_push, true);
+  BOOST_CHECK(dummy_message_push != dummy_message_undefined);
+  BOOST_CHECK(dummy_message_push == dummy_message_push);
   BOOST_TEST_MESSAGE("RRS Message undefined: " << dummy_message_undefined);
 }
 BOOST_AUTO_TEST_SUITE_END()
