@@ -64,7 +64,7 @@ using DS_Comitte_t = std::deque<std::pair<PubKey, Peer>>;
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
 
 Shard GenerateRandomShard(size_t);
-DequeOfShard generateDequeueOfShard(size_t);
+DequeOfShard GenerateDequeueOfShard(size_t);
 }  // namespace TestUtils
 
 #endif  // __TESTUTILS_H__

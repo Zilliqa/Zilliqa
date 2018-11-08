@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(GetNodeMode) {
 
 BOOST_AUTO_TEST_CASE(GetShardSize) {
   DirectoryService ds(*m);
-  ds.m_shards = TestUtils::generateDequeueOfShard(10);
+  ds.m_shards = TestUtils::GenerateDequeueOfShard(10);
   m->m_ds = &ds;
 
   uint32_t EXPECTED_SHARDSIZE = 651;

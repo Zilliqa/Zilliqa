@@ -191,7 +191,7 @@ Shard GenerateRandomShard(size_t size) {
   return s;
 }
 
-DequeOfShard generateDequeueOfShard(size_t size) {
+DequeOfShard GenerateDequeueOfShard(size_t size) {
   DequeOfShard dos;
   for (size_t i = 1; i <= size; i++) {
     dos.push_front(GenerateRandomShard(i));
