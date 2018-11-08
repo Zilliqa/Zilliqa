@@ -1000,6 +1000,16 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return true;
   }
 
+#ifdef VC_TEST_VC_PRECHECK_2
+  if (m_consensusMyID == 3) {
+    LOG_GENERAL(
+        WARNING,
+        "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_2)");
+    this_thread::sleep_for(chrono::seconds(45));
+    return false;
+  }
+#endif  // VC_TEST_VC_PRECHECK_2
+
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am a backup DS node. Waiting for final block announcement. "
             "Leader is at index  "
