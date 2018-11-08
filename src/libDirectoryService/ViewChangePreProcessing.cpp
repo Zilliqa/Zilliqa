@@ -539,8 +539,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
 
 #ifdef VC_TEST_VC_SUSPEND_1
   if (m_viewChangeCounter < 2) {
-    LOG_GENERAL(
-        WARNING,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_1)");
     return false;
   }
@@ -548,8 +548,8 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
 
 #ifdef VC_TEST_VC_SUSPEND_3
   if (m_viewChangeCounter < 4) {
-    LOG_GENERAL(
-        WARNING,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
     return false;
   }
