@@ -380,6 +380,9 @@ class Node : public Executable, public Broadcastable {
     SYNC
   };
 
+  // Proposed gas price
+  boost::multiprecision::uint256_t m_proposedGasPrice = DEFAULT_MIN_GAS_PRICE;
+
   // This process is newly invoked by shell from late node join script
   bool m_runFromLate = false;
 
@@ -512,7 +515,8 @@ class Node : public Executable, public Broadcastable {
                              const uint8_t& difficultyLevel,
                              const uint64_t winningNonce,
                              const std::string& powResultHash,
-                             const std::string& powMixhash);
+                             const std::string& powMixhash,
+                             const boost::multiprecision::uint256_t& gasPrice);
 
   /// Used by oldest DS node to configure shard ID as a new shard node
   void SetMyshardId(uint32_t shardId);

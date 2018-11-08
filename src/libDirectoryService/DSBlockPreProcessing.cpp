@@ -1063,8 +1063,6 @@ bool DirectoryService::ProcessShardingStructure(
   return true;
 }
 
-void DirectoryService::CalculateGasPrice() {}
-
 void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
