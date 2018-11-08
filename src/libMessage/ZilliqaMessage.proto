@@ -51,9 +51,9 @@ message ProtoPoWSolution
     required bytes result  = 2;
     required bytes mixhash = 3;
     required uint32 difficultylevel = 4;
-    required uint32 lookupid = 6;
-    required uint32 gasprice = 7;
-    required ByteArray signature = 8;
+    required uint32 lookupid = 5;
+    required uint32 gasprice = 6;
+    required ByteArray signature = 7;
 }
 
 message ProtoDSCommittee

@@ -238,6 +238,9 @@ class DirectoryService : public Executable, public Broadcastable {
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers);
 
+  void LookupCoinbase(const DequeOfShard& shards, const MapOfPubKeyPoW& allPow,
+                      const std::map<PubKey, Peer>& powDSWinner,
+                      const MapOfPubKeyPoW& dsPow);
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
