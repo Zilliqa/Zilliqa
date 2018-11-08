@@ -738,16 +738,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   }
 #endif  // VC_TEST_DS_SUSPEND_3
 
-#ifdef VC_TEST_VC_PRECHECK
-  if (m_consensusMyID == 9) {
-    LOG_GENERAL(
-        WARNING,
-        "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK)");
-    this_thread::sleep_for(chrono::seconds(45));
-    return false;
-  }
-#endif  // VC_TEST_VC_PRECHECK
-
   m_consensusObject.reset(new ConsensusLeader(
       consensusID, m_mediator.m_currentEpochNum, m_consensusBlockHash,
       m_consensusMyID, m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
@@ -989,6 +979,16 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
                 "expected to be called from LookUp node.");
     return true;
   }
+
+#ifdef VC_TEST_VC_PRECHECK_1
+  if (m_consensusMyID == 3) {
+    LOG_GENERAL(
+        WARNING,
+        "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_1)");
+    this_thread::sleep_for(chrono::seconds(45));
+    return false;
+  }
+#endif  // VC_TEST_VC_PRECHECK_1
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am a backup DS node. Waiting for DS block announcement. "

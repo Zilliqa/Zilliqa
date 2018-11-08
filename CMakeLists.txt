@@ -106,9 +106,14 @@ if(VC_TEST_VC_SUSPEND_3)
 	add_definitions(-DVC_TEST_VC_SUSPEND_3)
 endif()
 
-if(VC_TEST_VC_PRECHECK)
+if(VC_TEST_VC_PRECHECK_1)
     message(STATUS "VC 7 test enabled")
-	add_definitions(-DVC_TEST_VC_PRECHECK)
+	add_definitions(-DVC_TEST_VC_PRECHECK_1)
+endif()
+
+if(VC_TEST_VC_PRECHECK_2)
+    message(STATUS "VC 8 test enabled")
+	add_definitions(-DVC_TEST_VC_PRECHECK_2)
 endif()
 
 include(FindProtobuf)
