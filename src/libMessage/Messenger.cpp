@@ -517,7 +517,7 @@ void AnnouncementShardingStructureToProtobuf(
       proto_soln->set_mixhash(soln->second.mixhash.data(),
                               soln->second.mixhash.size());
       NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-        soln->second.gasprice, *proto_soln.mutable_gasprice());
+          soln->second.gasprice, *proto_soln->mutable_gasprice());
     }
   }
 }
@@ -551,10 +551,10 @@ void ProtobufToShardingStructureAnnouncement(
                min((unsigned int)proto_member.powsoln().mixhash().size(),
                    (unsigned int)mixhash.size()),
            mixhash.begin());
-      ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(proto_member.gasprice(),
-                                                         gasprice);
-      allPoWs.emplace(
-          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash, gasprice));
+      ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+          proto_member.powsoln().gasprice(), gasprice);
+      allPoWs.emplace(key, PoWSolution(proto_member.powsoln().nonce(), result,
+                                       mixhash, gasprice));
     }
   }
 }
@@ -2648,8 +2648,8 @@ bool Messenger::SetDSPoWSubmission(
   result.mutable_data()->set_resultinghash(resultingHash);
   result.mutable_data()->set_mixhash(mixHash);
 
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(gasprice,
-      *result.mutable_data()->mutable_gasprice());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      gasprice, *result.mutable_data()->mutable_gasprice());
 
   if (result.data().IsInitialized()) {
     vector<unsigned char> tmp(result.data().ByteSize());
@@ -2676,13 +2676,11 @@ bool Messenger::SetDSPoWSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
-                                   const unsigned int offset,
-                                   uint64_t& blockNumber,
-                                   uint8_t& difficultyLevel,
-                                   Peer& submitterPeer, PubKey& submitterPubKey,
-                                   uint64_t& nonce, string& resultingHash,
-                                   string& mixHash, uint256_t& gasprice, Signature& signature) {
+bool Messenger::GetDSPoWSubmission(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint64_t& blockNumber, uint8_t& difficultyLevel, Peer& submitterPeer,
+    PubKey& submitterPubKey, uint64_t& nonce, string& resultingHash,
+    string& mixHash, uint256_t& gasprice, Signature& signature) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2704,8 +2702,8 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
   mixHash = result.data().mixhash();
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-    result.data().gasprice(), gasprice);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(result.data().gasprice(),
+                                                     gasprice);
 
   vector<unsigned char> tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
@@ -2813,7 +2811,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
     proto_soln->set_nonce(soln.nonce);
     proto_soln->set_result(soln.result.data(), soln.result.size());
     proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
-    NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(soln.gasprice, *proto_soln.mutable_data());
+    NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+        soln.gasprice, *proto_soln->mutable_gasprice());
   }
 
   if (!dsblock->IsInitialized()) {
@@ -2912,9 +2911,9 @@ bool Messenger::GetDSDSBlockAnnouncement(
                  (unsigned int)mixhash.size()),
          mixhash.begin());
     ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoDSWinnerPoW.powsoln().gasprice(), gasprice);
-    dsWinnerPoWs.emplace(
-        key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash));
+        protoDSWinnerPoW.powsoln().gasprice(), gasprice);
+    dsWinnerPoWs.emplace(key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(),
+                                          result, mixhash, gasprice));
   }
 
   // Get the part of the announcement that should be co-signed during the first
