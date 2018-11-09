@@ -96,6 +96,7 @@
     </gas>
     <smart_contract>
         <SCILLA_ROOT/>
+        <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
         <SCILLA_LOG>_build</SCILLA_LOG>

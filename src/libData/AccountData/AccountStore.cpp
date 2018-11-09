@@ -80,7 +80,7 @@ bool AccountStore::SerializeDelta() {
   m_stateDeltaSerialized.clear();
 
   if (!Messenger::SetAccountStoreDelta(m_stateDeltaSerialized, 0,
-                                       *m_accountStoreTemp)) {
+                                       *m_accountStoreTemp, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreDelta failed.");
     return false;
   }
