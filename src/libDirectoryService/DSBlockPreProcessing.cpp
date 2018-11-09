@@ -150,7 +150,6 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   uint32_t numOfComms = numShardNodes / m_mediator.GetShardSize(false);
   uint32_t max_shard = numOfComms - 1;
-  uint32_t numNodesPerShard = numShardNodes;
 
   if (numOfComms == 0) {
     LOG_GENERAL(WARNING, "Cannot form even one committee "
@@ -158,9 +157,9 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
                              << " Setting numOfcomms to be 1");
     numOfComms = 1;
     max_shard = 0;
-  } else {
-    numNodesPerShard = numShardNodes / numOfComms;
   }
+
+  uint32_t numNodesPerShard = numShardNodes / numOfComms;
 
   for (unsigned int i = 0; i < numOfComms; i++) {
     m_shards.emplace_back();
