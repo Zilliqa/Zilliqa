@@ -37,6 +37,12 @@ uint32_t DistUint32() {
   return RandomIntInRng<uint32_t>(std::numeric_limits<uint32_t>::min(),
                                   std::numeric_limits<uint32_t>::max());
 }
+
+uint64_t DistUint64() {
+  return RandomIntInRng<uint64_t>(std::numeric_limits<uint64_t>::min(),
+                                  std::numeric_limits<uint64_t>::max());
+}
+
 uint8_t Dist1to99() { return RandomIntInRng<uint8_t>((uint8_t)1, (uint8_t)99); }
 
 PubKey GenerateRandomPubKey() { return PubKey(PrivKey()); }
@@ -45,6 +51,24 @@ Peer GenerateRandomPeer() {
   uint128_t ip_address = DistUint32();
   uint32_t listen_port_host = DistUint32();
   return Peer(ip_address, listen_port_host);
+}
+
+Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
+  uint128_t ip_address = DistUint32();
+  uint32_t listen_port_host = DistUint32();
+  if (setreset) {
+    ip_address |= 1UL << bit_i;
+  } else {
+    ip_address &= ~(1UL << bit_i);
+  }
+  return Peer(ip_address, listen_port_host);
+}
+
+PubKey GenerateRandomPubKey(PrivKey privK) { return PubKey(privK); }
+
+KeyPair GenerateRandomKeyPair() {
+  PrivKey privk;
+  return KeyPair(privk, GenerateRandomPubKey(privk));
 }
 
 DSBlockHeader GenerateRandomDSBlockHeader() {
@@ -148,6 +172,31 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
   return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
                              hashset, leaderConsensusId, leaderNetworkInfo,
                              leaderPubKey, shardId, timestamp, committeeHash);
+}
+
+DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
+  DS_Comitte_t ds_c;
+  for (uint32_t i = 1; i <= size; i++) {
+    ds_c.push_front(std::make_pair(GenerateRandomPubKey(), Peer()));
+  }
+  return ds_c;
+}
+
+Shard GenerateRandomShard(size_t size) {
+  Shard s;
+  for (size_t i = 1; i <= size; i++) {
+    s.push_back(std::make_tuple(GenerateRandomPubKey(PrivKey()),
+                                GenerateRandomPeer(), DistUint16()));
+  }
+  return s;
+}
+
+DequeOfShard GenerateDequeueOfShard(size_t size) {
+  DequeOfShard dos;
+  for (size_t i = 1; i <= size; i++) {
+    dos.push_front(GenerateRandomShard(i));
+  }
+  return dos;
 }
 
 CoSignatures GenerateRandomCoSignatures() { return CoSignatures(Dist1to99()); }
