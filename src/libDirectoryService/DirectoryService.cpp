@@ -682,7 +682,8 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
                          &DirectoryService::ProcessDSBlockConsensus,
                          &DirectoryService::ProcessMicroblockSubmission,
                          &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessViewChangeConsensus});
+                         &DirectoryService::ProcessViewChangeConsensus,
+                         &DirectoryService::ProcessGetDSTxBlockMessage});
   } else {
     ins_handlers.insert(ins_handlers.end(),
                         {&DirectoryService::ProcessSetPrimary,
