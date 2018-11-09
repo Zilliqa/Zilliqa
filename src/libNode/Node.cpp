@@ -85,80 +85,81 @@ bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
 
-    if (!StartRetrieveHistory(wakeupForUpgrade)) {
-      return false;
-    }
+    if (StartRetrieveHistory(wakeupForUpgrade)) {
+      m_mediator.m_currentEpochNum =
+          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+          1;
 
-    m_mediator.m_currentEpochNum =
-        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
-
-    if (wakeupForUpgrade) {
-      m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-    }
-
-    m_consensusLeaderID = 0;
-    runInitializeGenesisBlocks = false;
-    m_mediator.UpdateDSBlockRand();
-    m_mediator.UpdateTxBlockRand();
-    m_mediator.m_ds->m_mode = DirectoryService::IDLE;
-
-    for (const auto& ds : *m_mediator.m_DSCommittee) {
-      if (ds.first == m_mediator.m_selfKey.second) {
-        m_mediator.m_ds->m_consensusMyID = 0;
-
-        for (auto const& i : *m_mediator.m_DSCommittee) {
-          if (i.first == m_mediator.m_selfKey.second) {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "My node ID for this PoW consensus is "
-                          << m_mediator.m_ds->m_consensusMyID);
-            break;
-          }
-
-          ++m_mediator.m_ds->m_consensusMyID;
-        }
-
-        m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
-
-        if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
-                .first == m_mediator.m_selfKey.second) {
-          m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
-
-          if (!wakeupForUpgrade) {
-            LOG_GENERAL(INFO,
-                        "Node recovery cannot be applied on DS leader, apply "
-                        "re-join process instead");
-            return false;
-          }
-
-          LOG_GENERAL(INFO, "Set as DS leader: "
-                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                                << ":"
-                                << m_mediator.m_selfPeer.m_listenPortHost);
-          LOG_STATE("[IDENT][" << std::setw(15) << std::left
-                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "][" << std::setw(6) << std::left
-                               << m_mediator.m_ds->m_consensusMyID << "] DSLD");
-        } else {
-          m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
-          LOG_GENERAL(INFO, "Set as DS backup: "
-                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                                << ":"
-                                << m_mediator.m_selfPeer.m_listenPortHost);
-          LOG_STATE("[IDENT][" << std::setw(15) << std::left
-                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "][" << std::setw(6) << std::left
-                               << m_mediator.m_ds->m_consensusMyID << "] DSBK");
-        }
-
-        break;
+      if (wakeupForUpgrade) {
+        m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
       }
-    }
 
-    if (wakeupForUpgrade) {
-      WakeupForUpgrade();
-    } else {
-      WakeupForRecovery();
-      return true;
+      m_consensusLeaderID = 0;
+      runInitializeGenesisBlocks = false;
+      m_mediator.UpdateDSBlockRand();
+      m_mediator.UpdateTxBlockRand();
+      m_mediator.m_ds->m_mode = DirectoryService::IDLE;
+
+      for (const auto& ds : *m_mediator.m_DSCommittee) {
+        if (ds.first == m_mediator.m_selfKey.second) {
+          m_mediator.m_ds->m_consensusMyID = 0;
+
+          for (auto const& i : *m_mediator.m_DSCommittee) {
+            if (i.first == m_mediator.m_selfKey.second) {
+              LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                        "My node ID for this PoW consensus is "
+                            << m_mediator.m_ds->m_consensusMyID);
+              break;
+            }
+
+            ++m_mediator.m_ds->m_consensusMyID;
+          }
+
+          m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
+
+          if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
+                  .first == m_mediator.m_selfKey.second) {
+            m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
+
+            if (!wakeupForUpgrade) {
+              LOG_GENERAL(INFO,
+                          "Node recovery cannot be applied on DS leader, apply "
+                          "re-join process instead");
+              return false;
+            }
+
+            LOG_GENERAL(INFO,
+                        "Set as DS leader: "
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
+            LOG_STATE("[IDENT]["
+                      << std::setw(15) << std::left
+                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                      << std::setw(6) << std::left
+                      << m_mediator.m_ds->m_consensusMyID << "] DSLD");
+          } else {
+            m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
+            LOG_GENERAL(INFO,
+                        "Set as DS backup: "
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
+            LOG_STATE("[IDENT]["
+                      << std::setw(15) << std::left
+                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                      << std::setw(6) << std::left
+                      << m_mediator.m_ds->m_consensusMyID << "] DSBK");
+          }
+
+          break;
+        }
+      }
+
+      if (wakeupForUpgrade) {
+        WakeupForUpgrade();
+      } else {
+        WakeupForRecovery();
+        return true;
+      }
     }
   }
 

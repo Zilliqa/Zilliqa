@@ -104,6 +104,7 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 const std::string dsNodeFile = "dsnodes.xml";
 
 extern const std::string SCILLA_ROOT;
+extern const std::string SCILLA_CHECKER;
 extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;
 extern const std::string SCILLA_LOG;
@@ -130,6 +131,7 @@ extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
+extern const unsigned int VIEWCHANGE_PRECHECK_TIME;
 extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;

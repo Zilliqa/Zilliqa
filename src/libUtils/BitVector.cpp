@@ -80,11 +80,10 @@ std::vector<bool> BitVector::GetBitVector(const std::vector<unsigned char>& src,
 unsigned int BitVector::SetBitVector(std::vector<unsigned char>& dst,
                                      unsigned int offset,
                                      const std::vector<bool>& value) {
-  const unsigned int length_available = dst.size() - offset;
   const unsigned int length_needed = GetBitVectorSerializedSize(value.size());
 
-  if (length_available < length_needed) {
-    dst.resize(dst.size() + length_needed - length_available);
+  if ((offset + length_needed) > dst.size()) {
+    dst.resize(offset + length_needed);
   }
   fill(dst.begin() + offset, dst.begin() + offset + length_needed, 0x00);
 

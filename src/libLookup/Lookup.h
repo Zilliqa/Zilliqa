@@ -33,6 +33,7 @@
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
 #include "libDirectoryService/ShardStruct.h"
@@ -124,10 +125,10 @@ class Lookup : public Executable, public Broadcastable {
 
   std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
-  // Append time stamp to the message to avoid discarding due to same message
-  // hash
-  void AppendTimestamp(std::vector<unsigned char>& message,
-                       unsigned int& offset);
+  void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
+                        uint64_t& highBlockNum);
+  void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
+                        uint64_t& highBlockNum);
 
  public:
   /// Constructor.
@@ -294,6 +295,10 @@ class Lookup : public Executable, public Broadcastable {
       const Peer& from);
 
   bool ProcessSetDirectoryBlocksFromSeed(
+      const std::vector<unsigned char>& message, unsigned int offset,
+      const Peer& from);
+
+  bool ProcessVCGetLatestDSTxBlockFromSeed(
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
 
