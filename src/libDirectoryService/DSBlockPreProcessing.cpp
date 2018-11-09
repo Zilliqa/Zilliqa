@@ -159,6 +159,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     max_shard = 0;
   }
 
+  uint32_t numNodesPerShard = numShardNodes / numOfComms;
+
   for (unsigned int i = 0; i < numOfComms; i++) {
     m_shards.emplace_back();
   }
@@ -193,20 +195,25 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     sortedPoWs.emplace(sortHash, key);
   }
 
-  unsigned int i = 0;
-
+  uint32_t i = 0;
+  uint32_t j = 0;
   for (const auto& kv : sortedPoWs) {
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
                                     << DataConversion::charArrToHexStr(kv.first)
                                     << endl);
     }
+
+    unsigned int shard_index = i / numNodesPerShard;
+    if (shard_index > max_shard) {
+      shard_index = j % (max_shard + 1);
+      j++;
+    }
+
     const PubKey& key = kv.second;
-    auto& shard =
-        m_shards.at(min(i / m_mediator.GetShardSize(false), max_shard));
+    auto& shard = m_shards.at(shard_index);
     shard.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
-    m_publicKeyToshardIdMap.emplace(
-        key, min(i / m_mediator.GetShardSize(false), max_shard));
+    m_publicKeyToshardIdMap.emplace(key, shard_index);
     i++;
   }
 }
