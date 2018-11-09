@@ -2675,47 +2675,6 @@ bool Messenger::SetDSPoWSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::SetPoWSolutionAndVerify(
-    const uint64_t blockNumber, const uint8_t difficultyLevel,
-    const Peer& submitterPeer, const PubKey& submitterPubKey,
-    const uint64_t nonce, const string& resultingHash, const string& mixHash,
-    const Signature& signature, const uint32_t& lookupId,
-    const uint32_t& gasPrice) {
-  LOG_MARKER();
-
-  DSPoWSubmission result;
-
-  result.mutable_data()->set_blocknumber(blockNumber);
-  result.mutable_data()->set_difficultylevel(difficultyLevel);
-
-  SerializableToProtobufByteArray(
-      submitterPeer, *result.mutable_data()->mutable_submitterpeer());
-  SerializableToProtobufByteArray(
-      submitterPubKey, *result.mutable_data()->mutable_submitterpubkey());
-
-  result.mutable_data()->set_nonce(nonce);
-  result.mutable_data()->set_resultinghash(resultingHash);
-  result.mutable_data()->set_mixhash(mixHash);
-  result.mutable_data()->set_lookupid(lookupId);
-  result.mutable_data()->set_gasprice(gasPrice);
-
-  if (result.data().IsInitialized()) {
-    vector<unsigned char> tmp(result.data().ByteSize());
-    result.data().SerializeToArray(tmp.data(), tmp.size());
-
-    Signature signature;
-    if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
-                                       submitterPubKey)) {
-      LOG_GENERAL(WARNING, "PoW submission signature wrong.");
-      return false;
-    }
-  } else {
-    LOG_GENERAL(WARNING, "DSPoWSubmission.Data initialization failed.");
-    return false;
-  }
-  return true;
-}
-
 bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
                                    const unsigned int offset,
                                    uint64_t& blockNumber,

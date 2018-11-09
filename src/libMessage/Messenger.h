@@ -194,13 +194,6 @@ class Messenger {
       const std::string& mixHash, const uint32_t& lookupId,
       const uint32_t& gasPrice);
 
-  static bool SetPoWSolutionAndVerify(
-      const uint64_t blockNumber, const uint8_t difficultyLevel,
-      const Peer& submitterPeer, const PubKey& submitterPubKey,
-      const uint64_t nonce, const std::string& resultingHash,
-      const std::string& mixHash, const Signature& signature,
-      const uint32_t& lookupId, const uint32_t& gasPrice);
-
   static bool GetDSPoWSubmission(const std::vector<unsigned char>& src,
                                  const unsigned int offset,
                                  uint64_t& blockNumber,
