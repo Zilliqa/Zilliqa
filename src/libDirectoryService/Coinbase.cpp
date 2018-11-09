@@ -203,7 +203,17 @@ void DirectoryService::InitCoinbase() {
   }
 
   LOG_MARKER();
+
+  VectorOfLookupNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
+  const auto& epochNum = m_mediator.m_currentEpochNum;
+
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+
+  for (const auto& lookupNode : vecLookup) {
+    LOG_GENERAL(INFO," "<<lookupNode.first);
+    m_coinbaseRewardees[epochNum][-2].push_back(
+        Account::GetAddressFromPublicKey(lookupNode.first));
+  }
 
   if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW) {
     LOG_GENERAL(INFO, "[CNBSE]"
