@@ -277,6 +277,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   m_mediator.UpdateTxBlockRand();
 
   if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
+    m_mediator.m_node->UpdateProcessedTransactions();
     m_mediator.m_node->CallActOnFinalblock();
   }
 

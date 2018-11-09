@@ -464,10 +464,6 @@ class DirectoryService : public Executable, public Broadcastable {
   /// failed
   std::vector<unsigned char> m_stateDeltaFromShards;
 
-  /// Whether to send txn from ds microblock to lookup at finalblock consensus
-  /// done
-  std::atomic<bool> m_toSendTxnToLookup;
-
   /// Whether ds started microblock consensus
   std::atomic<bool> m_stopRecvNewMBSubmission;
 

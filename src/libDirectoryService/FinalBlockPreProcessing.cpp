@@ -1177,7 +1177,6 @@ bool DirectoryService::FinalBlockValidator(
         }
         return false;
       }
-      m_mediator.m_node->UpdateProcessedTransactions();
       m_needCheckMicroBlock = false;
       AccountStore::GetInstance().SerializeDelta();
       AccountStore::GetInstance().CommitTempReversible();
@@ -1297,7 +1296,6 @@ void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
 
   LOG_MARKER();
   m_needCheckMicroBlock = true;
-  m_toSendTxnToLookup = false;
 
   if (m_mediator.GetIsVacuousEpoch()) {
     // Coinbase
