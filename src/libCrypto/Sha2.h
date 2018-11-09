@@ -54,9 +54,9 @@ class SHA2 {
 
   /// Hash update function.
   void Update(const std::vector<unsigned char>& input) {
-    if (input.size() <= 0) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+    if (input.size() == 0) {
+      LOG_GENERAL(WARNING, "Nothing to update");
+      return;
     }
 
     SHA256_Update(&m_context, input.data(), input.size());
