@@ -582,7 +582,8 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // Sort the PoW submissions. Put to public static function, so it can be
   // covered by auto test.
-  static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows);
+  static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows,
+                                     bool trimBeyondCommSize = false);
   int64_t GetAllPoWSize() const;
 
  private:
