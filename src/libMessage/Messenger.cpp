@@ -81,10 +81,8 @@ void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
 template <class T>
 bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
                       const unsigned int offset) {
-  const int length_available = dst.size() - offset;
-
-  if (length_available < protoMessage.ByteSize()) {
-    dst.resize(dst.size() + protoMessage.ByteSize() - length_available);
+  if ((offset + protoMessage.ByteSize()) > dst.size()) {
+    dst.resize(offset + protoMessage.ByteSize());
   }
 
   return protoMessage.SerializeToArray(dst.data() + offset,

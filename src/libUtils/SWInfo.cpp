@@ -48,10 +48,8 @@ unsigned int SWInfo::Serialize(std::vector<unsigned char>& dst,
                                unsigned int offset) const {
   LOG_MARKER();
 
-  unsigned int size_remaining = dst.size() - offset;
-
-  if (size_remaining < SIZE) {
-    dst.resize(SIZE + offset);
+  if ((offset + SIZE) > dst.size()) {
+    dst.resize(offset + SIZE);
   }
 
   unsigned int curOffset = offset;
