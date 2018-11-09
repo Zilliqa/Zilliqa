@@ -248,7 +248,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
       LOG_GENERAL(FATAL, "Initial DS comm size 0 ");
     }
   }
-  m_retriever = make_shared<Retriever>(m_mediator);
+
+  m_retriever.reset(new Retriever(m_mediator));
 
   if (LOOKUP_NODE_MODE) {
     m_mediator.m_DSCommittee->clear();
@@ -288,7 +289,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes
-  if (!LOOKUP_NODE_MODE) {
+  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
     if (!GetOfflineLookups()) {
       LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
@@ -413,6 +414,15 @@ void Node::WakeupForUpgrade() {
                                            .GetHeader()
                                            .GetBlockNum() +
                                        1);
+    if (BROADCAST_GOSSIP_MODE) {
+      std::vector<Peer> peers;
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        if (i.second.m_listenPortHost != 0) {
+          peers.emplace_back(i.second);
+        }
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
 
     auto func = [this]() mutable -> void {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
