@@ -602,7 +602,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     }
   }
 
-  
   // Add the DS block to the chain
   StoreDSBlockToStorage();
 

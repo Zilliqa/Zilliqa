@@ -518,8 +518,8 @@ void AnnouncementShardingStructureToProtobuf(
                               soln->second.mixhash.size());
       proto_soln->set_lookupid(soln->second.lookupId);
       proto_soln->set_gasprice(soln->second.gasPrice);
+    }
   }
- }
 }
 
 void ProtobufToShardingStructureAnnouncement(
