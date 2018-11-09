@@ -371,11 +371,11 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
   vector<unsigned char> getTxBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
 
-  if (!Messenger::GetLookupGetTxBlockFromSeed(
+  if (!Messenger::SetLookupGetTxBlockFromSeed(
           getTxBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetLookupGetTxBlockFromSeed failed.");
+              "Messenger::SetLookupGetTxBlockFromSeed failed.");
     return {};
   }
 
