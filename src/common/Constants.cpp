@@ -109,6 +109,8 @@ const unsigned int POW_SUBMISSION_LIMIT{
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
+const unsigned int VIEWCHANGE_PRECHECK_TIME{
+    ReadFromConstantsFile("VIEWCHANGE_PRECHECK_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
@@ -242,6 +244,8 @@ const std::vector<std::string> GENESIS_KEYS{
 
 // smart contract
 const std::string SCILLA_ROOT{ReadSmartContractConstants("SCILLA_ROOT")};
+const std::string SCILLA_CHECKER{SCILLA_ROOT + '/' +
+                                 ReadSmartContractConstants("SCILLA_CHECKER")};
 const std::string SCILLA_BINARY{SCILLA_ROOT + '/' +
                                 ReadSmartContractConstants("SCILLA_BINARY")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};

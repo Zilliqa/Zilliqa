@@ -81,10 +81,8 @@ void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
 template <class T>
 bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
                       const unsigned int offset) {
-  const int length_available = dst.size() - offset;
-
-  if (length_available < protoMessage.ByteSize()) {
-    dst.resize(dst.size() + protoMessage.ByteSize() - length_available);
+  if ((offset + protoMessage.ByteSize()) > dst.size()) {
+    dst.resize(offset + protoMessage.ByteSize());
   }
 
   return protoMessage.SerializeToArray(dst.data() + offset,
@@ -1970,7 +1968,8 @@ bool Messenger::GetAccountStore(const vector<unsigned char>& src,
 
 bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
                                      const unsigned int offset,
-                                     AccountStoreTemp& accountStoreTemp) {
+                                     AccountStoreTemp& accountStoreTemp,
+                                     AccountStore& accountStore) {
   ProtoAccountStore result;
 
   LOG_GENERAL(INFO, "Debug: Total number of account deltas to serialize: "
@@ -1980,8 +1979,8 @@ bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountDeltaToProtobuf(accountStoreTemp.GetAccount(entry.first),
-                           entry.second, *protoEntryAccount);
+    AccountDeltaToProtobuf(accountStore.GetAccount(entry.first), entry.second,
+                           *protoEntryAccount);
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
       return false;
@@ -2111,6 +2110,13 @@ bool Messenger::GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
   if (!SerializeToArray(protoExtraMbInfo, tmp, 0)) {
     LOG_GENERAL(WARNING, "ProtoExtraMbInfo serialization failed.");
     return false;
+  }
+
+  // Fix software crash because of tmp is empty triggered assertion in
+  // sha2.update.git
+  if (tmp.empty()) {
+    LOG_GENERAL(WARNING, "ProtoExtraMbInfo is empty, proceed without it.");
+    return true;
   }
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -5990,5 +5996,162 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
         break;
     }
   }
+  return true;
+}
+
+bool Messenger::SetLookupGetDSTxBlockFromSeed(vector<unsigned char>& dst,
+                                              const unsigned int offset,
+                                              const uint64_t dsLowBlockNum,
+                                              const uint64_t dsHighBlockNum,
+                                              const uint64_t txLowBlockNum,
+                                              const uint64_t txHighBlockNum,
+                                              const uint32_t listenPort) {
+  LOG_MARKER();
+
+  LookupGetDSTxBlockFromSeed result;
+
+  result.set_dslowblocknum(dsLowBlockNum);
+  result.set_dshighblocknum(dsHighBlockNum);
+  result.set_txlowblocknum(txLowBlockNum);
+  result.set_txhighblocknum(txHighBlockNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetDSTxBlockFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint64_t& dsLowBlockNum, uint64_t& dsHighBlockNum, uint64_t& txLowBlockNum,
+    uint64_t& txHighBlockNum, uint32_t& listenPort) {
+  LOG_MARKER();
+
+  LookupGetDSTxBlockFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  dsLowBlockNum = result.dslowblocknum();
+  dsHighBlockNum = result.dshighblocknum();
+  txLowBlockNum = result.txlowblocknum();
+  txHighBlockNum = result.txhighblocknum();
+  listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::SetVCNodeSetDSTxBlockFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey,
+    const vector<DSBlock>& DSBlocks, const vector<TxBlock>& txBlocks) {
+  LOG_MARKER();
+
+  VCNodeSetDSTxBlockFromSeed result;
+
+  for (const auto& dsblock : DSBlocks) {
+    DSBlockToProtobuf(dsblock, *result.add_dsblocks());
+  }
+
+  for (const auto& txblock : txBlocks) {
+    TxBlockToProtobuf(txblock, *result.add_txblocks());
+  }
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  std::vector<unsigned char> tmp;
+  if (result.dsblocks().size() > 0) {
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize ds blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0) {
+    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "VCNodeSetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
+                                              const unsigned int offset,
+                                              vector<DSBlock>& dsBlocks,
+                                              vector<TxBlock>& txBlocks,
+                                              PubKey& lookupPubKey) {
+  LOG_MARKER();
+  VCNodeSetDSTxBlockFromSeed result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "VCNodeSetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  for (const auto& proto_dsblock : result.dsblocks()) {
+    DSBlock dsblock;
+    ProtobufToDSBlock(proto_dsblock, dsblock);
+    dsBlocks.emplace_back(dsblock);
+  }
+
+  for (const auto& txblock : result.txblocks()) {
+    TxBlock block;
+    ProtobufToTxBlock(txblock, block);
+    txBlocks.emplace_back(block);
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  vector<unsigned char> tmp;
+  if (result.dsblocks().size() > 0) {
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0) {
+    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
+      return false;
+    }
+  }
+
   return true;
 }

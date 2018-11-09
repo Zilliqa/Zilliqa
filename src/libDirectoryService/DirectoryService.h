@@ -173,7 +173,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_mutexRunConsensusOnFinalBlock;
 
-  // TO Remove
   Mediator& m_mediator;
 
   uint32_t m_numOfAbsentMicroBlocks;
@@ -199,6 +198,12 @@ class DirectoryService : public Executable, public Broadcastable {
   bool ProcessFinalBlockConsensusCore(const std::vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from);
   bool ProcessViewChangeConsensus(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+  bool ProcessPushLatestDSBlock(const std::vector<unsigned char>& message,
+                                unsigned int offset, const Peer& from);
+  bool ProcessPushLatestTxBlock(const std::vector<unsigned char>& message,
+                                unsigned int offset, const Peer& from);
+  bool ProcessGetDSTxBlockMessage(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -365,6 +370,7 @@ class DirectoryService : public Executable, public Broadcastable {
                                   unsigned int offset, const Peer& from);
 
   // View change
+  bool NodeVCPrecheck();
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
@@ -376,6 +382,9 @@ class DirectoryService : public Executable, public Broadcastable {
       const uint32_t candidateLeaderIndex);
   void ProcessViewChangeConsensusWhenDone();
   void ProcessNextConsensus(unsigned char viewChangeState);
+
+  bool VCFetchLatestDSTxBlockFromLookupNodes();
+  std::vector<unsigned char> ComposeVCGetDSTxBlockMessage();
 
   // Reset certain variables to the initial state
   bool CleanVariables();
@@ -474,6 +483,14 @@ class DirectoryService : public Executable, public Broadcastable {
   boost::multiprecision::uint256_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
+
+  // For view change pre check
+  std::vector<DSBlock> m_vcPreCheckDSBlocks;
+  std::vector<TxBlock> m_vcPreCheckTxBlocks;
+  std::mutex m_MutexCVViewChangePrecheckBlocks;
+
+  std::mutex m_MutexCVViewChangePrecheck;
+  std::condition_variable cv_viewChangePrecheck;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
