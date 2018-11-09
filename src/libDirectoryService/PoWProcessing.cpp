@@ -72,9 +72,8 @@ bool DirectoryService::ProcessPoWSubmission(
               "Not at POW_SUBMISSION. Current state is " << m_state);
     return false;
   }
-
-  uint64_t blockNumber = 0;
   uint8_t difficultyLevel = 0;
+  uint64_t blockNumber = 0;
   Peer submitterPeer;
   PubKey submitterPubKey;
   uint64_t nonce = 0;
