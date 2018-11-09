@@ -57,21 +57,16 @@ struct PoWSolution {
         result({{0}}),
         mixhash({{0}}),
         lookupId(uint32_t() - 1),
-        gasPrice(0)
-        {
+        gasPrice(0) {
 
-    }  // The oldest DS (and now new shard node) will have this default value
+  }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
-              const std::array<unsigned char, 32>& m, uint32_t l,
-              uint32_t gp)
-      : nonce(n),
-        result(r),
-        mixhash(m),
-        lookupId(l),
-        gasPrice(gp) {}
+              const std::array<unsigned char, 32>& m, uint32_t l, uint32_t gp)
+      : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
     return (nonce == rhs.nonce) && (result == rhs.result) &&
-           (mixhash == rhs.mixhash);}
+           (mixhash == rhs.mixhash);
+  }
 };
 
 using VectorOfPoWSoln =
