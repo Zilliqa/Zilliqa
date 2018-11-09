@@ -176,7 +176,7 @@ int main(int argc, const char* argv[]) {
 
   bool processed = false;
   for (auto message_handler : message_handlers) {
-    if (!strcmp(instruction, message_handler.ins)) {
+    if (std::string(instruction) == std::string(message_handler.ins)) {
       (*message_handler.func)(argc - 3, argv[0], argv[2],
                               static_cast<unsigned int>(atoi(argv[1])),
                               argv + 3);
@@ -188,7 +188,7 @@ int main(int argc, const char* argv[]) {
   if (!processed) {
     instruction = argv[3];
     for (auto i : message_handlers_2) {
-      if (!strcmp(instruction, i.ins)) {
+      if (std::string(instruction) == std::string(i.ins)) {
         (*i.func)(argc - 4, argv[0], argv[3], argv[1],
                   static_cast<unsigned int>(atoi(argv[2])), argv + 4);
         processed = true;
