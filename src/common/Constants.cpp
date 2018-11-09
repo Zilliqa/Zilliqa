@@ -201,6 +201,7 @@ const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
+const unsigned int LOOKUP_REWARD{ReadFromConstantsFile("LOOKUP_REWARD")};
 
 // options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};

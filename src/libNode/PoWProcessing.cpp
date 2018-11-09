@@ -193,7 +193,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
           block_num, ds_difficulty, rand1, rand2,
-          m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second, lookupId, gasPrice,
+          m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second, lookupId,gasPrice,
           FULL_DATASET_MINE);
 
       if (ds_pow_winning_result.success) {

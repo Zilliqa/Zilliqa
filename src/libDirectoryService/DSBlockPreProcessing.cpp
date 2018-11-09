@@ -1085,6 +1085,11 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   SetState(DSBLOCK_CONSENSUS_PREP);
 
   {
+    lock_guard<mutex> h(m_mutexCoinbaseRewardees);
+    m_coinbaseRewardees.clear();
+  }
+
+  {
     lock_guard<mutex> g(m_mutexAllPOW);
     LOG_STATE("[POWR][" << std::setw(15) << std::left
                         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
