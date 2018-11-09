@@ -206,7 +206,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     }
 
     const PubKey& key = kv.second;
-    auto& shard = m_shards.at(i % numNodesPerShard);
+    auto& shard = m_shards.at(i / numNodesPerShard);
     shard.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
     m_publicKeyToshardIdMap.emplace(
         key, min(i / m_mediator.GetShardSize(false), max_shard));
