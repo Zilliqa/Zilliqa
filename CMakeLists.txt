@@ -114,6 +114,7 @@ endif()
 if(VC_TEST_VC_PRECHECK_2)
     message(STATUS "VC 8 test enabled")
     add_definitions(-DVC_TEST_VC_PRECHECK_2)
+endif()
 
 # For Merging DSMB into FINALBLOCK
 if(DM_TEST_DM_LESSTXN_ONE)
