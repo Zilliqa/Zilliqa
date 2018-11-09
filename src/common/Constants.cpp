@@ -109,6 +109,8 @@ const unsigned int POW_SUBMISSION_LIMIT{
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
+const unsigned int VIEWCHANGE_PRECHECK_TIME{
+    ReadFromConstantsFile("VIEWCHANGE_PRECHECK_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
