@@ -165,7 +165,7 @@ bool DirectoryService::ProcessPoWSubmission(
 
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, rand1, rand2, submitterPeer.m_ipAddress,
-      submitterPubKey, false, nonce, resultingHash, mixHash);
+      submitterPubKey, lookupId, gasPrice, false, nonce, resultingHash, mixHash);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
@@ -187,7 +187,7 @@ bool DirectoryService::ProcessPoWSubmission(
 
       PoWSolution soln(nonce, DataConversion::HexStrToStdArray(resultingHash),
                        DataConversion::HexStrToStdArray(mixHash),
-                       difficultyLevel, lookupId, gasPrice, signature);
+                       lookupId, gasPrice);
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {

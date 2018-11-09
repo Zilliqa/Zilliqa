@@ -135,9 +135,11 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     DetachedFunction(1, func);
   }
 
+  uint32_t gasPrice = 0;//[ToDo] Change this dummy value
+
   ethash_mining_result winning_result = POW::GetInstance().PoWMine(
       block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, FULL_DATASET_MINE);
+      m_mediator.m_selfKey.second, lookupId, gasPrice, FULL_DATASET_MINE);
 
   if (winning_result.success) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -161,7 +163,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
-    uint32_t gasPrice = 0;  //[ToDo] Change this dummy value
+      
     if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
             winning_result.result, ds_difficulty)) {
       LOG_GENERAL(INFO,
@@ -191,7 +193,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
           block_num, ds_difficulty, rand1, rand2,
-          m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
+          m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second, lookupId, gasPrice,
           FULL_DATASET_MINE);
 
       if (ds_pow_winning_result.success) {

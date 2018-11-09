@@ -517,11 +517,9 @@ void AnnouncementShardingStructureToProtobuf(
       proto_soln->set_mixhash(soln->second.mixhash.data(),
                               soln->second.mixhash.size());
       proto_soln->set_lookupid(soln->second.lookupId);
-      proto_soln->set_lookupid(soln->second.gasPrice);
-      SerializableToProtobufByteArray(soln->second.signature,
-                                      *proto_soln->mutable_signature());
-    }
+      proto_soln->set_gasprice(soln->second.gasPrice);
   }
+ }
 }
 
 void ProtobufToShardingStructureAnnouncement(
@@ -553,13 +551,10 @@ void ProtobufToShardingStructureAnnouncement(
                min((unsigned int)proto_member.powsoln().mixhash().size(),
                    (unsigned int)mixhash.size()),
            mixhash.begin());
-      ProtobufByteArrayToSerializable(proto_member.powsoln().signature(),
-                                      signature);
       allPoWs.emplace(
           key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
-                           proto_member.powsoln().difficultylevel(),
                            proto_member.powsoln().lookupid(),
-                           proto_member.powsoln().gasprice(), signature));
+                           proto_member.powsoln().gasprice()));
     }
   }
 }
@@ -2860,8 +2855,6 @@ bool Messenger::SetDSDSBlockAnnouncement(
     proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
     proto_soln->set_lookupid(soln.lookupId);
     proto_soln->set_gasprice(soln.gasPrice);
-    SerializableToProtobufByteArray(soln.signature,
-                                    *proto_soln->mutable_signature());
   }
 
   if (!dsblock->IsInitialized()) {
@@ -2959,13 +2952,10 @@ bool Messenger::GetDSDSBlockAnnouncement(
              min((unsigned int)protoDSWinnerPoW.powsoln().mixhash().size(),
                  (unsigned int)mixhash.size()),
          mixhash.begin());
-    ProtobufByteArrayToSerializable(protoDSWinnerPoW.powsoln().signature(),
-                                    signature);
     dsWinnerPoWs.emplace(
         key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
-                         protoDSWinnerPoW.powsoln().difficultylevel(),
                          protoDSWinnerPoW.powsoln().lookupid(),
-                         protoDSWinnerPoW.powsoln().gasprice(), signature));
+                         protoDSWinnerPoW.powsoln().gasprice()));
   }
 
   // Get the part of the announcement that should be co-signed during the first

@@ -47,13 +47,11 @@ message ProtoDSNode
 
 message ProtoPoWSolution
 {
-    required uint64 nonce  = 1;
-    required bytes result  = 2;
-    required bytes mixhash = 3;
-    required uint32 difficultylevel = 4;
-    required uint32 lookupid = 5;
-    required uint32 gasprice = 6;
-    required ByteArray signature = 7;
+    required uint64 nonce     = 1;
+    required bytes result     = 2;
+    required bytes mixhash    = 3;
+    required uint32 lookupid  = 4;
+    required uint32 gasprice  = 5;
 }
 
 message ProtoDSCommittee

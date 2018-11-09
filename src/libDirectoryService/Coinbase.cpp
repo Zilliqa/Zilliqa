@@ -114,7 +114,8 @@ void DirectoryService::LookupCoinbase(const DequeOfShard& shards,
       auto toFind = get<SHARD_NODE_PUBKEY>(shardNode);
       auto it = allPow.find(toFind);
       if (it == allPow.end()) {
-        LOG_GENERAL(FATAL, "Could not find the node " << toFind);
+        LOG_GENERAL(INFO, "Could not find the node, maybe it is the oldest DS " << toFind);
+        continue;
       }
       const auto& lookupId = it->second.lookupId;
       // Verify
@@ -122,6 +123,13 @@ void DirectoryService::LookupCoinbase(const DequeOfShard& shards,
       if (lookupId >= vecLookup.size()) {
         LOG_GENERAL(WARNING, "Lookup id greater than lookup Size " << lookupId);
         continue;
+      }
+      else
+      {
+        if(DEBUG_LEVEL >= 5)
+        {
+          LOG_GENERAL(INFO,"[LCNBSE]"<<"Awarded lookup "<<lookupId);
+        }
       }
 
       const auto& lookupPubkey = vecLookup.at(lookupId).first;
