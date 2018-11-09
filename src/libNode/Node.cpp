@@ -331,22 +331,24 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  for (uint64_t blockNum =
-           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
-       blockNum <=
-       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-       ++blockNum) {
-    LOG_GENERAL(INFO, "Update coin base for finalblock with blockNum: "
-                          << blockNum << ", reward: "
-                          << m_mediator.m_txBlockChain.GetBlock(blockNum)
-                                 .GetHeader()
-                                 .GetRewards());
-    m_mediator.m_ds->SaveCoinbase(
-        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB1(),
-        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(),
-        CoinbaseReward::FINALBLOCK_REWARD, blockNum + 1);
-    m_mediator.m_ds->m_totalTxnFees +=
-        m_mediator.m_txBlockChain.GetBlock(blockNum).GetHeader().GetRewards();
+  if (!LOOKUP_NODE_MODE) {
+    for (uint64_t blockNum =
+             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+         blockNum <=
+         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+         ++blockNum) {
+      LOG_GENERAL(INFO, "Update coin base for finalblock with blockNum: "
+                            << blockNum << ", reward: "
+                            << m_mediator.m_txBlockChain.GetBlock(blockNum)
+                                   .GetHeader()
+                                   .GetRewards());
+      m_mediator.m_ds->SaveCoinbase(
+          m_mediator.m_txBlockChain.GetBlock(blockNum).GetB1(),
+          m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(),
+          CoinbaseReward::FINALBLOCK_REWARD, blockNum + 1);
+      m_mediator.m_ds->m_totalTxnFees +=
+          m_mediator.m_txBlockChain.GetBlock(blockNum).GetHeader().GetRewards();
+    }
   }
 
   /// Retrieve sharding structure and setup relative variables
@@ -360,21 +362,23 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  std::list<MicroBlockSharedPtr> microBlocks;
-  if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
-          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
-          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(), 0,
-          m_mediator.m_ds->m_shards.size(), microBlocks)) {
-    for (const auto& microBlock : microBlocks) {
-      LOG_GENERAL(INFO,
-                  "Retrieve microblock with epochNum: "
-                      << microBlock->GetHeader().GetEpochNum()
-                      << ", shardId: " << microBlock->GetHeader().GetShardId()
-                      << ", reward: " << microBlock->GetHeader().GetRewards()
-                      << " from persistence, and update coin base");
-      m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
-                                    microBlock->GetHeader().GetShardId(),
-                                    microBlock->GetHeader().GetEpochNum());
+  if (!LOOKUP_NODE_MODE) {
+    std::list<MicroBlockSharedPtr> microBlocks;
+    if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+            0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
+      for (const auto& microBlock : microBlocks) {
+        LOG_GENERAL(INFO,
+                    "Retrieve microblock with epochNum: "
+                        << microBlock->GetHeader().GetEpochNum()
+                        << ", shardId: " << microBlock->GetHeader().GetShardId()
+                        << ", reward: " << microBlock->GetHeader().GetRewards()
+                        << " from persistence, and update coin base");
+        m_mediator.m_ds->SaveCoinbase(microBlock->GetB1(), microBlock->GetB2(),
+                                      microBlock->GetHeader().GetShardId(),
+                                      microBlock->GetHeader().GetEpochNum());
+      }
     }
   }
 
