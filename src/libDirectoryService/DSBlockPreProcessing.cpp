@@ -729,8 +729,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
 #ifdef VC_TEST_DS_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
-    LOG_GENERAL(
-        INFO,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_1)");
     return false;
   }
@@ -738,8 +738,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
 #ifdef VC_TEST_DS_SUSPEND_3
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
-    LOG_GENERAL(
-        INFO,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_DS_SUsPEND_3)");
     return false;
   }
@@ -986,6 +986,16 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
                 "expected to be called from LookUp node.");
     return true;
   }
+
+#ifdef VC_TEST_VC_PRECHECK_1
+  if (m_consensusMyID == 3) {
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_1)");
+    this_thread::sleep_for(chrono::seconds(45));
+    return false;
+  }
+#endif  // VC_TEST_VC_PRECHECK_1
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am a backup DS node. Waiting for DS block announcement. "
