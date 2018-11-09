@@ -377,6 +377,8 @@ void Node::StartFirstTxEpoch() {
     P2PComm::GetInstance().InitializeRumorManager(peers);
   }
 
+  SetState(MICROBLOCK_CONSENSUS_PREP);
+
   auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
   DetachedFunction(1, main_func3);
@@ -604,9 +606,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
       // Process txn sharing assignments as a DS node
       m_mediator.m_ds->ProcessTxnBodySharingAssignment();
-
-      //(We're getting rid of this eventually Clean up my txns coz I am DS)
-      m_mediator.m_node->CleanCreatedTransaction();
 
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);

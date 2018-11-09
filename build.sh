@@ -50,7 +50,7 @@ do
         CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with HeartBeat test"
     ;;
-    fallbacktest)
+    fb)
         CMAKE_EXTRA_OPTIONS="-DFALLBACKTEST=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with Fallback test"
     ;;
@@ -86,8 +86,28 @@ do
         CMAKE_EXTRA_OPTIONS="-DVC_TEST_VC_PRECHECK_2=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with VC test - Caused the node to lag behind at tx epoch"
     ;;
+    dm1)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSTXN_ONE=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader has some txn that one of the backups doesn't have"
+    ;;
+    dm2)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSTXN_ALL=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader has some txn that all of backups don't have"
+    ;;
+    dm3)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSMB_ONE=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader has more microblock received than one of the backups"
+    ;;
+    dm4)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_LESSMB_ALL=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader has more microblock received than all of the backups"
+    ;;
+    dm5)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_BAD_ANNOUNCE=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader composed invalid TxBlock"
+    ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>] [dm<1-5>]"
         exit 1
     ;;
     esac
