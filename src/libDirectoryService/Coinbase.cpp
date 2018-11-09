@@ -106,7 +106,6 @@ void DirectoryService::LookupCoinbase(
     [[gnu::unused]] const MapOfPubKeyPoW& allPow,
     [[gnu::unused]] const map<PubKey, Peer>& powDSWinner,
     [[gnu::unused]] const MapOfPubKeyPoW& dsPow) {
-
   LOG_MARKER();
   VectorOfLookupNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
   const auto& epochNum = m_mediator.m_currentEpochNum;
@@ -114,7 +113,7 @@ void DirectoryService::LookupCoinbase(
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
   for (const auto& lookupNode : vecLookup) {
-    LOG_GENERAL(INFO," "<<lookupNode.first);
+    LOG_GENERAL(INFO, " " << lookupNode.first);
     m_coinbaseRewardees[epochNum][-2].push_back(
         Account::GetAddressFromPublicKey(lookupNode.first));
   }
@@ -210,7 +209,7 @@ void DirectoryService::InitCoinbase() {
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
   for (const auto& lookupNode : vecLookup) {
-    LOG_GENERAL(INFO," "<<lookupNode.first);
+    LOG_GENERAL(INFO, " " << lookupNode.first);
     m_coinbaseRewardees[epochNum][-2].push_back(
         Account::GetAddressFromPublicKey(lookupNode.first));
   }
