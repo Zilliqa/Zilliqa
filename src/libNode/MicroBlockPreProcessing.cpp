@@ -423,11 +423,18 @@ bool Node::ProcessTransactionWhenShardBackup(
 }
 
 void Node::UpdateProcessedTransactions() {
+  LOG_MARKER();
+
   m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
   m_createdTxns = std::move(t_createdTxns);
 
   lock_guard<mutex> g(m_mutexProcessedTransactions);
-  m_processedTransactions[m_mediator.m_currentEpochNum] =
+  m_processedTransactions[(m_mediator.m_ds->m_mode ==
+                           DirectoryService::Mode::IDLE)
+                              ? m_mediator.m_currentEpochNum
+                              : m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()] =
       std::move(t_processedTransactions);
 
   t_addrNonceTxnMap.clear();
@@ -597,14 +604,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
   }
 
-  m_TxnOrder.clear();
-
   if (!m_mediator.GetIsVacuousEpoch()) {
     ProcessTransactionWhenShardLeader();
     AccountStore::GetInstance().SerializeDelta();
-  } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Vacuous epoch: Skipping submit transactions");
   }
 
   // composed microblock stored in m_microblock
@@ -748,6 +750,12 @@ bool Node::RunConsensusOnMicroBlock() {
   LOG_MARKER();
 
   SetState(MICROBLOCK_CONSENSUS_PREP);
+
+  if (m_mediator.GetIsVacuousEpoch()) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Vacuous epoch: Skipping submit transactions");
+    CleanCreatedTransaction();
+  }
 
   if (m_isPrimary) {
     if (!RunConsensusOnMicroBlockWhenShardLeader()) {
