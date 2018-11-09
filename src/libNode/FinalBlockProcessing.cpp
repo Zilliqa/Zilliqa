@@ -789,7 +789,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
     // Remove because shard nodes will be shuffled in next epoch.
-    CleanCreatedTransaction();
     CleanMicroblockConsensusBuffer();
 
     StoreState();

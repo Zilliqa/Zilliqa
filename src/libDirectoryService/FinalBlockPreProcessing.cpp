@@ -1298,6 +1298,10 @@ void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
   m_needCheckMicroBlock = true;
 
   if (m_mediator.GetIsVacuousEpoch()) {
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "Vacuous epoch: Skipping submit transactions, and start InitCoinBase");
+    m_mediator.m_node->CleanCreatedTransaction();
     // Coinbase
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "[CNBSE]");
 
