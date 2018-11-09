@@ -322,7 +322,7 @@ message DSMicroBlockSubmission
     required uint32 microblocktype       = 1; // only LSB used
     required uint64 epochnumber          = 2;
     repeated ProtoMicroBlock microblocks = 3;
-    optional bytes statedelta            = 4;
+    repeated bytes statedeltas           = 4;
 }
 
 message DSDSBlockAnnouncement
@@ -335,7 +335,8 @@ message DSDSBlockAnnouncement
 
 message DSFinalBlockAnnouncement
 {
-    required ProtoTxBlock txblock = 1;
+    required ProtoTxBlock txblock       = 1;
+    optional ProtoMicroBlock microblock = 2;
 }
 
 message DSVCBlockAnnouncement

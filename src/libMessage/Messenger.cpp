@@ -2717,7 +2717,7 @@ bool Messenger::SetDSMicroBlockSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
     const unsigned char microBlockType, const uint64_t epochNumber,
     const vector<MicroBlock>& microBlocks,
-    const vector<unsigned char>& stateDelta) {
+    const vector<vector<unsigned char>>& stateDeltas) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
@@ -2727,8 +2727,8 @@ bool Messenger::SetDSMicroBlockSubmission(
   for (const auto& microBlock : microBlocks) {
     MicroBlockToProtobuf(microBlock, *result.add_microblocks());
   }
-  if (stateDelta.size() > 0) {
-    result.set_statedelta(stateDelta.data(), stateDelta.size());
+  for (const auto& stateDelta : stateDeltas) {
+    result.add_statedeltas(stateDelta.data(), stateDelta.size());
   }
 
   if (!result.IsInitialized()) {
@@ -2739,12 +2739,11 @@ bool Messenger::SetDSMicroBlockSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
-                                          const unsigned int offset,
-                                          unsigned char& microBlockType,
-                                          uint64_t& epochNumber,
-                                          vector<MicroBlock>& microBlocks,
-                                          vector<unsigned char>& stateDelta) {
+bool Messenger::GetDSMicroBlockSubmission(
+    const vector<unsigned char>& src, const unsigned int offset,
+    unsigned char& microBlockType, uint64_t& epochNumber,
+    vector<MicroBlock>& microBlocks,
+    vector<vector<unsigned char>>& stateDeltas) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
@@ -2763,10 +2762,10 @@ bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
     ProtobufToMicroBlock(proto_mb, microBlock);
     microBlocks.emplace_back(move(microBlock));
   }
-  if (result.has_statedelta()) {
-    stateDelta.resize(result.statedelta().size());
-    copy(result.statedelta().begin(), result.statedelta().end(),
-         stateDelta.begin());
+  for (const auto& proto_delta : result.statedeltas()) {
+    stateDeltas.emplace_back();
+    copy(proto_delta.begin(), proto_delta.end(),
+         std::back_inserter(stateDeltas.back()));
   }
 
   return true;
@@ -2924,6 +2923,7 @@ bool Messenger::SetDSFinalBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+    const shared_ptr<MicroBlock>& microBlock,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -2933,6 +2933,11 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 
   DSFinalBlockAnnouncement* finalblock = announcement.mutable_finalblock();
   TxBlockToProtobuf(txBlock, *finalblock->mutable_txblock());
+  if (microBlock != nullptr) {
+    MicroBlockToProtobuf(*microBlock, *finalblock->mutable_microblock());
+  } else {
+    LOG_GENERAL(WARNING, "microblock is nullptr");
+  }
 
   if (!finalblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "DSFinalBlockAnnouncement initialization failed.");
@@ -2966,6 +2971,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, TxBlock& txBlock,
+    shared_ptr<MicroBlock>& microBlock,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -2995,6 +3001,13 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 
   const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
   ProtobufToTxBlock(finalblock.txblock(), txBlock);
+
+  if (finalblock.has_microblock()) {
+    ProtobufToMicroBlock(finalblock.microblock(), *microBlock);
+  } else {
+    LOG_GENERAL(WARNING, "Announcement doesn't include ds microblock");
+    microBlock = nullptr;
+  }
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus
