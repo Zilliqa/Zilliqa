@@ -209,7 +209,6 @@ void DirectoryService::InitCoinbase() {
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
   for (const auto& lookupNode : vecLookup) {
-    LOG_GENERAL(INFO, " " << lookupNode.first);
     m_coinbaseRewardees[epochNum][-2].push_back(
         Account::GetAddressFromPublicKey(lookupNode.first));
   }
