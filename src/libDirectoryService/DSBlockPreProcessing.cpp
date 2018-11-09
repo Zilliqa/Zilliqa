@@ -723,7 +723,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
                 << std::to_string(dsDifficulty) << " and difficulty "
                 << std::to_string(difficulty));
 
-
   // Create new consensus object
   uint32_t consensusID = 0;
   m_consensusBlockHash =
@@ -957,7 +956,6 @@ bool DirectoryService::DSBlockValidator(
     LOG_GENERAL(WARNING, "Failed to verify ordering");
     return false;
   }
-
 
   ClearReputationOfNodeWithoutPoW();
   if (!VerifyNodePriority(m_tempShards)) {
