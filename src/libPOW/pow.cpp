@@ -313,7 +313,7 @@ bool POW::VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
 std::vector<unsigned char> POW::ConcatAndhash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2,
-    const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey) {
+    const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId, uint32_t gasPrice) {
   std::vector<unsigned char> vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);
@@ -330,6 +330,9 @@ std::vector<unsigned char> POW::ConcatAndhash(
 
   pubKey.Serialize(vec, vec.size());
 
+  Serializable::SetNumber<uint32_t>(vec, vec.size(), lookupId, sizeof(uint32_t));
+  Serializable::SetNumber<uint32_t>(vec, vec.size(), gasPrice, sizeof(uint32_t));
+
   SHA2<256> sha2;
   sha2.Update(vec);
   std::vector<unsigned char> sha2_result = sha2.Finalize();
@@ -340,7 +343,7 @@ ethash_mining_result_t POW::PoWMine(
     uint64_t blockNum, uint8_t difficulty,
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2,
-    const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
+    const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey, uint32_t lookupId, uint32_t gasPrice,
     bool fullDataset) {
   LOG_MARKER();
   // mutex required to prevent a new mining to begin before previous mining
@@ -350,7 +353,7 @@ ethash_mining_result_t POW::PoWMine(
   EthashConfigureLightClient(blockNum);
   ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
   std::vector<unsigned char> sha3_result =
-      ConcatAndhash(rand1, rand2, ipAddr, pubKey);
+      ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
   ethash_h256_t headerHash =
@@ -379,14 +382,14 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const std::array<unsigned char, UINT256_SIZE>& rand1,
                     const std::array<unsigned char, UINT256_SIZE>& rand2,
                     const boost::multiprecision::uint128_t& ipAddr,
-                    const PubKey& pubKey, bool fullDataset,
+                    const PubKey& pubKey, uint32_t lookupId, uint32_t gasPrice, bool fullDataset,
                     uint64_t winning_nonce, const std::string& winning_result,
                     const std::string& winning_mixhash) {
   LOG_MARKER();
   EthashConfigureLightClient(blockNum);
   ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
   std::vector<unsigned char> sha3_result =
-      ConcatAndhash(rand1, rand2, ipAddr, pubKey);
+      ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
   ethash_h256_t headerHash =
       StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
   ethash_h256_t winnning_result = StringToBlockhash(winning_result);
