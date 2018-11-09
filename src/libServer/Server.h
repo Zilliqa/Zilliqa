@@ -209,6 +209,17 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::JSON_OBJECT, "param01",
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetSmartContractInitI);
+
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("eth_getWork", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, NULL),
+        &AbstractZServer::GetMiningWorkI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure(
+            "eth_submitWork", jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
+            "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
+            "param03", jsonrpc::JSON_STRING, NULL),
+        &AbstractZServer::SubmitPoWSolutionI);
   }
 
   inline virtual void GetClientVersionI(const Json::Value& request,
@@ -398,6 +409,16 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                                             Json::Value& response) {
     response = this->GetSmartContractInit(request[0u].asString());
   }
+  inline virtual void GetMiningWorkI(const Json::Value& request,
+                                     Json::Value& response) {
+    (void)request;
+    response = this->GetMiningWork();
+  }
+  inline virtual void SubmitPoWSolutionI(const Json::Value& request,
+                                         Json::Value& response) {
+    response = this->SubmitPoWSolution(
+        request[0u].asString(), request[1u].asString(), request[2u].asString());
+  }
   virtual std::string GetClientVersion() = 0;
   virtual std::string GetNetworkId() = 0;
   virtual std::string GetProtocolVersion() = 0;
@@ -440,6 +461,10 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetSmartContractState(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractInit(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractCode(const std::string& param01) = 0;
+  virtual Json::Value GetMiningWork() = 0;
+  virtual Json::Value SubmitPoWSolution(const std::string& paramNonce,
+                                        const std::string& paramHeader,
+                                        const std::string& paraMixedHash) = 0;
 };
 
 class Server : public AbstractZServer {
@@ -457,52 +482,60 @@ class Server : public AbstractZServer {
   Server(Mediator& mediator, jsonrpc::HttpServer& httpserver);
   ~Server();
 
-  virtual std::string GetClientVersion();
-  virtual std::string GetNetworkId();
-  virtual std::string GetProtocolVersion();
-  virtual Json::Value CreateTransaction(const Json::Value& _json);
-  virtual Json::Value GetTransaction(const std::string& transactionHash);
-  virtual Json::Value GetDsBlock(const std::string& blockNum);
-  virtual Json::Value GetTxBlock(const std::string& blockNum);
-  virtual Json::Value GetLatestDsBlock();
-  virtual Json::Value GetLatestTxBlock();
-  virtual Json::Value GetBalance(const std::string& address);
-  virtual std::string GetGasPrice();
+  virtual std::string GetClientVersion() override;
+  virtual std::string GetNetworkId() override;
+  virtual std::string GetProtocolVersion() override;
+  virtual Json::Value CreateTransaction(const Json::Value& _json) override;
+  virtual Json::Value GetTransaction(
+      const std::string& transactionHash) override;
+  virtual Json::Value GetDsBlock(const std::string& blockNum) override;
+  virtual Json::Value GetTxBlock(const std::string& blockNum) override;
+  virtual Json::Value GetLatestDsBlock() override;
+  virtual Json::Value GetLatestTxBlock() override;
+  virtual Json::Value GetBalance(const std::string& address) override;
+  virtual std::string GetGasPrice() override;
   virtual std::string GetStorageAt(const std::string& address,
-                                   const std::string& position);
-  virtual Json::Value GetSmartContracts(const std::string& address);
-  virtual std::string GetBlockTransactionCount(const std::string& blockHash);
+                                   const std::string& position) override;
+  virtual Json::Value GetSmartContracts(const std::string& address) override;
+  virtual std::string GetBlockTransactionCount(
+      const std::string& blockHash) override;
   virtual std::string GetContractAddressFromTransactionID(
-      const std::string& tranID);
-  virtual std::string CreateMessage(const Json::Value& _json);
-  virtual std::string GetGasEstimate(const Json::Value& _json);
-  virtual Json::Value GetTransactionReceipt(const std::string& transactionHash);
-  virtual bool isNodeSyncing();
-  virtual bool isNodeMining();
-  virtual std::string GetHashrate();
-  virtual unsigned int GetNumPeers();
-  virtual std::string GetNumTxBlocks();
-  virtual std::string GetNumDSBlocks();
-  virtual std::string GetNumTransactions();
-  virtual double GetTransactionRate();
-  virtual double GetTxBlockRate();
-  virtual double GetDSBlockRate();
-  virtual std::string GetCurrentMiniEpoch();
-  virtual std::string GetCurrentDSEpoch();
-  virtual Json::Value DSBlockListing(unsigned int page);
-  virtual Json::Value TxBlockListing(unsigned int page);
-  virtual Json::Value GetBlockchainInfo();
-  virtual Json::Value GetRecentTransactions();
-  virtual Json::Value GetShardingStructure();
-  virtual std::string GetNumTxnsDSEpoch();
-  virtual uint32_t GetNumTxnsTxEpoch();
+      const std::string& tranID) override;
+  virtual std::string CreateMessage(const Json::Value& _json) override;
+  virtual std::string GetGasEstimate(const Json::Value& _json) override;
+  virtual Json::Value GetTransactionReceipt(
+      const std::string& transactionHash) override;
+  virtual bool isNodeSyncing() override;
+  virtual bool isNodeMining() override;
+  virtual std::string GetHashrate() override;
+  virtual unsigned int GetNumPeers() override;
+  virtual std::string GetNumTxBlocks() override;
+  virtual std::string GetNumDSBlocks() override;
+  virtual std::string GetNumTransactions() override;
+  virtual double GetTransactionRate() override;
+  virtual double GetTxBlockRate() override;
+  virtual double GetDSBlockRate() override;
+  virtual std::string GetCurrentMiniEpoch() override;
+  virtual std::string GetCurrentDSEpoch() override;
+  virtual Json::Value DSBlockListing(unsigned int page) override;
+  virtual Json::Value TxBlockListing(unsigned int page) override;
+  virtual Json::Value GetBlockchainInfo() override;
+  virtual Json::Value GetRecentTransactions() override;
+  virtual Json::Value GetShardingStructure() override;
+  virtual std::string GetNumTxnsDSEpoch() override;
+  virtual uint32_t GetNumTxnsTxEpoch() override;
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent
   // block
   boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
 
-  Json::Value GetSmartContractState(const std::string& address);
-  Json::Value GetSmartContractInit(const std::string& address);
-  Json::Value GetSmartContractCode(const std::string& address);
+  virtual Json::Value GetSmartContractState(
+      const std::string& address) override;
+  virtual Json::Value GetSmartContractInit(const std::string& address) override;
+  virtual Json::Value GetSmartContractCode(const std::string& address) override;
+  virtual Json::Value GetMiningWork() override;
+  virtual Json::Value SubmitPoWSolution(
+      const std::string& paramNonce, const std::string& paramHeader,
+      const std::string& paraMixedHash) override;
 };

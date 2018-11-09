@@ -64,7 +64,6 @@ const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
 const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
-const unsigned int SERVER_PORT = 4201;
 
 // Number of initial ds epoch number, including genesis epoch
 const unsigned int INIT_DS_EPOCH_NUM = 2;
@@ -182,6 +181,7 @@ extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
+extern const unsigned int SERVER_PORT;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
@@ -200,6 +200,7 @@ extern const bool ENABLE_DO_REJOIN;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool CUDA_GPU_MINE;
+extern const bool REMOTE_MINE;
 extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
 extern const bool ARCHIVAL_NODE;

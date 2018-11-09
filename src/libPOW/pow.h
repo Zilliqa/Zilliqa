@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "common/Constants.h"
+#include "depends/common/Common.h"
 #include "depends/common/Miner.h"
 #include "depends/libethash/ethash.h"
 #include "depends/libethash/internal.h"
@@ -61,6 +62,7 @@ class POW {
  public:
   static ethash_h256_t StringToBlockhash(std::string const& _s);
   static std::string BlockhashToHexString(ethash_h256_t* _hash);
+  static ethash_h256_t BytesToBlockhash(dev::bytes const& _bytes);
 
   /// Returns the singleton POW instance.
   static POW& GetInstance();
@@ -87,6 +89,8 @@ class POW {
                  const PubKey& pubKey, bool fullDataset, uint64_t winning_nonce,
                  const std::string& winning_result,
                  const std::string& winning_mixhash);
+  bool PoWVerifyRemoteSoln(uint64_t nonce, const dev::h256& header,
+                           dev::h256& mixHash);
   std::vector<unsigned char> ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
@@ -99,6 +103,12 @@ class POW {
   bool CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                            uint8_t difficulty);
   static std::set<unsigned int> GetGpuToUse();
+  void InitWorkPackage(uint64_t blockNum, uint8_t difficulty,
+                       const std::array<unsigned char, UINT256_SIZE>& rand1,
+                       const std::array<unsigned char, UINT256_SIZE>& rand2,
+                       const boost::multiprecision::uint128_t& ipAddr,
+                       const PubKey& pubKey);
+  const dev::eth::WorkPackage GetWorkPackage() const;
 
  private:
   ethash_light_t ethash_light_client;
@@ -107,8 +117,13 @@ class POW {
   std::vector<dev::eth::MinerPtr> m_miners;
   std::vector<ethash_mining_result_t> m_vecMiningResult;
   std::atomic<int> m_minerIndex;
-  std::condition_variable m_cvMiningResult;
-  std::mutex m_mutexMiningResult;
+  std::condition_variable m_cvGpuMineResult;
+  std::mutex m_mutexGpuMineResult;
+  mutable std::mutex m_mutexWorkPackage;
+  dev::eth::WorkPackage m_workPackage;
+  std::condition_variable m_cvRemoteMineResult;
+  std::mutex m_mutexRemoteMineResult;
+  ethash_mining_result_t m_remoteMineResult;
 
   ethash_light_t EthashLightNew(uint64_t block_number);
   ethash_light_t EthashLightReuse(ethash_light_t ethashLight,
@@ -132,6 +147,9 @@ class POW {
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_h256_t const& header_hash,
                                      uint8_t difficulty);
+  ethash_mining_result_t MineRemote(uint64_t blockNum,
+                                    ethash_h256_t const& header_hash,
+                                    uint8_t difficulty);
   void MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
                          uint8_t difficulty, uint64_t nonce);
   bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,

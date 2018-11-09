@@ -206,6 +206,7 @@ const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
+const unsigned int SERVER_PORT{ReadFromConstantsFile("SERVER_PORT")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
@@ -220,6 +221,7 @@ const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE") ==
                              "true"};
 const bool OPENCL_GPU_MINE{ReadFromOptionsFile("OPENCL_GPU_MINE") == "true"};
 const bool CUDA_GPU_MINE{ReadFromOptionsFile("CUDA_GPU_MINE") == "true"};
+const bool REMOTE_MINE{ReadFromOptionsFile("REMOTE_MINE") == "true"};
 const bool LOOKUP_NODE_MODE{ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true"};
 const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE") ==
                                  "true"};

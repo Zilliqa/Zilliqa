@@ -3113,16 +3113,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
   }
 }
 
-void Lookup::SetServerTrue() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::SetServerTrue not expected to be called from "
-                "other than the LookUp node.");
-    return;
-  }
-
-  m_isServer = true;
-}
+void Lookup::SetServerTrue() { m_isServer = true; }
 
 bool Lookup::GetIsServer() {
   if (!LOOKUP_NODE_MODE) {

@@ -176,6 +176,12 @@ bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
   }
 
   this->Prepare(runInitializeGenesisBlocks);
+
+  if (REMOTE_MINE) {
+    POW::GetInstance().InitWorkPackage(
+        0, POW_DIFFICULTY, m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
+        m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second);
+  }
   return true;
 }
 

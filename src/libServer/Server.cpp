@@ -442,6 +442,57 @@ Json::Value Server::GetSmartContractCode(const string& address) {
   }
 }
 
+Json::Value Server::GetMiningWork() {
+  LOG_MARKER();
+  try {
+    Json::Value _json;
+    const auto wp = POW::GetInstance().GetWorkPackage();
+    _json[0] = wp.header.hex();
+    auto blockNumber = wp.blockNumber;
+    if (blockNumber == (uint64_t)(-1)) {
+      blockNumber = 0;
+    }
+    ethash_h256_t seedHash = ethash_get_seedhash(blockNumber);
+    _json[1] = POW::BlockhashToHexString(&seedHash);
+    _json[2] = wp.boundary.hex();
+    _json[3] = (Json::UInt64)(wp.blockNumber);
+    LOG_GENERAL(INFO, "Work package: "
+                          << " block number " << blockNumber << " boundary "
+                          << wp.boundary.hex());
+    return _json;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what());
+    Json::Value _json;
+    _json["Error"] = "Unable To Process";
+
+    return _json;
+  }
+}
+
+Json::Value Server::SubmitPoWSolution(const std::string& paramNonce,
+                                      const std::string& paramHeader,
+                                      const std::string& paraMixedHash) {
+  LOG_MARKER();
+  try {
+    LOG_GENERAL(INFO, "Submitted result: Nonce "
+                          << paramNonce << ", Header " << paramHeader
+                          << ", MixedHash " << paraMixedHash);
+    Json::Value ret;
+    uint64_t nonce = std::strtoull(paramNonce.c_str(), NULL, 16);
+    dev::h256 header(paramHeader);
+    dev::h256 mixHash(paraMixedHash);
+
+    ret = POW::GetInstance().PoWVerifyRemoteSoln(nonce, header, mixHash);
+    return ret;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what());
+    Json::Value ret;
+    ret["Error"] = "Unable To Process";
+
+    return ret;
+  }
+}
+
 string Server::GetStorageAt([[gnu::unused]] const string& address,
                             [[gnu::unused]] const string& position) {
   return "Hello";
@@ -955,6 +1006,7 @@ void Server::AddToRecentTransactions(const TxnHash& txhash) {
   lock_guard<mutex> g(m_mutexRecentTxns);
   m_RecentTransactions.insert_new(m_RecentTransactions.size(), txhash.hex());
 }
+
 Json::Value Server::GetShardingStructure() {
   LOG_MARKER();
 

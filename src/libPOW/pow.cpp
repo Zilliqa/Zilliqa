@@ -112,6 +112,19 @@ ethash_h256_t POW::StringToBlockhash(std::string const& _s) {
   return ret;
 }
 
+ethash_h256_t POW::BytesToBlockhash(dev::bytes const& _bytes) {
+  ethash_h256_t ret;
+  if (_bytes.size() != 32) {
+    LOG_GENERAL(WARNING,
+                "Input to StringToBlockhash is not of size 32. Returning "
+                "uninitialize ethash_h256_t. Size is "
+                    << _bytes.size());
+    return ret;
+  }
+  copy(_bytes.begin(), _bytes.end(), ret.b);
+  return ret;
+}
+
 ethash_h256_t POW::DifficultyLevelInInt(uint8_t difficulty) {
   uint8_t b[UINT256_SIZE];
   std::fill(b, b + 32, 0xff);
@@ -233,8 +246,8 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
   }
 
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
-  std::unique_lock<std::mutex> lk(m_mutexMiningResult);
-  m_cvMiningResult.wait(lk);
+  std::unique_lock<std::mutex> lk(m_mutexGpuMineResult);
+  m_cvGpuMineResult.wait(lk);
   m_shouldMine = false;
   for (auto& ptrThead : vecThread) {
     ptrThead->join();
@@ -247,6 +260,29 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
   }
 
   return ethash_mining_result_t{"", "", 0, false};
+}
+
+ethash_mining_result_t POW::MineRemote(uint64_t blockNum,
+                                       ethash_h256_t const& header_hash,
+                                       uint8_t difficulty) {
+  LOG_MARKER();
+
+  {
+    std::unique_lock<std::mutex> lock(m_mutexWorkPackage);
+    m_workPackage.blockNumber = blockNum;
+    m_workPackage.boundary = (dev::h256)(dev::u256)(
+        (dev::bigint(1) << 256) / (dev::u256(1) << difficulty));
+    m_workPackage.header =
+        dev::h256{header_hash.b, dev::h256::ConstructFromPointer};
+  }
+
+  std::unique_lock<std::mutex> cv_lk(m_mutexRemoteMineResult);
+  if (m_cvRemoteMineResult.wait_for(
+          cv_lk, std::chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
+      std::cv_status::timeout) {
+    LOG_GENERAL(WARNING, "Wait for remote mining result timeout.");
+  }
+  return m_remoteMineResult;
 }
 
 void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
@@ -273,7 +309,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
       LOG_GENERAL(WARNING, "GPU failed to do mine, GPU miner log: "
                                << m_miners[index]->getLog());
       m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
-      m_cvMiningResult.notify_one();
+      m_cvGpuMineResult.notify_one();
       return;
     }
     auto hashResult = LightHash(blockNum, header_hash, solution.nonce);
@@ -282,13 +318,13 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
       m_vecMiningResult[index] =
           ethash_mining_result_t{BlockhashToHexString(&hashResult.result),
                                  solution.mixHash.hex(), solution.nonce, true};
-      m_cvMiningResult.notify_one();
+      m_cvGpuMineResult.notify_one();
       return;
     }
     wp.startNonce = solution.nonce;
   }
   m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
-  m_cvMiningResult.notify_one();
+  m_cvGpuMineResult.notify_one();
   return;
 }
 
@@ -359,7 +395,9 @@ ethash_mining_result_t POW::PoWMine(
 
   m_shouldMine = true;
 
-  if (fullDataset) {
+  if (REMOTE_MINE) {
+    result = MineRemote(blockNum, headerHash, difficulty);
+  } else if (fullDataset) {
     if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
       result = MineFullGPU(blockNum, headerHash, difficulty);
     } else {
@@ -413,6 +451,45 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
   } else {
     result = VerifyLight(ethash_light_client, headerHash, winning_nonce,
                          diffForPoW, winnning_result, winnning_mixhash);
+  }
+  return result;
+}
+
+bool POW::PoWVerifyRemoteSoln(uint64_t nonce, const dev::h256& header,
+                              dev::h256& mixHash) {
+  LOG_MARKER();
+
+  ethash_h256_t diffForPoW = BytesToBlockhash(m_workPackage.boundary.asBytes());
+  ethash_h256_t headerHash = BytesToBlockhash(header.asBytes());
+  ethash_h256_t winnning_mixhash = BytesToBlockhash(mixHash.asBytes());
+  auto hashResult = LightHash(m_workPackage.blockNumber, headerHash, nonce);
+
+  ethash_h256_t check_hash;
+  ethash_quick_hash(&check_hash, &headerHash, nonce, &winnning_mixhash);
+
+  std::string check_hash_string =
+      BytesToHexString((uint8_t*)&check_hash, POW_SIZE);
+
+  if (!boost::iequals(check_hash_string,
+                      BlockhashToHexString(&hashResult.result))) {
+    LOG_GENERAL(WARNING, "Check Hash "
+                             << check_hash_string << " Result "
+                             << BlockhashToHexString(&hashResult.result)
+                             << " did not match");
+    return false;
+  }
+
+  bool result;
+
+  result = VerifyLight(ethash_light_client, headerHash, nonce, diffForPoW,
+                       hashResult.result, winnning_mixhash);
+  if (result) {
+    m_remoteMineResult = ethash_mining_result_t{
+        BlockhashToHexString(&hashResult.result), mixHash.hex(), nonce, true};
+    m_cvRemoteMineResult.notify_one();
+  } else {
+    LOG_GENERAL(WARNING, "Failed to verify remote submitted solution.");
+    m_remoteMineResult = {"", "", 0, false};
   }
   return result;
 }
@@ -513,4 +590,31 @@ std::set<unsigned int> POW::GetGpuToUse() {
     gpuToUse.insert(index);
   }
   return gpuToUse;
+}
+
+void POW::InitWorkPackage(uint64_t blockNum, uint8_t difficulty,
+                          const std::array<unsigned char, UINT256_SIZE>& rand1,
+                          const std::array<unsigned char, UINT256_SIZE>& rand2,
+                          const boost::multiprecision::uint128_t& ipAddr,
+                          const PubKey& pubKey) {
+  {
+    std::vector<unsigned char> sha3_result =
+        ConcatAndhash(rand1, rand2, ipAddr, pubKey);
+
+    // Let's hash the inputs before feeding to ethash
+    ethash_h256_t headerHash =
+        StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
+
+    std::unique_lock<std::mutex> lock(m_mutexWorkPackage);
+    m_workPackage.blockNumber = blockNum;
+    m_workPackage.boundary = (dev::h256)(dev::u256)(
+        (dev::bigint(1) << 256) / (dev::u256(1) << difficulty));
+    m_workPackage.header =
+        dev::h256{headerHash.b, dev::h256::ConstructFromPointer};
+  }
+}
+
+const dev::eth::WorkPackage POW::GetWorkPackage() const {
+  std::unique_lock<std::mutex> lock(m_mutexWorkPackage);
+  return m_workPackage;
 }
