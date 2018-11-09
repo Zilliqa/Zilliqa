@@ -246,9 +246,6 @@ void Lookup::SendMessageToRandomLookupNode(
   }
 
   int index = rand() % m_lookupNodes.size();
-#if 1  // clark
-  LOG_GENERAL(INFO, "Send message to " << m_lookupNodes[index].second);
-#endif
   P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
 }
 
