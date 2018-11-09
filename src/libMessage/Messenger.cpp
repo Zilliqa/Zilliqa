@@ -279,7 +279,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                                                      tmpNumber);
   account.IncreaseNonceBy(tmpNumber);
 
-  if (protoAccount.code().size() > 0) {
+  if (protoAccount.code().size() > 0 || account.isContract()) {
     bool doInitContract = false;
 
     if (fullCopy) {
