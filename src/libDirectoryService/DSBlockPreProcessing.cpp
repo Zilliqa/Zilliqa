@@ -723,7 +723,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
                 << std::to_string(dsDifficulty) << " and difficulty "
                 << std::to_string(difficulty));
 
-  LookupCoinbase(m_shards, m_allPoWs, powDSWinners, dsWinnerPoWs);
 
   // Create new consensus object
   uint32_t consensusID = 0;
@@ -959,9 +958,6 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  LookupCoinbase(m_tempShards, allPoWsFromLeader,
-                 m_pendingDSBlock->GetHeader().GetDSPoWWinners(),
-                 dsWinnerPoWsFromLeader);
 
   ClearReputationOfNodeWithoutPoW();
   if (!VerifyNodePriority(m_tempShards)) {
