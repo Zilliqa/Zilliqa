@@ -376,7 +376,6 @@ bool DirectoryService::CleanVariables() {
   m_allPoWConns.clear();
   m_mapNodeReputation.clear();
 
-  m_toSendTxnToLookup = false;
   m_stopRecvNewMBSubmission = false;
   m_needCheckMicroBlock = true;
   m_startedRunFinalblockConsensus = false;
