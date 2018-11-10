@@ -48,7 +48,7 @@ SWInfo::~SWInfo(){};
 bool SWInfo::Serialize(std::vector<unsigned char>& dst,
                        unsigned int offset) const {
   if (!MessengerSWInfo::SetSWInfo(dst, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::SetSWInfo failed.");
+    LOG_GENERAL(WARNING, "MessengerSWInfo::SetSWInfo failed.");
     return false;
   }
 
@@ -59,7 +59,7 @@ bool SWInfo::Serialize(std::vector<unsigned char>& dst,
 bool SWInfo::Deserialize(const std::vector<unsigned char>& src,
                          unsigned int offset) {
   if (!MessengerSWInfo::GetSWInfo(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetSWInfo failed.");
+    LOG_GENERAL(WARNING, "MessengerSWInfo::GetSWInfo failed.");
     return false;
   }
 
