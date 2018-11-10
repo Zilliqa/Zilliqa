@@ -18,6 +18,7 @@
  */
 
 #include "SWInfo.h"
+#include "libMessage/MessengerSWInfo.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -44,54 +45,25 @@ SWInfo::SWInfo(const SWInfo& src)
 SWInfo::~SWInfo(){};
 
 /// Implements the Serialize function inherited from Serializable.
-unsigned int SWInfo::Serialize(std::vector<unsigned char>& dst,
-                               unsigned int offset) const {
-  LOG_MARKER();
-
-  if ((offset + SIZE) > dst.size()) {
-    dst.resize(offset + SIZE);
+bool SWInfo::Serialize(std::vector<unsigned char>& dst,
+                       unsigned int offset) const {
+  if (!MessengerSWInfo::SetSWInfo(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetSWInfo failed.");
+    return false;
   }
 
-  unsigned int curOffset = offset;
-
-  SetNumber<uint32_t>(dst, curOffset, m_major, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-  SetNumber<uint32_t>(dst, curOffset, m_minor, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-  SetNumber<uint32_t>(dst, curOffset, m_fix, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-  SetNumber<uint64_t>(dst, curOffset, m_upgradeDS, sizeof(uint64_t));
-  curOffset += sizeof(uint64_t);
-  SetNumber<uint32_t>(dst, curOffset, m_commit, sizeof(uint32_t));
-  curOffset += sizeof(uint32_t);
-
-  return SIZE;
+  return true;
 }
 
 /// Implements the Deserialize function inherited from Serializable.
-int SWInfo::Deserialize(const std::vector<unsigned char>& src,
-                        unsigned int offset) {
-  LOG_MARKER();
-
-  unsigned int curOffset = offset;
-
-  try {
-    m_major = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_minor = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_fix = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-    m_upgradeDS = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
-    curOffset += sizeof(uint64_t);
-    m_commit = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
-    curOffset += sizeof(uint32_t);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Error with SWInfo::Deserialize." << ' ' << e.what());
-    return -1;
+bool SWInfo::Deserialize(const std::vector<unsigned char>& src,
+                         unsigned int offset) {
+  if (!MessengerSWInfo::GetSWInfo(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetSWInfo failed.");
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
 /// Less-than comparison operator.
@@ -112,4 +84,9 @@ bool SWInfo::operator==(const SWInfo& r) const {
 /// Unequality operator.
 bool SWInfo::operator!=(const SWInfo& r) const { return !(*this == r); }
 
+/// Getters.
+const uint32_t& SWInfo::GetMajor() const { return m_major; };
+const uint32_t& SWInfo::GetMinor() const { return m_minor; };
+const uint32_t& SWInfo::GetFix() const { return m_fix; };
 const uint64_t& SWInfo::GetUpgradeDS() const { return m_upgradeDS; };
+const uint32_t& SWInfo::GetCommit() const { return m_commit; };

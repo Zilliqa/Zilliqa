@@ -165,6 +165,15 @@ message ProtoTransactionWithReceipt
     required ProtoTransactionReceipt receipt = 2;
 }
 
+message ProtoSWInfo
+{
+    required uint32 major       = 1;
+    required uint32 minor       = 2;
+    required uint32 fix         = 3;
+    required uint64 upgradeds   = 4;
+    required uint32 commit      = 5;
+}
+
 message ProtoDSBlock
 {
     message DSBlockHashSet
