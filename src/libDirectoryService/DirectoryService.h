@@ -179,7 +179,7 @@ class DirectoryService : public Executable, public Broadcastable {
   uint32_t m_numOfAbsentMicroBlocks;
 
   // Coinbase
-  std::map<uint64_t, std::unordered_map<int32_t, std::vector<Address>>>
+  std::map<uint64_t, std::map<uint32_t, std::vector<Address>>>
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
