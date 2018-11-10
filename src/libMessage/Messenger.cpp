@@ -787,6 +787,26 @@ void ProtobufToTransactionWithReceipt(
   transactionWithReceipt = TransactionWithReceipt(transaction, receipt);
 }
 
+void PeerToProtobuf(const Peer& peer, ProtoPeer& protoPeer) {
+  ByteArray ipAddress;
+  NumberToProtobufByteArray<boost::multiprecision::uint128_t,
+                            sizeof(boost::multiprecision::uint128_t)>(
+      peer.GetIpAddress(), ipAddress);
+  protoPeer.set_allocated_ipaddress(&ipAddress);
+
+  protoPeer.set_listenporthost(peer.GetListenPortHost());
+}
+
+void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
+  boost::multiprecision::uint128_t m_ipAddress;
+  auto ipAddress = protoPeer.ipaddress();
+  ProtobufByteArrayToNumber<boost::multiprecision::uint128_t,
+                            sizeof(boost::multiprecision::uint128_t)>(
+      ipAddress, m_ipAddress);
+
+  peer = Peer(m_ipAddress, protoPeer.listenporthost());
+}
+
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
                              ProtoDSBlock::DSBlockHeader& protoDSBlockHeader) {
   protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
@@ -2619,6 +2639,36 @@ bool Messenger::GetTransactionWithReceipt(
   }
 
   ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
+
+  return true;
+}
+
+bool Messenger::SetPeer(std::vector<unsigned char>& dst,
+                        const unsigned int offset, const Peer& peer) {
+  ProtoPeer result;
+
+  PeerToProtobuf(peer, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Peer initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetPeer(const std::vector<unsigned char>& src,
+                        const unsigned int offset, Peer& peer) {
+  ProtoPeer result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Peer initialization failed.");
+    return false;
+  }
+
+  ProtobufToPeer(result, peer);
 
   return true;
 }

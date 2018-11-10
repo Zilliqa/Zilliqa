@@ -182,6 +182,10 @@ class Messenger {
   static bool GetTransactionWithReceipt(
       const std::vector<unsigned char>& src, const unsigned int offset,
       TransactionWithReceipt& transactionWithReceipt);
+  static bool SetPeer(std::vector<unsigned char>& dst,
+                      const unsigned int offset, const Peer& peer);
+  static bool GetPeer(const std::vector<unsigned char>& src,
+                      const unsigned int offset, Peer& peer);
 
   // ============================================================================
   // Directory Service messages
