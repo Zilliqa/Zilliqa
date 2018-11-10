@@ -889,7 +889,7 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     // To get block num from dsblockchain instead of txblock chain as node
     // recover from the last ds epoch
     lowBlockNum =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() - 1;
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
   } else if (lowBlockNum == 0) {
     // give all the blocks till now in blockchain
     lowBlockNum = 1;
@@ -1585,6 +1585,12 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
             "ProcessSetTxBlockFromSeed sent by " << from << " for blocks "
                                                  << lowBlockNum << " to "
                                                  << highBlockNum);
+
+  if(lowBlockNum > highBlockNum)
+  {
+    LOG_GENERAL(WARNING,"The lowBlockNum is higher the highblocknum, maybe DS epoch ongoing");
+    return false;
+  }
 
   if (txBlocks.empty()) {
     LOG_GENERAL(WARNING, "No block actually sent");
