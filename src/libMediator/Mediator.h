@@ -35,25 +35,20 @@
 
 /// System test control class
 class SysTestData {
-  bool TestStarted = false;  
+  bool TestStarted = false;
   bool IsANode = false;
-  uint64_t TestStartEpoch = 4;
   uint64_t CurrentEpoch = 0;
   uint16_t MyNodeId = 0;
-  uint16_t FirstAId = 0;
 
  public:
   /// Constructor
-  SysTestData() {
-    TestStartEpoch = TEST_START_EPOCH;
-    FirstAId = TEST_FIRST_AID;
-  };
+  SysTestData() {};
   /// Destructor
   ~SysTestData();
   /// Find out if A node
   void SetMyNodeId(uint16_t Id) {
     MyNodeId = Id;
-    if (MyNodeId >= FirstAId) {
+    if (MyNodeId >= TEST_FIRST_AID) {
       IsANode = true;
     } else {
       IsANode = false;
@@ -62,8 +57,9 @@ class SysTestData {
   /// Systest trigger
   void SetEpoch(int Epoch) {
     CurrentEpoch = Epoch;
-    if ((CurrentEpoch >= TestStartEpoch) && IsANode) {
+    if ((CurrentEpoch >= TEST_START_EPOCH) && IsANode) {
       TestStarted = true;
+      LOG_GENERAL(INFO, "SysTest started!!!");
     } else {
       TestStarted = false;
     }
