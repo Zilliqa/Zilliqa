@@ -788,11 +788,9 @@ void ProtobufToTransactionWithReceipt(
 }
 
 void PeerToProtobuf(const Peer& peer, ProtoPeer& protoPeer) {
-  ByteArray ipAddress;
   NumberToProtobufByteArray<boost::multiprecision::uint128_t,
                             sizeof(boost::multiprecision::uint128_t)>(
-      peer.GetIpAddress(), ipAddress);
-  protoPeer.set_allocated_ipaddress(&ipAddress);
+      peer.GetIpAddress(), *protoPeer.mutable_ipaddress());
 
   protoPeer.set_listenporthost(peer.GetListenPortHost());
 }
