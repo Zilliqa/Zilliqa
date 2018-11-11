@@ -42,7 +42,7 @@ class SysTestData {
 
  public:
   /// Constructor
-  SysTestData() {};
+  SysTestData(){};
   /// Destructor
   ~SysTestData();
   /// Find out if A node
