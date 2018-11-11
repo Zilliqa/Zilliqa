@@ -688,7 +688,7 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   sha2.Update(txnData);
   const vector<unsigned char>& hash = sha2.Finalize();
 
-  if (!std::equal(hash.begin(), hash.end(), tranID.begin())) {
+  if (!std::equal(hash.begin(), hash.end(), tranID.begin(), tranID.end())) {
     TxnHash expected;
     copy(hash.begin(), hash.end(), expected.asArray().begin());
     LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
