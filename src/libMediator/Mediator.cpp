@@ -40,6 +40,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
   m_initialDSCommittee = make_shared<vector<PubKey>>();
   m_archDB = nullptr;
   m_archival = nullptr;
+  m_systest_data = new SysTestData();
 }
 
 Mediator::~Mediator() {}
@@ -236,6 +237,8 @@ void Mediator::HeartBeatPulse() {
 void Mediator::IncreaseEpochNum() {
   std::lock_guard<mutex> lock(m_mutexVacuousEpoch);
   m_currentEpochNum++;
+  /// Systest trigger
+  m_systest_data->SetEpoch(m_currentEpochNum);
   if ((m_currentEpochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW == 0) {
     m_isVacuousEpoch = true;
   } else {

@@ -33,12 +33,52 @@
 #include "libNode/Node.h"
 #include "libValidator/Validator.h"
 
+/// System test control class
+class SysTestData {
+  bool TestStarted = false;  
+  bool IsANode = false;
+  uint64_t TestStartEpoch = 4;
+  uint64_t CurrentEpoch = 0;
+  uint16_t MyNodeId = 0;
+  uint16_t FirstAId = 0;
+
+ public:
+  /// Constructor
+  SysTestData() {
+    TestStartEpoch = TEST_START_EPOCH;
+    FirstAId = TEST_FIRST_AID;
+  };
+  /// Destructor
+  ~SysTestData();
+  /// Find out if A node
+  void SetMyNodeId(uint16_t Id) {
+    MyNodeId = Id;
+    if (MyNodeId >= FirstAId) {
+      IsANode = true;
+    } else {
+      IsANode = false;
+    }
+  }
+  /// Systest trigger
+  void SetEpoch(int Epoch) {
+    CurrentEpoch = Epoch;
+    if ((CurrentEpoch >= TestStartEpoch) && IsANode) {
+      TestStarted = true;
+    } else {
+      TestStarted = false;
+    }
+  }
+};
+
 /// A mediator class for providing access to global members.
 class Mediator {
   std::mutex m_mutexHeartBeat;
   unsigned int m_heartBeatTime;
 
  public:
+  /// SysTest data
+  SysTestData* m_systest_data;
+
   /// The Zilliqa instance's key pair.
   std::pair<PrivKey, PubKey> m_selfKey;
 

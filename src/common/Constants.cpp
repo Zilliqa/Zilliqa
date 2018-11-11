@@ -203,8 +203,8 @@ const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
 
 // options
-const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
+const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
 const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
 const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE") ==
                              "true"};
@@ -279,3 +279,7 @@ const unsigned int CUDA_BLOCK_SIZE{ReadGpuConstants("cuda.BLOCK_SIZE")};
 const unsigned int CUDA_GRID_SIZE{ReadGpuConstants("cuda.GRID_SIZE")};
 const unsigned int CUDA_STREAM_NUM{ReadGpuConstants("cuda.STREAM_NUM")};
 const unsigned int CUDA_SCHEDULE_FLAG{ReadGpuConstants("cuda.SCHEDULE_FLAG")};
+
+// SysTest constants
+const uint32_t TEST_START_EPOCH{ReadFromConstantsFile("TEST_START_EPOCH")};
+const uint32_t TEST_FIRST_AID{ReadFromConstantsFile("TEST_FIRST_AID")};

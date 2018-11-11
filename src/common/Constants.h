@@ -88,6 +88,7 @@ enum SyncType : unsigned int {
   LOOKUP_SYNC,
 };
 
+// Genesis
 const std::string RAND1_GENESIS =
     "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS =
@@ -181,7 +182,6 @@ extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
-
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int CONTRACT_CREATE_GAS;
@@ -216,5 +216,9 @@ extern const unsigned int CUDA_BLOCK_SIZE;
 extern const unsigned int CUDA_GRID_SIZE;
 extern const unsigned int CUDA_STREAM_NUM;
 extern const unsigned int CUDA_SCHEDULE_FLAG;
+
+// SysTest constants
+extern const uint32_t TEST_START_EPOCH;
+extern const uint32_t TEST_FIRST_AID;
 
 #endif  // __CONSTANTS_H__

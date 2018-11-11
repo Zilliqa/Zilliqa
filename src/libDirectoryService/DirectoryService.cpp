@@ -262,6 +262,8 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     if (i.first == m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "My node ID for this PoW consensus is " << m_consensusMyID);
+      // Systest
+      m_mediator.m_systest_data->SetMyNodeId(m_consensusMyID);
       break;
     }
     m_consensusMyID++;
