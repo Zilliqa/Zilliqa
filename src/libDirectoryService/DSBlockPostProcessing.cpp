@@ -609,6 +609,10 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   // Add the DS block to the chain
   StoreDSBlockToStorage();
 
+  m_mediator.m_node->m_proposedGasPrice =
+      max(m_mediator.m_node->m_proposedGasPrice,
+          m_pendingDSBlock->GetHeader().GetGasPrice());
+
   m_mediator.UpdateDSBlockRand();
 
   // Now we can update the sharding structure and transaction sharing
