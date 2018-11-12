@@ -242,7 +242,7 @@ const unsigned int GAS_PRICE_RAISE_RATIO{
     ReadFromGasFile("GAS_PRICE_RAISE_RATIO")};
 const unsigned int GAS_PRICE_TOLERANCE{ReadFromGasFile("GAS_PRICE_TOLERANCE")};
 const unsigned int MEAN_GAS_PRICE_DS_NUM{
-    ReadFromConstantsFile("MEAN_GAS_PRICE_DS_NUM")};
+    ReadFromGasFile("MEAN_GAS_PRICE_DS_NUM")};
 const boost::multiprecision::uint256_t PRECISION_MIN_VALUE{
     SafeMath<boost::multiprecision::uint256_t>::critical_pow(
         10, GAS_PRICE_PRECISION)};
