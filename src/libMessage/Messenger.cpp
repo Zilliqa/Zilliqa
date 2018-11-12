@@ -532,7 +532,6 @@ void ProtobufToShardingStructureAnnouncement(
     for (const auto& proto_member : proto_shard.members()) {
       PubKey key;
       Peer peer;
-      Signature signature;
 
       ProtobufByteArrayToSerializable(proto_member.pubkey(), key);
       ProtobufByteArrayToSerializable(proto_member.peerinfo(), peer);
@@ -2903,7 +2902,6 @@ bool Messenger::GetDSDSBlockAnnouncement(
     PubKey key;
     std::array<unsigned char, 32> result;
     std::array<unsigned char, 32> mixhash;
-    Signature signature;
 
     ProtobufByteArrayToSerializable(protoDSWinnerPoW.pubkey(), key);
 

@@ -1733,8 +1733,8 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
   }
   m_mediator.m_ds->SaveCoinbase(
       m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
-      m_mediator.m_txBlockChain.GetLastBlock().GetB2(), -1,
-      m_mediator.m_currentEpochNum);
+      m_mediator.m_txBlockChain.GetLastBlock().GetB2(),
+      CoinbaseReward::FINALBLOCK_REWARD, m_mediator.m_currentEpochNum);
   cv_setStateDeltaFromSeed.notify_all();
   return true;
 }
