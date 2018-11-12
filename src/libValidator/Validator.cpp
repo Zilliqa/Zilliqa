@@ -124,6 +124,17 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
     }
   }
 
+  if (tx.GetGasPrice() <
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "GasPrice " << tx.GetGasPrice()
+                          << " lower than minimum allowable "
+                          << m_mediator.m_dsBlockChain.GetLastBlock()
+                                 .GetHeader()
+                                 .GetGasPrice());
+    return false;
+  }
+
   if (!VerifyTransaction(tx)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Signature incorrect: " << fromAddr << ". Transaction rejected: "
