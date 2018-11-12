@@ -159,6 +159,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     max_shard = 0;
   }
 
+  uint32_t numNodesPerShard = numShardNodes / numOfComms;
+
   for (unsigned int i = 0; i < numOfComms; i++) {
     m_shards.emplace_back();
   }
@@ -193,20 +195,25 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     sortedPoWs.emplace(sortHash, key);
   }
 
-  unsigned int i = 0;
-
+  uint32_t i = 0;
+  uint32_t j = 0;
   for (const auto& kv : sortedPoWs) {
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
                                     << DataConversion::charArrToHexStr(kv.first)
                                     << endl);
     }
+
+    unsigned int shard_index = i / numNodesPerShard;
+    if (shard_index > max_shard) {
+      shard_index = j % (max_shard + 1);
+      j++;
+    }
+
     const PubKey& key = kv.second;
-    auto& shard =
-        m_shards.at(min(i / m_mediator.GetShardSize(false), max_shard));
+    auto& shard = m_shards.at(shard_index);
     shard.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
-    m_publicKeyToshardIdMap.emplace(
-        key, min(i / m_mediator.GetShardSize(false), max_shard));
+    m_publicKeyToshardIdMap.emplace(key, shard_index);
     i++;
   }
 }
@@ -372,7 +379,7 @@ bool DirectoryService::VerifyPoWOrdering(
                                    << MISORDER_TOLERANCE << " = "
                                    << MAX_MISORDER_NODE << " nodes.");
 
-  auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
+  auto sortedPoWSolns = SortPoWSoln(m_allPoWs, true);
   InjectPoWForDSNode(sortedPoWSolns,
                      m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
   if (DEBUG_LEVEL >= 5) {
@@ -602,16 +609,36 @@ void DirectoryService::ComputeTxnSharingAssignments(
   }
 }
 
-VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs) {
+VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
+                                              bool trimBeyondCommSize) {
   std::map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
   for (const auto& powsoln : mapOfPoWs) {
     PoWOrderSorter[powsoln.second.result] = powsoln.first;
   }
 
-  // Put it back to vector for easy manipilation and adjustment of the ordering
+  // Put it back to vector for easy manipulation and adjustment of the ordering
   VectorOfPoWSoln sortedPoWSolns;
-  for (const auto& kv : PoWOrderSorter) {
-    sortedPoWSolns.emplace_back(kv);
+  if (trimBeyondCommSize && (COMM_SIZE > 0)) {
+    const unsigned int numNodesTotal = PoWOrderSorter.size();
+    const unsigned int numNodesTrimmed =
+        (numNodesTotal < COMM_SIZE)
+            ? numNodesTotal
+            : numNodesTotal - (numNodesTotal % COMM_SIZE);
+
+    LOG_GENERAL(INFO, "Trimming the solutions sorted list from "
+                          << numNodesTotal << " to " << numNodesTrimmed
+                          << " to avoid going over COMM_SIZE " << COMM_SIZE);
+
+    unsigned int count = 0;
+    for (auto kv = PoWOrderSorter.begin();
+         (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
+         kv++, count++) {
+      sortedPoWSolns.emplace_back(*kv);
+    }
+  } else {
+    for (const auto& kv : PoWOrderSorter) {
+      sortedPoWSolns.emplace_back(kv);
+    }
   }
   return sortedPoWSolns;
 }
@@ -634,7 +661,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
   auto sortedDSPoWSolns = SortPoWSoln(m_allDSPoWs);
-  auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
+  auto sortedPoWSolns = SortPoWSoln(m_allPoWs, true);
 
   map<PubKey, Peer> powDSWinners;
   MapOfPubKeyPoW dsWinnerPoWs;
@@ -722,8 +749,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
 #ifdef VC_TEST_DS_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
-    LOG_GENERAL(
-        INFO,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_1)");
     return false;
   }
@@ -731,8 +758,8 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
 #ifdef VC_TEST_DS_SUSPEND_3
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
-    LOG_GENERAL(
-        INFO,
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_DS_SUsPEND_3)");
     return false;
   }
@@ -984,6 +1011,16 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
                 "expected to be called from LookUp node.");
     return true;
   }
+
+#ifdef VC_TEST_VC_PRECHECK_1
+  if (m_consensusMyID == 3) {
+    LOG_EPOCH(
+        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_1)");
+    this_thread::sleep_for(chrono::seconds(45));
+    return false;
+  }
+#endif  // VC_TEST_VC_PRECHECK_1
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I am a backup DS node. Waiting for DS block announcement. "

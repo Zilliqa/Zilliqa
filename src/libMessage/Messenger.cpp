@@ -81,10 +81,8 @@ void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
 template <class T>
 bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
                       const unsigned int offset) {
-  const int length_available = dst.size() - offset;
-
-  if (length_available < protoMessage.ByteSize()) {
-    dst.resize(dst.size() + protoMessage.ByteSize() - length_available);
+  if ((offset + protoMessage.ByteSize()) > dst.size()) {
+    dst.resize(offset + protoMessage.ByteSize());
   }
 
   return protoMessage.SerializeToArray(dst.data() + offset,
@@ -281,7 +279,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                                                      tmpNumber);
   account.IncreaseNonceBy(tmpNumber);
 
-  if (protoAccount.code().size() > 0) {
+  if (protoAccount.code().size() > 0 || account.isContract()) {
     bool doInitContract = false;
 
     if (fullCopy) {
@@ -695,7 +693,7 @@ void ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   sha2.Update(txnData);
   const vector<unsigned char>& hash = sha2.Finalize();
 
-  if (!std::equal(hash.begin(), hash.end(), tranID.begin())) {
+  if (!std::equal(hash.begin(), hash.end(), tranID.begin(), tranID.end())) {
     TxnHash expected;
     copy(hash.begin(), hash.end(), expected.asArray().begin());
     LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
@@ -792,6 +790,23 @@ void ProtobufToTransactionWithReceipt(
   ProtobufToTransactionReceipt(protoWithTransaction.receipt(), receipt);
 
   transactionWithReceipt = TransactionWithReceipt(transaction, receipt);
+}
+
+void PeerToProtobuf(const Peer& peer, ProtoPeer& protoPeer) {
+  NumberToProtobufByteArray<boost::multiprecision::uint128_t,
+                            sizeof(boost::multiprecision::uint128_t)>(
+      peer.GetIpAddress(), *protoPeer.mutable_ipaddress());
+
+  protoPeer.set_listenporthost(peer.GetListenPortHost());
+}
+
+void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
+  boost::multiprecision::uint128_t ipAddress;
+  ProtobufByteArrayToNumber<boost::multiprecision::uint128_t,
+                            sizeof(boost::multiprecision::uint128_t)>(
+      protoPeer.ipaddress(), ipAddress);
+
+  peer = Peer(ipAddress, protoPeer.listenporthost());
 }
 
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
@@ -1974,7 +1989,8 @@ bool Messenger::GetAccountStore(const vector<unsigned char>& src,
 
 bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
                                      const unsigned int offset,
-                                     AccountStoreTemp& accountStoreTemp) {
+                                     AccountStoreTemp& accountStoreTemp,
+                                     AccountStore& accountStore) {
   ProtoAccountStore result;
 
   LOG_GENERAL(INFO, "Debug: Total number of account deltas to serialize: "
@@ -1984,8 +2000,8 @@ bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
-    AccountDeltaToProtobuf(accountStoreTemp.GetAccount(entry.first),
-                           entry.second, *protoEntryAccount);
+    AccountDeltaToProtobuf(accountStore.GetAccount(entry.first), entry.second,
+                           *protoEntryAccount);
     if (!protoEntryAccount->IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
       return false;
@@ -2115,6 +2131,13 @@ bool Messenger::GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
   if (!SerializeToArray(protoExtraMbInfo, tmp, 0)) {
     LOG_GENERAL(WARNING, "ProtoExtraMbInfo serialization failed.");
     return false;
+  }
+
+  // Fix software crash because of tmp is empty triggered assertion in
+  // sha2.update.git
+  if (tmp.empty()) {
+    LOG_GENERAL(WARNING, "ProtoExtraMbInfo is empty, proceed without it.");
+    return true;
   }
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -2626,6 +2649,36 @@ bool Messenger::GetTransactionWithReceipt(
   return true;
 }
 
+bool Messenger::SetPeer(std::vector<unsigned char>& dst,
+                        const unsigned int offset, const Peer& peer) {
+  ProtoPeer result;
+
+  PeerToProtobuf(peer, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Peer initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetPeer(const std::vector<unsigned char>& src,
+                        const unsigned int offset, Peer& peer) {
+  ProtoPeer result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Peer initialization failed.");
+    return false;
+  }
+
+  ProtobufToPeer(result, peer);
+
+  return true;
+}
+
 // ============================================================================
 // Directory Service messages
 // ============================================================================
@@ -2725,7 +2778,7 @@ bool Messenger::SetDSMicroBlockSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
     const unsigned char microBlockType, const uint64_t epochNumber,
     const vector<MicroBlock>& microBlocks,
-    const vector<unsigned char>& stateDelta) {
+    const vector<vector<unsigned char>>& stateDeltas) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
@@ -2735,8 +2788,8 @@ bool Messenger::SetDSMicroBlockSubmission(
   for (const auto& microBlock : microBlocks) {
     MicroBlockToProtobuf(microBlock, *result.add_microblocks());
   }
-  if (stateDelta.size() > 0) {
-    result.set_statedelta(stateDelta.data(), stateDelta.size());
+  for (const auto& stateDelta : stateDeltas) {
+    result.add_statedeltas(stateDelta.data(), stateDelta.size());
   }
 
   if (!result.IsInitialized()) {
@@ -2747,12 +2800,11 @@ bool Messenger::SetDSMicroBlockSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
-                                          const unsigned int offset,
-                                          unsigned char& microBlockType,
-                                          uint64_t& epochNumber,
-                                          vector<MicroBlock>& microBlocks,
-                                          vector<unsigned char>& stateDelta) {
+bool Messenger::GetDSMicroBlockSubmission(
+    const vector<unsigned char>& src, const unsigned int offset,
+    unsigned char& microBlockType, uint64_t& epochNumber,
+    vector<MicroBlock>& microBlocks,
+    vector<vector<unsigned char>>& stateDeltas) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
@@ -2771,10 +2823,10 @@ bool Messenger::GetDSMicroBlockSubmission(const vector<unsigned char>& src,
     ProtobufToMicroBlock(proto_mb, microBlock);
     microBlocks.emplace_back(move(microBlock));
   }
-  if (result.has_statedelta()) {
-    stateDelta.resize(result.statedelta().size());
-    copy(result.statedelta().begin(), result.statedelta().end(),
-         stateDelta.begin());
+  for (const auto& proto_delta : result.statedeltas()) {
+    stateDeltas.emplace_back();
+    copy(proto_delta.begin(), proto_delta.end(),
+         std::back_inserter(stateDeltas.back()));
   }
 
   return true;
@@ -2937,6 +2989,7 @@ bool Messenger::SetDSFinalBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+    const shared_ptr<MicroBlock>& microBlock,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -2946,6 +2999,11 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 
   DSFinalBlockAnnouncement* finalblock = announcement.mutable_finalblock();
   TxBlockToProtobuf(txBlock, *finalblock->mutable_txblock());
+  if (microBlock != nullptr) {
+    MicroBlockToProtobuf(*microBlock, *finalblock->mutable_microblock());
+  } else {
+    LOG_GENERAL(WARNING, "microblock is nullptr");
+  }
 
   if (!finalblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "DSFinalBlockAnnouncement initialization failed.");
@@ -2979,6 +3037,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, TxBlock& txBlock,
+    shared_ptr<MicroBlock>& microBlock,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
@@ -3008,6 +3067,13 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 
   const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
   ProtobufToTxBlock(finalblock.txblock(), txBlock);
+
+  if (finalblock.has_microblock()) {
+    ProtobufToMicroBlock(finalblock.microblock(), *microBlock);
+  } else {
+    LOG_GENERAL(WARNING, "Announcement doesn't include ds microblock");
+    microBlock = nullptr;
+  }
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus
@@ -5993,5 +6059,162 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
         break;
     }
   }
+  return true;
+}
+
+bool Messenger::SetLookupGetDSTxBlockFromSeed(vector<unsigned char>& dst,
+                                              const unsigned int offset,
+                                              const uint64_t dsLowBlockNum,
+                                              const uint64_t dsHighBlockNum,
+                                              const uint64_t txLowBlockNum,
+                                              const uint64_t txHighBlockNum,
+                                              const uint32_t listenPort) {
+  LOG_MARKER();
+
+  LookupGetDSTxBlockFromSeed result;
+
+  result.set_dslowblocknum(dsLowBlockNum);
+  result.set_dshighblocknum(dsHighBlockNum);
+  result.set_txlowblocknum(txLowBlockNum);
+  result.set_txhighblocknum(txHighBlockNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetDSTxBlockFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint64_t& dsLowBlockNum, uint64_t& dsHighBlockNum, uint64_t& txLowBlockNum,
+    uint64_t& txHighBlockNum, uint32_t& listenPort) {
+  LOG_MARKER();
+
+  LookupGetDSTxBlockFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  dsLowBlockNum = result.dslowblocknum();
+  dsHighBlockNum = result.dshighblocknum();
+  txLowBlockNum = result.txlowblocknum();
+  txHighBlockNum = result.txhighblocknum();
+  listenPort = result.listenport();
+
+  return true;
+}
+
+bool Messenger::SetVCNodeSetDSTxBlockFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const std::pair<PrivKey, PubKey>& lookupKey,
+    const vector<DSBlock>& DSBlocks, const vector<TxBlock>& txBlocks) {
+  LOG_MARKER();
+
+  VCNodeSetDSTxBlockFromSeed result;
+
+  for (const auto& dsblock : DSBlocks) {
+    DSBlockToProtobuf(dsblock, *result.add_dsblocks());
+  }
+
+  for (const auto& txblock : txBlocks) {
+    TxBlockToProtobuf(txblock, *result.add_txblocks());
+  }
+
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  std::vector<unsigned char> tmp;
+  if (result.dsblocks().size() > 0) {
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize ds blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0) {
+    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign tx blocks.");
+      return false;
+    }
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "VCNodeSetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
+                                              const unsigned int offset,
+                                              vector<DSBlock>& dsBlocks,
+                                              vector<TxBlock>& txBlocks,
+                                              PubKey& lookupPubKey) {
+  LOG_MARKER();
+  VCNodeSetDSTxBlockFromSeed result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "VCNodeSetDSTxBlockFromSeed initialization failed.");
+    return false;
+  }
+
+  for (const auto& proto_dsblock : result.dsblocks()) {
+    DSBlock dsblock;
+    ProtobufToDSBlock(proto_dsblock, dsblock);
+    dsBlocks.emplace_back(dsblock);
+  }
+
+  for (const auto& txblock : result.txblocks()) {
+    TxBlock block;
+    ProtobufToTxBlock(txblock, block);
+    txBlocks.emplace_back(block);
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  vector<unsigned char> tmp;
+  if (result.dsblocks().size() > 0) {
+    if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
+      LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0) {
+    if (!RepeatableToArray(result.txblocks(), tmp, tmp.size())) {
+      LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
+      return false;
+    }
+  }
+
+  if (result.txblocks().size() > 0 || result.txblocks().size() > 0) {
+    if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+      LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
+      return false;
+    }
+  }
+
   return true;
 }

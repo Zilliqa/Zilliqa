@@ -61,10 +61,6 @@ void Node::SubmitMicroblockToDSCommittee() const {
     return;
   }
 
-  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
-    return;
-  }
-
   vector<unsigned char> microblock = {MessageType::DIRECTORY,
                                       DSInstructionType::MICROBLOCKSUBMISSION};
   vector<unsigned char> stateDelta;
@@ -73,7 +69,7 @@ void Node::SubmitMicroblockToDSCommittee() const {
   if (!Messenger::SetDSMicroBlockSubmission(
           microblock, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
-          m_mediator.m_currentEpochNum, {*m_microblock}, stateDelta)) {
+          m_mediator.m_currentEpochNum, {*m_microblock}, {stateDelta})) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return;
@@ -213,25 +209,16 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
   ConsensusCommon::State state = m_consensusObject->GetState();
 
   if (state == ConsensusCommon::State::DONE) {
+    // Update transaction processed
+    UpdateProcessedTransactions();
+
     // Update the micro block with the co-signatures from the consensus
     m_microblock->SetCoSignatures(*m_consensusObject);
 
     if (m_isPrimary) {
-      if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-        LOG_STATE("[MICON][" << std::setw(15) << std::left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_mediator.m_currentEpochNum
-                             << "] DONE");
-      } else {
-        LOG_STATE("[DSMICON[" << setw(15) << left
-                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                              << "]["
-                              << m_mediator.m_txBlockChain.GetLastBlock()
-                                         .GetHeader()
-                                         .GetBlockNum() +
-                                     1
-                              << "] DONE.");
-      }
+      LOG_STATE("[MICON][" << std::setw(15) << std::left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "][" << m_mediator.m_currentEpochNum << "] DONE");
       // Multicast micro block to all DS nodes
       SubmitMicroblockToDSCommittee();
     }
@@ -255,57 +242,22 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
 
     SetState(WAITING_FINALBLOCK);
 
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-      lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
-      cv_FBWaitMB.notify_all();
-    } else {
-      lock_guard<mutex> g(
-          m_mediator.m_ds->m_mutexPrepareRunFinalblockConsensus);
-      if (!m_mediator.m_ds->m_startedRunFinalblockConsensus) {
-        m_mediator.m_ds->m_stateDeltaWhenRunDSMB.clear();
-        if (!AccountStore::GetInstance().SerializeDelta()) {
-          LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed.");
-          return false;
-        }
-        AccountStore::GetInstance().GetSerializedDelta(
-            m_mediator.m_ds->m_stateDeltaWhenRunDSMB);
-        m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
-        {
-          lock_guard<mutex> g(m_mediator.m_ds->m_mutexMicroBlocks);
-          m_mediator.m_ds->m_microBlocks[m_mediator.m_currentEpochNum].emplace(
-              *m_microblock);
-        }
-        if (!m_mediator.GetIsVacuousEpoch()) {
-          m_mediator.m_ds->SaveCoinbase(m_microblock->GetB1(),
-                                        m_microblock->GetB2(),
-                                        m_microblock->GetHeader().GetShardId(),
-                                        m_mediator.m_currentEpochNum);
-          m_mediator.m_ds->m_toSendTxnToLookup = true;
-          vector<unsigned char> body;
-          m_microblock->Serialize(body, 0);
-          if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-                  m_microblock->GetBlockHash(), body)) {
-            LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
-          }
-        }
-      }
-      m_mediator.m_ds->RunConsensusOnFinalBlock();
-    }
+    lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+    cv_FBWaitMB.notify_all();
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Oops, no consensus reached - what to do now???");
+              "Oops, no consensus reached - consensus error. "
+              "error number: "
+                  << to_string(m_consensusObject->GetConsensusErrorCode())
+                  << " error message: "
+                  << (m_consensusObject->GetConsensusErrorMsg()));
 
     if (m_consensusObject->GetConsensusErrorCode() ==
         ConsensusCommon::MISSING_TXN) {
       // Missing txns in microblock proposed by leader. Will attempt to fetch
       // missing txns from leader, set to a valid state to accept cosig1 and
       // cosig2
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Oops, no consensus reached - consensus error. "
-                "error number: "
-                    << to_string(m_consensusObject->GetConsensusErrorCode())
-                    << " error message: "
-                    << (m_consensusObject->GetConsensusErrorMsg()));
+      LOG_GENERAL(INFO, "Start pending for fetching missing txns")
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
@@ -319,19 +271,13 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         m_consensusObject->RecoveryAndProcessFromANewState(
             ConsensusCommon::INITIAL);
 
-        auto rerunconsensus = [this, message, offset, from]() {
+        auto reprocessconsensus = [this, message, offset, from]() {
           ProcessMicroblockConsensusCore(message, offset, from);
         };
-        DetachedFunction(1, rerunconsensus);
+        DetachedFunction(1, reprocessconsensus);
         return true;
       }
     } else {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Oops, no consensus reached - unhandled consensus error. "
-                "error number: "
-                    << to_string(m_consensusObject->GetConsensusErrorCode())
-                    << " error message: "
-                    << m_consensusObject->GetConsensusErrorMsg());
     }
 
     // return false;
@@ -339,21 +285,12 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     LOG_GENERAL(WARNING, "ConsensusCommon::State::ERROR here, but we move on.");
 
     SetState(WAITING_FINALBLOCK);  // Move on to next Epoch.
-    if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "If I received a new Finalblock from DS committee. I will "
-                "still process it");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "If I received a new Finalblock from DS committee. I will "
+              "still process it");
 
-      lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
-      cv_FBWaitMB.notify_all();
-    } else {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "DS Microblock failed, discard changes on microblock and "
-                "proceed to finalblock consensus");
-      m_mediator.m_ds->cv_scheduleFinalBlockConsensus.notify_all();
-      m_mediator.m_ds->RunConsensusOnFinalBlock(
-          DirectoryService::REVERT_STATEDELTA);
-    }
+    lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
+    cv_FBWaitMB.notify_all();
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus state = " << m_consensusObject->GetStateString());

@@ -67,8 +67,12 @@ class SWInfo : public Serializable {
   /// Unequality operator.
   bool operator!=(const SWInfo& r) const;
 
-  /// Returns the upgrade DS block number.
+  /// Getters.
+  const uint32_t& GetMajor() const;
+  const uint32_t& GetMinor() const;
+  const uint32_t& GetFix() const;
   const uint64_t& GetUpgradeDS() const;
+  const uint32_t& GetCommit() const;
 };
 
 #endif  // __SWINFO_H__

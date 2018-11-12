@@ -99,10 +99,8 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
   // if (actual_bn_size > 0)
   {
     if (actual_bn_size <= static_cast<int>(size)) {
-      const unsigned int length_available = dst.size() - offset;
-
-      if (length_available < size) {
-        dst.resize(dst.size() + size - length_available);
+      if (offset + size > dst.size()) {
+        dst.resize(offset + size);
       }
 
       // Pad with zeroes as needed
