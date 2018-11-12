@@ -796,13 +796,12 @@ void PeerToProtobuf(const Peer& peer, ProtoPeer& protoPeer) {
 }
 
 void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
-  boost::multiprecision::uint128_t m_ipAddress;
-  auto ipAddress = protoPeer.ipaddress();
+  boost::multiprecision::uint128_t ipAddress;
   ProtobufByteArrayToNumber<boost::multiprecision::uint128_t,
                             sizeof(boost::multiprecision::uint128_t)>(
-      ipAddress, m_ipAddress);
+      protoPeer.ipaddress(), ipAddress);
 
-  peer = Peer(m_ipAddress, protoPeer.listenporthost());
+  peer = Peer(ipAddress, protoPeer.listenporthost());
 }
 
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
