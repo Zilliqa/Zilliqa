@@ -121,8 +121,6 @@ const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
-const unsigned int NUM_DS_KEEP_TX_BODY{
-    ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
@@ -238,7 +236,10 @@ const unsigned int GAS_PRICE_DROP_RATIO{
     ReadFromGasFile("GAS_PRICE_DROP_RATIO")};
 const unsigned int GAS_PRICE_RAISE_RATIO{
     ReadFromGasFile("GAS_PRICE_RAISE_RATIO")};
-const boost::multiprecision::uint256_t DEFAULT_MIN_GAS_PRICE{
+const unsigned int GAS_PRICE_TOLERANCE{ReadFromGasFile("GAS_PRICE_TOLERANCE")};
+const unsigned int MEAN_GAS_PRICE_DS_NUM{
+    ReadFromConstantsFile("MEAN_GAS_PRICE_DS_NUM")};
+const boost::multiprecision::uint256_t PRECISION_MIN_VALUE{
     std::pow(10, GAS_PRICE_PRECISION)};
 
 // accounts
