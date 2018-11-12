@@ -376,6 +376,10 @@ bool DirectoryService::CleanVariables() {
   m_allPoWConns.clear();
   m_mapNodeReputation.clear();
 
+  m_stopRecvNewMBSubmission = false;
+  m_needCheckMicroBlock = true;
+  m_startedRunFinalblockConsensus = false;
+
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
@@ -398,6 +402,7 @@ bool DirectoryService::CleanVariables() {
   {
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
+    m_microBlockStateDeltas.clear();
     m_missingMicroBlocks.clear();
     m_totalTxnFees = 0;
   }
@@ -677,7 +682,8 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
                          &DirectoryService::ProcessDSBlockConsensus,
                          &DirectoryService::ProcessMicroblockSubmission,
                          &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessViewChangeConsensus});
+                         &DirectoryService::ProcessViewChangeConsensus,
+                         &DirectoryService::ProcessGetDSTxBlockMessage});
   } else {
     ins_handlers.insert(ins_handlers.end(),
                         {&DirectoryService::ProcessSetPrimary,

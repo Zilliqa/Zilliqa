@@ -91,7 +91,8 @@ BOOST_AUTO_TEST_CASE(testMessage) {
   BOOST_CHECK(test.m_bool() == true);
 
   // Byte array
-  BOOST_CHECK(equal(testVec.begin(), testVec.end(), test.m_bytes().begin()));
+  BOOST_CHECK(equal(testVec.begin(), testVec.end(), test.m_bytes().begin(),
+                    test.m_bytes().end()));
 
   // Repeated, ordered type (primitive)
   BOOST_CHECK(test.m_bitmap_size() == 3);
@@ -142,7 +143,8 @@ BOOST_AUTO_TEST_CASE(testMessage) {
   BOOST_CHECK(test2.m_bool() == true);
 
   // Byte array
-  BOOST_CHECK(equal(testVec.begin(), testVec.end(), test2.m_bytes().begin()));
+  BOOST_CHECK(equal(testVec.begin(), testVec.end(), test2.m_bytes().begin(),
+                    test2.m_bytes().end()));
 
   // Repeated, ordered type (primitive)
   BOOST_CHECK(test2.m_bitmap_size() == 3);

@@ -276,7 +276,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 
-  if (m_toSendTxnToLookup && !isVacuousEpoch) {
+  if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
+    m_mediator.m_node->UpdateProcessedTransactions();
     m_mediator.m_node->CallActOnFinalblock();
   }
 
@@ -333,6 +334,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   AccountStore::GetInstance().InitTemp();
+  AccountStore::GetInstance().InitReversibles();
   m_stateDeltaFromShards.clear();
   m_allPoWConns.clear();
   ClearDSPoWSolns();
@@ -349,7 +351,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     } else {
       m_mediator.m_node->UpdateStateForNextConsensusRound();
       SetState(MICROBLOCK_SUBMISSION);
-      m_dsStartedMicroblockConsensus = false;
+      m_stopRecvNewMBSubmission = false;
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "[No PoW needed] Waiting for Microblock.");
 
@@ -386,26 +388,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                          1
                   << "] TIMEOUT: Didn't receive all Microblock.");
 
-        auto func2 = [this]() mutable -> void {
-          if (!m_dsStartedMicroblockConsensus) {
-            m_dsStartedMicroblockConsensus = true;
-            m_mediator.m_node->RunConsensusOnMicroBlock();
-          }
-        };
+        m_stopRecvNewMBSubmission = true;
 
-        DetachedFunction(1, func2);
-
-        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-        if (cv_scheduleFinalBlockConsensus.wait_for(
-                cv_lk,
-                std::chrono::seconds(DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING,
-                      "Timeout: Didn't finish DS Microblock. Proceeds "
-                      "without it");
-
-          RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
-        }
+        RunConsensusOnFinalBlock();
       }
     }
   };
@@ -440,9 +425,10 @@ bool DirectoryService::ProcessFinalBlockConsensus(
                 "Ignoring final block consensus message");
       return false;
     }
-    // Only buffer the Final block consensus message if in MICROBLOCK_SUBMISSION
-    // or VIEWCHANGE_CONSENSUS state
+    // Only buffer the Final block consensus message if in the immediate states
+    // before consensus, or when doing view change
     if (!((m_state == MICROBLOCK_SUBMISSION) ||
+          (m_state == FINALBLOCK_CONSENSUS_PREP) ||
           (m_state == VIEWCHANGE_CONSENSUS))) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Ignoring final block consensus message");
@@ -460,11 +446,11 @@ bool DirectoryService::ProcessFinalBlockConsensus(
     if (consensus_id == m_mediator.m_consensusID) {
       lock_guard<mutex> g(m_mutexPrepareRunFinalblockConsensus);
       cv_scheduleDSMicroBlockConsensus.notify_all();
-      if (!m_dsStartedMicroblockConsensus) {
-        m_dsStartedMicroblockConsensus = true;
+      if (!m_stopRecvNewMBSubmission) {
+        m_stopRecvNewMBSubmission = true;
       }
       cv_scheduleFinalBlockConsensus.notify_all();
-      RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
+      RunConsensusOnFinalBlock();
     }
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
@@ -565,19 +551,17 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     ProcessFinalBlockConsensusWhenDone();
   } else if (state == ConsensusCommon::State::ERROR) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Oops,     - what to do now???");
+              "Oops, no consensus reached - consensus error. "
+              "error number: "
+                  << to_string(m_consensusObject->GetConsensusErrorCode())
+                  << " error message: "
+                  << (m_consensusObject->GetConsensusErrorMsg()));
 
     if (m_consensusObject->GetConsensusErrorCode() ==
         ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS) {
       // Missing microblocks proposed by leader. Will attempt to fetch
       // missing microblocks from leader, set to a valid state to accept cosig1
       // and cosig2
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Oops, no consensus reached - consensus error. "
-                "error number: "
-                    << to_string(m_consensusObject->GetConsensusErrorCode())
-                    << " error message: "
-                    << (m_consensusObject->GetConsensusErrorMsg()));
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mutexCVMissingMicroBlock);
@@ -592,14 +576,44 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
             ConsensusCommon::INITIAL);
 
         auto rerunconsensus = [this, message, offset, from]() {
-          AccountStore::GetInstance().RevertCommitTemp();
-          AccountStore::GetInstance().CommitTempReversible();
-
+          PrepareRunConsensusOnFinalBlockNormal();
           ProcessFinalBlockConsensusCore(message, offset, from);
         };
         DetachedFunction(1, rerunconsensus);
         return true;
       }
+    } else if (m_consensusObject->GetConsensusErrorCode() ==
+               ConsensusCommon::MISSING_TXN) {
+      // Missing txns in microblock proposed by leader. Will attempt to fetch
+      // missing txns from leader, set to a valid state to accept cosig1 and
+      // cosig2
+      LOG_GENERAL(INFO, "Start pending for fetching missing txns")
+
+      // Block till txn is fetched
+      unique_lock<mutex> lock(m_mediator.m_node->m_mutexCVMicroBlockMissingTxn);
+      if (m_mediator.m_node->cv_MicroBlockMissingTxn.wait_for(
+              lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
+          std::cv_status::timeout) {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "fetching missing txn timeout");
+      } else {
+        // Re-run consensus
+        m_consensusObject->RecoveryAndProcessFromANewState(
+            ConsensusCommon::INITIAL);
+
+        auto reprocessconsensus = [this, message, offset, from]() {
+          ProcessFinalBlockConsensusCore(message, offset, from);
+        };
+        DetachedFunction(1, reprocessconsensus);
+        return true;
+      }
+    } else if (m_consensusObject->GetConsensusErrorCode() ==
+               ConsensusCommon::INVALID_DS_MICROBLOCK) {
+      auto rerunconsensus = [this]() {
+        RunConsensusOnFinalBlock(SKIP_DSMICROBLOCK);
+      };
+      DetachedFunction(1, rerunconsensus);
+      return true;
     }
 
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
