@@ -450,6 +450,14 @@ bool DirectoryService::FinishRejoinAsDS() {
   LOG_MARKER();
   m_mode = BACKUP_DS;
 
+  m_consensusLeaderID = 0;
+  if (m_mediator.m_currentEpochNum > 1) {
+    m_consensusLeaderID =
+        DataConversion::charArrTo16Bits(
+            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        m_mediator.m_DSCommittee->size();
+  }
+
   m_consensusMyID = 0;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);

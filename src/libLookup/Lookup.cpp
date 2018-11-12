@@ -1586,6 +1586,18 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                                                  << lowBlockNum << " to "
                                                  << highBlockNum);
 
+  if (lowBlockNum > highBlockNum) {
+    LOG_GENERAL(
+        WARNING,
+        "The lowBlockNum is higher the highblocknum, maybe DS epoch ongoing");
+    return false;
+  }
+
+  if (txBlocks.empty()) {
+    LOG_GENERAL(WARNING, "No block actually sent");
+    return false;
+  }
+
   uint64_t latestSynBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
@@ -2831,6 +2843,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
       if (!m_isFirstLoop) {
         m_currDSExpired = true;
       } else {
+        GetDSInfoFromLookupNodes();
         m_isFirstLoop = false;
       }
     }
