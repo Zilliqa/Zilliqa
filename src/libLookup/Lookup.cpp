@@ -1586,9 +1586,10 @@ bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
                                                  << lowBlockNum << " to "
                                                  << highBlockNum);
 
-  if(lowBlockNum > highBlockNum)
-  {
-    LOG_GENERAL(WARNING,"The lowBlockNum is higher the highblocknum, maybe DS epoch ongoing");
+  if (lowBlockNum > highBlockNum) {
+    LOG_GENERAL(
+        WARNING,
+        "The lowBlockNum is higher the highblocknum, maybe DS epoch ongoing");
     return false;
   }
 
