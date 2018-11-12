@@ -256,6 +256,8 @@ class Node : public Executable, public Broadcastable {
   bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
                                       const uint32_t shardId,
                                       const std::vector<Transaction>& txns);
+  bool ProcessProposeGasPrice(const std::vector<unsigned char>& message,
+                              unsigned int offset, const Peer& from);
 
 #ifdef HEARTBEAT_TEST
   bool ProcessKillPulse(const std::vector<unsigned char>& message,
@@ -381,7 +383,7 @@ class Node : public Executable, public Broadcastable {
   };
 
   // Proposed gas price
-  boost::multiprecision::uint256_t m_proposedGasPrice = DEFAULT_MIN_GAS_PRICE;
+  boost::multiprecision::uint256_t m_proposedGasPrice;
 
   // This process is newly invoked by shell from late node join script
   bool m_runFromLate = false;
