@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(test_transaction) {
   PubKey pubKey(privKey);
   KeyPair senderKeyPair(privKey, pubKey);
   boost::multiprecision::uint256_t amount = 1000;
-  boost::multiprecision::uint256_t gasPrice = 50;
+  boost::multiprecision::uint256_t gasPrice = PRECISION_MIN_VALUE;
   boost::multiprecision::uint256_t gasLimit = 50;
   std::vector<unsigned char> code;
   std::vector<unsigned char> data;
@@ -203,7 +203,7 @@ BOOST_AUTO_TEST_CASE(test_transaction_array) {
   PubKey pubKey(privKey);
   KeyPair senderKeyPair(privKey, pubKey);
   boost::multiprecision::uint256_t amount = 1000;
-  boost::multiprecision::uint256_t gasPrice = 50;
+  boost::multiprecision::uint256_t gasPrice = PRECISION_MIN_VALUE;
   boost::multiprecision::uint256_t gasLimit = 50;
   std::vector<Transaction> transactions;
   transactions.emplace_back(version, nonce, toAddr, senderKeyPair, amount,
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(test_transaction_with_receipt) {
   PubKey pubKey(privKey);
   KeyPair senderKeyPair(privKey, pubKey);
   boost::multiprecision::uint256_t amount = 1000;
-  boost::multiprecision::uint256_t gasPrice = 50;
+  boost::multiprecision::uint256_t gasPrice = PRECISION_MIN_VALUE;
   boost::multiprecision::uint256_t gasLimit = 50;
   std::vector<unsigned char> code;
   std::vector<unsigned char> data;

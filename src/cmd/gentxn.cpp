@@ -71,8 +71,11 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   std::vector<uint32_t> txnOffsets;
 
   for (auto nonce = begin; nonce < end; nonce++) {
-    Transaction txn{0, nonce, toAddr, std::make_pair(privKey, pubKey), nonce, 1,
-                    1, {},    {}};
+    Transaction txn{0,      nonce,
+                    toAddr, std::make_pair(privKey, pubKey),
+                    nonce,  PRECISION_MIN_VALUE,
+                    1,      {},
+                    {}};
     txnOffsets.push_back(txnBuff.size());
     if (!Messenger::SetTransaction(txnBuff, txnBuff.size(), txn)) {
       std::cout << "Messenger::SetTransaction failed." << std::endl;
