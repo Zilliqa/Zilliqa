@@ -54,8 +54,9 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   // FIXME: Handle exceptions.
   DSBlock dsBlock(
       DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
-                    genesisBlockNumer, genesisEpochNumer, genesisTimestamp,
-                    SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
+                    genesisBlockNumer, genesisEpochNumer, PRECISION_MIN_VALUE,
+                    genesisTimestamp, SWInfo(), powDSWinners, DSBlockHashSet(),
+                    CommitteeHash()),
       CoSignatures());
   dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;
