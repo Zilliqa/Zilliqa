@@ -17,6 +17,7 @@
  * program files.
  */
 #include "Constants.h"
+#include "libUtils/SafeMath.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -228,9 +229,12 @@ const unsigned int MICROBLOCK_GAS_LIMIT{
 const unsigned int CONTRACT_CREATE_GAS{ReadFromGasFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{ReadFromGasFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromGasFile("NORMAL_TRAN_GAS")};
-const unsigned int GAS_CONGESTION_PERCENT{ReadFromGasFile("GAS_CONGESTION_PERCENT")};
-const unsigned int UNFILLED_PERCENT_LOW{ReadFromGasFile("UNFILLED_PERCENT_LOW")};
-const unsigned int UNFILLED_PERCENT_HIGH{ReadFromGasFile("UNFILLED_PERCENT_HIGH")};
+const unsigned int GAS_CONGESTION_PERCENT{
+    ReadFromGasFile("GAS_CONGESTION_PERCENT")};
+const unsigned int UNFILLED_PERCENT_LOW{
+    ReadFromGasFile("UNFILLED_PERCENT_LOW")};
+const unsigned int UNFILLED_PERCENT_HIGH{
+    ReadFromGasFile("UNFILLED_PERCENT_HIGH")};
 const unsigned int GAS_PRICE_PRECISION{ReadFromGasFile("GAS_PRICE_PRECISION")};
 const unsigned int GAS_PRICE_DROP_RATIO{
     ReadFromGasFile("GAS_PRICE_DROP_RATIO")};
@@ -240,7 +244,8 @@ const unsigned int GAS_PRICE_TOLERANCE{ReadFromGasFile("GAS_PRICE_TOLERANCE")};
 const unsigned int MEAN_GAS_PRICE_DS_NUM{
     ReadFromConstantsFile("MEAN_GAS_PRICE_DS_NUM")};
 const boost::multiprecision::uint256_t PRECISION_MIN_VALUE{
-    std::pow(10, GAS_PRICE_PRECISION)};
+    SafeMath<boost::multiprecision::uint256_t>::critical_pow(
+        10, GAS_PRICE_PRECISION)};
 
 // accounts
 const std::vector<std::string> GENESIS_WALLETS{

@@ -41,6 +41,55 @@ class SafeMath {
     return true;
   }
 
+  static bool pow(const T& a, const T& b, T& result) {
+    if (b == 0) {
+      result = 1;
+      return true;
+    }
+
+    if (b < 0) {
+      LOG_GENERAL(WARNING, "Doesn't support pow with negative index");
+      return false;
+    }
+
+    T temp = a, count = b;
+
+    while (count > 0) {
+      if (!SafeMath::mul(temp, a, temp)) {
+        LOG_GENERAL(WARNING, "SafeMath::pow failed");
+        return false;
+      }
+      --count;
+    }
+
+    result = temp;
+    return true;
+  }
+
+  // be careful when using
+  static T critical_pow(const T& a, const T& b) {
+    if (b == 0) {
+      return 1;
+    }
+
+    if (b < 0) {
+      LOG_GENERAL(WARNING, "Doesn't support pow with negative index");
+      return 0;
+    }
+
+    T ret = a, count = b;
+
+    while (count > 0) {
+      if (!SafeMath::mul(ret, a, ret)) {
+        LOG_GENERAL(FATAL, "SafeMath::pow failed ret: " << ret << " a " << a);
+        return ret;
+      }
+      --count;
+    }
+
+    return ret;
+  }
+
   static bool div(const T& a, const T& b, T& result) {
     if (b == 0) {
       LOG_GENERAL(WARNING, "Denominator cannot be zero!");
