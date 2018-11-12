@@ -380,7 +380,7 @@ bool DirectoryService::VerifyPoWOrdering(
                                    << MISORDER_TOLERANCE << " = "
                                    << MAX_MISORDER_NODE << " nodes.");
 
-  auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
+  auto sortedPoWSolns = SortPoWSoln(m_allPoWs, true);
   InjectPoWForDSNode(sortedPoWSolns,
                      m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
   if (DEBUG_LEVEL >= 5) {
@@ -610,16 +610,36 @@ void DirectoryService::ComputeTxnSharingAssignments(
   }
 }
 
-VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs) {
+VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
+                                              bool trimBeyondCommSize) {
   std::map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
   for (const auto& powsoln : mapOfPoWs) {
     PoWOrderSorter[powsoln.second.result] = powsoln.first;
   }
 
-  // Put it back to vector for easy manipilation and adjustment of the ordering
+  // Put it back to vector for easy manipulation and adjustment of the ordering
   VectorOfPoWSoln sortedPoWSolns;
-  for (const auto& kv : PoWOrderSorter) {
-    sortedPoWSolns.emplace_back(kv);
+  if (trimBeyondCommSize && (COMM_SIZE > 0)) {
+    const unsigned int numNodesTotal = PoWOrderSorter.size();
+    const unsigned int numNodesTrimmed =
+        (numNodesTotal < COMM_SIZE)
+            ? numNodesTotal
+            : numNodesTotal - (numNodesTotal % COMM_SIZE);
+
+    LOG_GENERAL(INFO, "Trimming the solutions sorted list from "
+                          << numNodesTotal << " to " << numNodesTrimmed
+                          << " to avoid going over COMM_SIZE " << COMM_SIZE);
+
+    unsigned int count = 0;
+    for (auto kv = PoWOrderSorter.begin();
+         (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
+         kv++, count++) {
+      sortedPoWSolns.emplace_back(*kv);
+    }
+  } else {
+    for (const auto& kv : PoWOrderSorter) {
+      sortedPoWSolns.emplace_back(kv);
+    }
   }
   return sortedPoWSolns;
 }
@@ -642,7 +662,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
   auto sortedDSPoWSolns = SortPoWSoln(m_allDSPoWs);
-  auto sortedPoWSolns = SortPoWSoln(m_allPoWs);
+  auto sortedPoWSolns = SortPoWSoln(m_allPoWs, true);
 
   map<PubKey, Peer> powDSWinners;
   MapOfPubKeyPoW dsWinnerPoWs;

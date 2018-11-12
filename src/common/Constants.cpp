@@ -39,6 +39,11 @@ unsigned int ReadFromConstantsFile(std::string propertyName) {
   return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
+unsigned int ReadFromTestsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.tests." + propertyName);
+}
+
 std::string ReadFromOptionsFile(std::string propertyName) {
   auto pt = PTree::GetInstance();
   return pt.get<std::string>("node.options." + propertyName);
@@ -159,8 +164,6 @@ const unsigned int FALLBACK_CHECK_INTERVAL{
     ReadFromConstantsFile("FALLBACK_CHECK_INTERVAL")};
 const unsigned int FALLBACK_EXTRA_TIME{
     ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
-const unsigned int FALLBACK_TEST_EPOCH{
-    ReadFromConstantsFile("FALLBACK_TEST_EPOCH")};
 const unsigned int MAX_ROUNDS_IN_BSTATE{
     ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
 const unsigned int MAX_ROUNDS_IN_CSTATE{
@@ -205,6 +208,11 @@ const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
 const unsigned int LOOKUP_REWARD_IN_PERECENT{
     ReadFromConstantsFile("LOOKUP_REWARD_IN_PERECENT")};
+
+#ifdef FALLBACK_TEST
+const unsigned int FALLBACK_TEST_EPOCH{
+    ReadFromTestsFile("FALLBACK_TEST_EPOCH")};
+#endif  // FALLBACK_TEST
 
 // options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};

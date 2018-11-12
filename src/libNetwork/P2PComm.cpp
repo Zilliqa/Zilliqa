@@ -61,7 +61,7 @@ P2PComm::BroadcastListFunc P2PComm::m_broadcast_list_retriever;
 struct hash_compare {
   bool operator()(const vector<unsigned char>& l,
                   const vector<unsigned char>& r) {
-    return equal(l.begin(), l.end(), r.begin());
+    return equal(l.begin(), l.end(), r.begin(), r.end());
   }
 };
 

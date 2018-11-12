@@ -182,6 +182,10 @@ class Messenger {
   static bool GetTransactionWithReceipt(
       const std::vector<unsigned char>& src, const unsigned int offset,
       TransactionWithReceipt& transactionWithReceipt);
+  static bool SetPeer(std::vector<unsigned char>& dst,
+                      const unsigned int offset, const Peer& peer);
+  static bool GetPeer(const std::vector<unsigned char>& src,
+                      const unsigned int offset, Peer& peer);
 
   // ============================================================================
   // Directory Service messages
@@ -208,13 +212,12 @@ class Messenger {
       std::vector<unsigned char>& dst, const unsigned int offset,
       const unsigned char microBlockType, const uint64_t epochNumber,
       const std::vector<MicroBlock>& microBlocks,
-      const std::vector<unsigned char>& stateDelta);
-  static bool GetDSMicroBlockSubmission(const std::vector<unsigned char>& src,
-                                        const unsigned int offset,
-                                        unsigned char& microBlockType,
-                                        uint64_t& epochNumber,
-                                        std::vector<MicroBlock>& microBlocks,
-                                        std::vector<unsigned char>& stateDelta);
+      const std::vector<std::vector<unsigned char>>& stateDeltas);
+  static bool GetDSMicroBlockSubmission(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      unsigned char& microBlockType, uint64_t& epochNumber,
+      std::vector<MicroBlock>& microBlocks,
+      std::vector<std::vector<unsigned char>>& stateDeltas);
 
   static bool SetDSDSBlockAnnouncement(
       std::vector<unsigned char>& dst, const unsigned int offset,
@@ -243,6 +246,7 @@ class Messenger {
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
       const std::pair<PrivKey, PubKey>& leaderKey, const TxBlock& txBlock,
+      const std::shared_ptr<MicroBlock>& microBlock,
       std::vector<unsigned char>& messageToCosign);
 
   static bool GetDSFinalBlockAnnouncement(
@@ -250,6 +254,7 @@ class Messenger {
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
       const PubKey& leaderKey, TxBlock& txBlock,
+      std::shared_ptr<MicroBlock>& microBlock,
       std::vector<unsigned char>& messageToCosign);
 
   static bool SetDSVCBlockAnnouncement(

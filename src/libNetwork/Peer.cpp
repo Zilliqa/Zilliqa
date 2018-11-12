@@ -20,6 +20,7 @@
 #include "Peer.h"
 #include <arpa/inet.h>
 #include "common/Constants.h"
+#include "libMessage/Messenger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -77,4 +78,9 @@ int Peer::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
     return -1;
   }
   return 0;
+}
+
+const uint32_t& Peer::GetListenPortHost() const { return m_listenPortHost; }
+const boost::multiprecision::uint128_t& Peer::GetIpAddress() const {
+  return m_ipAddress;
 }

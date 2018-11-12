@@ -39,6 +39,12 @@ message ProtoAccountStore
     repeated AddressAccount entries   = 3;
 }
 
+message ProtoPeer
+{
+    required ByteArray ipaddress    = 1;
+    required uint32 listenporthost  = 2;
+}
+
 message ProtoDSNode
 {
     required ByteArray pubkey = 1;
@@ -165,6 +171,15 @@ message ProtoTransactionWithReceipt
 {
     required ProtoTransaction transaction    = 1;
     required ProtoTransactionReceipt receipt = 2;
+}
+
+message ProtoSWInfo
+{
+    required uint32 major       = 1;
+    required uint32 minor       = 2;
+    required uint32 fix         = 3;
+    required uint64 upgradeds   = 4;
+    required uint32 commit      = 5;
 }
 
 message ProtoDSBlock
@@ -326,7 +341,7 @@ message DSMicroBlockSubmission
     required uint32 microblocktype       = 1; // only LSB used
     required uint64 epochnumber          = 2;
     repeated ProtoMicroBlock microblocks = 3;
-    optional bytes statedelta            = 4;
+    repeated bytes statedeltas           = 4;
 }
 
 message DSDSBlockAnnouncement
@@ -339,7 +354,8 @@ message DSDSBlockAnnouncement
 
 message DSFinalBlockAnnouncement
 {
-    required ProtoTxBlock txblock = 1;
+    required ProtoTxBlock txblock       = 1;
+    optional ProtoMicroBlock microblock = 2;
 }
 
 message DSVCBlockAnnouncement
