@@ -39,6 +39,12 @@ message ProtoAccountStore
     repeated AddressAccount entries   = 3;
 }
 
+message ProtoPeer
+{
+    required ByteArray ipaddress    = 1;
+    required uint32 listenporthost  = 2;
+}
+
 message ProtoDSNode
 {
     required ByteArray pubkey = 1;
