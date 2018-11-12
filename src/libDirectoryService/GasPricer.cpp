@@ -39,15 +39,15 @@ uint256_t DirectoryService::GetNewGasPrice() {
         m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetGasUsed();
     uint256_t gasLimit =
         m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetGasLimit();
-    if (gasUsed >= gasLimit * GAS_CONGESTION_RATE / 100) {
+    if (gasUsed >= gasLimit * GAS_CONGESTION_PERCENT / 100) {
       fullBlockNum++;
     }
     totalBlockNum++;
   }
 
-  if (fullBlockNum < totalBlockNum * UNFILLED_RATIO_LOW / 100) {
+  if (fullBlockNum < totalBlockNum * UNFILLED_PERCENT_LOW / 100) {
     return GetDecreasedGasPrice();
-  } else if (fullBlockNum > totalBlockNum * UNFILLED_RATIO_HIGH / 100) {
+  } else if (fullBlockNum > totalBlockNum * UNFILLED_PERCENT_HIGH / 100) {
     return GetIncreasedGasPrice();
   }
   return max(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
