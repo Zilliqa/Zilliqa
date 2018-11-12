@@ -255,7 +255,7 @@ void DirectoryService::InitCoinbase() {
 
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
-  uint256_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERECENT;
+  uint256_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERCENT;
   uint256_t nodeReward = total_reward - lookupReward;
   uint256_t reward_each;
   uint256_t reward_each_lookup;
