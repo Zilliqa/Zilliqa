@@ -806,6 +806,8 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
   protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
   protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       dsBlockHeader.GetTimestamp(), *protoDSBlockHeader.mutable_timestamp());
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
                                   *protoDSBlockHeader.mutable_swinfo());
@@ -853,7 +855,7 @@ void ProtobufToDSBlockHeader(
     DSBlockHeader& dsBlockHeader) {
   BlockHash prevHash;
   PubKey leaderPubKey;
-  uint256_t timestamp;
+  uint256_t gasprice, timestamp;
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
@@ -864,6 +866,8 @@ void ProtobufToDSBlockHeader(
        prevHash.asArray().begin());
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoDSBlockHeader.gasprice(), gasprice);
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoDSBlockHeader.timestamp(), timestamp);
   ProtobufByteArrayToSerializable(protoDSBlockHeader.swinfo(), swInfo);
@@ -906,11 +910,11 @@ void ProtobufToDSBlockHeader(
 
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
-                                protoDSBlockHeader.difficulty(), prevHash,
-                                leaderPubKey, protoDSBlockHeader.blocknum(),
-                                protoDSBlockHeader.epochnum(), timestamp,
-                                swInfo, powDSWinners, hash, committeeHash);
+  dsBlockHeader = DSBlockHeader(
+      protoDSBlockHeader.dsdifficulty(), protoDSBlockHeader.difficulty(),
+      prevHash, leaderPubKey, protoDSBlockHeader.blocknum(),
+      protoDSBlockHeader.epochnum(), gasprice, timestamp, swInfo, powDSWinners,
+      hash, committeeHash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {

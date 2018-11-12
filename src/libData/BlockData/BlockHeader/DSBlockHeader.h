@@ -41,6 +41,7 @@ class DSBlockHeader : public BlockHeaderBase {
   PubKey m_leaderPubKey;   // The one who proposed this DS block
   uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum;
+  boost::multiprecision::uint256_t m_gasPrice;
   boost::multiprecision::uint256_t m_timestamp;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
@@ -57,6 +58,7 @@ class DSBlockHeader : public BlockHeaderBase {
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
                 const BlockHash& prevHash, const PubKey& leaderPubKey,
                 const uint64_t& blockNum, const uint64_t& epochNum,
+                const boost::multiprecision::uint256_t& gasPrice,
                 const boost::multiprecision::uint256_t& timestamp,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
@@ -89,6 +91,10 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Returns the number of epoch when block is mined
   const uint64_t& GetEpochNum() const;
+
+  /// Returns the number of global minimum gas price accepteable for the coming
+  /// epoch
+  const boost::multiprecision::uint256_t& GetGasPrice() const;
 
   /// Returns the Unix time at the time of creation of this block.
   const boost::multiprecision::uint256_t& GetTimestamp() const;

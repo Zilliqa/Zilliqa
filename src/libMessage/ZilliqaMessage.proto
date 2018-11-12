@@ -182,16 +182,17 @@ message ProtoDSBlock
         required ByteArray leaderpubkey = 4;
         required uint64 blocknum        = 5;
         required uint64 epochnum        = 6;
-        required ByteArray timestamp    = 7;
-        required ByteArray swinfo       = 8;
+        required ByteArray gasprice     = 7;
+        required ByteArray timestamp    = 8;
+        required ByteArray swinfo       = 9;
         message PowDSWinners
         {
             required ByteArray key      = 1;
             required ByteArray val      = 2;
         }
-        repeated PowDSWinners dswinners = 9;
-        required DSBlockHashSet hash    = 10;
-        required bytes committeehash    = 11;
+        repeated PowDSWinners dswinners = 10;
+        required DSBlockHashSet hash    = 11;
+        required bytes committeehash    = 12;
     }
     required DSBlockHeader header       = 1;
     required ProtoBlockBase blockbase   = 2;
