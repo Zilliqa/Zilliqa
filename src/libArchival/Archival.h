@@ -22,7 +22,7 @@
 
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
-#include "libDB/BaseDB.h"
+#include "libArchival/BaseDB.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/Peer.h"

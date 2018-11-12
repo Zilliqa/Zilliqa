@@ -114,7 +114,7 @@ void DirectoryService::LookupCoinbase(
 
   for (const auto& lookupNode : vecLookup) {
     LOG_GENERAL(INFO, " " << lookupNode.first);
-    m_coinbaseRewardees[epochNum][-2].push_back(
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
         Account::GetAddressFromPublicKey(lookupNode.first));
   }
 
@@ -142,7 +142,7 @@ void DirectoryService::LookupCoinbase(
       }
 
       const auto& lookupPubkey = vecLookup.at(lookupId).first;
-      m_coinbaseRewardees[epochNum][-2].push_back(
+      m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
           Account::GetAddressFromPublicKey(lookupPubkey));
     }
   }
@@ -161,7 +161,7 @@ void DirectoryService::LookupCoinbase(
     }
 
     const auto& lookupPubkey = vecLookup.at(lookupId).first;
-    m_coinbaseRewardees[epochNum][-2].push_back(
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
         Account::GetAddressFromPublicKey(lookupPubkey));
   }*/
 }
@@ -180,7 +180,8 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
   LOG_MARKER();
   LOG_GENERAL(INFO, "Save coin base for shardId: " << shard_id << ", epochNum: "
                                                    << epochNum);
-  if (shard_id == (int32_t)m_shards.size() || shard_id == -1) {
+  if (shard_id == (int32_t)m_shards.size() ||
+      shard_id == CoinbaseReward::FINALBLOCK_REWARD) {
     // DS
     lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);
@@ -203,23 +204,23 @@ void DirectoryService::InitCoinbase() {
 
   LOG_MARKER();
 
-  VectorOfLookupNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
+  const auto& vecLookup = m_mediator.m_lookup->GetLookupNodes();
   const auto& epochNum = m_mediator.m_currentEpochNum;
 
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
   for (const auto& lookupNode : vecLookup) {
-    m_coinbaseRewardees[epochNum][-2].push_back(
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
         Account::GetAddressFromPublicKey(lookupNode.first));
   }
 
-  if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW) {
+  if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW - 1) {
     LOG_GENERAL(INFO, "[CNBSE]"
-                          << "Less then expected rewardees "
+                          << "Less then expected epoch rewardees "
                           << m_coinbaseRewardees.size());
-  } else if (m_coinbaseRewardees.size() > NUM_FINAL_BLOCK_PER_POW) {
+  } else if (m_coinbaseRewardees.size() > NUM_FINAL_BLOCK_PER_POW - 1) {
     LOG_GENERAL(INFO, "[CNBSE]"
-                          << "More then expected rewardees "
+                          << "More then expected epoch rewardees "
                           << m_coinbaseRewardees.size());
   }
 
@@ -231,10 +232,10 @@ void DirectoryService::InitCoinbase() {
   Address genesisAccount(GENESIS_WALLETS[0]);
 
   uint256_t sig_count = 0;
-  uint64_t lookup_count = 0;
+  uint32_t lookup_count = 0;
   for (auto const& epochNum : m_coinbaseRewardees) {
     for (auto const& shardId : epochNum.second) {
-      if (shardId.first == -2) {
+      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
         lookup_count += shardId.second.size();
       } else {
         sig_count += shardId.second.size();
@@ -254,7 +255,7 @@ void DirectoryService::InitCoinbase() {
 
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
-  uint256_t lookupReward = (total_reward / 100) * LOOKUP_REWARD;
+  uint256_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERECENT;
   uint256_t nodeReward = total_reward - lookupReward;
   uint256_t reward_each;
   uint256_t reward_each_lookup;
@@ -280,7 +281,7 @@ void DirectoryService::InitCoinbase() {
 
     for (auto const& shardId : epochNum.second) {
       LOG_GENERAL(INFO, "[CNBSE] Rewarding " << shardId.first << " shard");
-      if (shardId.first == -2) {
+      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
         for (auto const& addr : shardId.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, genesisAccount, reward_each_lookup)) {

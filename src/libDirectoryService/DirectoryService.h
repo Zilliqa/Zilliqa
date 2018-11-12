@@ -69,6 +69,11 @@ struct PoWSolution {
   }
 };
 
+namespace CoinbaseReward {
+const int FINALBLOCK_REWARD = -1;
+const int LOOKUP_REWARD = -2;
+}  // namespace CoinbaseReward
+
 using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
 using MapOfPubKeyPoW = std::map<PubKey, PoWSolution>;

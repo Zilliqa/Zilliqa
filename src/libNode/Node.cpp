@@ -333,7 +333,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                                  .GetRewards());
     m_mediator.m_ds->SaveCoinbase(
         m_mediator.m_txBlockChain.GetBlock(blockNum).GetB1(),
-        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(), -1, blockNum + 1);
+        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(),
+        CoinbaseReward::FINALBLOCK_REWARD, blockNum + 1);
     m_mediator.m_ds->m_totalTxnFees +=
         m_mediator.m_txBlockChain.GetBlock(blockNum).GetHeader().GetRewards();
   }
