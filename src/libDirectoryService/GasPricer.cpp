@@ -24,12 +24,14 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void DirectoryService::CalculateGasPrice() {
+uint256_t DirectoryService::GetNewGasPrice() {
+  LOG_MARKER();
+
   uint64_t loBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
   uint64_t hiBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-  uint64_t totalBlockNum = hiBlockNum - loBlockNum + 1;
+  uint64_t totalBlockNum = 0;
   uint64_t fullBlockNum = 0;
 
   for (uint64_t i = loBlockNum; i <= hiBlockNum; ++i) {
@@ -40,22 +42,164 @@ void DirectoryService::CalculateGasPrice() {
     if (gasUsed >= gasLimit * GAS_CONGESTION_RATE / 100) {
       fullBlockNum++;
     }
+    totalBlockNum++;
   }
 
   if (fullBlockNum < totalBlockNum * UNFILLED_RATIO_LOW / 100) {
-    DecreaseGasPrice();
+    return GetDecreasedGasPrice();
   } else if (fullBlockNum > totalBlockNum * UNFILLED_RATIO_HIGH / 100) {
-    IncreaseGasPrice();
-  } else {
-    // remain unchanged
+    return GetIncreasedGasPrice();
   }
+  return max(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
+             PRECISION_MIN_VALUE);
 }
 
-void DirectoryService::IncreaseGasPrice() {
+uint256_t DirectoryService::GetHistoricalMeanGasPrice() {
+  uint64_t curDSBlockNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t lowDSBlockNum = (curDSBlockNum > MEAN_GAS_PRICE_DS_NUM)
+                               ? (curDSBlockNum - MEAN_GAS_PRICE_DS_NUM)
+                               : 0;
+  uint64_t totalBlockNum = 0;
+  uint256_t totalGasPrice = 0;
+  for (uint64_t i = curDSBlockNum; i >= lowDSBlockNum;) {
+    if (!SafeMath<uint256_t>::add(
+            totalGasPrice,
+            m_mediator.m_dsBlockChain.GetBlock(i).GetHeader().GetGasPrice(),
+            totalGasPrice)) {
+      break;
+    }
+    totalBlockNum++;
+    if (i == 0) {
+      break;
+    }
+    i--;
+  }
+  uint256_t ret;
+  if (!SafeMath<uint256_t>::div(totalGasPrice, totalBlockNum, ret)) {
+    return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+  }
+  return ret;
+}
+
+uint256_t DirectoryService::GetIncreasedGasPrice() {
+  LOG_MARKER();
+
+  uint256_t mean_val = GetHistoricalMeanGasPrice();
+  uint256_t upperbound;
+  bool smflag = true;  // SafeMath Flag
+  // increased value = (PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO) /
+  // PRECISION_MIN_VALUE * mean_val
+  if (!SafeMath<uint256_t>::mul(
+          mean_val, PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO, upperbound)) {
+    smflag = false;
+  }
+  if (smflag &&
+      !SafeMath<uint256_t>::div(upperbound, PRECISION_MIN_VALUE, upperbound)) {
+    smflag = false;
+  }
+  if (!smflag) {
+    upperbound = mean_val;
+  }
+
   multiset<uint256_t> gasProposals;
   for (const auto& soln : m_allDSPoWs) {
-    gasProposals.emplace(soln.second.gasprice);
+    if (soln.second.gasprice <= upperbound) {
+      gasProposals.emplace(soln.second.gasprice);
+    }
   }
+  if (gasProposals.empty()) {
+    return GetHistoricalMeanGasPrice();
+  }
+
+  // Get median value
+  const size_t n = gasProposals.size();
+  auto iter = gasProposals.cbegin();
+  std::advance(iter, n / 2);
+
+  uint256_t median_val;
+
+  if (n % 2 == 0) {
+    const auto iter2 = iter--;
+    median_val = (*iter + *iter2) / 2;
+  } else {
+    median_val = *iter;
+  }
+
+  return max(min(median_val, upperbound), PRECISION_MIN_VALUE);
 }
 
-void DirectoryService::DecreaseGasPrice() {}
+uint256_t DirectoryService::GetDecreasedGasPrice() {
+  LOG_MARKER();
+
+  uint256_t mean_val = GetHistoricalMeanGasPrice();
+  uint256_t decreased_val;
+
+  bool smflag = true;  // SafeMath Flag
+  // increased value = (PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO) /
+  // PRECISION_MIN_VALUE * mean_val
+  if (!SafeMath<uint256_t>::mul(mean_val,
+                                PRECISION_MIN_VALUE - GAS_PRICE_DROP_RATIO,
+                                decreased_val)) {
+    smflag = false;
+  }
+  if (smflag && !SafeMath<uint256_t>::div(decreased_val, PRECISION_MIN_VALUE,
+                                          decreased_val)) {
+    smflag = false;
+  }
+  if (!smflag) {
+    decreased_val = mean_val;
+  }
+
+  return max(PRECISION_MIN_VALUE, decreased_val);
+}
+
+bool DirectoryService::VerifyGasPrice(const uint256_t& gasPrice) {
+  LOG_MARKER();
+
+  uint256_t myGasPrice = GetNewGasPrice();
+
+  uint256_t allowedUpper, allowedLower;
+
+  bool smflag = true;  // SafeMath Flag
+  // allowedUpper = (PRECISION_MIN_VALUE + GAS_PRICE_TOLERANCE) /
+  // PRECISION_MIN_VALUE * myGasPrice
+  if (!SafeMath<uint256_t>::mul(myGasPrice,
+                                PRECISION_MIN_VALUE + GAS_PRICE_TOLERANCE,
+                                allowedUpper)) {
+    smflag = false;
+  }
+  if (smflag && !SafeMath<uint256_t>::div(allowedUpper, PRECISION_MIN_VALUE,
+                                          allowedUpper)) {
+    smflag = false;
+  }
+  if (!smflag) {
+    allowedUpper = gasPrice;
+  }
+
+  smflag = true;
+  // allowedLower = (PRECISION_MIN_VALUE - GAS_PRICE_TOLERANCE) /
+  // PRECISION_MIN_VALUE * myGasPrice
+  if (!SafeMath<uint256_t>::mul(myGasPrice,
+                                PRECISION_MIN_VALUE - GAS_PRICE_TOLERANCE,
+                                allowedLower)) {
+    smflag = false;
+  }
+  if (smflag && !SafeMath<uint256_t>::div(allowedLower, PRECISION_MIN_VALUE,
+                                          allowedLower)) {
+    smflag = false;
+  }
+  if (!smflag) {
+    allowedLower = gasPrice;
+  }
+
+  if ((gasPrice <= allowedUpper) && (gasPrice >= allowedLower)) {
+    return true;
+  }
+
+  LOG_GENERAL(WARNING, "Received: " << gasPrice
+                                    << " my calculated: " << myGasPrice
+                                    << ", allowedUpper: " << allowedUpper
+                                    << ", allowedLower: " << allowedLower);
+  return false;
+}

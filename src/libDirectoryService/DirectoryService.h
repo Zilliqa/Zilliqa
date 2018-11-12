@@ -226,9 +226,13 @@ class DirectoryService : public Executable, public Broadcastable {
   void ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns);
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers);
-  void CalculateGasPrice();
-  void IncreaseGasPrice();
-  void DecreaseGasPrice();
+
+  // Gas Pricer
+  boost::multiprecision::uint256_t GetNewGasPrice();
+  boost::multiprecision::uint256_t GetHistoricalMeanGasPrice();
+  boost::multiprecision::uint256_t GetDecreasedGasPrice();
+  boost::multiprecision::uint256_t GetIncreasedGasPrice();
+  bool VerifyGasPrice(const boost::multiprecision::uint256_t& gasPrice);
 
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
