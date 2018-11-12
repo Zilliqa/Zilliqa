@@ -18,6 +18,7 @@
  */
 
 #include "SWInfo.h"
+#include "libMessage/MessengerSWInfo.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -112,4 +113,9 @@ bool SWInfo::operator==(const SWInfo& r) const {
 /// Unequality operator.
 bool SWInfo::operator!=(const SWInfo& r) const { return !(*this == r); }
 
+/// Getters.
+const uint32_t& SWInfo::GetMajor() const { return m_major; };
+const uint32_t& SWInfo::GetMinor() const { return m_minor; };
+const uint32_t& SWInfo::GetFix() const { return m_fix; };
 const uint64_t& SWInfo::GetUpgradeDS() const { return m_upgradeDS; };
+const uint32_t& SWInfo::GetCommit() const { return m_commit; };

@@ -936,6 +936,28 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
   }
 
+  LOG_GENERAL(INFO, "TxnPool size before processing: " << m_createdTxns.size());
+
+#ifdef DM_TEST_DM_LESSTXN_ONE
+  if (m_mediator.m_ds->m_consensusMyID ==
+      ((m_mediator.m_ds->m_consensusLeaderID + 1) %
+       m_mediator.m_DSCommittee->size())) {
+    LOG_GENERAL(WARNING,
+                "Letting one of the backups accept less txns from lookup "
+                "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
+    return false;
+  }
+#endif  // DM_TEST_DM_LESSTXN_ONE
+
+#ifdef DM_TEST_DM_LESSTXN_ALL
+  if (m_mediator.m_ds->m_mode == DirectoryService::Mode::BACKUP_DS) {
+    LOG_GENERAL(WARNING,
+                "Letting all of the backups accept less txns from lookup "
+                "comparing to the leader (DM_TEST_DM_LESSTXN_ALL)");
+    return false;
+  }
+#endif  // DM_TEST_DM_LESSTXN_ALL
+
   // Process the txns
   unsigned int processed_count = 0;
 
@@ -963,7 +985,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     }
   }
 
-  LOG_GENERAL(INFO, "INSERTED TXN COUNT" << processed_count);
+  LOG_GENERAL(INFO, "Txn processed: " << processed_count
+                                      << " TxnPool size after processing: "
+                                      << m_createdTxns.size());
 
   LOG_STATE(
       "[TXNPKTPROC]["
@@ -1118,10 +1142,6 @@ bool Node::CleanVariables() {
     m_gasUsedTotal = 0;
     m_txnFees = 0;
   }
-  {
-    std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
-    m_processedTransactions.clear();
-  }
   // {
   //     std::lock_guard<mutex> lock(m_mutexCommittedTransactions);
   //     m_committedTransactions.clear();
@@ -1152,15 +1172,24 @@ void Node::SetMyshardId(uint32_t shardId) {
 }
 
 void Node::CleanCreatedTransaction() {
+  LOG_MARKER();
   {
     std::lock_guard<mutex> g(m_mutexCreatedTransactions);
     m_createdTxns.clear();
+    t_createdTxns.clear();
     m_addrNonceTxnMap.clear();
+    t_addrNonceTxnMap.clear();
   }
   {
     std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     m_txnPacketBuffer.clear();
   }
+  {
+    std::lock_guard<mutex> lock(m_mutexProcessedTransactions);
+    m_processedTransactions.clear();
+    t_processedTransactions.clear();
+  }
+  m_TxnOrder.clear();
 }
 
 bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,

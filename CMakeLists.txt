@@ -108,12 +108,38 @@ endif()
 
 if(VC_TEST_VC_PRECHECK_1)
     message(STATUS "VC 7 test enabled")
-	add_definitions(-DVC_TEST_VC_PRECHECK_1)
+    add_definitions(-DVC_TEST_VC_PRECHECK_1)
 endif()
 
 if(VC_TEST_VC_PRECHECK_2)
     message(STATUS "VC 8 test enabled")
-	add_definitions(-DVC_TEST_VC_PRECHECK_2)
+    add_definitions(-DVC_TEST_VC_PRECHECK_2)
+endif()
+
+# For Merging DSMB into FINALBLOCK
+if(DM_TEST_DM_LESSTXN_ONE)
+    message(STATUS "DM 1 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSTXN_ONE)
+endif()
+
+if(DM_TEST_DM_LESSTXN_ALL)
+    message(STATUS "DM 2 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSTXN_ALL)
+endif()
+
+if(DM_TEST_DM_LESSMB_ONE)
+    message(STATUS "DM 3 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSMB_ONE)
+endif()
+
+if(DM_TEST_DM_LESSMB_ALL)
+    message(STATUS "DM 4 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSMB_ALL)
+endif()
+
+if(DM_TEST_DM_BAD_ANNOUNCE)
+    message(STATUS "DM 5 test enabled")
+    add_definitions(-DDM_TEST_DM_BAD_ANNOUNCE)
 endif()
 
 include(FindProtobuf)

@@ -159,7 +159,6 @@ extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
 extern const unsigned int FALLBACK_CHECK_INTERVAL;
 extern const unsigned int FALLBACK_EXTRA_TIME;
-extern const unsigned int FALLBACK_TEST_EPOCH;
 extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MAX_ROUNDS_IN_BSTATE;
@@ -191,6 +190,10 @@ extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
 extern const unsigned int DEFAULT_MIN_GAS_PRICE;
+
+#ifdef FALLBACK_TEST
+extern const unsigned int FALLBACK_TEST_EPOCH;
+#endif  // FALLBACK_TEST
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;

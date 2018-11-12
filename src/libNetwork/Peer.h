@@ -68,6 +68,10 @@ struct Peer : public Serializable {
 
   /// Implements the Deserialize function inherited from Serializable.
   int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+
+  /// Getters.
+  const boost::multiprecision::uint128_t& GetIpAddress() const;
+  const uint32_t& GetListenPortHost() const;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Peer& p) {
