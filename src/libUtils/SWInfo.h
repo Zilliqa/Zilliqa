@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include "common/Serializable.h"
 
-class SWInfo : public Serializable {
+class SWInfo : public SerializableDataBlock {
   uint32_t m_major;
   uint32_t m_minor;
   uint32_t m_fix;
@@ -49,11 +49,10 @@ class SWInfo : public Serializable {
   SWInfo(const SWInfo&);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Less-than comparison operator.
   bool operator<(const SWInfo& r) const;

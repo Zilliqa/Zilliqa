@@ -27,7 +27,7 @@
 #include "common/Serializable.h"
 
 /// Stores IP information on a single Zilliqa peer.
-struct Peer : public Serializable {
+struct Peer : public SerializableDataBlock {
   /// Peer IP address (net-encoded)
   boost::multiprecision::uint128_t m_ipAddress;  // net-encoded
 
@@ -63,11 +63,10 @@ struct Peer : public Serializable {
   }
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Getters.
   const boost::multiprecision::uint128_t& GetIpAddress() const;
