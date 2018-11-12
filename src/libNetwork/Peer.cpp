@@ -20,6 +20,7 @@
 #include "Peer.h"
 #include <arpa/inet.h>
 #include "common/Constants.h"
+#include "libMessage/Messenger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -31,7 +32,7 @@ Peer::Peer(const uint128_t& ip_address, uint32_t listen_port_host)
 
 Peer::Peer(const vector<unsigned char>& src, unsigned int offset)
     : m_ipAddress(0), m_listenPortHost(0) {
-  if (Deserialize(src, offset) != 0) {
+  if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init Peer.");
   }
 }
@@ -58,23 +59,25 @@ const char* Peer::GetPrintableIPAddress() const {
   return inet_ntoa(serv_addr.sin_addr);
 }
 
-unsigned int Peer::Serialize(vector<unsigned char>& dst,
-                             unsigned int offset) const {
-  Serializable::SetNumber<uint128_t>(dst, offset, m_ipAddress, UINT128_SIZE);
-  Serializable::SetNumber<uint32_t>(dst, offset + UINT128_SIZE,
-                                    m_listenPortHost, sizeof(uint32_t));
+bool Peer::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
+  if (!Messenger::SetPeer(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::Peer failed.");
+    return false;
+  }
 
-  return UINT128_SIZE + sizeof(uint32_t);
+  return true;
 }
 
-int Peer::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
-  try {
-    m_ipAddress = Serializable::GetNumber<uint128_t>(src, offset, UINT128_SIZE);
-    m_listenPortHost = Serializable::GetNumber<uint32_t>(
-        src, offset + UINT128_SIZE, sizeof(uint32_t));
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Error with Peer::Deserialize." << ' ' << e.what());
-    return -1;
+bool Peer::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
+  if (!Messenger::GetPeer(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetSWInfo failed.");
+    return false;
   }
-  return 0;
+
+  return true;
+}
+
+const uint32_t& Peer::GetListenPortHost() const { return m_listenPortHost; }
+const boost::multiprecision::uint128_t& Peer::GetIpAddress() const {
+  return m_ipAddress;
 }
