@@ -40,8 +40,8 @@ Transaction createDummyTransaction() {
     toAddr.asArray().at(i) = i + 4;
   }
 
-  Transaction tx(1, 5, toAddr, Schnorr::GetInstance().GenKeyPair(), 55, 11, 22,
-                 {0x33}, {0x44});
+  Transaction tx(1, 5, toAddr, Schnorr::GetInstance().GenKeyPair(), 55,
+                 PRECISION_MIN_VALUE, 22, {0x33}, {0x44});
   return tx;
 }
 
