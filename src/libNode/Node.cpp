@@ -333,7 +333,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                                  .GetRewards());
     m_mediator.m_ds->SaveCoinbase(
         m_mediator.m_txBlockChain.GetBlock(blockNum).GetB1(),
-        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(), -1, blockNum + 1);
+        m_mediator.m_txBlockChain.GetBlock(blockNum).GetB2(),
+        CoinbaseReward::FINALBLOCK_REWARD, blockNum + 1);
     m_mediator.m_ds->m_totalTxnFees +=
         m_mediator.m_txBlockChain.GetBlock(blockNum).GetHeader().GetRewards();
   }
@@ -1020,7 +1021,9 @@ bool Node::ProcessProposeGasPrice(
     return false;
   }
 
-  lock_guard<mutex> g(m_mutexDSBlock);
+  lock(m_mutexDSBlock, m_mutexGasPrice);
+  lock_guard<mutex> g(m_mutexDSBlock, adopt_lock);
+  lock_guard<mutex> g2(m_mutexGasPrice, adopt_lock);
 
   uint256_t gasPriceProposal =
       Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);

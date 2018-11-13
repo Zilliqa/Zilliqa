@@ -304,7 +304,8 @@ bool DirectoryService::VerifyPoWWinner(
         bool result = POW::GetInstance().PoWVerify(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
-            peer.m_ipAddress, DSPowWinner.first, false, dsPowSoln.nonce,
+            peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
+            dsPowSoln.gasPrice, false, dsPowSoln.nonce,
             DataConversion::charArrToHexStr(dsPowSoln.result),
             DataConversion::charArrToHexStr(dsPowSoln.mixhash));
         if (!result) {
@@ -1119,6 +1120,11 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
 
   LOG_MARKER();
   SetState(DSBLOCK_CONSENSUS_PREP);
+
+  {
+    lock_guard<mutex> h(m_mutexCoinbaseRewardees);
+    m_coinbaseRewardees.clear();
+  }
 
   {
     lock_guard<mutex> g(m_mutexAllPOW);

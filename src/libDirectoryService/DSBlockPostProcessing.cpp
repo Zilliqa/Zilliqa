@@ -588,10 +588,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     }
   }
 
-  {
-    lock_guard<mutex> h(m_mutexCoinbaseRewardees);
-    m_coinbaseRewardees.clear();
-  }
   // Add the DS block to the chain
   StoreDSBlockToStorage();
 

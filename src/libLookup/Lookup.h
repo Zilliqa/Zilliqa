@@ -323,7 +323,7 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_MutexCVSetStateDeltaFromSeed;
   std::condition_variable cv_setStateDeltaFromSeed;
 
-  bool InitMining();
+  bool InitMining(uint32_t lookupIndex);
 
   /// To indicate which type of synchronization is using
   unsigned int m_syncType = SyncType::NO_SYNC;

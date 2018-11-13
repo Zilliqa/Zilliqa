@@ -22,9 +22,9 @@
 
 #include <deque>
 
+#include "libArchival/Archival.h"
+#include "libArchival/BaseDB.h"
 #include "libCrypto/Schnorr.h"
-#include "libDB/Archival.h"
-#include "libDB/BaseDB.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"

@@ -85,7 +85,8 @@ bool Node::GetLatestDSBlock() {
 bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand1,
-                    const array<unsigned char, UINT256_SIZE>& rand2) {
+                    const array<unsigned char, UINT256_SIZE>& rand2,
+                    const uint32_t lookupId) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -134,9 +135,12 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     DetachedFunction(1, func);
   }
 
+  lock_guard<mutex> g(m_mutexGasPrice);
+
   ethash_mining_result winning_result = POW::GetInstance().PoWMine(
       block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, FULL_DATASET_MINE);
+      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
+      FULL_DATASET_MINE);
 
   if (winning_result.success) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -160,6 +164,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
+
     if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
             winning_result.result, ds_difficulty)) {
       LOG_GENERAL(INFO,
@@ -169,7 +174,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       if (!SendPoWResultToDSComm(block_num, ds_difficulty,
                                  winning_result.winning_nonce,
                                  winning_result.result, winning_result.mix_hash,
-                                 m_proposedGasPrice)) {
+                                 lookupId, m_proposedGasPrice)) {
         return false;
       }
     } else {
@@ -178,7 +183,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       if (!SendPoWResultToDSComm(block_num, difficulty,
                                  winning_result.winning_nonce,
                                  winning_result.result, winning_result.mix_hash,
-                                 m_proposedGasPrice)) {
+                                 lookupId, m_proposedGasPrice)) {
         return false;
       }
 
@@ -189,7 +194,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
           block_num, ds_difficulty, rand1, rand2,
           m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
-          FULL_DATASET_MINE);
+          lookupId, m_proposedGasPrice, FULL_DATASET_MINE);
 
       if (ds_pow_winning_result.success) {
         LOG_GENERAL(INFO,
@@ -201,7 +206,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         if (!SendPoWResultToDSComm(
                 block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
                 ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
-                m_proposedGasPrice)) {
+                lookupId, m_proposedGasPrice)) {
           return false;
         }
       } else {
@@ -224,16 +229,17 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const uint64_t winningNonce,
                                  const string& powResultHash,
                                  const string& powMixhash,
+                                 const uint32_t& lookupId,
                                  const uint256_t& gasPrice) {
   LOG_MARKER();
 
   vector<unsigned char> powmessage = {MessageType::DIRECTORY,
                                       DSInstructionType::POWSUBMISSION};
 
-  if (!Messenger::SetDSPoWSubmission(powmessage, MessageOffset::BODY, block_num,
-                                     difficultyLevel, m_mediator.m_selfPeer,
-                                     m_mediator.m_selfKey, winningNonce,
-                                     powResultHash, powMixhash, gasPrice)) {
+  if (!Messenger::SetDSPoWSubmission(
+          powmessage, MessageOffset::BODY, block_num, difficultyLevel,
+          m_mediator.m_selfPeer, m_mediator.m_selfKey, winningNonce,
+          powResultHash, powMixhash, lookupId, gasPrice)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSPoWSubmission failed.");
     return false;

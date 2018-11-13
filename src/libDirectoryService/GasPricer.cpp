@@ -104,8 +104,8 @@ uint256_t DirectoryService::GetIncreasedGasPrice() {
 
   multiset<uint256_t> gasProposals;
   for (const auto& soln : m_allDSPoWs) {
-    if (soln.second.gasprice <= upperbound) {
-      gasProposals.emplace(soln.second.gasprice);
+    if (soln.second.gasPrice <= upperbound) {
+      gasProposals.emplace(soln.second.gasPrice);
     }
   }
   if (gasProposals.empty()) {
