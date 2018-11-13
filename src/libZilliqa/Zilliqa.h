@@ -23,9 +23,9 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <vector>
 
+#include "libArchival/Archival.h"
+#include "libArchival/ArchiveDB.h"
 #include "libConsensus/ConsensusUser.h"
-#include "libDB/Archival.h"
-#include "libDB/ArchiveDB.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"

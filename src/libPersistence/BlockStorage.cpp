@@ -287,6 +287,16 @@ bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
   return (ret == 0);
 }
 
+bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
+  int ret = m_VCBlockDB->DeleteKey(blockhash);
+  return (ret == 0);
+}
+
+bool BlockStorage::DeleteFallbackBlock(const BlockHash& blockhash) {
+  int ret = m_fallbackBlockDB->DeleteKey(blockhash);
+  return (ret == 0);
+}
+
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
   int ret = m_txBlockchainDB->DeleteKey(blocknum);
@@ -408,6 +418,37 @@ bool BlockStorage::GetAllTxBodiesTmp(std::list<TxnHash>& txnHashes) {
   return true;
 }
 
+bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
+  LOG_MARKER();
+  leveldb::Iterator* it =
+      m_blockLinkDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string bns = it->key().ToString();
+    string blockString = it->value().ToString();
+    if (blockString.empty()) {
+      LOG_GENERAL(WARNING, "Lost one blocklink in the chain");
+      delete it;
+      return false;
+    }
+    BlockLink blcklink;
+    if (!Messenger::GetBlockLink(
+            vector<unsigned char>(blockString.begin(), blockString.end()), 0,
+            blcklink)) {
+      LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
+      delete it;
+      return false;
+    }
+    blocklinks.emplace_back(blcklink);
+    LOG_GENERAL(INFO, "Retrievd BlockLink Num:" << bns);
+  }
+  delete it;
+  if (blocklinks.empty()) {
+    LOG_GENERAL(INFO, "Disk has no blocklink");
+    return false;
+  }
+  return true;
+}
+
 bool BlockStorage::PutMetadata(MetaType type,
                                const std::vector<unsigned char>& data) {
   LOG_MARKER();
@@ -473,7 +514,14 @@ bool BlockStorage::GetDSCommittee(
   LOG_MARKER();
 
   unsigned int index = 0;
-  consensusLeaderID = stoul(m_dsCommitteeDB->Lookup(index++));
+  string strConsensusLeaderID = m_dsCommitteeDB->Lookup(index++);
+
+  if (strConsensusLeaderID.empty()) {
+    LOG_GENERAL(WARNING, "Cannot retrieve DS committee!");
+    return false;
+  }
+
+  consensusLeaderID = stoul(strConsensusLeaderID);
   LOG_GENERAL(INFO, "Retrieved DS leader ID: " << consensusLeaderID);
   string dataStr;
 
@@ -537,7 +585,14 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards,
   LOG_MARKER();
 
   unsigned int index = 0;
-  myshardId = stoul(m_shardStructureDB->Lookup(index++));
+  string strMyshardId = m_shardStructureDB->Lookup(index++);
+
+  if (strMyshardId.empty()) {
+    LOG_GENERAL(WARNING, "Cannot retrieve sharding structure!");
+    return false;
+  }
+
+  myshardId = stoul(strMyshardId);
   LOG_GENERAL(INFO, "Retrieved shard ID: " << myshardId);
   string dataStr = m_shardStructureDB->Lookup(index++);
   Messenger::ArrayToShardStructure(

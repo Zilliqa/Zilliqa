@@ -87,10 +87,10 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
       dsblock.GetBlockHash());
 }
 
-void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm) {
+void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm,
+                                       const DSBlock& dsblock) {
   LOG_MARKER();
-  const map<PubKey, Peer> NewDSMembers =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
+  const map<PubKey, Peer> NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
       dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
@@ -377,6 +377,8 @@ void Node::StartFirstTxEpoch() {
     P2PComm::GetInstance().InitializeRumorManager(peers);
   }
 
+  SetState(MICROBLOCK_CONSENSUS_PREP);
+
   auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
   DetachedFunction(1, main_func3);
@@ -558,7 +560,8 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   m_mediator.UpdateDSBlockRand();  // Update the rand1 value for next PoW
-  UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee);
+  UpdateDSCommiteeComposition(*m_mediator.m_DSCommittee,
+                              m_mediator.m_dsBlockChain.GetLastBlock());
 
   if (!LOOKUP_NODE_MODE) {
     uint32_t ds_size = m_mediator.m_DSCommittee->size();
@@ -603,9 +606,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
       // Process txn sharing assignments as a DS node
       m_mediator.m_ds->ProcessTxnBodySharingAssignment();
-
-      //(We're getting rid of this eventually Clean up my txns coz I am DS)
-      m_mediator.m_node->CleanCreatedTransaction();
 
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);

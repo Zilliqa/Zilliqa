@@ -39,6 +39,12 @@ message ProtoAccountStore
     repeated AddressAccount entries   = 3;
 }
 
+message ProtoPeer
+{
+    required ByteArray ipaddress    = 1;
+    required uint32 listenporthost  = 2;
+}
+
 message ProtoDSNode
 {
     required ByteArray pubkey = 1;
@@ -47,9 +53,11 @@ message ProtoDSNode
 
 message ProtoPoWSolution
 {
-    required uint64 nonce  = 1;
-    required bytes result  = 2;
-    required bytes mixhash = 3;
+    required uint64 nonce     = 1;
+    required bytes result     = 2;
+    required bytes mixhash    = 3;
+    required uint32 lookupid  = 4;
+    required uint32 gasprice  = 5;
 }
 
 message ProtoDSCommittee
@@ -163,6 +171,15 @@ message ProtoTransactionWithReceipt
 {
     required ProtoTransaction transaction    = 1;
     required ProtoTransactionReceipt receipt = 2;
+}
+
+message ProtoSWInfo
+{
+    required uint32 major       = 1;
+    required uint32 minor       = 2;
+    required uint32 fix         = 3;
+    required uint64 upgradeds   = 4;
+    required uint32 commit      = 5;
 }
 
 message ProtoDSBlock
@@ -312,6 +329,8 @@ message DSPoWSubmission
         required uint64 nonce              = 5;
         required string resultinghash      = 6;
         required string mixhash            = 7;
+        required uint32 lookupid           = 8;
+        required uint32 gasprice           = 9;
     }
     required Data data                     = 1;
     required ByteArray signature           = 2;
@@ -322,7 +341,7 @@ message DSMicroBlockSubmission
     required uint32 microblocktype       = 1; // only LSB used
     required uint64 epochnumber          = 2;
     repeated ProtoMicroBlock microblocks = 3;
-    optional bytes statedelta            = 4;
+    repeated bytes statedeltas           = 4;
 }
 
 message DSDSBlockAnnouncement
@@ -335,7 +354,8 @@ message DSDSBlockAnnouncement
 
 message DSFinalBlockAnnouncement
 {
-    required ProtoTxBlock txblock = 1;
+    required ProtoTxBlock txblock       = 1;
+    optional ProtoMicroBlock microblock = 2;
 }
 
 message DSVCBlockAnnouncement
@@ -724,8 +744,6 @@ message ProtoSingleDirectoryBlock
     }
 }
     
-
-
 message LookupGetDirectoryBlocksFromSeed
 {
     required uint32 portno      = 1;
@@ -738,3 +756,25 @@ message LookupSetDirectoryBlocksFromSeed
     repeated ProtoSingleDirectoryBlock dirblocks = 2;
 }
 
+// ============================================================================
+// View change pre check messages
+// ============================================================================
+
+// From node undergoing vc pre check to fetch latest blocks
+message LookupGetDSTxBlockFromSeed
+{
+    required uint64 dslowblocknum            = 1;
+    required uint64 dshighblocknum           = 2;
+    required uint64 txlowblocknum            = 3;
+    required uint64 txhighblocknum           = 4;
+    required uint32 listenport               = 5;
+}
+
+// From lookup nodes to node under going vc pre check
+message VCNodeSetDSTxBlockFromSeed
+{
+    repeated ProtoDSBlock dsblocks   = 1;
+    repeated ProtoTxBlock txblocks   = 2;
+    required ByteArray pubkey        = 3;
+    required ByteArray signature     = 4;
+}

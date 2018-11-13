@@ -104,6 +104,7 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 const std::string dsNodeFile = "dsnodes.xml";
 
 extern const std::string SCILLA_ROOT;
+extern const std::string SCILLA_CHECKER;
 extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;
 extern const std::string SCILLA_LOG;
@@ -130,6 +131,7 @@ extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
 extern const unsigned int MICROBLOCK_TIMEOUT;
 extern const unsigned int VIEWCHANGE_TIME;
+extern const unsigned int VIEWCHANGE_PRECHECK_TIME;
 extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
@@ -157,7 +159,6 @@ extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
 extern const unsigned int FALLBACK_CHECK_INTERVAL;
 extern const unsigned int FALLBACK_EXTRA_TIME;
-extern const unsigned int FALLBACK_TEST_EPOCH;
 extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MAX_ROUNDS_IN_BSTATE;
@@ -181,6 +182,7 @@ extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int NUM_CONSENSUS_SUBSETS;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
+extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
@@ -188,6 +190,10 @@ extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
 extern const unsigned int DEFAULT_MIN_GAS_PRICE;
+
+#ifdef FALLBACK_TEST
+extern const unsigned int FALLBACK_TEST_EPOCH;
+#endif  // FALLBACK_TEST
 
 extern const bool TEST_NET_MODE;
 extern const bool EXCLUDE_PRIV_IP;
