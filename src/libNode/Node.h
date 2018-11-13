@@ -532,7 +532,7 @@ class Node : public Executable, public Broadcastable {
   void CommitTxnPacketBuffer();
 
   /// Used by oldest DS node to configure sharding variables as a new shard node
-  bool LoadShardingStructure();
+  bool LoadShardingStructure(bool callByRetrieve = false);
 
   /// Used by oldest DS node to configure txn sharing assignments as a new shard
   /// node
