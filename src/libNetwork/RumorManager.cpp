@@ -389,23 +389,31 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
       sha256.Update(message);  // raw_message hash
       hash = sha256.Finalize();
-      LOG_PAYLOAD(
-          INFO,
-          "New Gossip Raw message received from Peer: "
-              << from << ". [ RumorId: " << recvdRumorId
-              << ", Current Round: " << round << ", Gossip_Message_Hash: "
-              << DataConversion::Uint8VecToHexStr(hash).substr(0, 6) << " ]",
-          message, Logger::MAX_BYTES_TO_DISPLAY);
 
       auto it1 = m_rumorIdHashBimap.right.find(message);
       if (it1 == m_rumorIdHashBimap.right.end()) {
         recvdRumorId = it1->second;
       }
 
-      toBeDispatched =
-          m_rumorHashRawMsgBimap
+      // toBeDispatched
+      if (m_rumorHashRawMsgBimap
               .insert(RumorHashRumorBiMap::value_type(hash, message))
-              .second;
+              .second) {
+        LOG_PAYLOAD(INFO,
+                    "New Gossip Raw message received from Peer: "
+                        << from << ", Gossip_Message_Hash: "
+                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
+                        << " ]",
+                    message, Logger::MAX_BYTES_TO_DISPLAY);
+        toBeDispatched = true;
+      } else {
+        LOG_PAYLOAD(DEBUG,
+                    "Old Gossip Raw message received from Peer: "
+                        << from << ", Gossip_Message_Hash: "
+                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
+                        << " ]",
+                    message, Logger::MAX_BYTES_TO_DISPLAY);
+      }
 
       // Do i have any peers subscribed with me for this hash.
       auto it2 = m_hashesSubscriberMap.find(hash);
@@ -467,8 +475,11 @@ void RumorManager::SendMessage(const Peer& toPeer,
         if (it2 != m_rumorHashRawMsgBimap.left.end()) {
           // Add raw message to outgoing message
           cmd.insert(cmd.end(), it2->second.begin(), it2->second.end());
-          LOG_GENERAL(INFO, "Sending Gossip Raw Message: "
-                                << message << " To Peer : " << toPeer);
+          LOG_GENERAL(
+              INFO,
+              "Sending Gossip Raw Message of Gossip_Message_Hash : ["
+                  << DataConversion::Uint8VecToHexStr(it1->second).substr(0, 6)
+                  << "] To Peer : " << toPeer);
         } else {
           // Nothing to send.
           return;
