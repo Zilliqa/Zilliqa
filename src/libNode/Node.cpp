@@ -1016,7 +1016,7 @@ bool Node::ProcessProposeGasPrice(
     return false;
   }
 
-  if (string(from.GetPrintableIPAddress()) != "127.0.0.1") {
+  if (string(from.GetPrintableIPAddress()) != LEGAL_GAS_PRICE_IP) {
     LOG_GENERAL(WARNING, "Sender " << from << " is not from localhost");
     return false;
   }

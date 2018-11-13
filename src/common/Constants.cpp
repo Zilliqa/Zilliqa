@@ -55,6 +55,11 @@ unsigned int ReadFromGasFile(std::string propertyName) {
   return pt.get<unsigned int>("node.gas." + propertyName);
 }
 
+std::string ReadFromGasFileInString(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.gas." + propertyName);
+}
+
 std::string ReadSmartContractConstants(std::string propertyName) {
   auto pt = PTree::GetInstance();
   return pt.get<std::string>("node.smart_contract." + propertyName);
@@ -250,14 +255,17 @@ const unsigned int UNFILLED_PERCENT_HIGH{
 const unsigned int GAS_PRICE_PRECISION{ReadFromGasFile("GAS_PRICE_PRECISION")};
 const unsigned int GAS_PRICE_DROP_RATIO{
     ReadFromGasFile("GAS_PRICE_DROP_RATIO")};
-const unsigned int GAS_PRICE_RAISE_RATIO{
-    ReadFromGasFile("GAS_PRICE_RAISE_RATIO")};
+const unsigned int GAS_PRICE_RAISE_RATIO_LOWER{
+    ReadFromGasFile("GAS_PRICE_RAISE_RATIO_LOWER")};
+const unsigned int GAS_PRICE_RAISE_RATIO_UPPER{
+    ReadFromGasFile("GAS_PRICE_RAISE_RATIO_UPPER")};
 const unsigned int GAS_PRICE_TOLERANCE{ReadFromGasFile("GAS_PRICE_TOLERANCE")};
 const unsigned int MEAN_GAS_PRICE_DS_NUM{
     ReadFromGasFile("MEAN_GAS_PRICE_DS_NUM")};
 const boost::multiprecision::uint256_t PRECISION_MIN_VALUE{
-    SafeMath<boost::multiprecision::uint256_t>::critical_pow(
-        10, GAS_PRICE_PRECISION)};
+    SafeMath<boost::multiprecision::uint256_t>::power(10, GAS_PRICE_PRECISION)};
+const std::string LEGAL_GAS_PRICE_IP{
+    ReadFromGasFileInString("LEGAL_GAS_PRICE_IP")};
 
 // accounts
 const std::vector<std::string> GENESIS_WALLETS{
