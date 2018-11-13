@@ -371,6 +371,7 @@ class Node : public Executable, public Broadcastable {
 
   // Proposed gas price
   boost::multiprecision::uint256_t m_proposedGasPrice;
+  std::mutex m_mutexGasPrice;
 
   // This process is newly invoked by shell from late node join script
   bool m_runFromLate = false;
@@ -512,7 +513,8 @@ class Node : public Executable, public Broadcastable {
   bool StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                 uint8_t difficulty,
                 const std::array<unsigned char, UINT256_SIZE>& rand1,
-                const std::array<unsigned char, UINT256_SIZE>& rand2);
+                const std::array<unsigned char, UINT256_SIZE>& rand2,
+                const uint32_t lookupId = uint32_t() - 1);
 
   /// Send PoW soln to DS Commitee
   bool SendPoWResultToDSComm(const uint64_t& block_num,
@@ -520,6 +522,7 @@ class Node : public Executable, public Broadcastable {
                              const uint64_t winningNonce,
                              const std::string& powResultHash,
                              const std::string& powMixhash,
+                             const uint32_t& lookupId,
                              const boost::multiprecision::uint256_t& gasPrice);
 
   /// Used by oldest DS node to configure shard ID as a new shard node
