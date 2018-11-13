@@ -139,6 +139,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   }
 
   uint32_t gasPrice = 0;  //[ToDo] Change this dummy value
+  bool sentToDs = false;
 
   ethash_mining_result winning_result = POW::GetInstance().PoWMine(
       block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
@@ -178,6 +179,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                  winning_result.result, winning_result.mix_hash,
                                  lookupId, gasPrice)) {
         return false;
+      } else {
+        sentToDs = true;
       }
     } else {
       // If solution does not meet targeted ds difficulty, send the initial
@@ -188,6 +191,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                  winning_result.result, winning_result.mix_hash,
                                  lookupId, gasPrice)) {
         return false;
+      } else {
+        sentToDs = true;
       }
 
       LOG_GENERAL(INFO,
@@ -211,6 +216,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                 ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
                 lookupId, gasPrice)) {
           return false;
+        } else {
+          sentToDs = true;
         }
       } else {
         LOG_GENERAL(INFO,
@@ -218,6 +225,28 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     "requirement");
       }
     }
+  }
+
+  if (sentToDs) {
+    auto func = [this]() mutable -> void {
+      unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
+      if (cv_waitDSBlock.wait_for(
+              lk,
+              chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                              FALLBACK_EXTRA_TIME)) == cv_status::timeout) {
+        LOG_GENERAL(WARNING, "Time out while waiting for DS Block");
+        if (GetLatestDSBlock()) {
+          LOG_GENERAL(INFO, "DS block created, means I lost PoW");
+          RejoinAsNormal();
+        } else {
+          LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
+        }
+      } else {
+        LOG_GENERAL(INFO, "[POWLOOSE]"
+                              << "Recvd ds block");
+      }
+    };
+    DetachedFunction(1, func);
   }
 
   if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
@@ -255,6 +284,8 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   }
 
   P2PComm::GetInstance().SendMessage(peerList, powmessage);
+  // StartTimeOut
+  // WAITING_DSBLOCK
 
   return true;
 }
