@@ -49,20 +49,30 @@ struct PoWSolution {
   uint64_t nonce;
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
+  uint32_t lookupId;
+  uint32_t gasPrice;
 
   PoWSolution()
       : nonce(0),
         result({{0}}),
-        mixhash({{0}}) {
+        mixhash({{0}}),
+        lookupId(uint32_t() - 1),
+        gasPrice(0) {
+
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
-              const std::array<unsigned char, 32>& m)
-      : nonce(n), result(r), mixhash(m) {}
+              const std::array<unsigned char, 32>& m, uint32_t l, uint32_t gp)
+      : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
     return (nonce == rhs.nonce) && (result == rhs.result) &&
            (mixhash == rhs.mixhash);
   }
 };
+
+namespace CoinbaseReward {
+const int FINALBLOCK_REWARD = -1;
+const int LOOKUP_REWARD = -2;
+}  // namespace CoinbaseReward
 
 using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
@@ -179,7 +189,7 @@ class DirectoryService : public Executable, public Broadcastable {
   uint32_t m_numOfAbsentMicroBlocks;
 
   // Coinbase
-  std::map<uint64_t, std::map<uint32_t, std::vector<Address>>>
+  std::map<uint64_t, std::map<int32_t, std::vector<Address>>>
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
@@ -235,6 +245,9 @@ class DirectoryService : public Executable, public Broadcastable {
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers);
 
+  void LookupCoinbase(const DequeOfShard& shards, const MapOfPubKeyPoW& allPow,
+                      const std::map<PubKey, Peer>& powDSWinner,
+                      const MapOfPubKeyPoW& dsPow);
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();

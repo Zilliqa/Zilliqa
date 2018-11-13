@@ -514,6 +514,8 @@ void AnnouncementShardingStructureToProtobuf(
                              soln->second.result.size());
       proto_soln->set_mixhash(soln->second.mixhash.data(),
                               soln->second.mixhash.size());
+      proto_soln->set_lookupid(soln->second.lookupId);
+      proto_soln->set_gasprice(soln->second.gasPrice);
     }
   }
 }
@@ -547,7 +549,9 @@ void ProtobufToShardingStructureAnnouncement(
                    (unsigned int)mixhash.size()),
            mixhash.begin());
       allPoWs.emplace(
-          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash));
+          key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
+                           proto_member.powsoln().lookupid(),
+                           proto_member.powsoln().gasprice()));
     }
   }
 }
@@ -2678,7 +2682,8 @@ bool Messenger::SetDSPoWSubmission(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint64_t blockNumber, const uint8_t difficultyLevel,
     const Peer& submitterPeer, const pair<PrivKey, PubKey>& submitterKey,
-    const uint64_t nonce, const string& resultingHash, const string& mixHash) {
+    const uint64_t nonce, const string& resultingHash, const string& mixHash,
+    const uint32_t& lookupId, const uint32_t& gasPrice) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2694,6 +2699,8 @@ bool Messenger::SetDSPoWSubmission(
   result.mutable_data()->set_nonce(nonce);
   result.mutable_data()->set_resultinghash(resultingHash);
   result.mutable_data()->set_mixhash(mixHash);
+  result.mutable_data()->set_lookupid(lookupId);
+  result.mutable_data()->set_gasprice(gasPrice);
 
   if (result.data().IsInitialized()) {
     vector<unsigned char> tmp(result.data().ByteSize());
@@ -2726,7 +2733,8 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
                                    uint8_t& difficultyLevel,
                                    Peer& submitterPeer, PubKey& submitterPubKey,
                                    uint64_t& nonce, string& resultingHash,
-                                   string& mixHash, Signature& signature) {
+                                   string& mixHash, Signature& signature,
+                                   uint32_t& lookupId, uint32_t& gasPrice) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2746,6 +2754,8 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
   nonce = result.data().nonce();
   resultingHash = result.data().resultinghash();
   mixHash = result.data().mixhash();
+  lookupId = result.data().lookupid();
+  gasPrice = result.data().gasprice();
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   vector<unsigned char> tmp(result.data().ByteSize());
@@ -2853,6 +2863,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
     proto_soln->set_nonce(soln.nonce);
     proto_soln->set_result(soln.result.data(), soln.result.size());
     proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
+    proto_soln->set_lookupid(soln.lookupId);
+    proto_soln->set_gasprice(soln.gasPrice);
   }
 
   if (!dsblock->IsInitialized()) {
@@ -2950,7 +2962,9 @@ bool Messenger::GetDSDSBlockAnnouncement(
                  (unsigned int)mixhash.size()),
          mixhash.begin());
     dsWinnerPoWs.emplace(
-        key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash));
+        key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
+                         protoDSWinnerPoW.powsoln().lookupid(),
+                         protoDSWinnerPoW.powsoln().gasprice()));
   }
 
   // Get the part of the announcement that should be co-signed during the first
