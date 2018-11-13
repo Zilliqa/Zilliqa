@@ -62,18 +62,17 @@ uint256_t DirectoryService::GetHistoricalMeanGasPrice() {
                                : 0;
   uint64_t totalBlockNum = 0;
   uint256_t totalGasPrice = 0;
-  for (uint64_t i = curDSBlockNum; i >= lowDSBlockNum;) {
+  for (uint64_t i = curDSBlockNum; i >= lowDSBlockNum; --i) {
+    if (i == 0) {
+      break;
+    }
     if (!SafeMath<uint256_t>::add(
             totalGasPrice,
             m_mediator.m_dsBlockChain.GetBlock(i).GetHeader().GetGasPrice(),
             totalGasPrice)) {
-      break;
+      continue;
     }
     totalBlockNum++;
-    if (i == 0) {
-      break;
-    }
-    i--;
   }
   uint256_t ret;
   if (!SafeMath<uint256_t>::div(totalGasPrice, totalBlockNum, ret)) {
@@ -86,12 +85,15 @@ uint256_t DirectoryService::GetIncreasedGasPrice() {
   LOG_MARKER();
 
   uint256_t mean_val = GetHistoricalMeanGasPrice();
-  uint256_t upperbound;
+  uint256_t lowerbound, upperbound;
   bool smflag = true;  // SafeMath Flag
-  // increased value = (PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO) /
+  // upperbound = (PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO_UPPER) /
+  // PRECISION_MIN_VALUE * mean_val lowerbound = (PRECISION_MIN_VALUE +
+  // ({GAS_PRICE_RAISE_RATIO_LOWER} or {UPPER/2} if {LOWER > UPPER})) /
   // PRECISION_MIN_VALUE * mean_val
   if (!SafeMath<uint256_t>::mul(
-          mean_val, PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO, upperbound)) {
+          mean_val, PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO_UPPER,
+          upperbound)) {
     smflag = false;
   }
   if (smflag &&
@@ -100,6 +102,13 @@ uint256_t DirectoryService::GetIncreasedGasPrice() {
   }
   if (!smflag) {
     upperbound = mean_val;
+    lowerbound = upperbound;
+  } else {
+    lowerbound = (PRECISION_MIN_VALUE +
+                  ((GAS_PRICE_RAISE_RATIO_LOWER <= GAS_PRICE_RAISE_RATIO_UPPER)
+                       ? GAS_PRICE_RAISE_RATIO_LOWER
+                       : (GAS_PRICE_RAISE_RATIO_UPPER / 2))) /
+                 PRECISION_MIN_VALUE * mean_val;
   }
 
   multiset<uint256_t> gasProposals;
@@ -126,7 +135,7 @@ uint256_t DirectoryService::GetIncreasedGasPrice() {
     median_val = *iter;
   }
 
-  return max(min(median_val, upperbound), PRECISION_MIN_VALUE);
+  return max(max(lowerbound, min(median_val, upperbound)), PRECISION_MIN_VALUE);
 }
 
 uint256_t DirectoryService::GetDecreasedGasPrice() {
@@ -136,7 +145,7 @@ uint256_t DirectoryService::GetDecreasedGasPrice() {
   uint256_t decreased_val;
 
   bool smflag = true;  // SafeMath Flag
-  // increased value = (PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO) /
+  // increased value = (PRECISION_MIN_VALUE + GAS_PRICE_RAISE_RATIO_UPPER) /
   // PRECISION_MIN_VALUE * mean_val
   if (!SafeMath<uint256_t>::mul(mean_val,
                                 PRECISION_MIN_VALUE - GAS_PRICE_DROP_RATIO,

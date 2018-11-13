@@ -41,7 +41,7 @@ class SafeMath {
     return true;
   }
 
-  static bool pow(const T& a, const T& b, T& result) {
+  static bool power(const T& a, const T& b, T& result) {
     if (b == 0) {
       result = 1;
       return true;
@@ -66,8 +66,7 @@ class SafeMath {
     return true;
   }
 
-  // be careful when using
-  static T critical_pow(const T& a, const T& b) {
+  static T power(const T& a, const T& b, bool isCritical = false) {
     if (b == 0) {
       return 1;
     }
@@ -81,7 +80,8 @@ class SafeMath {
 
     while (count > 0) {
       if (!SafeMath::mul(ret, a, ret)) {
-        LOG_GENERAL(FATAL, "SafeMath::pow failed ret: " << ret << " a " << a);
+        LOG_GENERAL(isCritical ? FATAL : WARNING,
+                    "SafeMath::pow failed ret: " << ret << " a " << a);
         return ret;
       }
       --count;

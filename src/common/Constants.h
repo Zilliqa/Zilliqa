@@ -193,10 +193,12 @@ extern const unsigned int UNFILLED_PERCENT_LOW;
 extern const unsigned int UNFILLED_PERCENT_HIGH;
 extern const unsigned int GAS_PRICE_PRECISION;
 extern const unsigned int GAS_PRICE_DROP_RATIO;
-extern const unsigned int GAS_PRICE_RAISE_RATIO;
+extern const unsigned int GAS_PRICE_RAISE_RATIO_UPPER;
+extern const unsigned int GAS_PRICE_RAISE_RATIO_LOWER;
 extern const unsigned int GAS_PRICE_TOLERANCE;
 extern const unsigned int MEAN_GAS_PRICE_DS_NUM;
 extern const boost::multiprecision::uint256_t PRECISION_MIN_VALUE;
+extern const std::string LEGAL_GAS_PRICE_IP;
 
 #ifdef FALLBACK_TEST
 extern const unsigned int FALLBACK_TEST_EPOCH;
