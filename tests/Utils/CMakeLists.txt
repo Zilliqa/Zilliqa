@@ -64,8 +64,8 @@ target_link_libraries (Test_SafeMath PUBLIC Utils)
 add_test(NAME Test_SafeMath COMMAND Test_SafeMath)
 
 add_executable(Test_ShardSizeCalculator Test_ShardSizeCalculator.cpp)
-target_include_directories(Test_ShardSizeCalculator PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_ShardSizeCalculator PUBLIC Utils)
+target_include_directories(Test_ShardSizeCalculator PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries (Test_ShardSizeCalculator PUBLIC Utils TestUtils)
 add_test(NAME Test_ShardSizeCalculator COMMAND Test_ShardSizeCalculator)
 
 add_executable(Test_UpgradeManager Test_UpgradeManager.cpp)
