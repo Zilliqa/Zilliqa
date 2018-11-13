@@ -33,6 +33,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/UpgradeManager.h"
 
 using namespace std;
 
@@ -222,6 +223,21 @@ void Node::ProcessFallbackConsensusWhenDone() {
                                                 my_shards_hi);
   m_mediator.m_ds->SendBlockToShardNodes(my_DS_cluster_num, my_shards_lo,
                                          my_shards_hi, fallbackblock_message);
+
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
+    if (m_mediator.GetIsVacuousEpoch() &&
+        m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
+            m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum()) {
+      auto func = [this]() mutable -> void {
+        UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+      };
+
+      DetachedFunction(1, func);
+    }
+  }
 }
 
 bool Node::ProcessFallbackConsensus(const vector<unsigned char>& message,

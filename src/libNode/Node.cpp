@@ -386,12 +386,12 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   bool res = false;
 
   if (st_result && ds_result && tx_result) {
-    if ((!LOOKUP_NODE_MODE && m_retriever->ValidateStates()) ||
-        (LOOKUP_NODE_MODE && m_retriever->ValidateStates() &&
-         m_retriever->CleanExtraTxBodies())) {
-      LOG_GENERAL(INFO, "RetrieveHistory Successed");
-      m_mediator.m_isRetrievedHistory = true;
-      res = true;
+    if (m_retriever->ValidateStates()) {
+      if (!LOOKUP_NODE_MODE || m_retriever->CleanExtraTxBodies()) {
+        LOG_GENERAL(INFO, "RetrieveHistory Successed");
+        m_mediator.m_isRetrievedHistory = true;
+        res = true;
+      }
     }
   }
 
