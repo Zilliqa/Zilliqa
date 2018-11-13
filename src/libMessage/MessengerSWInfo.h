@@ -16,32 +16,24 @@
  * src/depends and tests/depends and which include a reference to GPLv3 in their
  * program files.
  */
+#ifndef __MESSENGERSWINFO_H__
+#define __MESSENGERSWINFO_H__
 
-#ifndef __RETRIEVER_H__
-#define __RETRIEVER_H__
+#include <vector>
 
-#include <list>
-#include <map>
-#include <unordered_map>
+class SWInfo;
 
-#include "libData/AccountData/Account.h"
-#include "libData/AccountData/Address.h"
-#include "libMediator/Mediator.h"
-
-class Retriever {
+class MessengerSWInfo {
  public:
-  Retriever(Mediator& mediator);
+  // ============================================================================
+  // Primitives
+  // ============================================================================
 
-  void RetrieveDSBlocks(bool& result, const bool& wakeupForUpgrade);
-  void RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade);
-  void RetrieveBlockLink(bool& result, const bool& wakeupForUpgrade);
-  bool RetrieveStates();
-  bool ValidateStates();
-  bool CleanExtraTxBodies();
-  void CleanAll();
+  static bool GetSWInfo(const std::vector<unsigned char>& src,
+                        const unsigned int offset, SWInfo& swInfo);
 
- private:
-  Mediator& m_mediator;
+  static bool SetSWInfo(std::vector<unsigned char>& dst,
+                        const unsigned int offset, const SWInfo& swInfo);
 };
 
-#endif  // __RETRIEVER_H__
+#endif  // __MESSENGERSWINFO_H__

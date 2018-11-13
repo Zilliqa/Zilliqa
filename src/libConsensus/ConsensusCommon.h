@@ -72,6 +72,7 @@ class ConsensusCommon {
     FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
     FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
     FINALBLOCK_MBS_LEGITIMACY_ERROR,
+    INVALID_DS_MICROBLOCK,
     INVALID_MICROBLOCK_STATE_DELTA_HASH,
     INVALID_MICROBLOCK_SHARD_ID,
     INVALID_MICROBLOCK_TRAN_RECEIPT_HASH,
@@ -245,6 +246,8 @@ class ConsensusCommon {
 
   /// Returns a string representation of the current state
   std::string GetStateString() const;
+
+  virtual unsigned int GetNumForConsensusFailure() = 0;
 
   /// Return a string respresentation of the given state
   std::string GetStateString(const State state) const;

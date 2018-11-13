@@ -80,7 +80,7 @@ bool AccountStore::SerializeDelta() {
   m_stateDeltaSerialized.clear();
 
   if (!Messenger::SetAccountStoreDelta(m_stateDeltaSerialized, 0,
-                                       *m_accountStoreTemp)) {
+                                       *m_accountStoreTemp, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreDelta failed.");
     return false;
   }
@@ -291,10 +291,12 @@ void AccountStore::RevertCommitTemp() {
 
   // Revert changed
   for (auto const entry : m_addressToAccountRevChanged) {
+    // LOG_GENERAL(INFO, "Revert changed address: " << entry.first);
     (*m_addressToAccount)[entry.first] = entry.second;
     UpdateStateTrie(entry.first, entry.second);
   }
   for (auto const entry : m_addressToAccountRevCreated) {
+    // LOG_GENERAL(INFO, "Remove created address: " << entry.first);
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }

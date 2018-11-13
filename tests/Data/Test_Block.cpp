@@ -328,8 +328,8 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
       "0D3979DA06841562C90DE5212BE5EFCF88FAEA17118945B6B49D304DE295E407";
   std::vector<unsigned char> expectedVec =
       DataConversion::HexStrToUint8Vec(expectedStr);
-  bool is_prevHash_equal =
-      std::equal(byteVec.begin(), byteVec.end(), expectedVec.begin());
+  bool is_prevHash_equal = std::equal(byteVec.begin(), byteVec.end(),
+                                      expectedVec.begin(), expectedVec.end());
   BOOST_CHECK_MESSAGE(
       is_prevHash_equal == true,
       "expected: " << expectedStr
@@ -352,8 +352,8 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
       "4A740D0FA29B841C6D99B02892273F7D00518EF12DAFA2AD4D198E630789CF3B";
   expectedVec.clear();
   expectedVec = DataConversion::HexStrToUint8Vec(expectedStr);
-  bool is_txRootHash_equal =
-      std::equal(byteVec.begin(), byteVec.end(), expectedVec.begin());
+  bool is_txRootHash_equal = std::equal(byteVec.begin(), byteVec.end(),
+                                        expectedVec.begin(), expectedVec.end());
   BOOST_CHECK_MESSAGE(
       is_txRootHash_equal == true,
       "expected: " << expectedStr

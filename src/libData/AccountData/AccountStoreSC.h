@@ -64,6 +64,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   unsigned int m_curDepth = 0;
 
+  bool ParseContractCheckerOutput(const std::string& checkerPrint);
   bool ParseCreateContractOutput(boost::multiprecision::uint256_t& gasRemained,
                                  const std::string& runnerPrint);
   bool ParseCreateContractJsonOutput(
@@ -74,6 +75,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained);
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
+  std::string GetContractCheckerCmdStr();
   std::string GetCreateContractCmdStr(
       const boost::multiprecision::uint256_t& available_gas);
   std::string GetCallContractCmdStr(

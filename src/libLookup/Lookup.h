@@ -33,6 +33,7 @@
 #include "common/Executable.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
 #include "libDirectoryService/ShardStruct.h"
@@ -124,10 +125,10 @@ class Lookup : public Executable, public Broadcastable {
 
   std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
-  // Append time stamp to the message to avoid discarding due to same message
-  // hash
-  void AppendTimestamp(std::vector<unsigned char>& message,
-                       unsigned int& offset);
+  void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
+                        uint64_t& highBlockNum);
+  void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
+                        uint64_t& highBlockNum);
 
  public:
   /// Constructor.
@@ -297,6 +298,10 @@ class Lookup : public Executable, public Broadcastable {
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
 
+  bool ProcessVCGetLatestDSTxBlockFromSeed(
+      const std::vector<unsigned char>& message, unsigned int offset,
+      const Peer& from);
+
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
 
   static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
@@ -318,7 +323,7 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_MutexCVSetStateDeltaFromSeed;
   std::condition_variable cv_setStateDeltaFromSeed;
 
-  bool InitMining();
+  bool InitMining(uint32_t lookupIndex);
 
   /// To indicate which type of synchronization is using
   unsigned int m_syncType = SyncType::NO_SYNC;

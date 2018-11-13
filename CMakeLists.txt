@@ -47,14 +47,6 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
 
-include(InstallProtobuf)
-include(FindProtobuf)
-find_package(Protobuf 3.6.1 CONFIG REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIR})
-
-include(InstallGRPC)
-include_directories(${GRPC_INCLUDE_DIRS})
-
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
 endif()
@@ -114,6 +106,42 @@ if(VC_TEST_VC_SUSPEND_3)
 	add_definitions(-DVC_TEST_VC_SUSPEND_3)
 endif()
 
+if(VC_TEST_VC_PRECHECK_1)
+    message(STATUS "VC 7 test enabled")
+    add_definitions(-DVC_TEST_VC_PRECHECK_1)
+endif()
+
+if(VC_TEST_VC_PRECHECK_2)
+    message(STATUS "VC 8 test enabled")
+    add_definitions(-DVC_TEST_VC_PRECHECK_2)
+endif()
+
+# For Merging DSMB into FINALBLOCK
+if(DM_TEST_DM_LESSTXN_ONE)
+    message(STATUS "DM 1 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSTXN_ONE)
+endif()
+
+if(DM_TEST_DM_LESSTXN_ALL)
+    message(STATUS "DM 2 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSTXN_ALL)
+endif()
+
+if(DM_TEST_DM_LESSMB_ONE)
+    message(STATUS "DM 3 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSMB_ONE)
+endif()
+
+if(DM_TEST_DM_LESSMB_ALL)
+    message(STATUS "DM 4 test enabled")
+    add_definitions(-DDM_TEST_DM_LESSMB_ALL)
+endif()
+
+if(DM_TEST_DM_BAD_ANNOUNCE)
+    message(STATUS "DM 5 test enabled")
+    add_definitions(-DDM_TEST_DM_BAD_ANNOUNCE)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
@@ -137,7 +165,7 @@ set(CPACK_PACKAGE_VERSION $ENV{ZIL_VER})
 set(CPACK_PACKAGE_NAME $ENV{ZIL_PACK_NAME})
 set(CPACK_DEBIAN_PACKAGE_NAME "zilliqa")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-system-dev, libboost-filesystem-dev, libboost-test-dev, libssl-dev, libleveldb-dev, libjsoncpp-dev, libsnappy-dev, cmake, libmicrohttpd-dev, libjsonrpccpp-dev, build-essential, pkg-config, libevent-dev, libminiupnpc-dev, libprotobuf-dev, protobuf-compiler, libtool, autoconf, golang")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-system-dev, libboost-filesystem-dev, libboost-test-dev, libssl-dev, libleveldb-dev, libjsoncpp-dev, libsnappy-dev, cmake, libmicrohttpd-dev, libjsonrpccpp-dev, build-essential, pkg-config, libevent-dev, libminiupnpc-dev, libprotobuf-dev, protobuf-compiler")
 set(CPACK_PACKAGE_CONTACT "maintainers@zilliqa.com")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 

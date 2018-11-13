@@ -39,6 +39,11 @@ unsigned int ReadFromConstantsFile(std::string propertyName) {
   return pt.get<unsigned int>("node.constants." + propertyName);
 }
 
+unsigned int ReadFromTestsFile(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<unsigned int>("node.tests." + propertyName);
+}
+
 std::string ReadFromOptionsFile(std::string propertyName) {
   auto pt = PTree::GetInstance();
   return pt.get<std::string>("node.options." + propertyName);
@@ -109,6 +114,8 @@ const unsigned int POW_SUBMISSION_LIMIT{
 const unsigned int MICROBLOCK_TIMEOUT{
     ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
 const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
+const unsigned int VIEWCHANGE_PRECHECK_TIME{
+    ReadFromConstantsFile("VIEWCHANGE_PRECHECK_TIME")};
 const unsigned int VIEWCHANGE_EXTRA_TIME{
     ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
 const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
@@ -157,8 +164,6 @@ const unsigned int FALLBACK_CHECK_INTERVAL{
     ReadFromConstantsFile("FALLBACK_CHECK_INTERVAL")};
 const unsigned int FALLBACK_EXTRA_TIME{
     ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
-const unsigned int FALLBACK_TEST_EPOCH{
-    ReadFromConstantsFile("FALLBACK_TEST_EPOCH")};
 const unsigned int MAX_ROUNDS_IN_BSTATE{
     ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
 const unsigned int MAX_ROUNDS_IN_CSTATE{
@@ -201,6 +206,13 @@ const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
+const unsigned int LOOKUP_REWARD_IN_PERCENT{
+    ReadFromConstantsFile("LOOKUP_REWARD_IN_PERCENT")};
+
+#ifdef FALLBACK_TEST
+const unsigned int FALLBACK_TEST_EPOCH{
+    ReadFromTestsFile("FALLBACK_TEST_EPOCH")};
+#endif  // FALLBACK_TEST
 
 // options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
@@ -241,6 +253,8 @@ const std::vector<std::string> GENESIS_KEYS{
 
 // smart contract
 const std::string SCILLA_ROOT{ReadSmartContractConstants("SCILLA_ROOT")};
+const std::string SCILLA_CHECKER{SCILLA_ROOT + '/' +
+                                 ReadSmartContractConstants("SCILLA_CHECKER")};
 const std::string SCILLA_BINARY{SCILLA_ROOT + '/' +
                                 ReadSmartContractConstants("SCILLA_BINARY")};
 const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};

@@ -393,6 +393,7 @@ void DirectoryService::StartFirstTxEpoch() {
     std::lock_guard<mutex> lock(m_mutexMicroBlocks);
     m_microBlocks.clear();
     m_missingMicroBlocks.clear();
+    m_microBlockStateDeltas.clear();
     m_totalTxnFees = 0;
   }
 
@@ -456,7 +457,7 @@ void DirectoryService::StartFirstTxEpoch() {
                1
         << "] BEGIN");
 
-    m_dsStartedMicroblockConsensus = false;
+    m_stopRecvNewMBSubmission = false;
 
     if (BROADCAST_GOSSIP_MODE) {
       std::vector<Peer> peers;
@@ -489,23 +490,8 @@ void DirectoryService::StartFirstTxEpoch() {
                          1
                   << "] TIMEOUT: Didn't receive all Microblock.");
 
-        auto func = [this]() mutable -> void {
-          m_dsStartedMicroblockConsensus = true;
-          m_mediator.m_node->RunConsensusOnMicroBlock();
-        };
-
-        DetachedFunction(1, func);
-
-        std::unique_lock<std::mutex> cv_lk(m_MutexScheduleFinalBlockConsensus);
-        if (cv_scheduleFinalBlockConsensus.wait_for(
-                cv_lk,
-                std::chrono::seconds(DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT)) ==
-            std::cv_status::timeout) {
-          LOG_GENERAL(WARNING,
-                      "Timeout: Didn't finish DS Microblock. Proceeds "
-                      "without it");
-          RunConsensusOnFinalBlock(DirectoryService::REVERT_STATEDELTA);
-        }
+        m_stopRecvNewMBSubmission = true;
+        RunConsensusOnFinalBlock();
       }
     };
     DetachedFunction(1, func);
@@ -602,10 +588,6 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     }
   }
 
-  {
-    lock_guard<mutex> h(m_mutexCoinbaseRewardees);
-    m_coinbaseRewardees.clear();
-  }
   // Add the DS block to the chain
   StoreDSBlockToStorage();
 
