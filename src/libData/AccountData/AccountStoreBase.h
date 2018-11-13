@@ -20,7 +20,10 @@
 #ifndef __ACCOUNTSTOREBASE_H__
 #define __ACCOUNTSTOREBASE_H__
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 
 #include "Account.h"
 #include "Address.h"

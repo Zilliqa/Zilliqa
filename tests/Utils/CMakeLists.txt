@@ -70,7 +70,7 @@ add_test(NAME Test_ShardSizeCalculator COMMAND Test_ShardSizeCalculator)
 
 add_executable(Test_UpgradeManager Test_UpgradeManager.cpp)
 target_include_directories(Test_UpgradeManager PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_UpgradeManager PUBLIC Utils curl boost_system crypto AccountData Message)
+target_link_libraries (Test_UpgradeManager PUBLIC Utils curl OpenSSL::Crypto AccountData Message)
 
 # The network is unstable between Travis server & GitHub, thus disable Test_UpgradeManager to avoid potential Travis build failed.
 #add_test(NAME Test_UpgradeManager COMMAND Test_UpgradeManager)
