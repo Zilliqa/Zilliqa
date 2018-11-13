@@ -101,7 +101,7 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
   if (networkConfig.networkSize() != peers.size()) {
     LOG_GENERAL(
         FATAL,
-        "size of netoworkConfig does not match size of pees. networkConfig: "
+        "size of netoworkConfig does not match size of peers. networkConfig: "
             << networkConfig.networkSize() << " peers: " << peers.size());
   }
   toVector(peers);
@@ -138,7 +138,7 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
   if (networkConfig.networkSize() != peers.size()) {
     LOG_GENERAL(
         FATAL,
-        "size of netoworkConfig does not match size of pees. networkConfig: "
+        "size of netoworkConfig does not match size of peers. networkConfig: "
             << networkConfig.networkSize() << " peers: " << peers.size());
   }
   toVector(peers);
