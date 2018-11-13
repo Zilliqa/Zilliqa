@@ -246,7 +246,6 @@ void Lookup::SendMessageToRandomLookupNode(
   }
 
   int index = rand() % m_lookupNodes.size();
-
   P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
 }
 
@@ -370,6 +369,10 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
 
   vector<unsigned char> getTxBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ComposeGetTxBlockMessage for blocks " << lowBlockNum << " to "
+                                                   << highBlockNum);
 
   if (!Messenger::SetLookupGetTxBlockFromSeed(
           getTxBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,

@@ -31,6 +31,8 @@ using namespace std;
 #define VERSION_FILE_NAME "VERSION"
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
 #define CONSTANT_FILE_NAME "constants.xml"
+#define CONSTANT_LOOKUP_FILE_NAME "constants.xml_lookup"
+#define CONSTANT_ARCHIVAL_FILE_NAME "constants.xml_archival"
 #define PUBLIC_KEY_LENGTH 66
 #define PACKAGE_FILE_EXTENSION "deb"
 #define UPGRADE_HOST                                                      \
@@ -311,6 +313,20 @@ bool UpgradeManager::DownloadSW() {
     return false;
   }
 
+  m_constantLookupFileName = DownloadFile(CONSTANT_LOOKUP_FILE_NAME);
+
+  if (m_constantLookupFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download constant lookup file!");
+    return false;
+  }
+
+  m_constantArchivalFileName = DownloadFile(CONSTANT_ARCHIVAL_FILE_NAME);
+
+  if (m_constantArchivalFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download constant archival file!");
+    return false;
+  }
+
   LOG_GENERAL(INFO, "Constant file has been downloaded successfully.");
 
   m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
@@ -445,9 +461,19 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
                                               {'1'});
 
   /// Deploy downloaded software
-  boost::filesystem::copy_file(
-      m_constantFileName, CONSTANT_FILE_NAME,
-      boost::filesystem::copy_option::overwrite_if_exists);
+  if (LOOKUP_NODE_MODE) {
+    boost::filesystem::copy_file(
+        m_constantLookupFileName, CONSTANT_FILE_NAME,
+        boost::filesystem::copy_option::overwrite_if_exists);
+  } else if (ARCHIVAL_NODE) {
+    boost::filesystem::copy_file(
+        m_constantArchivalFileName, CONSTANT_FILE_NAME,
+        boost::filesystem::copy_option::overwrite_if_exists);
+  } else {
+    boost::filesystem::copy_file(
+        m_constantFileName, CONSTANT_FILE_NAME,
+        boost::filesystem::copy_option::overwrite_if_exists);
+  }
 
   /// TBD: The call of "dpkg" should be removed.
   /// (https://github.com/Zilliqa/Issues/issues/185)

@@ -628,7 +628,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       }
 
       m_mediator.m_ds->StartFirstTxEpoch();
-      return true;
     } else {
       // If I am a shard node
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
