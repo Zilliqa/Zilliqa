@@ -66,7 +66,7 @@ class SafeMath {
     return true;
   }
 
-  // if isCritical is true then will call LOG FATAL, 
+  // if isCritical is true then will call LOG FATAL,
   // Now only used for declare constant variable in Constants.cpp
   static T power(const T& a, const T& b, bool isCritical = false) {
     if (b == 0) {
