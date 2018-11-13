@@ -23,7 +23,10 @@
 #include "Peer.h"
 #include "common/Constants.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <functional>
 #include <mutex>
 #include <unordered_map>
