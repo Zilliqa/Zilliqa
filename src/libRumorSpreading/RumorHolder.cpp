@@ -20,7 +20,6 @@
 #include "RumorHolder.h"
 #include "libUtils/Logger.h"
 
-#include <cassert>
 #include <random>
 
 #define LITERAL(s) #s
@@ -99,7 +98,12 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
       m_nextMemberCb(),
       m_statistics(),
       m_maxNeighborsPerRound(1) {
-  assert(networkConfig.networkSize() == peers.size());
+  if (networkConfig.networkSize() != peers.size()) {
+    LOG_GENERAL(
+        FATAL,
+        "size of netoworkConfig does not match size of pees. networkConfig: "
+            << networkConfig.networkSize() << " peers: " << peers.size());
+  }
   toVector(peers);
 }
 
@@ -131,7 +135,12 @@ RumorHolder::RumorHolder(const std::unordered_set<int>& peers,
       m_nextMemberCb(cb),
       m_statistics(),
       m_maxNeighborsPerRound(1) {
-  assert(networkConfig.networkSize() == peers.size());
+  if (networkConfig.networkSize() != peers.size()) {
+    LOG_GENERAL(
+        FATAL,
+        "size of netoworkConfig does not match size of pees. networkConfig: "
+            << networkConfig.networkSize() << " peers: " << peers.size());
+  }
   toVector(peers);
 }
 
