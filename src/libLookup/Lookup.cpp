@@ -1487,10 +1487,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 
   LOG_MARKER();
 
-  if (AlreadyJoinedNetwork()) {
-    return true;
-  }
-
   unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
   uint64_t lowBlockNum;
@@ -1519,7 +1515,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I already have the block");
   } else {
-    if (m_syncType == SyncType::NO_SYNC) {
+    if (AlreadyJoinedNetwork()) {
       m_fetchedLatestDSBlock = true;
       cv_latestDSBlock.notify_all();
       return true;
