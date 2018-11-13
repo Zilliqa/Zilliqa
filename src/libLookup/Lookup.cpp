@@ -1745,8 +1745,8 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
   }
   m_mediator.m_ds->SaveCoinbase(
       m_mediator.m_txBlockChain.GetLastBlock().GetB1(),
-      m_mediator.m_txBlockChain.GetLastBlock().GetB2(), -1,
-      m_mediator.m_currentEpochNum);
+      m_mediator.m_txBlockChain.GetLastBlock().GetB2(),
+      CoinbaseReward::FINALBLOCK_REWARD, m_mediator.m_currentEpochNum);
   cv_setStateDeltaFromSeed.notify_all();
   return true;
 }
@@ -2014,7 +2014,7 @@ bool Lookup::CheckStateRoot() {
   }
 }
 
-bool Lookup::InitMining() {
+bool Lookup::InitMining(uint32_t lookupIndex) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -2057,7 +2057,7 @@ bool Lookup::InitMining() {
         curDsBlockNum + 1,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty(),
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
-        dsBlockRand, txBlockRand);
+        dsBlockRand, txBlockRand, lookupIndex);
   } else {
     LOG_GENERAL(WARNING, "State root check failed");
     return false;
@@ -2390,14 +2390,22 @@ bool Lookup::ProcessSetStartPoWFromSeed(
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  auto vecLookupNodes = GetLookupNodes();
+  auto it = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
+                         [&lookupPubKey](const std::pair<PubKey, Peer>& node) {
+                           return node.first == lookupPubKey;
+                         });
+  uint32_t index;
+  if (it != vecLookupNodes.cend()) {
+    index = distance(vecLookupNodes.cbegin(), it);
+  } else {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
     return false;
   }
 
-  InitMining();
+  InitMining(index);
 
   if (m_syncType == SyncType::DS_SYNC) {
     if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
