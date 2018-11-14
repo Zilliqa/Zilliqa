@@ -97,8 +97,8 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
   uint8_t type = DistUint8();
   uint32_t version = DistUint32();
   uint32_t shardId = DistUint32();
-  uint256_t gasLimit = DistUint32();
-  uint256_t gasUsed = DistUint32();
+  uint64_t gasLimit = DistUint32();
+  uint64_t gasUsed = DistUint32();
   uint256_t rewards = DistUint32();
   BlockHash prevHash;
   uint64_t epochNum = DistUint32();
@@ -117,8 +117,8 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
 TxBlockHeader GenerateRandomTxBlockHeader() {
   uint8_t type = DistUint8();
   uint32_t version = DistUint32();
-  uint256_t gasLimit = DistUint32();
-  uint256_t gasUsed = DistUint32();
+  uint64_t gasLimit = DistUint32();
+  uint64_t gasUsed = DistUint32();
   uint256_t rewards = DistUint32();
   BlockHash prevHash;
   uint64_t blockNum = DistUint32();

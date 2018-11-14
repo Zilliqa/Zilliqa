@@ -116,8 +116,7 @@ void NumberToArray(const T& number, vector<unsigned char>& dst,
 void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       account.GetBalance(), *protoAccount.mutable_balance());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      account.GetNonce(), *protoAccount.mutable_nonce());
+  protoAccount.set_nonce(account.GetNonce());
   protoAccount.set_storageroot(account.GetStorageRoot().data(),
                                account.GetStorageRoot().size);
 
@@ -143,10 +142,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoAccount.balance(),
                                                      tmpNumber);
   account.SetBalance(tmpNumber);
-
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoAccount.nonce(),
-                                                     tmpNumber);
-  account.SetNonce(tmpNumber);
+  account.SetNonce(protoAccount.nonce());
 
   dev::h256 tmpStorageRoot;
   copy(protoAccount.storageroot().begin(),
@@ -230,14 +226,13 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       balanceDeltaNum, *protoAccount.mutable_balance());
 
-  uint256_t nonceDelta = 0;
-  if (!SafeMath<uint256_t>::sub(newAccount.GetNonce(), oldAccount->GetNonce(),
-                                nonceDelta)) {
+  uint64_t nonceDelta = 0;
+  if (!SafeMath<uint64_t>::sub(newAccount.GetNonce(), oldAccount->GetNonce(),
+                               nonceDelta)) {
     return;
   }
 
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      nonceDelta, *protoAccount.mutable_nonce());
+  protoAccount.set_nonce(nonceDelta);
 
   if (!newAccount.GetCode().empty()) {
     if (fullCopy) {
@@ -275,9 +270,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       protoAccount.numbersign() ? (int)tmpNumber : 0 - (int)tmpNumber;
   account.ChangeBalance(balanceDelta);
 
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoAccount.nonce(),
-                                                     tmpNumber);
-  account.IncreaseNonceBy(tmpNumber);
+  account.IncreaseNonceBy(protoAccount.nonce());
 
   if (protoAccount.code().size() > 0 || account.isContract()) {
     bool doInitContract = false;
@@ -609,10 +602,8 @@ void ProtobufToTxSharingAssignments(
 
 void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
                                    ProtoTransactionCoreInfo& protoTxnCoreInfo) {
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      txnCoreInfo.version, *protoTxnCoreInfo.mutable_version());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      txnCoreInfo.nonce, *protoTxnCoreInfo.mutable_nonce());
+  protoTxnCoreInfo.set_version(txnCoreInfo.version);
+  protoTxnCoreInfo.set_nonce(txnCoreInfo.nonce);
   protoTxnCoreInfo.set_toaddr(txnCoreInfo.toAddr.data(),
                               txnCoreInfo.toAddr.size);
   SerializableToProtobufByteArray(txnCoreInfo.senderPubKey,
@@ -621,8 +612,7 @@ void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
       txnCoreInfo.amount, *protoTxnCoreInfo.mutable_amount());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       txnCoreInfo.gasPrice, *protoTxnCoreInfo.mutable_gasprice());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      txnCoreInfo.gasLimit, *protoTxnCoreInfo.mutable_gaslimit());
+  protoTxnCoreInfo.set_gaslimit(txnCoreInfo.gasLimit);
   protoTxnCoreInfo.set_code(txnCoreInfo.code.data(), txnCoreInfo.code.size());
   protoTxnCoreInfo.set_data(txnCoreInfo.data.data(), txnCoreInfo.data.size());
 }
@@ -630,10 +620,8 @@ void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
 void ProtobufToTransactionCoreInfo(
     const ProtoTransactionCoreInfo& protoTxnCoreInfo,
     TransactionCoreInfo& txnCoreInfo) {
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoTxnCoreInfo.version(),
-                                                     txnCoreInfo.version);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(protoTxnCoreInfo.nonce(),
-                                                     txnCoreInfo.nonce);
+  txnCoreInfo.version = protoTxnCoreInfo.version();
+  txnCoreInfo.nonce = protoTxnCoreInfo.nonce();
   copy(protoTxnCoreInfo.toaddr().begin(),
        protoTxnCoreInfo.toaddr().begin() +
            min((unsigned int)protoTxnCoreInfo.toaddr().size(),
@@ -645,8 +633,7 @@ void ProtobufToTransactionCoreInfo(
                                                      txnCoreInfo.amount);
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoTxnCoreInfo.gasprice(), txnCoreInfo.gasPrice);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTxnCoreInfo.gaslimit(), txnCoreInfo.gasLimit);
+  txnCoreInfo.gasLimit = protoTxnCoreInfo.gaslimit();
   txnCoreInfo.code.resize(protoTxnCoreInfo.code().size());
   copy(protoTxnCoreInfo.code().begin(), protoTxnCoreInfo.code().end(),
        txnCoreInfo.code.begin());
@@ -749,8 +736,7 @@ void TransactionReceiptToProtobuf(const TransactionReceipt& transReceipt,
                                   ProtoTransactionReceipt& protoTransReceipt) {
   protoTransReceipt.set_receipt(transReceipt.GetString());
   // protoTransReceipt.set_cumgas(transReceipt.GetCumGas());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      transReceipt.GetCumGas(), *protoTransReceipt.mutable_cumgas());
+  protoTransReceipt.set_cumgas(transReceipt.GetCumGas());
 }
 
 void ProtobufToTransactionReceipt(
@@ -761,11 +747,7 @@ void ProtobufToTransactionReceipt(
   copy(protoTransactionReceipt.receipt().begin(),
        protoTransactionReceipt.receipt().end(), tranReceiptStr.begin());
   transactionReceipt.SetString(tranReceiptStr);
-
-  uint256_t cumgas;
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTransactionReceipt.cumgas(), cumgas);
-  transactionReceipt.SetCumGas(cumgas);
+  transactionReceipt.SetCumGas(protoTransactionReceipt.cumgas());
 }
 
 void TransactionWithReceiptToProtobuf(
@@ -951,11 +933,8 @@ void MicroBlockHeaderToProtobuf(
   protoMicroBlockHeader.set_type(microBlockHeader.GetType());
   protoMicroBlockHeader.set_version(microBlockHeader.GetVersion());
   protoMicroBlockHeader.set_shardid(microBlockHeader.GetShardId());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      microBlockHeader.GetGasLimit(),
-      *protoMicroBlockHeader.mutable_gaslimit());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      microBlockHeader.GetGasUsed(), *protoMicroBlockHeader.mutable_gasused());
+  protoMicroBlockHeader.set_gaslimit(microBlockHeader.GetGasLimit());
+  protoMicroBlockHeader.set_gasused(microBlockHeader.GetGasUsed());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       microBlockHeader.GetRewards(), *protoMicroBlockHeader.mutable_rewards());
   protoMicroBlockHeader.set_prevhash(microBlockHeader.GetPrevHash().data(),
@@ -1008,8 +987,8 @@ void MicroBlockToProtobuf(const MicroBlock& microBlock,
 void ProtobufToMicroBlockHeader(
     const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader,
     MicroBlockHeader& microBlockHeader) {
-  uint256_t gasLimit;
-  uint256_t gasUsed;
+  uint64_t gasLimit;
+  uint64_t gasUsed;
   uint256_t rewards;
   BlockHash prevHash;
   uint256_t timestamp;
@@ -1020,10 +999,8 @@ void ProtobufToMicroBlockHeader(
   TxnHash tranReceiptHash;
   CommitteeHash committeeHash;
 
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoMicroBlockHeader.gaslimit(), gasLimit);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoMicroBlockHeader.gasused(), gasUsed);
+  gasLimit = protoMicroBlockHeader.gaslimit();
+  gasUsed = protoMicroBlockHeader.gasused();
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoMicroBlockHeader.rewards(), rewards);
   copy(protoMicroBlockHeader.prevhash().begin(),
@@ -1124,10 +1101,8 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
                              ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
   protoTxBlockHeader.set_type(txBlockHeader.GetType());
   protoTxBlockHeader.set_version(txBlockHeader.GetVersion());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      txBlockHeader.GetGasLimit(), *protoTxBlockHeader.mutable_gaslimit());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      txBlockHeader.GetGasUsed(), *protoTxBlockHeader.mutable_gasused());
+  protoTxBlockHeader.set_gaslimit(txBlockHeader.GetGasLimit());
+  protoTxBlockHeader.set_gasused(txBlockHeader.GetGasUsed());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       txBlockHeader.GetRewards(), *protoTxBlockHeader.mutable_rewards());
   protoTxBlockHeader.set_prevhash(txBlockHeader.GetPrevHash().data(),
@@ -1188,8 +1163,8 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
 void ProtobufToTxBlockHeader(
     const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader,
     TxBlockHeader& txBlockHeader) {
-  uint256_t gasLimit;
-  uint256_t gasUsed;
+  uint64_t gasLimit;
+  uint64_t gasUsed;
   uint256_t rewards;
   BlockHash prevHash;
   uint256_t timestamp;
@@ -1197,10 +1172,8 @@ void ProtobufToTxBlockHeader(
   PubKey minerPubKey;
   CommitteeHash committeeHash;
 
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTxBlockHeader.gaslimit(), gasLimit);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTxBlockHeader.gasused(), gasUsed);
+  gasLimit = protoTxBlockHeader.gaslimit();
+  gasUsed = protoTxBlockHeader.gasused();
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoTxBlockHeader.rewards(), rewards);
   copy(protoTxBlockHeader.prevhash().begin(),

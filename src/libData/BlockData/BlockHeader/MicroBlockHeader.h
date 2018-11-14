@@ -34,8 +34,8 @@ class MicroBlockHeader : public BlockHeaderBase {
   uint8_t m_type;  // 0: microblock proposed by a committee, 1: final tx block
   uint32_t m_version;
   uint32_t m_shardId;
-  boost::multiprecision::uint256_t m_gasLimit;
-  boost::multiprecision::uint256_t m_gasUsed;
+  uint64_t m_gasLimit;
+  uint64_t m_gasUsed;
   boost::multiprecision::uint256_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_epochNum;   // Epoch Num
@@ -57,9 +57,8 @@ class MicroBlockHeader : public BlockHeaderBase {
 
   /// Constructor with predefined member values.
   MicroBlockHeader(const uint8_t type, const uint32_t version,
-                   const uint32_t shardId,
-                   const boost::multiprecision::uint256_t& gasLimit,
-                   const boost::multiprecision::uint256_t& gasUsed,
+                   const uint32_t shardId, const uint64_t& gasLimit,
+                   const uint64_t& gasUsed,
                    const boost::multiprecision::uint256_t& rewards,
                    const BlockHash& prevHash, const uint64_t& epochNum,
                    const boost::multiprecision::uint256_t& timestamp,
@@ -78,8 +77,8 @@ class MicroBlockHeader : public BlockHeaderBase {
   const uint8_t& GetType() const;
   const uint32_t& GetVersion() const;
   const uint32_t& GetShardId() const;
-  const boost::multiprecision::uint256_t& GetGasLimit() const;
-  const boost::multiprecision::uint256_t& GetGasUsed() const;
+  const uint64_t& GetGasLimit() const;
+  const uint64_t& GetGasUsed() const;
   const boost::multiprecision::uint256_t& GetRewards() const;
   const BlockHash& GetPrevHash() const;
   const uint64_t& GetEpochNum() const;

@@ -34,8 +34,8 @@ MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
 }
 
 MicroBlockHeader::MicroBlockHeader(
-    uint8_t type, uint32_t version, uint32_t shardId, const uint256_t& gasLimit,
-    const uint256_t& gasUsed, const uint256_t& rewards,
+    uint8_t type, uint32_t version, uint32_t shardId, const uint64_t& gasLimit,
+    const uint64_t& gasUsed, const uint256_t& rewards,
     const BlockHash& prevHash, const uint64_t& epochNum,
     const uint256_t& timestamp, const MicroBlockHashSet& hashset,
     uint32_t numTxs, const PubKey& minerPubKey, const uint64_t& dsBlockNum,
@@ -81,9 +81,9 @@ const uint32_t& MicroBlockHeader::GetVersion() const { return m_version; }
 
 const uint32_t& MicroBlockHeader::GetShardId() const { return m_shardId; }
 
-const uint256_t& MicroBlockHeader::GetGasLimit() const { return m_gasLimit; }
+const uint64_t& MicroBlockHeader::GetGasLimit() const { return m_gasLimit; }
 
-const uint256_t& MicroBlockHeader::GetGasUsed() const { return m_gasUsed; }
+const uint64_t& MicroBlockHeader::GetGasUsed() const { return m_gasUsed; }
 
 const uint256_t& MicroBlockHeader::GetRewards() const { return m_rewards; }
 

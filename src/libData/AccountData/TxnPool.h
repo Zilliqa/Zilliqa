@@ -39,8 +39,7 @@ struct TxnPool {
   std::map<boost::multiprecision::uint256_t, std::map<TxnHash, Transaction>,
            std::greater<boost::multiprecision::uint256_t>>
       GasIndex;
-  std::unordered_map<std::pair<PubKey, boost::multiprecision::uint256_t>,
-                     Transaction, PubKeyNonceHash>
+  std::unordered_map<std::pair<PubKey, uint64_t>, Transaction, PubKeyNonceHash>
       NonceIndex;
 
   void clear() {

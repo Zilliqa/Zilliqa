@@ -326,13 +326,12 @@ Json::Value Server::GetBalance(const string& address) {
     Json::Value ret;
     if (account != nullptr) {
       boost::multiprecision::uint256_t balance = account->GetBalance();
-      boost::multiprecision::uint256_t nonce = account->GetNonce();
+      uint64_t nonce = account->GetNonce();
 
       ret["balance"] = balance.str();
       // FIXME: a workaround, 256-bit unsigned int being truncated
-      ret["nonce"] = nonce.convert_to<unsigned int>();
-      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
-                                   << nonce.convert_to<unsigned int>());
+      ret["nonce"] = static_cast<unsigned int>(nonce);
+      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: " << nonce);
     } else if (account == nullptr) {
       ret["balance"] = "0";
       ret["nonce"] = 0;
@@ -468,10 +467,10 @@ Json::Value Server::GetSmartContracts(const string& address) {
       _json["Error"] = "A contract account queried";
       return _json;
     }
-    boost::multiprecision::uint256_t nonce = account->GetNonce();
+    uint64_t nonce = account->GetNonce();
     //[TODO] find out a more efficient way (using storage)
 
-    for (boost::multiprecision::uint256_t i = 0; i < nonce; i++) {
+    for (uint64_t i = 0; i < nonce; i++) {
       Address contractAddr = Account::GetAddressForContract(addr, i);
       const Account* contractAccount =
           AccountStore::GetInstance().GetAccount(contractAddr);
@@ -579,7 +578,7 @@ string Server::GetNumTransactions() {
   return m_BlockTxPair.second.str();
 }
 
-boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
+size_t Server::GetNumTransactions(uint64_t blockNum) {
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -587,7 +586,7 @@ boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
     return 0;
   }
 
-  uint64_t i, res = 0;
+  size_t i, res = 0;
 
   for (i = blockNum + 1; i <= currBlockNum; i++) {
     res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();

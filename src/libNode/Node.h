@@ -117,8 +117,7 @@ class Node : public Executable, public Broadcastable {
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
-  std::unordered_map<Address,
-                     std::map<boost::multiprecision::uint256_t, Transaction>>
+  std::unordered_map<Address, std::map<uint64_t, Transaction>>
       m_addrNonceTxnMap, t_addrNonceTxnMap;
   std::vector<TxnHash> m_txnsOrdering;
   std::mutex m_mutexProcessedTransactions;
@@ -131,7 +130,7 @@ class Node : public Executable, public Broadcastable {
 
   uint32_t m_numOfAbsentTxnHashes;
 
-  boost::multiprecision::uint256_t m_gasUsedTotal;
+  uint64_t m_gasUsedTotal;
   boost::multiprecision::uint256_t m_txnFees;
 
   // std::mutex m_mutexCommittedTransactions;

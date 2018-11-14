@@ -87,8 +87,8 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
 
   ret_head["Type"] = txheader.GetType();
   ret_head["Version"] = txheader.GetVersion();
-  ret_head["GasLimit"] = txheader.GetGasLimit().str();
-  ret_head["GasUsed"] = txheader.GetGasUsed().str();
+  ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
+  ret_head["GasUsed"] = to_string(txheader.GetGasUsed());
   ret_head["Rewards"] = txheader.GetRewards().str();
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
@@ -143,7 +143,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint32_t version = _json["version"].asUInt();
 
   string nonce_str = _json["nonce"].asString();
-  uint256_t nonce(nonce_str);
+  uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
   vector<unsigned char> toAddr_ser =
@@ -156,7 +156,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string gasPrice_str = _json["gasPrice"].asString();
   uint256_t gasPrice(gasPrice_str);
   string gasLimit_str = _json["gasLimit"].asString();
-  uint256_t gasLimit(gasLimit_str);
+  uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
   string pubKey_str = _json["pubKey"].asString();
   vector<unsigned char> pubKey_ser =
@@ -239,8 +239,8 @@ const Json::Value JSONConversion::convertTxtoJson(
   Json::Value _json;
 
   _json["ID"] = twr.GetTransaction().GetTranID().hex();
-  _json["version"] = twr.GetTransaction().GetVersion().str();
-  _json["nonce"] = twr.GetTransaction().GetNonce().str();
+  _json["version"] = to_string(twr.GetTransaction().GetVersion());
+  _json["nonce"] = to_string(twr.GetTransaction().GetNonce());
   _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
   _json["senderPubKey"] =
       static_cast<string>(twr.GetTransaction().GetSenderPubKey());
@@ -248,7 +248,7 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
   _json["gasPrice"] = twr.GetTransaction().GetGasPrice().str();
-  _json["gasLimit"] = twr.GetTransaction().GetGasLimit().str();
+  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
 
   return _json;
 }

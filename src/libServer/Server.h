@@ -500,7 +500,7 @@ class Server : public AbstractZServer {
 
   // gets the number of transaction starting from block blockNum to most recent
   // block
-  boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
+  size_t GetNumTransactions(uint64_t blockNum);
 
   Json::Value GetSmartContractState(const std::string& address);
   Json::Value GetSmartContractInit(const std::string& address);

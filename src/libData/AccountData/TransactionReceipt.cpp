@@ -65,9 +65,9 @@ void TransactionReceipt::SetResult(const bool& result) {
   }
 }
 
-void TransactionReceipt::SetCumGas(const uint256_t& cumGas) {
+void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
   m_cumGas = cumGas;
-  m_tranReceiptObj["cumulative_gas"] = m_cumGas.convert_to<string>();
+  m_tranReceiptObj["cumulative_gas"] = to_string(m_cumGas);
 }
 
 void TransactionReceipt::SetString(const std::string& tranReceiptStr) {

@@ -67,8 +67,8 @@ bool Node::ComposeMicroBlock() {
   uint8_t type = TXBLOCKTYPE::MICRO;
   uint32_t version = BLOCKVERSION::VERSION1;
   uint32_t shardId = m_myshardId;
-  uint256_t gasLimit = MICROBLOCK_GAS_LIMIT;
-  uint256_t gasUsed = m_gasUsedTotal;
+  uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
+  uint64_t gasUsed = m_gasUsedTotal;
   uint256_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
@@ -315,8 +315,8 @@ void Node::ProcessTransactionWhenShardLeader() {
       t_createdTxns.findSameNonceButHigherGas(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
-                                      m_gasUsedTotal)) {
+        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                     m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
@@ -376,8 +376,8 @@ void Node::ProcessTransactionWhenShardLeader() {
       }
       // if nonce correct, process it
       else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
-                                      m_gasUsedTotal)) {
+        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                     m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
@@ -490,8 +490,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       t_createdTxns.findSameNonceButHigherGas(t);
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
-                                      m_gasUsedTotal)) {
+        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                     m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
@@ -536,8 +536,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       }
       // if nonce correct, process it
       else if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
-        if (!SafeMath<uint256_t>::add(m_gasUsedTotal, tr.GetCumGas(),
-                                      m_gasUsedTotal)) {
+        if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
+                                     m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition overflow!");
           break;
         }

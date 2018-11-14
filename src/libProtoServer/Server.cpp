@@ -620,10 +620,10 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    boost::multiprecision::uint256_t nonce = account->GetNonce();
+    uint64_t nonce = account->GetNonce();
     //[TODO] find out a more efficient way (using storage)
 
-    for (boost::multiprecision::uint256_t i = 0; i < nonce; i++) {
+    for (uint64_t i = 0; i < nonce; i++) {
       Address contractAddr = Account::GetAddressForContract(addr, i);
       const Account* contractAccount =
           AccountStore::GetInstance().GetAccount(contractAddr);
