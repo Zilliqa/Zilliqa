@@ -41,6 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
+    pkg-config \
     protobuf-compiler \
     python \
     python-pip \
