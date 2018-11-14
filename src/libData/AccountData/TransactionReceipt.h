@@ -21,7 +21,10 @@
 #define __TRANSACTIONRECEIPT_H__
 
 #include <json/json.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <unordered_map>
 #include <vector>
 
@@ -35,7 +38,6 @@
 class TransactionReceipt : public SerializableDataBlock {
   Json::Value m_tranReceiptObj = Json::nullValue;
   std::string m_tranReceiptStr;
-  unsigned int m_serialized_size = 0;
   uint64_t m_cumGas = 0;
 
  public:

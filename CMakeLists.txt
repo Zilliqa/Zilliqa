@@ -16,6 +16,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # check dependencies
 #
 find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+pkg_check_modules(LIBEVENT REQUIRED libevent)
+pkg_check_modules(MINIUPNPC miniupnpc)
+pkg_check_modules(JSONRPCCPP libjsonrpccpp-server libjsonrpccpp-common)
+include_directories(${JSONCPP_INCLUDE_DIRS})
+link_directories(${JSONCPP_LIBRARY_DIRS} ${LIBEVENT_LIBRARY_DIRS} ${MINIUPNPC_LIBRARY_DIRS} ${JSONRPCCPP_LIBRARY_DIRS})
 
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
@@ -28,9 +34,6 @@ endif()
 include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
-
-pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-include_directories(${JSONCPP_INCLUDE_DIRS})
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
@@ -211,7 +214,7 @@ if(TESTS)
 endif()
 
 # installation
-set_target_properties(zilliqa sendcmd sendtxn genkeypair gentxn signmultisig ZilliqaDaemon_AWS gensigninitialds
+set_target_properties(zilliqa sendcmd genkeypair gentxn signmultisig ZilliqaDaemon_AWS gensigninitialds
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie ethash NAT

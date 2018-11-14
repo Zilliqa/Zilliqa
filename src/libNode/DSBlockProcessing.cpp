@@ -18,7 +18,10 @@
  */
 
 #include <array>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <chrono>
 #include <functional>
 #include <thread>
@@ -175,7 +178,7 @@ void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock) {
   }
 }
 
-bool Node::LoadShardingStructure() {
+bool Node::LoadShardingStructure(bool callByRetrieve) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::LoadShardingStructure not expected to be called "
@@ -224,7 +227,7 @@ bool Node::LoadShardingStructure() {
     index++;
   }
 
-  if (!foundMe) {
+  if (!foundMe && !callByRetrieve) {
     LOG_GENERAL(WARNING, "I'm not in the sharding structure, why?");
     RejoinAsNormal();
     return false;
@@ -628,7 +631,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       }
 
       m_mediator.m_ds->StartFirstTxEpoch();
-      return true;
     } else {
       // If I am a shard node
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

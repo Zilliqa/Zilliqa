@@ -20,7 +20,10 @@
 #ifndef __IP_CONVERTER_H__
 #define __IP_CONVERTER_H__
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <string>
 
 /// Utility class for converter from ip address string to numerical

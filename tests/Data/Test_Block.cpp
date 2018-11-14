@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(DSBlock_test) {
   const std::array<unsigned char, PUB_KEY_SIZE>& pubKey2 =
       header2.GetMinerPubKey();
   uint256_t blockNum2 = header2.GetBlockNum();
-  uint256_t timestamp2 = header2.GetTimestamp();
+  uint64_t timestamp2 = header2.GetTimestamp();
   const std::array<unsigned char, BLOCK_SIG_SIZE>& signature2 =
       block2.GetSignature();
 
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   const std::array<unsigned char, BLOCK_HASH_SIZE>& prevHash2 =
       header2.GetPrevHash();
   uint256_t blockNum2 = header2.GetBlockNum();
-  uint256_t timestamp2 = header2.GetTimestamp();
+  uint64_t timestamp2 = header2.GetTimestamp();
   const std::array<unsigned char, TRAN_HASH_SIZE>& txRootHash2 =
       header2.GetTxRootHash();
   uint32_t numTxs2 = header2.GetNumTxs();

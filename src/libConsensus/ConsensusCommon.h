@@ -166,7 +166,7 @@ class ConsensusCommon {
                   unsigned char class_byte, unsigned char ins_byte);
 
   /// Destructor.
-  ~ConsensusCommon();
+  virtual ~ConsensusCommon();
 
   /// Generates the signature over a consensus message.
   Signature SignMessage(const std::vector<unsigned char>& msg,

@@ -133,8 +133,6 @@ case $os in
     'Darwin')
         echo "Installing dependencies on OSX ..."
         on_osx
-        install_libmongoc
-        install_libongocxx
         ;;
     *)
         echo "Error: Unknown OS, no dependencies installed"
