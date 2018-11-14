@@ -37,16 +37,17 @@ bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
 }
 
 void SWInfoToProtobuf(const SWInfo& swInfo, ProtoSWInfo& protoSWInfo) {
-  protoSWInfo.set_major(swInfo.GetMajor());
-  protoSWInfo.set_minor(swInfo.GetMinor());
-  protoSWInfo.set_fix(swInfo.GetFix());
+  protoSWInfo.set_majorversion(swInfo.GetMajorVersion());
+  protoSWInfo.set_minorversion(swInfo.GetMinorVersion());
+  protoSWInfo.set_fixversion(swInfo.GetFixVersion());
   protoSWInfo.set_upgradeds(swInfo.GetUpgradeDS());
   protoSWInfo.set_commit(swInfo.GetCommit());
 }
 
 void ProtobufToSWInfo(const ProtoSWInfo& protoSWInfo, SWInfo& swInfo) {
-  swInfo = SWInfo(protoSWInfo.major(), protoSWInfo.minor(), protoSWInfo.fix(),
-                  protoSWInfo.upgradeds(), protoSWInfo.commit());
+  swInfo = SWInfo(protoSWInfo.majorversion(), protoSWInfo.minorversion(),
+                  protoSWInfo.fixversion(), protoSWInfo.upgradeds(),
+                  protoSWInfo.commit());
 }
 
 bool MessengerSWInfo::SetSWInfo(std::vector<unsigned char>& dst,
