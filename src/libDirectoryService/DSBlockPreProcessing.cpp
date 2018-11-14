@@ -956,6 +956,17 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
+  if (prevHash != m_pendingDSBlock->GetHeader().GetPrevHash()) {
+    LOG_GENERAL(
+        WARNING,
+        "Prev Block hash in newly received VC Block doesn't match. Calculated "
+            << prevHash << " Received"
+            << m_pendingDSBlock->GetHeader().GetPrevHash());
+    return false;
+  }
+
   if (!VerifyPoWWinner(dsWinnerPoWsFromLeader)) {
     LOG_GENERAL(WARNING, "Failed to verify PoW winner");
     return false;
