@@ -178,7 +178,7 @@ void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock) {
   }
 }
 
-bool Node::LoadShardingStructure() {
+bool Node::LoadShardingStructure(bool callByRetrieve) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::LoadShardingStructure not expected to be called "
@@ -227,7 +227,7 @@ bool Node::LoadShardingStructure() {
     index++;
   }
 
-  if (!foundMe) {
+  if (!foundMe && !callByRetrieve) {
     LOG_GENERAL(WARNING, "I'm not in the sharding structure, why?");
     RejoinAsNormal();
     return false;
