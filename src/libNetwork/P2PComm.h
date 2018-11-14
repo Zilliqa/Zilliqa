@@ -41,9 +41,6 @@ extern const unsigned char START_BYTE_GOSSIP;
 
 class SendJob {
  protected:
-  static const uint32_t MAXRETRYCONN = 3;
-  static const uint32_t PUMPMESSAGE_MILLISECONDS = 1000;
-
   static uint32_t writeMsg(const void* buf, int cli_sock, const Peer& from,
                            const uint32_t message_length);
   static bool SendMessageSocketCore(const Peer& peer,
