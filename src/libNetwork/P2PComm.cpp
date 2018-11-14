@@ -509,6 +509,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
             vector<unsigned char>(message.begin() + HDR_LEN + HASH_LEN,
                                   message.end()),
             from);
+    LOG_GENERAL(INFO, "Size of Message: " << message.size());
 
     // Queue the message
     m_dispatcher(raw_message);
@@ -521,6 +522,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         new pair<vector<unsigned char>, Peer>(
             vector<unsigned char>(message.begin() + HDR_LEN, message.end()),
             from);
+    LOG_GENERAL(INFO, "Size of Message: " << message.size());
 
     // Queue the message
     m_dispatcher(raw_message);
@@ -563,6 +565,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
       if (p2p.SpreadRumor(rumor_message)) {
         std::pair<vector<unsigned char>, Peer>* raw_message =
             new pair<vector<unsigned char>, Peer>(rumor_message, from);
+        LOG_GENERAL(INFO, "Size of Message: " << rumor_message.size());
 
         // Queue the message
         m_dispatcher(raw_message);
@@ -572,6 +575,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
                                                 from)) {
       std::pair<vector<unsigned char>, Peer>* raw_message =
           new pair<vector<unsigned char>, Peer>(rumor_message, from);
+      LOG_GENERAL(INFO, "Size of Message: " << rumor_message.size());
 
       // Queue the message
       m_dispatcher(raw_message);
