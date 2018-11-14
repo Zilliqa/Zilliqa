@@ -67,6 +67,7 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
   if (size <= 0) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
+    return nullptr;
   }
 
   lock_guard<mutex> g(m_mutexBIGNUM);
@@ -90,6 +91,7 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
   if (size <= 0) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
+    return;
   }
 
   lock_guard<mutex> g(m_mutexBIGNUM);
@@ -170,6 +172,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
     if (bnvalue == nullptr) {
       LOG_GENERAL(WARNING, "Memory allocation failure");
       // throw exception();
+      return;
     }
   }
 
@@ -284,6 +287,7 @@ PubKey::PubKey(const PrivKey& privkey)
     return;
   } else if (!privkey.Initialized()) {
     LOG_GENERAL(WARNING, "Private key is not initialized");
+    return;
   } else {
     const Curve& curve = Schnorr::GetInstance().GetCurve();
 
