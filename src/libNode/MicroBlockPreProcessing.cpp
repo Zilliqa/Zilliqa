@@ -85,7 +85,7 @@ bool Node::ComposeMicroBlock() {
   BlockHash prevHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetMyHash();
 
-  uint64_t timestamp = static_cast<uint64_t>(get_time_as_int());
+  uint64_t timestamp = get_time_as_int();
   TxnHash txRootHash, txReceiptHash;
   uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;

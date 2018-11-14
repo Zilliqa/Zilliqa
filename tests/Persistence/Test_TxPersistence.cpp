@@ -56,13 +56,12 @@ TxBlock constructDummyTxBlock(int instanceNum) {
 
   std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
-  return TxBlock(
-      TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
-                    BlockHash(), instanceNum,
-                    static_cast<uint64_t>(get_time_as_int()), TxBlockHashSet(),
-                    5, 6, pubKey1.second, instanceNum, CommitteeHash()),
-      vector<bool>(), vector<BlockHash>(6), vector<uint32_t>(6),
-      CoSignatures());
+  return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
+                               1, BlockHash(), instanceNum, get_time_as_int(),
+                               TxBlockHashSet(), 5, 6, pubKey1.second,
+                               instanceNum, CommitteeHash()),
+                 vector<bool>(), vector<BlockHash>(6), vector<uint32_t>(6),
+                 CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
