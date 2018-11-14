@@ -130,18 +130,15 @@ bool Lookup::GenTxnToSend(size_t num_txn,
                           uint32_t numShards) {
   vector<Transaction> txns;
 
-  if (GENESIS_KEYS.size() == 0) {
-    LOG_GENERAL(WARNING, "No genesis keys found");
+  if (GENESIS_WALLETS.size() == 0) {
+    LOG_GENERAL(WARNING, "No genesis accounts found");
     return false;
   }
 
-  unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_KEYS.size();
+  unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
-  for (auto& privKeyHexStr : GENESIS_KEYS) {
-    auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
-    auto privKey = PrivKey{privKeyBytes, 0};
-    auto pubKey = PubKey{privKey};
-    auto addr = Account::GetAddressFromPublicKey(pubKey);
+  for (auto& addrStr : GENESIS_WALLETS) {
+    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
 
     if (numShards == 0) {
       return false;
