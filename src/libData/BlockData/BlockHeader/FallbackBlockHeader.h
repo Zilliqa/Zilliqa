@@ -20,7 +20,10 @@
 #ifndef __FALLBACKBLOCKHEADER_H__
 #define __FALLBACKBLOCKHEADER_H__
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"

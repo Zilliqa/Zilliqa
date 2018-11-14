@@ -22,9 +22,10 @@
 #include <functional>
 #include <iostream>
 #include <thread>
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
-
+#pragma GCC diagnostic pop
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
