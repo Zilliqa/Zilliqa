@@ -82,7 +82,7 @@ bool Node::ComposeMicroBlock() {
   BlockHash prevHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetMyHash();
 
-  uint256_t timestamp = get_time_as_int();
+  uint64_t timestamp = static_cast<uint64_t>(get_time_as_int());
   TxnHash txRootHash, txReceiptHash;
   uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
@@ -895,9 +895,8 @@ bool Node::CheckMicroBlockTimestamp() {
   // the Tx blockchain)
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
     const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint256_t thisMicroblockTimestamp =
-        m_microblock->GetHeader().GetTimestamp();
-    uint256_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
+    uint64_t thisMicroblockTimestamp = m_microblock->GetHeader().GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
     if (thisMicroblockTimestamp <= lastTxBlockTimestamp) {
       LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
                                << lastTxBlockTimestamp

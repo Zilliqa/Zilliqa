@@ -801,8 +801,7 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
 
   protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
   protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      dsBlockHeader.GetTimestamp(), *protoDSBlockHeader.mutable_timestamp());
+  protoDSBlockHeader.set_timestamp(dsBlockHeader.GetTimestamp());
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
                                   *protoDSBlockHeader.mutable_swinfo());
 
@@ -849,7 +848,7 @@ void ProtobufToDSBlockHeader(
     DSBlockHeader& dsBlockHeader) {
   BlockHash prevHash;
   PubKey leaderPubKey;
-  uint256_t timestamp;
+  uint64_t timestamp;
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
@@ -860,8 +859,7 @@ void ProtobufToDSBlockHeader(
        prevHash.asArray().begin());
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoDSBlockHeader.timestamp(), timestamp);
+  timestamp = protoDSBlockHeader.timestamp();
   ProtobufByteArrayToSerializable(protoDSBlockHeader.swinfo(), swInfo);
 
   // Deserialize powDSWinners
@@ -940,9 +938,7 @@ void MicroBlockHeaderToProtobuf(
   protoMicroBlockHeader.set_prevhash(microBlockHeader.GetPrevHash().data(),
                                      microBlockHeader.GetPrevHash().size);
   protoMicroBlockHeader.set_epochnum(microBlockHeader.GetEpochNum());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      microBlockHeader.GetTimestamp(),
-      *protoMicroBlockHeader.mutable_timestamp());
+  protoMicroBlockHeader.set_timestamp(microBlockHeader.GetTimestamp());
   protoMicroBlockHeader.set_txroothash(microBlockHeader.GetTxRootHash().data(),
                                        microBlockHeader.GetTxRootHash().size);
   protoMicroBlockHeader.set_numtxs(microBlockHeader.GetNumTxs());
@@ -991,7 +987,7 @@ void ProtobufToMicroBlockHeader(
   uint64_t gasUsed;
   uint256_t rewards;
   BlockHash prevHash;
-  uint256_t timestamp;
+  uint64_t timestamp;
   TxnHash txRootHash;
   PubKey minerPubKey;
   BlockHash dsBlockHash;
@@ -1008,8 +1004,7 @@ void ProtobufToMicroBlockHeader(
            min((unsigned int)protoMicroBlockHeader.prevhash().size(),
                (unsigned int)prevHash.size),
        prevHash.asArray().begin());
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoMicroBlockHeader.timestamp(), timestamp);
+  timestamp = protoMicroBlockHeader.timestamp();
   copy(protoMicroBlockHeader.txroothash().begin(),
        protoMicroBlockHeader.txroothash().begin() +
            min((unsigned int)protoMicroBlockHeader.txroothash().size(),
@@ -1108,8 +1103,7 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
   protoTxBlockHeader.set_prevhash(txBlockHeader.GetPrevHash().data(),
                                   txBlockHeader.GetPrevHash().size);
   protoTxBlockHeader.set_blocknum(txBlockHeader.GetBlockNum());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      txBlockHeader.GetTimestamp(), *protoTxBlockHeader.mutable_timestamp());
+  protoTxBlockHeader.set_timestamp(txBlockHeader.GetTimestamp());
 
   ZilliqaMessage::ProtoTxBlock::TxBlockHashSet* protoHeaderHash =
       protoTxBlockHeader.mutable_hash();
@@ -1167,7 +1161,7 @@ void ProtobufToTxBlockHeader(
   uint64_t gasUsed;
   uint256_t rewards;
   BlockHash prevHash;
-  uint256_t timestamp;
+  uint64_t timestamp;
   TxBlockHashSet hash;
   PubKey minerPubKey;
   CommitteeHash committeeHash;
@@ -1181,8 +1175,7 @@ void ProtobufToTxBlockHeader(
            min((unsigned int)protoTxBlockHeader.prevhash().size(),
                (unsigned int)prevHash.size),
        prevHash.asArray().begin());
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoTxBlockHeader.timestamp(), timestamp);
+  timestamp = protoTxBlockHeader.timestamp();
 
   const ZilliqaMessage::ProtoTxBlock::TxBlockHashSet& protoTxBlockHeaderHash =
       protoTxBlockHeader.hash();
@@ -1275,8 +1268,7 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
       *protoVCBlockHeader.mutable_candidateleaderpubkey());
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
   FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      vcBlockHeader.GetTimeStamp(), *protoVCBlockHeader.mutable_timestamp());
+  protoVCBlockHeader.set_timestamp(vcBlockHeader.GetTimeStamp());
   protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
                                        vcBlockHeader.GetCommitteeHash().size);
 }
@@ -1302,7 +1294,7 @@ void ProtobufToVCBlockHeader(
     VCBlockHeader& vcBlockHeader) {
   Peer candidateLeaderNetworkInfo;
   PubKey candidateLeaderPubKey;
-  uint256_t timestamp;
+  uint64_t timestamp;
   CommitteeHash committeeHash;
   vector<pair<PubKey, Peer>> faultyLeaders;
 
@@ -1311,8 +1303,7 @@ void ProtobufToVCBlockHeader(
       candidateLeaderNetworkInfo);
   ProtobufByteArrayToSerializable(protoVCBlockHeader.candidateleaderpubkey(),
                                   candidateLeaderPubKey);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoVCBlockHeader.timestamp(), timestamp);
+  timestamp = protoVCBlockHeader.timestamp();
 
   ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
 
@@ -1369,9 +1360,7 @@ void FallbackBlockHeaderToProtobuf(
       fallbackBlockHeader.GetLeaderPubKey(),
       *protoFallbackBlockHeader.mutable_leaderpubkey());
   protoFallbackBlockHeader.set_shardid(fallbackBlockHeader.GetShardId());
-  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
-      fallbackBlockHeader.GetTimeStamp(),
-      *protoFallbackBlockHeader.mutable_timestamp());
+  protoFallbackBlockHeader.set_timestamp(fallbackBlockHeader.GetTimeStamp());
 
   protoFallbackBlockHeader.set_committeehash(
       fallbackBlockHeader.GetCommitteeHash().data(),
@@ -1400,7 +1389,7 @@ void ProtobufToFallbackBlockHeader(
     FallbackBlockHeader& fallbackBlockHeader) {
   Peer leaderNetworkInfo;
   PubKey leaderPubKey;
-  uint256_t timestamp;
+  uint64_t timestamp;
   StateHash stateRootHash;
   CommitteeHash committeeHash;
 
@@ -1408,8 +1397,7 @@ void ProtobufToFallbackBlockHeader(
                                   leaderNetworkInfo);
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leaderpubkey(),
                                   leaderPubKey);
-  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
-      protoFallbackBlockHeader.timestamp(), timestamp);
+  timestamp = protoFallbackBlockHeader.timestamp();
 
   copy(protoFallbackBlockHeader.stateroothash().begin(),
        protoFallbackBlockHeader.stateroothash().begin() +

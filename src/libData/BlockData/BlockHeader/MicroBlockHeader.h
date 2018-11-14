@@ -39,7 +39,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint256_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_epochNum;   // Epoch Num
-  boost::multiprecision::uint256_t m_timestamp;
+  uint64_t m_timestamp;
   // TxnHash m_txRootHash; // Tx merkle tree root hash
   // StateHash m_stateDeltaHash; // State Delta merkle tree root hash
   MicroBlockHashSet m_hashset;
@@ -61,9 +61,9 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const uint64_t& gasUsed,
                    const boost::multiprecision::uint256_t& rewards,
                    const BlockHash& prevHash, const uint64_t& epochNum,
-                   const boost::multiprecision::uint256_t& timestamp,
-                   const MicroBlockHashSet& hashset, const uint32_t numTxs,
-                   const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+                   const uint64_t& timestamp, const MicroBlockHashSet& hashset,
+                   const uint32_t numTxs, const PubKey& minerPubKey,
+                   const uint64_t& dsBlockNum,
                    const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
@@ -82,7 +82,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   const boost::multiprecision::uint256_t& GetRewards() const;
   const BlockHash& GetPrevHash() const;
   const uint64_t& GetEpochNum() const;
-  const boost::multiprecision::uint256_t& GetTimestamp() const;
+  const uint64_t& GetTimestamp() const;
   const uint32_t& GetNumTxs() const;
   const PubKey& GetMinerPubKey() const;
   const uint64_t& GetDSBlockNum() const;
