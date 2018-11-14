@@ -961,7 +961,7 @@ bool DirectoryService::DSBlockValidator(
   if (prevHash != m_pendingDSBlock->GetHeader().GetPrevHash()) {
     LOG_GENERAL(
         WARNING,
-        "Prev Block hash in newly received VC Block doesn't match. Calculated "
+        "Prev Block hash in newly received DS Block doesn't match. Calculated "
             << prevHash << " Received"
             << m_pendingDSBlock->GetHeader().GetPrevHash());
     return false;

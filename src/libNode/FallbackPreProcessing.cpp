@@ -108,11 +108,11 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
   BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
       m_mediator.m_blocklinkchain.GetLatestBlockLink());
   if (prevHash != m_pendingFallbackBlock->GetHeader().GetPrevHash()) {
-    LOG_GENERAL(
-        WARNING,
-        "Prev Block hash in newly received VC Block doesn't match. Calculated "
-            << prevHash << " Received"
-            << m_pendingFallbackBlock->GetHeader().GetPrevHash());
+    LOG_GENERAL(WARNING,
+                "Prev Block hash in newly received Fallback Block doesn't "
+                "match. Calculated "
+                    << prevHash << " Received"
+                    << m_pendingFallbackBlock->GetHeader().GetPrevHash());
     return false;
   }
 
