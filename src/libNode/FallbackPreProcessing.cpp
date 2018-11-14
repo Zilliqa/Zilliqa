@@ -105,6 +105,17 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     return false;
   }
 
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
+  if (prevHash != m_pendingFallbackBlock->GetHeader().GetPrevHash()) {
+    LOG_GENERAL(
+        WARNING,
+        "Prev Block hash in newly received VC Block doesn't match. Calculated "
+            << prevHash << " Received"
+            << m_pendingFallbackBlock->GetHeader().GetPrevHash());
+    return false;
+  }
+
   // leader consensus id
   if (m_consensusLeaderID !=
       m_pendingFallbackBlock->GetHeader().GetLeaderConsensusId()) {
@@ -372,7 +383,8 @@ bool Node::ComposeFallbackBlock() {
     return false;
   }
 
-  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(m_mediator.m_blocklinkchain.GetLatestBlockLink());
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
 
   {
     lock_guard<mutex> g(m_mutexPendingFallbackBlock);

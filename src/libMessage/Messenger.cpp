@@ -1289,8 +1289,8 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
                              ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
-
-  protoVCBlockHeader.set_prevhash(vcBlockHeader.GetPrevHash().data(), vcBlockHeader.GetPrevHash().size);
+  protoVCBlockHeader.set_prevhash(vcBlockHeader.GetPrevHash().data(),
+                                  vcBlockHeader.GetPrevHash().size);
   protoVCBlockHeader.set_viewchangedsepochno(
       vcBlockHeader.GetVieWChangeDSEpochNo());
   protoVCBlockHeader.set_viewchangeepochno(
@@ -1386,8 +1386,9 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 void FallbackBlockHeaderToProtobuf(
     const FallbackBlockHeader& fallbackBlockHeader,
     ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader) {
-
-  protoFallbackBlockHeader.set_prevhash(fallbackBlockHeader.GetPrevHash().data(), fallbackBlockHeader.GetPrevHash().size);
+  protoFallbackBlockHeader.set_prevhash(
+      fallbackBlockHeader.GetPrevHash().data(),
+      fallbackBlockHeader.GetPrevHash().size);
   protoFallbackBlockHeader.set_fallbackdsepochno(
       fallbackBlockHeader.GetFallbackDSEpochNo());
   protoFallbackBlockHeader.set_fallbackepochno(

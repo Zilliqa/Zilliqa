@@ -74,8 +74,8 @@ class VCBlockHeader : public BlockHeaderBase {
   /// Returns the DS Epoch number where view change happen
   const uint64_t& GetVieWChangeDSEpochNo() const;
 
-  //Return prev dir block hash
-  const BlockHash& GetPrevHash()const {return m_prevHash;}
+  // Return prev dir block hash
+  const BlockHash& GetPrevHash() const { return m_prevHash; }
 
   /// Returns the Epoch number (Total nums of final block) where view change
   /// happen

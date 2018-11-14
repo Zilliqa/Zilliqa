@@ -102,6 +102,18 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
+
+  if (prevHash != m_pendingVCBlock->GetHeader().GetPrevHash()) {
+    LOG_GENERAL(
+        WARNING,
+        "Prev Block hash in newly received VC Block doesn't match. Calculated "
+            << prevHash << " Received"
+            << m_pendingVCBlock->GetHeader().GetPrevHash());
+    return false;
+  }
+
   // Verify candidate leader index
   uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
   if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
@@ -397,7 +409,8 @@ bool DirectoryService::ComputeNewCandidateLeader(
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
-  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(m_mediator.m_blocklinkchain.GetLatestBlockLink());
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
   {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
     // To-do: Handle exceptions.
