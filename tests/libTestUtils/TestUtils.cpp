@@ -147,6 +147,7 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
   uint256_t timestamp = DistUint32();
   vector<pair<PubKey, Peer>> faultyLeaders;
   CommitteeHash committeeHash;
+  BlockHash prevHash;
 
   for (unsigned int i = 0, count = Dist1to99(); i < count; i++) {
     faultyLeaders.emplace_back(GenerateRandomPubKey(), GenerateRandomPeer());
@@ -154,7 +155,8 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
 
   return VCBlockHeader(vieWChangeDSEpochNo, viewChangeEpochNo, viewChangeState,
                        candidateLeaderNetworkInfo, candidateLeaderPubKey,
-                       vcCounter, faultyLeaders, timestamp, committeeHash);
+                       vcCounter, faultyLeaders, timestamp, committeeHash,
+                       prevHash);
 }
 
 FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
@@ -168,10 +170,12 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
   uint32_t shardId = DistUint32();
   uint256_t timestamp = DistUint32();
   CommitteeHash committeeHash;
+  BlockHash prevHash;
 
   return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
                              hashset, leaderConsensusId, leaderNetworkInfo,
-                             leaderPubKey, shardId, timestamp, committeeHash);
+                             leaderPubKey, shardId, timestamp, committeeHash,
+                             prevHash);
 }
 
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
