@@ -79,10 +79,11 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   blockNum = 0;
   dsDifficulty = DS_POW_DIFFICULTY;
   difficulty = POW_DIFFICULTY;
+  auto lastBlockLink = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   if (m_mediator.m_dsBlockChain.GetBlockCount() > 0) {
     DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
     blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
-    prevHash = lastBlock.GetBlockHash();
+    prevHash = get<BlockLinkIndex::BLOCKHASH>(lastBlockLink);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Prev DS block hash as per leader " << prevHash.hex());

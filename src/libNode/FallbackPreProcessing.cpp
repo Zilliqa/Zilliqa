@@ -372,6 +372,8 @@ bool Node::ComposeFallbackBlock() {
     return false;
   }
 
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(m_mediator.m_blocklinkchain.GetLatestBlockLink());
+
   {
     lock_guard<mutex> g(m_mutexPendingFallbackBlock);
     // To-do: Handle exceptions.
@@ -383,7 +385,7 @@ bool Node::ComposeFallbackBlock() {
             {AccountStore::GetInstance().GetStateRootHash()},
             m_consensusLeaderID, leaderNetworkInfo,
             m_myShardMembers->at(m_consensusLeaderID).first, m_myshardId,
-            get_time_as_int(), committeeHash),
+            get_time_as_int(), committeeHash, prevHash),
         CoSignatures()));
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());
