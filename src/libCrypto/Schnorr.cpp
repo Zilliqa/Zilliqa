@@ -135,6 +135,7 @@ shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(
     if (ctx == nullptr) {
       LOG_GENERAL(WARNING, "Memory allocation failure");
       // throw exception();
+      return nullptr;
     }
 
     EC_POINT* ret =
@@ -158,6 +159,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
     if (ctx == nullptr) {
       LOG_GENERAL(WARNING, "Memory allocation failure");
       // throw exception();
+      return;
     }
 
     bnvalue.reset(
@@ -279,6 +281,7 @@ PubKey::PubKey(const PrivKey& privkey)
   if (m_P == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
+    return;
   } else if (!privkey.Initialized()) {
     LOG_GENERAL(WARNING, "Private key is not initialized");
   } else {
@@ -315,6 +318,7 @@ PubKey::PubKey(const PubKey& src)
   if (m_P == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
+    return;
   } else if (src.m_P == nullptr) {
     LOG_GENERAL(WARNING, "src (ec point) is null in pub key construct.");
     // throw exception();
@@ -431,8 +435,9 @@ Signature::Signature()
   if ((m_r == nullptr) || (m_s == nullptr)) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
+  }else{
+    m_initialized = true;
   }
-  m_initialized = true;
 }
 
 Signature::Signature(const vector<unsigned char>& src, unsigned int offset) {
