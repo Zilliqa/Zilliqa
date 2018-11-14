@@ -556,7 +556,7 @@ void Node::StartSynchronization() {
   }
   LOG_MARKER();
 
-  // SetState(SYNC);
+  SetState(SYNC);
   auto func = [this]() -> void {
     if (!GetOfflineLookups()) {
       LOG_GENERAL(WARNING, "Cannot rejoin currently");
