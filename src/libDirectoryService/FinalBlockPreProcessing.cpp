@@ -155,7 +155,7 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   BlockHash prevHash;
-  uint64_t timestamp = static_cast<uint64_t>(get_time_as_int());
+  uint64_t timestamp = get_time_as_int();
 
   uint64_t blockNum = 0;
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {

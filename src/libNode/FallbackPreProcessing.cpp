@@ -383,7 +383,7 @@ bool Node::ComposeFallbackBlock() {
             {AccountStore::GetInstance().GetStateRootHash()},
             m_consensusLeaderID, leaderNetworkInfo,
             m_myShardMembers->at(m_consensusLeaderID).first, m_myshardId,
-            static_cast<uint64_t>(get_time_as_int()), committeeHash),
+            get_time_as_int(), committeeHash),
         CoSignatures()));
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());

@@ -30,10 +30,10 @@ double r_timer_end(system_clock::time_point start_time) {
   return difference.count();
 }
 
-uint256_t get_time_as_int() {
+uint64_t get_time_as_int() {
   microseconds microsecs =
       duration_cast<microseconds>(system_clock::now().time_since_epoch());
-  return static_cast<uint256_t>(microsecs.count());
+  return static_cast<uint64_t>(microsecs.count());
 }
 
 struct tm* gmtime_safe(const time_t* timer) {
