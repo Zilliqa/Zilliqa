@@ -293,7 +293,7 @@ Json::Value Server::GetLatestDsBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << Latest.GetHeader().GetBlockNum()
                         << "  Timestamp:        "
-                        << Latest.GetHeader().GetTimestamp().str());
+                        << Latest.GetHeader().GetTimestamp());
 
   return JSONConversion::convertDSblocktoJson(Latest);
 }
@@ -305,7 +305,7 @@ Json::Value Server::GetLatestTxBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << Latest.GetHeader().GetBlockNum()
                         << "  Timestamp:        "
-                        << Latest.GetHeader().GetTimestamp().str());
+                        << Latest.GetHeader().GetTimestamp());
 
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
@@ -600,7 +600,7 @@ double Server::GetTransactionRate() {
   uint64_t refBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  boost::multiprecision::uint256_t refTimeTx = 0;
+  uint64_t refTimeTx = 0;
 
   if (refBlockNum <= REF_BLOCK_DIFF) {
     if (refBlockNum <= 1) {
@@ -629,15 +629,14 @@ double Server::GetTransactionRate() {
     return 0;
   }
 
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       refTimeTx;
 
   if (TimeDiff == 0 || refTimeTx == 0) {
     // something went wrong
     LOG_GENERAL(INFO, "TimeDiff or refTimeTx = 0 \n TimeDiff:"
-                          << TimeDiff.str()
-                          << " refTimeTx:" << refTimeTx.str());
+                          << TimeDiff << " refTimeTx:" << refTimeTx);
     return 0;
   }
   numTxns = numTxns * 1000000;  // conversion from microseconds to seconds
@@ -667,7 +666,7 @@ double Server::GetDSBlockRate() {
       return 0;
     }
   }
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       m_StartTimeDs;
 
@@ -701,7 +700,7 @@ double Server::GetTxBlockRate() {
       return 0;
     }
   }
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       m_StartTimeTx;
 
@@ -711,7 +710,7 @@ double Server::GetTxBlockRate() {
   }
   // To convert from microSeconds to seconds
   numTx = numTx * 1000000;
-  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
+  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
   boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
   return ans.convert_to<double>();
 }

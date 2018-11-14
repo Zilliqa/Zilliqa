@@ -155,7 +155,7 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   BlockHash prevHash;
-  uint256_t timestamp = get_time_as_int();
+  uint64_t timestamp = static_cast<uint64_t>(get_time_as_int());
 
   uint64_t blockNum = 0;
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
@@ -488,8 +488,8 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
     const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint256_t finalblockTimestamp = m_finalBlock->GetHeader().GetTimestamp();
-    uint256_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
+    uint64_t finalblockTimestamp = m_finalBlock->GetHeader().GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
     if (finalblockTimestamp <= lastTxBlockTimestamp) {
       LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
                                << lastTxBlockTimestamp

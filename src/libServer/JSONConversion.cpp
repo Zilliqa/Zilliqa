@@ -92,7 +92,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["Rewards"] = txheader.GetRewards().str();
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = txheader.GetTimestamp().str();
+  ret_head["Timestamp"] = to_string(txheader.GetTimestamp());
 
   ret_head["TxnHash"] = txheader.GetMbRootHash().hex();
   ret_head["StateHash"] = txheader.GetStateRootHash().hex();
@@ -130,7 +130,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   ret_header["prevhash"] = dshead.GetPrevHash().hex();
   ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
   ret_header["blockNum"] = to_string(dshead.GetBlockNum());
-  ret_header["timestamp"] = dshead.GetTimestamp().str();
+  ret_header["timestamp"] = to_string(dshead.GetTimestamp());
 
   ret["header"] = ret_header;
 

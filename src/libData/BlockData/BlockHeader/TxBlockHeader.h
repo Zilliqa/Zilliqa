@@ -38,7 +38,7 @@ class TxBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint256_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
-  boost::multiprecision::uint256_t m_timestamp;
+  uint64_t m_timestamp;
   TxBlockHashSet m_hashset;
   uint32_t m_numTxs;               // Total number of txs included in the block
   uint32_t m_numMicroBlockHashes;  // Total number of microblock hashes included
@@ -59,10 +59,10 @@ class TxBlockHeader : public BlockHeaderBase {
                 const uint64_t& gasLimit, const uint64_t& gasUsed,
                 const boost::multiprecision::uint256_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
-                const boost::multiprecision::uint256_t& timestamp,
-                const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
-                const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const CommitteeHash& committeeHash);
+                const uint64_t& timestamp, const TxBlockHashSet& blockHashSet,
+                const uint32_t numTxs, const uint32_t numMicroBlockHashes,
+                const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+                const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,
@@ -96,7 +96,7 @@ class TxBlockHeader : public BlockHeaderBase {
   const uint64_t& GetBlockNum() const;
 
   /// Returns the Unix time at the time of creation of this block.
-  const boost::multiprecision::uint256_t& GetTimestamp() const;
+  const uint64_t& GetTimestamp() const;
 
   /// Returns the digest that represents the root of the Merkle tree that stores
   /// all microblocks in this block.
@@ -144,15 +144,15 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_version : " << t.m_version << std::endl
      << "m_gasLimit : " << t.m_gasLimit << std::endl
      << "m_gasUsed : " << t.m_gasUsed << std::endl
-     << "m_rewards : " << t.m_rewards.convert_to<std::string>() << std::endl
+     << "m_rewards : " << t.m_rewards << std::endl
      << "m_prevHash : " << t.m_prevHash.hex() << std::endl
-     << "m_blockNum : " << std::to_string(t.m_blockNum) << std::endl
-     << "m_timestamp : " << t.m_timestamp.convert_to<std::string>() << std::endl
+     << "m_blockNum : " << t.m_blockNum << std::endl
+     << "m_timestamp : " << t.m_timestamp << std::endl
      << t.m_hashset << std::endl
      << "m_numTxs : " << t.m_numTxs << std::endl
      << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl
-     << "m_dsBlockNum : " << std::to_string(t.m_dsBlockNum);
+     << "m_dsBlockNum : " << t.m_dsBlockNum;
   return os;
 }
 

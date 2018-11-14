@@ -37,7 +37,7 @@ MicroBlockHeader::MicroBlockHeader(
     uint8_t type, uint32_t version, uint32_t shardId, const uint64_t& gasLimit,
     const uint64_t& gasUsed, const uint256_t& rewards,
     const BlockHash& prevHash, const uint64_t& epochNum,
-    const uint256_t& timestamp, const MicroBlockHashSet& hashset,
+    const uint64_t& timestamp, const MicroBlockHashSet& hashset,
     uint32_t numTxs, const PubKey& minerPubKey, const uint64_t& dsBlockNum,
     const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
@@ -91,7 +91,7 @@ const BlockHash& MicroBlockHeader::GetPrevHash() const { return m_prevHash; }
 
 const uint64_t& MicroBlockHeader::GetEpochNum() const { return m_epochNum; }
 
-const uint256_t& MicroBlockHeader::GetTimestamp() const { return m_timestamp; }
+const uint64_t& MicroBlockHeader::GetTimestamp() const { return m_timestamp; }
 
 const uint32_t& MicroBlockHeader::GetNumTxs() const { return m_numTxs; }
 
