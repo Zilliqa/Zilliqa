@@ -1149,7 +1149,7 @@ bool Node::CleanVariables() {
 
   FallbackStop();
   AccountStore::GetInstance().InitSoft();
-  m_myShardMembers->clear();
+  m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
   m_isPrimary = false;
   m_isMBSender = false;
   m_stillMiningPrimary = false;

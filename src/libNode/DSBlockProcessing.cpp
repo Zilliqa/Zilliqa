@@ -549,6 +549,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
+  cv_waitDSBlock.notify_one();
 
   LOG_STATE(
       "[DSBLK]["
