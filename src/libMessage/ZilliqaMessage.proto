@@ -290,6 +290,7 @@ message ProtoVCBlock
         repeated ProtoDSNode faultyleaders            = 7;
         required ByteArray timestamp                  = 8;
         required bytes committeehash                  = 9;
+        required bytes prevhash                       = 10;
     }
     required VCBlockHeader header                     = 1;
     required ProtoBlockBase blockbase                 = 2;
@@ -309,6 +310,7 @@ message ProtoFallbackBlock
         required uint32 shardid              = 8;
         required ByteArray timestamp         = 9;
         required bytes committeehash         = 10;
+        required bytes prevhash              = 11;
     }
     required FallbackBlockHeader header      = 1;
     required ProtoBlockBase blockbase        = 2;

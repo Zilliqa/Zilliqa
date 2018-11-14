@@ -397,7 +397,7 @@ bool DirectoryService::ComputeNewCandidateLeader(
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
-
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(m_mediator.m_blocklinkchain.GetLatestBlockLink());
   {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
     // To-do: Handle exceptions.
@@ -409,7 +409,7 @@ bool DirectoryService::ComputeNewCandidateLeader(
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
             m_viewChangeCounter, m_cumulativeFaultyLeaders, get_time_as_int(),
-            committeeHash),
+            committeeHash, prevHash),
         CoSignatures()));
     m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
