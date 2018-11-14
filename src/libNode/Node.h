@@ -104,6 +104,10 @@ class Node : public Executable, public Broadcastable {
   std::mutex m_MutexCVFBWaitMB;
   std::condition_variable cv_FBWaitMB;
 
+  /// DSBlock Timer Vars
+  std::mutex m_mutexCVWaitDSBlock;
+  std::condition_variable cv_waitDSBlock;
+
   // Persistence Retriever
   std::shared_ptr<Retriever> m_retriever;
 
