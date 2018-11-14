@@ -145,6 +145,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     toAddr = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
     this->AddAccount(toAddr, {0, 0});
     Account* toAccount = this->GetAccount(toAddr);
+    if (toAccount == nullptr) {
+      LOG_GENERAL(WARNING, "toAccount is null ptr");
+      return false;
+    }
     toAccount->SetCode(transaction.GetCode());
     // Store the immutable states
     toAccount->InitContract(transaction.GetData());
@@ -661,6 +665,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
                             : JSONUtils::convertJsontoStr(s["value"]);
 
     Account* contractAccount = this->GetAccount(m_curContractAddr);
+    if (contractAccount == nullptr) {
+      LOG_GENERAL(WARNING, "contractAccount is null ptr");
+      return false;
+    }
     if (vname != "_balance") {
       contractAccount->SetStorage(vname, type, value);
     }
