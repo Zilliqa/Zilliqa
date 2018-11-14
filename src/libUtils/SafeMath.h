@@ -41,21 +41,21 @@ class SafeMath {
     return true;
   }
 
-  static bool power(const T& a, const T& b, T& result) {
-    if (b == 0) {
+  static bool power(const T& base, const T& exponent, T& result) {
+    if (exponent == 0) {
       result = 1;
       return true;
     }
 
-    if (b < 0) {
+    if (exponent < 0) {
       LOG_GENERAL(WARNING, "Doesn't support pow with negative index");
       return false;
     }
 
-    T temp = a, count = b;
+    T temp = base, count = exponent;
 
     while (count > 0) {
-      if (!SafeMath::mul(temp, a, temp)) {
+      if (!SafeMath::mul(temp, base, temp)) {
         LOG_GENERAL(WARNING, "SafeMath::pow failed");
         return false;
       }
@@ -68,22 +68,22 @@ class SafeMath {
 
   // if isCritical is true then will call LOG FATAL,
   // Now only used for declare constant variable in Constants.cpp
-  static T power(const T& a, const T& b, bool isCritical = false) {
-    if (b == 0) {
+  static T power(const T& base, const T& exponent, bool isCritical = false) {
+    if (exponent == 0) {
       return 1;
     }
 
-    if (b < 0) {
+    if (exponent < 0) {
       LOG_GENERAL(WARNING, "Doesn't support pow with negative index");
       return 0;
     }
 
-    T ret = a, count = b;
+    T ret = base, count = exponent;
 
     while (count > 0) {
-      if (!SafeMath::mul(ret, a, ret)) {
+      if (!SafeMath::mul(ret, base, ret)) {
         LOG_GENERAL(isCritical ? FATAL : WARNING,
-                    "SafeMath::pow failed ret: " << ret << " a " << a);
+                    "SafeMath::pow failed ret: " << ret << " base " << base);
         return ret;
       }
       --count;
