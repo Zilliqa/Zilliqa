@@ -208,6 +208,9 @@ const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
 const unsigned int LOOKUP_REWARD_IN_PERCENT{
     ReadFromConstantsFile("LOOKUP_REWARD_IN_PERCENT")};
+const unsigned int PUMPMESSAGE_MILLISECONDS{
+    ReadFromConstantsFile("PUMPMESSAGE_MILLISECONDS")};
+const unsigned int MAXRETRYCONN{ReadFromConstantsFile("MAXRETRYCONN")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{

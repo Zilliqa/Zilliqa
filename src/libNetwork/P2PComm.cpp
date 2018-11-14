@@ -273,7 +273,7 @@ void SendJob::SendMessageCore(const Peer& peer,
       return;
     }
     this_thread::sleep_for(
-        chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS));
+        chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS + 1));
   }
 }
 
