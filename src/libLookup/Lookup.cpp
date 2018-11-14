@@ -1698,7 +1698,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
       !ARCHIVAL_NODE) {
-    LOG_GENERAL(INFO, "At new DS epoch now, try getting state from lookup");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "At new DS epoch now, try getting state from lookup");
     GetStateFromLookupNodes();
   }
 
