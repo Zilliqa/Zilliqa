@@ -125,8 +125,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 
 template <class MAP>
 bool AccountStoreBase<MAP>::CalculateGasRefund(
-    const boost::multiprecision::uint256_t& gasDeposit,
-    const boost::multiprecision::uint256_t& gasUnit,
+    const boost::multiprecision::uint256_t& gasDeposit, const uint64_t& gasUnit,
     const boost::multiprecision::uint256_t& gasPrice,
     boost::multiprecision::uint256_t& gasRefund) {
   boost::multiprecision::uint256_t gasFee;
@@ -186,8 +185,7 @@ Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
 }
 
 template <class MAP>
-boost::multiprecision::uint256_t AccountStoreBase<MAP>::GetNumOfAccounts()
-    const {
+size_t AccountStoreBase<MAP>::GetNumOfAccounts() const {
   // LOG_MARKER();
   return m_addressToAccount->size();
 }
@@ -297,8 +295,7 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
 }
 
 template <class MAP>
-boost::multiprecision::uint256_t AccountStoreBase<MAP>::GetNonce(
-    const Address& address) {
+uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
   // LOG_MARKER();
 
   Account* account = GetAccount(address);

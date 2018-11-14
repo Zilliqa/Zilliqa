@@ -46,7 +46,7 @@ using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class Account : public SerializableDataBlock {
   boost::multiprecision::uint256_t m_balance;
-  boost::multiprecision::uint256_t m_nonce;
+  uint64_t m_nonce;
   dev::h256 m_storageRoot, m_prevRoot;
   dev::h256 m_codeHash;
   // The associated code for this account.
@@ -67,7 +67,7 @@ class Account : public SerializableDataBlock {
 
   /// Constructor for a account.
   Account(const boost::multiprecision::uint256_t& balance,
-          const boost::multiprecision::uint256_t& nonce);
+          const uint64_t& nonce);
 
   /// Returns true if account is a contract account
   bool isContract() const { return m_codeHash != dev::h256(); }
@@ -112,14 +112,12 @@ class Account : public SerializableDataBlock {
   /// Increases account nonce by 1.
   bool IncreaseNonce();
 
-  bool IncreaseNonceBy(const boost::multiprecision::uint256_t& nonceDelta);
+  bool IncreaseNonceBy(const uint64_t& nonceDelta);
 
-  void SetNonce(const boost::multiprecision::uint256_t& nonce) {
-    m_nonce = nonce;
-  }
+  void SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
 
   /// Returns the account nonce.
-  const boost::multiprecision::uint256_t& GetNonce() const { return m_nonce; }
+  const uint64_t& GetNonce() const { return m_nonce; }
 
   void SetStorageRoot(const dev::h256& root);
 
@@ -166,8 +164,8 @@ class Account : public SerializableDataBlock {
   static Address GetAddressFromPublicKey(const PubKey& pubKey);
 
   /// Computes an account address from a sender and its nonce
-  static Address GetAddressForContract(
-      const Address& sender, const boost::multiprecision::uint256_t& nonce);
+  static Address GetAddressForContract(const Address& sender,
+                                       const uint64_t& nonce);
 
   friend inline std::ostream& operator<<(std::ostream& out,
                                          Account const& account);

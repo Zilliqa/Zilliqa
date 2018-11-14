@@ -49,10 +49,10 @@ Transaction::Transaction(const vector<unsigned char>& src,
   Deserialize(src, offset);
 }
 
-Transaction::Transaction(const uint256_t& version, const uint256_t& nonce,
+Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const KeyPair& senderKeyPair,
                          const uint256_t& amount, const uint256_t& gasPrice,
-                         const uint256_t& gasLimit,
+                         const uint64_t& gasLimit,
                          const vector<unsigned char>& code,
                          const vector<unsigned char>& data)
     : m_coreInfo(version, nonce, toAddr, senderKeyPair.second, amount, gasPrice,
@@ -77,10 +77,10 @@ Transaction::Transaction(const uint256_t& version, const uint256_t& nonce,
   }
 }
 
-Transaction::Transaction(const TxnHash& tranID, const uint256_t& version,
-                         const uint256_t& nonce, const Address& toAddr,
+Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
+                         const uint64_t& nonce, const Address& toAddr,
                          const PubKey& senderPubKey, const uint256_t& amount,
-                         const uint256_t& gasPrice, const uint256_t& gasLimit,
+                         const uint256_t& gasPrice, const uint64_t& gasLimit,
                          const std::vector<unsigned char>& code,
                          const std::vector<unsigned char>& data,
                          const Signature& signature)
@@ -89,10 +89,10 @@ Transaction::Transaction(const TxnHash& tranID, const uint256_t& version,
                  gasLimit, code, data),
       m_signature(signature) {}
 
-Transaction::Transaction(const uint256_t& version, const uint256_t& nonce,
+Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const uint256_t& amount, const uint256_t& gasPrice,
-                         const uint256_t& gasLimit,
+                         const uint64_t& gasLimit,
                          const std::vector<unsigned char>& code,
                          const std::vector<unsigned char>& data,
                          const Signature& signature)
@@ -150,9 +150,9 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
   return m_coreInfo;
 }
 
-const uint256_t& Transaction::GetVersion() const { return m_coreInfo.version; }
+const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
 
-const uint256_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
+const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
 
 const Address& Transaction::GetToAddr() const { return m_coreInfo.toAddr; }
 
@@ -170,9 +170,7 @@ const uint256_t& Transaction::GetGasPrice() const {
   return m_coreInfo.gasPrice;
 }
 
-const uint256_t& Transaction::GetGasLimit() const {
-  return m_coreInfo.gasLimit;
-}
+const uint64_t& Transaction::GetGasLimit() const { return m_coreInfo.gasLimit; }
 
 const vector<unsigned char>& Transaction::GetCode() const {
   return m_coreInfo.code;

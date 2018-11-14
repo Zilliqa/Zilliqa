@@ -25,8 +25,6 @@
 
 #include "AccountStoreBase.h"
 
-static boost::multiprecision::uint256_t DEFAULT_GASUSED = 0;
-
 template <class MAP>
 class AccountStoreSC;
 
@@ -55,7 +53,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Address m_curSenderAddr;
 
   boost::multiprecision::uint256_t m_curAmount;
-  boost::multiprecision::uint256_t m_curGasLimit;
+  uint64_t m_curGasLimit;
   boost::multiprecision::uint256_t m_curGasPrice;
 
   unsigned int m_curNumShards;
@@ -65,21 +63,19 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   unsigned int m_curDepth = 0;
 
   bool ParseContractCheckerOutput(const std::string& checkerPrint);
-  bool ParseCreateContractOutput(boost::multiprecision::uint256_t& gasRemained,
+  bool ParseCreateContractOutput(uint64_t& gasRemained,
                                  const std::string& runnerPrint);
-  bool ParseCreateContractJsonOutput(
-      const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained);
-  bool ParseCallContractOutput(boost::multiprecision::uint256_t& gasRemained,
+  bool ParseCreateContractJsonOutput(const Json::Value& _json,
+                                     uint64_t& gasRemained);
+  bool ParseCallContractOutput(uint64_t& gasRemained,
                                const std::string& runnerPrint);
-  bool ParseCallContractJsonOutput(
-      const Json::Value& _json, boost::multiprecision::uint256_t& gasRemained);
+  bool ParseCallContractJsonOutput(const Json::Value& _json,
+                                   uint64_t& gasRemained);
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
   std::string GetContractCheckerCmdStr();
-  std::string GetCreateContractCmdStr(
-      const boost::multiprecision::uint256_t& available_gas);
-  std::string GetCallContractCmdStr(
-      const boost::multiprecision::uint256_t& available_gas);
+  std::string GetCreateContractCmdStr(const uint64_t& available_gas);
+  std::string GetCallContractCmdStr(const uint64_t& available_gas);
 
   // Generate input for interpreter to check the correctness of contract
   void ExportCreateContractFiles(const Account& contract);

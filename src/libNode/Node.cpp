@@ -60,7 +60,7 @@ void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
   const uint256_t bal{std::numeric_limits<uint64_t>::max()};
-  const uint256_t nonce{0};
+  const uint64_t nonce{0};
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
     Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};

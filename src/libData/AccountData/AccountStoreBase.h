@@ -39,7 +39,7 @@ class AccountStoreBase : public SerializableDataBlock {
   AccountStoreBase();
 
   bool CalculateGasRefund(const boost::multiprecision::uint256_t& gasDeposit,
-                          const boost::multiprecision::uint256_t& gasUnit,
+                          const uint64_t& gasUnit,
                           const boost::multiprecision::uint256_t& gasPrice,
                           boost::multiprecision::uint256_t& gasRefund);
 
@@ -67,7 +67,7 @@ class AccountStoreBase : public SerializableDataBlock {
 
   void RemoveAccount(const Address& address);
 
-  boost::multiprecision::uint256_t GetNumOfAccounts() const;
+  size_t GetNumOfAccounts() const;
 
   bool IncreaseBalance(const Address& address,
                        const boost::multiprecision::uint256_t& delta);
@@ -81,7 +81,7 @@ class AccountStoreBase : public SerializableDataBlock {
   boost::multiprecision::uint256_t GetBalance(const Address& address);
 
   bool IncreaseNonce(const Address& address);
-  boost::multiprecision::uint256_t GetNonce(const Address& address);
+  uint64_t GetNonce(const Address& address);
 
   virtual void PrintAccountState();
 };

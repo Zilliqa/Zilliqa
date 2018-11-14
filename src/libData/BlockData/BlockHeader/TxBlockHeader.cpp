@@ -34,8 +34,8 @@ TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
 }
 
 TxBlockHeader::TxBlockHeader(
-    uint8_t type, uint32_t version, const uint256_t& gasLimit,
-    const uint256_t& gasUsed, const uint256_t& rewards,
+    uint8_t type, uint32_t version, const uint64_t& gasLimit,
+    const uint64_t& gasUsed, const uint256_t& rewards,
     const BlockHash& prevHash, const uint64_t& blockNum,
     const uint256_t& timestamp, const TxBlockHashSet& blockHashSet,
     uint32_t numTxs, uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
@@ -79,9 +79,9 @@ const uint8_t& TxBlockHeader::GetType() const { return m_type; }
 
 const uint32_t& TxBlockHeader::GetVersion() const { return m_version; }
 
-const uint256_t& TxBlockHeader::GetGasLimit() const { return m_gasLimit; }
+const uint64_t& TxBlockHeader::GetGasLimit() const { return m_gasLimit; }
 
-const uint256_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }
+const uint64_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }
 
 const uint256_t& TxBlockHeader::GetRewards() const { return m_rewards; }
 

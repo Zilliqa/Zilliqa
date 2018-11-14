@@ -180,7 +180,7 @@ bool AccountStore::RetrieveFromDisk() {
         LOG_GENERAL(WARNING, "Account data corrupted");
         continue;
       }
-      Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint256_t>());
+      Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint64_t>());
       // Code Hash
       if (rlp[3].toHash<h256>() != h256()) {
         // Extract Code Content

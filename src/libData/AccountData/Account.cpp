@@ -42,7 +42,7 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset) {
   }
 }
 
-Account::Account(const uint256_t& balance, const uint256_t& nonce)
+Account::Account(const uint256_t& balance, const uint64_t& nonce)
     : m_balance(balance),
       m_nonce(nonce),
       m_storageRoot(h256()),
@@ -176,7 +176,7 @@ bool Account::IncreaseNonce() {
   return true;
 }
 
-bool Account::IncreaseNonceBy(const uint256_t& nonceDelta) {
+bool Account::IncreaseNonceBy(const uint64_t& nonceDelta) {
   m_nonce += nonceDelta;
   return true;
 }
@@ -333,13 +333,13 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
 }
 
 Address Account::GetAddressForContract(const Address& sender,
-                                       const uint256_t& nonce) {
+                                       const uint64_t& nonce) {
   Address address;
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(sender.asBytes());
   vector<unsigned char> nonceBytes;
-  SetNumber<uint256_t>(nonceBytes, 0, nonce, UINT256_SIZE);
+  SetNumber<uint64_t>(nonceBytes, 0, nonce, sizeof(uint64_t));
   sha2.Update(nonceBytes);
 
   const vector<unsigned char>& output = sha2.Finalize();
