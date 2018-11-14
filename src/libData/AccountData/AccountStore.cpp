@@ -64,6 +64,7 @@ AccountStore& AccountStore::GetInstance() {
 
 bool AccountStore::Deserialize(const vector<unsigned char>& src,
                                unsigned int offset) {
+  this->Init();
   if (!Messenger::GetAccountStore(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
     return false;
