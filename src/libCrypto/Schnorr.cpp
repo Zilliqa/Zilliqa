@@ -435,7 +435,7 @@ Signature::Signature()
   if ((m_r == nullptr) || (m_s == nullptr)) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
-  }else{
+  } else {
     m_initialized = true;
   }
 }
