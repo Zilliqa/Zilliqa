@@ -162,7 +162,7 @@ decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
   uint256_t nonce = 0;
   Address toAddr = Account::GetAddressFromPublicKey(receiver.second);
   uint256_t amount = 123;
-  uint256_t gasPrice = 456;
+  uint256_t gasPrice = PRECISION_MIN_VALUE;
   uint256_t gasLimit = 789;
 
   for (unsigned i = 0; i < n; i++) {
