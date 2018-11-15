@@ -157,9 +157,6 @@ bool AccountStore::DeserializeDeltaTemp(const vector<unsigned char>& src,
 }
 
 void AccountStore::MoveRootToDisk(const h256& root) {
-  lock(m_mutexPrimary, m_mutexDB);
-  lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
-  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
   // convert h256 to bytes
   if (!BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, root.asBytes()))
     LOG_GENERAL(INFO, "FAIL: Put metadata failed");
