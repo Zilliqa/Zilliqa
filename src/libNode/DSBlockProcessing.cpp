@@ -549,6 +549,9 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
   // Add to block chain and Store the DS block to disk.
   StoreDSBlockToDisk(dsblock);
+
+  m_proposedGasPrice =
+      max(m_proposedGasPrice, dsblock.GetHeader().GetGasPrice());
   cv_waitDSBlock.notify_one();
 
   LOG_STATE(
