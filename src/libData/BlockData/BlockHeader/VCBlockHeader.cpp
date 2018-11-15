@@ -33,15 +33,13 @@ VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
   }
 }
 
-VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
-                             const uint64_t& viewChangeEpochNo,
-                             const unsigned char viewChangeState,
-                             const Peer& candidateLeaderNetworkInfo,
-                             const PubKey& candidateLeaderPubKey,
-                             const uint32_t vcCounter,
-                             const vector<pair<PubKey, Peer>>& faultyLeaders,
-                             const boost::multiprecision::uint256_t& timestamp,
-                             const CommitteeHash& committeeHash)
+VCBlockHeader::VCBlockHeader(
+    const uint64_t& vieWChangeDSEpochNo, const uint64_t& viewChangeEpochNo,
+    const unsigned char viewChangeState, const Peer& candidateLeaderNetworkInfo,
+    const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
+    const vector<pair<PubKey, Peer>>& faultyLeaders,
+    const boost::multiprecision::uint256_t& timestamp,
+    const CommitteeHash& committeeHash, const BlockHash& prevHash)
     : BlockHeaderBase(committeeHash),
       m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
       m_VieWChangeEpochNo(viewChangeEpochNo),
@@ -50,7 +48,8 @@ VCBlockHeader::VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
       m_CandidateLeaderPubKey(candidateLeaderPubKey),
       m_VCCounter(vcCounter),
       m_FaultyLeaders(faultyLeaders),
-      m_Timestamp(timestamp) {}
+      m_Timestamp(timestamp),
+      m_prevHash(prevHash) {}
 
 bool VCBlockHeader::Serialize(vector<unsigned char>& dst,
                               unsigned int offset) const {

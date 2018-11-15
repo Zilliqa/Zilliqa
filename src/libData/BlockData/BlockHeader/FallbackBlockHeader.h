@@ -43,6 +43,7 @@ class FallbackBlockHeader : public BlockHeaderBase {
   PubKey m_leaderPubKey;
   uint32_t m_shardId;
   boost::multiprecision::uint256_t m_timestamp;
+  BlockHash m_prevHash;
 
  public:
   /// Default constructor.
@@ -54,21 +55,22 @@ class FallbackBlockHeader : public BlockHeaderBase {
                       unsigned int offset);
 
   /// Constructor with specified fallback block header parameters.
-  FallbackBlockHeader(const uint64_t& fallbackDSEpochNo,
-                      const uint64_t& fallbackEpochNo,
-                      const unsigned char fallbackState,
-                      const FallbackBlockHashSet& hashset,
-                      const uint32_t leaderConsensusId,
-                      const Peer& leaderNetworkInfo, const PubKey& leaderPubKey,
-                      const uint32_t shardId,
-                      const boost::multiprecision::uint256_t& timestamp,
-                      const CommitteeHash& committeeHash);
+  FallbackBlockHeader(
+      const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
+      const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
+      const uint32_t leaderConsensusId, const Peer& leaderNetworkInfo,
+      const PubKey& leaderPubKey, const uint32_t shardId,
+      const boost::multiprecision::uint256_t& timestamp,
+      const CommitteeHash& committeeHash, const BlockHash& prevHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+
+  /// Returns the hash of prev dir block
+  const BlockHash& GetPrevHash() const { return m_prevHash; }
 
   /// Returns the DS Epoch number where view change happen
   const uint64_t& GetFallbackDSEpochNo() const;

@@ -82,7 +82,7 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDifficulty() const;
 
-  /// Returns the digest of the parent block header.
+  /// Returns the hash of prev dir block
   const BlockHash& GetPrevHash() const;
 
   /// Returns the public key of the leader of the DS committee that composed
