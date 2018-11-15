@@ -50,14 +50,6 @@ unordered_map<int, string> PubKey;
 unordered_map<int, string> Port;
 unordered_map<int, string> Path;
 
-struct ProcessInfo {
-  string privKey;
-  string pubKey;
-  string port;
-  string syncType;
-  string path;
-};
-
 const string logName = "epochinfo-00001-log.txt";
 
 enum SyncType : unsigned int {
@@ -108,40 +100,10 @@ SyncType getRestartValue([[gnu::unused]] pid_t pid) { return NO_SYNC; }
 vector<pid_t> getProcIdByName(string procName, ofstream& log) {
   vector<pid_t> result;
   result.clear();
-#if 0  // clark
-  int pid = -1;
-#endif
+
   // Open the /proc directory
   DIR* dp = opendir("/proc");
   if (dp != NULL) {
-#if 0  // clark
-    // Enumerate all entries in directory until process found
-    struct dirent* dirp;
-    while (pid < 0 && (dirp = readdir(dp))) {
-      // Skip non-numeric entries
-      int id = atoi(dirp->d_name);
-      if (id > 0) {
-        // Read contents of virtual /proc/{pid}/cmdline file
-        string cmdPath = string("/proc/") + dirp->d_name + "/cmdline";
-        ifstream cmdFile(cmdPath.c_str());
-        string cmdLine;
-        getline(cmdFile, cmdLine);
-        if (!cmdLine.empty()) {
-          // Keep first cmdline item which contains the program path
-          size_t pos = cmdLine.find('\0');
-          if (pos != string::npos) cmdLine = cmdLine.substr(0, pos);
-          // Keep program name only, removing the path
-          pos = cmdLine.rfind('/');
-          if (pos != string::npos) cmdLine = cmdLine.substr(pos + 1);
-          // Compare against requested process name
-          if (procName == cmdLine) {
-            pid = id;
-            log << " id: " << id << endl;
-          }
-        }
-      }
-    }
-#else
     // Enumerate all entries in directory until process found
     struct dirent* dirp;
     while ((dirp = readdir(dp))) {
@@ -166,11 +128,7 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
             cmdLine = cmdLine.substr(pos + 1);
             fullLine = fullLine.substr(pos + 1);
           }
-#if 1  // clark
-          log << "cmdPath: " << cmdPath << ", fullLine: " << fullLine
-              << ", path: " << path << ", cmdLine: " << cmdLine
-              << ", pos: " << pos << endl;
-#endif
+
           // Compare against requested process name
           if (procName == cmdLine) {
             result.push_back(id);
@@ -201,14 +159,9 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
         }
       }
     }
-#endif
   }
 
   closedir(dp);
-
-#if 0  // clark
-  result.push_back(pid);
-#endif
   return result;
 }
 string execute(string cmd) {
@@ -251,24 +204,9 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
-void* createNewProcess(void* processInfo) {
-  pthread_detach(pthread_self());
-  execute(restart_zilliqa + " " + ((ProcessInfo*)processInfo)->pubKey + " " +
-          ((ProcessInfo*)processInfo)->privKey + " " +
-          ((ProcessInfo*)processInfo)->port + " " +
-          ((ProcessInfo*)processInfo)->syncType + " " +
-          ((ProcessInfo*)processInfo)->path + " 2>&1");
-  pthread_exit(0);
-}
-
 void StartNewProcess(const string pubKey, const string privKey,
                      const string port, const string syncType,
                      const string path, ofstream& log) {
-  //  string cmd = pubKey + " " + privKey + " " + port + " " + syncType + " " +
-  //               path + " 2>&1";
-  //  string cmd = restart_zilliqa + " " + pubKey + " " + privKey + " " + port +
-  //               " " + syncType + " " + path + " 2>&1 &";
-
   log << "Create new Zilliqa process..." << endl;
   signal(SIGCHLD, SIG_IGN);
   pid_t pid;
@@ -278,23 +216,8 @@ void StartNewProcess(const string pubKey, const string privKey,
         << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + port +
                    " " + syncType + " " + path + " 2>&1")
         << " \"" << endl;
+    exit(0);
   }
-
-  /*
-  if (-1 == system(cmd.data())) {
-  log << "Failed to create Zilliqa process!" << endl;
-}
-
-pthread_t threadNewProcess;
-ProcessInfo* processInfo = (ProcessInfo*)malloc(sizeof(ProcessInfo));
-processInfo->pubKey = pubKey;
-processInfo->privKey = privKey;
-processInfo->port = port;
-processInfo->syncType = syncType;
-processInfo->path = path;
-log << "Create a new process using separated thread..." << endl;
-pthread_create(&threadNewProcess, NULL, createNewProcess, (void*)processInfo);
-*/
 }
 
 void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
@@ -302,13 +225,14 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
   const string name = programName[0];
 
   if (pids[name].empty()) {
-    log << "No " << name << " process running yet..." << endl;
+    log << "Looking for new " << name << " process..." << endl;
     vector<pid_t> tmp = getProcIdByName(name, log);
 
     for (const pid_t& i : tmp) {
       died[i] = false;
       pids[name].push_back(i);
-      log << "Started new process " << name << " with PiD: " << i << endl;
+      log << "Started monitoring new process " << name << " with PiD: " << i
+          << endl;
     }
 
     return;
@@ -340,38 +264,6 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
 
       StartNewProcess(PubKey[pid], PrivKey[pid], Port[pid],
                       to_string(getRestartValue(pid)), Path[pid], log);
-
-#if 0  // clark
-        try {
-          log << "Trying to restart .." << endl;
-          log << "Params: "
-              << PubKey[pid] + " " + PrivKey[pid] + " " + Port[pid] + " " +
-                     to_string(v) + " " + Path[pid] + " 2>&1"
-              << endl;
-          log << "Output from shell...(if any)" << endl << endl;
-          log << "\" "
-              << execute(restart_zilliqa + " " + PubKey[pid] + " " +
-                         PrivKey[pid] + " " + Port[pid] + " " + to_string(v) +
-                         " " + Path[pid] + " 2>&1")
-              << " \"" << endl;
-          log << PubKey[pid] << " " << PrivKey[pid] << " " << Port[pid] << endl;
-          log << endl;
-        } catch (runtime_error& e) {
-          log << "ERROR!! " << e.what() << endl;
-        }
-
-        vector<pid_t> tmp = getProcIdByName(name, log);
-
-        for (pid_t i : tmp) {
-          auto it = find(pids[name].begin(), pids[name].end(), i);
-          if (it == pids[name].end()) {
-            died[i] = false;
-            pids[name].push_back(i);
-            log << "Started new process " << name << " with PiD: " << i << endl;
-          }
-        }
-#endif
-
       died.erase(pid);
       PrivKey.erase(pid);
       PubKey.erase(pid);
