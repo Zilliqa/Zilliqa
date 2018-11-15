@@ -1783,7 +1783,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  for (const auto addressAccount : addressToAccountTmp) {
+  for (const auto& addressAccount : addressToAccountTmp) {
     AccountStore::GetInstance().AddAccountDuringDeserialization(
         addressAccount.first, addressAccount.second);
   }
