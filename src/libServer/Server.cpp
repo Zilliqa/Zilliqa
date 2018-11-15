@@ -72,9 +72,7 @@ Server::~Server() {
   // destructor
 }
 
-
 string Server::GetNetworkId() { return "TestNet"; }
-
 
 Json::Value Server::CreateTransaction(const Json::Value& _json) {
   LOG_MARKER();
@@ -262,12 +260,9 @@ Json::Value Server::GetTxBlock(const string& blockNum) {
   }
 }
 
-string Server::GetMinimumGasPrice() 
-{ 
-
-  DSBlock latestDsBlock  = m_mediator.m_dsBlockChain.GetLastBlock(); 
+string Server::GetMinimumGasPrice() {
+  DSBlock latestDsBlock = m_mediator.m_dsBlockChain.GetLastBlock();
   return latestDsBlock.GetHeader().GetGasPrice().str();
-
 }
 
 Json::Value Server::GetLatestDsBlock() {
@@ -426,7 +421,6 @@ Json::Value Server::GetSmartContractCode(const string& address) {
   }
 }
 
-
 Json::Value Server::GetSmartContracts(const string& address) {
   Json::Value _json;
   LOG_MARKER();
@@ -512,7 +506,6 @@ Json::Value Server::GetTransactionReceipt([
     [gnu::unused]] const string& transactionHash) {
   return "Hello";
 }
-
 
 unsigned int Server::GetNumPeers() {
   LOG_MARKER();

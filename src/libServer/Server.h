@@ -219,7 +219,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     response = this->GetBalance(request[0u].asString());
   }
   inline virtual void GetMinimumGasPriceI(const Json::Value& request,
-                                   Json::Value& response) {
+                                          Json::Value& response) {
     (void)request;
     response = this->GetMinimumGasPrice();
   }
