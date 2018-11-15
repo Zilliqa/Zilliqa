@@ -769,17 +769,23 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                               uint64_t& highBlockNum) {
   lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
+  uint64_t curBlockNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  uint64_t minBlockNum = (curBlockNum > MEAN_GAS_PRICE_DS_NUM)
+                             ? (curBlockNum - MEAN_GAS_PRICE_DS_NUM)
+                             : 1;
+
   if (lowBlockNum == 1) {
-    lowBlockNum =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    lowBlockNum = minBlockNum;
   } else if (lowBlockNum == 0) {
     // give all the blocks in the ds blockchain
     lowBlockNum = 1;
   }
 
+  lowBlockNum = min(minBlockNum, lowBlockNum);
+
   if (highBlockNum == 0) {
-    highBlockNum =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    highBlockNum = curBlockNum;
   }
 
   uint64_t blockNum;
@@ -1519,6 +1525,10 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     }
 
     for (const auto& dsblock : dsBlocks) {
+      if (!(m_mediator.m_dsBlockChain.GetBlock(
+                dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
+        continue;
+      }
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
       // Store DS Block to disk
       if (!ARCHIVAL_NODE) {

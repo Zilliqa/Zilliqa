@@ -53,11 +53,11 @@ message ProtoDSNode
 
 message ProtoPoWSolution
 {
-    required uint64 nonce     = 1;
-    required bytes result     = 2;
-    required bytes mixhash    = 3;
-    required uint32 lookupid  = 4;
-    required uint32 gasprice  = 5;
+    required uint64 nonce        = 1;
+    required bytes result        = 2;
+    required bytes mixhash       = 3;
+    required uint32 lookupid     = 4;
+    required ByteArray gasprice  = 5;
 }
 
 message ProtoDSCommittee
@@ -198,16 +198,17 @@ message ProtoDSBlock
         required ByteArray leaderpubkey = 4;
         required uint64 blocknum        = 5;
         required uint64 epochnum        = 6;
-        required uint64 timestamp    = 7;
-        required ByteArray swinfo       = 8;
+        required ByteArray gasprice     = 7;
+        required uint64 timestamp       = 8;
+        required ByteArray swinfo       = 9;
         message PowDSWinners
         {
             required ByteArray key      = 1;
             required ByteArray val      = 2;
         }
-        repeated PowDSWinners dswinners = 9;
-        required DSBlockHashSet hash    = 10;
-        required bytes committeehash    = 11;
+        repeated PowDSWinners dswinners = 10;
+        required DSBlockHashSet hash    = 11;
+        required bytes committeehash    = 12;
     }
     required DSBlockHeader header       = 1;
     required ProtoBlockBase blockbase   = 2;
@@ -330,7 +331,7 @@ message DSPoWSubmission
         required string resultinghash      = 6;
         required string mixhash            = 7;
         required uint32 lookupid           = 8;
-        required uint32 gasprice           = 9;
+        required ByteArray gasprice        = 9;
     }
     required Data data                     = 1;
     required ByteArray signature           = 2;

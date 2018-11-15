@@ -53,7 +53,7 @@ struct PoWSolution {
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
   uint32_t lookupId;
-  uint32_t gasPrice;
+  boost::multiprecision::uint256_t gasPrice;
 
   PoWSolution()
       : nonce(0),
@@ -64,11 +64,13 @@ struct PoWSolution {
 
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
-              const std::array<unsigned char, 32>& m, uint32_t l, uint32_t gp)
+              const std::array<unsigned char, 32>& m, uint32_t l,
+              const boost::multiprecision::uint256_t& gp)
       : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
-    return (nonce == rhs.nonce) && (result == rhs.result) &&
-           (mixhash == rhs.mixhash);
+    return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
+           std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.lookupId,
+                    rhs.gasPrice);
   }
 };
 
@@ -248,9 +250,17 @@ class DirectoryService : public Executable, public Broadcastable {
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers);
 
+  // Gas Pricer
+  boost::multiprecision::uint256_t GetNewGasPrice();
+  boost::multiprecision::uint256_t GetHistoricalMeanGasPrice();
+  boost::multiprecision::uint256_t GetDecreasedGasPrice();
+  boost::multiprecision::uint256_t GetIncreasedGasPrice();
+  bool VerifyGasPrice(const boost::multiprecision::uint256_t& gasPrice);
+
   void LookupCoinbase(const DequeOfShard& shards, const MapOfPubKeyPoW& allPow,
                       const std::map<PubKey, Peer>& powDSWinner,
                       const MapOfPubKeyPoW& dsPow);
+
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();

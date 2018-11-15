@@ -78,6 +78,7 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
   PubKey leaderPubKey = GenerateRandomPubKey();
   uint64_t blockNum = DistUint32();
   uint64_t epochNum = DistUint32();
+  uint256_t gasPrice = PRECISION_MIN_VALUE;
   uint64_t timestamp = DistUint32();
   SWInfo swInfo;
   map<PubKey, Peer> powDSWinners;
@@ -89,8 +90,8 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
   }
 
   return DSBlockHeader(dsDifficulty, difficulty, prevHash, leaderPubKey,
-                       blockNum, epochNum, timestamp, swInfo, powDSWinners,
-                       hash, committeeHash);
+                       blockNum, epochNum, gasPrice, timestamp, swInfo,
+                       powDSWinners, hash, committeeHash);
 }
 
 MicroBlockHeader GenerateRandomMicroBlockHeader() {

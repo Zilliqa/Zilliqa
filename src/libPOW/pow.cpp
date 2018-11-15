@@ -314,7 +314,7 @@ std::vector<unsigned char> POW::ConcatAndhash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2,
     const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-    uint32_t lookupId, uint32_t gasPrice) {
+    uint32_t lookupId, const boost::multiprecision::uint256_t& gasPrice) {
   std::vector<unsigned char> vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);
@@ -333,8 +333,8 @@ std::vector<unsigned char> POW::ConcatAndhash(
 
   Serializable::SetNumber<uint32_t>(vec, vec.size(), lookupId,
                                     sizeof(uint32_t));
-  Serializable::SetNumber<uint32_t>(vec, vec.size(), gasPrice,
-                                    sizeof(uint32_t));
+  Serializable::SetNumber<boost::multiprecision::uint256_t>(
+      vec, vec.size(), gasPrice, UINT256_SIZE);
 
   SHA2<256> sha2;
   sha2.Update(vec);
@@ -347,7 +347,8 @@ ethash_mining_result_t POW::PoWMine(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2,
     const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-    uint32_t lookupId, uint32_t gasPrice, bool fullDataset) {
+    uint32_t lookupId, const boost::multiprecision::uint256_t& gasPrice,
+    bool fullDataset) {
   LOG_MARKER();
   // mutex required to prevent a new mining to begin before previous mining
   // operation has ended(ie. m_shouldMine=false has been processed) and
@@ -385,7 +386,8 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const std::array<unsigned char, UINT256_SIZE>& rand1,
                     const std::array<unsigned char, UINT256_SIZE>& rand2,
                     const boost::multiprecision::uint128_t& ipAddr,
-                    const PubKey& pubKey, uint32_t lookupId, uint32_t gasPrice,
+                    const PubKey& pubKey, uint32_t lookupId,
+                    const boost::multiprecision::uint256_t& gasPrice,
                     bool fullDataset, uint64_t winning_nonce,
                     const std::string& winning_result,
                     const std::string& winning_mixhash) {
