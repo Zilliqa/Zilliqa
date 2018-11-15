@@ -1762,32 +1762,15 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                                      [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
-  // if (IsMessageSizeInappropriate(message.size(), offset,
-  //                                TRAN_HASH_SIZE +
-  //                                Transaction::GetSerializedSize()))
-  // {
-  //     return false;
-  // }
-
-  // TxnHash tranHash;
-  // copy(message.begin() + offset, message.begin() + offset + TRAN_HASH_SIZE,
-  //      tranHash.asArray().begin());
-  // offset += TRAN_HASH_SIZE;
-
-  // Transaction transaction(message, offset);
-
-  // vector<unsigned char> serializedTxBody;
-  // transaction.Serialize(serializedTxBody, 0);
-  // BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
-
   if (AlreadyJoinedNetwork()) {
     return true;
   }
 
   unique_lock<mutex> lock(m_mutexSetState);
   PubKey lookupPubKey;
+  std::unordered_map<Address, Account> addressToAccountTmp;
   if (!Messenger::GetLookupSetStateFromSeed(message, offset, lookupPubKey,
-                                            AccountStore::GetInstance())) {
+                                            addressToAccountTmp)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetLookupSetStateFromSeed failed.");
     return false;
@@ -1798,6 +1781,11 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
     return false;
+  }
+
+  for (const auto addressAccount : addressToAccountTmp) {
+    AccountStore::GetInstance().AddAccountDuringDeserialization(
+        addressAccount.first, addressAccount.second);
   }
 
   if (ARCHIVAL_NODE) {
