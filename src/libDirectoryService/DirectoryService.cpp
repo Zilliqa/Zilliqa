@@ -457,15 +457,6 @@ bool DirectoryService::FinishRejoinAsDS() {
   LOG_MARKER();
   m_mode = BACKUP_DS;
 
-  m_consensusLeaderID = 0;
-  if (m_mediator.m_currentEpochNum > 1) {
-    m_consensusLeaderID =
-        DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
-        m_mediator.m_DSCommittee->size();
-  }
-
-  m_consensusMyID = 0;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     LOG_GENERAL(INFO,
@@ -474,6 +465,15 @@ bool DirectoryService::FinishRejoinAsDS() {
       LOG_GENERAL(WARNING, "DS committee unset, failed to rejoin");
       return false;
     }
+    m_consensusLeaderID = 0;
+    if (m_mediator.m_currentEpochNum > 1) {
+      m_consensusLeaderID = CalculateNewLeaderIndex();
+    }
+  }
+
+  m_consensusMyID = 0;
+  {
+    std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     for (auto const& i : *m_mediator.m_DSCommittee) {
       LOG_GENERAL(INFO, "Loop of m_DSCommittee");
       if (i.first == m_mediator.m_selfKey.second) {
