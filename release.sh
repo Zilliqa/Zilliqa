@@ -41,8 +41,8 @@ shaLine=14
 sigLine=16
 
 # Validate input argument
-if [ "$#" -ne 3 ]; then
-    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName constantFileName"
+if [ "$#" -ne 5 ]; then
+    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName constantFileName constantLookupFileName constantArchivalFileName"
     return 1
 fi
 
@@ -58,6 +58,16 @@ fi
 
 if [ ! -f "$3" ]; then
     echo "*ERROR* File : $3 not found!"
+    return 1
+fi
+
+if [ ! -f "$4" ]; then
+    echo "*ERROR* File : $4 not found!"
+    return 1
+fi
+
+if [ ! -f "$5" ]; then
+    echo "*ERROR* File : $5 not found!"
     return 1
 fi
 
@@ -78,6 +88,8 @@ fi
 
 # Read information from files
 constantFile="$(realpath $3)"
+constantLookupFile="$(realpath $4)"
+constantArchivalFile="$(realpath $5)"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
 defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
@@ -188,5 +200,15 @@ curl -v -s  \
   -H "Content-Type:application/octet-stream"  \
   --data-binary @"${constantFile}" \
   "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantFile##*/}"
+curl -v -s  \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/octet-stream"  \
+  --data-binary @"${constantLookupFile}" \
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantLookupFile##*/}_lookup"
+curl -v -s  \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/octet-stream"  \
+  --data-binary @"${constantArchivalFile}" \
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantArchivalFile##*/}_archival"
 rm ${releaseLog}
 echo -e "\nA new draft release with package is created on Github sucessfully, please proceed to publishing the draft release on Github webpage.\n"

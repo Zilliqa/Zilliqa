@@ -141,7 +141,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   P2PComm::GetInstance().SetSelfPeer(peer);
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
-    if (!m_n.Install(syncType, toRetrieveHistory)) {
+    if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE) {
         syncType = SyncType::LOOKUP_SYNC;
       } else {

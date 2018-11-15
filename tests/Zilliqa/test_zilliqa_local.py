@@ -46,8 +46,7 @@ def print_usage():
 		"\t\tsendcmdrandom [nodenum] [msgsize] - Send msg to port\n"
 		"\t\tstartpow [nodenum] [ds count] [blocknum] [diff] [rand1] [rand2] - Send STARTPOW to node\n"
 		"\t\tcreatetx [nodenum] [from] [to] [amount] - Send CREATETRANSACTION to node\n"
-		"\t\tdelete                      - Delete the set-up nodes\n"
-		"\t\tsendtxn [port]              - Delete dummy txn at the interval of 1 per seconds\n")
+		"\t\tdelete                      - Delete the set-up nodes\n")
 
 def main():
 	numargs = len(sys.argv)
@@ -82,8 +81,6 @@ def main():
 			print_usage() if (numargs != 6) else run_createtx(nodenum=int(sys.argv[2]), fromnode=int(sys.argv[3]), tonode=int(sys.argv[4]), amount=int(sys.argv[5]))
 		elif (command == 'delete'):
 			print_usage() if (numargs != 2) else run_delete()
-		elif (command == 'sendtxn'):
-			print_usage() if (numargs != 3) else run_sendtxn(portnum=int(sys.argv[2]))
 		else:
 			print_usage()
 
@@ -110,14 +107,11 @@ def run_setup(numnodes, printnodes):
 			os.makedirs(testsubdir)
 		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/zilliqa')
 		shutil.copyfile('./tests/Zilliqa/sendcmd', testsubdir + '/sendcmd')
-		shutil.copyfile('./tests/Zilliqa/sendtxn', testsubdir + '/sendtxn')
 
 		st = os.stat(testsubdir + '/zilliqa')
 		os.chmod(testsubdir + '/zilliqa', st.st_mode | stat.S_IEXEC)
 		st = os.stat(testsubdir + '/sendcmd')
 		os.chmod(testsubdir + '/sendcmd', st.st_mode | stat.S_IEXEC)
-		st = os.stat(testsubdir + '/sendtxn')
-		os.chmod(testsubdir + '/sendtxn', st.st_mode | stat.S_IEXEC)
 
 	if printnodes:
 		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -268,7 +262,6 @@ def run_connect(numnodes):
 
 def run_stop():
 	os.system('killall zilliqa')
-	os.system('killall sendtxn')
 	if os.path.exists(LOCAL_RUN_FOLDER):
 		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 		count = len(testfolders_list)
@@ -306,9 +299,6 @@ def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 
 	# Send to node
 	os.system(startpow_cmd)
-
-def run_sendtxn(portnum):
-	os.system('tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
 
 def run_delete():
 	if (os.path.exists(LOCAL_RUN_FOLDER)):

@@ -130,18 +130,15 @@ bool Lookup::GenTxnToSend(size_t num_txn,
                           uint32_t numShards) {
   vector<Transaction> txns;
 
-  if (GENESIS_KEYS.size() == 0) {
-    LOG_GENERAL(WARNING, "No genesis keys found");
+  if (GENESIS_WALLETS.size() == 0) {
+    LOG_GENERAL(WARNING, "No genesis accounts found");
     return false;
   }
 
-  unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_KEYS.size();
+  unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
-  for (auto& privKeyHexStr : GENESIS_KEYS) {
-    auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
-    auto privKey = PrivKey{privKeyBytes, 0};
-    auto pubKey = PubKey{privKey};
-    auto addr = Account::GetAddressFromPublicKey(pubKey);
+  for (auto& addrStr : GENESIS_WALLETS) {
+    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
 
     if (numShards == 0) {
       return false;
@@ -246,7 +243,6 @@ void Lookup::SendMessageToRandomLookupNode(
   }
 
   int index = rand() % m_lookupNodes.size();
-
   P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
 }
 
@@ -370,6 +366,10 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
 
   vector<unsigned char> getTxBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "ComposeGetTxBlockMessage for blocks " << lowBlockNum << " to "
+                                                   << highBlockNum);
 
   if (!Messenger::SetLookupGetTxBlockFromSeed(
           getTxBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
@@ -1490,10 +1490,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 
   LOG_MARKER();
 
-  if (AlreadyJoinedNetwork()) {
-    return true;
-  }
-
   unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
   uint64_t lowBlockNum;
@@ -1522,8 +1518,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I already have the block");
   } else {
-    if (m_syncType == SyncType::NO_SYNC &&
-        m_mediator.m_node->m_stillMiningPrimary) {
+    if (AlreadyJoinedNetwork()) {
       m_fetchedLatestDSBlock = true;
       cv_latestDSBlock.notify_all();
       return true;
@@ -1708,7 +1703,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
       !ARCHIVAL_NODE) {
-    LOG_GENERAL(INFO, "At new DS epoch now, try getting state from lookup");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "At new DS epoch now, try getting state from lookup");
     GetStateFromLookupNodes();
   }
 
@@ -2075,7 +2071,8 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
 
   // Check whether is the new node connected to the network. Else, initiate
   // re-sync process again.
-  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+  this_thread::sleep_for(
+      chrono::seconds(POW_WINDOW_IN_SECONDS + 2 * NEW_NODE_SYNC_INTERVAL));
   m_startedPoW = false;
   if (m_syncType != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

@@ -24,8 +24,11 @@
 
 #define BOOST_TEST_MODULE ShardSizeCalculator
 #define BOOST_TEST_DYN_LINK
-#include <array>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
+#include <array>
 #include <boost/test/unit_test.hpp>
 #include <map>
 #include <vector>
