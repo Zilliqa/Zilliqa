@@ -31,6 +31,8 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
   dev::SpecificTrieDB<dev::GenericTrieDB<DB>, Address> m_state;
   dev::h256 m_prevRoot;
 
+  std::mutex m_mutexDB;
+
   AccountStoreTrie();
 
   bool UpdateStateTrie(const Address& address, const Account& account);
