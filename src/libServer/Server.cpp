@@ -72,11 +72,9 @@ Server::~Server() {
   // destructor
 }
 
-string Server::GetClientVersion() { return "Hello"; }
 
 string Server::GetNetworkId() { return "TestNet"; }
 
-string Server::GetProtocolVersion() { return "Hello"; }
 
 Json::Value Server::CreateTransaction(const Json::Value& _json) {
   LOG_MARKER();
@@ -161,29 +159,6 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           return ret;
         }
       }
-      /*map<PubKey, Peer> shardMembers
-          = m_mediator.m_lookup->GetShardPeers().at(shard);
-      LOG_GENERAL(INFO, "The Tx Belongs to " << shard << " Shard");
-
-      vector<unsigned char> tx_message
-          = {MessageType::NODE,
-             NodeInstructionType::CREATETRANSACTIONFROMLOOKUP};
-      curr_offset += MessageOffset::BODY;
-
-      tx.Serialize(tx_message, curr_offset);
-
-      LOG_GENERAL(INFO, "Tx Serialized");
-
-      (vector<Peer> toSend;
-
-      auto it = shardMembers.begin();
-      for (unsigned int i = 0; i < 1 && it != shardMembers.end();
-           i++, it++)
-      {
-          toSend.emplace_back(it->second);
-      }
-
-      P2PComm::GetInstance().SendMessage(toSend, tx_message);*/
     } else {
       LOG_GENERAL(INFO, "No shards yet");
       ret["Error"] = "Could not create Transaction";
@@ -287,7 +262,13 @@ Json::Value Server::GetTxBlock(const string& blockNum) {
   }
 }
 
-string Server::GetGasPrice() { return "Hello"; }
+string Server::GetMinimumGasPrice() 
+{ 
+
+  DSBlock latestDsBlock  = m_mediator.m_dsBlockChain.GetLastBlock(); 
+  return latestDsBlock.GetHeader().GetGasPrice().str();
+
+}
 
 Json::Value Server::GetLatestDsBlock() {
   LOG_MARKER();
@@ -445,10 +426,6 @@ Json::Value Server::GetSmartContractCode(const string& address) {
   }
 }
 
-string Server::GetStorageAt([[gnu::unused]] const string& address,
-                            [[gnu::unused]] const string& position) {
-  return "Hello";
-}
 
 Json::Value Server::GetSmartContracts(const string& address) {
   Json::Value _json;
@@ -499,11 +476,6 @@ Json::Value Server::GetSmartContracts(const string& address) {
   }
 }
 
-string Server::GetBlockTransactionCount([
-    [gnu::unused]] const string& blockHash) {
-  return "Hello";
-}
-
 string Server::GetContractAddressFromTransactionID(const string& tranID) {
   try {
     TxBodySharedPtr tptr;
@@ -541,11 +513,6 @@ Json::Value Server::GetTransactionReceipt([
   return "Hello";
 }
 
-bool Server::isNodeSyncing() { return "Hello"; }
-
-bool Server::isNodeMining() { return "Hello"; }
-
-string Server::GetHashrate() { return "Hello"; }
 
 unsigned int Server::GetNumPeers() {
   LOG_MARKER();
