@@ -62,8 +62,7 @@ class DSBlockHeader : public BlockHeaderBase {
                 const BlockHash& prevHash, const PubKey& leaderPubKey,
                 const uint64_t& blockNum, const uint64_t& epochNum,
                 const boost::multiprecision::uint256_t& gasPrice,
-                const uint64_t& timestamp,
-                const SWInfo& swInfo,
+                const uint64_t& timestamp, const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
                 const DSBlockHashSet& hashset,
                 const CommitteeHash& committeeHash);
