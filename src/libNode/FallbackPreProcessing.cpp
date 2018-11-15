@@ -105,6 +105,17 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
     return false;
   }
 
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
+  if (prevHash != m_pendingFallbackBlock->GetHeader().GetPrevHash()) {
+    LOG_GENERAL(WARNING,
+                "Prev Block hash in newly received Fallback Block doesn't "
+                "match. Calculated "
+                    << prevHash << " Received"
+                    << m_pendingFallbackBlock->GetHeader().GetPrevHash());
+    return false;
+  }
+
   // leader consensus id
   if (m_consensusLeaderID !=
       m_pendingFallbackBlock->GetHeader().GetLeaderConsensusId()) {
@@ -372,6 +383,9 @@ bool Node::ComposeFallbackBlock() {
     return false;
   }
 
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
+
   {
     lock_guard<mutex> g(m_mutexPendingFallbackBlock);
     // To-do: Handle exceptions.
@@ -383,7 +397,7 @@ bool Node::ComposeFallbackBlock() {
             {AccountStore::GetInstance().GetStateRootHash()},
             m_consensusLeaderID, leaderNetworkInfo,
             m_myShardMembers->at(m_consensusLeaderID).first, m_myshardId,
-            get_time_as_int(), committeeHash),
+            get_time_as_int(), committeeHash, prevHash),
         CoSignatures()));
     m_pendingFallbackBlock->SetBlockHash(
         m_pendingFallbackBlock->GetHeader().GetMyHash());

@@ -36,9 +36,10 @@ FallbackBlockHeader::FallbackBlockHeader(const vector<unsigned char>& src,
 FallbackBlockHeader::FallbackBlockHeader(
     const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
     const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
-    const uint32_t& leaderConsensusId, const Peer& leaderNetworkInfo,
-    const PubKey& leaderPubKey, const uint32_t& shardId,
-    const uint64_t& timestamp, const CommitteeHash& committeeHash)
+    const uint32_t leaderConsensusId, const Peer& leaderNetworkInfo,
+    const PubKey& leaderPubKey, const uint32_t shardId,
+    const uint64_t& timestamp, const CommitteeHash& committeeHash,
+    const BlockHash& prevHash)
     : BlockHeaderBase(committeeHash),
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
@@ -48,7 +49,8 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_leaderNetworkInfo(leaderNetworkInfo),
       m_leaderPubKey(leaderPubKey),
       m_shardId(shardId),
-      m_timestamp(timestamp) {}
+      m_timestamp(timestamp),
+      m_prevHash(prevHash) {}
 
 bool FallbackBlockHeader::Serialize(vector<unsigned char>& dst,
                                     unsigned int offset) const {

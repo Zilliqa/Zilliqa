@@ -1263,6 +1263,8 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
                              ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
+  protoVCBlockHeader.set_prevhash(vcBlockHeader.GetPrevHash().data(),
+                                  vcBlockHeader.GetPrevHash().size);
   protoVCBlockHeader.set_viewchangedsepochno(
       vcBlockHeader.GetVieWChangeDSEpochNo());
   protoVCBlockHeader.set_viewchangeepochno(
@@ -1304,6 +1306,7 @@ void ProtobufToVCBlockHeader(
   PubKey candidateLeaderPubKey;
   uint64_t timestamp;
   CommitteeHash committeeHash;
+  BlockHash prevHash;
   vector<pair<PubKey, Peer>> faultyLeaders;
 
   ProtobufByteArrayToSerializable(
@@ -1315,6 +1318,11 @@ void ProtobufToVCBlockHeader(
 
   ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
 
+  copy(protoVCBlockHeader.prevhash().begin(),
+       protoVCBlockHeader.prevhash().begin() +
+           min((unsigned int)protoVCBlockHeader.prevhash().size(),
+               (unsigned int)prevHash.size),
+       prevHash.asArray().begin());
   copy(protoVCBlockHeader.committeehash().begin(),
        protoVCBlockHeader.committeehash().begin() +
            min((unsigned int)protoVCBlockHeader.committeehash().size(),
@@ -1326,7 +1334,7 @@ void ProtobufToVCBlockHeader(
       protoVCBlockHeader.viewchangeepochno(),
       protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
       candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
-      timestamp, committeeHash);
+      timestamp, committeeHash, prevHash);
 }
 
 void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
@@ -1350,6 +1358,9 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 void FallbackBlockHeaderToProtobuf(
     const FallbackBlockHeader& fallbackBlockHeader,
     ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader) {
+  protoFallbackBlockHeader.set_prevhash(
+      fallbackBlockHeader.GetPrevHash().data(),
+      fallbackBlockHeader.GetPrevHash().size);
   protoFallbackBlockHeader.set_fallbackdsepochno(
       fallbackBlockHeader.GetFallbackDSEpochNo());
   protoFallbackBlockHeader.set_fallbackepochno(
@@ -1400,12 +1411,19 @@ void ProtobufToFallbackBlockHeader(
   uint64_t timestamp;
   StateHash stateRootHash;
   CommitteeHash committeeHash;
+  BlockHash prevHash;
 
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leadernetworkinfo(),
                                   leaderNetworkInfo);
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leaderpubkey(),
                                   leaderPubKey);
   timestamp = protoFallbackBlockHeader.timestamp();
+
+  copy(protoFallbackBlockHeader.prevhash().begin(),
+       protoFallbackBlockHeader.prevhash().begin() +
+           min((unsigned int)protoFallbackBlockHeader.prevhash().size(),
+               (unsigned int)prevHash.size),
+       prevHash.asArray().begin());
 
   copy(protoFallbackBlockHeader.stateroothash().begin(),
        protoFallbackBlockHeader.stateroothash().begin() +
@@ -1425,7 +1443,7 @@ void ProtobufToFallbackBlockHeader(
       protoFallbackBlockHeader.fallbackstate(), {stateRootHash},
       protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
       leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp,
-      committeeHash);
+      committeeHash, prevHash);
 }
 
 void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
