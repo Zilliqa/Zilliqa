@@ -1484,10 +1484,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
 
   LOG_MARKER();
 
-  if (AlreadyJoinedNetwork()) {
-    return true;
-  }
-
   unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed);
 
   uint64_t lowBlockNum;
@@ -1516,8 +1512,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I already have the block");
   } else {
-    if (m_syncType == SyncType::NO_SYNC &&
-        m_mediator.m_node->m_stillMiningPrimary) {
+    if (AlreadyJoinedNetwork()) {
       m_fetchedLatestDSBlock = true;
       cv_latestDSBlock.notify_all();
       return true;
@@ -1698,7 +1693,8 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
       !ARCHIVAL_NODE) {
-    LOG_GENERAL(INFO, "At new DS epoch now, try getting state from lookup");
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "At new DS epoch now, try getting state from lookup");
     GetStateFromLookupNodes();
   }
 
@@ -2065,7 +2061,8 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
 
   // Check whether is the new node connected to the network. Else, initiate
   // re-sync process again.
-  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+  this_thread::sleep_for(
+      chrono::seconds(POW_WINDOW_IN_SECONDS + 2 * NEW_NODE_SYNC_INTERVAL));
   m_startedPoW = false;
   if (m_syncType != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

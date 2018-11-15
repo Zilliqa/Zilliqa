@@ -124,8 +124,22 @@ void DirectoryService::SendFinalBlockToShardNodes(
   LOG_MARKER();
 
   if ((my_DS_cluster_num + 1) > m_shards.size()) {
+    LOG_STATE(
+        "[FLBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] NOT SUPPOSED TO BE SENDING BLOCK");
     return;
   }
+
+  LOG_STATE(
+      "[FLBLK]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] BEFORE SENDING FINAL BLOCK");
 
   const uint64_t dsBlockNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -206,6 +220,13 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
     p++;
   }
+
+  LOG_STATE(
+      "[FLBLK]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] AFTER SENDING FINAL BLOCK");
 }
 
 // void DirectoryService::StoreMicroBlocksToDisk()
@@ -304,22 +325,8 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   unsigned int my_shards_lo;
   unsigned int my_shards_hi;
 
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BEFORE SENDING FINAL BLOCK");
-
   DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo, my_shards_hi);
   SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
-
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] AFTER SENDING FINAL BLOCK");
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
