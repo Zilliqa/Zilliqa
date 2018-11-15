@@ -3,15 +3,11 @@ cache:
   directories:
     - $HOME/.ccache/
 
-# multiplied by platform
-os:
-  - osx
-  - linux
-
-# multiplied by BUILD_COMMAND
-env:
-  matrix:
-    - BUILD_COMMAND="./scripts/ci_build.sh"
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      osx_image: xcode10.1
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -28,9 +24,9 @@ install:
 
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      docker exec -t ci /bin/sh -c "$BUILD_COMMAND";
+      docker exec -t ci /bin/sh -c "./scripts/ci_build.sh";
     else
-      $BUILD_COMMAND;
+      ./scripts/ci_build.sh;
     fi
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting

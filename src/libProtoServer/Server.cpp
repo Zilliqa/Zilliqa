@@ -18,7 +18,10 @@
  */
 
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <iostream>
 
 #include "Server.h"

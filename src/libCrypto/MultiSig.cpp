@@ -138,9 +138,9 @@ CommitPoint::CommitPoint(const CommitSecret& secret)
   if (m_p == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
+  } else {
+    Set(secret);
   }
-
-  Set(secret);
 }
 
 CommitPoint::CommitPoint(const vector<unsigned char>& src,
@@ -255,9 +255,9 @@ Challenge::Challenge(const CommitPoint& aggregatedCommit,
   if (m_c == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
+  } else {
+    Set(aggregatedCommit, aggregatedPubkey, message, offset, size);
   }
-
-  Set(aggregatedCommit, aggregatedPubkey, message, offset, size);
 }
 
 Challenge::Challenge(const vector<unsigned char>& src, unsigned int offset) {
@@ -420,9 +420,9 @@ Response::Response(const CommitSecret& secret, const Challenge& challenge,
   if (m_r == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
+  } else {
+    Set(secret, challenge, privkey);
   }
-
-  Set(secret, challenge, privkey);
 }
 
 Response::Response(const vector<unsigned char>& src, unsigned int offset) {

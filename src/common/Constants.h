@@ -182,6 +182,8 @@ extern const unsigned int NUM_CONSENSUS_SUBSETS;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
+extern const unsigned int PUMPMESSAGE_MILLISECONDS;
+extern const unsigned int MAXRETRYCONN;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
