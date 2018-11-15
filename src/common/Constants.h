@@ -138,7 +138,6 @@ extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
 extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
-extern const unsigned int NUM_DS_KEEP_TX_BODY;
 extern const uint32_t MAXMESSAGE;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
 extern const unsigned int NEW_NODE_POW_DELAY;
@@ -191,7 +190,17 @@ extern const unsigned int MICROBLOCK_GAS_LIMIT;
 extern const unsigned int CONTRACT_CREATE_GAS;
 extern const unsigned int CONTRACT_INVOKE_GAS;
 extern const unsigned int NORMAL_TRAN_GAS;
-extern const unsigned int DEFAULT_MIN_GAS_PRICE;
+extern const unsigned int GAS_CONGESTION_PERCENT;
+extern const unsigned int UNFILLED_PERCENT_LOW;
+extern const unsigned int UNFILLED_PERCENT_HIGH;
+extern const unsigned int GAS_PRICE_PRECISION;
+extern const unsigned int GAS_PRICE_DROP_RATIO;
+extern const unsigned int GAS_PRICE_RAISE_RATIO_UPPER;
+extern const unsigned int GAS_PRICE_RAISE_RATIO_LOWER;
+extern const unsigned int GAS_PRICE_TOLERANCE;
+extern const unsigned int MEAN_GAS_PRICE_DS_NUM;
+extern const boost::multiprecision::uint256_t PRECISION_MIN_VALUE;
+extern const std::string LEGAL_GAS_PRICE_IP;
 
 #ifdef FALLBACK_TEST
 extern const unsigned int FALLBACK_TEST_EPOCH;
