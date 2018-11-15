@@ -515,7 +515,8 @@ void AnnouncementShardingStructureToProtobuf(
       proto_soln->set_mixhash(soln->second.mixhash.data(),
                               soln->second.mixhash.size());
       proto_soln->set_lookupid(soln->second.lookupId);
-      proto_soln->set_gasprice(soln->second.gasPrice);
+      NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+          soln->second.gasPrice, *proto_soln->mutable_gasprice());
     }
   }
 }
@@ -525,6 +526,7 @@ void ProtobufToShardingStructureAnnouncement(
     DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
+  uint256_t gasPrice;
 
   for (const auto& proto_shard : protoShardingStructure.shards()) {
     shards.emplace_back();
@@ -548,10 +550,11 @@ void ProtobufToShardingStructureAnnouncement(
                min((unsigned int)proto_member.powsoln().mixhash().size(),
                    (unsigned int)mixhash.size()),
            mixhash.begin());
+      ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+          proto_member.powsoln().gasprice(), gasPrice);
       allPoWs.emplace(
           key, PoWSolution(proto_member.powsoln().nonce(), result, mixhash,
-                           proto_member.powsoln().lookupid(),
-                           proto_member.powsoln().gasprice()));
+                           proto_member.powsoln().lookupid(), gasPrice));
     }
   }
 }
@@ -820,6 +823,8 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
   protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
   protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
   NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
       dsBlockHeader.GetTimestamp(), *protoDSBlockHeader.mutable_timestamp());
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
                                   *protoDSBlockHeader.mutable_swinfo());
@@ -867,7 +872,7 @@ void ProtobufToDSBlockHeader(
     DSBlockHeader& dsBlockHeader) {
   BlockHash prevHash;
   PubKey leaderPubKey;
-  uint256_t timestamp;
+  uint256_t gasprice, timestamp;
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
@@ -878,6 +883,8 @@ void ProtobufToDSBlockHeader(
        prevHash.asArray().begin());
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+      protoDSBlockHeader.gasprice(), gasprice);
   ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
       protoDSBlockHeader.timestamp(), timestamp);
   ProtobufByteArrayToSerializable(protoDSBlockHeader.swinfo(), swInfo);
@@ -920,11 +927,11 @@ void ProtobufToDSBlockHeader(
 
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
-                                protoDSBlockHeader.difficulty(), prevHash,
-                                leaderPubKey, protoDSBlockHeader.blocknum(),
-                                protoDSBlockHeader.epochnum(), timestamp,
-                                swInfo, powDSWinners, hash, committeeHash);
+  dsBlockHeader = DSBlockHeader(
+      protoDSBlockHeader.dsdifficulty(), protoDSBlockHeader.difficulty(),
+      prevHash, leaderPubKey, protoDSBlockHeader.blocknum(),
+      protoDSBlockHeader.epochnum(), gasprice, timestamp, swInfo, powDSWinners,
+      hash, committeeHash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -2683,7 +2690,7 @@ bool Messenger::SetDSPoWSubmission(
     const uint64_t blockNumber, const uint8_t difficultyLevel,
     const Peer& submitterPeer, const pair<PrivKey, PubKey>& submitterKey,
     const uint64_t nonce, const string& resultingHash, const string& mixHash,
-    const uint32_t& lookupId, const uint32_t& gasPrice) {
+    const uint32_t& lookupId, const uint256_t& gasPrice) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2700,7 +2707,9 @@ bool Messenger::SetDSPoWSubmission(
   result.mutable_data()->set_resultinghash(resultingHash);
   result.mutable_data()->set_mixhash(mixHash);
   result.mutable_data()->set_lookupid(lookupId);
-  result.mutable_data()->set_gasprice(gasPrice);
+
+  NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+      gasPrice, *result.mutable_data()->mutable_gasprice());
 
   if (result.data().IsInitialized()) {
     vector<unsigned char> tmp(result.data().ByteSize());
@@ -2734,7 +2743,7 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
                                    Peer& submitterPeer, PubKey& submitterPubKey,
                                    uint64_t& nonce, string& resultingHash,
                                    string& mixHash, Signature& signature,
-                                   uint32_t& lookupId, uint32_t& gasPrice) {
+                                   uint32_t& lookupId, uint256_t& gasPrice) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2755,8 +2764,10 @@ bool Messenger::GetDSPoWSubmission(const vector<unsigned char>& src,
   resultingHash = result.data().resultinghash();
   mixHash = result.data().mixhash();
   lookupId = result.data().lookupid();
-  gasPrice = result.data().gasprice();
   ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(result.data().gasprice(),
+                                                     gasPrice);
 
   vector<unsigned char> tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
@@ -2864,7 +2875,8 @@ bool Messenger::SetDSDSBlockAnnouncement(
     proto_soln->set_result(soln.result.data(), soln.result.size());
     proto_soln->set_mixhash(soln.mixhash.data(), soln.mixhash.size());
     proto_soln->set_lookupid(soln.lookupId);
-    proto_soln->set_gasprice(soln.gasPrice);
+    NumberToProtobufByteArray<uint256_t, UINT256_SIZE>(
+        soln.gasPrice, *proto_soln->mutable_gasprice());
   }
 
   if (!dsblock->IsInitialized()) {
@@ -2948,6 +2960,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
     PubKey key;
     std::array<unsigned char, 32> result;
     std::array<unsigned char, 32> mixhash;
+    uint256_t gasPrice;
 
     ProtobufByteArrayToSerializable(protoDSWinnerPoW.pubkey(), key);
 
@@ -2961,10 +2974,11 @@ bool Messenger::GetDSDSBlockAnnouncement(
              min((unsigned int)protoDSWinnerPoW.powsoln().mixhash().size(),
                  (unsigned int)mixhash.size()),
          mixhash.begin());
+    ProtobufByteArrayToNumber<uint256_t, UINT256_SIZE>(
+        protoDSWinnerPoW.powsoln().gasprice(), gasPrice);
     dsWinnerPoWs.emplace(
         key, PoWSolution(protoDSWinnerPoW.powsoln().nonce(), result, mixhash,
-                         protoDSWinnerPoW.powsoln().lookupid(),
-                         protoDSWinnerPoW.powsoln().gasprice()));
+                         protoDSWinnerPoW.powsoln().lookupid(), gasPrice));
   }
 
   // Get the part of the announcement that should be co-signed during the first

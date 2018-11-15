@@ -197,16 +197,14 @@ class Messenger {
       const Peer& submitterPeer, const std::pair<PrivKey, PubKey>& submitterKey,
       const uint64_t nonce, const std::string& resultingHash,
       const std::string& mixHash, const uint32_t& lookupId,
-      const uint32_t& gasPrice);
+      const boost::multiprecision::uint256_t& gasPrice);
 
-  static bool GetDSPoWSubmission(const std::vector<unsigned char>& src,
-                                 const unsigned int offset,
-                                 uint64_t& blockNumber,
-                                 uint8_t& difficultyLevel, Peer& submitterPeer,
-                                 PubKey& submitterPubKey, uint64_t& nonce,
-                                 std::string& resultingHash,
-                                 std::string& mixHash, Signature& signature,
-                                 uint32_t& lookupId, uint32_t& gasPrice);
+  static bool GetDSPoWSubmission(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNumber, uint8_t& difficultyLevel, Peer& submitterPeer,
+      PubKey& submitterPubKey, uint64_t& nonce, std::string& resultingHash,
+      std::string& mixHash, Signature& signature, uint32_t& lookupId,
+      boost::multiprecision::uint256_t& gasPrice);
 
   static bool SetDSMicroBlockSubmission(
       std::vector<unsigned char>& dst, const unsigned int offset,
