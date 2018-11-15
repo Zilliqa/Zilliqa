@@ -85,7 +85,14 @@ void DirectoryService::StartSynchronization() {
     }
   };
 
+  auto func2 = [this]() -> void {
+    bool result = m_mediator.m_lookup->FetchDSInfoLoop();
+    if (!result) {
+      LOG_GENERAL(WARNING, "Unable to fetch DS info");
+    }
+  };
   DetachedFunction(1, func);
+  DetachedFunction(1, func2);
 }
 
 bool DirectoryService::CheckState(Action action) {
@@ -463,6 +470,10 @@ bool DirectoryService::FinishRejoinAsDS() {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     LOG_GENERAL(INFO,
                 "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
+    if (m_mediator.m_DSCommittee->size() == 0) {
+      LOG_GENERAL(WARNING, "DS committee unset, failed to rejoin");
+      return false;
+    }
     for (auto const& i : *m_mediator.m_DSCommittee) {
       LOG_GENERAL(INFO, "Loop of m_DSCommittee");
       if (i.first == m_mediator.m_selfKey.second) {
