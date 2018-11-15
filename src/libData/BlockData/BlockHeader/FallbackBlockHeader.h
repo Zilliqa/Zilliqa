@@ -69,7 +69,7 @@ class FallbackBlockHeader : public BlockHeaderBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
-  ///
+  /// Returns the hash of prev dir block
   const BlockHash& GetPrevHash() const { return m_prevHash; }
 
   /// Returns the DS Epoch number where view change happen
