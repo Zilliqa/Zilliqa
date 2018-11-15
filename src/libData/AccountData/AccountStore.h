@@ -82,7 +82,9 @@ class AccountStore
   std::unordered_map<Address, Account> m_addressToAccountRevChanged;
   std::unordered_map<Address, Account> m_addressToAccountRevCreated;
 
+  std::mutex m_mutexPrimary;
   std::mutex m_mutexDelta;
+  std::mutex m_mutexReversibles;
 
   std::vector<unsigned char> m_stateDeltaSerialized;
 
