@@ -2443,6 +2443,34 @@ void Lookup::StartSynchronization() {
   DetachedFunction(1, func);
 }
 
+bool Lookup::FetchDSInfoLoop() {
+  unsigned int counter = 0;
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (m_mediator.m_DSCommittee->size() > 0) {
+      LOG_GENERAL(WARNING,
+                  "DS comm already set, make sure you cleaned variables");
+      return false;
+    }
+  }
+
+  while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+    GetDSInfoFromLookupNodes();
+    this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+    {
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+      if (m_mediator.m_DSCommittee->size() > 0) {
+        return true;
+      }
+    }
+    counter++;
+  }
+
+  LOG_GENERAL(WARNING, "Exceeded max tries " << counter << "/"
+                                             << FETCH_LOOKUP_MSG_MAX_RETRY);
+  return false;
+}
+
 Peer Lookup::GetLookupPeerToRsync() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2847,7 +2875,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
       if (!m_isFirstLoop) {
         m_currDSExpired = true;
       } else {
-        GetDSInfoFromLookupNodes();
         m_isFirstLoop = false;
       }
     }
