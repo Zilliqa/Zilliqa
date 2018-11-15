@@ -77,7 +77,8 @@ class POW {
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
       const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, uint32_t gasPrice, bool fullDataset);
+      uint32_t lookupId, const boost::multiprecision::uint256_t& gasPrice,
+      bool fullDataset);
 
   /// Terminates proof-of-work mining.
   void StopMining();
@@ -87,7 +88,8 @@ class POW {
                  const std::array<unsigned char, UINT256_SIZE>& rand1,
                  const std::array<unsigned char, UINT256_SIZE>& rand2,
                  const boost::multiprecision::uint128_t& ipAddr,
-                 const PubKey& pubKey, uint32_t lookupId, uint32_t gasPrice,
+                 const PubKey& pubKey, uint32_t lookupId,
+                 const boost::multiprecision::uint256_t& gasPrice,
                  bool fullDataset, uint64_t winning_nonce,
                  const std::string& winning_result,
                  const std::string& winning_mixhash);
@@ -95,7 +97,7 @@ class POW {
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
       const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, uint32_t gasPrice);
+      uint32_t lookupId, const boost::multiprecision::uint256_t& gasPrice);
   ethash_return_value_t LightHash(uint64_t blockNum,
                                   ethash_h256_t const& header_hash,
                                   uint64_t nonce);

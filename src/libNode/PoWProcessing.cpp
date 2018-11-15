@@ -138,12 +138,13 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     DetachedFunction(1, func);
   }
 
-  uint32_t gasPrice = 0;  //[ToDo] Change this dummy value
+  lock_guard<mutex> g(m_mutexGasPrice);
   bool sentToDs = false;
 
   ethash_mining_result winning_result = POW::GetInstance().PoWMine(
       block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, lookupId, gasPrice, FULL_DATASET_MINE);
+      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
+      FULL_DATASET_MINE);
 
   if (winning_result.success) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -177,7 +178,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       if (!SendPoWResultToDSComm(block_num, ds_difficulty,
                                  winning_result.winning_nonce,
                                  winning_result.result, winning_result.mix_hash,
-                                 lookupId, gasPrice)) {
+                                 lookupId, m_proposedGasPrice)) {
         return false;
       } else {
         sentToDs = true;
@@ -185,11 +186,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     } else {
       // If solution does not meet targeted ds difficulty, send the initial
       // solution to ds commitee and continue to do PoW
-
       if (!SendPoWResultToDSComm(block_num, difficulty,
                                  winning_result.winning_nonce,
                                  winning_result.result, winning_result.mix_hash,
-                                 lookupId, gasPrice)) {
+                                 lookupId, m_proposedGasPrice)) {
         return false;
       } else {
         sentToDs = true;
@@ -202,7 +202,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
           block_num, ds_difficulty, rand1, rand2,
           m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
-          lookupId, gasPrice, FULL_DATASET_MINE);
+          lookupId, m_proposedGasPrice, FULL_DATASET_MINE);
 
       if (ds_pow_winning_result.success) {
         LOG_GENERAL(INFO,
@@ -214,7 +214,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         if (!SendPoWResultToDSComm(
                 block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
                 ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
-                lookupId, gasPrice)) {
+                lookupId, m_proposedGasPrice)) {
           return false;
         } else {
           sentToDs = true;
@@ -259,7 +259,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const string& powResultHash,
                                  const string& powMixhash,
                                  const uint32_t& lookupId,
-                                 const uint32_t& gasPrice) {
+                                 const uint256_t& gasPrice) {
   LOG_MARKER();
 
   vector<unsigned char> powmessage = {MessageType::DIRECTORY,

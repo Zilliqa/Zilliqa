@@ -80,7 +80,8 @@ bool DirectoryService::ProcessPoWSubmission(
   string resultingHash;
   string mixHash;
   Signature signature;
-  uint32_t lookupId, gasPrice;
+  uint32_t lookupId;
+  uint256_t gasPrice;
 
   if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
                                      difficultyLevel, submitterPeer,
@@ -155,7 +156,6 @@ bool DirectoryService::ProcessPoWSubmission(
                              << to_string(difficultyLevel)
                              << " Expected: " << to_string(expectedDSDiff)
                              << " or " << to_string(expectedDiff));
-
     // TODO: penalise sender in reputation manager
     return false;
   }

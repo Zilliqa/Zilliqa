@@ -1034,6 +1034,45 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   return true;
 }
 
+bool Node::ProcessProposeGasPrice(
+    [[gnu::unused]] const vector<unsigned char>& message,
+    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::ProcessProposeGasPrice not expected to "
+                "be called from LookUp node.");
+    return true;
+  }
+
+  if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE)) {
+    LOG_GENERAL(WARNING,
+                "Message size for ProcessProposeGasPrice is too short");
+    return false;
+  }
+
+  if (string(from.GetPrintableIPAddress()) != LEGAL_GAS_PRICE_IP) {
+    LOG_GENERAL(WARNING, "Sender " << from << " is not from localhost");
+    return false;
+  }
+
+  lock(m_mutexDSBlock, m_mutexGasPrice);
+  lock_guard<mutex> g(m_mutexDSBlock, adopt_lock);
+  lock_guard<mutex> g2(m_mutexGasPrice, adopt_lock);
+
+  uint256_t gasPriceProposal =
+      Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
+  offset += UINT256_SIZE;
+  LOG_GENERAL(INFO, "Received gas price proposal: " << gasPriceProposal
+                                                    << " Current GasPrice "
+                                                    << m_proposedGasPrice);
+  m_proposedGasPrice = max(m_proposedGasPrice, gasPriceProposal);
+  LOG_GENERAL(INFO, "Newly proposed gas price: " << m_proposedGasPrice);
+
+  return true;
+}
+
 #ifdef HEARTBEAT_TEST
 bool Node::ProcessKillPulse(
     [[gnu::unused]] const vector<unsigned char>& message,
@@ -1164,6 +1203,7 @@ bool Node::CleanVariables() {
   m_isMBSender = false;
   m_stillMiningPrimary = false;
   m_myshardId = 0;
+  m_proposedGasPrice = PRECISION_MIN_VALUE;
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
   {
@@ -1403,6 +1443,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Node::ProcessTxnPacketFromLookup,
       &Node::ProcessFallbackConsensus,
       &Node::ProcessFallbackBlock,
+      &Node::ProcessProposeGasPrice,
 #ifdef HEARTBEAT_TEST
       &Node::ProcessKillPulse,
 #endif  // HEARTBEAT_TEST
