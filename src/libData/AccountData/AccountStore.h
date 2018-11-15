@@ -82,9 +82,9 @@ class AccountStore
   std::unordered_map<Address, Account> m_addressToAccountRevChanged;
   std::unordered_map<Address, Account> m_addressToAccountRevCreated;
 
-  // primary mutex used by account store for protecting permanent states from 
+  // primary mutex used by account store for protecting permanent states from
   // external access
-  std::mutex m_mutexPrimary; 
+  std::mutex m_mutexPrimary;
   // mutex used when manipulating with state delta
   std::mutex m_mutexDelta;
   // mutex related to reversibles
