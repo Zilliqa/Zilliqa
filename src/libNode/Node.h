@@ -104,6 +104,10 @@ class Node : public Executable, public Broadcastable {
   std::mutex m_MutexCVFBWaitMB;
   std::condition_variable cv_FBWaitMB;
 
+  /// DSBlock Timer Vars
+  std::mutex m_mutexCVWaitDSBlock;
+  std::condition_variable cv_waitDSBlock;
+
   // Persistence Retriever
   std::shared_ptr<Retriever> m_retriever;
 
@@ -428,7 +432,7 @@ class Node : public Executable, public Broadcastable {
   ~Node();
 
   /// Install the Node
-  bool Install(unsigned int syncType, bool toRetrieveHistory = true);
+  bool Install(SyncType syncType, bool toRetrieveHistory = true);
 
   /// Set initial state, variables, and clean-up storage
   void Init();
@@ -459,7 +463,8 @@ class Node : public Executable, public Broadcastable {
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(bool& wakeupForUpgrade);
+  bool StartRetrieveHistory(bool& wakeupForUpgrade,
+                            bool& retrieveSuccessButTooLate);
 
   // Erase m_committedTransactions for given epoch number
   // void EraseCommittedTransactions(uint64_t epochNum)

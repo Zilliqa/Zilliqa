@@ -79,7 +79,7 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
 
 Node::~Node() {}
 
-bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
+bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
   LOG_MARKER();
 
   // m_state = IDLE;
@@ -87,8 +87,9 @@ bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
 
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
+    bool retrieveSuccessButTooLate = false;
 
-    if (StartRetrieveHistory(wakeupForUpgrade)) {
+    if (StartRetrieveHistory(wakeupForUpgrade, retrieveSuccessButTooLate)) {
       m_mediator.m_currentEpochNum =
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
           1;
@@ -164,6 +165,13 @@ bool Node::Install(unsigned int syncType, bool toRetrieveHistory) {
         return true;
       }
     }
+
+    // When do node recovery, if retrieve the history success, then shouldn't
+    // continue to run add genesis account, but let the node to synchronize with
+    // lookup node.
+    if (retrieveSuccessButTooLate) {
+      return true;
+    }
   }
 
   if (runInitializeGenesisBlocks) {
@@ -232,7 +240,8 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 }
 
-bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
+bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
+                                bool& retrieveSuccessButTooLate) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -312,6 +321,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
+      retrieveSuccessButTooLate = true;
       LOG_GENERAL(INFO,
                   "Node recovery too late, apply re-join process instead");
       return false;
@@ -1118,7 +1128,7 @@ void Node::RejoinAsNormal() {
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
       this->CleanVariables();
-      this->Install(true);
+      this->Install(SyncType::NORMAL_SYNC);
       this->StartSynchronization();
       this->ResetRejoinFlags();
     };
@@ -1149,7 +1159,7 @@ bool Node::CleanVariables() {
 
   FallbackStop();
   AccountStore::GetInstance().InitSoft();
-  m_myShardMembers->clear();
+  m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
   m_isPrimary = false;
   m_isMBSender = false;
   m_stillMiningPrimary = false;
