@@ -48,7 +48,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
   uint64_t genesisBlockNumer = 0;
   uint64_t genesisEpochNumer = 0;
-  uint256_t genesisTimestamp = 0;
+  uint64_t genesisTimestamp = 0;
   std::map<PubKey, Peer> powDSWinners;
 
   // FIXME: Handle exceptions.

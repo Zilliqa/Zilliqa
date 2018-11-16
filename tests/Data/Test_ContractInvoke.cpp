@@ -50,14 +50,14 @@ BOOST_AUTO_TEST_SUITE(contractinvokingtest)
 Address fromAddr, fromAddr2;
 Address cfAddress, icfAddress;
 KeyPair sender, sender2;
-uint256_t nonce, nonce2 = 0;
+uint128_t nonce, nonce2 = 0;
 
 struct ICFSampleInput {
   string icfDataStr;
   string icfOutStr;
-  uint256_t amount;
-  uint256_t gasPrice;
-  uint256_t gasLimit;
+  uint128_t amount;
+  uint128_t gasPrice;
+  uint128_t gasLimit;
   int blockNum;
   string sampleName;
 };
@@ -65,15 +65,15 @@ struct ICFSampleInput {
 struct CFSampleInput {
   string cfDataStr;
   KeyPair cfSender;
-  uint256_t amount;
-  uint256_t gasPrice;
-  uint256_t gasLimit;
+  uint128_t amount;
+  uint128_t gasPrice;
+  uint128_t gasLimit;
   int blockNum;
   vector<ICFSampleInput> icfSamples;
 };
 
 bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
-                    uint256_t amount, uint256_t gasPrice, uint256_t gasLimit,
+                    uint128_t amount, uint128_t gasPrice, uint128_t gasLimit,
                     string sampleName, bool didResetCF, bool didResetICF) {
   LOG_MARKER();
 
@@ -218,7 +218,7 @@ void AutoTest(bool doResetCF, bool doResetICF,
         std::vector<unsigned char> cfData(samples[i].cfDataStr.begin(),
                                           samples[i].cfDataStr.end());
 
-        uint256_t* t_nonce;
+        uint128_t* t_nonce;
         if (samples[i].cfSender == sender) {
           t_nonce = &nonce;
         } else if (samples[i].cfSender == sender2) {

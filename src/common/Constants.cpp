@@ -267,8 +267,8 @@ const unsigned int GAS_PRICE_RAISE_RATIO_UPPER{
 const unsigned int GAS_PRICE_TOLERANCE{ReadFromGasFile("GAS_PRICE_TOLERANCE")};
 const unsigned int MEAN_GAS_PRICE_DS_NUM{
     ReadFromGasFile("MEAN_GAS_PRICE_DS_NUM")};
-const boost::multiprecision::uint256_t PRECISION_MIN_VALUE{
-    SafeMath<boost::multiprecision::uint256_t>::power(10, GAS_PRICE_PRECISION)};
+const boost::multiprecision::uint128_t PRECISION_MIN_VALUE{
+    SafeMath<boost::multiprecision::uint128_t>::power(10, GAS_PRICE_PRECISION)};
 const std::string LEGAL_GAS_PRICE_IP{
     ReadFromGasFileInString("LEGAL_GAS_PRICE_IP")};
 

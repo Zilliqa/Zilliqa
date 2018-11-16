@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   LOG_PAYLOAD(INFO, "Account2 serialized", message2,
               Logger::MAX_BYTES_TO_DISPLAY);
 
-  boost::multiprecision::uint256_t acc2Balance = acc2.GetBalance();
+  boost::multiprecision::uint128_t acc2Balance = acc2.GetBalance();
   LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
   BOOST_CHECK_MESSAGE(acc2Balance == 110, "expected: " << 100 << " actual: "
                                                        << acc2Balance << "\n");

@@ -34,10 +34,10 @@ TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
 }
 
 TxBlockHeader::TxBlockHeader(
-    uint8_t type, uint32_t version, const uint256_t& gasLimit,
-    const uint256_t& gasUsed, const uint256_t& rewards,
+    uint8_t type, uint32_t version, const uint64_t& gasLimit,
+    const uint64_t& gasUsed, const uint128_t& rewards,
     const BlockHash& prevHash, const uint64_t& blockNum,
-    const uint256_t& timestamp, const TxBlockHashSet& blockHashSet,
+    const uint64_t& timestamp, const TxBlockHashSet& blockHashSet,
     uint32_t numTxs, const PubKey& minerPubKey, const uint64_t& dsBlockNum,
     const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
@@ -78,17 +78,17 @@ const uint8_t& TxBlockHeader::GetType() const { return m_type; }
 
 const uint32_t& TxBlockHeader::GetVersion() const { return m_version; }
 
-const uint256_t& TxBlockHeader::GetGasLimit() const { return m_gasLimit; }
+const uint64_t& TxBlockHeader::GetGasLimit() const { return m_gasLimit; }
 
-const uint256_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }
+const uint64_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }
 
-const uint256_t& TxBlockHeader::GetRewards() const { return m_rewards; }
+const uint128_t& TxBlockHeader::GetRewards() const { return m_rewards; }
 
 const BlockHash& TxBlockHeader::GetPrevHash() const { return m_prevHash; }
 
 const uint64_t& TxBlockHeader::GetBlockNum() const { return m_blockNum; }
 
-const uint256_t& TxBlockHeader::GetTimestamp() const { return m_timestamp; }
+const uint64_t& TxBlockHeader::GetTimestamp() const { return m_timestamp; }
 
 const TxnHash& TxBlockHeader::GetMbRootHash() const {
   return m_hashset.m_mbRootHash;

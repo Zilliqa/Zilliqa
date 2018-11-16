@@ -20,7 +20,7 @@ message ProtoAccount
     }
     optional bool numbersign       = 1; // For account delta (false=neg, true=pos)
     required ByteArray balance     = 2;
-    required ByteArray nonce       = 3;
+    required uint64 nonce          = 3;
     optional bytes storageroot     = 4;
     optional bytes codehash        = 5;
     optional uint64 createblocknum = 6;
@@ -133,13 +133,13 @@ message ProtoDSWinnerPoW
 
 message ProtoTransactionCoreInfo
 {
-    required ByteArray version      = 1;
-    required ByteArray nonce        = 2;
+    required uint32 version         = 1;
+    required uint64 nonce           = 2;
     required bytes toaddr           = 3;
     required ByteArray senderpubkey = 4;
     required ByteArray amount       = 5;
     required ByteArray gasprice     = 6;
-    required ByteArray gaslimit     = 7;
+    required uint64 gaslimit        = 7;
     required bytes code             = 8;
     required bytes data             = 9;
 }
@@ -164,7 +164,7 @@ message ProtoTransactionArray
 message ProtoTransactionReceipt
 {
     required bytes receipt    = 1;
-    required ByteArray cumgas = 2;
+    required uint64 cumgas = 2;
 }
 
 message ProtoTransactionWithReceipt
@@ -199,7 +199,7 @@ message ProtoDSBlock
         required uint64 blocknum        = 5;
         required uint64 epochnum        = 6;
         required ByteArray gasprice     = 7;
-        required ByteArray timestamp    = 8;
+        required uint64 timestamp       = 8;
         required ByteArray swinfo       = 9;
         message PowDSWinners
         {
@@ -221,12 +221,12 @@ message ProtoMicroBlock
         required uint32 type           = 1; // only LSB used
         required uint32 version        = 2;
         required uint32 shardid        = 3;
-        required ByteArray gaslimit    = 4;
-        required ByteArray gasused     = 5;
+        required uint64 gaslimit       = 4;
+        required uint64 gasused        = 5;
         required ByteArray rewards     = 6;
         required bytes prevhash        = 7;
         required uint64 epochnum       = 8;
-        required ByteArray timestamp   = 9;
+        required uint64 timestamp   = 9;
         required bytes txroothash      = 10;
         required uint32 numtxs         = 11;
         required ByteArray minerpubkey = 12;
@@ -259,12 +259,12 @@ message ProtoTxBlock
     {
         required uint32 type                    = 1; // only LSB used
         required uint32 version                 = 2;
-        required ByteArray gaslimit             = 3;
-        required ByteArray gasused              = 4;
+        required uint64 gaslimit                = 3;
+        required uint64 gasused                 = 4;
         required ByteArray rewards              = 5;
         required bytes prevhash                 = 6;
         required uint64 blocknum                = 7;
-        required ByteArray timestamp            = 8;
+        required uint64 timestamp            = 8;
         required TxBlockHashSet hash            = 9;
         required uint32 numtxs                  = 10;
         required ByteArray minerpubkey          = 11;
@@ -288,7 +288,7 @@ message ProtoVCBlock
         required ByteArray candidateleaderpubkey      = 5;
         required uint32 vccounter                     = 6;
         repeated ProtoDSNode faultyleaders            = 7;
-        required ByteArray timestamp                  = 8;
+        required uint64 timestamp                  = 8;
         required bytes committeehash                  = 9;
         required bytes prevhash                       = 10;
     }
@@ -308,7 +308,7 @@ message ProtoFallbackBlock
         required ByteArray leadernetworkinfo = 6;
         required ByteArray leaderpubkey      = 7;
         required uint32 shardid              = 8;
-        required ByteArray timestamp         = 9;
+        required uint64 timestamp         = 9;
         required bytes committeehash         = 10;
         required bytes prevhash              = 11;
     }

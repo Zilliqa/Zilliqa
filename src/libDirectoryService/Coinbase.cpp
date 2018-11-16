@@ -231,7 +231,7 @@ void DirectoryService::InitCoinbase() {
 
   Address genesisAccount(GENESIS_WALLETS[0]);
 
-  uint256_t sig_count = 0;
+  uint128_t sig_count = 0;
   uint32_t lookup_count = 0;
   for (auto const& epochNum : m_coinbaseRewardees) {
     for (auto const& shardId : epochNum.second) {
@@ -245,9 +245,9 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
                                                << lookup_count);
 
-  uint256_t total_reward;
+  uint128_t total_reward;
 
-  if (!SafeMath<uint256_t>::add(COINBASE_REWARD, m_totalTxnFees,
+  if (!SafeMath<uint128_t>::add(COINBASE_REWARD, m_totalTxnFees,
                                 total_reward)) {
     LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     return;
@@ -255,17 +255,17 @@ void DirectoryService::InitCoinbase() {
 
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
-  uint256_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERCENT;
-  uint256_t nodeReward = total_reward - lookupReward;
-  uint256_t reward_each;
-  uint256_t reward_each_lookup;
+  uint128_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERCENT;
+  uint128_t nodeReward = total_reward - lookupReward;
+  uint128_t reward_each;
+  uint128_t reward_each_lookup;
 
-  if (!SafeMath<uint256_t>::div(nodeReward, sig_count, reward_each)) {
+  if (!SafeMath<uint128_t>::div(nodeReward, sig_count, reward_each)) {
     LOG_GENERAL(WARNING, "reward_each dividing unsafe!");
     return;
   }
 
-  if (!SafeMath<uint256_t>::div(lookupReward, lookup_count,
+  if (!SafeMath<uint128_t>::div(lookupReward, lookup_count,
                                 reward_each_lookup)) {
     LOG_GENERAL(WARNING, "reward_each_lookup dividing unsafe");
     return;
@@ -274,8 +274,8 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
                                     << reward_each_lookup);
 
-  uint256_t suc_counter = 0;
-  uint256_t suc_lookup_counter = 0;
+  uint128_t suc_counter = 0;
+  uint128_t suc_lookup_counter = 0;
   for (auto const& epochNum : m_coinbaseRewardees) {
     LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum.first << " epoch");
 
@@ -303,7 +303,7 @@ void DirectoryService::InitCoinbase() {
     }
   }
 
-  uint256_t balance_left = total_reward - (suc_counter * reward_each) -
+  uint128_t balance_left = total_reward - (suc_counter * reward_each) -
                            (suc_lookup_counter * reward_each_lookup);
 
   LOG_GENERAL(INFO, "Left reward: " << balance_left);
