@@ -328,7 +328,7 @@ Json::Value Server::GetBalance(const string& address) {
 
     Json::Value ret;
     if (account != nullptr) {
-      boost::multiprecision::uint256_t balance = account->GetBalance();
+      boost::multiprecision::uint128_t balance = account->GetBalance();
       uint64_t nonce = account->GetNonce();
 
       ret["balance"] = balance.str();
@@ -791,7 +791,7 @@ Json::Value Server::DSBlockListing(unsigned int page) {
   Json::Value tmpJson;
   if (page <= NUM_PAGES_CACHE)  // can use cache
   {
-    boost::multiprecision::uint256_t cacheSize(
+    boost::multiprecision::uint128_t cacheSize(
         m_DSBlockCache.second.capacity());
     if (cacheSize > m_DSBlockCache.second.size()) {
       cacheSize = m_DSBlockCache.second.size();
@@ -882,7 +882,7 @@ Json::Value Server::TxBlockListing(unsigned int page) {
   Json::Value tmpJson;
   if (page <= NUM_PAGES_CACHE)  // can use cache
   {
-    boost::multiprecision::uint256_t cacheSize(
+    boost::multiprecision::uint128_t cacheSize(
         m_TxBlockCache.second.capacity());
 
     if (cacheSize > m_TxBlockCache.second.size()) {

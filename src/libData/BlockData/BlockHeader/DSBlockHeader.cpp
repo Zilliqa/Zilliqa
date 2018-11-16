@@ -37,7 +37,7 @@ DSBlockHeader::DSBlockHeader(
     const uint8_t dsDifficulty, const uint8_t difficulty,
     const BlockHash& prevHash, const PubKey& leaderPubKey,
     const uint64_t& blockNum, const uint64_t& epochNum,
-    const uint256_t& gasPrice, const uint64_t& timestamp, const SWInfo& swInfo,
+    const uint128_t& gasPrice, const uint64_t& timestamp, const SWInfo& swInfo,
     const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hashset,
     const CommitteeHash& committeeHash)
     : BlockHeaderBase(committeeHash),
@@ -85,7 +85,7 @@ const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint64_t& DSBlockHeader::GetEpochNum() const { return m_epochNum; }
 
-const uint256_t& DSBlockHeader::GetGasPrice() const { return m_gasPrice; }
+const uint128_t& DSBlockHeader::GetGasPrice() const { return m_gasPrice; }
 
 const uint64_t& DSBlockHeader::GetTimestamp() const { return m_timestamp; }
 

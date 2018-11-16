@@ -52,9 +52,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Address m_curContractAddr;
   Address m_curSenderAddr;
 
-  boost::multiprecision::uint256_t m_curAmount;
+  boost::multiprecision::uint128_t m_curAmount;
   uint64_t m_curGasLimit;
-  boost::multiprecision::uint256_t m_curGasPrice;
+  boost::multiprecision::uint128_t m_curGasPrice;
 
   unsigned int m_curNumShards;
   bool m_curIsDS;
@@ -87,7 +87,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                const Json::Value& contractData);
 
   bool TransferBalanceAtomic(const Address& from, const Address& to,
-                             const boost::multiprecision::uint256_t& delta);
+                             const boost::multiprecision::uint128_t& delta);
   void CommitTransferBalanceAtomic();
   void DiscardTransferBalanceAtomic();
 

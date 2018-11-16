@@ -53,7 +53,7 @@ struct PoWSolution {
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
   uint32_t lookupId;
-  boost::multiprecision::uint256_t gasPrice;
+  boost::multiprecision::uint128_t gasPrice;
 
   PoWSolution()
       : nonce(0),
@@ -65,7 +65,7 @@ struct PoWSolution {
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
               const std::array<unsigned char, 32>& m, uint32_t l,
-              const boost::multiprecision::uint256_t& gp)
+              const boost::multiprecision::uint128_t& gp)
       : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
     return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
@@ -251,11 +251,11 @@ class DirectoryService : public Executable, public Broadcastable {
                           unsigned int numOfProposedDSMembers);
 
   // Gas Pricer
-  boost::multiprecision::uint256_t GetNewGasPrice();
-  boost::multiprecision::uint256_t GetHistoricalMeanGasPrice();
-  boost::multiprecision::uint256_t GetDecreasedGasPrice();
-  boost::multiprecision::uint256_t GetIncreasedGasPrice();
-  bool VerifyGasPrice(const boost::multiprecision::uint256_t& gasPrice);
+  boost::multiprecision::uint128_t GetNewGasPrice();
+  boost::multiprecision::uint128_t GetHistoricalMeanGasPrice();
+  boost::multiprecision::uint128_t GetDecreasedGasPrice();
+  boost::multiprecision::uint128_t GetIncreasedGasPrice();
+  bool VerifyGasPrice(const boost::multiprecision::uint128_t& gasPrice);
 
   void LookupCoinbase(const DequeOfShard& shards, const MapOfPubKeyPoW& allPow,
                       const std::map<PubKey, Peer>& powDSWinner,
@@ -314,7 +314,7 @@ class DirectoryService : public Executable, public Broadcastable {
                                   std::vector<BlockHash>& microblockHashes,
                                   std::vector<uint32_t>& shardIds,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
-                                  boost::multiprecision::uint256_t& allRewards,
+                                  boost::multiprecision::uint128_t& allRewards,
                                   uint32_t& numTxs,
                                   std::vector<bool>& isMicroBlockEmpty,
                                   uint32_t& numMicroBlocks);
@@ -511,7 +511,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::unordered_map<uint64_t,
                      std::unordered_map<BlockHash, std::vector<unsigned char>>>
       m_microBlockStateDeltas;
-  boost::multiprecision::uint256_t m_totalTxnFees;
+  boost::multiprecision::uint128_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
 

@@ -181,7 +181,7 @@ bool AccountStore::RetrieveFromDisk() {
         LOG_GENERAL(WARNING, "Account data corrupted");
         continue;
       }
-      Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint64_t>());
+      Account account(rlp[0].toInt<uint128_t>(), rlp[1].toInt<uint64_t>());
       // Code Hash
       if (rlp[3].toHash<h256>() != h256()) {
         // Extract Code Content
@@ -219,7 +219,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const Address& genesisAddress,
-                                      const uint256_t& amount) {
+                                      const uint128_t& amount) {
   // LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexDelta);
@@ -230,7 +230,7 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   // Should the nonce increase ??
 }
 
-boost::multiprecision::uint256_t AccountStore::GetNonceTemp(
+boost::multiprecision::uint128_t AccountStore::GetNonceTemp(
     const Address& address) {
   if (m_accountStoreTemp->GetAddressToAccount()->find(address) !=
       m_accountStoreTemp->GetAddressToAccount()->end()) {

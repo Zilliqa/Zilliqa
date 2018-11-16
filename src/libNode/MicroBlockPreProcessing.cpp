@@ -72,10 +72,10 @@ bool Node::ComposeMicroBlock() {
   uint32_t shardId = m_myshardId;
   uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
   uint64_t gasUsed = m_gasUsedTotal;
-  uint256_t rewards = 0;
+  uint128_t rewards = 0;
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees,
+    if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
                                   COINBASE_REWARD, rewards)) {
       LOG_GENERAL(WARNING, "rewards addition unsafe!");
     }
@@ -323,13 +323,13 @@ void Node::ProcessTransactionWhenShardLeader() {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
-        uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        uint128_t txnFee;
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
+        if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
           break;
         }
@@ -384,13 +384,13 @@ void Node::ProcessTransactionWhenShardLeader() {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
-        uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        uint128_t txnFee;
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
+        if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
           break;
         }
@@ -498,13 +498,13 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
           break;
         }
-        uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        uint128_t txnFee;
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
+        if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition unsafe!");
           break;
         }
@@ -544,13 +544,13 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition overflow!");
           break;
         }
-        uint256_t txnFee;
-        if (!SafeMath<uint256_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        uint128_t txnFee;
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication overflow!");
           continue;
         }
-        if (!SafeMath<uint256_t>::add(m_txnFees, txnFee, m_txnFees)) {
+        if (!SafeMath<uint128_t>::add(m_txnFees, txnFee, m_txnFees)) {
           LOG_GENERAL(WARNING, "m_txnFees addition overflow!");
           break;
         }
@@ -1042,8 +1042,8 @@ bool Node::CheckMicroBlockHashes(vector<unsigned char>& errorMsg) {
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
     // Check COINBASE_REWARD + totalTxnFees
-    uint256_t rewards = 0;
-    if (!SafeMath<uint256_t>::add(m_mediator.m_ds->m_totalTxnFees,
+    uint128_t rewards = 0;
+    if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
                                   COINBASE_REWARD, rewards)) {
       LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     }

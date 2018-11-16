@@ -44,7 +44,7 @@ using namespace boost::multiprecision;
 void DirectoryService::ExtractDataFromMicroblocks(
     BlockHash& microblockTrieRoot, std::vector<BlockHash>& microblockHashes,
     std::vector<uint32_t>& shardIds, uint64_t& allGasLimit,
-    uint64_t& allGasUsed, uint256_t& allRewards, uint32_t& numTxs,
+    uint64_t& allGasUsed, uint128_t& allRewards, uint32_t& numTxs,
     std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -79,7 +79,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
       shardIds.push_back(microBlock.GetHeader().GetShardId());
 
       uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
-      uint256_t tmpRewards = allRewards;
+      uint128_t tmpRewards = allRewards;
 
       bool flag = true;
       if (!SafeMath<uint64_t>::add(
@@ -92,7 +92,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
         flag = false;
       }
       if (flag &&
-          !SafeMath<uint256_t>::add(
+          !SafeMath<uint128_t>::add(
               allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
         flag = false;
       }
@@ -136,7 +136,7 @@ bool DirectoryService::ComposeFinalBlock() {
   uint32_t version = BLOCKVERSION::VERSION1;
   uint64_t allGasLimit = 0;
   uint64_t allGasUsed = 0;
-  uint256_t allRewards = 0;
+  uint128_t allRewards = 0;
   uint32_t numTxs = 0;
   std::vector<bool> isMicroBlockEmpty;
   uint32_t numMicroBlocks = 0;
@@ -607,7 +607,7 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
 
   uint64_t allGasLimit = 0;
   uint64_t allGasUsed = 0;
-  uint256_t allRewards = 0;
+  uint128_t allRewards = 0;
   uint32_t allNumTxns = 0;
   uint32_t allNumMicroBlockHashes = 0;
 
@@ -617,7 +617,7 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
     auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
     for (auto& microBlock : microBlocks) {
       uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
-      uint256_t tmpRewards = allRewards;
+      uint128_t tmpRewards = allRewards;
 
       bool flag = true;
       if (!SafeMath<uint64_t>::add(
@@ -630,7 +630,7 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
         flag = false;
       }
       if (flag &&
-          !SafeMath<uint256_t>::add(
+          !SafeMath<uint128_t>::add(
               allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
         flag = false;
       }

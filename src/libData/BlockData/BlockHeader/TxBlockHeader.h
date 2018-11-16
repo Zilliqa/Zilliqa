@@ -38,7 +38,7 @@ class TxBlockHeader : public BlockHeaderBase {
   uint32_t m_version;
   uint64_t m_gasLimit;
   uint64_t m_gasUsed;
-  boost::multiprecision::uint256_t m_rewards;
+  boost::multiprecision::uint128_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
   uint64_t m_timestamp;
@@ -60,7 +60,7 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Constructor with specified Tx block header parameters.
   TxBlockHeader(const uint8_t type, const uint32_t version,
                 const uint64_t& gasLimit, const uint64_t& gasUsed,
-                const boost::multiprecision::uint256_t& rewards,
+                const boost::multiprecision::uint128_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const uint64_t& timestamp, const TxBlockHashSet& blockHashSet,
                 const uint32_t numTxs, const uint32_t numMicroBlockHashes,
@@ -90,7 +90,7 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Returns the rewards generated in this block. If normal epoch, then is the
   /// sum of txnFees from all microblock, if vacuous epoch, is the total rewards
   /// generated during coinbase
-  const boost::multiprecision::uint256_t& GetRewards() const;
+  const boost::multiprecision::uint128_t& GetRewards() const;
 
   /// Returns the digest of the parent block header.
   const BlockHash& GetPrevHash() const;
