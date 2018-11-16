@@ -1103,27 +1103,37 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
   ProtobufToBlockBase(protoBlockBase, microBlock);
 }
 
-void ExtraMbInfoToProtobuf(const vector<bool>& isMicroBlockEmpty,
-                           const vector<uint32_t>& shardIds,
-                           ProtoExtraMbInfo& protoExtraMbInfo) {
-  for (const auto& i : isMicroBlockEmpty) {
-    protoExtraMbInfo.add_ismicroblockempty(i);
-  }
-
-  for (const auto& i : shardIds) {
-    protoExtraMbInfo.add_shardids(i);
+void MbInfoToProtobuf(const vector<MicroBlockInfo>& mbInfos,
+                      ProtoMbInfo& ProtoMbInfo) {
+  for (const auto& i : mbInfos) {
+    ProtoMbInfo.add_mbhashes(i.m_microBlockHash.data(),
+                             i.m_microBlockHash.size);
+    ProtoMbInfo.add_ismicroblockempty(i.m_isMicroBlockEmpty);
+    ProtoMbInfo.add_shardids(i.m_shardId);
   }
 }
 
-void ProtobufToExtraMbInfo(const ProtoExtraMbInfo& protoExtraMbInfo,
-                           vector<bool>& isMicroBlockEmpty,
-                           vector<uint32_t>& shardIds) {
-  for (const auto& i : protoExtraMbInfo.ismicroblockempty()) {
-    isMicroBlockEmpty.emplace_back(i);
+void ProtobufToMbInfo(const ProtoMbInfo& ProtoMbInfo,
+                      vector<MicroBlockInfo>& mbInfos) {
+  if (ProtoMbInfo.ismicroblockempty().size() != ProtoMbInfo.shardids().size() ||
+      ProtoMbInfo.mbhashes().size() != ProtoMbInfo.shardids().size()) {
+    LOG_GENERAL(WARNING, "ismicroblockempty size "
+                             << ProtoMbInfo.ismicroblockempty().size()
+                             << " not equal to shardids size "
+                             << ProtoMbInfo.shardids().size()
+                             << " or mbhashes size "
+                             << ProtoMbInfo.mbhashes().size());
+    return;
   }
 
-  for (const auto& i : protoExtraMbInfo.shardids()) {
-    shardIds.emplace_back(i);
+  for (int i = 0; i < ProtoMbInfo.mbhashes_size(); i++) {
+    mbInfos.push_back({BlockHash(), ProtoMbInfo.ismicroblockempty(i),
+                       ProtoMbInfo.shardids(i)});
+    copy(ProtoMbInfo.mbhashes(i).begin(),
+         ProtoMbInfo.mbhashes(i).begin() +
+             min((unsigned int)ProtoMbInfo.mbhashes(i).size(),
+                 (unsigned int)mbInfos.back().m_microBlockHash.size),
+         mbInfos.back().m_microBlockHash.asArray().begin());
   }
 }
 
@@ -1145,8 +1155,6 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
 
   ZilliqaMessage::ProtoTxBlock::TxBlockHashSet* protoHeaderHash =
       protoTxBlockHeader.mutable_hash();
-  protoHeaderHash->set_mbroothash(txBlockHeader.GetMbRootHash().data(),
-                                  txBlockHeader.GetMbRootHash().size);
   protoHeaderHash->set_stateroothash(txBlockHeader.GetStateRootHash().data(),
                                      txBlockHeader.GetStateRootHash().size);
   protoHeaderHash->set_statedeltahash(txBlockHeader.GetStateDeltaHash().data(),
@@ -1173,16 +1181,9 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
 
   TxBlockHeaderToProtobuf(header, *protoHeader);
 
-  // Serialize body
-  for (const auto& hash : txBlock.GetMicroBlockHashes()) {
-    protoTxBlock.add_mbhashes(hash.data(), hash.size);
-  }
+  ZilliqaMessage::ProtoMbInfo* ProtoMbInfo = protoTxBlock.mutable_mbinfo();
 
-  ZilliqaMessage::ProtoExtraMbInfo* protoExtraMbInfo =
-      protoTxBlock.mutable_extrambinfo();
-
-  ExtraMbInfoToProtobuf(txBlock.GetIsMicroBlockEmpty(), txBlock.GetShardIds(),
-                        *protoExtraMbInfo);
+  MbInfoToProtobuf(txBlock.GetMicroBlockInfos(), *ProtoMbInfo);
 
   ZilliqaMessage::ProtoBlockBase* protoBlockBase =
       protoTxBlock.mutable_blockbase();
@@ -1218,11 +1219,6 @@ void ProtobufToTxBlockHeader(
 
   const ZilliqaMessage::ProtoTxBlock::TxBlockHashSet& protoTxBlockHeaderHash =
       protoTxBlockHeader.hash();
-  copy(protoTxBlockHeaderHash.mbroothash().begin(),
-       protoTxBlockHeaderHash.mbroothash().begin() +
-           min((unsigned int)protoTxBlockHeaderHash.mbroothash().size(),
-               (unsigned int)hash.m_mbRootHash.size),
-       hash.m_mbRootHash.asArray().begin());
   copy(protoTxBlockHeaderHash.stateroothash().begin(),
        protoTxBlockHeaderHash.stateroothash().begin() +
            min((unsigned int)protoTxBlockHeaderHash.stateroothash().size(),
@@ -1266,24 +1262,13 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
   ProtobufToTxBlockHeader(protoHeader, header);
 
   // Deserialize body
-  vector<BlockHash> microBlockHashes;
-  vector<bool> isMicroBlockEmpty;
-  vector<uint32_t> shardIds;
+  vector<MicroBlockInfo> mbInfos;
 
-  for (const auto& hash : protoTxBlock.mbhashes()) {
-    microBlockHashes.emplace_back();
-    copy(hash.begin(),
-         hash.begin() + min((unsigned int)hash.size(),
-                            (unsigned int)microBlockHashes.back().size),
-         microBlockHashes.back().asArray().begin());
-  }
+  const ZilliqaMessage::ProtoMbInfo& ProtoMbInfo = protoTxBlock.mbinfo();
 
-  const ZilliqaMessage::ProtoExtraMbInfo& protoExtraMbInfo =
-      protoTxBlock.extrambinfo();
+  ProtobufToMbInfo(ProtoMbInfo, mbInfos);
 
-  ProtobufToExtraMbInfo(protoExtraMbInfo, isMicroBlockEmpty, shardIds);
-
-  txBlock = TxBlock(header, isMicroBlockEmpty, microBlockHashes, shardIds);
+  txBlock = TxBlock(header, mbInfos);
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
@@ -2131,29 +2116,28 @@ bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
-                                   const std::vector<uint32_t>& shardIds,
-                                   MBInfoHash& dst) {
-  ProtoExtraMbInfo protoExtraMbInfo;
+bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
+                              MBInfoHash& dst) {
+  ProtoMbInfo ProtoMbInfo;
 
-  ExtraMbInfoToProtobuf(isMicroBlockEmpty, shardIds, protoExtraMbInfo);
+  MbInfoToProtobuf(mbInfos, ProtoMbInfo);
 
-  if (!protoExtraMbInfo.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoExtraMbInfo initialization failed.");
+  if (!ProtoMbInfo.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMbInfo initialization failed.");
     return false;
   }
 
   vector<unsigned char> tmp;
 
-  if (!SerializeToArray(protoExtraMbInfo, tmp, 0)) {
-    LOG_GENERAL(WARNING, "ProtoExtraMbInfo serialization failed.");
+  if (!SerializeToArray(ProtoMbInfo, tmp, 0)) {
+    LOG_GENERAL(WARNING, "ProtoMbInfo serialization failed.");
     return false;
   }
 
   // Fix software crash because of tmp is empty triggered assertion in
   // sha2.update.git
   if (tmp.empty()) {
-    LOG_GENERAL(WARNING, "ProtoExtraMbInfo is empty, proceed without it.");
+    LOG_GENERAL(WARNING, "ProtoMbInfo is empty, proceed without it.");
     return true;
   }
 

@@ -101,10 +101,6 @@ class TxBlockHeader : public BlockHeaderBase {
   const boost::multiprecision::uint256_t& GetTimestamp() const;
 
   /// Returns the digest that represents the root of the Merkle tree that stores
-  /// all microblocks in this block.
-  const BlockHash& GetMbRootHash() const;
-
-  /// Returns the digest that represents the root of the Merkle tree that stores
   /// all state uptil this block.
   const StateHash& GetStateRootHash() const;
 

@@ -90,10 +90,6 @@ const uint64_t& TxBlockHeader::GetBlockNum() const { return m_blockNum; }
 
 const uint256_t& TxBlockHeader::GetTimestamp() const { return m_timestamp; }
 
-const TxnHash& TxBlockHeader::GetMbRootHash() const {
-  return m_hashset.m_mbRootHash;
-}
-
 const StateHash& TxBlockHeader::GetStateRootHash() const {
   return m_hashset.m_stateRootHash;
 }
