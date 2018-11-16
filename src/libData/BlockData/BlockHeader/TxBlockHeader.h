@@ -43,9 +43,7 @@ class TxBlockHeader : public BlockHeaderBase {
   uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
   boost::multiprecision::uint256_t m_timestamp;
   TxBlockHashSet m_hashset;
-  uint32_t m_numTxs;               // Total number of txs included in the block
-  uint32_t m_numMicroBlockHashes;  // Total number of microblock hashes included
-                                   // in the block
+  uint32_t m_numTxs;     // Total number of txs included in the block
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
   uint64_t
       m_dsBlockNum;  // DS Block index at the time this Tx Block was proposed
@@ -65,8 +63,8 @@ class TxBlockHeader : public BlockHeaderBase {
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const boost::multiprecision::uint256_t& timestamp,
                 const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
-                const uint32_t numMicroBlockHashes, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const CommitteeHash& committeeHash);
+                const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+                const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,
@@ -121,9 +119,6 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Returns the number of transactions in this block.
   const uint32_t& GetNumTxs() const;
 
-  /// Returns the number of MicroBlockHashes in this block.
-  const uint32_t& GetNumMicroBlockHashes() const;
-
   /// Returns the public key of the leader of the committee that composed this
   /// block.
   const PubKey& GetMinerPubKey() const;
@@ -154,7 +149,6 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_timestamp : " << t.m_timestamp.convert_to<std::string>() << std::endl
      << t.m_hashset << std::endl
      << "m_numTxs : " << t.m_numTxs << std::endl
-     << "m_numMicroBlockHashes : " << t.m_numMicroBlockHashes << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl
      << "m_dsBlockNum : " << std::to_string(t.m_dsBlockNum);
   return os;

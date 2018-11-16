@@ -100,7 +100,8 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["TxnHash"] = txheader.GetMbRootHash().hex();
   ret_head["StateHash"] = txheader.GetStateRootHash().hex();
   ret_head["NumTxns"] = txheader.GetNumTxs();
-  ret_head["NumMicroBlocks"] = txheader.GetNumMicroBlockHashes();
+  ret_head["NumMicroBlocks"] =
+      static_cast<uint32_t>(txblock.GetMicroBlockHashes().size());
 
   ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
   ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());

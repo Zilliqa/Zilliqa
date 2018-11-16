@@ -317,8 +317,7 @@ class DirectoryService : public Executable, public Broadcastable {
                                   boost::multiprecision::uint256_t& allGasUsed,
                                   boost::multiprecision::uint256_t& allRewards,
                                   uint32_t& numTxs,
-                                  std::vector<bool>& isMicroBlockEmpty,
-                                  uint32_t& numMicroBlocks);
+                                  std::vector<bool>& isMicroBlockEmpty);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,

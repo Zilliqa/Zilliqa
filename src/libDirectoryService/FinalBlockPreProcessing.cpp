@@ -45,7 +45,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
     BlockHash& microblockTrieRoot, std::vector<BlockHash>& microblockHashes,
     std::vector<uint32_t>& shardIds, uint256_t& allGasLimit,
     uint256_t& allGasUsed, uint256_t& allRewards, uint32_t& numTxs,
-    std::vector<bool>& isMicroBlockEmpty, uint32_t& numMicroBlocks) {
+    std::vector<bool>& isMicroBlockEmpty) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ExtractDataFromMicroblocks not expected "
@@ -81,8 +81,6 @@ void DirectoryService::ExtractDataFromMicroblocks(
       allRewards += microBlock.GetHeader().GetRewards();
       numTxs += microBlock.GetHeader().GetNumTxs();
 
-      ++numMicroBlocks;
-
       bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
 
       isMicroBlockEmpty.push_back(isEmptyTxn);
@@ -116,12 +114,11 @@ bool DirectoryService::ComposeFinalBlock() {
   uint256_t allRewards = 0;
   uint32_t numTxs = 0;
   std::vector<bool> isMicroBlockEmpty;
-  uint32_t numMicroBlocks = 0;
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
 
   ExtractDataFromMicroblocks(microblockTrieRoot, microBlockHashes, shardIds,
                              allGasLimit, allGasUsed, allRewards, numTxs,
-                             isMicroBlockEmpty, numMicroBlocks);
+                             isMicroBlockEmpty);
 
   // Compute the MBInfoHash of the extra MicroBlock information
   MBInfoHash mbInfoHash;
@@ -176,7 +173,7 @@ bool DirectoryService::ComposeFinalBlock() {
           type, version, allGasLimit, allGasUsed, allRewards, prevHash,
           blockNum, timestamp,
           {microblockTrieRoot, stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
-          numMicroBlocks, m_mediator.m_selfKey.second,
+          m_mediator.m_selfKey.second,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
           committeeHash),
       isMicroBlockEmpty, microBlockHashes, shardIds,
@@ -643,12 +640,11 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
     ret = false;
   }
 
-  if (ret && allNumMicroBlockHashes !=
-                 m_finalBlock->GetHeader().GetNumMicroBlockHashes()) {
-    LOG_GENERAL(WARNING,
-                "Num of MB hashes mismatched, expected: "
-                    << allNumMicroBlockHashes << " received: "
-                    << m_finalBlock->GetHeader().GetNumMicroBlockHashes());
+  if (ret &&
+      allNumMicroBlockHashes != m_finalBlock->GetMicroBlockHashes().size()) {
+    LOG_GENERAL(WARNING, "Num of MB hashes mismatched, expected: "
+                             << allNumMicroBlockHashes << " received: "
+                             << m_finalBlock->GetMicroBlockHashes().size());
     // m_consensusObject->SetConsensusErrorCode(
     //     ConsensusCommon::FINALBLOCK_MBNUM_MISMATCH);
     // return false;
