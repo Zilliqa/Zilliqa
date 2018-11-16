@@ -1015,7 +1015,7 @@ bool DirectoryService::DSBlockValidator(
   return true;
 }
 
-bool slept = false;
+
 
 bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   LOG_MARKER();
@@ -1028,11 +1028,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   }
 
 #if 1
-  if (m_consensusMyID == 3 && !slept) {
+  if (m_consensusMyID == 3 && m_mediator.m_currentEpochNum == 1) {
     LOG_EPOCH(
         WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_1)");
-    slept = true;
     this_thread::sleep_for(chrono::seconds(45));
     return false;
   }
