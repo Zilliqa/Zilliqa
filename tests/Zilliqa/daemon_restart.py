@@ -23,6 +23,7 @@ import shutil
 import stat
 import time
 import socket, errno
+import signal
 
 from subprocess import Popen, PIPE
 
@@ -79,8 +80,8 @@ def run_restart(pubKey, privKey, port, typ, path):
 	for x in range(0, 1):
 		keypair = keypairs[x].split(" ")
 
+		signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + nodeIP +' ' + str(PORT_NUM) + ' 1 '+typ+ ' 1 >> ./error_log_zilliqa 2>&1')
-
 
 if __name__ == "__main__":
 	main()

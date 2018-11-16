@@ -128,6 +128,7 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
             cmdLine = cmdLine.substr(pos + 1);
             fullLine = fullLine.substr(pos + 1);
           }
+
           // Compare against requested process name
           if (procName == cmdLine) {
             result.push_back(id);
@@ -161,7 +162,6 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
   }
 
   closedir(dp);
-
   return result;
 }
 string execute(string cmd) {
@@ -204,69 +204,71 @@ void initialize(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
+void StartNewProcess(const string pubKey, const string privKey,
+                     const string port, const string syncType,
+                     const string path, ofstream& log) {
+  log << "Create new Zilliqa process..." << endl;
+  signal(SIGCHLD, SIG_IGN);
+  pid_t pid;
+
+  if (0 == (pid = fork())) {
+    log << "\" "
+        << execute(restart_zilliqa + " " + pubKey + " " + privKey + " " + port +
+                   " " + syncType + " " + path + " 2>&1")
+        << " \"" << endl;
+    exit(0);
+  }
+}
+
 void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
                     unordered_map<pid_t, bool>& died, ofstream& log) {
-  for (string name : programName) {
-    for (pid_t pid : pids[name]) {
-      int w = kill(pid, 0);
+  const string name = programName[0];
 
-      if (w < 0) {
-        if (errno == EPERM) {
-          log << "Daemon does not have permission "
-              << "Name: " << name << " Id: " << pid << endl;
-        } else if (errno == ESRCH) {
-          log << "Process died "
-              << "Name: " << name << " Id: " << pid << endl;
-          died[pid] = true;
-        } else {
-          log << "Kill failed due to " << errno << " Name: " << name
-              << "Id: " << pid << endl;
-        }
+  if (pids[name].empty()) {
+    log << "Looking for new " << name << " process..." << endl;
+    vector<pid_t> tmp = getProcIdByName(name, log);
+
+    for (const pid_t& i : tmp) {
+      died[i] = false;
+      pids[name].push_back(i);
+      log << "Started monitoring new process " << name << " with PiD: " << i
+          << endl;
+    }
+
+    return;
+  }
+
+  for (const pid_t& pid : pids[name]) {
+    int w = kill(pid, 0);
+
+    if (w < 0) {
+      if (errno == EPERM) {
+        log << "Daemon does not have permission "
+            << "Name: " << name << " Id: " << pid << endl;
+      } else if (errno == ESRCH) {
+        log << "Process died "
+            << "Name: " << name << " Id: " << pid << endl;
+        died[pid] = true;
+      } else {
+        log << "Kill failed due to " << errno << " Name: " << name
+            << "Id: " << pid << endl;
+      }
+    }
+
+    if (died[pid]) {
+      auto it = find(pids[name].begin(), pids[name].end(), pid);
+      if (it != pids[name].end()) {
+        log << "Not monitoring " << pid << " of " << name << endl;
+        pids[name].erase(it);
       }
 
-      if (died[pid]) {
-        unsigned int v = getRestartValue(pid);
-
-        auto it = find(pids[name].begin(), pids[name].end(), pid);
-        if (it != pids[name].end()) {
-          log << "Not monitoring " << pid << " of " << name << endl;
-          pids[name].erase(it);
-        }
-        try {
-          log << "Trying to restart .." << endl;
-          log << "Params: "
-              << PubKey[pid] + " " + PrivKey[pid] + " " + Port[pid] + " " +
-                     to_string(v) + " " + Path[pid] + " 2>&1"
-              << endl;
-          log << "Output from shell...(if any)" << endl << endl;
-          log << "\" "
-              << execute(restart_zilliqa + " " + PubKey[pid] + " " +
-                         PrivKey[pid] + " " + Port[pid] + " " + to_string(v) +
-                         " " + Path[pid] + " 2>&1")
-              << " \"" << endl;
-          log << PubKey[pid] << " " << PrivKey[pid] << " " << Port[pid] << endl;
-          log << endl;
-        } catch (runtime_error& e) {
-          log << "ERROR!! " << e.what() << endl;
-        }
-        vector<pid_t> tmp = getProcIdByName(programName[0], log);
-
-        for (pid_t i : tmp) {
-          auto it =
-              find(pids[programName[0]].begin(), pids[programName[0]].end(), i);
-          if (it == pids[programName[0]].end()) {
-            died[i] = false;
-            pids[programName[0]].push_back(i);
-            log << "Started new process " << programName[0]
-                << " with PiD: " << i << endl;
-          }
-        }
-        died.erase(pid);
-        PrivKey.erase(pid);
-        PubKey.erase(pid);
-        Port.erase(pid);
-        Path.erase(pid);
-      }
+      StartNewProcess(PubKey[pid], PrivKey[pid], Port[pid],
+                      to_string(getRestartValue(pid)), Path[pid], log);
+      died.erase(pid);
+      PrivKey.erase(pid);
+      PubKey.erase(pid);
+      Port.erase(pid);
+      Path.erase(pid);
     }
   }
 }
