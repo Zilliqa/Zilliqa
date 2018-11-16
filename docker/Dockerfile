@@ -71,7 +71,7 @@ ARG BUILD_TYPE=RelWithDebInfo
 
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT} \
-    && git -C ${SOURCE_DIR} submodule update --init --recursive \
+    # && git -C ${SOURCE_DIR} submodule update --init --recursive \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
