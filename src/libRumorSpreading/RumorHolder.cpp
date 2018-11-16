@@ -32,9 +32,9 @@ std::map<RumorHolder::StatisticKey, std::string>
         {StatisticKey::NumPeers, LITERAL(NumPeers)},
         {StatisticKey::NumMessagesReceived, LITERAL(NumMessagesReceived)},
         {StatisticKey::Rounds, LITERAL(Rounds)},
-        {StatisticKey::NumPushMessages, LITERAL(NumPushMessages)},
+        {StatisticKey::NumLazyPushMessages, LITERAL(NumLazyPushMessages)},
         {StatisticKey::NumEmptyPushMessages, LITERAL(NumEmptyPushMessages)},
-        {StatisticKey::NumPullMessages, LITERAL(NumPullMessages)},
+        {StatisticKey::NumLazyPullMessages, LITERAL(NumLazyPullMessages)},
         {StatisticKey::NumEmptyPullMessages, LITERAL(NumEmptyPullMessages)},
 };
 
@@ -180,12 +180,12 @@ std::pair<int, std::vector<Message>> RumorHolder::receivedMessage(
   // If this is the first time 'fromPeer' sent a PUSH/EMPTY_PUSH message in this
   // round then respond with a PULL message for each rumor
   std::vector<Message> pullMessages;
-  if (isNewPeer && (message.type() == Message::Type::PUSH ||
+  if (isNewPeer && (message.type() == Message::Type::LAZY_PUSH ||
                     message.type() == Message::Type::EMPTY_PUSH)) {
     for (auto& kv : m_rumors) {
       RumorStateMachine& stateMach = kv.second;
       if (stateMach.rounds() > 0 and !stateMach.isOld()) {
-        pullMessages.emplace_back(Message::Type::PULL, kv.first,
+        pullMessages.emplace_back(Message::Type::LAZY_PULL, kv.first,
                                   kv.second.rounds());
       }
     }
@@ -196,7 +196,7 @@ std::pair<int, std::vector<Message>> RumorHolder::receivedMessage(
       pullMessages.emplace_back(Message(Message::Type::EMPTY_PULL, -1, 0));
       increaseStatValue(StatisticKey::NumEmptyPullMessages, 1);
     } else {
-      increaseStatValue(StatisticKey::NumPullMessages, pullMessages.size());
+      increaseStatValue(StatisticKey::NumLazyPullMessages, pullMessages.size());
       m_nonPriorityPeers.insert(fromPeer);
     }
   }
@@ -302,10 +302,10 @@ std::pair<std::vector<int>, std::vector<Message>> RumorHolder::advanceRound() {
     stateMach.advanceRound(m_peersInCurrentRound);
     if (!stateMach.isOld()) {
       pushMessages.emplace_back(
-          Message(Message::Type::PUSH, r.first, r.second.rounds()));
+          Message(Message::Type::LAZY_PUSH, r.first, r.second.rounds()));
     }
   }
-  increaseStatValue(StatisticKey::NumPushMessages, pushMessages.size());
+  increaseStatValue(StatisticKey::NumLazyPushMessages, pushMessages.size());
 
   // No PUSH messages but still want to sent a response to peer.
   if (pushMessages.empty()) {

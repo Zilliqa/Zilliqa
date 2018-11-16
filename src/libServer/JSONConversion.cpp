@@ -90,17 +90,18 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
 
   ret_head["Type"] = txheader.GetType();
   ret_head["Version"] = txheader.GetVersion();
-  ret_head["GasLimit"] = txheader.GetGasLimit().str();
-  ret_head["GasUsed"] = txheader.GetGasUsed().str();
+  ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
+  ret_head["GasUsed"] = to_string(txheader.GetGasUsed());
   ret_head["Rewards"] = txheader.GetRewards().str();
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = txheader.GetTimestamp().str();
+  ret_head["Timestamp"] = to_string(txheader.GetTimestamp());
 
   ret_head["TxnHash"] = txheader.GetMbRootHash().hex();
   ret_head["StateHash"] = txheader.GetStateRootHash().hex();
   ret_head["NumTxns"] = txheader.GetNumTxs();
-  ret_head["NumMicroBlocks"] = txheader.GetNumMicroBlockHashes();
+  ret_head["NumMicroBlocks"] =
+      static_cast<uint32_t>(txblock.GetMicroBlockHashes().size());
 
   ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
   ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
@@ -133,7 +134,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   ret_header["prevhash"] = dshead.GetPrevHash().hex();
   ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
   ret_header["blockNum"] = to_string(dshead.GetBlockNum());
-  ret_header["timestamp"] = dshead.GetTimestamp().str();
+
   ret_header["difficultyDS"] = dshead.GetDSDifficulty();
   ret_header["gasPrice"] = dshead.GetGasPrice().str();
   ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
@@ -141,7 +142,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   for (const auto& dswinner : dshead.GetDSPoWWinners()) {
     ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
   }
-
+  ret_header["timestamp"] = to_string(dshead.GetTimestamp());
   ret["header"] = ret_header;
 
   ret["signature"] = ret_sign;
@@ -153,7 +154,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint32_t version = _json["version"].asUInt();
 
   string nonce_str = _json["nonce"].asString();
-  uint256_t nonce(nonce_str);
+  uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
   vector<unsigned char> toAddr_ser =
@@ -161,12 +162,12 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   Address toAddr(toAddr_ser);
 
   string amount_str = _json["amount"].asString();
-  uint256_t amount(amount_str);
+  uint128_t amount(amount_str);
 
   string gasPrice_str = _json["gasPrice"].asString();
-  uint256_t gasPrice(gasPrice_str);
+  uint128_t gasPrice(gasPrice_str);
   string gasLimit_str = _json["gasLimit"].asString();
-  uint256_t gasLimit(gasLimit_str);
+  uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
   string pubKey_str = _json["pubKey"].asString();
   vector<unsigned char> pubKey_ser =
@@ -209,7 +210,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
     }
     if (_json["amount"].isString()) {
       try {
-        uint256_t amount(_json["amount"].asString());
+        uint128_t amount(_json["amount"].asString());
       } catch (exception& e) {
         LOG_GENERAL(INFO, "Fault in amount " << e.what());
         return false;
@@ -249,8 +250,8 @@ const Json::Value JSONConversion::convertTxtoJson(
   Json::Value _json;
 
   _json["ID"] = twr.GetTransaction().GetTranID().hex();
-  _json["version"] = twr.GetTransaction().GetVersion().str();
-  _json["nonce"] = twr.GetTransaction().GetNonce().str();
+  _json["version"] = to_string(twr.GetTransaction().GetVersion());
+  _json["nonce"] = to_string(twr.GetTransaction().GetNonce());
   _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
   _json["senderPubKey"] =
       static_cast<string>(twr.GetTransaction().GetSenderPubKey());
@@ -258,7 +259,7 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
   _json["gasPrice"] = twr.GetTransaction().GetGasPrice().str();
-  _json["gasLimit"] = twr.GetTransaction().GetGasLimit().str();
+  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
 
   return _json;
 }

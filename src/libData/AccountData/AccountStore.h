@@ -152,11 +152,11 @@ class AccountStore
     UpdateStateTrie(address, account);
   }
 
-  boost::multiprecision::uint256_t GetNonceTemp(const Address& address);
+  boost::multiprecision::uint128_t GetNonceTemp(const Address& address);
 
   bool UpdateCoinbaseTemp(const Address& rewardee,
                           const Address& genesisAddress,
-                          const boost::multiprecision::uint256_t& amount);
+                          const boost::multiprecision::uint128_t& amount);
 
   StateHash GetStateDeltaHash();
 

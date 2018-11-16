@@ -313,7 +313,7 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
     return true;
   }
 
-  // uint256_t latest_block_num_in_blockchain =
+  // uint128_t latest_block_num_in_blockchain =
   // m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   uint64_t latest_block_num_in_blockchain =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();

@@ -394,10 +394,10 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
 
 class Server : public AbstractZServer {
   Mediator& m_mediator;
-  std::pair<uint64_t, boost::multiprecision::uint256_t> m_BlockTxPair;
-  std::pair<uint64_t, boost::multiprecision::uint256_t> m_TxBlockCountSumPair;
-  boost::multiprecision::uint256_t m_StartTimeTx;
-  boost::multiprecision::uint256_t m_StartTimeDs;
+  std::pair<uint64_t, boost::multiprecision::uint128_t> m_BlockTxPair;
+  std::pair<uint64_t, boost::multiprecision::uint128_t> m_TxBlockCountSumPair;
+  uint64_t m_StartTimeTx;
+  uint64_t m_StartTimeDs;
   std::pair<uint64_t, CircularArray<std::string>> m_DSBlockCache;
   std::pair<uint64_t, CircularArray<std::string>> m_TxBlockCache;
   static CircularArray<std::string> m_RecentTransactions;
@@ -444,7 +444,7 @@ class Server : public AbstractZServer {
 
   // gets the number of transaction starting from block blockNum to most recent
   // block
-  boost::multiprecision::uint256_t GetNumTransactions(uint64_t blockNum);
+  size_t GetNumTransactions(uint64_t blockNum);
 
   Json::Value GetSmartContractState(const std::string& address);
   Json::Value GetSmartContractInit(const std::string& address);

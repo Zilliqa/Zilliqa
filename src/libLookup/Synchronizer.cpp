@@ -48,7 +48,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
   uint64_t genesisBlockNumer = 0;
   uint64_t genesisEpochNumer = 0;
-  uint256_t genesisTimestamp = 0;
+  uint64_t genesisTimestamp = 0;
   std::map<PubKey, Peer> powDSWinners;
 
   // FIXME: Handle exceptions.
@@ -94,7 +94,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
 
   TxBlock txBlock(
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
-                    BlockHash(), 0, 151384616955606, TxBlockHashSet(), 0, 5,
+                    BlockHash(), 0, 151384616955606, TxBlockHashSet(), 0,
                     keypair.second, 0, CommitteeHash()),
       vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
       CoSignatures());

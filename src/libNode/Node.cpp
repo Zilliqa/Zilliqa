@@ -62,8 +62,8 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
-  const uint256_t bal{std::numeric_limits<uint64_t>::max()};
-  const uint256_t nonce{0};
+  const uint128_t bal{std::numeric_limits<uint64_t>::max()};
+  const uint64_t nonce{0};
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
     Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
@@ -954,12 +954,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
-  LOG_STATE(
-      "[TXNPKTPROC]["
-      << std::setw(15) << std::left
-      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BEGN");
   // Broadcast to other shard node
   vector<Peer> toSend;
   for (auto& it : *m_myShardMembers) {
@@ -967,7 +961,25 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   }
   LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
   if (BROADCAST_GOSSIP_MODE) {
-    P2PComm::GetInstance().SpreadRumor(message);
+    if (P2PComm::GetInstance().SpreadRumor(message)) {
+      LOG_STATE("[TXNPKTPROC-INITIATE]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    } else {
+      LOG_STATE("[TXNPKTPROC]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    }
   } else {
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
   }
@@ -975,13 +987,19 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   LOG_GENERAL(INFO, "TxnPool size before processing: " << m_createdTxns.size());
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
-  if (m_mediator.m_ds->m_consensusMyID ==
-      ((m_mediator.m_ds->m_consensusLeaderID + 1) %
-       m_mediator.m_DSCommittee->size())) {
+  uint32_t dm_test_id = (m_mediator.m_ds->m_consensusLeaderID + 1) %
+                        m_mediator.m_DSCommittee->size();
+  LOG_GENERAL(WARNING, "Consensus ID for DM1 test is " << dm_test_id);
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+      m_mediator.m_ds->m_consensusMyID == dm_test_id) {
     LOG_GENERAL(WARNING,
                 "Letting one of the backups accept less txns from lookup "
                 "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
     return false;
+  } else {
+    LOG_GENERAL(WARNING,
+                "The node triggered DM_TEST_DM_LESSTNX_ONE is "
+                    << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSTXN_ONE
 
@@ -1030,7 +1048,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "][" << processed_count << "] DONE");
+      << "][" << shardId << "] DONE [" << processed_count << "]");
   return true;
 }
 
@@ -1046,7 +1064,7 @@ bool Node::ProcessProposeGasPrice(
     return true;
   }
 
-  if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE)) {
+  if (IsMessageSizeInappropriate(message.size(), offset, UINT128_SIZE)) {
     LOG_GENERAL(WARNING,
                 "Message size for ProcessProposeGasPrice is too short");
     return false;
@@ -1061,9 +1079,9 @@ bool Node::ProcessProposeGasPrice(
   lock_guard<mutex> g(m_mutexDSBlock, adopt_lock);
   lock_guard<mutex> g2(m_mutexGasPrice, adopt_lock);
 
-  uint256_t gasPriceProposal =
-      Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-  offset += UINT256_SIZE;
+  uint128_t gasPriceProposal =
+      Serializable::GetNumber<uint128_t>(message, offset, UINT128_SIZE);
+  offset += UINT128_SIZE;
   LOG_GENERAL(INFO, "Received gas price proposal: " << gasPriceProposal
                                                     << " Current GasPrice "
                                                     << m_proposedGasPrice);

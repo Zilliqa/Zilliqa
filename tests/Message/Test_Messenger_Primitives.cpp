@@ -193,9 +193,9 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
   unsigned int offset = 0;
 
   TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
-  vector<bool> isMicroBlockEmpty(txBlockHeader.GetNumMicroBlockHashes());
-  vector<BlockHash> microBlockHashes(txBlockHeader.GetNumMicroBlockHashes());
-  vector<uint32_t> shardIds(txBlockHeader.GetNumMicroBlockHashes());
+  vector<bool> isMicroBlockEmpty(0);
+  vector<BlockHash> microBlockHashes(0);
+  vector<uint32_t> shardIds(0);
 
   TxBlock txBlock(txBlockHeader, isMicroBlockEmpty, microBlockHashes, shardIds,
                   TestUtils::GenerateRandomCoSignatures());
