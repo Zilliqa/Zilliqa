@@ -41,7 +41,7 @@ unsigned int JSON_TRAN_OBJECT_SIZE = 10;
 
 const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
     const vector<MicroBlockInfo>& v) {
-  Json::Value mbInfosJson;
+  Json::Value mbInfosJson = Json::arrayValue;
   for (auto const& i : v) {
     Json::Value mbInfoJson;
     mbInfoJson["MicroBlockHash"] = i.m_microBlockHash.hex();
