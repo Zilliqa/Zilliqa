@@ -573,8 +573,8 @@ void Node::LogReceivedFinalBlockDetails([
               "txblock.GetHeader().GetBlockNum(): "
                   << txblock.GetHeader().GetBlockNum());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetNumMicroBlockHashes(): "
-                  << txblock.GetHeader().GetNumMicroBlockHashes());
+              "txblock.GetMicroBlockHashes().size(): "
+                  << txblock.GetMicroBlockHashes().size());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "txblock.GetHeader().GetStateRootHash(): "
                   << txblock.GetHeader().GetStateRootHash());
@@ -801,7 +801,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   m_mediator.HeartBeatPulse();
 
-  if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1) {
+  if (txBlock.GetMicroBlockHashes().size() == 1) {
     LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << txBlock.GetHeader().GetBlockNum()
