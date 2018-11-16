@@ -740,6 +740,38 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
       blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, false,
       winning_nonce, winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyWinningNonce);
+
+  // Full Dataset mine and verify
+  winning_result = POWClient.PoWMine(blockToUse, difficultyToUse, rand1, rand2,
+                                     ipAddr, pubKey, false, 0, 1);
+  verifyLight =
+      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          winning_result.result, winning_result.mix_hash);
+  BOOST_REQUIRE(verifyLight);
+
+  rand1 = {{'0', '3'}};
+  verifyRand =
+      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          winning_result.result, winning_result.mix_hash);
+  BOOST_REQUIRE(!verifyRand);
+
+  // Now let's adjust the difficulty expectation during verification
+  rand1 = {{'0', '1'}};
+  difficultyToUse = 30;
+  verifyDifficulty =
+      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
+                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          winning_result.result, winning_result.mix_hash);
+  BOOST_REQUIRE(!verifyDifficulty);
+
+  difficultyToUse = 10;
+  winning_nonce = 0;
+  verifyWinningNonce = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, false,
+      winning_nonce, winning_result.result, winning_result.mix_hash);
+  BOOST_REQUIRE(!verifyWinningNonce);
 }
 
 // Please enable the OPENCL_GPU_MINE option in constants.xml to run this test
