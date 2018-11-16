@@ -101,8 +101,8 @@ Address GenOneReceiver() {
 Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
                                           PubKey& fromPubKey,
                                           const Address& toAddr,
-                                          uint256_t amount,
-                                          uint256_t prevNonce) {
+                                          uint128_t amount,
+                                          uint64_t prevNonce) {
   unsigned int version = 0;
   auto nonce = prevNonce + 1;
 
@@ -146,7 +146,7 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     auto txnShard = Transaction::GetShardIndex(addr, numShards);
     txns.clear();
 
-    uint256_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+    uint64_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                      num_txn, txns)) {

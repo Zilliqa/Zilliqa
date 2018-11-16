@@ -62,8 +62,8 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
-  const uint256_t bal{std::numeric_limits<uint64_t>::max()};
-  const uint256_t nonce{0};
+  const uint128_t bal{std::numeric_limits<uint64_t>::max()};
+  const uint64_t nonce{0};
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
     Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
@@ -1064,7 +1064,7 @@ bool Node::ProcessProposeGasPrice(
     return true;
   }
 
-  if (IsMessageSizeInappropriate(message.size(), offset, UINT256_SIZE)) {
+  if (IsMessageSizeInappropriate(message.size(), offset, UINT128_SIZE)) {
     LOG_GENERAL(WARNING,
                 "Message size for ProcessProposeGasPrice is too short");
     return false;
@@ -1079,9 +1079,9 @@ bool Node::ProcessProposeGasPrice(
   lock_guard<mutex> g(m_mutexDSBlock, adopt_lock);
   lock_guard<mutex> g2(m_mutexGasPrice, adopt_lock);
 
-  uint256_t gasPriceProposal =
-      Serializable::GetNumber<uint256_t>(message, offset, UINT256_SIZE);
-  offset += UINT256_SIZE;
+  uint128_t gasPriceProposal =
+      Serializable::GetNumber<uint128_t>(message, offset, UINT128_SIZE);
+  offset += UINT128_SIZE;
   LOG_GENERAL(INFO, "Received gas price proposal: " << gasPriceProposal
                                                     << " Current GasPrice "
                                                     << m_proposedGasPrice);
