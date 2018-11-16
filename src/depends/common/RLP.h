@@ -37,6 +37,7 @@ namespace dev
     using RLPs = std::vector<RLP>;
 
     template <class _T> struct intTraits { static const unsigned maxSize = sizeof(_T); };
+    template <> struct intTraits<u128> { static const unsigned maxSize = 16; };
     template <> struct intTraits<u160> { static const unsigned maxSize = 20; };
     template <> struct intTraits<u256> { static const unsigned maxSize = 32; };
     template <> struct intTraits<bigint> { static const unsigned maxSize = ~(unsigned)0; };
@@ -128,6 +129,8 @@ namespace dev
         template <unsigned _N> bool operator!=(FixedHash<_N> const& _s) const { return isData() && toHash<_N>() != _s; }
         bool operator==(unsigned const& _i) const { return isInt() && toInt<unsigned>() == _i; }
         bool operator!=(unsigned const& _i) const { return isInt() && toInt<unsigned>() != _i; }
+        bool operator==(u128 const& _i) const { return isInt() && toInt<u128>() == _i; }
+        bool operator!=(u128 const& _i) const { return isInt() && toInt<u128>() != _i; }
         bool operator==(u256 const& _i) const { return isInt() && toInt<u256>() == _i; }
         bool operator!=(u256 const& _i) const { return isInt() && toInt<u256>() != _i; }
         bool operator==(bigint const& _i) const { return isInt() && toInt<bigint>() == _i; }
@@ -179,6 +182,7 @@ namespace dev
         explicit operator uint16_t() const { return toInt<uint16_t>(); }
         explicit operator uint32_t() const { return toInt<uint32_t>(); }
         explicit operator uint64_t() const { return toInt<uint64_t>(); }
+        explicit operator u128() const { return toInt<u128>(); }
         explicit operator u160() const { return toInt<u160>(); }
         explicit operator u256() const { return toInt<u256>(); }
         explicit operator bigint() const { return toInt<bigint>(); }
@@ -362,6 +366,7 @@ namespace dev
     template <> struct Converter<uint16_t> { static uint16_t convert(RLP const& _r, int _flags) { return _r.toInt<uint16_t>(_flags); } };
     template <> struct Converter<uint32_t> { static uint32_t convert(RLP const& _r, int _flags) { return _r.toInt<uint32_t>(_flags); } };
     template <> struct Converter<uint64_t> { static uint64_t convert(RLP const& _r, int _flags) { return _r.toInt<uint64_t>(_flags); } };
+    template <> struct Converter<u128> { static u128 convert(RLP const& _r, int _flags) { return _r.toInt<u128>(_flags); } };
     template <> struct Converter<u160> { static u160 convert(RLP const& _r, int _flags) { return _r.toInt<u160>(_flags); } };
     template <> struct Converter<u256> { static u256 convert(RLP const& _r, int _flags) { return _r.toInt<u256>(_flags); } };
     template <> struct Converter<bigint> { static bigint convert(RLP const& _r, int _flags) { return _r.toInt<bigint>(_flags); } };
@@ -390,6 +395,7 @@ namespace dev
 
         /// Append given datum to the byte stream.
         RLPStream& append(unsigned _s) { return append(bigint(_s)); }
+        RLPStream& append(u128 _s) { return append(bigint(_s)); }
         RLPStream& append(u160 _s) { return append(bigint(_s)); }
         RLPStream& append(u256 _s) { return append(bigint(_s)); }
         RLPStream& append(bigint _s);

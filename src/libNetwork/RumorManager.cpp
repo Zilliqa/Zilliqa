@@ -491,6 +491,10 @@ void RumorManager::SendMessage(const Peer& toPeer,
   }
 
   // Send the message to peer .
+  if (SIMULATED_NETWORK_DELAY_IN_MS > 0) {
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(SIMULATED_NETWORK_DELAY_IN_MS));
+  }
   P2PComm::GetInstance().SendMessage(toPeer, cmd, START_BYTE_GOSSIP);
 }
 

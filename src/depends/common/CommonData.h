@@ -117,7 +117,7 @@ namespace dev
 /// The size of the collection object will be unchanged. If it is too small, it will not represent the
 /// value properly, if too big then the additional elements will be zeroed out.
 /// @a Out will typically be either std::string or bytes.
-/// @a T will typically by unsigned, u160, u256 or bigint.
+/// @a T will typically by unsigned, u128, u160, u256 or bigint.
     template<class T, class Out>
     inline void toBigEndian(T _val, Out &o_out) {
         if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
@@ -134,7 +134,7 @@ namespace dev
 
 /// Converts a big-endian byte-stream represented on a templated collection to a templated integer value.
 /// @a _In will typically be either std::string or bytes.
-/// @a T will typically by unsigned, u160, u256 or bigint.
+/// @a T will typically by unsigned, u128, u160, u256 or bigint.
     template<class T, class _In>
     inline T fromBigEndian(_In const &_bytes) {
         T ret = (T) 0;
@@ -156,6 +156,12 @@ namespace dev
         return ret;
     }
 
+    inline std::string toBigEndianString(u128 _val) {
+        std::string ret(16, '\0');
+        toBigEndian(_val, ret);
+        return ret;
+    }
+
     inline bytes toBigEndian(u256 _val) {
         bytes ret(32);
         toBigEndian(_val, ret);
@@ -164,6 +170,12 @@ namespace dev
 
     inline bytes toBigEndian(u160 _val) {
         bytes ret(20);
+        toBigEndian(_val, ret);
+        return ret;
+    }
+
+    inline bytes toBigEndian(u128 _val) {
+        bytes ret(16);
         toBigEndian(_val, ret);
         return ret;
     }
@@ -211,6 +223,14 @@ namespace dev
     }
 
     inline std::string toCompactHexPrefixed(u256 _val, unsigned _min = 0) {
+        return toHexPrefixed(toCompactBigEndian(_val, _min));
+    }
+
+    inline std::string toCompactHex(u128 _val, unsigned _min = 0) {
+        return toHex(toCompactBigEndian(_val, _min));
+    }
+
+    inline std::string toCompactHexPrefixed(u128 _val, unsigned _min = 0) {
         return toHexPrefixed(toCompactBigEndian(_val, _min));
     }
 

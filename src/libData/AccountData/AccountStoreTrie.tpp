@@ -56,8 +56,8 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
 
   auto it2 = this->m_addressToAccount->emplace(
       std::piecewise_construct, std::forward_as_tuple(address),
-      std::forward_as_tuple(accountDataRLP[0].toInt<uint256_t>(),
-                            accountDataRLP[1].toInt<uint256_t>()));
+      std::forward_as_tuple(accountDataRLP[0].toInt<uint128_t>(),
+                            accountDataRLP[1].toInt<uint64_t>()));
 
   // Code Hash
   if (accountDataRLP[3].toHash<dev::h256>() != dev::h256()) {

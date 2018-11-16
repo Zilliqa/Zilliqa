@@ -42,8 +42,8 @@ using namespace std;
 using namespace boost::multiprecision;
 
 void DirectoryService::ExtractDataFromMicroblocks(
-    vector<MicroBlockInfo>& mbInfos, uint256_t& allGasLimit,
-    uint256_t& allGasUsed, uint256_t& allRewards, uint32_t& numTxs) {
+    vector<MicroBlockInfo>& mbInfos, uint64_t& allGasLimit,
+    uint64_t& allGasUsed, uint128_t& allRewards, uint32_t& numTxs) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ExtractDataFromMicroblocks not expected "
@@ -61,6 +61,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
     lock_guard<mutex> g(m_mutexMicroBlocks);
 
     auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
+
     for (auto& microBlock : microBlocks) {
       LOG_STATE("[STATS][" << std::setw(15) << std::left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -74,15 +75,35 @@ void DirectoryService::ExtractDataFromMicroblocks(
                             << microBlock.GetHeader().GetShardId() << endl
                             << "hash: " << microBlock.GetHeader().GetHashes());
 
-      allGasLimit += microBlock.GetHeader().GetGasLimit();
-      allGasUsed += microBlock.GetHeader().GetGasUsed();
-      allRewards += microBlock.GetHeader().GetRewards();
+      uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
+      uint128_t tmpRewards = allRewards;
+
+      bool flag = true;
+      if (!SafeMath<uint64_t>::add(
+              allGasLimit, microBlock.GetHeader().GetGasLimit(), allGasLimit)) {
+        flag = false;
+      }
+      if (flag &&
+          !SafeMath<uint64_t>::add(
+              allGasUsed, microBlock.GetHeader().GetGasUsed(), allGasUsed)) {
+        flag = false;
+      }
+      if (flag &&
+          !SafeMath<uint128_t>::add(
+              allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
+        flag = false;
+      }
+      if (!flag) {
+        allGasLimit = tmpGasLimit;
+        allGasUsed = tmpGasUsed;
+        allRewards = tmpRewards;
+      }
+
       numTxs += microBlock.GetHeader().GetNumTxs();
 
-      bool isEmptyTxn = (microBlock.GetHeader().GetNumTxs() == 0);
-
       mbInfos.push_back({microBlock.GetBlockHash(),
-                         microBlock.GetHeader().GetShardId(), isEmptyTxn});
+                         microBlock.GetHeader().GetNumTxs() == 0,
+                         microBlock.GetHeader().GetShardId()});
     }
   }
 }
@@ -101,9 +122,9 @@ bool DirectoryService::ComposeFinalBlock() {
   std::vector<uint32_t> shardIds;
   uint8_t type = TXBLOCKTYPE::FINAL;
   uint32_t version = BLOCKVERSION::VERSION1;
-  uint256_t allGasLimit = 0;
-  uint256_t allGasUsed = 0;
-  uint256_t allRewards = 0;
+  uint64_t allGasLimit = 0;
+  uint64_t allGasUsed = 0;
+  uint128_t allRewards = 0;
   uint32_t numTxs = 0;
   std::vector<bool> isMicroBlockEmpty;
   StateHash stateDeltaHash = AccountStore::GetInstance().GetStateDeltaHash();
@@ -120,7 +141,7 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   BlockHash prevHash;
-  uint256_t timestamp = get_time_as_int();
+  uint64_t timestamp = get_time_as_int();
 
   uint64_t blockNum = 0;
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
@@ -451,8 +472,8 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
     const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint256_t finalblockTimestamp = m_finalBlock->GetHeader().GetTimestamp();
-    uint256_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
+    uint64_t finalblockTimestamp = m_finalBlock->GetHeader().GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
     if (finalblockTimestamp <= lastTxBlockTimestamp) {
       LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
                                << lastTxBlockTimestamp
@@ -571,9 +592,9 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
 
   LOG_MARKER();
 
-  uint256_t allGasLimit = 0;
-  uint256_t allGasUsed = 0;
-  uint256_t allRewards = 0;
+  uint64_t allGasLimit = 0;
+  uint64_t allGasUsed = 0;
+  uint128_t allRewards = 0;
   uint32_t allNumTxns = 0;
   uint32_t allNumMicroBlockHashes = 0;
 
@@ -582,9 +603,30 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
 
     auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
     for (auto& microBlock : microBlocks) {
-      allGasLimit += microBlock.GetHeader().GetGasLimit();
-      allGasUsed += microBlock.GetHeader().GetGasUsed();
-      allRewards += microBlock.GetHeader().GetRewards();
+      uint64_t tmpGasLimit = allGasLimit, tmpGasUsed = allGasUsed;
+      uint128_t tmpRewards = allRewards;
+
+      bool flag = true;
+      if (!SafeMath<uint64_t>::add(
+              allGasLimit, microBlock.GetHeader().GetGasLimit(), allGasLimit)) {
+        flag = false;
+      }
+      if (flag &&
+          !SafeMath<uint64_t>::add(
+              allGasUsed, microBlock.GetHeader().GetGasUsed(), allGasUsed)) {
+        flag = false;
+      }
+      if (flag &&
+          !SafeMath<uint128_t>::add(
+              allRewards, microBlock.GetHeader().GetRewards(), allRewards)) {
+        flag = false;
+      }
+      if (!flag) {
+        allGasLimit = tmpGasLimit;
+        allGasUsed = tmpGasUsed;
+        allRewards = tmpRewards;
+      }
+
       allNumTxns += microBlock.GetHeader().GetNumTxs();
       ++allNumMicroBlockHashes;
     }

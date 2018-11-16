@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
   dsblockmsg.resize(curr_offset + 32);
-  Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
+  Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
   curr_offset += UINT256_SIZE;
 
   struct sockaddr_in localhost;

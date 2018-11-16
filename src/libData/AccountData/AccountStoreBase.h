@@ -41,10 +41,10 @@ class AccountStoreBase : public SerializableDataBlock {
 
   AccountStoreBase();
 
-  bool CalculateGasRefund(const boost::multiprecision::uint256_t& gasDeposit,
-                          const boost::multiprecision::uint256_t& gasUnit,
-                          const boost::multiprecision::uint256_t& gasPrice,
-                          boost::multiprecision::uint256_t& gasRefund);
+  bool CalculateGasRefund(const boost::multiprecision::uint128_t& gasDeposit,
+                          const uint64_t& gasUnit,
+                          const boost::multiprecision::uint128_t& gasPrice,
+                          boost::multiprecision::uint128_t& gasRefund);
 
  public:
   virtual void Init();
@@ -70,21 +70,21 @@ class AccountStoreBase : public SerializableDataBlock {
 
   void RemoveAccount(const Address& address);
 
-  boost::multiprecision::uint256_t GetNumOfAccounts() const;
+  size_t GetNumOfAccounts() const;
 
   bool IncreaseBalance(const Address& address,
-                       const boost::multiprecision::uint256_t& delta);
+                       const boost::multiprecision::uint128_t& delta);
   bool DecreaseBalance(const Address& address,
-                       const boost::multiprecision::uint256_t& delta);
+                       const boost::multiprecision::uint128_t& delta);
 
   /// Updates the source and destination accounts included in the specified
   /// Transaction.
   bool TransferBalance(const Address& from, const Address& to,
-                       const boost::multiprecision::uint256_t& delta);
-  boost::multiprecision::uint256_t GetBalance(const Address& address);
+                       const boost::multiprecision::uint128_t& delta);
+  boost::multiprecision::uint128_t GetBalance(const Address& address);
 
   bool IncreaseNonce(const Address& address);
-  boost::multiprecision::uint256_t GetNonce(const Address& address);
+  uint64_t GetNonce(const Address& address);
 
   virtual void PrintAccountState();
 };

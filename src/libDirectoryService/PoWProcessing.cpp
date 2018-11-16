@@ -81,7 +81,7 @@ bool DirectoryService::ProcessPoWSubmission(
   string mixHash;
   Signature signature;
   uint32_t lookupId;
-  uint256_t gasPrice;
+  uint128_t gasPrice;
 
   if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
                                      difficultyLevel, submitterPeer,
