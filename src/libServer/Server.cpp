@@ -261,8 +261,10 @@ Json::Value Server::GetTxBlock(const string& blockNum) {
 }
 
 string Server::GetMinimumGasPrice() {
-  DSBlock latestDsBlock = m_mediator.m_dsBlockChain.GetLastBlock();
-  return latestDsBlock.GetHeader().GetGasPrice().str();
+  return m_mediator.m_dsBlockChain.GetLastBlock()
+      .GetHeader()
+      .GetGasPrice()
+      .str();
 }
 
 Json::Value Server::GetLatestDsBlock() {
