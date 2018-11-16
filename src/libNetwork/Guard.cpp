@@ -23,6 +23,7 @@
 #include <boost/foreach.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -38,8 +39,8 @@ Guard::Guard() {}
 Guard::~Guard() {}
 
 Guard& Guard::GetInstance() {
-  static Guard whitelistInfo;
-  return whitelistInfo;
+  static Guard guardInstance;
+  return guardInstance;
 }
 
 void Guard::UpdateDSGuardlist() {
@@ -48,10 +49,10 @@ void Guard::UpdateDSGuardlist() {
     return;
   }
 
-  ifstream config("ds_whitelist.xml");
+  ifstream config("constants.xml");
 
   if (config.fail()) {
-    LOG_GENERAL(WARNING, "No whitelist xml present");
+    LOG_GENERAL(WARNING, "No constants xml present");
     return;
   }
 
@@ -59,16 +60,19 @@ void Guard::UpdateDSGuardlist() {
   ptree pt;
   read_xml(config, pt);
 
-  BOOST_FOREACH (ptree::value_type const& v, pt.get_child("nodes")) {
-    if (v.first == "peer") {
-      PubKey key(DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
-                 0);
-      AddToDSGuardlist(key);
+  for (const ptree::value_type& v : pt.get_child("node.ds_guard")) {
+    LOG_GENERAL(WARNING, v.first);
+    if (v.first == "DSPUBKEY") {
+      PubKey pubKey(DataConversion::HexStrToUint8Vec(v.second.data()), 0);
+      AddToShardGuardlist(pubKey);
     }
   }
 
-  LOG_GENERAL(INFO, "Total number of entries in DS guard list:  "
-                        << m_DSGuardList.size());
+  {
+    lock_guard<mutex> g(m_mutexDSGuardList);
+    LOG_GENERAL(INFO, "Total number of entries in DS guard list:  "
+                          << m_DSGuardList.size());
+  }
 }
 
 void Guard::UpdateShardGuardlist() {
@@ -77,10 +81,10 @@ void Guard::UpdateShardGuardlist() {
     return;
   }
 
-  ifstream config("shard_whitelist.xml");
+  ifstream config("constants.xml");
 
   if (config.fail()) {
-    LOG_GENERAL(WARNING, "No shard_whitelist xml present");
+    LOG_GENERAL(WARNING, "No constants xml present");
     return;
   }
 
@@ -88,17 +92,18 @@ void Guard::UpdateShardGuardlist() {
   ptree pt;
   read_xml(config, pt);
 
-  lock_guard<mutex> g(m_mutexShardGuardList);
-  m_ShardGuardList.clear();
-
-  for (auto& addr : pt.get_child("address")) {
-    PubKey key(DataConversion::HexStrToUint8Vec(addr.second.data()), 0);
-    m_ShardGuardList.emplace_back(key);
-    // LOG_GENERAL(INFO, "Added " << key);
+  for (const ptree::value_type& v : pt.get_child("node.shard_guard")) {
+    LOG_GENERAL(WARNING, v.first);
+    if (v.first == "SHARDPUBKEY") {
+      PubKey pubKey(DataConversion::HexStrToUint8Vec(v.second.data()), 0);
+      AddToShardGuardlist(pubKey);
+    }
   }
-
-  LOG_GENERAL(INFO, "Total number of entries in shard whitelist:  "
-                        << m_ShardGuardList.size());
+  {
+    lock_guard<mutex> g(m_mutexShardGuardList);
+    LOG_GENERAL(INFO, "Total number of entries in shard whitelist:  "
+                          << m_ShardGuardList.size());
+  }
 }
 
 void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
@@ -110,6 +115,16 @@ void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
   lock_guard<mutex> g(m_mutexDSGuardList);
   m_DSGuardList.emplace_back(dsGuardPubKey);
   // LOG_GENERAL(INFO, "Added " << dsGuardPubKey);
+}
+
+void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
+  if (!GUARD_MODE) {
+    // LOG_GENERAL(WARNING, "Not in Guard mode. Guard list is not available.");
+    return;
+  }
+
+  lock_guard<mutex> g(m_mutexShardGuardList);
+  m_ShardGuardList.emplace_back(shardGuardPubKey);
 }
 
 bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
@@ -191,7 +206,9 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
 }
 
 void Guard::Init() {
+  LOG_GENERAL(INFO, "Setting up guard");
   UpdateDSGuardlist();
+  UpdateShardGuardlist();
   if (EXCLUDE_PRIV_IP) {
     LOG_GENERAL(INFO, "Adding Priv IPs to Exclusion List");
     AddToExclusionList("172.16.0.0", "172.31.255.255");
