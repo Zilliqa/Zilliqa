@@ -1683,16 +1683,13 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       BlockStorage::GetBlockStorage().PutTxBlock(
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
     } else {
-      for (unsigned int i = 0; i < txBlock.GetMicroBlockInfos().size(); i++) {
-        if (!txBlock.GetMicroBlockInfos().at(i).m_isMicroBlockEmpty) {
+      for (const auto& info : txBlock.GetMicroBlockInfos()) {
+        if (!info.m_isMicroBlockEmpty) {
           m_mediator.m_archival->AddToFetchMicroBlockInfo(
-              txBlock.GetMicroBlockInfos().at(i).m_microBlockHash);
+              info.m_microBlockHash);
         } else {
-          LOG_GENERAL(
-              INFO,
-              "MicroBlock of hash "
-                  << txBlock.GetMicroBlockInfos().at(i).m_microBlockHash.hex()
-                  << " empty");
+          LOG_GENERAL(INFO, "MicroBlock of hash " << info.m_microBlockHash.hex()
+                                                  << " empty");
         }
       }
       m_mediator.m_archDB->InsertTxBlock(txBlock);

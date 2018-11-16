@@ -508,15 +508,12 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
     // O(n^2) might be fine since number of shards is low
     // If its slow on benchmarking, may be first populate an unordered_set and
     // then std::find
-    for (unsigned int i = 0; i < m_finalBlock->GetMicroBlockInfos().size();
-         ++i) {
-      if (m_finalBlock->GetMicroBlockInfos().at(i).m_shardId ==
-          m_shards.size()) {
+    for (const auto& info : m_finalBlock->GetMicroBlockInfos()) {
+      if (info.m_shardId == m_shards.size()) {
         continue;
       }
 
-      BlockHash hash =
-          m_finalBlock->GetMicroBlockInfos().at(i).m_microBlockHash;
+      BlockHash hash = info.m_microBlockHash;
       LOG_GENERAL(INFO, "MicroBlock hash: " << hash);
       bool found = false;
       auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
