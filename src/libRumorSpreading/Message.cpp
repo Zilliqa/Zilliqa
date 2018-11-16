@@ -26,6 +26,8 @@ namespace RRS {
 // STATIC MEMBERS
 std::map<Message::Type, std::string> Message::s_enumKeyToString = {
     {Type::UNDEFINED, LITERAL(UNDEFINED)},
+    {Type::LAZY_PUSH, LITERAL(LAZY_PUSH)},
+    {Type::LAZY_PULL, LITERAL(LAZY_PULL)},
     {Type::PUSH, LITERAL(PUSH)},
     {Type::PULL, LITERAL(PULL)},
     {Type::EMPTY_PUSH, LITERAL(EMPTY_PUSH)},
