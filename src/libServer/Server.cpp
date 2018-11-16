@@ -526,6 +526,14 @@ string Server::GetNumDSBlocks() {
   return to_string(m_mediator.m_dsBlockChain.GetBlockCount());
 }
 
+uint8_t Server::GetPrevDSDifficulty() {
+  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty();
+}
+
+uint8_t Server::GetPrevDifficulty() {
+  return m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
+}
+
 string Server::GetNumTransactions() {
   LOG_MARKER();
 
