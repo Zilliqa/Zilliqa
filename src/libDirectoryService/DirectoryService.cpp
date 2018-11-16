@@ -547,7 +547,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
   SetState(POW_SUBMISSION);
   cv_POWSubmission.notify_all();
 
-  POW::GetInstance().EthashConfigureLightClient(
+  POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
   if (m_mode == PRIMARY_DS) {

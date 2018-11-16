@@ -236,7 +236,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
   m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
   m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
   SetState(POW_SUBMISSION);
-  POW::GetInstance().EthashConfigureLightClient(
+  POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 }
 

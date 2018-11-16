@@ -2050,7 +2050,7 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
     txBlockRand = m_mediator.m_txBlockRand;
 
     m_mediator.m_node->SetState(Node::POW_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(
+    POW::GetInstance().EthashConfigureClient(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
     this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
