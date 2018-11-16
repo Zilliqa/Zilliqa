@@ -48,7 +48,7 @@ class Whitelist {
 
   // DS whitelist
   std::mutex m_mutexDSWhiteList;
-  std::unordered_map<Peer, PubKey> m_DSWhiteList;
+  std::vector<PubKey> m_DSWhiteList;
 
   // Shard whitelist
   std::mutex m_mutexShardWhiteList;
@@ -66,10 +66,8 @@ class Whitelist {
   void UpdateDSWhitelist();
   void UpdateShardWhitelist();
 
-  void AddToDSWhitelist(const Peer& whiteListPeer,
-                        const PubKey& whiteListPubKey);
-  bool IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
-                           const PubKey& nodePubKey);
+  void AddToDSWhitelist(const PubKey& whiteListPubKey);
+  bool IsNodeInDSWhiteList(const PubKey& nodePubKey);
   bool IsPubkeyInShardWhiteList(const PubKey& nodePubKey);
 
   // To check if IP is a valid v4 IP and not belongs to exclusion list

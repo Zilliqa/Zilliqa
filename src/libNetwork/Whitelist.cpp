@@ -70,12 +70,7 @@ void Whitelist::UpdateDSWhitelist() {
     if (v.first == "peer") {
       PubKey key(DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
                  0);
-
-      struct in_addr ip_addr;
-      inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
-      Peer peer((uint128_t)ip_addr.s_addr, v.second.get<unsigned int>("port"));
-
-      AddToDSWhitelist(peer, key);
+      AddToDSWhitelist(key);
     }
   }
 
@@ -113,34 +108,25 @@ void Whitelist::UpdateShardWhitelist() {
                         << m_ShardWhiteList.size());
 }
 
-void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
-                                 const PubKey& whiteListPubKey) {
+void Whitelist::AddToDSWhitelist(const PubKey& whiteListPubKey) {
   if (!SENTINEL_MODE) {
     // LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
     return;
   }
 
   lock_guard<mutex> g(m_mutexDSWhiteList);
-  m_DSWhiteList.emplace(whiteListPeer, whiteListPubKey);
+  m_DSWhiteList.emplace_back(whiteListPubKey);
   // LOG_GENERAL(INFO, "Added " << whiteListPeer << " " << whiteListPubKey);
 }
 
-bool Whitelist::IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
-                                    const PubKey& nodePubKey) {
+bool Whitelist::IsNodeInDSWhiteList(const PubKey& nodePubKey) {
   lock_guard<mutex> g(m_mutexDSWhiteList);
-  if (m_DSWhiteList.find(nodeNetworkInfo) == m_DSWhiteList.end()) {
-    LOG_GENERAL(WARNING, "Node not inside whitelist " << nodeNetworkInfo << " "
-                                                      << nodePubKey);
+  if (std::find(m_DSWhiteList.begin(), m_DSWhiteList.end(), nodePubKey) ==
+      m_DSWhiteList.end()) {
+    LOG_GENERAL(WARNING, "Node not inside whitelist " << nodePubKey);
     return false;
   }
-
-  if (m_DSWhiteList.at(nodeNetworkInfo) == nodePubKey) {
-    return true;
-  }
-
-  LOG_GENERAL(WARNING, "Node not inside whitelist " << nodeNetworkInfo << " "
-                                                    << nodePubKey);
-  return false;
+  return true;
 }
 
 bool Whitelist::IsPubkeyInShardWhiteList(const PubKey& nodePubKey) {
@@ -151,7 +137,6 @@ bool Whitelist::IsPubkeyInShardWhiteList(const PubKey& nodePubKey) {
     LOG_GENERAL(WARNING, "Pubk Not inside whitelist " << nodePubKey);
     return false;
   }
-
   return true;
 }
 

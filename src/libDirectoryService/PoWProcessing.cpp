@@ -98,8 +98,8 @@ bool DirectoryService::ProcessPoWSubmission(
     return false;
   }
 
-  if (SENTINEL_MODE && not Whitelist::GetInstance().IsNodeInDSWhiteList(
-                           submitterPeer, submitterPubKey)) {
+  if (SENTINEL_MODE &&
+      not Whitelist::GetInstance().IsNodeInDSWhiteList(submitterPubKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Submitted PoW but node is not in DS whitelist. Hence, "
               "not accepted!");
