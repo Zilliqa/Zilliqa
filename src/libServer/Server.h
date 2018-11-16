@@ -76,6 +76,14 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetMinimumGasPriceI);
     this->bindAndAddMethod(
+        jsonrpc::Procedure("GetPrevDSDifficulty", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_INTEGER, NULL),
+        &AbstractZServer::GetPrevDSDifficultyI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_INTEGER, NULL),
+        &AbstractZServer::GetPrevDifficultyI);
+    this->bindAndAddMethod(
         jsonrpc::Procedure("GetSmartContracts", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
                            NULL),
@@ -223,6 +231,16 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     (void)request;
     response = this->GetMinimumGasPrice();
   }
+  inline virtual void GetPrevDSDifficultyI(const Json::Value& request,
+                                           Json::Value& response) {
+    (void)request;
+    response = this->GetPrevDSDifficulty();
+  }
+  inline virtual void GetPrevDifficultyI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    response = this->GetPrevDifficulty();
+  }
   inline virtual void GetSmartContractsI(const Json::Value& request,
                                          Json::Value& response) {
     response = this->GetSmartContracts(request[0u].asString());
@@ -358,6 +376,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual double GetTransactionRate() = 0;
   virtual double GetTxBlockRate() = 0;
   virtual double GetDSBlockRate() = 0;
+  virtual uint8_t GetPrevDSDifficulty() = 0;
+  virtual uint8_t GetPrevDifficulty() = 0;
   virtual std::string GetCurrentMiniEpoch() = 0;
   virtual std::string GetCurrentDSEpoch() = 0;
   virtual Json::Value DSBlockListing(unsigned int param01) = 0;
@@ -409,6 +429,8 @@ class Server : public AbstractZServer {
   virtual double GetTransactionRate();
   virtual double GetTxBlockRate();
   virtual double GetDSBlockRate();
+  virtual uint8_t GetPrevDSDifficulty();
+  virtual uint8_t GetPrevDifficulty();
   virtual std::string GetCurrentMiniEpoch();
   virtual std::string GetCurrentDSEpoch();
   virtual Json::Value DSBlockListing(unsigned int page);
