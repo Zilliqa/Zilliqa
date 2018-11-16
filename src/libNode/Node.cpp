@@ -954,12 +954,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
-  LOG_STATE(
-      "[TXNPKTPROC]["
-      << std::setw(15) << std::left
-      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BEGN");
   // Broadcast to other shard node
   vector<Peer> toSend;
   for (auto& it : *m_myShardMembers) {
@@ -967,7 +961,25 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   }
   LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
   if (BROADCAST_GOSSIP_MODE) {
-    P2PComm::GetInstance().SpreadRumor(message);
+    if (P2PComm::GetInstance().SpreadRumor(message)) {
+      LOG_STATE("[TXNPKTPROC-INITIATE]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    } else {
+      LOG_STATE("[TXNPKTPROC]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    }
   } else {
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
   }
@@ -1030,7 +1042,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "][" << processed_count << "] DONE");
+      << "][" << shardId << "] DONE [" << processed_count << "]");
   return true;
 }
 
