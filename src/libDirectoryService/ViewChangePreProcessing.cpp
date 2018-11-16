@@ -278,9 +278,9 @@ void DirectoryService::RunConsensusOnViewChange() {
   if (dsCurBlockNum != 0 && txCurBlockNum != 0) {
     VCFetchLatestDSTxBlockFromLookupNodes();
     if (!NodeVCPrecheck()) {
-      LOG_GENERAL(
-          WARNING,
-          "Failed the vc precheck. Node is lagging behind the whole network.");
+      LOG_GENERAL(WARNING,
+                  "[RDS]Failed the vc precheck. Node is lagging behind the "
+                  "whole network.");
       RejoinAsDS();
       return;
     }

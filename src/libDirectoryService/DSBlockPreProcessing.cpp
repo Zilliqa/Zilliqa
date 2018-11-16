@@ -1025,7 +1025,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
     return true;
   }
 
-#ifdef VC_TEST_VC_PRECHECK_1
+#if 1
   if (m_consensusMyID == 3) {
     LOG_EPOCH(
         WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
