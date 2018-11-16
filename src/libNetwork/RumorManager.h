@@ -46,12 +46,16 @@ class RumorManager {
   // TYPES
   typedef boost::bimap<int, Peer> PeerIdPeerBiMap;
   typedef boost::bimap<int, RawBytes> RumorIdRumorBimap;
+  typedef boost::bimap<RawBytes, RawBytes> RumorHashRumorBiMap;
+  typedef std::map<RawBytes, std::set<Peer>> RumorHashesPeersMap;
 
   // MEMBERS
   std::shared_ptr<RRS::RumorHolder> m_rumorHolder;
   PeerIdPeerBiMap m_peerIdPeerBimap;
   std::unordered_set<int> m_peerIdSet;
-  RumorIdRumorBimap m_rumorIdRumorBimap;
+  RumorIdRumorBimap m_rumorIdHashBimap;
+  RumorHashRumorBiMap m_rumorHashRawMsgBimap;
+  RumorHashesPeersMap m_hashesSubscriberMap;
   std::set<std::string> m_tmpRumorHashSet;
   Peer m_selfPeer;
 
@@ -63,6 +67,8 @@ class RumorManager {
 
   void SendMessages(const Peer& toPeer,
                     const std::vector<RRS::Message>& messages);
+
+  void SendMessage(const Peer& toPeer, const RRS::Message& message);
 
   RawBytes GenerateGossipForwardMessage(const RawBytes& message);
 
