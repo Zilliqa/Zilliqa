@@ -165,7 +165,7 @@ struct TxBlockHashSet {
   StateHash m_stateRootHash;   // State merkle tree root hash only valid in
                                // vacuous epoch
   StateHash m_stateDeltaHash;  // State Delta Hash on DS
-  MBInfoHash m_mbInfoHash;     // Hash concated from all microblock infos
+  MBInfoHash m_mbInfoHash;     // Hash concatenated from all microblock infos
 
   /// Implements the Serialize function inherited from Serializable.
   unsigned int Serialize(std::vector<unsigned char>& dst,
