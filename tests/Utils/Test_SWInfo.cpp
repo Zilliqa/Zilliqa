@@ -21,6 +21,7 @@
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
+#include "libUtils/SysCommand.h"
 
 #define BOOST_TEST_MODULE SWInfo
 #define BOOST_TEST_DYN_LINK
@@ -45,6 +46,14 @@ BOOST_AUTO_TEST_CASE(swinfo_copy_constructor) {
     BOOST_CHECK_EQUAL(3, swInfo.GetFixVersion());
     BOOST_CHECK_EQUAL(4, swInfo.GetUpgradeDS());
     BOOST_CHECK_EQUAL(5, swInfo.GetCommit());
+}
+
+/// SysCommand test
+BOOST_AUTO_TEST_CASE(syscommand_test) {
+    std::string input = "echo TEST";
+    std::string output;
+    SysCommand::ExecuteCmdWithOutput(input, output);
+    BOOST_CHECK_EQUAL(output, "TEST\n");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
