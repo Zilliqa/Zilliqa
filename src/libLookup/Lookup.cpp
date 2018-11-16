@@ -1655,7 +1655,7 @@ void LogTxBlock(const TxBlock& txBlock, const uint64_t& epochNum) {
                 << txBlock.GetHeader().GetBlockNum());
   LOG_EPOCH(INFO, to_string(epochNum).c_str(),
             "txBlock.GetHeader().GetNumMicroBlockHashes(): "
-                << txBlock.GetHeader().GetNumMicroBlockHashes());
+                << txBlock.GetMicroBlockHashes().size());
   LOG_EPOCH(
       INFO, to_string(epochNum).c_str(),
       "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs());
