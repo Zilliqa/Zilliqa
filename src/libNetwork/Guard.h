@@ -60,6 +60,8 @@ class Guard {
   void UpdateShardGuardlist();
 
   void AddToDSGuardlist(const PubKey& dsGuardPubKey);
+  void AddToShardGuardlist(const PubKey& shardGuardPubKey);
+
   bool IsNodeInDSGuardList(const PubKey& nodePubKey);
   bool IsPubkeyInShardGuardList(const PubKey& nodePubKey);
 
