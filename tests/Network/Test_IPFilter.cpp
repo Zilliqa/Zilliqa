@@ -19,7 +19,7 @@
 
 #include <arpa/inet.h>
 #include <string>
-#include "libNetwork/Whitelist.h"
+#include "libNetwork/Guard.h"
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE ipfilter_test
@@ -38,25 +38,25 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   inet_aton("0.0.0.0", &serv_addr.sin_addr);
 
-  bool b = Whitelist::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
+  bool b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
   BOOST_CHECK_MESSAGE(!b, "0.0.0.0 is not a valid IP");
 
   inet_aton("255.255.255.255", &serv_addr.sin_addr);
-  b = Whitelist::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
+  b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
   BOOST_CHECK_MESSAGE(!b, "255.255.255.255 is not a valid IP");
 
   if (EXCLUDE_PRIV_IP) {
-    Whitelist::GetInstance().AddToExclusionList("172.16.0.0", "172.31.255.255");
-    // Whitelist::GetInstance().Init();
+    Guard::GetInstance().AddToExclusionList("172.16.0.0", "172.31.255.255");
+    // Guard::GetInstance().Init();
     inet_aton("172.25.4.3", &serv_addr.sin_addr);
 
-    b = Whitelist::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
+    b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
     BOOST_CHECK_MESSAGE(!b, "The address should not be valid");
   }
   inet_aton("172.14.4.3", &serv_addr.sin_addr);
-  b = Whitelist::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
+  b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
   BOOST_CHECK_MESSAGE(b, "The address should be valid");
 }

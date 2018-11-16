@@ -31,8 +31,8 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -441,9 +441,9 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->CommitTxnPacketBuffer();
     m_stateDeltaFromShards.clear();
 
-    if (SENTINEL_MODE) {
-      LOG_GENERAL(INFO, "Updating shard whitelist");
-      Whitelist::GetInstance().UpdateShardWhitelist();
+    if (GUARD_MODE) {
+      LOG_GENERAL(INFO, "Updating shard guard list");
+      Guard::GetInstance().UpdateShardGuardlist();
     }
 
     // Start sharding work

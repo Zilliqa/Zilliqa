@@ -31,8 +31,8 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/Whitelist.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -98,10 +98,10 @@ bool DirectoryService::ProcessPoWSubmission(
     return false;
   }
 
-  if (SENTINEL_MODE &&
-      not Whitelist::GetInstance().IsNodeInDSWhiteList(submitterPubKey)) {
+  if (GUARD_MODE &&
+      not Guard::GetInstance().IsNodeInDSGuardList(submitterPubKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Submitted PoW but node is not in DS whitelist. Hence, "
+              "Submitted PoW but node is not in DS guardlist. Hence, "
               "not accepted!");
   }
 
@@ -116,7 +116,7 @@ bool DirectoryService::ProcessPoWSubmission(
     return true;
   }
 
-  if (!Whitelist::GetInstance().IsValidIP(submitterPeer.m_ipAddress)) {
+  if (!Guard::GetInstance().IsValidIP(submitterPeer.m_ipAddress)) {
     LOG_GENERAL(WARNING,
                 "IP belong to private ip subnet or is a broadcast address");
     return false;
