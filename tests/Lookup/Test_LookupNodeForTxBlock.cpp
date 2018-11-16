@@ -38,10 +38,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -71,7 +68,7 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
   dsblockmsg.resize(curr_offset + 32);
-  Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
+  Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
   curr_offset += UINT256_SIZE;
 
   struct sockaddr_in localhost;
@@ -107,7 +104,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
   unsigned int curr_offset = MessageOffset::BODY;
 
   // 32-byte DS blocknum
-  Serializable::SetNumber<uint256_t>(txblockmsg, curr_offset, 0, UINT256_SIZE);
+  Serializable::SetNumber<uint128_t>(txblockmsg, curr_offset, 0, UINT256_SIZE);
   curr_offset += UINT256_SIZE;
 
   // 4-byte consensusid
@@ -126,7 +123,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
 
   TxBlock txblock(
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
-                    BlockHash(), 0, get_time_as_int(), TxBlockHashSet(), 0, 5,
+                    BlockHash(), 0, get_time_as_int(), TxBlockHashSet(), 0,
                     pubKey1.second, 0, CommitteeHash()),
       vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
       CoSignatures());

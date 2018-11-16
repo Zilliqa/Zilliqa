@@ -184,6 +184,7 @@ extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int MAXRETRYCONN;
+extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
@@ -199,7 +200,7 @@ extern const unsigned int GAS_PRICE_RAISE_RATIO_UPPER;
 extern const unsigned int GAS_PRICE_RAISE_RATIO_LOWER;
 extern const unsigned int GAS_PRICE_TOLERANCE;
 extern const unsigned int MEAN_GAS_PRICE_DS_NUM;
-extern const boost::multiprecision::uint256_t PRECISION_MIN_VALUE;
+extern const boost::multiprecision::uint128_t PRECISION_MIN_VALUE;
 extern const std::string LEGAL_GAS_PRICE_IP;
 
 #ifdef FALLBACK_TEST

@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_SUITE(contracttest)
 Address fromAddr, fromAddr2;
 Address toAddress;
 KeyPair sender, sender2;
-uint256_t nonce = 0;
+uint128_t nonce = 0;
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testContract) {

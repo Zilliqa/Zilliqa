@@ -259,7 +259,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const string& powResultHash,
                                  const string& powMixhash,
                                  const uint32_t& lookupId,
-                                 const uint256_t& gasPrice) {
+                                 const uint128_t& gasPrice) {
   LOG_MARKER();
 
   vector<unsigned char> powmessage = {MessageType::DIRECTORY,
