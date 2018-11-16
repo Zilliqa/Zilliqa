@@ -50,7 +50,7 @@ Whitelist& Whitelist::GetInstance() {
 }
 
 void Whitelist::UpdateDSWhitelist() {
-  if (!TEST_NET_MODE) {
+  if (!SENTINEL_MODE) {
     LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
     return;
   }
@@ -84,7 +84,7 @@ void Whitelist::UpdateDSWhitelist() {
 }
 
 void Whitelist::UpdateShardWhitelist() {
-  if (!TEST_NET_MODE) {
+  if (!SENTINEL_MODE) {
     LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
     return;
   }
@@ -115,7 +115,7 @@ void Whitelist::UpdateShardWhitelist() {
 
 void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
                                  const PubKey& whiteListPubKey) {
-  if (!TEST_NET_MODE) {
+  if (!SENTINEL_MODE) {
     // LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
     return;
   }
