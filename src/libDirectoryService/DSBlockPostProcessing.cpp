@@ -441,7 +441,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->CommitTxnPacketBuffer();
     m_stateDeltaFromShards.clear();
 
-    if (TEST_NET_MODE) {
+    if (SENTINEL_MODE) {
       LOG_GENERAL(INFO, "Updating shard whitelist");
       Whitelist::GetInstance().UpdateShardWhitelist();
     }
