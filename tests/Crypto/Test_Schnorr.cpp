@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(test_sign_verif) {
   pair<PrivKey, PubKey> keypair = schnorr.GenKeyPair();
 
   /// 1 MB message
-  const unsigned int message_size = 201;
+  const unsigned int message_size = 1048576;
   vector<unsigned char> message_rand(message_size);
   vector<unsigned char> message_1(message_size, 0x01);
   generate(message_rand.begin(), message_rand.end(), std::rand);
