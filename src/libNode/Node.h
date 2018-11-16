@@ -214,9 +214,6 @@ class Node : public Executable, public Broadcastable {
   bool IsMicroBlockTxRootHashInFinalBlock(const ForwardedTxnEntry& entry,
                                           bool& isEveryMicroBlockAvailable);
 
-  bool CheckMicroBlockRootHash(const TxBlock& finalBlock,
-                               const uint64_t& blocknum);
-
   void StoreState();
   // void StoreMicroBlocks();
   void StoreFinalBlock(const TxBlock& txBlock);

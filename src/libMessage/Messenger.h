@@ -85,9 +85,8 @@ class Messenger {
                                    const unsigned int offset,
                                    AccountStoreTemp& accountStoreTemp);
 
-  static bool GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
-                                 const std::vector<uint32_t>& shardIds,
-                                 MBInfoHash& dst);
+  static bool GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
+                            MBInfoHash& dst);
 
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
