@@ -340,7 +340,7 @@ Address Account::GetAddressForContract(const Address& sender,
   vector<unsigned char> conBytes;
   copy(sender.asBytes().begin(), sender.asBytes().end(),
        back_inserter(conBytes));
-  SetNumber<uint256_t>(conBytes, conBytes.size(), nonce, sizeof(nonce));
+  SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(nonce));
   sha2.Update(conBytes);
 
   const vector<unsigned char>& output = sha2.Finalize();
