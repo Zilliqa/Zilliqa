@@ -133,14 +133,13 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   // bool doRejoin = false;
 
-  for (unsigned int i = 0; i < microBlockInfos.size(); i++) {
+  for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (!microBlockInfos.at(i).m_isMicroBlockEmpty) {
-        m_unavailableMicroBlocks[blocknum].emplace_back(
-            microBlockInfos.at(i).m_microBlockHash);
+      if (!info.m_isMicroBlockEmpty) {
+        m_unavailableMicroBlocks[blocknum].emplace_back(info.m_microBlockHash);
       }
     } else {
-      if (microBlockInfos.at(i).m_shardId == m_myshardId) {
+      if (info.m_shardId == m_myshardId) {
         if (m_microblock == nullptr) {
           LOG_GENERAL(WARNING,
                       "Found my shard microblock but microblock obj "
@@ -152,10 +151,9 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                       "Found my shard microblock but Cosig not updated");
           // doRejoin = true;
         } else {
-          if (m_microblock->GetBlockHash() ==
-              microBlockInfos.at(i).m_microBlockHash) {
+          if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
             if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
-              if (!microBlockInfos.at(i).m_isMicroBlockEmpty) {
+              if (!info.m_isMicroBlockEmpty) {
                 toSendTxnToLookup = true;
               } else {
                 LOG_GENERAL(WARNING,
@@ -163,18 +161,18 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                 << m_microblock->GetHeader().GetTxRootHash()
                                 << ") is not null"
                                    " but isMicroBlockEmpty for me is "
-                                << microBlockInfos.at(i).m_isMicroBlockEmpty);
+                                << info.m_isMicroBlockEmpty);
                 return false;
               }
             }
           } else {
-            LOG_GENERAL(
-                WARNING,
-                "The microblock hashes in finalblock doesn't "
-                "match with the local one"
-                    << endl
-                    << "expected: " << m_microblock->GetBlockHash() << endl
-                    << "received: " << microBlockInfos.at(i).m_microBlockHash)
+            LOG_GENERAL(WARNING,
+                        "The microblock hashes in finalblock doesn't "
+                        "match with the local one"
+                            << endl
+                            << "expected: " << m_microblock->GetBlockHash()
+                            << endl
+                            << "received: " << info.m_microBlockHash)
             return false;
           }
         }
