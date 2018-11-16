@@ -14,7 +14,7 @@ add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:sendcmd> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(sendcmd PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(sendcmd PUBLIC Network Utils)
+target_link_libraries(sendcmd PUBLIC Network Utils ethash)
 
 add_executable(genkeypair genkeypair.cpp)
 add_custom_command(TARGET zilliqa
@@ -28,7 +28,7 @@ add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gentxn> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(gentxn PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(gentxn PUBLIC AccountData Message Network)
+target_link_libraries(gentxn PUBLIC AccountData Message Network ethash)
 
 add_executable(signmultisig signmultisig.cpp)
 add_custom_command(TARGET zilliqa
@@ -42,4 +42,4 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gensigninitialds> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto ${G3LOG_INCLUDE_DIRS})
-target_link_libraries(gensigninitialds PUBLIC Utils Persistence g3logger)
+target_link_libraries(gensigninitialds PUBLIC Utils Persistence g3logger ethash)

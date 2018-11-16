@@ -325,7 +325,7 @@ void Node::InitiatePoW() {
   }
 
   SetState(POW_SUBMISSION);
-  POW::GetInstance().EthashConfigureLightClient(
+  POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Start pow ");

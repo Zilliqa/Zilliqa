@@ -1,7 +1,7 @@
 add_library (POW pow.cpp)
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/)
 
-target_include_directories (POW PUBLIC ${PROJECT_SOURCE_DIR}/src ${G3LOG_INCLUDE_DIRS})
+target_include_directories (POW PUBLIC ${PROJECT_SOURCE_DIR}/src ${G3LOG_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
 target_link_libraries (POW PRIVATE ethash Constants Common)
 
 if(OPENCL_MINE)
