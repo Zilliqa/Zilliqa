@@ -215,6 +215,8 @@ const unsigned int LOOKUP_REWARD_IN_PERCENT{
 const unsigned int PUMPMESSAGE_MILLISECONDS{
     ReadFromConstantsFile("PUMPMESSAGE_MILLISECONDS")};
 const unsigned int MAXRETRYCONN{ReadFromConstantsFile("MAXRETRYCONN")};
+const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
+    ReadFromConstantsFile("SIMULATED_NETWORK_DELAY_IN_MS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{

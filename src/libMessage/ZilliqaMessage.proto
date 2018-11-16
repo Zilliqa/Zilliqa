@@ -267,10 +267,9 @@ message ProtoTxBlock
         required uint64 timestamp            = 8;
         required TxBlockHashSet hash            = 9;
         required uint32 numtxs                  = 10;
-        required uint32 nummicroblockhashes     = 11;
-        required ByteArray minerpubkey          = 12;
-        required uint64 dsblocknum              = 13;
-        required bytes committeehash            = 14;
+        required ByteArray minerpubkey          = 11;
+        required uint64 dsblocknum              = 12;
+        required bytes committeehash            = 13;
     }
     required TxBlockHeader header               = 1;
     repeated bytes mbhashes                     = 2;

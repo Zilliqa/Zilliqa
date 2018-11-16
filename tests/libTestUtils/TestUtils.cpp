@@ -126,16 +126,14 @@ TxBlockHeader GenerateRandomTxBlockHeader() {
   uint64_t timestamp = DistUint32();
   TxBlockHashSet blockHashSet;
   uint32_t numTxs = Dist1to99();
-  uint32_t numMicroBlockHashes = Dist1to99();
   PubKey minerPubKey = GenerateRandomPubKey();
   uint64_t dsBlockNum = DistUint32();
   BlockHash dsBlockHeader;
   CommitteeHash committeeHash;
 
   return TxBlockHeader(type, version, gasLimit, gasUsed, rewards, prevHash,
-                       blockNum, timestamp, blockHashSet, numTxs,
-                       numMicroBlockHashes, minerPubKey, dsBlockNum,
-                       committeeHash);
+                       blockNum, timestamp, blockHashSet, numTxs, minerPubKey,
+                       dsBlockNum, committeeHash);
 }
 
 VCBlockHeader GenerateRandomVCBlockHeader() {
