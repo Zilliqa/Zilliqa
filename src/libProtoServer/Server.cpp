@@ -391,7 +391,7 @@ GetDSBlockResponse Server::GetLatestDsBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << dsblock.GetHeader().GetBlockNum()
                         << "  Timestamp:        "
-                        << dsblock.GetHeader().GetTimestamp().str());
+                        << dsblock.GetHeader().GetTimestamp());
 
   // Convert DSBlock to proto.
   ProtoDSBlock protoDSBlock;
@@ -412,7 +412,7 @@ GetTxBlockResponse Server::GetLatestTxBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << txblock.GetHeader().GetBlockNum()
                         << "  Timestamp:        "
-                        << txblock.GetHeader().GetTimestamp().str());
+                        << txblock.GetHeader().GetTimestamp());
 
   // Convert txblock to proto.
   ProtoTxBlock protoTxBlock;
@@ -444,10 +444,10 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account != nullptr) {
-      boost::multiprecision::uint256_t balance = account->GetBalance();
+      boost::multiprecision::uint128_t balance = account->GetBalance();
       ret.set_balance(balance.str());
 
-      boost::multiprecision::uint256_t nonce = account->GetNonce();
+      boost::multiprecision::uint128_t nonce = account->GetNonce();
       ret.set_nonce(nonce.str());
 
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
@@ -623,10 +623,10 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    boost::multiprecision::uint256_t nonce = account->GetNonce();
+    uint64_t nonce = account->GetNonce();
     //[TODO] find out a more efficient way (using storage)
 
-    for (boost::multiprecision::uint256_t i = 0; i < nonce; i++) {
+    for (uint64_t i = 0; i < nonce; i++) {
       Address contractAddr = Account::GetAddressForContract(addr, i);
       const Account* contractAccount =
           AccountStore::GetInstance().GetAccount(contractAddr);
@@ -746,7 +746,7 @@ DoubleResponse Server::GetTransactionRate() {
   uint64_t refBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  boost::multiprecision::uint256_t refTimeTx = 0;
+  uint64_t refTimeTx = 0;
 
   if (refBlockNum <= REF_BLOCK_DIFF) {
     if (refBlockNum <= 1) {
@@ -776,15 +776,14 @@ DoubleResponse Server::GetTransactionRate() {
     return ret;
   }
 
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       refTimeTx;
 
   if (TimeDiff == 0 || refTimeTx == 0) {
     // something went wrong
     LOG_GENERAL(INFO, "TimeDiff or refTimeTx = 0 \n TimeDiff:"
-                          << TimeDiff.str()
-                          << " refTimeTx:" << refTimeTx.str());
+                          << TimeDiff << " refTimeTx:" << refTimeTx);
     return ret;
   }
 
@@ -819,7 +818,7 @@ DoubleResponse Server::GetDSBlockRate() {
     }
   }
 
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       m_StartTimeDs;
 
@@ -860,7 +859,7 @@ DoubleResponse Server::GetTxBlockRate() {
     }
   }
 
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       m_StartTimeTx;
 
@@ -871,7 +870,7 @@ DoubleResponse Server::GetTxBlockRate() {
 
   // To convert from microSeconds to seconds
   numTx = numTx * 1000000;
-  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
+  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
   boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
 
   ret.set_result(ans.convert_to<double>());

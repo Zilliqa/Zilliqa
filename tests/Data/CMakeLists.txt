@@ -47,7 +47,7 @@ add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
 #target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_include_directories(Test_Block PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
-#target_link_libraries(Test_Transaction PUBLIC Data Utils Crypto)
+#target_link_libraries(Test_Transaction PUBLIC Data Utils Crypto Message)
 #target_link_libraries(Test_Block PUBLIC Data Utils Crypto)
 
 # To-do: Test_Transaction and Test_Block need to be updated after Predicate has been temporarily commented out
