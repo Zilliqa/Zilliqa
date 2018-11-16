@@ -26,6 +26,7 @@
 #include "common/Messages.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/HashUtils.h"
 
 namespace {
 RRS::Message::Type convertType(uint8_t type) {
@@ -158,9 +159,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
   if (message.size() > 0) {
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-    sha256.Update(message);  // raw_message hash
-    RawBytes hash = sha256.Finalize();
+    RawBytes hash = HashUtils::BytesToHash(message);
 
     {
       std::lock_guard<std::mutex> guard(m_continueRoundMutex);
@@ -176,7 +175,7 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
 
     std::lock_guard<std::mutex> guard(m_mutex);  // critical section
 
-    if (m_peerIdSet.size() == 0) {
+    if (m_peerIdSet.empty()) {
       return true;
     }
 
@@ -188,17 +187,13 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
       m_rumorHashRawMsgBimap.insert(
           RumorHashRumorBiMap::value_type(hash, message));
 
-      if (message.size() > 0) {
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-        sha256.Update(message);  // raw_message hash
-        LOG_PAYLOAD(INFO,
-                    "New Gossip message initiated by me ("
-                        << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
-                        << ", Current Round: 0, Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]",
-                    message, Logger::MAX_BYTES_TO_DISPLAY);
-      }
+      LOG_PAYLOAD(INFO,
+                  "New Gossip message initiated by me ("
+                      << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
+                      << ", Current Round: 0, Gossip_Message_Hash: "
+                      << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
+                      << " ]",
+                  message, Logger::MAX_BYTES_TO_DISPLAY);
 
       return m_rumorHolder->addRumor(m_rumorIdGenerator);
     } else {
@@ -282,9 +277,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       if (message.size() >
           0)  // if we receive EMPTY_PULL/EMPTY_PUSH SHA will assert fail
       {
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-        sha256.Update(message);  // raw_message hash
-        std::string hash = DataConversion::Uint8VecToHexStr(sha256.Finalize());
+        std::string hash =
+            DataConversion::Uint8VecToHexStr(HashUtils::BytesToHash(message));
         {
           std::lock_guard<std::mutex> guard(m_mutex);
           // Is it old rumor message. If so then we have already dispatched it.
@@ -360,7 +354,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       }
     }
   } else if (RRS::Message::Type::PULL == t) {
-    // Now that sender wan't the real message, lets send it to him.
+    // Now that sender wants the real message, lets send it to him.
     auto it1 = m_rumorHashRawMsgBimap.left.find(message);
     if (it1 != m_rumorHashRawMsgBimap.left.end()) {
       auto it2 = m_rumorIdHashBimap.right.find(message);
@@ -386,9 +380,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     if (message.size() >
         0)  // if someone malaciously sends empty message, sha2 will assert fail
     {
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-      sha256.Update(message);  // raw_message hash
-      hash = sha256.Finalize();
+      hash = HashUtils::BytesToHash(message);
 
       auto it1 = m_rumorIdHashBimap.right.find(message);
       if (it1 == m_rumorIdHashBimap.right.end()) {
@@ -522,10 +514,8 @@ void RumorManager::PrintStatistics() {
     uint32_t rumorId = i.first;
     auto it = m_rumorIdHashBimap.left.find(rumorId);
     if (it != m_rumorIdHashBimap.left.end()) {
-      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-      sha256.Update(it->second);  // raw_message hash
-      std::vector<unsigned char> this_msg_hash = sha256.Finalize();
-
+      std::vector<unsigned char> this_msg_hash =
+          HashUtils::BytesToHash(it->second);
       const RRS::RumorStateMachine& state = i.second;
       LOG_GENERAL(
           INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: "
