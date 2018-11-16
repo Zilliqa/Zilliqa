@@ -465,13 +465,29 @@ bool DirectoryService::FinishRejoinAsDS() {
       LOG_GENERAL(WARNING, "DS committee unset, failed to rejoin");
       return false;
     }
-    m_consensusLeaderID = 0;
-    if (m_mediator.m_currentEpochNum > 1) {
-      m_consensusLeaderID = CalculateNewLeaderIndex();
+  }
+
+  BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
+  const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
+  PubKey leaderPubKey;
+  if (blocktype == BlockType::DS) {
+    leaderPubKey =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetLeaderPubKey();
+  } else if (blocktype == BlockType::VC) {
+    VCBlockSharedPtr VCBlockptr;
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
+      LOG_GENERAL(FATAL, "could not get vc block "
+                             << get<BlockLinkIndex::BLOCKHASH>(bl));
     }
+    leaderPubKey = VCBlockptr->GetHeader().GetCandidateLeaderPubKey();
+  } else {
+    // condition for FB
   }
 
   m_consensusMyID = 0;
+  m_consensusLeaderID = 0;
+
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     for (auto const& i : *m_mediator.m_DSCommittee) {
@@ -482,6 +498,15 @@ bool DirectoryService::FinishRejoinAsDS() {
         break;
       }
       m_consensusMyID++;
+    }
+    for (auto const& i : *m_mediator.m_DSCommittee) {
+      if (i.first == leaderPubKey) {
+        LOG_EPOCH(
+            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Leader ID for this PoW consensus is " << m_consensusLeaderID);
+        break;
+      }
+      m_consensusLeaderID++;
     }
   }
   // in case the recovery program is under different directory
