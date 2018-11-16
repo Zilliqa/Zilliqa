@@ -154,4 +154,14 @@
             <SCHEDULE_FLAG>4</SCHEDULE_FLAG>
         </cuda>
     </gpu>
+    <ds_guard>
+        <!--Pubkey to be provided in testnet/mainnet.
+       <DSPUBKEY></DSPUBKEY>
+       -->
+    </ds_guard>
+    <shard_guard>
+        <!--Pubkey to be provided in testnet/mainnet.
+       <SHARDPUBKEY></SHARDPUBKEY>
+       -->    
+    </shard_guard>
 </node>
