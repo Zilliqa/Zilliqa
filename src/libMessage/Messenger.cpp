@@ -4536,10 +4536,10 @@ bool Messenger::SetLookupSetStateFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetStateFromSeed(const vector<unsigned char>& src,
-                                          const unsigned int offset,
-                                          PubKey& lookupPubKey,
-                                          AccountStore& accountStore) {
+bool Messenger::GetLookupSetStateFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    PubKey& lookupPubKey,
+    std::unordered_map<Address, Account>& addressToAccount) {
   LOG_MARKER();
 
   LookupSetStateFromSeed result;
@@ -4551,7 +4551,12 @@ bool Messenger::GetLookupSetStateFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufByteArrayToSerializable(result.accounts(), accountStore);
+  // ProtobufByteArrayToSerializable(result.accounts(), accountStore);
+  if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
+                                                  addressToAccount)) {
+    LOG_GENERAL(WARNING, "MessengerAccountStoreBase::GetAccountStore failed.");
+    return false;
+  }
 
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
