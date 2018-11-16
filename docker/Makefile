@@ -1,5 +1,5 @@
 
-.PHONY: all ci k8s-zilliqa k8s-scilla
+.PHONY: all ci k8s-zilliqa k8s-scilla ubuntu-1804
 
 # build the default zilliqa docker image same as the one on Docker Hub
 all:
@@ -9,6 +9,9 @@ all:
 ci:
 	docker build -t zilliqa-ci -f Dockerfile.ci .
 
+# test build on Ubuntu 18.04
+ubuntu-1804: check-commit
+	docker build --build-arg COMMIT=$(commit) --build-arg BASE=ubuntu:18.04 -t zilliqa .
 
 len=$(shell echo $(COMMIT) | wc -c)
 commit=$(shell echo $(COMMIT) | cut -c 1-7)
