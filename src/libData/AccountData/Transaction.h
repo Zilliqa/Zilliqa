@@ -42,8 +42,8 @@ struct TransactionCoreInfo {
   TransactionCoreInfo(const uint32_t& versionInput, const uint64_t& nonceInput,
                       const Address& toAddrInput,
                       const PubKey& senderPubKeyInput,
-                      const boost::multiprecision::uint256_t& amountInput,
-                      const boost::multiprecision::uint256_t& gasPriceInput,
+                      const boost::multiprecision::uint128_t& amountInput,
+                      const boost::multiprecision::uint128_t& gasPriceInput,
                       const uint64_t& gasLimitInput,
                       const std::vector<unsigned char>& codeInput,
                       const std::vector<unsigned char>& dataInput)
@@ -61,8 +61,8 @@ struct TransactionCoreInfo {
   uint64_t nonce;  // counter: the number of tx from m_fromAddr
   Address toAddr;
   PubKey senderPubKey;
-  boost::multiprecision::uint256_t amount;
-  boost::multiprecision::uint256_t gasPrice;
+  boost::multiprecision::uint128_t amount;
+  boost::multiprecision::uint128_t gasPrice;
   uint64_t gasLimit;
   std::vector<unsigned char> code;
   std::vector<unsigned char> data;
@@ -84,8 +84,8 @@ class Transaction : public SerializableDataBlock {
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const KeyPair& senderKeyPair,
-              const boost::multiprecision::uint256_t& amount,
-              const boost::multiprecision::uint256_t& gasPrice,
+              const boost::multiprecision::uint128_t& amount,
+              const boost::multiprecision::uint128_t& gasPrice,
               const uint64_t& gasLimit,
               const std::vector<unsigned char>& code = {},
               const std::vector<unsigned char>& data = {});
@@ -94,8 +94,8 @@ class Transaction : public SerializableDataBlock {
   Transaction(const TxnHash& tranID, const uint32_t& version,
               const uint64_t& nonce, const Address& toAddr,
               const PubKey& senderPubKey,
-              const boost::multiprecision::uint256_t& amount,
-              const boost::multiprecision::uint256_t& gasPrice,
+              const boost::multiprecision::uint128_t& amount,
+              const boost::multiprecision::uint128_t& gasPrice,
               const uint64_t& gasLimit, const std::vector<unsigned char>& code,
               const std::vector<unsigned char>& data,
               const Signature& signature);
@@ -103,8 +103,8 @@ class Transaction : public SerializableDataBlock {
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PubKey& senderPubKey,
-              const boost::multiprecision::uint256_t& amount,
-              const boost::multiprecision::uint256_t& gasPrice,
+              const boost::multiprecision::uint128_t& amount,
+              const boost::multiprecision::uint128_t& gasPrice,
               const uint64_t& gasLimit, const std::vector<unsigned char>& code,
               const std::vector<unsigned char>& data,
               const Signature& signature);
@@ -149,10 +149,10 @@ class Transaction : public SerializableDataBlock {
   Address GetSenderAddr() const;
 
   /// Returns the transaction amount.
-  const boost::multiprecision::uint256_t& GetAmount() const;
+  const boost::multiprecision::uint128_t& GetAmount() const;
 
   /// Returns the gas price.
-  const boost::multiprecision::uint256_t& GetGasPrice() const;
+  const boost::multiprecision::uint128_t& GetGasPrice() const;
 
   /// Returns the gas limit.
   const uint64_t& GetGasLimit() const;

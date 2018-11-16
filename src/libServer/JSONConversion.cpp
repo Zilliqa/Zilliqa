@@ -154,10 +154,10 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   Address toAddr(toAddr_ser);
 
   string amount_str = _json["amount"].asString();
-  uint256_t amount(amount_str);
+  uint128_t amount(amount_str);
 
   string gasPrice_str = _json["gasPrice"].asString();
-  uint256_t gasPrice(gasPrice_str);
+  uint128_t gasPrice(gasPrice_str);
   string gasLimit_str = _json["gasLimit"].asString();
   uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
@@ -202,7 +202,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
     }
     if (_json["amount"].isString()) {
       try {
-        uint256_t amount(_json["amount"].asString());
+        uint128_t amount(_json["amount"].asString());
       } catch (exception& e) {
         LOG_GENERAL(INFO, "Fault in amount " << e.what());
         return false;

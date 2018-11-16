@@ -68,7 +68,7 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
   dsblockmsg.resize(curr_offset + 32);
-  Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
+  Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
   curr_offset += UINT256_SIZE;
 
   struct sockaddr_in localhost;
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
   unsigned int curr_offset = MessageOffset::BODY;
 
   // 32-byte DS blocknum
-  Serializable::SetNumber<uint256_t>(txblockmsg, curr_offset, 0, UINT256_SIZE);
+  Serializable::SetNumber<uint128_t>(txblockmsg, curr_offset, 0, UINT256_SIZE);
   curr_offset += UINT256_SIZE;
 
   // 4-byte consensusid

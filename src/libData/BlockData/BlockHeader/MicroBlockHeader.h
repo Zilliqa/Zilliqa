@@ -39,7 +39,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   uint32_t m_shardId;
   uint64_t m_gasLimit;
   uint64_t m_gasUsed;
-  boost::multiprecision::uint256_t m_rewards;
+  boost::multiprecision::uint128_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_epochNum;   // Epoch Num
   uint64_t m_timestamp;
@@ -62,7 +62,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   MicroBlockHeader(const uint8_t type, const uint32_t version,
                    const uint32_t shardId, const uint64_t& gasLimit,
                    const uint64_t& gasUsed,
-                   const boost::multiprecision::uint256_t& rewards,
+                   const boost::multiprecision::uint128_t& rewards,
                    const BlockHash& prevHash, const uint64_t& epochNum,
                    const uint64_t& timestamp, const MicroBlockHashSet& hashset,
                    const uint32_t numTxs, const PubKey& minerPubKey,
@@ -82,7 +82,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   const uint32_t& GetShardId() const;
   const uint64_t& GetGasLimit() const;
   const uint64_t& GetGasUsed() const;
-  const boost::multiprecision::uint256_t& GetRewards() const;
+  const boost::multiprecision::uint128_t& GetRewards() const;
   const BlockHash& GetPrevHash() const;
   const uint64_t& GetEpochNum() const;
   const uint64_t& GetTimestamp() const;

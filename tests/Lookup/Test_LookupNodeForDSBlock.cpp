@@ -141,8 +141,8 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 //     MessageOffset::BODY;
 
 //     // 32-byte DS blocknum
-//     Serializable::SetNumber<uint256_t>(txblockmsg, curr_offset, 0,
-//     sizeof(uint256_t)); curr_offset += sizeof(uint256_t);
+//     Serializable::SetNumber<uint128_t>(txblockmsg, curr_offset, 0,
+//     sizeof(uint128_t)); curr_offset += sizeof(uint128_t);
 
 //     // 4-byte consensusid
 //     Serializable::SetNumber<uint32_t>(txblockmsg, curr_offset, 0,
@@ -198,7 +198,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 //     MessageOffset::BODY;
 
 //     txbodymsg.resize(curr_offset + UINT256_SIZE);
-// 	Serializable::SetNumber<uint256_t>(txbodymsg, curr_offset, (uint8_t) 0,
+// 	Serializable::SetNumber<uint128_t>(txbodymsg, curr_offset, (uint8_t) 0,
 // UINT256_SIZE);
 //     curr_offset += UINT256_SIZE;
 

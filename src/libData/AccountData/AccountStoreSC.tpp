@@ -55,12 +55,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
 
-  const boost::multiprecision::uint256_t& amount = transaction.GetAmount();
+  const boost::multiprecision::uint128_t& amount = transaction.GetAmount();
 
   uint64_t gasRemained = transaction.GetGasLimit();
 
-  boost::multiprecision::uint256_t gasDeposit;
-  if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+  boost::multiprecision::uint128_t gasDeposit;
+  if (!SafeMath<boost::multiprecision::uint128_t>::mul(
           gasRemained, transaction.GetGasPrice(), gasDeposit)) {
     return false;
   }
@@ -184,8 +184,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       gasRemained = std::min(transaction.GetGasLimit() - CONTRACT_CREATE_GAS,
                              gasRemained);
     }
-    boost::multiprecision::uint256_t gasRefund;
-    if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+    boost::multiprecision::uint128_t gasRefund;
+    if (!SafeMath<boost::multiprecision::uint128_t>::mul(
             gasRemained, transaction.GetGasPrice(), gasRefund)) {
       this->m_addressToAccount->erase(toAddr);
       return false;
@@ -299,8 +299,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     } else {
       CommitTransferBalanceAtomic();
     }
-    boost::multiprecision::uint256_t gasRefund;
-    if (!SafeMath<boost::multiprecision::uint256_t>::mul(
+    boost::multiprecision::uint128_t gasRefund;
+    if (!SafeMath<boost::multiprecision::uint128_t>::mul(
             gasRemained, transaction.GetGasPrice(), gasRefund)) {
       return false;
     }
@@ -760,7 +760,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
 template <class MAP>
 bool AccountStoreSC<MAP>::TransferBalanceAtomic(
     const Address& from, const Address& to,
-    const boost::multiprecision::uint256_t& delta) {
+    const boost::multiprecision::uint128_t& delta) {
   // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }

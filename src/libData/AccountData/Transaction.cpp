@@ -51,7 +51,7 @@ Transaction::Transaction(const vector<unsigned char>& src,
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const KeyPair& senderKeyPair,
-                         const uint256_t& amount, const uint256_t& gasPrice,
+                         const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit,
                          const vector<unsigned char>& code,
                          const vector<unsigned char>& data)
@@ -79,8 +79,8 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 
 Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
                          const uint64_t& nonce, const Address& toAddr,
-                         const PubKey& senderPubKey, const uint256_t& amount,
-                         const uint256_t& gasPrice, const uint64_t& gasLimit,
+                         const PubKey& senderPubKey, const uint128_t& amount,
+                         const uint128_t& gasPrice, const uint64_t& gasLimit,
                          const std::vector<unsigned char>& code,
                          const std::vector<unsigned char>& data,
                          const Signature& signature)
@@ -91,7 +91,7 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
-                         const uint256_t& amount, const uint256_t& gasPrice,
+                         const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit,
                          const std::vector<unsigned char>& code,
                          const std::vector<unsigned char>& data,
@@ -164,9 +164,9 @@ Address Transaction::GetSenderAddr() const {
   return Account::GetAddressFromPublicKey(GetSenderPubKey());
 }
 
-const uint256_t& Transaction::GetAmount() const { return m_coreInfo.amount; }
+const uint128_t& Transaction::GetAmount() const { return m_coreInfo.amount; }
 
-const uint256_t& Transaction::GetGasPrice() const {
+const uint128_t& Transaction::GetGasPrice() const {
   return m_coreInfo.gasPrice;
 }
 

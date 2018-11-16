@@ -78,7 +78,7 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
   PubKey leaderPubKey = GenerateRandomPubKey();
   uint64_t blockNum = DistUint32();
   uint64_t epochNum = DistUint32();
-  uint256_t gasPrice = PRECISION_MIN_VALUE;
+  uint128_t gasPrice = PRECISION_MIN_VALUE;
   uint64_t timestamp = DistUint32();
   SWInfo swInfo;
   map<PubKey, Peer> powDSWinners;
@@ -100,7 +100,7 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
   uint32_t shardId = DistUint32();
   uint64_t gasLimit = DistUint32();
   uint64_t gasUsed = DistUint32();
-  uint256_t rewards = DistUint32();
+  uint128_t rewards = DistUint32();
   BlockHash prevHash;
   uint64_t epochNum = DistUint32();
   uint64_t timestamp = DistUint32();
@@ -120,7 +120,7 @@ TxBlockHeader GenerateRandomTxBlockHeader() {
   uint32_t version = DistUint32();
   uint64_t gasLimit = DistUint32();
   uint64_t gasUsed = DistUint32();
-  uint256_t rewards = DistUint32();
+  uint128_t rewards = DistUint32();
   BlockHash prevHash;
   uint64_t blockNum = DistUint32();
   uint64_t timestamp = DistUint32();

@@ -42,7 +42,7 @@ Account::Account(const vector<unsigned char>& src, unsigned int offset) {
   }
 }
 
-Account::Account(const uint256_t& balance, const uint64_t& nonce)
+Account::Account(const uint128_t& balance, const uint64_t& nonce)
     : m_balance(balance),
       m_nonce(nonce),
       m_storageRoot(h256()),
@@ -154,21 +154,21 @@ bool Account::DeserializeDelta(const vector<unsigned char>& src,
   return true;
 }
 
-bool Account::IncreaseBalance(const uint256_t& delta) {
-  return SafeMath<uint256_t>::add(m_balance, delta, m_balance);
+bool Account::IncreaseBalance(const uint128_t& delta) {
+  return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
 }
 
-bool Account::DecreaseBalance(const uint256_t& delta) {
+bool Account::DecreaseBalance(const uint128_t& delta) {
   if (m_balance < delta) {
     return false;
   }
 
-  return SafeMath<uint256_t>::sub(m_balance, delta, m_balance);
+  return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
 }
 
 bool Account::ChangeBalance(const int256_t& delta) {
-  return (delta >= 0) ? IncreaseBalance(uint256_t(delta))
-                      : DecreaseBalance(uint256_t(-delta));
+  return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
+                      : DecreaseBalance(uint128_t(-delta));
 }
 
 bool Account::IncreaseNonce() {
@@ -337,10 +337,11 @@ Address Account::GetAddressForContract(const Address& sender,
   Address address;
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(sender.asBytes());
-  vector<unsigned char> nonceBytes;
-  SetNumber<uint64_t>(nonceBytes, 0, nonce, sizeof(uint64_t));
-  sha2.Update(nonceBytes);
+  vector<unsigned char> conBytes;
+  copy(sender.asBytes().begin(), sender.asBytes().end(),
+       back_inserter(conBytes));
+  SetNumber<uint256_t>(conBytes, conBytes.size(), nonce, sizeof(nonce));
+  sha2.Update(conBytes);
 
   const vector<unsigned char>& output = sha2.Finalize();
 

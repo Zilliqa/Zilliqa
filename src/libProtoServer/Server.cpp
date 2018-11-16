@@ -444,10 +444,10 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account != nullptr) {
-      boost::multiprecision::uint256_t balance = account->GetBalance();
+      boost::multiprecision::uint128_t balance = account->GetBalance();
       ret.set_balance(balance.str());
 
-      boost::multiprecision::uint256_t nonce = account->GetNonce();
+      boost::multiprecision::uint128_t nonce = account->GetNonce();
       ret.set_nonce(nonce.str());
 
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
