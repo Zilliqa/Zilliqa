@@ -954,12 +954,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
-  LOG_STATE(
-      "[TXNPKTPROC]["
-      << std::setw(15) << std::left
-      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BEGN");
   // Broadcast to other shard node
   vector<Peer> toSend;
   for (auto& it : *m_myShardMembers) {
@@ -967,7 +961,25 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   }
   LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
   if (BROADCAST_GOSSIP_MODE) {
-    P2PComm::GetInstance().SpreadRumor(message);
+    if (P2PComm::GetInstance().SpreadRumor(message)) {
+      LOG_STATE("[TXNPKTPROC-INITIATE]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    } else {
+      LOG_STATE("[TXNPKTPROC]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    }
   } else {
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
   }
@@ -975,13 +987,19 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   LOG_GENERAL(INFO, "TxnPool size before processing: " << m_createdTxns.size());
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
-  if (m_mediator.m_ds->m_consensusMyID ==
-      ((m_mediator.m_ds->m_consensusLeaderID + 1) %
-       m_mediator.m_DSCommittee->size())) {
+  uint32_t dm_test_id = (m_mediator.m_ds->m_consensusLeaderID + 1) %
+                        m_mediator.m_DSCommittee->size();
+  LOG_GENERAL(WARNING, "Consensus ID for DM1 test is " << dm_test_id);
+  if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
+      m_mediator.m_ds->m_consensusMyID == dm_test_id) {
     LOG_GENERAL(WARNING,
                 "Letting one of the backups accept less txns from lookup "
                 "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
     return false;
+  } else {
+    LOG_GENERAL(WARNING,
+                "The node triggered DM_TEST_DM_LESSTNX_ONE is "
+                    << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSTXN_ONE
 
@@ -1030,7 +1048,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "][" << processed_count << "] DONE");
+      << "][" << shardId << "] DONE [" << processed_count << "]");
   return true;
 }
 

@@ -1125,8 +1125,6 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
                                   txBlockHeader.GetMbInfoHash().size);
 
   protoTxBlockHeader.set_numtxs(txBlockHeader.GetNumTxs());
-  protoTxBlockHeader.set_nummicroblockhashes(
-      txBlockHeader.GetNumMicroBlockHashes());
   SerializableToProtobufByteArray(txBlockHeader.GetMinerPubKey(),
                                   *protoTxBlockHeader.mutable_minerpubkey());
   protoTxBlockHeader.set_dsblocknum(txBlockHeader.GetDSBlockNum());
@@ -1220,8 +1218,7 @@ void ProtobufToTxBlockHeader(
   txBlockHeader = TxBlockHeader(
       protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
       gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), timestamp,
-      hash, protoTxBlockHeader.numtxs(),
-      protoTxBlockHeader.nummicroblockhashes(), minerPubKey,
+      hash, protoTxBlockHeader.numtxs(), minerPubKey,
       protoTxBlockHeader.dsblocknum(), committeeHash);
 }
 
