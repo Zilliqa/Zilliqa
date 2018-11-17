@@ -36,24 +36,24 @@ BOOST_AUTO_TEST_SUITE(SWInfoTest)
 
 /// SW Info test of constructors and getters
 BOOST_AUTO_TEST_CASE(swinfo_copy_constructor) {
-    SWInfo swInfo(1,2,3,4,5);
-    SWInfo swInfoCopy(swInfo);
-    BOOST_CHECK(!(swInfo>swInfoCopy));
-    BOOST_CHECK(!(swInfo<swInfoCopy));
-    BOOST_CHECK(!(swInfo!=swInfoCopy));
-    BOOST_CHECK_EQUAL(1, swInfo.GetMajorVersion());
-    BOOST_CHECK_EQUAL(2, swInfo.GetMinorVersion());
-    BOOST_CHECK_EQUAL(3, swInfo.GetFixVersion());
-    BOOST_CHECK_EQUAL(4, swInfo.GetUpgradeDS());
-    BOOST_CHECK_EQUAL(5, swInfo.GetCommit());
+  SWInfo swInfo(1, 2, 3, 4, 5);
+  SWInfo swInfoCopy(swInfo);
+  BOOST_CHECK(!(swInfo > swInfoCopy));
+  BOOST_CHECK(!(swInfo < swInfoCopy));
+  BOOST_CHECK(!(swInfo != swInfoCopy));
+  BOOST_CHECK_EQUAL(1, swInfo.GetMajorVersion());
+  BOOST_CHECK_EQUAL(2, swInfo.GetMinorVersion());
+  BOOST_CHECK_EQUAL(3, swInfo.GetFixVersion());
+  BOOST_CHECK_EQUAL(4, swInfo.GetUpgradeDS());
+  BOOST_CHECK_EQUAL(5, swInfo.GetCommit());
 }
 
 /// SysCommand test
 BOOST_AUTO_TEST_CASE(syscommand_test) {
-    std::string input = "echo TEST";
-    std::string output;
-    SysCommand::ExecuteCmdWithOutput(input, output);
-    BOOST_CHECK_EQUAL(output, "TEST\n");
+  std::string input = "echo TEST";
+  std::string output;
+  SysCommand::ExecuteCmdWithOutput(input, output);
+  BOOST_CHECK_EQUAL(output, "TEST\n");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
