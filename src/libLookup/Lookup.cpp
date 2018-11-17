@@ -1169,12 +1169,13 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
     LOG_GENERAL(WARNING, "Failed to fetch Txblock");
     return false;
   }
-  for (i = 0; i < txblk.GetMicroBlockHashes().size(); i++) {
-    if (txblk.GetMicroBlockHashes()[i] == microblock.GetBlockHash()) {
+  for (i = 0; i < txblk.GetMicroBlockInfos().size(); i++) {
+    if (txblk.GetMicroBlockInfos().at(i).m_microBlockHash ==
+        microblock.GetBlockHash()) {
       break;
     }
   }
-  if (i == txblk.GetMicroBlockHashes().size()) {
+  if (i == txblk.GetMicroBlockInfos().size()) {
     LOG_GENERAL(WARNING, "Failed to find mbHash " << microblock.GetBlockHash());
     return false;
   }
@@ -1654,8 +1655,8 @@ void LogTxBlock(const TxBlock& txBlock, const uint64_t& epochNum) {
             "txBlock.GetHeader().GetBlockNum(): "
                 << txBlock.GetHeader().GetBlockNum());
   LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetNumMicroBlockHashes(): "
-                << txBlock.GetMicroBlockHashes().size());
+            "txBlock.GetHeader().GetMicroBlockInfos().size(): "
+                << txBlock.GetMicroBlockInfos().size());
   LOG_EPOCH(
       INFO, to_string(epochNum).c_str(),
       "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs());
@@ -1682,14 +1683,13 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       BlockStorage::GetBlockStorage().PutTxBlock(
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
     } else {
-      for (unsigned int i = 0; i < txBlock.GetMicroBlockHashes().size(); i++) {
-        if (!txBlock.GetIsMicroBlockEmpty()[i]) {
+      for (const auto& info : txBlock.GetMicroBlockInfos()) {
+        if (!info.m_isMicroBlockEmpty) {
           m_mediator.m_archival->AddToFetchMicroBlockInfo(
-              txBlock.GetMicroBlockHashes()[i]);
+              info.m_microBlockHash);
         } else {
-          LOG_GENERAL(INFO, "MicroBlock of hash "
-                                << txBlock.GetMicroBlockHashes()[i].hex()
-                                << " empty");
+          LOG_GENERAL(INFO, "MicroBlock of hash " << info.m_microBlockHash.hex()
+                                                  << " empty");
         }
       }
       m_mediator.m_archDB->InsertTxBlock(txBlock);

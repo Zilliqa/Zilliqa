@@ -35,13 +35,29 @@
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #include "libNetwork/Peer.h"
 
+struct MicroBlockInfo {
+  BlockHash m_microBlockHash;
+  bool m_isMicroBlockEmpty;
+  uint32_t m_shardId;
+
+  bool operator==(const MicroBlockInfo& mbInfo) const {
+    return std::tie(m_microBlockHash, m_isMicroBlockEmpty, m_shardId) ==
+           std::tie(mbInfo.m_microBlockHash, mbInfo.m_isMicroBlockEmpty,
+                    mbInfo.m_shardId);
+  }
+  bool operator<(const MicroBlockInfo& mbInfo) const {
+    return std::tie(mbInfo.m_microBlockHash, mbInfo.m_isMicroBlockEmpty,
+                    mbInfo.m_shardId) >
+           std::tie(m_microBlockHash, m_isMicroBlockEmpty, m_shardId);
+  }
+  bool operator>(const MicroBlockInfo& mbInfo) const { return mbInfo < *this; }
+};
+
 /// Stores the Tx block header and signature.
 
 class TxBlock : public BlockBase {
   TxBlockHeader m_header;
-  std::vector<bool> m_isMicroBlockEmpty;
-  std::vector<BlockHash> m_microBlockHashes;
-  std::vector<uint32_t> m_shardIds;
+  std::vector<MicroBlockInfo> m_mbInfos;
 
  public:
   /// Default constructor.
@@ -53,13 +69,9 @@ class TxBlock : public BlockBase {
 
   /// Constructor with specified Tx block parameters.
   TxBlock(const TxBlockHeader& header,
-          const std::vector<bool>& isMicroBlockEmpty,
-          const std::vector<BlockHash>& microBlockHashes,
-          const std::vector<uint32_t>& shardIds, CoSignatures&& cosigs);
+          const std::vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs);
   TxBlock(const TxBlockHeader& header,
-          const std::vector<bool>& isMicroBlockEmpty,
-          const std::vector<BlockHash>& microBlockHashes,
-          const std::vector<uint32_t>& shardIds);
+          const std::vector<MicroBlockInfo>& mbInfos);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
@@ -70,14 +82,8 @@ class TxBlock : public BlockBase {
   /// Returns the reference to the TxBlockHeader part of the Tx block.
   const TxBlockHeader& GetHeader() const;
 
-  /// Returns the vector of isMicroBlockEmpty.
-  const std::vector<bool>& GetIsMicroBlockEmpty() const;
-
-  /// Returns the list of MicroBlockHashes.
-  const std::vector<BlockHash>& GetMicroBlockHashes() const;
-
-  /// Returns the list of shardIds
-  const std::vector<uint32_t>& GetShardIds() const;
+  /// Returns the vector of MicroBlockInfo.
+  const std::vector<MicroBlockInfo>& GetMicroBlockInfos() const;
 
   /// Equality comparison operator.
   bool operator==(const TxBlock& block) const;
