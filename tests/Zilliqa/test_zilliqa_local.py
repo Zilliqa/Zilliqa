@@ -21,7 +21,11 @@ import os
 import sys
 import shutil
 import stat
-import time 
+import time
+import binascii
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../src/libMessage")
+from ZilliqaMessage_pb2 import ProtoStartPow, ProtoPeer
 
 from subprocess import Popen, PIPE
 
@@ -84,6 +88,8 @@ def main():
 			print_usage() if (numargs != 2) else run_delete()
 		elif (command == 'sendtxn'):
 			print_usage() if (numargs != 3) else run_sendtxn(portnum=int(sys.argv[2]))
+		elif (command == 'setprimary'):
+			print_usage() if (numargs != 5) else run_setprimary(nodenum=int(sys.argv[2]), ip=sys.argv[3], port=sys.argv[4])
 		else:
 			print_usage()
 
@@ -282,7 +288,7 @@ def run_clean():
 
 def run_sendcmd(nodenum, msg):
 	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
-	
+
 def run_sendcmdrandom(nodenum, msg_size):
 	# msg = "000400" + 'A' * msg_size * 2
 	# os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
@@ -298,14 +304,33 @@ def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 		keypairs = f.readlines()
 	keypairs = [x.strip() for x in keypairs]
 
-	# Assemble the STARTPOW message
-	startpow_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + dsdiff + diff + rand1 + rand2
+	# Protobuf the command
+	protoPeers = ProtoStartPow()
+	protoPeers.blocknum = long(blocknum)
+	protoPeers.dsdiff = long(dsdiff)
+	protoPeers.diff = long(diff)
+	protoPeers.rand1 = binascii.unhexlify(rand1)
+	protoPeers.rand2 = binascii.unhexlify(rand2)
 	for x in range(0, dscount):
 		keypair = keypairs[x].split(" ")
-		startpow_cmd = startpow_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
+
+		protoPeer = protoPeers.peers.add()
+		protoPeer.pubkey.data = keypair[0]
+		protoPeer.peer.listenporthost = long("{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8), 16)
+		protoPeer.peer.ipaddress.data = binascii.unhexlify('0000000000000000000000000100007F') # 127.0.0.1
+
+	# Assemble the STARTPOW message
+	startpow_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + binascii.hexlify(protoPeers.SerializeToString())
 
 	# Send to node
 	os.system(startpow_cmd)
+
+def run_setprimary(nodenum, ip, port):
+	protoPeer = ProtoPeer()
+	protoPeer.listenporthost = long(port, 16)
+	protoPeer.ipaddress.data = binascii.unhexlify(ip)
+	msg = '0100' + binascii.hexlify(protoPeer.SerializeToString())
+	run_sendcmd(nodenum, msg)
 
 def run_sendtxn(portnum):
 	os.system('tests/Zilliqa/sendtxn ' + str(portnum) + ' &')

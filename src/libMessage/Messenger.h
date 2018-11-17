@@ -186,6 +186,12 @@ class Messenger {
                       const unsigned int offset, const Peer& peer);
   static bool GetPeer(const std::vector<unsigned char>& src,
                       const unsigned int offset, Peer& peer);
+  static bool SetStartPow(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& map,
+      uint64_t& block_num, uint8_t& ds_difficulty, uint8_t& difficulty,
+      std::array<unsigned char, 32>& rand1,
+      std::array<unsigned char, 32>& rand2);
 
   // ============================================================================
   // Directory Service messages

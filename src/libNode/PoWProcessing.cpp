@@ -257,38 +257,21 @@ bool Node::ReadVariablesFromStartPoWMessage(
     return true;
   }
 
-  if (IsMessageSizeInappropriate(message.size(), cur_offset,
+  /*if (IsMessageSizeInappropriate(message.size(), cur_offset,
                                  sizeof(uint64_t) + sizeof(uint8_t) +
                                      sizeof(uint8_t) + UINT256_SIZE +
                                      UINT256_SIZE,
                                  PUB_KEY_SIZE + IP_SIZE + PORT_SIZE)) {
     return false;
+  }*/
+
+  if (!Messenger::SetStartPow(message, cur_offset, m_mediator.m_DSCommittee,
+                              block_num, ds_difficulty, difficulty, rand1,
+                              rand2)) {
+    LOG_GENERAL(WARNING, "StartPow initialization failed.");
+    return false;
   }
 
-  // 8-byte block num
-  block_num =
-      Serializable::GetNumber<uint64_t>(message, cur_offset, sizeof(uint64_t));
-  cur_offset += sizeof(uint64_t);
-
-  // 1-byte ds difficulty
-  ds_difficulty =
-      Serializable::GetNumber<uint8_t>(message, cur_offset, sizeof(uint8_t));
-  cur_offset += sizeof(uint8_t);
-
-  // 1-byte difficulty
-  difficulty =
-      Serializable::GetNumber<uint8_t>(message, cur_offset, sizeof(uint8_t));
-  cur_offset += sizeof(uint8_t);
-
-  // 32-byte rand1
-  copy(message.begin() + cur_offset,
-       message.begin() + cur_offset + UINT256_SIZE, rand1.begin());
-  cur_offset += UINT256_SIZE;
-
-  // 32-byte rand2
-  copy(message.begin() + cur_offset,
-       message.begin() + cur_offset + UINT256_SIZE, rand2.begin());
-  cur_offset += UINT256_SIZE;
   LOG_STATE("[START][EPOCH][" << std::setw(15) << std::left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
                               << "][" << block_num << "]");
@@ -313,29 +296,16 @@ bool Node::ReadVariablesFromStartPoWMessage(
                 m_mediator.m_selfKey.second));
   **/
 
-  // DS nodes ip addr and port
-  const unsigned int numDS =
-      (message.size() - cur_offset) / (PUB_KEY_SIZE + IP_SIZE + PORT_SIZE);
-
   // Create and keep a view of the DS committee
   // We'll need this if we win PoW
-  m_mediator.m_DSCommittee->clear();
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "DS nodes count    = " << numDS + 1);
-  for (unsigned int i = 0; i < numDS; i++) {
-    PubKey pubkey(message, cur_offset);
-    cur_offset += PUB_KEY_SIZE;
+            "DS nodes count    = " << m_mediator.m_DSCommittee->size() + 1);
 
-    m_mediator.m_DSCommittee->emplace_back(
-        make_pair(pubkey, Peer(message, cur_offset)));
-
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "DS Node IP: "
-            << m_mediator.m_DSCommittee->back().second.GetPrintableIPAddress()
-            << " Port: "
-            << m_mediator.m_DSCommittee->back().second.m_listenPortHost);
-    cur_offset += IP_SIZE + PORT_SIZE;
+  for (auto it = m_mediator.m_DSCommittee->begin();
+       it != m_mediator.m_DSCommittee->end(); ++it) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DS Node IP: " << it->second.GetPrintableIPAddress()
+                             << " Port: " << it->second.m_listenPortHost);
   }
 
   {

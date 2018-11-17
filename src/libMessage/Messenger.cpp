@@ -2670,6 +2670,41 @@ bool Messenger::GetPeer(const std::vector<unsigned char>& src,
   return true;
 }
 
+bool Messenger::SetStartPow(
+    const std::vector<unsigned char>& src, const unsigned int offset,
+    std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& map,
+    uint64_t& block_num, uint8_t& ds_difficulty, uint8_t& difficulty,
+    array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2) {
+  ProtoStartPow result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StartPow initialization failed.");
+    return false;
+  }
+
+  block_num = result.blocknum();
+  ds_difficulty = result.dsdiff();
+  difficulty = result.diff();
+
+  copy(result.rand1().begin(), result.rand1().end(), rand1.begin());
+  copy(result.rand2().begin(), result.rand2().end(), rand2.begin());
+
+  map->clear();
+  for (auto const& protoPeer : result.peers()) {
+    Peer peer;
+    ProtobufToPeer(protoPeer.peer(), peer);
+
+    PubKey pubkey;
+    ProtobufByteArrayToSerializable(protoPeer.pubkey(), pubkey);
+
+    map->emplace_back(pubkey, peer);
+  }
+
+  return true;
+}
+
 // ============================================================================
 // Directory Service messages
 // ============================================================================

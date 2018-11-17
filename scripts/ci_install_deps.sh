@@ -84,6 +84,7 @@ apt-get install -y \
     git
 
 pip install pyyaml
+pip install protobuf
 }
 
 function on_osx() {

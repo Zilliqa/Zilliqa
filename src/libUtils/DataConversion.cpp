@@ -24,7 +24,13 @@ const std::vector<unsigned char> DataConversion::HexStrToUint8Vec(
     const std::string& hex_input) {
   std::string in(hex_input);
   std::vector<uint8_t> out;
-  boost::algorithm::unhex(in.begin(), in.end(), std::back_inserter(out));
+  try {
+    boost::algorithm::unhex(in.begin(), in.end(), std::back_inserter(out));
+  } catch (
+      boost::exception_detail::clone_impl<boost::algorithm::not_enough_input>&
+          e) {  // Can throw
+    return {};
+  }
   return out;
 }
 

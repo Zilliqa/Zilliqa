@@ -156,7 +156,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
 
   // Peer primary(message, offset);
   Peer primary;
-  if (primary.Deserialize(message, offset) != 0) {
+  if (!primary.Deserialize(message, offset)) {
     LOG_GENERAL(WARNING, "We failed to deserialize Peer.");
     return false;
   }

@@ -45,6 +45,22 @@ message ProtoPeer
     required uint32 listenporthost  = 2;
 }
 
+message ProtoPeerPub
+{
+    required ProtoPeer peer   = 1;
+    optional ByteArray pubkey = 2;
+}
+
+message ProtoStartPow
+{
+    required uint64 blocknum    = 1;
+    required fixed32 dsdiff     = 2;
+    required fixed32 diff       = 3;
+    required bytes rand1        = 4;    // 32-byte
+    required bytes rand2        = 5;    // 32-byte
+    repeated ProtoPeerPub peers = 6;
+}
+
 message ProtoDSNode
 {
     required ByteArray pubkey = 1;
