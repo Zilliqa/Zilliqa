@@ -310,13 +310,10 @@ class DirectoryService : public Executable, public Broadcastable {
   bool ProcessMissingMicroblockSubmission(
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<std::vector<unsigned char>>& stateDeltas);
-  void ExtractDataFromMicroblocks(BlockHash& microblockTrieRoot,
-                                  std::vector<BlockHash>& microblockHashes,
-                                  std::vector<uint32_t>& shardIds,
+  void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
                                   boost::multiprecision::uint128_t& allRewards,
-                                  uint32_t& numTxs,
-                                  std::vector<bool>& isMicroBlockEmpty);
+                                  uint32_t& numTxs);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,
@@ -337,8 +334,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
                         bool fromShards = false);
   bool CheckLegitimacyOfMicroBlocks();
-  bool CheckMicroBlockHashRoot();
-  bool CheckExtraMicroBlockInfo();
+  bool CheckMicroBlockInfo();
   bool CheckStateRoot();
   bool CheckStateDeltaHash();
   void LoadUnavailableMicroBlocks();
