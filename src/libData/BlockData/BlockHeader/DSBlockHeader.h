@@ -21,7 +21,10 @@
 #define __DSBLOCKHEADER_H__
 
 #include <array>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <map>
 
 #include "BlockHashSet.h"
@@ -41,7 +44,8 @@ class DSBlockHeader : public BlockHeaderBase {
   PubKey m_leaderPubKey;   // The one who proposed this DS block
   uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum;
-  boost::multiprecision::uint256_t m_timestamp;
+  boost::multiprecision::uint128_t m_gasPrice;
+  uint64_t m_timestamp;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
   DSBlockHashSet m_hashset;
@@ -57,8 +61,8 @@ class DSBlockHeader : public BlockHeaderBase {
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
                 const BlockHash& prevHash, const PubKey& leaderPubKey,
                 const uint64_t& blockNum, const uint64_t& epochNum,
-                const boost::multiprecision::uint256_t& timestamp,
-                const SWInfo& swInfo,
+                const boost::multiprecision::uint128_t& gasPrice,
+                const uint64_t& timestamp, const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
                 const DSBlockHashSet& hashset,
                 const CommitteeHash& committeeHash);
@@ -77,7 +81,7 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDifficulty() const;
 
-  /// Returns the digest of the parent block header.
+  /// Returns the hash of prev dir block
   const BlockHash& GetPrevHash() const;
 
   /// Returns the public key of the leader of the DS committee that composed
@@ -90,8 +94,12 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the number of epoch when block is mined
   const uint64_t& GetEpochNum() const;
 
+  /// Returns the number of global minimum gas price accepteable for the coming
+  /// epoch
+  const boost::multiprecision::uint128_t& GetGasPrice() const;
+
   /// Returns the Unix time at the time of creation of this block.
-  const boost::multiprecision::uint256_t& GetTimestamp() const;
+  const uint64_t& GetTimestamp() const;
 
   /// Returns the software version information used during creation of this
   /// block.

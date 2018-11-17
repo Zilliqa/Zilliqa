@@ -38,7 +38,10 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -69,7 +72,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
 
   std::map<PubKey, Peer> powDSWinners;
   DSBlock dsblock(
-      DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0, 0, SWInfo(),
+      DSBlockHeader(50, 20, prevHash1, pubKey1.second, 0, 0, 0, 0, SWInfo(),
                     powDSWinners, DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
 
@@ -138,8 +141,8 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 //     MessageOffset::BODY;
 
 //     // 32-byte DS blocknum
-//     Serializable::SetNumber<uint256_t>(txblockmsg, curr_offset, 0,
-//     sizeof(uint256_t)); curr_offset += sizeof(uint256_t);
+//     Serializable::SetNumber<uint128_t>(txblockmsg, curr_offset, 0,
+//     sizeof(uint128_t)); curr_offset += sizeof(uint128_t);
 
 //     // 4-byte consensusid
 //     Serializable::SetNumber<uint32_t>(txblockmsg, curr_offset, 0,
@@ -195,7 +198,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 //     MessageOffset::BODY;
 
 //     txbodymsg.resize(curr_offset + UINT256_SIZE);
-// 	Serializable::SetNumber<uint256_t>(txbodymsg, curr_offset, (uint8_t) 0,
+// 	Serializable::SetNumber<uint128_t>(txbodymsg, curr_offset, (uint8_t) 0,
 // UINT256_SIZE);
 //     curr_offset += UINT256_SIZE;
 

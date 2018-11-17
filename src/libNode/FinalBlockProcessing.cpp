@@ -18,7 +18,10 @@
  */
 
 #include <array>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <chrono>
 #include <functional>
 #include <limits>
@@ -126,29 +129,17 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
-  const auto& microBlockHashes = finalBlock.GetMicroBlockHashes();
-  const auto& isMicroBlockEmptys = finalBlock.GetIsMicroBlockEmpty();
-  const auto& shardIds = finalBlock.GetShardIds();
-
-  if (microBlockHashes.size() != isMicroBlockEmptys.size() ||
-      shardIds.size() != isMicroBlockEmptys.size()) {
-    LOG_GENERAL(WARNING, "size of microBlockHashes("
-                             << microBlockHashes.size()
-                             << ") & isMicroBlockEmptys("
-                             << isMicroBlockEmptys.size() << ") & shardIds("
-                             << shardIds.size() << ") is not equal");
-    return false;
-  }
+  const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
 
   // bool doRejoin = false;
 
-  for (unsigned int i = 0; i < microBlockHashes.size(); i++) {
+  for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (!isMicroBlockEmptys[i]) {
-        m_unavailableMicroBlocks[blocknum].emplace_back(microBlockHashes[i]);
+      if (!info.m_isMicroBlockEmpty) {
+        m_unavailableMicroBlocks[blocknum].emplace_back(info.m_microBlockHash);
       }
     } else {
-      if (shardIds[i] == m_myshardId) {
+      if (info.m_shardId == m_myshardId) {
         if (m_microblock == nullptr) {
           LOG_GENERAL(WARNING,
                       "Found my shard microblock but microblock obj "
@@ -160,9 +151,9 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                       "Found my shard microblock but Cosig not updated");
           // doRejoin = true;
         } else {
-          if (m_microblock->GetBlockHash() == microBlockHashes[i]) {
+          if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
             if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
-              if (!isMicroBlockEmptys[i]) {
+              if (!info.m_isMicroBlockEmpty) {
                 toSendTxnToLookup = true;
               } else {
                 LOG_GENERAL(WARNING,
@@ -170,7 +161,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                 << m_microblock->GetHeader().GetTxRootHash()
                                 << ") is not null"
                                    " but isMicroBlockEmpty for me is "
-                                << isMicroBlockEmptys[i]);
+                                << info.m_isMicroBlockEmpty);
                 return false;
               }
             }
@@ -181,7 +172,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                             << endl
                             << "expected: " << m_microblock->GetBlockHash()
                             << endl
-                            << "received: " << microBlockHashes[i])
+                            << "received: " << info.m_microBlockHash)
             return false;
           }
         }
@@ -274,26 +265,6 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
     }
     return false;
   }
-
-  return true;
-}
-
-bool Node::CheckMicroBlockRootHash(const TxBlock& finalBlock,
-                                   [[gnu::unused]] const uint64_t& blocknum) {
-  TxnHash microBlocksHash = ComputeRoot(finalBlock.GetMicroBlockHashes());
-
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Expected FinalBlock TxRoot hash: " << microBlocksHash.hex());
-
-  if (finalBlock.GetHeader().GetMbRootHash() != microBlocksHash) {
-    LOG_GENERAL(INFO,
-                "TxRootHash in Final Block Header doesn't match root of "
-                "microblock hashes");
-    return false;
-  }
-
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "FinalBlock TxRoot hash in final block by DS is correct");
 
   return true;
 }
@@ -570,8 +541,8 @@ void Node::LogReceivedFinalBlockDetails([
               "txblock.GetHeader().GetBlockNum(): "
                   << txblock.GetHeader().GetBlockNum());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetNumMicroBlockHashes(): "
-                  << txblock.GetHeader().GetNumMicroBlockHashes());
+              "txblock.GetMicroBlockInfos().size(): "
+                  << txblock.GetMicroBlockInfos().size());
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "txblock.GetHeader().GetStateRootHash(): "
                   << txblock.GetHeader().GetStateRootHash());
@@ -737,18 +708,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  if (!CheckMicroBlockRootHash(txBlock, txBlock.GetHeader().GetBlockNum())) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "TxBlock MicroBlock Root Hash verification failed");
-    return false;
-  }
-
   // Compute the MBInfoHash of the extra MicroBlock information
   MBInfoHash mbInfoHash;
-  if (!Messenger::GetExtraMbInfoHash(txBlock.GetIsMicroBlockEmpty(),
-                                     txBlock.GetShardIds(), mbInfoHash)) {
+  if (!Messenger::GetMbInfoHash(txBlock.GetMicroBlockInfos(), mbInfoHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetExtraMbInfoHash failed.");
+              "Messenger::GetMbInfoHash failed.");
     return false;
   }
 
@@ -798,7 +762,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   m_mediator.HeartBeatPulse();
 
-  if (txBlock.GetHeader().GetNumMicroBlockHashes() == 1) {
+  if (txBlock.GetMicroBlockInfos().size() == 1) {
     LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << txBlock.GetHeader().GetBlockNum()
@@ -813,10 +777,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (0 == (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW) &&
-        m_mediator.m_curSWInfo.GetUpgradeDS() ==
-            ((m_mediator.m_currentEpochNum / NUM_FINAL_BLOCK_PER_POW) +
-             INIT_DS_EPOCH_NUM)) {
+    if (m_mediator.GetIsVacuousEpoch() &&
+        m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
+            m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum()) {
       auto func = [this]() mutable -> void {
         UpgradeManager::GetInstance().ReplaceNode(m_mediator);
       };

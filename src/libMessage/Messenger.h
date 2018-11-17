@@ -85,9 +85,8 @@ class Messenger {
                                    const unsigned int offset,
                                    AccountStoreTemp& accountStoreTemp);
 
-  static bool GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
-                                 const std::vector<uint32_t>& shardIds,
-                                 MBInfoHash& dst);
+  static bool GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
+                            MBInfoHash& dst);
 
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
@@ -202,15 +201,15 @@ class Messenger {
       const uint64_t blockNumber, const uint8_t difficultyLevel,
       const Peer& submitterPeer, const std::pair<PrivKey, PubKey>& submitterKey,
       const uint64_t nonce, const std::string& resultingHash,
-      const std::string& mixHash);
+      const std::string& mixHash, const uint32_t& lookupId,
+      const boost::multiprecision::uint128_t& gasPrice);
 
-  static bool GetDSPoWSubmission(const std::vector<unsigned char>& src,
-                                 const unsigned int offset,
-                                 uint64_t& blockNumber,
-                                 uint8_t& difficultyLevel, Peer& submitterPeer,
-                                 PubKey& submitterPubKey, uint64_t& nonce,
-                                 std::string& resultingHash,
-                                 std::string& mixHash, Signature& signature);
+  static bool GetDSPoWSubmission(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& blockNumber, uint8_t& difficultyLevel, Peer& submitterPeer,
+      PubKey& submitterPubKey, uint64_t& nonce, std::string& resultingHash,
+      std::string& mixHash, Signature& signature, uint32_t& lookupId,
+      boost::multiprecision::uint128_t& gasPrice);
 
   static bool SetDSMicroBlockSubmission(
       std::vector<unsigned char>& dst, const unsigned int offset,
@@ -496,10 +495,10 @@ class Messenger {
       std::vector<unsigned char>& dst, const unsigned int offset,
       const std::pair<PrivKey, PubKey>& lookupKey,
       const AccountStore& accountStore);
-  static bool GetLookupSetStateFromSeed(const std::vector<unsigned char>& src,
-                                        const unsigned int offset,
-                                        PubKey& lookupPubKey,
-                                        AccountStore& accountStore);
+  static bool GetLookupSetStateFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      PubKey& lookupPubKey,
+      std::unordered_map<Address, Account>& addressToAccount);
   static bool SetLookupSetLookupOffline(std::vector<unsigned char>& dst,
                                         const unsigned int offset,
                                         const uint32_t listenPort);

@@ -21,7 +21,10 @@
 #define __TRANSACTIONRECEIPT_H__
 
 #include <json/json.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <unordered_map>
 #include <vector>
 
@@ -35,8 +38,7 @@
 class TransactionReceipt : public SerializableDataBlock {
   Json::Value m_tranReceiptObj = Json::nullValue;
   std::string m_tranReceiptStr;
-  unsigned int m_serialized_size = 0;
-  boost::multiprecision::uint256_t m_cumGas = 0;
+  uint64_t m_cumGas = 0;
 
  public:
   TransactionReceipt();
@@ -45,11 +47,11 @@ class TransactionReceipt : public SerializableDataBlock {
   bool Deserialize(const std::vector<unsigned char>& src,
                    unsigned int offset) override;
   void SetResult(const bool& result);
-  void SetCumGas(const boost::multiprecision::uint256_t& cumGas);
+  void SetCumGas(const uint64_t& cumGas);
   void AddEntry(const LogEntry& entry);
   const std::string& GetString() const { return m_tranReceiptStr; }
   void SetString(const std::string& tranReceiptStr);
-  const boost::multiprecision::uint256_t& GetCumGas() const { return m_cumGas; }
+  const uint64_t& GetCumGas() const { return m_cumGas; }
   void clear();
   const Json::Value& GetJsonValue() const { return m_tranReceiptObj; }
   void update();

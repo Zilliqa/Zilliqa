@@ -20,7 +20,10 @@
 #ifndef __PEER_H__
 #define __PEER_H__
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <cstdint>
 #include <functional>
 

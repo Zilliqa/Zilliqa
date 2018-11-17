@@ -22,7 +22,10 @@
 #include <functional>
 #include <thread>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 
 #include "Node.h"
 #include "common/Constants.h"
@@ -85,7 +88,8 @@ bool Node::GetLatestDSBlock() {
 bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     uint8_t difficulty,
                     const array<unsigned char, UINT256_SIZE>& rand1,
-                    const array<unsigned char, UINT256_SIZE>& rand2) {
+                    const array<unsigned char, UINT256_SIZE>& rand2,
+                    const uint32_t lookupId) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -134,9 +138,13 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     DetachedFunction(1, func);
   }
 
+  lock_guard<mutex> g(m_mutexGasPrice);
+  bool sentToDs = false;
+
   ethash_mining_result winning_result = POW::GetInstance().PoWMine(
       block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, FULL_DATASET_MINE);
+      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
+      FULL_DATASET_MINE);
 
   if (winning_result.success) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -160,24 +168,31 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
+
     if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
             winning_result.result, ds_difficulty)) {
       LOG_GENERAL(INFO,
                   "Found PoW solution that met requirement for both ds "
                   "commitee and shard.");
 
-      if (!SendPoWResultToDSComm(
-              block_num, ds_difficulty, winning_result.winning_nonce,
-              winning_result.result, winning_result.mix_hash)) {
+      if (!SendPoWResultToDSComm(block_num, ds_difficulty,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 lookupId, m_proposedGasPrice)) {
         return false;
+      } else {
+        sentToDs = true;
       }
     } else {
       // If solution does not meet targeted ds difficulty, send the initial
       // solution to ds commitee and continue to do PoW
-      if (!SendPoWResultToDSComm(
-              block_num, difficulty, winning_result.winning_nonce,
-              winning_result.result, winning_result.mix_hash)) {
+      if (!SendPoWResultToDSComm(block_num, difficulty,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 lookupId, m_proposedGasPrice)) {
         return false;
+      } else {
+        sentToDs = true;
       }
 
       LOG_GENERAL(INFO,
@@ -187,7 +202,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
           block_num, ds_difficulty, rand1, rand2,
           m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
-          FULL_DATASET_MINE);
+          lookupId, m_proposedGasPrice, FULL_DATASET_MINE);
 
       if (ds_pow_winning_result.success) {
         LOG_GENERAL(INFO,
@@ -198,8 +213,11 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         // Submission of PoW for ds commitee
         if (!SendPoWResultToDSComm(
                 block_num, ds_difficulty, ds_pow_winning_result.winning_nonce,
-                ds_pow_winning_result.result, ds_pow_winning_result.mix_hash)) {
+                ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
+                lookupId, m_proposedGasPrice)) {
           return false;
+        } else {
+          sentToDs = true;
         }
       } else {
         LOG_GENERAL(INFO,
@@ -207,6 +225,25 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     "requirement");
       }
     }
+  }
+
+  if (sentToDs) {
+    auto func = [this]() mutable -> void {
+      unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
+      if (cv_waitDSBlock.wait_for(
+              lk,
+              chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                              FALLBACK_EXTRA_TIME)) == cv_status::timeout) {
+        LOG_GENERAL(WARNING, "Time out while waiting for DS Block");
+        if (GetLatestDSBlock()) {
+          LOG_GENERAL(INFO, "DS block created, means I lost PoW");
+          RejoinAsNormal();
+        } else {
+          LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
+        }
+      }
+    };
+    DetachedFunction(1, func);
   }
 
   if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
@@ -220,16 +257,18 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const uint8_t& difficultyLevel,
                                  const uint64_t winningNonce,
                                  const string& powResultHash,
-                                 const string& powMixhash) {
+                                 const string& powMixhash,
+                                 const uint32_t& lookupId,
+                                 const uint128_t& gasPrice) {
   LOG_MARKER();
 
   vector<unsigned char> powmessage = {MessageType::DIRECTORY,
                                       DSInstructionType::POWSUBMISSION};
 
-  if (!Messenger::SetDSPoWSubmission(powmessage, MessageOffset::BODY, block_num,
-                                     difficultyLevel, m_mediator.m_selfPeer,
-                                     m_mediator.m_selfKey, winningNonce,
-                                     powResultHash, powMixhash)) {
+  if (!Messenger::SetDSPoWSubmission(
+          powmessage, MessageOffset::BODY, block_num, difficultyLevel,
+          m_mediator.m_selfPeer, m_mediator.m_selfKey, winningNonce,
+          powResultHash, powMixhash, lookupId, gasPrice)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSPoWSubmission failed.");
     return false;
@@ -242,7 +281,6 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   }
 
   P2PComm::GetInstance().SendMessage(peerList, powmessage);
-
   return true;
 }
 

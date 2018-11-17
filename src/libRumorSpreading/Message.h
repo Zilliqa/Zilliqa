@@ -37,6 +37,8 @@ class Message {
     EMPTY_PUSH = 0x03,
     EMPTY_PULL = 0x04,
     FORWARD = 0x05,
+    LAZY_PUSH = 0x06,
+    LAZY_PULL = 0x07,
     NUM_TYPES
   };
 

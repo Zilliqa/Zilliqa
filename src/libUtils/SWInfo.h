@@ -24,9 +24,9 @@
 #include "common/Serializable.h"
 
 class SWInfo : public SerializableDataBlock {
-  uint32_t m_major;
-  uint32_t m_minor;
-  uint32_t m_fix;
+  uint32_t m_majorVersion;
+  uint32_t m_minorVersion;
+  uint32_t m_fixVersion;
   uint64_t m_upgradeDS;
   uint32_t m_commit;
 
@@ -39,8 +39,9 @@ class SWInfo : public SerializableDataBlock {
   SWInfo();
 
   /// Constructor.
-  SWInfo(const uint32_t& major, const uint32_t& minor, const uint32_t& fix,
-         const uint64_t& upgradeDS, const uint32_t& commit);
+  SWInfo(const uint32_t& majorVersion, const uint32_t& minorVersion,
+         const uint32_t& fixVersion, const uint64_t& upgradeDS,
+         const uint32_t& commit);
 
   /// Destructor.
   ~SWInfo();
@@ -67,9 +68,9 @@ class SWInfo : public SerializableDataBlock {
   bool operator!=(const SWInfo& r) const;
 
   /// Getters.
-  const uint32_t& GetMajor() const;
-  const uint32_t& GetMinor() const;
-  const uint32_t& GetFix() const;
+  const uint32_t& GetMajorVersion() const;
+  const uint32_t& GetMinorVersion() const;
+  const uint32_t& GetFixVersion() const;
   const uint64_t& GetUpgradeDS() const;
   const uint32_t& GetCommit() const;
 };

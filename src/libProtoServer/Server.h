@@ -17,7 +17,10 @@
  * program files.
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <mutex>
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libData/DataStructures/CircularArray.h"
@@ -32,8 +35,8 @@ class Server {
   Mediator& m_mediator;
   std::pair<uint64_t, boost::multiprecision::uint256_t> m_BlockTxPair;
   std::pair<uint64_t, boost::multiprecision::uint256_t> m_TxBlockCountSumPair;
-  boost::multiprecision::uint256_t m_StartTimeTx;
-  boost::multiprecision::uint256_t m_StartTimeDs;
+  uint64_t m_StartTimeTx;
+  uint64_t m_StartTimeDs;
   std::pair<uint64_t, CircularArray<std::string>> m_DSBlockCache;
   std::pair<uint64_t, CircularArray<std::string>> m_TxBlockCache;
   static CircularArray<std::string> m_RecentTransactions;

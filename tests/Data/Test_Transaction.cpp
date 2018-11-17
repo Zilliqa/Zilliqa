@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   copy(output.end() - ACC_ADDR_SIZE, output.end(), fromCheck.asArray().begin());
 
-  Transaction tx1(1, 5, toAddr, sender, 55, 11, 22, {}, {});
+  Transaction tx1(1, 5, toAddr, sender, 55, PRECISION_MIN_VALUE, 22, {}, {});
 
   BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx1),
                       "Signature not verified\n");
@@ -95,14 +95,14 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   const std::array<unsigned char, TRAN_HASH_SIZE>& tranID2 =
       tx2.GetTranID().asArray();
-  const uint256_t& version2 = tx2.GetVersion();
-  const uint256_t& nonce2 = tx2.GetNonce();
+  const uint128_t& version2 = tx2.GetVersion();
+  const uint128_t& nonce2 = tx2.GetNonce();
   const Address& toAddr2 = tx2.GetToAddr();
   const PubKey& senderPubKey = tx2.GetSenderPubKey();
   const Address& fromAddr2 = Account::GetAddressFromPublicKey(senderPubKey);
-  const uint256_t& amount2 = tx2.GetAmount();
-  const uint256_t& gasPrice2 = tx2.GetGasPrice();
-  const uint256_t& gasLimit2 = tx2.GetGasLimit();
+  const uint128_t& amount2 = tx2.GetAmount();
+  const uint128_t& gasPrice2 = tx2.GetGasPrice();
+  const uint128_t& gasLimit2 = tx2.GetGasLimit();
   const vector<unsigned char>& code2 = tx2.GetCode();
   const vector<unsigned char>& data2 = tx2.GetData();
   const Signature& signature2 = tx2.GetSignature();
@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   // unsigned int curOffset = 0;
   // Serializable::SetNumber<uint32_t>(byteVec, curOffset, 0, sizeof(uint32_t));
   // curOffset += sizeof(uint32_t);
-  // Serializable::SetNumber<uint256_t>(byteVec, curOffset, 1, UINT256_SIZE);
+  // Serializable::SetNumber<uint128_t>(byteVec, curOffset, 1, UINT256_SIZE);
   // curOffset += UINT256_SIZE;
   // string str = "1234567890123456789012345678901234567890";
   // array<unsigned char, 32> toAddr_arr =
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   // PubKey pbk = KeyPair.second;
   // pbk.Serialize(byteVec, curOffset);
   // curOffset += PUB_KEY_SIZE;
-  // Serializable::SetNumber<uint256_t>(byteVec, curOffset, 100, UINT256_SIZE);
+  // Serializable::SetNumber<uint128_t>(byteVec, curOffset, 100, UINT256_SIZE);
   // curOffset += UINT256_SIZE;
 
   // LOG_GENERAL(INFO,
@@ -219,7 +219,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   // Logger::MAX_BYTES_TO_DISPLAY); BOOST_CHECK_MESSAGE(pred2.GetAccConOp() ==
   // 2, "expected: "<<2<<" actual: "<<pred2.GetAccConOp()<<"\n");
 
-  // uint256_t accConBalance2 = pred2.GetAccConBalance();
+  // uint128_t accConBalance2 = pred2.GetAccConBalance();
   // LOG_GENERAL(INFO, "Transaction2 predicate accConBalance: " <<
   // accConBalance2); BOOST_CHECK_MESSAGE(accConBalance2 == 1, "expected:
   // "<<1<<" actual: "<<accConBalance2<<"\n");
@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   // Logger::MAX_BYTES_TO_DISPLAY); BOOST_CHECK_MESSAGE(pred2.GetTxConOp() == 1,
   // "expected: "<<1<<" actual: "<<pred2.GetTxConOp()<<"\n");
 
-  // uint256_t txConAmount2 = pred2.GetTxConAmount();
+  // uint128_t txConAmount2 = pred2.GetTxConAmount();
   // LOG_GENERAL(INFO, "Transaction2 predicate txConAmount: " << txConAmount2);
   // BOOST_CHECK_MESSAGE(txConAmount2 == 33, "expected: "<<55<<" actual:
   // "<<txConAmount2<<"\n");

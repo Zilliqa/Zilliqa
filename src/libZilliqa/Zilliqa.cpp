@@ -24,9 +24,9 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
+#include "libArchival/Archival.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
-#include "libDB/Archival.h"
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
@@ -141,7 +141,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   P2PComm::GetInstance().SetSelfPeer(peer);
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
-    if (!m_n.Install(syncType, toRetrieveHistory)) {
+    if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE) {
         syncType = SyncType::LOOKUP_SYNC;
       } else {

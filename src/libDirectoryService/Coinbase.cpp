@@ -101,6 +101,71 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
   return true;
 }
 
+void DirectoryService::LookupCoinbase(
+    [[gnu::unused]] const DequeOfShard& shards,
+    [[gnu::unused]] const MapOfPubKeyPoW& allPow,
+    [[gnu::unused]] const map<PubKey, Peer>& powDSWinner,
+    [[gnu::unused]] const MapOfPubKeyPoW& dsPow) {
+  LOG_MARKER();
+  VectorOfLookupNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
+  const auto& epochNum = m_mediator.m_currentEpochNum;
+
+  lock_guard<mutex> g(m_mutexCoinbaseRewardees);
+
+  for (const auto& lookupNode : vecLookup) {
+    LOG_GENERAL(INFO, " " << lookupNode.first);
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
+        Account::GetAddressFromPublicKey(lookupNode.first));
+  }
+
+  /*for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      auto toFind = get<SHARD_NODE_PUBKEY>(shardNode);
+      auto it = allPow.find(toFind);
+      if (it == allPow.end()) {
+        LOG_GENERAL(INFO, "Could not find the node, maybe it is the oldest DS "
+  << toFind); continue;
+      }
+      const auto& lookupId = it->second.lookupId;
+      // Verify
+
+      if (lookupId >= vecLookup.size()) {
+        LOG_GENERAL(WARNING, "Lookup id greater than lookup Size " << lookupId);
+        continue;
+      }
+      else
+      {
+        if(DEBUG_LEVEL >= 5)
+        {
+          LOG_GENERAL(INFO,"[LCNBSE]"<<"Awarded lookup "<<lookupId);
+        }
+      }
+
+      const auto& lookupPubkey = vecLookup.at(lookupId).first;
+      m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
+          Account::GetAddressFromPublicKey(lookupPubkey));
+    }
+  }
+
+  for (const auto& dsWinner : powDSWinner) {
+    auto toFind = dsWinner.first;
+    auto it = dsPow.find(toFind);
+
+    if (it == dsPow.end()) {
+      LOG_GENERAL(FATAL, "Could not find " << toFind);
+    }
+    const auto& lookupId = it->second.lookupId;
+    if (lookupId >= vecLookup.size()) {
+      LOG_GENERAL(WARNING, "Lookup id greater than lookup Size " << lookupId);
+      continue;
+    }
+
+    const auto& lookupPubkey = vecLookup.at(lookupId).first;
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
+        Account::GetAddressFromPublicKey(lookupPubkey));
+  }*/
+}
+
 bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
                                     const vector<bool>& b2,
                                     const int32_t& shard_id,
@@ -115,7 +180,8 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
   LOG_MARKER();
   LOG_GENERAL(INFO, "Save coin base for shardId: " << shard_id << ", epochNum: "
                                                    << epochNum);
-  if (shard_id == (int32_t)m_shards.size() || shard_id == -1) {
+  if (shard_id == (int32_t)m_shards.size() ||
+      shard_id == CoinbaseReward::FINALBLOCK_REWARD) {
     // DS
     lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);
@@ -137,15 +203,24 @@ void DirectoryService::InitCoinbase() {
   }
 
   LOG_MARKER();
+
+  const auto& vecLookup = m_mediator.m_lookup->GetLookupNodes();
+  const auto& epochNum = m_mediator.m_currentEpochNum;
+
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);
 
-  if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW) {
+  for (const auto& lookupNode : vecLookup) {
+    m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
+        Account::GetAddressFromPublicKey(lookupNode.first));
+  }
+
+  if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW - 1) {
     LOG_GENERAL(INFO, "[CNBSE]"
-                          << "Less then expected rewardees "
+                          << "Less then expected epoch rewardees "
                           << m_coinbaseRewardees.size());
-  } else if (m_coinbaseRewardees.size() > NUM_FINAL_BLOCK_PER_POW) {
+  } else if (m_coinbaseRewardees.size() > NUM_FINAL_BLOCK_PER_POW - 1) {
     LOG_GENERAL(INFO, "[CNBSE]"
-                          << "More then expected rewardees "
+                          << "More then expected epoch rewardees "
                           << m_coinbaseRewardees.size());
   }
 
@@ -156,18 +231,23 @@ void DirectoryService::InitCoinbase() {
 
   Address genesisAccount(GENESIS_WALLETS[0]);
 
-  uint256_t sig_count = 0;
-
+  uint128_t sig_count = 0;
+  uint32_t lookup_count = 0;
   for (auto const& epochNum : m_coinbaseRewardees) {
     for (auto const& shardId : epochNum.second) {
-      sig_count += shardId.second.size();
+      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
+        lookup_count += shardId.second.size();
+      } else {
+        sig_count += shardId.second.size();
+      }
     }
   }
-  LOG_GENERAL(INFO, "Total signatures count: " << sig_count);
+  LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
+                                               << lookup_count);
 
-  uint256_t total_reward;
+  uint128_t total_reward;
 
-  if (!SafeMath<uint256_t>::add(COINBASE_REWARD, m_totalTxnFees,
+  if (!SafeMath<uint128_t>::add(COINBASE_REWARD, m_totalTxnFees,
                                 total_reward)) {
     LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     return;
@@ -175,34 +255,56 @@ void DirectoryService::InitCoinbase() {
 
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
-  uint256_t reward_each;
+  uint128_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERCENT;
+  uint128_t nodeReward = total_reward - lookupReward;
+  uint128_t reward_each;
+  uint128_t reward_each_lookup;
 
-  if (!SafeMath<uint256_t>::div(total_reward, sig_count, reward_each)) {
+  if (!SafeMath<uint128_t>::div(nodeReward, sig_count, reward_each)) {
     LOG_GENERAL(WARNING, "reward_each dividing unsafe!");
     return;
   }
 
-  LOG_GENERAL(INFO, "Each reward: " << reward_each);
+  if (!SafeMath<uint128_t>::div(lookupReward, lookup_count,
+                                reward_each_lookup)) {
+    LOG_GENERAL(WARNING, "reward_each_lookup dividing unsafe");
+    return;
+  }
 
-  uint256_t suc_counter = 0;
+  LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
+                                    << reward_each_lookup);
+
+  uint128_t suc_counter = 0;
+  uint128_t suc_lookup_counter = 0;
   for (auto const& epochNum : m_coinbaseRewardees) {
     LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum.first << " epoch");
 
     for (auto const& shardId : epochNum.second) {
       LOG_GENERAL(INFO, "[CNBSE] Rewarding " << shardId.first << " shard");
-
-      for (auto const& addr : shardId.second) {
-        if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                addr, genesisAccount, reward_each)) {
-          LOG_GENERAL(WARNING, "Could Not reward " << addr);
-        } else {
-          suc_counter++;
+      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
+        for (auto const& addr : shardId.second) {
+          if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+                  addr, genesisAccount, reward_each_lookup)) {
+            LOG_GENERAL(WARNING, "Could Not reward " << addr);
+          } else {
+            suc_lookup_counter++;
+          }
+        }
+      } else {
+        for (auto const& addr : shardId.second) {
+          if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
+                  addr, genesisAccount, reward_each)) {
+            LOG_GENERAL(WARNING, "Could Not reward " << addr);
+          } else {
+            suc_counter++;
+          }
         }
       }
     }
   }
 
-  uint256_t balance_left = total_reward - (suc_counter * reward_each);
+  uint128_t balance_left = total_reward - (suc_counter * reward_each) -
+                           (suc_lookup_counter * reward_each_lookup);
 
   LOG_GENERAL(INFO, "Left reward: " << balance_left);
 

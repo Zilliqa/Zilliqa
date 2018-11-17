@@ -588,12 +588,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     }
   }
 
-  {
-    lock_guard<mutex> h(m_mutexCoinbaseRewardees);
-    m_coinbaseRewardees.clear();
-  }
   // Add the DS block to the chain
   StoreDSBlockToStorage();
+
+  m_mediator.m_node->m_proposedGasPrice =
+      max(m_mediator.m_node->m_proposedGasPrice,
+          m_pendingDSBlock->GetHeader().GetGasPrice());
 
   m_mediator.UpdateDSBlockRand();
 

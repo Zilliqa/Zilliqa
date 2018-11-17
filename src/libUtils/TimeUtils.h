@@ -20,13 +20,16 @@
 #ifndef __TIMEUTILS_H__
 #define __TIMEUTILS_H__
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <chrono>
 
 std::chrono::system_clock::time_point r_timer_start();
 double r_timer_end(std::chrono::system_clock::time_point start_time);
 
-boost::multiprecision::uint256_t get_time_as_int();
+uint64_t get_time_as_int();
 struct tm* gmtime_safe(const time_t* timer);
 long int get_ms(const std::chrono::time_point<std::chrono::system_clock> time);
 #endif  // __TIMEUTILS_H__

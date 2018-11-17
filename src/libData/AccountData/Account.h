@@ -23,7 +23,10 @@
 #include <json/json.h>
 #include <leveldb/db.h>
 #include <array>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <vector>
 
 #include "Address.h"
@@ -45,8 +48,8 @@ template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class Account : public SerializableDataBlock {
-  boost::multiprecision::uint256_t m_balance;
-  boost::multiprecision::uint256_t m_nonce;
+  boost::multiprecision::uint128_t m_balance;
+  uint64_t m_nonce;
   dev::h256 m_storageRoot, m_prevRoot;
   dev::h256 m_codeHash;
   // The associated code for this account.
@@ -66,8 +69,8 @@ class Account : public SerializableDataBlock {
   Account(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Constructor for a account.
-  Account(const boost::multiprecision::uint256_t& balance,
-          const boost::multiprecision::uint256_t& nonce);
+  Account(const boost::multiprecision::uint128_t& balance,
+          const uint64_t& nonce);
 
   /// Returns true if account is a contract account
   bool isContract() const { return m_codeHash != dev::h256(); }
@@ -93,33 +96,31 @@ class Account : public SerializableDataBlock {
   bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
 
   /// Increases account balance by the specified delta amount.
-  bool IncreaseBalance(const boost::multiprecision::uint256_t& delta);
+  bool IncreaseBalance(const boost::multiprecision::uint128_t& delta);
 
   /// Decreases account balance by the specified delta amount.
-  bool DecreaseBalance(const boost::multiprecision::uint256_t& delta);
+  bool DecreaseBalance(const boost::multiprecision::uint128_t& delta);
 
   bool ChangeBalance(const boost::multiprecision::int256_t& delta);
 
-  void SetBalance(const boost::multiprecision::uint256_t& balance) {
+  void SetBalance(const boost::multiprecision::uint128_t& balance) {
     m_balance = balance;
   }
 
   /// Returns the account balance.
-  const boost::multiprecision::uint256_t& GetBalance() const {
+  const boost::multiprecision::uint128_t& GetBalance() const {
     return m_balance;
   }
 
   /// Increases account nonce by 1.
   bool IncreaseNonce();
 
-  bool IncreaseNonceBy(const boost::multiprecision::uint256_t& nonceDelta);
+  bool IncreaseNonceBy(const uint64_t& nonceDelta);
 
-  void SetNonce(const boost::multiprecision::uint256_t& nonce) {
-    m_nonce = nonce;
-  }
+  void SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
 
   /// Returns the account nonce.
-  const boost::multiprecision::uint256_t& GetNonce() const { return m_nonce; }
+  const uint64_t& GetNonce() const { return m_nonce; }
 
   void SetStorageRoot(const dev::h256& root);
 
@@ -166,8 +167,8 @@ class Account : public SerializableDataBlock {
   static Address GetAddressFromPublicKey(const PubKey& pubKey);
 
   /// Computes an account address from a sender and its nonce
-  static Address GetAddressForContract(
-      const Address& sender, const boost::multiprecision::uint256_t& nonce);
+  static Address GetAddressForContract(const Address& sender,
+                                       const uint64_t& nonce);
 
   friend inline std::ostream& operator<<(std::ostream& out,
                                          Account const& account);

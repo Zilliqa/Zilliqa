@@ -72,19 +72,21 @@ bool DirectoryService::ProcessPoWSubmission(
               "Not at POW_SUBMISSION. Current state is " << m_state);
     return false;
   }
-
-  uint64_t blockNumber = 0;
   uint8_t difficultyLevel = 0;
+  uint64_t blockNumber = 0;
   Peer submitterPeer;
   PubKey submitterPubKey;
   uint64_t nonce = 0;
   string resultingHash;
   string mixHash;
   Signature signature;
+  uint32_t lookupId;
+  uint128_t gasPrice;
 
-  if (!Messenger::GetDSPoWSubmission(
-          message, offset, blockNumber, difficultyLevel, submitterPeer,
-          submitterPubKey, nonce, resultingHash, mixHash, signature)) {
+  if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
+                                     difficultyLevel, submitterPeer,
+                                     submitterPubKey, nonce, resultingHash,
+                                     mixHash, signature, lookupId, gasPrice)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSPoWSubmission failed.");
     return false;
@@ -154,7 +156,6 @@ bool DirectoryService::ProcessPoWSubmission(
                              << to_string(difficultyLevel)
                              << " Expected: " << to_string(expectedDSDiff)
                              << " or " << to_string(expectedDiff));
-
     // TODO: penalise sender in reputation manager
     return false;
   }
@@ -163,7 +164,8 @@ bool DirectoryService::ProcessPoWSubmission(
 
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, rand1, rand2, submitterPeer.m_ipAddress,
-      submitterPubKey, false, nonce, resultingHash, mixHash);
+      submitterPubKey, lookupId, gasPrice, false, nonce, resultingHash,
+      mixHash);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
@@ -184,7 +186,8 @@ bool DirectoryService::ProcessPoWSubmission(
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
       PoWSolution soln(nonce, DataConversion::HexStrToStdArray(resultingHash),
-                       DataConversion::HexStrToStdArray(mixHash));
+                       DataConversion::HexStrToStdArray(mixHash), lookupId,
+                       gasPrice);
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {

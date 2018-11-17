@@ -43,6 +43,9 @@ void AccountStore::Init() {
   LOG_MARKER();
 
   InitSoft();
+
+  lock_guard<mutex> g(m_mutexDB);
+
   ContractStorage::GetContractStorage().GetStateDB().ResetDB();
   m_db.ResetDB();
 }
@@ -50,11 +53,31 @@ void AccountStore::Init() {
 void AccountStore::InitSoft() {
   LOG_MARKER();
 
+  lock_guard<mutex> g(m_mutexPrimary);
+
   AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
 
   InitReversibles();
 
   InitTemp();
+}
+
+void AccountStore::InitTemp() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDelta);
+
+  m_accountStoreTemp->Init();
+  m_stateDeltaSerialized.clear();
+}
+
+void AccountStore::InitReversibles() {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexReversibles);
+
+  m_addressToAccountRevChanged.clear();
+  m_addressToAccountRevCreated.clear();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -64,6 +87,11 @@ AccountStore& AccountStore::GetInstance() {
 
 bool AccountStore::Deserialize(const vector<unsigned char>& src,
                                unsigned int offset) {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexPrimary);
+
+  this->Init();
   if (!Messenger::GetAccountStore(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
     return false;
@@ -75,7 +103,9 @@ bool AccountStore::Deserialize(const vector<unsigned char>& src,
 bool AccountStore::SerializeDelta() {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexDelta);
+  lock(m_mutexDelta, m_mutexPrimary);
+  lock_guard<mutex> g(m_mutexDelta, adopt_lock);
+  lock_guard<mutex> g2(m_mutexPrimary, adopt_lock);
 
   m_stateDeltaSerialized.clear();
 
@@ -99,11 +129,22 @@ bool AccountStore::DeserializeDelta(const vector<unsigned char>& src,
                                     unsigned int offset, bool reversible) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexDelta);
+  if (reversible) {
+    lock(m_mutexPrimary, m_mutexReversibles);
+    lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+    lock_guard<mutex> g2(m_mutexReversibles, adopt_lock);
 
-  if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
-    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
-    return false;
+    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
+      LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
+      return false;
+    }
+  } else {
+    lock_guard<mutex> g(m_mutexPrimary);
+
+    if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
+      LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
+      return false;
+    }
   }
 
   return true;
@@ -123,6 +164,10 @@ void AccountStore::MoveRootToDisk(const h256& root) {
 
 void AccountStore::MoveUpdatesToDisk() {
   LOG_MARKER();
+
+  lock(m_mutexPrimary, m_mutexDB);
+  lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
 
   ContractStorage::GetContractStorage().GetStateDB().commit();
   for (auto i : *m_addressToAccount) {
@@ -147,6 +192,10 @@ void AccountStore::MoveUpdatesToDisk() {
 void AccountStore::DiscardUnsavedUpdates() {
   LOG_MARKER();
 
+  lock(m_mutexPrimary, m_mutexDB);
+  lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+
   ContractStorage::GetContractStorage().GetStateDB().rollback();
   for (auto i : *m_addressToAccount) {
     i.second.RollBack();
@@ -164,6 +213,11 @@ void AccountStore::DiscardUnsavedUpdates() {
 
 bool AccountStore::RetrieveFromDisk() {
   LOG_MARKER();
+
+  lock(m_mutexPrimary, m_mutexDB);
+  lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+  lock_guard<mutex> g2(m_mutexDB, adopt_lock);
+
   vector<unsigned char> rootBytes;
   if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
     return false;
@@ -180,7 +234,7 @@ bool AccountStore::RetrieveFromDisk() {
         LOG_GENERAL(WARNING, "Account data corrupted");
         continue;
       }
-      Account account(rlp[0].toInt<uint256_t>(), rlp[1].toInt<uint256_t>());
+      Account account(rlp[0].toInt<uint128_t>(), rlp[1].toInt<uint64_t>());
       // Code Hash
       if (rlp[3].toHash<h256>() != h256()) {
         // Extract Code Content
@@ -218,10 +272,11 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const Address& genesisAddress,
-                                      const uint256_t& amount) {
+                                      const uint128_t& amount) {
   // LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexDelta);
+
   if (m_accountStoreTemp->GetAccount(rewardee) == nullptr) {
     m_accountStoreTemp->AddAccount(rewardee, {0, 0});
   }
@@ -229,8 +284,10 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   // Should the nonce increase ??
 }
 
-boost::multiprecision::uint256_t AccountStore::GetNonceTemp(
+boost::multiprecision::uint128_t AccountStore::GetNonceTemp(
     const Address& address) {
+  lock_guard<mutex> g(m_mutexDelta);
+
   if (m_accountStoreTemp->GetAddressToAccount()->find(address) !=
       m_accountStoreTemp->GetAddressToAccount()->end()) {
     return m_accountStoreTemp->GetNonce(address);
@@ -267,15 +324,6 @@ void AccountStore::CommitTemp() {
   }
 }
 
-void AccountStore::InitTemp() {
-  LOG_MARKER();
-
-  lock_guard<mutex> g(m_mutexDelta);
-
-  m_accountStoreTemp->Init();
-  m_stateDeltaSerialized.clear();
-}
-
 void AccountStore::CommitTempReversible() {
   LOG_MARKER();
 
@@ -289,6 +337,8 @@ void AccountStore::CommitTempReversible() {
 void AccountStore::RevertCommitTemp() {
   LOG_MARKER();
 
+  lock_guard<mutex> g(m_mutexPrimary);
+
   // Revert changed
   for (auto const entry : m_addressToAccountRevChanged) {
     // LOG_GENERAL(INFO, "Revert changed address: " << entry.first);
@@ -300,11 +350,4 @@ void AccountStore::RevertCommitTemp() {
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }
-}
-
-void AccountStore::InitReversibles() {
-  LOG_MARKER();
-
-  m_addressToAccountRevChanged.clear();
-  m_addressToAccountRevCreated.clear();
 }

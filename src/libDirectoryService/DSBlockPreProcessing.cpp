@@ -79,10 +79,11 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   blockNum = 0;
   dsDifficulty = DS_POW_DIFFICULTY;
   difficulty = POW_DIFFICULTY;
+  auto lastBlockLink = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   if (m_mediator.m_dsBlockChain.GetBlockCount() > 0) {
     DSBlock lastBlock = m_mediator.m_dsBlockChain.GetLastBlock();
     blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
-    prevHash = lastBlock.GetBlockHash();
+    prevHash = get<BlockLinkIndex::BLOCKHASH>(lastBlockLink);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Prev DS block hash as per leader " << prevHash.hex());
@@ -304,7 +305,8 @@ bool DirectoryService::VerifyPoWWinner(
         bool result = POW::GetInstance().PoWVerify(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
-            peer.m_ipAddress, DSPowWinner.first, false, dsPowSoln.nonce,
+            peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
+            dsPowSoln.gasPrice, false, dsPowSoln.nonce,
             DataConversion::charArrToHexStr(dsPowSoln.result),
             DataConversion::charArrToHexStr(dsPowSoln.mixhash));
         if (!result) {
@@ -727,13 +729,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  m_mediator.m_currentEpochNum,
-                                  get_time_as_int(), m_mediator.m_curSWInfo,
-                                  powDSWinners, dsBlockHashSet, committeeHash),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                      m_mediator.m_selfKey.second, blockNum,
+                      m_mediator.m_currentEpochNum, GetNewGasPrice(),
+                      get_time_as_int(), m_mediator.m_curSWInfo, powDSWinners,
+                      dsBlockHashSet, committeeHash),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
     m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
   }
 
@@ -954,6 +956,17 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
+      m_mediator.m_blocklinkchain.GetLatestBlockLink());
+  if (prevHash != m_pendingDSBlock->GetHeader().GetPrevHash()) {
+    LOG_GENERAL(
+        WARNING,
+        "Prev Block hash in newly received DS Block doesn't match. Calculated "
+            << prevHash << " Received"
+            << m_pendingDSBlock->GetHeader().GetPrevHash());
+    return false;
+  }
+
   if (!VerifyPoWWinner(dsWinnerPoWsFromLeader)) {
     LOG_GENERAL(WARNING, "Failed to verify PoW winner");
     return false;
@@ -973,6 +986,11 @@ bool DirectoryService::DSBlockValidator(
 
   if (!VerifyPoWOrdering(m_tempShards, allPoWsFromLeader)) {
     LOG_GENERAL(WARNING, "Failed to verify ordering");
+    return false;
+  }
+
+  if (!VerifyGasPrice(m_pendingDSBlock->GetHeader().GetGasPrice())) {
+    LOG_GENERAL(WARNING, "Failed to verify gas price");
     return false;
   }
 
@@ -1114,6 +1132,11 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
 
   LOG_MARKER();
   SetState(DSBLOCK_CONSENSUS_PREP);
+
+  {
+    lock_guard<mutex> h(m_mutexCoinbaseRewardees);
+    m_coinbaseRewardees.clear();
+  }
 
   {
     lock_guard<mutex> g(m_mutexAllPOW);

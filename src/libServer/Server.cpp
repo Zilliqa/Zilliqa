@@ -21,7 +21,10 @@
 
 #include <jsonrpccpp/server.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <iostream>
 
 #include "Server.h"
@@ -293,7 +296,7 @@ Json::Value Server::GetLatestDsBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << Latest.GetHeader().GetBlockNum()
                         << "  Timestamp:        "
-                        << Latest.GetHeader().GetTimestamp().str());
+                        << Latest.GetHeader().GetTimestamp());
 
   return JSONConversion::convertDSblocktoJson(Latest);
 }
@@ -305,7 +308,7 @@ Json::Value Server::GetLatestTxBlock() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << Latest.GetHeader().GetBlockNum()
                         << "  Timestamp:        "
-                        << Latest.GetHeader().GetTimestamp().str());
+                        << Latest.GetHeader().GetTimestamp());
 
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
@@ -325,14 +328,13 @@ Json::Value Server::GetBalance(const string& address) {
 
     Json::Value ret;
     if (account != nullptr) {
-      boost::multiprecision::uint256_t balance = account->GetBalance();
-      boost::multiprecision::uint256_t nonce = account->GetNonce();
+      boost::multiprecision::uint128_t balance = account->GetBalance();
+      uint64_t nonce = account->GetNonce();
 
       ret["balance"] = balance.str();
       // FIXME: a workaround, 256-bit unsigned int being truncated
-      ret["nonce"] = nonce.convert_to<unsigned int>();
-      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: "
-                                   << nonce.convert_to<unsigned int>());
+      ret["nonce"] = static_cast<unsigned int>(nonce);
+      LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: " << nonce);
     } else if (account == nullptr) {
       ret["balance"] = "0";
       ret["nonce"] = 0;
@@ -468,10 +470,10 @@ Json::Value Server::GetSmartContracts(const string& address) {
       _json["Error"] = "A contract account queried";
       return _json;
     }
-    boost::multiprecision::uint256_t nonce = account->GetNonce();
+    uint64_t nonce = account->GetNonce();
     //[TODO] find out a more efficient way (using storage)
 
-    for (boost::multiprecision::uint256_t i = 0; i < nonce; i++) {
+    for (uint64_t i = 0; i < nonce; i++) {
       Address contractAddr = Account::GetAddressForContract(addr, i);
       const Account* contractAccount =
           AccountStore::GetInstance().GetAccount(contractAddr);
@@ -579,7 +581,7 @@ string Server::GetNumTransactions() {
   return m_BlockTxPair.second.str();
 }
 
-boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
+size_t Server::GetNumTransactions(uint64_t blockNum) {
   uint64_t currBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -587,7 +589,7 @@ boost::multiprecision::uint256_t Server::GetNumTransactions(uint64_t blockNum) {
     return 0;
   }
 
-  uint64_t i, res = 0;
+  size_t i, res = 0;
 
   for (i = blockNum + 1; i <= currBlockNum; i++) {
     res += m_mediator.m_txBlockChain.GetBlock(i).GetHeader().GetNumTxs();
@@ -601,7 +603,7 @@ double Server::GetTransactionRate() {
   uint64_t refBlockNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  boost::multiprecision::uint256_t refTimeTx = 0;
+  uint64_t refTimeTx = 0;
 
   if (refBlockNum <= REF_BLOCK_DIFF) {
     if (refBlockNum <= 1) {
@@ -630,15 +632,14 @@ double Server::GetTransactionRate() {
     return 0;
   }
 
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       refTimeTx;
 
   if (TimeDiff == 0 || refTimeTx == 0) {
     // something went wrong
     LOG_GENERAL(INFO, "TimeDiff or refTimeTx = 0 \n TimeDiff:"
-                          << TimeDiff.str()
-                          << " refTimeTx:" << refTimeTx.str());
+                          << TimeDiff << " refTimeTx:" << refTimeTx);
     return 0;
   }
   numTxns = numTxns * 1000000;  // conversion from microseconds to seconds
@@ -668,7 +669,7 @@ double Server::GetDSBlockRate() {
       return 0;
     }
   }
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       m_StartTimeDs;
 
@@ -702,7 +703,7 @@ double Server::GetTxBlockRate() {
       return 0;
     }
   }
-  boost::multiprecision::uint256_t TimeDiff =
+  uint64_t TimeDiff =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
       m_StartTimeTx;
 
@@ -712,7 +713,7 @@ double Server::GetTxBlockRate() {
   }
   // To convert from microSeconds to seconds
   numTx = numTx * 1000000;
-  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(TimeDiff.str());
+  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
   boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
   return ans.convert_to<double>();
 }
@@ -790,7 +791,7 @@ Json::Value Server::DSBlockListing(unsigned int page) {
   Json::Value tmpJson;
   if (page <= NUM_PAGES_CACHE)  // can use cache
   {
-    boost::multiprecision::uint256_t cacheSize(
+    boost::multiprecision::uint128_t cacheSize(
         m_DSBlockCache.second.capacity());
     if (cacheSize > m_DSBlockCache.second.size()) {
       cacheSize = m_DSBlockCache.second.size();
@@ -881,7 +882,7 @@ Json::Value Server::TxBlockListing(unsigned int page) {
   Json::Value tmpJson;
   if (page <= NUM_PAGES_CACHE)  // can use cache
   {
-    boost::multiprecision::uint256_t cacheSize(
+    boost::multiprecision::uint128_t cacheSize(
         m_TxBlockCache.second.capacity());
 
     if (cacheSize > m_TxBlockCache.second.size()) {

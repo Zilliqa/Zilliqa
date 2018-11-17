@@ -354,13 +354,18 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   LOG_MARKER();
 
 #ifdef DM_TEST_DM_LESSMB_ONE
-  if (m_mediator.m_ds->m_consensusMyID ==
-      ((m_mediator.m_ds->m_consensusLeaderID + 1) %
-       m_mediator.m_DSCommittee->size())) {
+  uint32_t dm_test_id = (m_mediator.m_ds->m_consensusLeaderID + 1) %
+                        m_mediator.m_DSCommittee->size();
+  LOG_GENERAL(WARNING, "Consensus ID for DM3 test is " << dm_test_id);
+  if (m_consensusMyID == dm_test_id) {
     LOG_GENERAL(WARNING,
                 "Letting one of the backups refuse some Microblock submission "
                 "(DM_TEST_DM_LESSMB_ONE)");
     return false;
+  } else {
+    LOG_GENERAL(WARNING,
+                "The node triggered DM_TEST_DM_LESSMB_ONE is "
+                    << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSMB_ONE
 

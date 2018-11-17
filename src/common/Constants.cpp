@@ -17,6 +17,7 @@
  * program files.
  */
 #include "Constants.h"
+#include "libUtils/SafeMath.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -52,6 +53,11 @@ std::string ReadFromOptionsFile(std::string propertyName) {
 unsigned int ReadFromGasFile(std::string propertyName) {
   auto pt = PTree::GetInstance();
   return pt.get<unsigned int>("node.gas." + propertyName);
+}
+
+std::string ReadFromGasFileInString(std::string propertyName) {
+  auto pt = PTree::GetInstance();
+  return pt.get<std::string>("node.gas." + propertyName);
 }
 
 std::string ReadSmartContractConstants(std::string propertyName) {
@@ -128,8 +134,6 @@ const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
-const unsigned int NUM_DS_KEEP_TX_BODY{
-    ReadFromConstantsFile("NUM_DS_KEEP_TX_BODY")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
 const unsigned int TX_SHARING_CLUSTER_SIZE{
     ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
@@ -206,6 +210,13 @@ const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{
     ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
+const unsigned int LOOKUP_REWARD_IN_PERCENT{
+    ReadFromConstantsFile("LOOKUP_REWARD_IN_PERCENT")};
+const unsigned int PUMPMESSAGE_MILLISECONDS{
+    ReadFromConstantsFile("PUMPMESSAGE_MILLISECONDS")};
+const unsigned int MAXRETRYCONN{ReadFromConstantsFile("MAXRETRYCONN")};
+const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
+    ReadFromConstantsFile("SIMULATED_NETWORK_DELAY_IN_MS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
@@ -240,8 +251,26 @@ const unsigned int MICROBLOCK_GAS_LIMIT{
 const unsigned int CONTRACT_CREATE_GAS{ReadFromGasFile("CONTRACT_CREATE_GAS")};
 const unsigned int CONTRACT_INVOKE_GAS{ReadFromGasFile("CONTRACT_INVOKE_GAS")};
 const unsigned int NORMAL_TRAN_GAS{ReadFromGasFile("NORMAL_TRAN_GAS")};
-const unsigned int DEFAULT_MIN_GAS_PRICE{
-    ReadFromGasFile("DEFAULT_MIN_GAS_PRICE")};
+const unsigned int GAS_CONGESTION_PERCENT{
+    ReadFromGasFile("GAS_CONGESTION_PERCENT")};
+const unsigned int UNFILLED_PERCENT_LOW{
+    ReadFromGasFile("UNFILLED_PERCENT_LOW")};
+const unsigned int UNFILLED_PERCENT_HIGH{
+    ReadFromGasFile("UNFILLED_PERCENT_HIGH")};
+const unsigned int GAS_PRICE_PRECISION{ReadFromGasFile("GAS_PRICE_PRECISION")};
+const unsigned int GAS_PRICE_DROP_RATIO{
+    ReadFromGasFile("GAS_PRICE_DROP_RATIO")};
+const unsigned int GAS_PRICE_RAISE_RATIO_LOWER{
+    ReadFromGasFile("GAS_PRICE_RAISE_RATIO_LOWER")};
+const unsigned int GAS_PRICE_RAISE_RATIO_UPPER{
+    ReadFromGasFile("GAS_PRICE_RAISE_RATIO_UPPER")};
+const unsigned int GAS_PRICE_TOLERANCE{ReadFromGasFile("GAS_PRICE_TOLERANCE")};
+const unsigned int MEAN_GAS_PRICE_DS_NUM{
+    ReadFromGasFile("MEAN_GAS_PRICE_DS_NUM")};
+const boost::multiprecision::uint128_t PRECISION_MIN_VALUE{
+    SafeMath<boost::multiprecision::uint128_t>::power(10, GAS_PRICE_PRECISION)};
+const std::string LEGAL_GAS_PRICE_IP{
+    ReadFromGasFileInString("LEGAL_GAS_PRICE_IP")};
 
 // accounts
 const std::vector<std::string> GENESIS_WALLETS{

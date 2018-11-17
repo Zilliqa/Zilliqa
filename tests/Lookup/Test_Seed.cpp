@@ -37,7 +37,10 @@
 #define BOOST_TEST_MODULE seedtest
 #include <boost/test/included/unit_test.hpp>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -214,7 +217,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   curr_offset += dsblock.Serialize(dsblockmsg, curr_offset);
 
   dsblockmsg.resize(curr_offset + 32);
-  Serializable::SetNumber<uint256_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
+  Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset, 0, UINT256_SIZE);
   curr_offset += UINT256_SIZE;
 
   struct sockaddr_in localhost;

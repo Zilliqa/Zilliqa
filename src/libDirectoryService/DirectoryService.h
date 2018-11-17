@@ -21,7 +21,10 @@
 #define __DIRECTORYSERVICE_H__
 
 #include <array>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <condition_variable>
 #include <deque>
 #include <list>
@@ -49,20 +52,32 @@ struct PoWSolution {
   uint64_t nonce;
   std::array<unsigned char, 32> result;
   std::array<unsigned char, 32> mixhash;
+  uint32_t lookupId;
+  boost::multiprecision::uint128_t gasPrice;
 
   PoWSolution()
       : nonce(0),
         result({{0}}),
-        mixhash({{0}}) {
+        mixhash({{0}}),
+        lookupId(uint32_t() - 1),
+        gasPrice(0) {
+
   }  // The oldest DS (and now new shard node) will have this default value
   PoWSolution(const uint64_t n, const std::array<unsigned char, 32>& r,
-              const std::array<unsigned char, 32>& m)
-      : nonce(n), result(r), mixhash(m) {}
+              const std::array<unsigned char, 32>& m, uint32_t l,
+              const boost::multiprecision::uint128_t& gp)
+      : nonce(n), result(r), mixhash(m), lookupId(l), gasPrice(gp) {}
   bool operator==(const PoWSolution& rhs) const {
-    return (nonce == rhs.nonce) && (result == rhs.result) &&
-           (mixhash == rhs.mixhash);
+    return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
+           std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.lookupId,
+                    rhs.gasPrice);
   }
 };
+
+namespace CoinbaseReward {
+const int FINALBLOCK_REWARD = -1;
+const int LOOKUP_REWARD = -2;
+}  // namespace CoinbaseReward
 
 using VectorOfPoWSoln =
     std::vector<std::pair<std::array<unsigned char, 32>, PubKey>>;
@@ -179,7 +194,7 @@ class DirectoryService : public Executable, public Broadcastable {
   uint32_t m_numOfAbsentMicroBlocks;
 
   // Coinbase
-  std::map<uint64_t, std::map<uint32_t, std::vector<Address>>>
+  std::map<uint64_t, std::map<int32_t, std::vector<Address>>>
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
@@ -235,6 +250,17 @@ class DirectoryService : public Executable, public Broadcastable {
   void InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                           unsigned int numOfProposedDSMembers);
 
+  // Gas Pricer
+  boost::multiprecision::uint128_t GetNewGasPrice();
+  boost::multiprecision::uint128_t GetHistoricalMeanGasPrice();
+  boost::multiprecision::uint128_t GetDecreasedGasPrice();
+  boost::multiprecision::uint128_t GetIncreasedGasPrice();
+  bool VerifyGasPrice(const boost::multiprecision::uint128_t& gasPrice);
+
+  void LookupCoinbase(const DequeOfShard& shards, const MapOfPubKeyPoW& allPow,
+                      const std::map<PubKey, Peer>& powDSWinner,
+                      const MapOfPubKeyPoW& dsPow);
+
   void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
@@ -284,15 +310,10 @@ class DirectoryService : public Executable, public Broadcastable {
   bool ProcessMissingMicroblockSubmission(
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
       const std::vector<std::vector<unsigned char>>& stateDeltas);
-  void ExtractDataFromMicroblocks(BlockHash& microblockTrieRoot,
-                                  std::vector<BlockHash>& microblockHashes,
-                                  std::vector<uint32_t>& shardIds,
-                                  boost::multiprecision::uint256_t& allGasLimit,
-                                  boost::multiprecision::uint256_t& allGasUsed,
-                                  boost::multiprecision::uint256_t& allRewards,
-                                  uint32_t& numTxs,
-                                  std::vector<bool>& isMicroBlockEmpty,
-                                  uint32_t& numMicroBlocks);
+  void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
+                                  uint64_t& allGasLimit, uint64_t& allGasUsed,
+                                  boost::multiprecision::uint128_t& allRewards,
+                                  uint32_t& numTxs);
   bool VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                    uint32_t shardId);
   bool ProcessStateDelta(const std::vector<unsigned char>& stateDelta,
@@ -313,8 +334,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
                         bool fromShards = false);
   bool CheckLegitimacyOfMicroBlocks();
-  bool CheckMicroBlockHashRoot();
-  bool CheckExtraMicroBlockInfo();
+  bool CheckMicroBlockInfo();
   bool CheckStateRoot();
   bool CheckStateDeltaHash();
   void LoadUnavailableMicroBlocks();
@@ -486,7 +506,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::unordered_map<uint64_t,
                      std::unordered_map<BlockHash, std::vector<unsigned char>>>
       m_microBlockStateDeltas;
-  boost::multiprecision::uint256_t m_totalTxnFees;
+  boost::multiprecision::uint128_t m_totalTxnFees;
 
   Synchronizer m_synchronizer;
 

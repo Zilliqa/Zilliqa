@@ -28,7 +28,10 @@
 #include <unordered_map>
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 
 #include "vector_ref.h"
 
@@ -127,6 +130,7 @@ namespace dev
 
     // Null/Invalid values for convenience.
     extern bytes const NullBytes;
+    extern u128 const Invalid128;
     extern u256 const Invalid256;
 
     /// Get the current time in seconds since the epoch in UTC

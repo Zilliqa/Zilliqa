@@ -79,11 +79,11 @@ BOOST_AUTO_TEST_CASE(DSBlock_test) {
   uint8_t diff2 = header2.GetDifficulty();
   const std::array<unsigned char, BLOCK_HASH_SIZE>& prevHash2 =
       header2.GetPrevHash();
-  uint256_t nonce2 = header2.GetNonce();
+  uint128_t nonce2 = header2.GetNonce();
   const std::array<unsigned char, PUB_KEY_SIZE>& pubKey2 =
       header2.GetMinerPubKey();
-  uint256_t blockNum2 = header2.GetBlockNum();
-  uint256_t timestamp2 = header2.GetTimestamp();
+  uint128_t blockNum2 = header2.GetBlockNum();
+  uint64_t timestamp2 = header2.GetTimestamp();
   const std::array<unsigned char, BLOCK_SIG_SIZE>& signature2 =
       block2.GetSignature();
 
@@ -281,18 +281,18 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   TxBlockHeader header2 = block2.GetHeader();
   uint8_t type2 = header2.GetType();
   uint32_t version2 = header2.GetVersion();
-  uint256_t gasLimit2 = header2.GetGasLimit();
-  uint256_t gasUsed2 = header2.GetGasUsed();
+  uint128_t gasLimit2 = header2.GetGasLimit();
+  uint128_t gasUsed2 = header2.GetGasUsed();
   const std::array<unsigned char, BLOCK_HASH_SIZE>& prevHash2 =
       header2.GetPrevHash();
-  uint256_t blockNum2 = header2.GetBlockNum();
-  uint256_t timestamp2 = header2.GetTimestamp();
+  uint128_t blockNum2 = header2.GetBlockNum();
+  uint64_t timestamp2 = header2.GetTimestamp();
   const std::array<unsigned char, TRAN_HASH_SIZE>& txRootHash2 =
       header2.GetTxRootHash();
   uint32_t numTxs2 = header2.GetNumTxs();
   const std::array<unsigned char, PUB_KEY_SIZE>& pubKey2 =
       header2.GetMinerPubKey();
-  uint256_t dsBlockNum2 = header2.GetDSBlockNum();
+  uint128_t dsBlockNum2 = header2.GetDSBlockNum();
   const std::array<unsigned char, BLOCK_HASH_SIZE>& dsBlockHeader2 =
       header2.GetDSBlockHeader();
 

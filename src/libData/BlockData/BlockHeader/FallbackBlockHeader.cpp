@@ -38,8 +38,8 @@ FallbackBlockHeader::FallbackBlockHeader(
     const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
     const uint32_t leaderConsensusId, const Peer& leaderNetworkInfo,
     const PubKey& leaderPubKey, const uint32_t shardId,
-    const boost::multiprecision::uint256_t& timestamp,
-    const CommitteeHash& committeeHash)
+    const uint64_t& timestamp, const CommitteeHash& committeeHash,
+    const BlockHash& prevHash)
     : BlockHeaderBase(committeeHash),
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
@@ -49,7 +49,8 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_leaderNetworkInfo(leaderNetworkInfo),
       m_leaderPubKey(leaderPubKey),
       m_shardId(shardId),
-      m_timestamp(timestamp) {}
+      m_timestamp(timestamp),
+      m_prevHash(prevHash) {}
 
 bool FallbackBlockHeader::Serialize(vector<unsigned char>& dst,
                                     unsigned int offset) const {
@@ -101,8 +102,7 @@ const PubKey& FallbackBlockHeader::GetLeaderPubKey() const {
 
 uint32_t FallbackBlockHeader::GetShardId() const { return m_shardId; }
 
-const boost::multiprecision::uint256_t& FallbackBlockHeader::GetTimeStamp()
-    const {
+const uint64_t& FallbackBlockHeader::GetTimeStamp() const {
   return m_timestamp;
 }
 

@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_SUITE(contracttest)
 Address fromAddr, fromAddr2;
 Address toAddress;
 KeyPair sender, sender2;
-uint256_t nonce = 0;
+uint128_t nonce = 0;
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testContract) {
@@ -71,7 +71,8 @@ BOOST_AUTO_TEST_CASE(testContract) {
       regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + toAddress.hex());
   std::vector<unsigned char> data(initStr.begin(), initStr.end());
 
-  Transaction tx1(1, nonce, NullAddress, sender, 0, 1, 50, code, data);
+  Transaction tx1(1, nonce, NullAddress, sender, 0, PRECISION_MIN_VALUE, 50,
+                  code, data);
 
   TransactionReceipt tr1;
   AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx1, tr1);
@@ -91,7 +92,8 @@ BOOST_AUTO_TEST_CASE(testContract) {
   std::vector<unsigned char> dataDonate(cfDataDonateStr.begin(),
                                         cfDataDonateStr.end());
 
-  Transaction tx2(1, nonce, toAddress, sender, 100, 1, 10, {}, dataDonate);
+  Transaction tx2(1, nonce, toAddress, sender, 100, PRECISION_MIN_VALUE, 10, {},
+                  dataDonate);
   TransactionReceipt tr2;
   if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx2, tr2)) {
     nonce++;
@@ -119,7 +121,8 @@ BOOST_AUTO_TEST_CASE(testContract) {
   LOG_GENERAL(INFO, "[Call1] Contract balance: "
                         << AccountStore::GetInstance().GetBalance(toAddress));
 
-  Transaction tx3(1, nonce, toAddress, sender2, 200, 1, 10, {}, dataDonate);
+  Transaction tx3(1, nonce, toAddress, sender2, 200, PRECISION_MIN_VALUE, 10,
+                  {}, dataDonate);
   TransactionReceipt tr3;
   if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx3, tr3)) {
     nonce++;
@@ -135,7 +138,8 @@ BOOST_AUTO_TEST_CASE(testContract) {
   std::vector<unsigned char> dataGetFunds(cfDataGetFundsStr.begin(),
                                           cfDataGetFundsStr.end());
 
-  Transaction tx4(1, nonce, toAddress, sender2, 0, 1, 10, {}, dataGetFunds);
+  Transaction tx4(1, nonce, toAddress, sender2, 0, PRECISION_MIN_VALUE, 10, {},
+                  dataGetFunds);
   TransactionReceipt tr4;
   if (AccountStore::GetInstance().UpdateAccounts(200, 1, true, tx4, tr4)) {
     nonce++;
@@ -151,7 +155,8 @@ BOOST_AUTO_TEST_CASE(testContract) {
   std::vector<unsigned char> dataClaimBack(cfDataClaimBackStr.begin(),
                                            cfDataClaimBackStr.end());
 
-  Transaction tx5(1, nonce, toAddress, sender, 0, 1, 10, {}, dataClaimBack);
+  Transaction tx5(1, nonce, toAddress, sender, 0, PRECISION_MIN_VALUE, 10, {},
+                  dataClaimBack);
   TransactionReceipt tr5;
   if (AccountStore::GetInstance().UpdateAccounts(300, 1, true, tx5, tr5)) {
     nonce++;

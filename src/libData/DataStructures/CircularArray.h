@@ -20,7 +20,10 @@
 #ifndef __CIRCULARARRAY_H__
 #define __CIRCULARARRAY_H__
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <vector>
 
 #include "libUtils/Logger.h"
@@ -31,13 +34,13 @@ class CircularArray {
  protected:
   std::vector<T> m_array;
 
-  int m_capacity;
+  size_t m_capacity;
 
   /// return the actual size of how many blocks being stored in the array
   uint64_t m_size;
 
   /// return the index of the latest block inserted
-  int m_index;
+  uint64_t m_index;
 
  public:
   /// Default constructor.
@@ -47,7 +50,7 @@ class CircularArray {
   }
 
   /// Changes the array capacity.
-  void resize(int capacity) {
+  void resize(size_t capacity) {
     m_array.clear();
     m_array.resize(capacity);
     fill(m_array.begin(), m_array.end(), T());
@@ -69,7 +72,7 @@ class CircularArray {
       LOG_GENERAL(WARNING, "m_array is empty")
       throw;
     }
-    return m_array[(int)(index % m_capacity)];
+    return m_array[index % m_capacity];
   }
 
   /// Adds an element to the array at the specified index.
@@ -78,7 +81,7 @@ class CircularArray {
       LOG_GENERAL(WARNING, "m_array is empty")
       throw;
     }
-    m_index = (int)index % m_capacity;
+    m_index = index % m_capacity;
     m_array[m_index] = element;
     m_size++;
   }
@@ -96,7 +99,7 @@ class CircularArray {
   uint64_t size() { return m_size; }
 
   /// Returns the storage capacity of the array.
-  int capacity() { return m_capacity; }
+  size_t capacity() { return m_capacity; }
 };
 
 #endif  // __CIRCULARARRAY_H__

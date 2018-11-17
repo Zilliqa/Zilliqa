@@ -58,11 +58,6 @@ class ValidatorBase {
 };
 
 class Validator : public ValidatorBase {
-  // Nonce information
-  // std::mutex m_mutexTxnNonceMap;
-  // std::unordered_map<Address, boost::multiprecision::uint256_t>
-  // m_txnNonceMap;
-
  public:
   Validator(Mediator& mediator);
   ~Validator();

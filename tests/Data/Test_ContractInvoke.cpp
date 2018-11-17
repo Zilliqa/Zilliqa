@@ -50,14 +50,14 @@ BOOST_AUTO_TEST_SUITE(contractinvokingtest)
 Address fromAddr, fromAddr2;
 Address cfAddress, icfAddress;
 KeyPair sender, sender2;
-uint256_t nonce, nonce2 = 0;
+uint128_t nonce, nonce2 = 0;
 
 struct ICFSampleInput {
   string icfDataStr;
   string icfOutStr;
-  uint256_t amount;
-  uint256_t gasPrice;
-  uint256_t gasLimit;
+  uint128_t amount;
+  uint128_t gasPrice;
+  uint128_t gasLimit;
   int blockNum;
   string sampleName;
 };
@@ -65,15 +65,15 @@ struct ICFSampleInput {
 struct CFSampleInput {
   string cfDataStr;
   KeyPair cfSender;
-  uint256_t amount;
-  uint256_t gasPrice;
-  uint256_t gasLimit;
+  uint128_t amount;
+  uint128_t gasPrice;
+  uint128_t gasLimit;
   int blockNum;
   vector<ICFSampleInput> icfSamples;
 };
 
 bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
-                    uint256_t amount, uint256_t gasPrice, uint256_t gasLimit,
+                    uint128_t amount, uint128_t gasPrice, uint128_t gasLimit,
                     string sampleName, bool didResetCF, bool didResetICF) {
   LOG_MARKER();
 
@@ -161,7 +161,8 @@ bool CreateContract(const int& blockNum, ResetType rType) {
 
   // LOG_GENERAL(INFO, "nonce: " << nonce);
 
-  Transaction createTx(1, nonce, dev::h160(), sender, 0, 1, 50, code, initData);
+  Transaction createTx(1, nonce, dev::h160(), sender, 0, PRECISION_MIN_VALUE,
+                       50, code, initData);
   TransactionReceipt createTr;
 
   AccountStore::GetInstance().UpdateAccounts(blockNum, 1, true, createTx,
@@ -217,7 +218,7 @@ void AutoTest(bool doResetCF, bool doResetICF,
         std::vector<unsigned char> cfData(samples[i].cfDataStr.begin(),
                                           samples[i].cfDataStr.end());
 
-        uint256_t* t_nonce;
+        uint128_t* t_nonce;
         if (samples[i].cfSender == sender) {
           t_nonce = &nonce;
         } else if (samples[i].cfSender == sender2) {
@@ -303,18 +304,24 @@ BOOST_AUTO_TEST_CASE(testContractInvoking) {
        1,
        10,
        100,
-       {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State1_Invoke1_NG"},
-        {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State1_Invoke2_NG"},
-        {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State1_Invoke3_NG"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 10, 100,
+         "State1_Invoke1_NG"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State1_Invoke2_NG"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State1_Invoke3_NG"}}},
       {"",
        sender,
        0,
        1,
        10,
        100,
-       {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State1_Invoke1_G"},
-        {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State1_Invoke2_G"},
-        {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State1_Invoke3_G"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 30, 100,
+         "State1_Invoke1_G"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State1_Invoke2_G"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State1_Invoke3_G"}}},
 
       {cfDataDonateStr,
        sender,
@@ -322,18 +329,24 @@ BOOST_AUTO_TEST_CASE(testContractInvoking) {
        1,
        10,
        100,
-       {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State2_Invoke1_NG"},
-        {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State2_Invoke2_NG"},
-        {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State2_Invoke3_NG"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 10, 100,
+         "State2_Invoke1_NG"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State2_Invoke2_NG"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State2_Invoke3_NG"}}},
       {cfDataDonateStr,
        sender,
        100,
        1,
        10,
        100,
-       {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State2_Invoke1_G"},
-        {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State2_Invoke2_G"},
-        {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State2_Invoke3_G"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 30, 100,
+         "State2_Invoke1_G"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State2_Invoke2_G"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State2_Invoke3_G"}}},
 
       {cfDataDonateStr,
        sender2,
@@ -341,18 +354,24 @@ BOOST_AUTO_TEST_CASE(testContractInvoking) {
        1,
        10,
        100,
-       {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State3_Invoke1_NG"},
-        {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State3_Invoke2_NG"},
-        {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State3_Invoke3_NG"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 10, 100,
+         "State3_Invoke1_NG"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State3_Invoke2_NG"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State3_Invoke3_NG"}}},
       {cfDataDonateStr,
        sender2,
        200,
        1,
        10,
        100,
-       {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State3_Invoke1_G"},
-        {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State3_Invoke2_G"},
-        {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State3_Invoke3_G"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 30, 100,
+         "State3_Invoke1_G"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State3_Invoke2_G"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State3_Invoke3_G"}}},
 
       {cfDataGetFundsStr,
        sender2,
@@ -360,18 +379,24 @@ BOOST_AUTO_TEST_CASE(testContractInvoking) {
        1,
        10,
        200,
-       {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State4_Invoke1_NG"},
-        {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State4_Invoke2_NG"},
-        {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State4_Invoke3_NG"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 10, 100,
+         "State4_Invoke1_NG"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State4_Invoke2_NG"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State4_Invoke3_NG"}}},
       {cfDataGetFundsStr,
        sender2,
        0,
        1,
        10,
        200,
-       {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State4_Invoke1_G"},
-        {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State4_Invoke2_G"},
-        {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State4_Invoke3_G"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 30, 100,
+         "State4_Invoke1_G"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State4_Invoke2_G"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State4_Invoke3_G"}}},
 
       {cfDataClaimBackStr,
        sender,
@@ -379,18 +404,24 @@ BOOST_AUTO_TEST_CASE(testContractInvoking) {
        1,
        10,
        300,
-       {{icfDataStr1, icfOutStr1, 100, 1, 10, 100, "State5_Invoke1_NG"},
-        {icfDataStr2, icfOutStr2, 0, 1, 10, 100, "State5_Invoke2_NG"},
-        {icfDataStr3, icfOutStr3, 0, 1, 10, 100, "State5_Invoke3_NG"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 10, 100,
+         "State5_Invoke1_NG"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State5_Invoke2_NG"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 10, 100,
+         "State5_Invoke3_NG"}}},
       {cfDataClaimBackStr,
        sender,
        0,
        1,
        10,
        300,
-       {{icfDataStr1, icfOutStr1, 100, 1, 30, 100, "State5_Invoke1_G"},
-        {icfDataStr2, icfOutStr2, 0, 1, 30, 100, "State5_Invoke2_G"},
-        {icfDataStr3, icfOutStr3, 0, 1, 30, 100, "State5_Invoke3_G"}}},
+       {{icfDataStr1, icfOutStr1, 100, PRECISION_MIN_VALUE, 30, 100,
+         "State5_Invoke1_G"},
+        {icfDataStr2, icfOutStr2, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State5_Invoke2_G"},
+        {icfDataStr3, icfOutStr3, 0, PRECISION_MIN_VALUE, 30, 100,
+         "State5_Invoke3_G"}}},
   };
 
   AutoTest(true, true, samples);

@@ -22,7 +22,10 @@
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/RootComputation.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
 #include <cstdint>
 #include <vector>
 
@@ -40,8 +43,8 @@ Transaction createDummyTransaction() {
     toAddr.asArray().at(i) = i + 4;
   }
 
-  Transaction tx(1, 5, toAddr, Schnorr::GetInstance().GenKeyPair(), 55, 11, 22,
-                 {0x33}, {0x44});
+  Transaction tx(1, 5, toAddr, Schnorr::GetInstance().GenKeyPair(), 55,
+                 PRECISION_MIN_VALUE, 22, {0x33}, {0x44});
   return tx;
 }
 
