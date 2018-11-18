@@ -325,9 +325,6 @@ def run_setprimary(nodenum, ip, port):
 	msg = '0100' + binascii.hexlify(protoPeer.SerializeToString())
 	run_sendcmd(nodenum, msg)
 
-def run_sendtxn(portnum):
-	os.system('tests/Zilliqa/sendtxn ' + str(portnum) + ' &')
-
 def run_delete():
 	if (os.path.exists(LOCAL_RUN_FOLDER)):
 		shutil.rmtree(LOCAL_RUN_FOLDER)
