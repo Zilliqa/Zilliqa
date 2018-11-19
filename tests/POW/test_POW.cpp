@@ -711,17 +711,17 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   uint8_t difficultyToUse = 10;
   uint8_t blockToUse = 0;
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, false, 0, 0);
+      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, false);
   bool verifyLight =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
@@ -730,7 +730,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   difficultyToUse = 30;
   bool verifyDifficulty =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
@@ -743,17 +743,17 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
 
   // Full Dataset mine and verify
   winning_result = POWClient.PoWMine(blockToUse, difficultyToUse, rand1, rand2,
-                                     ipAddr, pubKey, false, 0, 1);
+                                     ipAddr, pubKey, 0, 0, true);
   verifyLight =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
   verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
@@ -762,7 +762,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   difficultyToUse = 30;
   verifyDifficulty =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
@@ -801,17 +801,17 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   uint8_t difficultyToUse = 10;
   uint8_t blockToUse = 0;
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true, 0, 0);
+      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 1, 0, false);
   bool verifyLight =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
@@ -820,7 +820,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   difficultyToUse = 30;
   bool verifyDifficulty =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
@@ -859,17 +859,17 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   uint8_t difficultyToUse = 20;
   uint64_t blockToUse = 1234567;
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, true, 0, 0);
+      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 1, 0, false);
   bool verifyLight =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
   bool verifyRand =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
@@ -878,7 +878,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   difficultyToUse = 30;
   bool verifyDifficulty =
       POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, false, 0, 0, winning_result.winning_nonce,
+                          pubKey, 0, 0, false, winning_result.winning_nonce,
                           winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
