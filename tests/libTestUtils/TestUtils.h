@@ -20,6 +20,7 @@
 #ifndef __TESTUTILS_H__
 #define __TESTUTILS_H__
 
+#include <boost/multiprecision/cpp_int.hpp>
 #include <limits>
 #include <random>
 #include <tuple>
@@ -47,6 +48,8 @@ uint8_t DistUint8();
 uint16_t DistUint16();
 uint32_t DistUint32();
 uint64_t DistUint64();
+boost::multiprecision::uint128_t DistUint128();
+boost::multiprecision::uint256_t DistUint256();
 
 PubKey GenerateRandomPubKey();
 PubKey GenerateRandomPubKey(PrivKey);
