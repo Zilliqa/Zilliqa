@@ -109,6 +109,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
 {
   LOG_MARKER();
+  
+  // Setting the guard upon process launch
+  Guard::GetInstance().Init();
+
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
     pair<vector<unsigned char>, Peer>* message = NULL;
@@ -166,7 +170,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     switch (syncType) {
       case SyncType::NO_SYNC:
         LOG_GENERAL(INFO, "No Sync Needed");
-        Guard::GetInstance().Init();
         break;
       case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
