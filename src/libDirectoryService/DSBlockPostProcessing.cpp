@@ -318,7 +318,19 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][      ] IDLE");
   } else {
-    m_consensusMyID += numOfIncomingDs;
+    if (!GUARD_MODE) {
+      m_consensusMyID += numOfIncomingDs;
+    } else {
+      // DS guards index do not change
+      if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
+        m_consensusMyID += numOfIncomingDs;
+        LOG_GENERAL(INFO,
+                    "Not a DS Guard. m_consensusMyID: " << m_consensusMyID);
+      } else {
+        LOG_GENERAL(INFO, "DS Guard. m_consensusMyID: " << m_consensusMyID);
+      }
+    }
+
     m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
     LOG_GENERAL(INFO, "m_consensusLeaderID " << m_consensusLeaderID);
 
