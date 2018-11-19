@@ -611,32 +611,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
-  if (!LOOKUP_NODE_MODE) {
-    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum) {
-      std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-      if (cv_FBWaitMB.wait_for(
-              cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
-      }
-    }
-
-    PrepareGoodStateForFinalBlock();
-
-    if (!CheckState(PROCESS_FINALBLOCK)) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Too late - current state is " << m_state << ".");
-      return false;
-    }
-  }
-
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED FINAL BLOCK");
-
   uint32_t shardId = std::numeric_limits<uint32_t>::max();
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
@@ -649,6 +623,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
               "Messenger::GetNodeFinalBlock failed.");
     return false;
   }
+
+  lock_guard<mutex> g(m_mutexFinalBlock);
 
   BlockHash temp_blockHash = txBlock.GetHeader().GetMyHash();
   if (temp_blockHash != txBlock.GetBlockHash()) {
@@ -722,7 +698,31 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  lock_guard<mutex> g(m_mutexFinalBlock);
+  if (!LOOKUP_NODE_MODE) {
+    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum) {
+      std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
+      if (cv_FBWaitMB.wait_for(
+              cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
+      }
+    }
+
+    PrepareGoodStateForFinalBlock();
+
+    if (!CheckState(PROCESS_FINALBLOCK)) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Too late - current state is " << m_state << ".");
+      return false;
+    }
+  }
+
+  LOG_STATE(
+      "[FLBLK]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] RECEIVED FINAL BLOCK");
 
   bool toSendTxnToLookup = false;
 
