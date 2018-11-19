@@ -597,6 +597,14 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     const map<PubKey, Peer> dsPoWWinners =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
     unsigned int newDSMemberIndex = dsPoWWinners.size() - 1;
+
+    // Under guard mode, first n member of ds comm belongs to DS guard.
+    // As such, new ds committee member should join ds comm at index
+    // newDSMemberIndex + num of ds guard
+    if (GUARD_MODE) {
+      newDSMemberIndex += Guard::GetInstance().GetNumOfDSGuard();
+    }
+
     bool isNewDSMember = false;
 
     for (const auto& newDSMember : dsPoWWinners) {
@@ -616,6 +624,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       lastBlockHash = DataConversion::charArrTo16Bits(
           m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
     }
+
     m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
 
     // If I am the next DS leader -> need to set myself up as a DS node
