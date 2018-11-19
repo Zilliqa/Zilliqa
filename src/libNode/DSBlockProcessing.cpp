@@ -625,7 +625,12 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
           m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
     }
 
-    m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
+    if (!GUARD_MODE) {
+      m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
+    } else {
+      m_mediator.m_ds->m_consensusLeaderID =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+    }
 
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {
