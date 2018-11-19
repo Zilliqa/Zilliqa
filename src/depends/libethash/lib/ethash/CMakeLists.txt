@@ -23,8 +23,6 @@ add_library(
     primes.c
 )
 
-target_include_directories(ethash PUBLIC $<BUILD_INTERFACE:${include_dir}>$<INSTALL_INTERFACE:include>)
-
 write_basic_package_version_file(ethashConfigVersion.cmake COMPATIBILITY SameMajorVersion)
 
 get_filename_component(ETHASH_PRIVATE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/.. ABSOLUTE)
