@@ -474,7 +474,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->m_justDidFallback = false;
     m_mediator.m_node->CommitTxnPacketBuffer();
     m_stateDeltaFromShards.clear();
-    
+
     // Start sharding work
     SetState(MICROBLOCK_SUBMISSION);
 
