@@ -1786,6 +1786,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
   if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
     LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
+    return false;
   }
 
   if (ARCHIVAL_NODE) {
