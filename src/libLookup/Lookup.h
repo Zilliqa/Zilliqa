@@ -126,7 +126,7 @@ class Lookup : public Executable, public Broadcastable {
   std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
-                        uint64_t& highBlockNum);
+                        uint64_t& highBlockNum, bool partialRetrieve = false);
   void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum);
 
