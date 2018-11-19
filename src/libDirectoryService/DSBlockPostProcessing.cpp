@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iterator>
 #include <thread>
 
 #include "DirectoryService.h"
@@ -375,13 +376,27 @@ void DirectoryService::UpdateDSCommiteeComposition() {
 
   const map<PubKey, Peer> NewDSMembers =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
+  deque<pair<PubKey, Peer>>::iterator it = m_mediator.m_DSCommittee->begin();
+  it += Guard::GetInstance().GetNumOfDSGuard();
+
   for (const auto& DSPowWinner : NewDSMembers) {
     m_allPoWConns.erase(DSPowWinner.first);
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
-      m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
-                                              Peer());
+      if (!GUARD_MODE) {
+        m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
+                                                Peer());
+      } else {
+        m_mediator.m_DSCommittee->emplace(it, m_mediator.m_selfKey.second,
+                                          Peer());
+        it++;
+      }
     } else {
-      m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
+      if (!GUARD_MODE) {
+        m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
+      } else {
+        m_mediator.m_DSCommittee->emplace(it, DSPowWinner);
+        it++;
+      }
     }
     m_mediator.m_DSCommittee->pop_back();
   }
