@@ -184,6 +184,6 @@
     <shard_guard>
         <!--Pubkey to be provided in testnet/mainnet.
        <SHARDPUBKEY></SHARDPUBKEY>
-       -->    
+       -->
     </shard_guard>
 </node>
