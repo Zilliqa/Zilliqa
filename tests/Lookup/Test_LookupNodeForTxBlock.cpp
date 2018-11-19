@@ -125,8 +125,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
       TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
                     BlockHash(), 0, get_time_as_int(), TxBlockHashSet(), 0,
                     pubKey1.second, 0, CommitteeHash()),
-      vector<bool>(1), vector<BlockHash>(5), vector<uint32_t>(5),
-      CoSignatures());
+      vector<MicroBlockInfo>(1), CoSignatures());
 
   curr_offset += txblock.Serialize(txblockmsg, curr_offset);
 

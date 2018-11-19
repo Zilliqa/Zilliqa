@@ -240,20 +240,20 @@ message ProtoMicroBlock
     required ProtoBlockBase blockbase  = 3;
 }
 
-message ProtoExtraMbInfo
+message ProtoMbInfo
 {
-    repeated bool ismicroblockempty = 1 [packed=true];
-    repeated uint32 shardids        = 2;
+    repeated bytes mbhashes         = 1;
+    repeated bool ismicroblockempty = 2 [packed=true];
+    repeated uint32 shardids        = 3;
 }
 
 message ProtoTxBlock
 {
     message TxBlockHashSet
     {
-        required bytes mbroothash               = 1;
-        required bytes stateroothash            = 2;
-        required bytes statedeltahash           = 3;
-        required bytes mbinfohash               = 4;
+        required bytes stateroothash            = 1;
+        required bytes statedeltahash           = 2;
+        required bytes mbinfohash               = 3;
     }
     message TxBlockHeader
     {
@@ -272,8 +272,7 @@ message ProtoTxBlock
         required bytes committeehash            = 13;
     }
     required TxBlockHeader header               = 1;
-    repeated bytes mbhashes                     = 2;
-    required ProtoExtraMbInfo extrambinfo       = 3;
+    required ProtoMbInfo mbinfo                 = 3;
     required ProtoBlockBase blockbase           = 4;
 }
 
@@ -535,9 +534,9 @@ message LookupGetStateFromSeed
 
 message LookupSetStateFromSeed
 {
-    required ByteArray accounts  = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    required ByteArray accountstore          = 1;
+    required ByteArray pubkey                = 2;
+    required ByteArray signature             = 3;
 }
 
 message LookupSetLookupOffline

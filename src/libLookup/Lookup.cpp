@@ -766,7 +766,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
 void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
-                              uint64_t& highBlockNum) {
+                              uint64_t& highBlockNum, bool partialRetrieve) {
   lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
   uint64_t curBlockNum =
@@ -782,7 +782,8 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
     lowBlockNum = 1;
   }
 
-  lowBlockNum = min(minBlockNum, lowBlockNum);
+  lowBlockNum = partialRetrieve ? max(minBlockNum, lowBlockNum)
+                                : min(minBlockNum, lowBlockNum);
 
   if (highBlockNum == 0) {
     highBlockNum = curBlockNum;
@@ -1169,12 +1170,13 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
     LOG_GENERAL(WARNING, "Failed to fetch Txblock");
     return false;
   }
-  for (i = 0; i < txblk.GetMicroBlockHashes().size(); i++) {
-    if (txblk.GetMicroBlockHashes()[i] == microblock.GetBlockHash()) {
+  for (i = 0; i < txblk.GetMicroBlockInfos().size(); i++) {
+    if (txblk.GetMicroBlockInfos().at(i).m_microBlockHash ==
+        microblock.GetBlockHash()) {
       break;
     }
   }
-  if (i == txblk.GetMicroBlockHashes().size()) {
+  if (i == txblk.GetMicroBlockInfos().size()) {
     LOG_GENERAL(WARNING, "Failed to find mbHash " << microblock.GetBlockHash());
     return false;
   }
@@ -1654,8 +1656,8 @@ void LogTxBlock(const TxBlock& txBlock, const uint64_t& epochNum) {
             "txBlock.GetHeader().GetBlockNum(): "
                 << txBlock.GetHeader().GetBlockNum());
   LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetNumMicroBlockHashes(): "
-                << txBlock.GetMicroBlockHashes().size());
+            "txBlock.GetHeader().GetMicroBlockInfos().size(): "
+                << txBlock.GetMicroBlockInfos().size());
   LOG_EPOCH(
       INFO, to_string(epochNum).c_str(),
       "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs());
@@ -1682,14 +1684,13 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       BlockStorage::GetBlockStorage().PutTxBlock(
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
     } else {
-      for (unsigned int i = 0; i < txBlock.GetMicroBlockHashes().size(); i++) {
-        if (!txBlock.GetIsMicroBlockEmpty()[i]) {
+      for (const auto& info : txBlock.GetMicroBlockInfos()) {
+        if (!info.m_isMicroBlockEmpty) {
           m_mediator.m_archival->AddToFetchMicroBlockInfo(
-              txBlock.GetMicroBlockHashes()[i]);
+              info.m_microBlockHash);
         } else {
-          LOG_GENERAL(INFO, "MicroBlock of hash "
-                                << txBlock.GetMicroBlockHashes()[i].hex()
-                                << " empty");
+          LOG_GENERAL(INFO, "MicroBlock of hash " << info.m_microBlockHash.hex()
+                                                  << " empty");
         }
       }
       m_mediator.m_archDB->InsertTxBlock(txBlock);
@@ -1768,9 +1769,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
   unique_lock<mutex> lock(m_mutexSetState);
   PubKey lookupPubKey;
-  std::unordered_map<Address, Account> addressToAccountTmp;
+  vector<unsigned char> accountStoreBytes;
   if (!Messenger::GetLookupSetStateFromSeed(message, offset, lookupPubKey,
-                                            addressToAccountTmp)) {
+                                            accountStoreBytes)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetLookupSetStateFromSeed failed.");
     return false;
@@ -1783,9 +1784,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  for (const auto& addressAccount : addressToAccountTmp) {
-    AccountStore::GetInstance().AddAccountDuringDeserialization(
-        addressAccount.first, addressAccount.second);
+  if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
+    LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
+    return false;
   }
 
   if (ARCHIVAL_NODE) {
@@ -3183,7 +3184,7 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
                 << listenPort);
 
   vector<DSBlock> dsBlocks;
-  RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum);
+  RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum, true);
 
   vector<TxBlock> txBlocks;
   RetrieveTxBlocks(txBlocks, txLowBlockNum, txHighBlockNum);

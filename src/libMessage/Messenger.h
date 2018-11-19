@@ -85,9 +85,8 @@ class Messenger {
                                    const unsigned int offset,
                                    AccountStoreTemp& accountStoreTemp);
 
-  static bool GetExtraMbInfoHash(const std::vector<bool>& isMicroBlockEmpty,
-                                 const std::vector<uint32_t>& shardIds,
-                                 MBInfoHash& dst);
+  static bool GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
+                            MBInfoHash& dst);
 
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
@@ -492,8 +491,7 @@ class Messenger {
       const AccountStore& accountStore);
   static bool GetLookupSetStateFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      PubKey& lookupPubKey,
-      std::unordered_map<Address, Account>& addressToAccount);
+      PubKey& lookupPubKey, std::vector<unsigned char>& accountStoreBytes);
   static bool SetLookupSetLookupOffline(std::vector<unsigned char>& dst,
                                         const unsigned int offset,
                                         const uint32_t listenPort);
