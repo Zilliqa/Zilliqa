@@ -226,6 +226,7 @@ void Node::UpdateDSCommiteeCompositionAfterVC(
     const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
   if (GUARD_MODE) {
     LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
+    return;
   }
 
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
