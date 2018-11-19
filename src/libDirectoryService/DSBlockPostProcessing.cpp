@@ -376,8 +376,7 @@ void DirectoryService::UpdateDSCommiteeComposition() {
 
   const map<PubKey, Peer> NewDSMembers =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
-  deque<pair<PubKey, Peer>>::iterator it = m_mediator.m_DSCommittee->begin();
-  it += Guard::GetInstance().GetNumOfDSGuard();
+  deque<pair<PubKey, Peer>>::iterator it;
 
   for (const auto& DSPowWinner : NewDSMembers) {
     m_allPoWConns.erase(DSPowWinner.first);
@@ -386,16 +385,18 @@ void DirectoryService::UpdateDSCommiteeComposition() {
         m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
                                                 Peer());
       } else {
+        it = m_mediator.m_DSCommittee->begin() +
+             (Guard::GetInstance().GetNumOfDSGuard() - 1);
         m_mediator.m_DSCommittee->emplace(it, m_mediator.m_selfKey.second,
                                           Peer());
-        it++;
       }
     } else {
       if (!GUARD_MODE) {
         m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
       } else {
+        it = m_mediator.m_DSCommittee->begin() +
+             (Guard::GetInstance().GetNumOfDSGuard() - 1);
         m_mediator.m_DSCommittee->emplace(it, DSPowWinner);
-        it++;
       }
     }
     m_mediator.m_DSCommittee->pop_back();

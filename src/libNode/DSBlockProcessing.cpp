@@ -94,24 +94,23 @@ void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm,
                                        const DSBlock& dsblock) {
   LOG_MARKER();
   const map<PubKey, Peer> NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
-  deque<pair<PubKey, Peer>>::iterator it = dsComm.begin();
-  it += Guard::GetInstance().GetNumOfDSGuard();
+  deque<pair<PubKey, Peer>>::iterator it;
 
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
       if (!GUARD_MODE) {
         dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
       } else {
+        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard() -1);
         dsComm.emplace(it, m_mediator.m_selfKey.second, Peer());
-        it++;
       }
     } else {
       if (!GUARD_MODE) {
         dsComm.emplace_front(DSPowWinner);
 
       } else {
-        dsComm.insert(it, DSPowWinner);
-        it++;
+        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard() -1);
+        dsComm.emplace(it, DSPowWinner);
       }
     }
     dsComm.pop_back();
