@@ -503,7 +503,15 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
                     << candidateLeaderIndex);
     sha2.Update(sha2.Finalize());
     lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-    candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+    if (!GUARD_MODE) {
+      candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+    } else {
+      candidateLeaderIndex =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      LOG_GENERAL(INFO, "In Guard mode. interim candidate leader is "
+                            << candidateLeaderIndex);
+    }
+
     LOG_GENERAL(INFO, "Re-computed candidate leader is at index: "
                           << candidateLeaderIndex
                           << " VC counter: " << m_viewChangeCounter);
