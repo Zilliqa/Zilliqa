@@ -14,16 +14,16 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_executable (Test_PeerStore Test_PeerStore.cpp)
 target_include_directories (Test_PeerStore PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_PeerStore PUBLIC Network Utils ethash)
+target_link_libraries (Test_PeerStore PUBLIC Network Utils)
 add_test(NAME Test_PeerStore COMMAND Test_PeerStore)
 
 add_executable (Test_P2PComm Test_P2PComm.cpp)
 target_include_directories (Test_P2PComm PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_P2PComm PUBLIC Network Utils ethash)
+target_link_libraries (Test_P2PComm PUBLIC Network Utils)
 
 add_executable (Test_IPFilter Test_IPFilter.cpp)
 target_include_directories (Test_IPFilter PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_IPFilter PUBLIC Network Utils ethash)
+target_link_libraries (Test_IPFilter PUBLIC Network Utils)
 add_test(NAME Test_IPFilter COMMAND Test_IPFilter)
 
 add_executable (Test_Blacklist Test_Blacklist.cpp)

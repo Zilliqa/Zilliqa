@@ -21,10 +21,6 @@
  * Test cases obtained from https://github.com/ethereum/ethash
  */
 
-//#include <depends/libethash/ethash.h>
-//#include <depends/libethash/fnv.h>
-//#include <depends/libethash/internal.h>
-//#include <depends/libethash/io.h>
 #include <libDirectoryService/DirectoryService.h>
 #include <libPOW/pow.h>
 #include <iomanip>
@@ -101,6 +97,8 @@ bytes hexStringToBytes(std::string const& _s) {
 }
 
 BOOST_AUTO_TEST_CASE(test_stringToBlockhash) {
+  INIT_FILE_LOGGER("zilliqa");
+
   string original =
       "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b34";
   ethash_hash256 testhash = POW::StringToBlockhash(original);
@@ -136,18 +134,14 @@ BOOST_AUTO_TEST_CASE(test_stringToBlockhash_overflow) {
 }
 
 BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_check) {
-  // uint64_t full_size = ethash_get_datasize(0);
-  // uint64_t cache_size = ethash_get_cachesize(0);
   uint64_t blockNumber = 0;
   auto epochNumber = ethash::get_epoch_number(blockNumber);
   auto epochContextLight = ethash::create_epoch_context(epochNumber);
 
-  uint64_t full_size =
-      ethash::get_full_dataset_size(ethash_calculate_full_dataset_num_items(
-          epochNumber));  // ethash_get_datasize(0);
-  uint64_t cache_size =
-      ethash::get_light_cache_size(ethash_calculate_light_cache_num_items(
-          epochNumber));  // ethash_get_cachesize(0);
+  uint64_t full_size = ethash::get_full_dataset_size(
+      ethash::calculate_full_dataset_num_items(epochNumber));
+  uint64_t cache_size = ethash::get_light_cache_size(
+      ethash::calculate_light_cache_num_items(epochNumber));
   BOOST_REQUIRE_MESSAGE(full_size < ETHASH_DATASET_BYTES_INIT,
                         "\nfull size: " << full_size << "\n"
                                         << "should be less than or equal to: "
@@ -170,12 +164,10 @@ BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_calcifide_check) {
   auto epochNumber = ethash::get_epoch_number(blockNumber);
   auto epochContextLight = ethash::create_epoch_context(epochNumber);
 
-  uint64_t full_size =
-      ethash::get_full_dataset_size(ethash_calculate_full_dataset_num_items(
-          epochNumber));  // ethash_get_datasize(0);
-  uint64_t cache_size =
-      ethash::get_light_cache_size(ethash_calculate_light_cache_num_items(
-          epochNumber));  // ethash_get_cachesize(0);
+  uint64_t full_size = ethash::get_full_dataset_size(
+      ethash::calculate_full_dataset_num_items(epochNumber));
+  uint64_t cache_size = ethash::get_light_cache_size(
+      ethash::calculate_light_cache_num_items(epochNumber));
   const uint32_t expected_full_size = 1073739904;
   const uint32_t expected_cache_size = 16776896;
   BOOST_REQUIRE_MESSAGE(full_size == expected_full_size,
@@ -191,12 +183,10 @@ BOOST_AUTO_TEST_CASE(ethash_params_calcifide_check_30000) {
   auto epochNumber = ethash::get_epoch_number(blockNumber);
   auto epochContextLight = ethash::create_epoch_context(epochNumber);
 
-  uint64_t full_size =
-      ethash::get_full_dataset_size(ethash_calculate_full_dataset_num_items(
-          epochNumber));  // ethash_get_datasize(0);
-  uint64_t cache_size =
-      ethash::get_light_cache_size(ethash_calculate_light_cache_num_items(
-          epochNumber));  // ethash_get_cachesize(0);
+  uint64_t full_size = ethash::get_full_dataset_size(
+      ethash::calculate_full_dataset_num_items(epochNumber));
+  uint64_t cache_size = ethash::get_light_cache_size(
+      ethash::calculate_light_cache_num_items(epochNumber));
 
   const uint32_t expected_full_size = 1082130304;
   const uint32_t expected_cache_size = 16907456;

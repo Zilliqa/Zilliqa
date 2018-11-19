@@ -33,8 +33,8 @@
 
 #include "common/Constants.h"
 #include "depends/common/Miner.h"
-#include "ethash/ethash.h"
-#include "ethash/ethash.hpp"
+#include "depends/libethash/include/ethash/ethash.hpp"
+//#include "ethash/ethash.hpp"
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
 

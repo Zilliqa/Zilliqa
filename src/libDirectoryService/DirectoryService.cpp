@@ -33,6 +33,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Whitelist.h"
+#include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -548,7 +549,8 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
   cv_POWSubmission.notify_all();
 
   POW::GetInstance().EthashConfigureClient(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+      FULL_DATASET_MINE);
 
   if (m_mode == PRIMARY_DS) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

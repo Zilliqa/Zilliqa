@@ -237,7 +237,8 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
   m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
   SetState(POW_SUBMISSION);
   POW::GetInstance().EthashConfigureClient(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+      FULL_DATASET_MINE);
 }
 
 bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
