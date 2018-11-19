@@ -320,6 +320,10 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   } else {
     if (!GUARD_MODE) {
       m_consensusMyID += numOfIncomingDs;
+      m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
+      LOG_GENERAL(INFO, "No DS Guard enabled. m_consensusLeaderID "
+                            << m_consensusLeaderID);
+
     } else {
       // DS guards index do not change
       if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
@@ -329,10 +333,12 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
       } else {
         LOG_GENERAL(INFO, "DS Guard. m_consensusMyID: " << m_consensusMyID);
       }
+      // Only DS guard can be ds leader
+      m_consensusLeaderID =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      LOG_GENERAL(INFO, "DS Guard enabled. m_consensusLeaderID "
+                            << m_consensusLeaderID);
     }
-
-    m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
-    LOG_GENERAL(INFO, "m_consensusLeaderID " << m_consensusLeaderID);
 
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
         m_mediator.m_selfKey.second) {
