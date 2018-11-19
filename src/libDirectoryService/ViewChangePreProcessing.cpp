@@ -491,7 +491,7 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   uint32_t candidateLeaderIndex;
 
   if (!GUARD_MODE) {
-    candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+    candidateLeaderIndex = lastBlockHash % m_mediator.m_DSCommittee->size();
   } else {
     candidateLeaderIndex =
         lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
@@ -504,7 +504,7 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
     sha2.Update(sha2.Finalize());
     lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
     if (!GUARD_MODE) {
-      candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+      candidateLeaderIndex = lastBlockHash % m_mediator.m_DSCommittee->size();
     } else {
       candidateLeaderIndex =
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
