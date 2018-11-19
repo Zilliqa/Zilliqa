@@ -65,6 +65,9 @@ class Guard {
   bool IsNodeInDSGuardList(const PubKey& nodePubKey);
   bool IsPubkeyInShardGuardList(const PubKey& nodePubKey);
 
+  unsigned int GetNumOfDSGuard();
+  unsigned int GetNumOfShardGuard();
+
   // To check if IP is a valid v4 IP and not belongs to exclusion list
   bool IsValidIP(const boost::multiprecision::uint128_t& ip_addr);
 
