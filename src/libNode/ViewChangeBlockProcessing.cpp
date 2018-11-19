@@ -224,8 +224,10 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 /// This function asssume ddsComm to indicate 0.0.0.0 for current node
 void Node::UpdateDSCommiteeCompositionAfterVC(
     const VCBlock& vcblock, deque<pair<PubKey, Peer>>& dsComm) {
-  deque<pair<PubKey, Peer>>::iterator itDSComm = dsComm.begin();
-  itDSComm += Guard::GetInstance().GetNumOfDSGuard();
+  if (GUARD_MODE) {
+    LOG_GENERAL(INFO, "In guard mode. No updating of DS composition requried");
+  }
+
   for (const auto& faultyLeader : vcblock.GetHeader().GetFaultyLeaders()) {
     deque<pair<PubKey, Peer>>::iterator it;
 
@@ -245,12 +247,7 @@ void Node::UpdateDSCommiteeCompositionAfterVC(
       LOG_GENERAL(FATAL, "Cannot find the ds leader to eject");
     }
 
-    if (!GUARD_MODE) {
-      dsComm.emplace_back(faultyLeader);
-    } else {
-      dsComm.emplace(itDSComm, faultyLeader);
-      itDSComm++;
-    }
+    dsComm.emplace_back(faultyLeader);
   }
 }
 
