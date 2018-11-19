@@ -491,8 +491,7 @@ class Messenger {
       const AccountStore& accountStore);
   static bool GetLookupSetStateFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      PubKey& lookupPubKey,
-      std::unordered_map<Address, Account>& addressToAccount);
+      PubKey& lookupPubKey, std::vector<unsigned char>& addressToAccount);
   static bool SetLookupSetLookupOffline(std::vector<unsigned char>& dst,
                                         const unsigned int offset,
                                         const uint32_t listenPort);
