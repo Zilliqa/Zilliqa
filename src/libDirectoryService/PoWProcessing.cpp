@@ -98,13 +98,6 @@ bool DirectoryService::ProcessPoWSubmission(
     return false;
   }
 
-  if (GUARD_MODE &&
-      not Guard::GetInstance().IsNodeInDSGuardList(submitterPubKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Submitted PoW but node is not in DS guardlist. Hence, "
-              "not accepted!");
-  }
-
   // Todo: Reject PoW submissions from existing members of DS committee
 
   if (!CheckState(VERIFYPOW)) {
