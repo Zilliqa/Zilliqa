@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -487,8 +488,14 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
                                     sizeof(uint32_t));
   sha2.Update(vcCounterBytes);
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-  uint32_t candidateLeaderIndex =
-      lastBlockHash % (m_mediator.m_DSCommittee->size());
+  uint32_t candidateLeaderIndex;
+
+  if (!GUARD_MODE) {
+    candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+  } else {
+    candidateLeaderIndex =
+        lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+  }
 
   while (candidateLeaderIndex == m_consensusLeaderID) {
     LOG_GENERAL(INFO,
