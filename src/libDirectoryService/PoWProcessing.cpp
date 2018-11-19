@@ -136,6 +136,7 @@ bool DirectoryService::ProcessPoWSubmission(
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
+  uint8_t expectedShardGuardDiff = 1;
 
   // Non-genesis block
   if (blockNumber > 1) {
@@ -145,11 +146,13 @@ bool DirectoryService::ProcessPoWSubmission(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
   }
 
-  if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
+  if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
+      difficultyLevel != expectedShardGuardDiff) {
     LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
                              << to_string(difficultyLevel)
                              << " Expected: " << to_string(expectedDSDiff)
-                             << " or " << to_string(expectedDiff));
+                             << " or " << to_string(expectedDiff) << " or "
+                             << to_string(expectedShardGuardDiff));
     // TODO: penalise sender in reputation manager
     return false;
   }
