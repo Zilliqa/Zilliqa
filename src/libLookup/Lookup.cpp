@@ -766,7 +766,7 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
 void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
-                              uint64_t& highBlockNum) {
+                              uint64_t& highBlockNum, bool partialRetrieve) {
   lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
 
   uint64_t curBlockNum =
@@ -782,7 +782,8 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
     lowBlockNum = 1;
   }
 
-  lowBlockNum = min(minBlockNum, lowBlockNum);
+  lowBlockNum = partialRetrieve ? max(minBlockNum, lowBlockNum)
+                                : min(minBlockNum, lowBlockNum);
 
   if (highBlockNum == 0) {
     highBlockNum = curBlockNum;
@@ -3183,7 +3184,7 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
                 << listenPort);
 
   vector<DSBlock> dsBlocks;
-  RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum);
+  RetrieveDSBlocks(dsBlocks, dsLowBlockNum, dsHighBlockNum, true);
 
   vector<TxBlock> txBlocks;
   RetrieveTxBlocks(txBlocks, txLowBlockNum, txHighBlockNum);
