@@ -4490,16 +4490,16 @@ bool Messenger::SetLookupSetStateFromSeed(
 
   LookupSetStateFromSeed result;
 
-  SerializableToProtobufByteArray(accountStore, *result.mutable_accounts());
-
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
 
   std::vector<unsigned char> tmp;
-  if (!SerializeToArray(result.accounts(), tmp, 0)) {
-    LOG_GENERAL(WARNING, "Failed to serialize accounts.");
+
+  if (!accountStore.Serialize(tmp, 0)) {
+    LOG_GENERAL(WARNING, "Failed to serialize AccountStore.");
     return false;
   }
+  result.mutable_accountstore()->set_data(tmp.data(), tmp.size());
 
   if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
                                    signature)) {
@@ -4519,8 +4519,7 @@ bool Messenger::SetLookupSetStateFromSeed(
 
 bool Messenger::GetLookupSetStateFromSeed(
     const vector<unsigned char>& src, const unsigned int offset,
-    PubKey& lookupPubKey,
-    std::unordered_map<Address, Account>& addressToAccount) {
+    PubKey& lookupPubKey, vector<unsigned char>& accountStoreBytes) {
   LOG_MARKER();
 
   LookupSetStateFromSeed result;
@@ -4532,24 +4531,17 @@ bool Messenger::GetLookupSetStateFromSeed(
     return false;
   }
 
-  // ProtobufByteArrayToSerializable(result.accounts(), accountStore);
-  if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
-                                                  addressToAccount)) {
-    LOG_GENERAL(WARNING, "MessengerAccountStoreBase::GetAccountStore failed.");
-    return false;
-  }
-
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  std::vector<unsigned char> tmp;
-  if (!SerializeToArray(result.accounts(), tmp, 0)) {
+  if (!SerializeToArray(result.accountstore(), accountStoreBytes, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize accounts.");
     return false;
   }
 
-  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubKey)) {
+  if (!Schnorr::GetInstance().Verify(accountStoreBytes, signature,
+                                     lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in accounts.");
     return false;
   }
