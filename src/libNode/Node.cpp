@@ -1032,7 +1032,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    LOG_GENERAL(INFO, "TxnPool size before processing: " << m_createdTxns.size());
+    LOG_GENERAL(INFO,
+                "TxnPool size before processing: " << m_createdTxns.size());
     
     for (const auto& txn : checkedTxns) {
       m_createdTxns.insert(txn);
