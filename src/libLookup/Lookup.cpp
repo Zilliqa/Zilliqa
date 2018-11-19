@@ -1769,9 +1769,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
   unique_lock<mutex> lock(m_mutexSetState);
   PubKey lookupPubKey;
-  std::unordered_map<Address, Account> addressToAccountTmp;
+  vector<unsigned char> accountStoreBytes;
   if (!Messenger::GetLookupSetStateFromSeed(message, offset, lookupPubKey,
-                                            addressToAccountTmp)) {
+                                            accountStoreBytes)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetLookupSetStateFromSeed failed.");
     return false;
@@ -1784,9 +1784,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  for (const auto& addressAccount : addressToAccountTmp) {
-    AccountStore::GetInstance().AddAccountDuringDeserialization(
-        addressAccount.first, addressAccount.second);
+  if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
+    LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
+    return false;
   }
 
   if (ARCHIVAL_NODE) {
