@@ -368,10 +368,16 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
   /// Retrieve sharding structure and setup relative variables
   BlockStorage::GetBlockStorage().GetShardStructure(
       m_mediator.m_ds->m_shards, m_mediator.m_node->m_myshardId);
-  LoadShardingStructure(true);
-  m_mediator.m_ds->ProcessShardingStructure(
-      m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-      m_mediator.m_ds->m_mapNodeReputation);
+
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_lookup->ProcessEntireShardingStructure();
+  } else {
+    LoadShardingStructure(true);
+    m_mediator.m_ds->ProcessShardingStructure(
+        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+        m_mediator.m_ds->m_mapNodeReputation);
+  }
+
   m_mediator.m_consensusID =
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
