@@ -61,10 +61,9 @@ void Guard::UpdateDSGuardlist() {
   read_xml(config, pt);
 
   for (const ptree::value_type& v : pt.get_child("node.ds_guard")) {
-    LOG_GENERAL(WARNING, v.first);
     if (v.first == "DSPUBKEY") {
       PubKey pubKey(DataConversion::HexStrToUint8Vec(v.second.data()), 0);
-      AddToShardGuardlist(pubKey);
+      AddToDSGuardlist(pubKey);
     }
   }
 
@@ -93,7 +92,6 @@ void Guard::UpdateShardGuardlist() {
   read_xml(config, pt);
 
   for (const ptree::value_type& v : pt.get_child("node.shard_guard")) {
-    LOG_GENERAL(WARNING, v.first);
     if (v.first == "SHARDPUBKEY") {
       PubKey pubKey(DataConversion::HexStrToUint8Vec(v.second.data()), 0);
       AddToShardGuardlist(pubKey);
@@ -108,7 +106,7 @@ void Guard::UpdateShardGuardlist() {
 
 void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
   if (!GUARD_MODE) {
-    // LOG_GENERAL(WARNING, "Not in Guard mode. Guard list is not available.");
+    LOG_GENERAL(WARNING, "Not in Guard mode. Guard list is not available.");
     return;
   }
 
@@ -119,7 +117,7 @@ void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
 
 void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
   if (!GUARD_MODE) {
-    // LOG_GENERAL(WARNING, "Not in Guard mode. Guard list is not available.");
+    LOG_GENERAL(WARNING, "Not in Guard mode. Guard list is not available.");
     return;
   }
 
