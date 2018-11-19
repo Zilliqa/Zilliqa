@@ -299,9 +299,9 @@ def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 
 	# Protobuf the command
 	protoPeers = ProtoStartPow()
-	protoPeers.blocknum = long(blocknum)
-	protoPeers.dsdiff = long(dsdiff)
-	protoPeers.diff = long(diff)
+	protoPeers.blocknum = long(blocknum, 16)
+	protoPeers.dsdiff = long(dsdiff, 16)
+	protoPeers.diff = long(diff, 16)
 	protoPeers.rand1 = binascii.unhexlify(rand1)
 	protoPeers.rand2 = binascii.unhexlify(rand2)
 	for x in range(0, dscount):
