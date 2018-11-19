@@ -119,49 +119,42 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
 
     // Pushing faulty leader to back of the deque
-    deque<pair<PubKey, Peer>>::iterator it = m_mediator.m_DSCommittee->begin();
-    it += Guard::GetInstance().GetNumOfDSGuard();
 
-    for (const auto& faultyLeader :
-         m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-      // find the faulty leader and identify the index
-      deque<pair<PubKey, Peer>>::iterator iterFaultyLeader;
-      if (faultyLeader.second == m_mediator.m_selfPeer) {
-        iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
-                                m_mediator.m_DSCommittee->end(),
-                                make_pair(faultyLeader.first, Peer()));
-      } else {
-        iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
-                                m_mediator.m_DSCommittee->end(), faultyLeader);
-      }
+    if (!GUARD_MODE) {
+      for (const auto& faultyLeader :
+           m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
+        // find the faulty leader and identify the index
+        deque<pair<PubKey, Peer>>::iterator iterFaultyLeader;
+        if (faultyLeader.second == m_mediator.m_selfPeer) {
+          iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
+                                  m_mediator.m_DSCommittee->end(),
+                                  make_pair(faultyLeader.first, Peer()));
+        } else {
+          iterFaultyLeader =
+              find(m_mediator.m_DSCommittee->begin(),
+                   m_mediator.m_DSCommittee->end(), faultyLeader);
+        }
 
-      // Remove faulty leader from the current ds committee structure temporary
-      if (iterFaultyLeader != m_mediator.m_DSCommittee->end()) {
-        m_mediator.m_DSCommittee->erase(iterFaultyLeader);
-      } else {
-        LOG_GENERAL(FATAL, "Cannot find "
-                               << faultyLeader.second
-                               << " to eject to back of ds committee");
-      }
+        // Remove faulty leader from the current ds committee structure
+        // temporary
+        if (iterFaultyLeader != m_mediator.m_DSCommittee->end()) {
+          m_mediator.m_DSCommittee->erase(iterFaultyLeader);
+        } else {
+          LOG_GENERAL(FATAL, "Cannot find "
+                                 << faultyLeader.second
+                                 << " to eject to back of ds committee");
+        }
 
-      // Add to the back of the ds commitee deque
-      if (faultyLeader.second == m_mediator.m_selfPeer) {
-        if (!GUARD_MODE) {
+        // Add to the back of the ds commitee deque
+        if (faultyLeader.second == m_mediator.m_selfPeer) {
           m_mediator.m_DSCommittee->emplace_back(
               make_pair(faultyLeader.first, Peer()));
         } else {
-          m_mediator.m_DSCommittee->emplace(
-              it, make_pair(faultyLeader.first, Peer()));
-          it++;
-        }
-      } else {
-        if (!GUARD_MODE) {
           m_mediator.m_DSCommittee->emplace_back(faultyLeader);
-        } else {
-          m_mediator.m_DSCommittee->emplace(it, faultyLeader);
-          it++;
         }
       }
+    } else {
+      LOG_GENERAL(INFO, "In guard mode. Actual composition remain the same.");
     }
 
     // Re-calculate the new m_consensusMyID
