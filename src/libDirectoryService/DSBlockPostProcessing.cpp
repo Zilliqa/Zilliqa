@@ -474,12 +474,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->m_justDidFallback = false;
     m_mediator.m_node->CommitTxnPacketBuffer();
     m_stateDeltaFromShards.clear();
-
-    if (GUARD_MODE) {
-      LOG_GENERAL(INFO, "Updating shard guard list");
-      Guard::GetInstance().UpdateShardGuardlist();
-    }
-
+    
     // Start sharding work
     SetState(MICROBLOCK_SUBMISSION);
 
