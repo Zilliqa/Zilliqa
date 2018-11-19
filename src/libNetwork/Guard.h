@@ -63,7 +63,7 @@ class Guard {
   void AddToShardGuardlist(const PubKey& shardGuardPubKey);
 
   bool IsNodeInDSGuardList(const PubKey& nodePubKey);
-  bool IsPubkeyInShardGuardList(const PubKey& nodePubKey);
+  bool IsNodeInShardGuardList(const PubKey& nodePubKey);
 
   unsigned int GetNumOfDSGuard();
   unsigned int GetNumOfShardGuard();
