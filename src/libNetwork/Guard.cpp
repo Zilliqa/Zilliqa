@@ -146,14 +146,14 @@ bool Guard::IsPubkeyInShardGuardList(const PubKey& nodePubKey) {
   return true;
 }
 
-  unsigned int Guard::GetNumOfDSGuard(){
-    lock_guard<mutex> g(m_mutexDSGuardList);
-    return m_DSGuardList.size();
-  }
-  unsigned int Guard::GetNumOfShardGuard(){
-    lock_guard<mutex> g(m_mutexShardGuardList);
-    return m_ShardGuardList.size();
-  }
+unsigned int Guard::GetNumOfDSGuard() {
+  lock_guard<mutex> g(m_mutexDSGuardList);
+  return m_DSGuardList.size();
+}
+unsigned int Guard::GetNumOfShardGuard() {
+  lock_guard<mutex> g(m_mutexShardGuardList);
+  return m_ShardGuardList.size();
+}
 
 bool Guard::IsValidIP(const uint128_t& ip_addr) {
   struct sockaddr_in serv_addr;

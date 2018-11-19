@@ -109,7 +109,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
 {
   LOG_MARKER();
-  
+
   // Setting the guard upon process launch
   Guard::GetInstance().Init();
 
