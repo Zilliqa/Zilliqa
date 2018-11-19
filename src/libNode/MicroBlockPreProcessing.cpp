@@ -428,17 +428,22 @@ bool Node::ProcessTransactionWhenShardBackup(
 void Node::UpdateProcessedTransactions() {
   LOG_MARKER();
 
-  m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
-  m_createdTxns = std::move(t_createdTxns);
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+    m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
+    m_createdTxns = std::move(t_createdTxns);
+  }
 
-  lock_guard<mutex> g(m_mutexProcessedTransactions);
-  m_processedTransactions[(m_mediator.m_ds->m_mode ==
-                           DirectoryService::Mode::IDLE)
-                              ? m_mediator.m_currentEpochNum
-                              : m_mediator.m_txBlockChain.GetLastBlock()
-                                    .GetHeader()
-                                    .GetBlockNum()] =
-      std::move(t_processedTransactions);
+  {
+    lock_guard<mutex> g(m_mutexProcessedTransactions);
+    m_processedTransactions[(m_mediator.m_ds->m_mode ==
+                             DirectoryService::Mode::IDLE)
+                                ? m_mediator.m_currentEpochNum
+                                : m_mediator.m_txBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum()] =
+        std::move(t_processedTransactions);
+  }
 
   t_addrNonceTxnMap.clear();
   t_createdTxns.clear();
