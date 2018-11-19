@@ -1015,8 +1015,6 @@ bool DirectoryService::DSBlockValidator(
   return true;
 }
 
-
-
 bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   LOG_MARKER();
 
