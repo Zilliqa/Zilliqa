@@ -534,9 +534,9 @@ message LookupGetStateFromSeed
 
 message LookupSetStateFromSeed
 {
-    required ByteArray accounts  = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    required ByteArray accountstore          = 1;
+    required ByteArray pubkey                = 2;
+    required ByteArray signature             = 3;
 }
 
 message LookupSetLookupOffline
