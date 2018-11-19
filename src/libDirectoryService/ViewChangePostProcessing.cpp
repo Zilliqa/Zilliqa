@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -118,6 +119,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
 
     // Pushing faulty leader to back of the deque
+    deque<pair<PubKey, Peer>>::iterator it = m_mediator.m_DSCommittee->begin();
+    it += Guard::GetInstance().GetNumOfDSGuard();
+
     for (const auto& faultyLeader :
          m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
       // find the faulty leader and identify the index
@@ -142,10 +146,21 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
 
       // Add to the back of the ds commitee deque
       if (faultyLeader.second == m_mediator.m_selfPeer) {
-        m_mediator.m_DSCommittee->emplace_back(
-            make_pair(faultyLeader.first, Peer()));
+        if (!GUARD_MODE) {
+          m_mediator.m_DSCommittee->emplace_back(
+              make_pair(faultyLeader.first, Peer()));
+        } else {
+          m_mediator.m_DSCommittee->emplace(
+              it, make_pair(faultyLeader.first, Peer()));
+          it++;
+        }
       } else {
-        m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+        if (!GUARD_MODE) {
+          m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+        } else {
+          m_mediator.m_DSCommittee->emplace(it, faultyLeader);
+          it++;
+        }
       }
     }
 
