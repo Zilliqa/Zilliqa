@@ -135,7 +135,7 @@ bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
   return true;
 }
 
-bool Guard::IsPubkeyInShardGuardList(const PubKey& nodePubKey) {
+bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
   lock_guard<mutex> g(m_mutexShardGuardList);
 
   if (std::find(m_ShardGuardList.begin(), m_ShardGuardList.end(), nodePubKey) ==
