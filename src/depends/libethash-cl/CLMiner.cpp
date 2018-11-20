@@ -7,8 +7,7 @@
 #include "CLMiner_kernel_stable.h"
 #include "CLMiner_kernel_experimental.h"
 
-#include "libethash/internal.h"
-#include "libethash/ethash.h"
+#include <ethash/ethash.hpp>
 
 using namespace dev;
 using namespace eth;
@@ -441,7 +440,7 @@ bool CLMiner::configureGPU(
 	}
     s_initialGlobalWorkSize = _globalWorkSizeMultiplier * _localWorkSize;
 
-    auto dagSize = ethash_get_datasize(epoch); //ethash::get_full_dataset_size(ethash::calculate_full_dataset_num_items(epoch));
+    auto dagSize = ethash::get_full_dataset_size(ethash::calculate_full_dataset_num_items(epoch));
 
     std::vector<cl::Platform> platforms = getPlatforms();
     if (platforms.empty())
@@ -579,15 +578,21 @@ bool CLMiner::init(uint64_t blockNumber)
 		    	// make sure that global work size is evenly divisible by the local workgroup size
 		    	if (m_globalWorkSize % m_workgroupSize != 0)
 		    		m_globalWorkSize = ((m_globalWorkSize / m_workgroupSize) + 1) * m_workgroupSize;
-		    	cnote << "Adjusting CL work multiplier for " << computeUnits << " CUs."
+		    	  cnote << "Adjusting CL work multiplier for " << computeUnits << " CUs."
 		    		<< "Adjusted work multiplier: " << m_globalWorkSize / m_workgroupSize;
-		    }
+		      }
         }
 
-        const auto lightSize = ethash_get_cachesize(blockNumber);
-        const auto lightNumItems = lightSize / ETHASH_HASH_BYTES;
-        const auto dagSize = ethash_get_datasize(blockNumber);
-        const auto dagNumItems = dagSize / ETHASH_MIX_BYTES;
+        const auto epoch = ethash::get_epoch_number(blockNumber);
+        const auto& context = ethash::get_global_epoch_context(epoch);
+        const auto lightNumItems = context.light_cache_num_items;
+        const auto lightSize = ethash::get_light_cache_size(lightNumItems);
+        auto dagNumItems = context.full_dataset_num_items;
+        const auto dagSize = ethash::get_full_dataset_size(dagNumItems);
+
+        //const auto lightNumItems = lightSize / ETHASH_HASH_BYTES;
+        //const auto dagSize = ethash_get_datasize(blockNumber);
+        //const auto dagNumItems = dagSize / ETHASH_MIX_BYTES;
         // patch source code
         // note: The kernels here are simply compiled version of the respective .cl kernels
         // into a byte array by bin2h.cmake. There is no need to load the file by hand in runtime
@@ -659,10 +664,7 @@ bool CLMiner::init(uint64_t blockNumber)
             m_dagKernel = cl::Kernel(program, "ethash_calculate_dag_item");
             cllog << "Writing light cache buffer";
 
-            auto ethash_light_client = ethash_light_new(blockNumber);
-            //m_queue.enqueueWriteBuffer(m_light, CL_TRUE, 0, lightSize, context.light_cache);
-            m_queue.enqueueWriteBuffer(m_light, CL_TRUE, 0, lightSize, ethash_light_client->cache);
-            ethash_light_delete(ethash_light_client);
+            m_queue.enqueueWriteBuffer(m_light, CL_TRUE, 0, lightSize, context.light_cache);
         }
         catch (cl::Error const& err)
         {

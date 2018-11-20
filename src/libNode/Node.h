@@ -41,7 +41,6 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
-#include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 
 class Mediator;
