@@ -99,7 +99,7 @@ void Guard::UpdateShardGuardlist() {
   }
   {
     lock_guard<mutex> g(m_mutexShardGuardList);
-    LOG_GENERAL(INFO, "Total number of entries in shard whitelist:  "
+    LOG_GENERAL(INFO, "Total number of entries in shard guard list:  "
                           << m_ShardGuardList.size());
   }
 }
