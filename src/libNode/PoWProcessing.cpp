@@ -166,7 +166,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
-    
+
     auto checkerThread = [this]() mutable -> void {
       unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
       if (cv_waitDSBlock.wait_for(
@@ -195,7 +195,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                  lookupId, m_proposedGasPrice)) {
         return false;
       } else {
-        DetachedFunction(1, checkerThread);      
+        DetachedFunction(1, checkerThread);
       }
     } else {
       // If solution does not meet targeted ds difficulty, send the initial
@@ -238,8 +238,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       }
     }
   }
-
-  
 
   if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
     SetState(WAITING_DSBLOCK);
