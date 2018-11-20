@@ -58,6 +58,8 @@ def main():
 			print_usage() if (numargs != 3) else run_setup(numnodes=int(sys.argv[2]), printnodes=True)
 		elif(command == 'prestart'):
 			print_usage() if (numargs != 3) else run_prestart(numdsnodes=int(sys.argv[2]))
+		elif(command == 'prestartguard'):
+			print_usage() if (numargs != 3) else run_prestart(numdsnodes=int(sys.argv[2]), guard_mode=True)
 		elif (command == 'start'):
 			print_usage() if (numargs != 3) else run_start(numdsnodes=int(sys.argv[2]))
 		elif (command == 'connect'):
@@ -120,18 +122,36 @@ def run_setup(numnodes, printnodes):
 			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
 
 
-def run_prestart(numdsnodes):
+def run_prestart(numdsnodes, guard_mode=False):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
 	count = len(testfolders_list)
 	keypairs = []
+	
+	range_begin_index = 0
 
-	# Generate keypairs (sort by public key)
-	for x in range(0, count):
+
+
+	if guard_mode == True:
+		keypairs = ["020F325C2EBA2EA8EDED2E575F1FFBE581ACCA4064CB5BD4666FF15CCCBA6A7093 A6826C4D72DD53971DFAEBB591733AC63B4DFEEBD11383FE5C4CF57061C2A615",
+					"02128D7C7D6D2AF2503648DEA76AFC9EACDC30748A5D22489142E7666ECB1D9B4E 9C66312E390005EDFF13D0CA6D2082DC0C18123B3FB777ED0CF61690F14BD07F",
+					"02145C485DC33D903EBDBAD1D6781250B958816F414232683FD5BF2348A69EF741 B4E480E8744F4CEB975E5E329C9459CD15F7565DD7C6F9DF649001AA2D974996",
+					"021D024623D979C6C2873E3FEA26F9F59DB91330E250511DACBC6E85F3A2EE0927 F6132FCD7A150C4B327EE43787B25A6C247B9B3441F8350F28F80BF8D643D785",
+					"022396E4F41AD7494EC410EFFC5C0F9AFB707CEE9B62047BED0A5E614355ED67EC 8337B8644DB1BD151254A5CE82EA151622F22FDE7F84FF544203FA194D837387"]
+		range_begin_index = len(keypairs)
+
+	# Generate keypairs
+	for x in range(range_begin_index, count):
 		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
 		keypairs.append(output)
-	keypairs.sort()
+
+	if guard_mode == True:
+		keypairs[10] = "03AFF08ECE9CA58665D412C0F89245D029A64F1794EDE9A9BA4262B00C5BA7E1D1 4B8C63E658B51604790BD8383E56A317201EAF71074A933DC31132E5DB0D7FC3"
+		keypairs[11] = "03BB22048026A6CD33F670376BE14DDE7D44A9B0B5F1EF8427AC717E18B15A29EF 508AFA26888DD979762187B34D17ADC861E0F422FC5616D72824A9BC5FCC9278"
+		keypairs[12] = "03BF863614661B940278BCC582CCCF33FCD19501CDE2CFAA9A3F4061592F736569 CEA5827E750E8650AA5FC277E95BF9CA02D2B8DFA71481675AA1ABFD2928A61C"
+		keypairs[13] = "03DCAB61B736BDC1E77129B4363A76FF74CE89EC49A377A3DCDFE7AE45EF12C3F8 E8A72190FB00E709A216E92E435C65FC508180B309A70D0982A2EC27B794945A"
+		keypairs[14] = "03DE502D5A7F6277EEA30BBD58120E4BBD091EF87912D834225104C57E9B39A918 C4EE5BC694EE6EC0488E42B462DA01BA4B254B6A2F6CE83895C018B74EDF49F6"
 
 	nodes = ET.Element("nodes")
 	dsnodes = ET.Element("dsnodes");
@@ -192,8 +212,6 @@ def run_prestart(numdsnodes):
 	# Create shard_whitelist.xml with pubkey
 	tree = ET.ElementTree(address_nodes)
 	tree.write("shard_whitelist.xml")
-
-
 
 def run_start(numdsnodes):
 
