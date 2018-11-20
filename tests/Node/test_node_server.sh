@@ -35,7 +35,7 @@ sleep 20
 #set primary 
 for ds in {1..20}
 do
-    python tests/Zilliqa/test_zilliqa_local.py sendcmd $ds 01000000000000000000000000000100007F00001389
+    python tests/Zilliqa/test_zilliqa_local.py setprimary $ds 0000000000000000000000000100007F 00001389
 done
 sleep 10
 
