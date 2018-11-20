@@ -866,6 +866,16 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
             "ProcessGetTxBlockFromSeed requested by " << from << " for blocks "
                                                       << lowBlockNum << " to "
                                                       << highBlockNum);
+
+  // When node in problematical status, it may continually request the wrong tx
+  // block range from lookup, and lookup sendout a message without any tx
+  // blocks, it is a waste of network bandwidth.
+  if (txBlocks.empty()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "No new tx blocks from lookup, ignore the request.");
+    return false;
+  }
+
   vector<unsigned char> txBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::SETTXBLOCKFROMSEED};
   if (!Messenger::SetLookupSetTxBlockFromSeed(
