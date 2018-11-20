@@ -146,15 +146,26 @@ bool DirectoryService::ProcessPoWSubmission(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
   }
 
-  if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
-      difficultyLevel != expectedShardGuardDiff) {
-    LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
-                             << to_string(difficultyLevel)
-                             << " Expected: " << to_string(expectedDSDiff)
-                             << " or " << to_string(expectedDiff) << " or "
-                             << to_string(expectedShardGuardDiff));
-    // TODO: penalise sender in reputation manager
-    return false;
+  if (!GUARD_MODE) {
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
+      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
+                               << to_string(difficultyLevel)
+                               << " Expected: " << to_string(expectedDSDiff)
+                               << " or " << to_string(expectedDiff));
+      // TODO: penalise sender in reputation manager
+      return false;
+    }
+  } else {
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
+        difficultyLevel != expectedShardGuardDiff) {
+      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
+                               << to_string(difficultyLevel)
+                               << " Expected: " << to_string(expectedDSDiff)
+                               << " or " << to_string(expectedDiff) << " or "
+                               << to_string(expectedShardGuardDiff));
+      // TODO: penalise sender in reputation manager
+      return false;
+    }
   }
 
   m_timespec = r_timer_start();
