@@ -101,7 +101,7 @@ bool AccountStore::Deserialize(const vector<unsigned char>& src,
   this->Init();
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
-  
+
   if (!Messenger::GetAccountStore(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
     return false;
