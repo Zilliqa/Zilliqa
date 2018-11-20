@@ -43,6 +43,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
+#include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -2050,8 +2051,9 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
     txBlockRand = m_mediator.m_txBlockRand;
 
     m_mediator.m_node->SetState(Node::POW_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+    POW::GetInstance().EthashConfigureClient(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+        FULL_DATASET_MINE);
 
     this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 
