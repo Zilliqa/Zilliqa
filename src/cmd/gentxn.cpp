@@ -166,8 +166,8 @@ int main(int argc, char** argv) {
             << "\n";
 
   for (auto batch = begin; batch < end; batch++) {
-    auto begin_nonce = batch * batch_size;
-    auto end_nonce = (batch + 1) * batch_size;
+    auto begin_nonce = batch * batch_size + 1;
+    auto end_nonce = (batch + 1) * batch_size + 1;
     auto nonce_range = std::make_tuple(begin_nonce, end_nonce);
 
     for (auto& from : fromAccounts) {
