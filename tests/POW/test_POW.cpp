@@ -669,7 +669,94 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
   BOOST_REQUIRE(newDifficulty == 15);
 }
 
-#if 0 
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
+  uint8_t currentDifficulty = 10;
+  uint8_t minDifficulty = 5;
+  int64_t startNumberOfNodes = 100;
+  int64_t powSubmissions = 110;
+  int64_t expectedNodes = startNumberOfNodes;
+  uint32_t adjustThreshold = 9;
+  int64_t currentEpochNum = 200;
+  int64_t numBlocksPerYear = 1971000;
+  int newDifficulty = 0;
+
+  FILE* pFile;
+  pFile = fopen("diffAdjustmentTest.txt", "w");
+  char buffer[128] = {0};
+
+  if (pFile != NULL) {
+    sprintf(buffer, "NumOfNodes: , POWsub: , Diff: , \n");
+    fputs(buffer, pFile);
+  }
+  for (int64_t currentNodes = startNumberOfNodes; currentNodes <= 100000;
+       currentNodes += 1000) {
+    newDifficulty = 0;
+    expectedNodes = currentNodes;
+
+    // powSubmissions 20% lower than current number of nodes
+    powSubmissions = currentNodes - (currentNodes / 5);
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+
+    if (pFile != NULL) {
+      sprintf(buffer, " %ld , %ld  , %d , \n",
+              currentNodes, powSubmissions, newDifficulty);
+      fputs(buffer, pFile);
+    }
+
+    // powSubmissions 5% lower than current number of nodes
+    powSubmissions = currentNodes - (currentNodes / 20);
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+
+    if (pFile != NULL) {
+      sprintf(buffer, " %ld , %ld  , %d , \n",
+              currentNodes, powSubmissions, newDifficulty);
+      fputs(buffer, pFile);
+    }
+
+    // powSubmissions equal to current number of nodes
+    powSubmissions = currentNodes;
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+
+    if (pFile != NULL) {
+      sprintf(buffer, " %ld , %ld  , %d , \n",
+              currentNodes, powSubmissions, newDifficulty);
+      fputs(buffer, pFile);
+    }
+
+    // powSubmissions 5% higher than current number of nodes
+    powSubmissions = currentNodes + (currentNodes / 20);
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+
+    if (pFile != NULL) {
+      sprintf(buffer, " %ld , %ld  , %d , \n",
+              currentNodes, powSubmissions, newDifficulty);
+      fputs(buffer, pFile);
+    }
+
+    // powSubmissions 20% higher than current number of nodes
+    powSubmissions = currentNodes + (currentNodes / 5);
+    newDifficulty = DirectoryService::CalculateNewDifficultyCore(
+        currentDifficulty, minDifficulty, currentNodes, powSubmissions,
+        expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
+
+    if (pFile != NULL) {
+      sprintf(buffer, " %ld , %ld  , %d , \n",
+              currentNodes, powSubmissions, newDifficulty);
+      fputs(buffer, pFile);
+    }
+  }
+  fclose(pFile);
+}
+
+#if 0
 
 // Test of Full DAG creation with the minimal ethash.h API.
 // Commented out since travis tests would take too much time.
