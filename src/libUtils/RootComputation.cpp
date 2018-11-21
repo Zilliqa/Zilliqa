@@ -91,12 +91,20 @@ TxnHash ComputeRoot(const list<Transaction>& receivedTransactions,
                     const list<Transaction>& submittedTransactions) {
   LOG_MARKER();
 
+  if (receivedTransactions.empty() && submittedTransactions.empty()) {
+    return TxnHash();
+  }
+
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
 }
 
 TxnHash ComputeRoot(
     const unordered_map<TxnHash, Transaction>& processedTransactions) {
   LOG_MARKER();
+
+  if (processedTransactions.empty()) {
+    return TxnHash();
+  }
 
   return ConcatTranAndHash(processedTransactions);
 }
@@ -106,11 +114,19 @@ TxnHash ComputeRoot(
     const unordered_map<TxnHash, Transaction>& submittedTransactions) {
   LOG_MARKER();
 
+  if (receivedTransactions.empty() && submittedTransactions.empty()) {
+    return TxnHash();
+  }
+
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
 }
 
 TxnHash ComputeRoot(const vector<TransactionWithReceipt>& transactions) {
   LOG_MARKER();
+
+  if (transactions.empty()) {
+    return TxnHash();
+  }
 
   return ConcatTranAndHash(transactions);
 }
