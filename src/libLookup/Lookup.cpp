@@ -43,6 +43,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
+#include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -866,6 +867,16 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
             "ProcessGetTxBlockFromSeed requested by " << from << " for blocks "
                                                       << lowBlockNum << " to "
                                                       << highBlockNum);
+
+  // When node in problematical status, it may continually request the wrong tx
+  // block range from lookup, and lookup sendout a message without any tx
+  // blocks, it is a waste of network bandwidth.
+  if (txBlocks.empty()) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "No new tx blocks from lookup, ignore the request.");
+    return false;
+  }
+
   vector<unsigned char> txBlockMessage = {
       MessageType::LOOKUP, LookupInstructionType::SETTXBLOCKFROMSEED};
   if (!Messenger::SetLookupSetTxBlockFromSeed(
@@ -2040,8 +2051,9 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
     txBlockRand = m_mediator.m_txBlockRand;
 
     m_mediator.m_node->SetState(Node::POW_SUBMISSION);
-    POW::GetInstance().EthashConfigureLightClient(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+    POW::GetInstance().EthashConfigureClient(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+        FULL_DATASET_MINE);
 
     this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
 

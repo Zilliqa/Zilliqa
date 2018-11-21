@@ -4538,11 +4538,6 @@ bool Messenger::GetLookupSetStateFromSeed(
   copy(result.accountstore().data().begin(), result.accountstore().data().end(),
        back_inserter(accountStoreBytes));
 
-  // if (!SerializeToArray(result.accountstore(), accountStoreBytes, 0)) {
-  //   LOG_GENERAL(WARNING, "Failed to serialize accounts.");
-  //   return false;
-  // }
-
   if (!Schnorr::GetInstance().Verify(accountStoreBytes, signature,
                                      lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in accounts.");
