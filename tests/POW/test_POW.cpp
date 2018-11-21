@@ -673,7 +673,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
   uint8_t currentDifficulty = 10;
   uint8_t minDifficulty = 5;
   int64_t startNumberOfNodes = 100;
-  int64_t powSubmissions = 110;
+  int64_t powSubmissions = 100;
   int64_t expectedNodes = startNumberOfNodes;
   uint32_t adjustThreshold = 9;
   int64_t currentEpochNum = 200;
@@ -681,7 +681,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
   int newDifficulty = 0;
 
   FILE* pFile;
-  pFile = fopen("diffAdjustmentTest.txt", "w");
+  pFile = fopen("diffAdjustmentTest.csv", "w");
   char buffer[128] = {0};
 
   if (pFile != NULL) {
@@ -700,8 +700,8 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
 
     if (pFile != NULL) {
-      sprintf(buffer, " %ld , %ld  , %d , \n",
-              currentNodes, powSubmissions, newDifficulty);
+      sprintf(buffer, " %ld , %ld  , %d , \n", currentNodes, powSubmissions,
+              newDifficulty);
       fputs(buffer, pFile);
     }
 
@@ -712,8 +712,8 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
 
     if (pFile != NULL) {
-      sprintf(buffer, " %ld , %ld  , %d , \n",
-              currentNodes, powSubmissions, newDifficulty);
+      sprintf(buffer, " %ld , %ld  , %d , \n", currentNodes, powSubmissions,
+              newDifficulty);
       fputs(buffer, pFile);
     }
 
@@ -724,8 +724,8 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
 
     if (pFile != NULL) {
-      sprintf(buffer, " %ld , %ld  , %d , \n",
-              currentNodes, powSubmissions, newDifficulty);
+      sprintf(buffer, " %ld , %ld  , %d , \n", currentNodes, powSubmissions,
+              newDifficulty);
       fputs(buffer, pFile);
     }
 
@@ -736,8 +736,8 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
 
     if (pFile != NULL) {
-      sprintf(buffer, " %ld , %ld  , %d , \n",
-              currentNodes, powSubmissions, newDifficulty);
+      sprintf(buffer, " %ld , %ld  , %d , \n", currentNodes, powSubmissions,
+              newDifficulty);
       fputs(buffer, pFile);
     }
 
@@ -748,8 +748,8 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
         expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
 
     if (pFile != NULL) {
-      sprintf(buffer, " %ld , %ld  , %d , \n",
-              currentNodes, powSubmissions, newDifficulty);
+      sprintf(buffer, " %ld , %ld  , %d , \n", currentNodes, powSubmissions,
+              newDifficulty);
       fputs(buffer, pFile);
     }
   }
