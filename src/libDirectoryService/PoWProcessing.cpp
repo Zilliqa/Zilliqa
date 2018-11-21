@@ -126,6 +126,8 @@ bool DirectoryService::ProcessPoWSubmission(
                 << DataConversion::SerializableToHexStr(submitterPubKey));
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Winner Peer ip addr           = " << submitterPeer);
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Difficulty                    = " << to_string(difficultyLevel));
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
