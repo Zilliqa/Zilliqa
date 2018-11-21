@@ -474,11 +474,11 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   VCBlockSharedPtr prevVCBlockptr;
   if (CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
     LOG_GENERAL(INFO,
-                "Using hash of last vc block for computing candidcate leader");
+                "Using hash of last vc block for computing candidate leader");
     sha2.Update(prevVCBlockptr->GetBlockHash().asBytes());
   } else {
     LOG_GENERAL(
-        INFO, "Using hash of last final block for computing candidcate leader");
+        INFO, "Using hash of last final block for computing candidate leader");
     sha2.Update(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
