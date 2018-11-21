@@ -1207,7 +1207,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   }
 
 #if 1
-  if (m_consensusMyID == 3 && m_mediator.m_currentEpochNum >= 3) {
+  if (m_consensusMyID == 3 && m_mediator.m_currentEpochNum == 2) {
     LOG_EPOCH(
         WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_2)");
