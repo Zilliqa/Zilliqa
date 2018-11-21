@@ -136,7 +136,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   m_publicKeyToshardIdMap.clear();
 
   if (sortedPoWSolns.size() < m_mediator.GetShardSize(false)) {
-    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
+    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size. sortedPoWSolns: "
+                             << sortedPoWSolns.size());
   }
 
   std::set<PubKey> setTopPriorityNodes;
@@ -681,10 +682,8 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       }
 
       // Sort "FilteredPoWOrderSorter" and stored it in "sortedPoWSolns"
-      for (auto kv = ShadowPoWOrderSorter.begin();
-           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTrimmed);
-           kv++, count++) {
-        sortedPoWSolns.emplace_back(*kv);
+      for (auto kv : FilteredPoWOrderSorter) {
+        sortedPoWSolns.emplace_back(kv);
       }
     }
 
@@ -693,6 +692,8 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       sortedPoWSolns.emplace_back(kv);
     }
   }
+  LOG_GENERAL(INFO,
+              "Number of solns after trimming is " << sortedPoWSolns.size());
   return sortedPoWSolns;
 }
 
