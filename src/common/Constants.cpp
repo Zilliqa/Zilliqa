@@ -130,8 +130,6 @@ const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
     ReadFromConstantsFile("FETCHING_MISSING_DATA_TIMEOUT")};
-const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT{
-    ReadFromConstantsFile("DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};

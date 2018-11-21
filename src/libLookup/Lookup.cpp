@@ -772,6 +772,13 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
 
   uint64_t curBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (INIT_BLOCK_NUMBER == curBlockNum) {
+    LOG_GENERAL(WARNING,
+                "Blockchain is still bootstraping, no ds blocks available.");
+    return;
+  }
+
   uint64_t minBlockNum = (curBlockNum > MEAN_GAS_PRICE_DS_NUM)
                              ? (curBlockNum - MEAN_GAS_PRICE_DS_NUM)
                              : 1;
@@ -916,6 +923,12 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   if (highBlockNum == 0) {
     highBlockNum =
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  }
+
+  if (INIT_BLOCK_NUMBER == highBlockNum) {
+    LOG_GENERAL(WARNING,
+                "Blockchain is still bootstraping, no tx blocks available.");
+    return;
   }
 
   uint64_t blockNum;
@@ -2072,8 +2085,9 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
 
   // Check whether is the new node connected to the network. Else, initiate
   // re-sync process again.
-  this_thread::sleep_for(
-      chrono::seconds(POW_WINDOW_IN_SECONDS + 2 * NEW_NODE_SYNC_INTERVAL));
+  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS +
+                                         2 * NEW_NODE_SYNC_INTERVAL +
+                                         (TX_DISTRIBUTE_TIME_IN_MS / 1000)));
   m_startedPoW = false;
   if (m_syncType != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -2690,7 +2704,8 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
           ins_byte != LookupInstructionType::SETTXBLOCKFROMSEED &&
           ins_byte != LookupInstructionType::SETSTATEFROMSEED &&
           ins_byte != LookupInstructionType::SETLOOKUPOFFLINE &&
-          ins_byte != LookupInstructionType::SETLOOKUPONLINE);
+          ins_byte != LookupInstructionType::SETLOOKUPONLINE &&
+          ins_byte != LookupInstructionType::SETSTATEDELTAFROMSEED);
 }
 
 std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes() {

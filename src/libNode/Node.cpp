@@ -87,90 +87,84 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
 
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
-    bool retrieveSuccessButTooLate = false;
 
-    if (StartRetrieveHistory(wakeupForUpgrade, retrieveSuccessButTooLate)) {
-      m_mediator.m_currentEpochNum =
-          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-          1;
+    if (!StartRetrieveHistory(wakeupForUpgrade)) {
+      return false;
+    }
 
-      if (wakeupForUpgrade) {
-        m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
-      }
+    m_mediator.m_currentEpochNum =
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
-      m_consensusLeaderID = 0;
-      runInitializeGenesisBlocks = false;
-      m_mediator.UpdateDSBlockRand();
-      m_mediator.UpdateTxBlockRand();
-      m_mediator.m_ds->m_mode = DirectoryService::IDLE;
+    if (wakeupForUpgrade) {
+      m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
+    }
 
-      for (const auto& ds : *m_mediator.m_DSCommittee) {
-        if (ds.first == m_mediator.m_selfKey.second) {
-          m_mediator.m_ds->m_consensusMyID = 0;
+    m_consensusLeaderID = 0;
+    runInitializeGenesisBlocks = false;
+    m_mediator.UpdateDSBlockRand();
+    m_mediator.UpdateTxBlockRand();
+    m_mediator.m_ds->m_mode = DirectoryService::IDLE;
 
-          for (auto const& i : *m_mediator.m_DSCommittee) {
-            if (i.first == m_mediator.m_selfKey.second) {
-              LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                        "My node ID for this PoW consensus is "
-                            << m_mediator.m_ds->m_consensusMyID);
-              break;
-            }
+    for (const auto& ds : *m_mediator.m_DSCommittee) {
+      if (ds.first == m_mediator.m_selfKey.second) {
+        m_mediator.m_ds->m_consensusMyID = 0;
 
-            ++m_mediator.m_ds->m_consensusMyID;
+        for (auto const& i : *m_mediator.m_DSCommittee) {
+          if (i.first == m_mediator.m_selfKey.second) {
+            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "My node ID for this PoW consensus is "
+                          << m_mediator.m_ds->m_consensusMyID);
+            break;
           }
 
-          m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
-
-          if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
-                  .first == m_mediator.m_selfKey.second) {
-            m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
-
-            if (!wakeupForUpgrade) {
-              LOG_GENERAL(INFO,
-                          "Node recovery cannot be applied on DS leader, apply "
-                          "re-join process instead");
-              return false;
-            }
-
-            LOG_GENERAL(INFO,
-                        "Set as DS leader: "
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
-            LOG_STATE("[IDENT]["
-                      << std::setw(15) << std::left
-                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << std::setw(6) << std::left
-                      << m_mediator.m_ds->m_consensusMyID << "] DSLD");
-          } else {
-            m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
-            LOG_GENERAL(INFO,
-                        "Set as DS backup: "
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << ":" << m_mediator.m_selfPeer.m_listenPortHost);
-            LOG_STATE("[IDENT]["
-                      << std::setw(15) << std::left
-                      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                      << std::setw(6) << std::left
-                      << m_mediator.m_ds->m_consensusMyID << "] DSBK");
-          }
-
-          break;
+          ++m_mediator.m_ds->m_consensusMyID;
         }
-      }
 
+        m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
+
+        if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
+                .first == m_mediator.m_selfKey.second) {
+          m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
+
+          if (!wakeupForUpgrade) {
+            LOG_GENERAL(INFO,
+                        "Node recovery cannot be applied on DS leader, apply "
+                        "re-join process instead");
+            return false;
+          }
+
+          LOG_GENERAL(INFO, "Set as DS leader: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+          LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                               << "][" << std::setw(6) << std::left
+                               << m_mediator.m_ds->m_consensusMyID << "] DSLD");
+        } else {
+          m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
+          LOG_GENERAL(INFO, "Set as DS backup: "
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << ":"
+                                << m_mediator.m_selfPeer.m_listenPortHost);
+          LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                               << "][" << std::setw(6) << std::left
+                               << m_mediator.m_ds->m_consensusMyID << "] DSBK");
+        }
+
+        break;
+      }
+    }
+
+    /// When non-rejoin mode, call wake-up or recovery
+    if (SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType) {
       if (wakeupForUpgrade) {
         WakeupForUpgrade();
       } else {
         WakeupForRecovery();
         return true;
       }
-    }
-
-    // When do node recovery, if retrieve the history success, then shouldn't
-    // continue to run add genesis account, but let the node to synchronize with
-    // lookup node.
-    if (retrieveSuccessButTooLate) {
-      return true;
     }
   }
 
@@ -241,8 +235,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       FULL_DATASET_MINE);
 }
 
-bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
-                                bool& retrieveSuccessButTooLate) {
+bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -302,27 +295,37 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes
-  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE) {
+  if (!ARCHIVAL_NODE && SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
-    if (!GetOfflineLookups()) {
-      LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
-      return false;
+
+    if (LOOKUP_NODE_MODE) {
+      if (!m_mediator.m_lookup->GetMyLookupOffline()) {
+        LOG_GENERAL(WARNING, "Cannot fetch data from off-line lookup node!");
+        return false;
+      }
+    } else {
+      if (!GetOfflineLookups()) {
+        LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
+        return false;
+      }
     }
     {
       unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
+      m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
 
       do {
-        m_synchronizer.FetchLatestTxBlocks(
-            m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+        m_mediator.m_lookup->GetTxBlockFromLookupNodes(
+            m_mediator.m_txBlockChain.GetBlockCount(), 0);
         LOG_GENERAL(INFO,
                     "Retrieve final block from lookup node, please wait...");
       } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
+
+      m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
     }
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
-      retrieveSuccessButTooLate = true;
       LOG_GENERAL(INFO,
                   "Node recovery too late, apply re-join process instead");
       return false;
@@ -332,6 +335,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
+      m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
 
       do {
         m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
@@ -342,7 +346,24 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
       } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
+
+      m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
     }
+  }
+
+  /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply re-join
+  /// process instead of node recovery
+  if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
+      SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType &&
+      (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
+           NUM_FINAL_BLOCK_PER_POW ||
+       m_mediator.GetIsVacuousEpoch(
+           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+           1))) {
+    LOG_GENERAL(INFO,
+                "Node recovery with vacuous epoch or too early, apply "
+                "re-join process instead");
+    return false;
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
@@ -369,10 +390,16 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
   /// Retrieve sharding structure and setup relative variables
   BlockStorage::GetBlockStorage().GetShardStructure(
       m_mediator.m_ds->m_shards, m_mediator.m_node->m_myshardId);
-  LoadShardingStructure(true);
-  m_mediator.m_ds->ProcessShardingStructure(
-      m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-      m_mediator.m_ds->m_mapNodeReputation);
+
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_lookup->ProcessEntireShardingStructure();
+  } else {
+    LoadShardingStructure(true);
+    m_mediator.m_ds->ProcessShardingStructure(
+        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+        m_mediator.m_ds->m_mapNodeReputation);
+  }
+
   m_mediator.m_consensusID =
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
@@ -481,7 +508,6 @@ void Node::WakeupForRecovery() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(INFO, "Lookup node, do nothing temporarily");
     return;
   }
 
@@ -839,9 +865,20 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
   cur_offset += MessageOffset::INST;
 
   if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN) {
-    if (m_state != MICROBLOCK_CONSENSUS) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Not in a microblock consensus state: don't want missing txns")
+    if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
+      if (m_state != MICROBLOCK_CONSENSUS) {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "As a shard node not in a microblock consensus state: don't "
+                  "want missing txns")
+        return false;
+      }
+    } else {
+      if (m_mediator.m_ds->m_state != DirectoryService::FINALBLOCK_CONSENSUS) {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "As a ds node not in a finalblock consensus state: don't "
+                  "want missing txns");
+        return false;
+      }
     }
 
     ProcessSubmitMissingTxn(message, cur_offset, from);
@@ -997,7 +1034,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   } else {
     LOG_GENERAL(WARNING,
-                "The node triggered DM_TEST_DM_LESSTNX_ONE is "
+                "The node triggered DM_TEST_DM_LESSTXN_ONE is "
                     << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSTXN_ONE

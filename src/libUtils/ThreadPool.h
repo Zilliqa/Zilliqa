@@ -93,8 +93,7 @@ class ThreadPool {
     _jobAvailableVar.notify_one();
 
     if (0 == _jobsLeft % 10) {
-      LOG_GENERAL(
-          INFO, "PoolName: " << _poolName << " JobLeft: " << _jobsLeft << '\n');
+      LOG_GENERAL(INFO, "PoolName: " << _poolName << " JobLeft: " << _jobsLeft);
     }
   }
 
