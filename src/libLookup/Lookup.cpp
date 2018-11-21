@@ -772,6 +772,13 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
 
   uint64_t curBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  if (INIT_BLOCK_NUMBER == curBlockNum) {
+    LOG_GENERAL(WARNING,
+                "Blockchain is still bootstraping, no ds blocks available.");
+    return;
+  }
+
   uint64_t minBlockNum = (curBlockNum > MEAN_GAS_PRICE_DS_NUM)
                              ? (curBlockNum - MEAN_GAS_PRICE_DS_NUM)
                              : 1;
@@ -916,6 +923,12 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   if (highBlockNum == 0) {
     highBlockNum =
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+  }
+
+  if (INIT_BLOCK_NUMBER == highBlockNum) {
+    LOG_GENERAL(WARNING,
+                "Blockchain is still bootstraping, no tx blocks available.");
+    return;
   }
 
   uint64_t blockNum;
