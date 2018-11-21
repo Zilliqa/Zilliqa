@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
   std::string prog(argv[0]);
 
   const unsigned long delta = 10000;
-  unsigned long begin = 1, end = delta + 1;
+  unsigned long begin = 0, end = delta;
 
   if (argc > 1) {
     begin = strtoul(argv[1], nullptr, 10);
@@ -166,7 +166,6 @@ int main(int argc, char** argv) {
             << "\n";
 
   for (auto batch = begin; batch < end; batch++) {
-
     auto begin_nonce = batch * batch_size + 1;
     auto end_nonce = (batch + 1) * batch_size + 1;
     auto nonce_range = std::make_tuple(begin_nonce, end_nonce);
