@@ -1696,7 +1696,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
     } else {
       for (const auto& info : txBlock.GetMicroBlockInfos()) {
-        if (!info.m_isMicroBlockEmpty) {
+        if (info.m_txnRootHash != TxnHash()) {
           m_mediator.m_archival->AddToFetchMicroBlockInfo(
               info.m_microBlockHash);
         } else {
