@@ -39,7 +39,9 @@ BOOST_AUTO_TEST_CASE(CircularArray_test) {
   LOG_MARKER();
 
   CircularArray<int> arr;
-  arr.resize(100);
+  std::size_t CAPACITY = 100;
+  arr.resize(CAPACITY);
+  BOOST_CHECK_MESSAGE(arr.capacity() == CAPACITY, "arr.capacity() != CAPACITY");
 
   arr.insert_new(arr.size(), 1);
   arr.insert_new(arr.size(), 2);
