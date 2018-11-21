@@ -45,7 +45,7 @@ const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
   for (auto const& i : v) {
     Json::Value mbInfoJson;
     mbInfoJson["MicroBlockHash"] = i.m_microBlockHash.hex();
-    mbInfoJson["MicroBlockEmpty"] = i.m_isMicroBlockEmpty ? 1 : 0;
+    mbInfoJson["MicroBlockTxnRootHash"] = i.m_txnRootHash.hex();
     mbInfoJson["MicroBlockShardId"] = i.m_shardId;
     mbInfosJson.append(mbInfosJson);
   }

@@ -37,6 +37,10 @@ inline const TxnHash& GetHash(
     const std::pair<const TxnHash, Transaction>& item) {
   return item.second.GetTranID();
 }
+
+inline const TxnHash& GetHash(const TransactionWithReceipt& item) {
+  return item.GetTransaction().GetTranID();
+}
 };  // namespace
 
 template <typename... Container>
@@ -103,4 +107,10 @@ TxnHash ComputeRoot(
   LOG_MARKER();
 
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
+}
+
+TxnHash ComputeRoot(const vector<TransactionWithReceipt>& transactions) {
+  LOG_MARKER();
+
+  return ConcatTranAndHash(transactions);
 }
