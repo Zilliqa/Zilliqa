@@ -78,7 +78,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 * macOS (experimental):
 
     ```bash
-    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
+    brew install boost pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
     ```
 
 ## Running Zilliqa locally
