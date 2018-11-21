@@ -136,7 +136,6 @@ extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
-extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const uint32_t MAXMESSAGE;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
