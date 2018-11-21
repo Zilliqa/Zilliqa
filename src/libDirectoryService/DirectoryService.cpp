@@ -475,8 +475,10 @@ bool DirectoryService::FinishRejoinAsDS() {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
   PubKey leaderPubKey;
   if (blocktype == BlockType::DS) {
-
-    m_consensusLeaderID = m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes() % dsSize;
+    m_consensusLeaderID =
+        DataConversion::charArrTo16Bits(
+            m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        dsSize;
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(
