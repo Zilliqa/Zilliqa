@@ -281,7 +281,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                              << m_mediator.m_currentEpochNum);
     m_consensusLeaderID =
         DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+            m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
         m_mediator.m_DSCommittee->size();
   }
 
