@@ -118,10 +118,8 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
   unsigned int totalSize = blocks.size();
   unsigned int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
 
-  if (wakeupForUpgrade ||
-      (blocks.back()->GetHeader().GetBlockNum() + NUM_VACUOUS_EPOCHS) %
-              NUM_FINAL_BLOCK_PER_POW ==
-          0) {
+  if (wakeupForUpgrade || m_mediator.GetIsVacuousEpoch(
+                              (blocks.back()->GetHeader().GetBlockNum()))) {
     // truncate the extra final blocks at last
     for (unsigned int i = 0; i < extra_txblocks; ++i) {
       BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
@@ -134,20 +132,6 @@ void Retriever::RetrieveTxBlocks(bool& result, const bool& wakeupForUpgrade) {
   }
 
   result = true;
-
-  /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply re-join
-  /// process instead of node recovery
-  if (!wakeupForUpgrade &&
-      (blocks.back()->GetHeader().GetBlockNum() < NUM_FINAL_BLOCK_PER_POW ||
-       (blocks.back()->GetHeader().GetBlockNum() + NUM_VACUOUS_EPOCHS) %
-               NUM_FINAL_BLOCK_PER_POW ==
-           0)) {
-    result = false;
-    LOG_GENERAL(INFO,
-                "Node recovery with vacuous epoch or too early, apply "
-                "re-join process instead");
-    return;
-  }
 
   /// Retrieve final block state delta from last DS epoch to
   /// current TX epoch
