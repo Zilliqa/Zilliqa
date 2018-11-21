@@ -24,7 +24,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-TxBlockHeader::TxBlockHeader() : m_blockNum((uint64_t)-1) {}
+TxBlockHeader::TxBlockHeader() : m_blockNum(INIT_BLOCK_NUMBER) {}
 
 TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {

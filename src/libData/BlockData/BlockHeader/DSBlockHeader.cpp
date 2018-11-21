@@ -24,7 +24,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-DSBlockHeader::DSBlockHeader() { m_blockNum = (uint64_t)-1; }
+DSBlockHeader::DSBlockHeader() : m_blockNum(INIT_BLOCK_NUMBER) {}
 
 DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {
