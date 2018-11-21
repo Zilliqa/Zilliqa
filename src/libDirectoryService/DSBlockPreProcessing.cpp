@@ -32,6 +32,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
+#include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -306,7 +307,7 @@ bool DirectoryService::VerifyPoWWinner(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
-            dsPowSoln.gasPrice, false, dsPowSoln.nonce,
+            dsPowSoln.gasPrice, dsPowSoln.nonce,
             DataConversion::charArrToHexStr(dsPowSoln.result),
             DataConversion::charArrToHexStr(dsPowSoln.mixhash));
         if (!result) {

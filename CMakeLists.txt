@@ -149,6 +149,8 @@ include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
+include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 

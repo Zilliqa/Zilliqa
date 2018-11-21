@@ -236,8 +236,9 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
   m_mediator.UpdateDSBlockRand(runInitializeGenesisBlocks);
   m_mediator.UpdateTxBlockRand(runInitializeGenesisBlocks);
   SetState(POW_SUBMISSION);
-  POW::GetInstance().EthashConfigureLightClient(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+  POW::GetInstance().EthashConfigureClient(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+      FULL_DATASET_MINE);
 }
 
 bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
@@ -984,8 +985,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
   }
 
-  LOG_GENERAL(INFO, "TxnPool size before processing: " << m_createdTxns.size());
-
 #ifdef DM_TEST_DM_LESSTXN_ONE
   uint32_t dm_test_id = (m_mediator.m_ds->m_consensusLeaderID + 1) %
                         m_mediator.m_DSCommittee->size();
@@ -1034,14 +1033,17 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
+    LOG_GENERAL(INFO,
+                "TxnPool size before processing: " << m_createdTxns.size());
+
     for (const auto& txn : checkedTxns) {
       m_createdTxns.insert(txn);
     }
-  }
 
-  LOG_GENERAL(INFO, "Txn processed: " << processed_count
-                                      << " TxnPool size after processing: "
-                                      << m_createdTxns.size());
+    LOG_GENERAL(INFO, "Txn processed: " << processed_count
+                                        << " TxnPool size after processing: "
+                                        << m_createdTxns.size());
+  }
 
   LOG_STATE(
       "[TXNPKTPROC]["
