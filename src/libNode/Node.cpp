@@ -281,14 +281,12 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
   }
 
-  /// Retrieve DS blocks
-  bool ds_result;
-  m_retriever->RetrieveBlockLink(ds_result, wakeupForUpgrade);
+  /// Retrieve block link
+  bool ds_result = m_retriever->RetrieveBlockLink(wakeupForUpgrade);
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
-  bool tx_result;
-  m_retriever->RetrieveTxBlocks(tx_result, wakeupForUpgrade);
+  bool tx_result = m_retriever->RetrieveTxBlocks(wakeupForUpgrade);
 
   if (!tx_result) {
     return false;
