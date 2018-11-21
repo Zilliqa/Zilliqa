@@ -457,29 +457,43 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   LOG_MARKER();
   m_mode = BACKUP_DS;
-
+  unsigned int dsSize = 0;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    dsSize = m_mediator.m_DSCommittee->size();
     LOG_GENERAL(INFO,
                 "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
-    if (m_mediator.m_DSCommittee->size() == 0) {
+    if (dsSize == 0) {
       LOG_GENERAL(WARNING, "DS committee unset, failed to rejoin");
       return false;
     }
   }
 
+  m_consensusLeaderID = 0;
+
   BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
   PubKey leaderPubKey;
   if (blocktype == BlockType::DS) {
-    leaderPubKey =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetLeaderPubKey();
+    m_consensusLeaderID =
+        DataConversion::charArrTo16Bits(
+            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        dsSize;
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(
             get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
       LOG_GENERAL(FATAL, "could not get vc block "
                              << get<BlockLinkIndex::BLOCKHASH>(bl));
+      for (auto const& i : *m_mediator.m_DSCommittee) {
+        if (i.first == leaderPubKey) {
+          LOG_EPOCH(
+              INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Leader ID for this PoW consensus is " << m_consensusLeaderID);
+          break;
+        }
+        m_consensusLeaderID++;
+      }
     }
     leaderPubKey = VCBlockptr->GetHeader().GetCandidateLeaderPubKey();
   } else {
@@ -487,27 +501,16 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   m_consensusMyID = 0;
-  m_consensusLeaderID = 0;
 
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     for (auto const& i : *m_mediator.m_DSCommittee) {
-      LOG_GENERAL(INFO, "Loop of m_DSCommittee");
       if (i.first == m_mediator.m_selfKey.second) {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "My node ID for this PoW consensus is " << m_consensusMyID);
         break;
       }
       m_consensusMyID++;
-    }
-    for (auto const& i : *m_mediator.m_DSCommittee) {
-      if (i.first == leaderPubKey) {
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Leader ID for this PoW consensus is " << m_consensusLeaderID);
-        break;
-      }
-      m_consensusLeaderID++;
     }
   }
   // in case the recovery program is under different directory
