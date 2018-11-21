@@ -16,5 +16,10 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 
+if [ "$#" -ne 1 ]; then
+    echo "Usage: bash run.sh delay"
+    return 1
+fi
+
 pkill ZilliqaDaemon_AWS
-ZilliqaDaemon_AWS
+ZilliqaDaemon_AWS $1
