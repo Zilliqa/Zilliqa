@@ -103,7 +103,7 @@ class GetTxnFromFile {
     auto getFile = [&addr](const unsigned int& num, std::fstream& file,
                            const auto num_txn) {
       std::string fileString = TXN_PATH + "/" + addr.hex() + "_" +
-                               std::to_string(num * num_txn) + ".zil";
+                               std::to_string(num * num_txn + 1) + ".zil";
 
       file.open(fileString, std::ios::binary | std::ios::in);
 

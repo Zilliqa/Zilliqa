@@ -839,9 +839,20 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
   cur_offset += MessageOffset::INST;
 
   if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN) {
-    if (m_state != MICROBLOCK_CONSENSUS) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Not in a microblock consensus state: don't want missing txns")
+    if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
+      if (m_state != MICROBLOCK_CONSENSUS) {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "As a shard node not in a microblock consensus state: don't "
+                  "want missing txns")
+        return false;
+      }
+    } else {
+      if (m_mediator.m_ds->m_state != DirectoryService::FINALBLOCK_CONSENSUS) {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "As a ds node not in a finalblock consensus state: don't "
+                  "want missing txns");
+        return false;
+      }
     }
 
     ProcessSubmitMissingTxn(message, cur_offset, from);
@@ -997,7 +1008,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   } else {
     LOG_GENERAL(WARNING,
-                "The node triggered DM_TEST_DM_LESSTNX_ONE is "
+                "The node triggered DM_TEST_DM_LESSTXN_ONE is "
                     << m_mediator.m_DSCommittee->at(dm_test_id).second);
   }
 #endif  // DM_TEST_DM_LESSTXN_ONE

@@ -24,6 +24,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libPersistence/ContractStorage.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -31,56 +32,105 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+using namespace boost::multiprecision;
+
 BOOST_AUTO_TEST_SUITE(accounttest)
 
-BOOST_AUTO_TEST_CASE(test1) {
+BOOST_AUTO_TEST_CASE(testInitEmpty) {
   INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  Account acc1(TestUtils::DistUint64(), 0);
+  std::vector<unsigned char> data;
+  acc1.InitContract(data);
+}
 
-  ContractStorage::GetContractStorage().GetStateDB().ResetDB();
+BOOST_AUTO_TEST_CASE(testInit) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
 
-  Account acc1(100, 0);
+  Account acc1(TestUtils::DistUint64(), 0);
+
+  std::string message =
+      "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
+
+  std::vector<unsigned char> data(message.begin(), message.end());
+  acc1.InitContract(data);
+}
+
+BOOST_AUTO_TEST_CASE(testBalance) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  uint128_t balance = TestUtils::DistUint32();
+  Account acc1(balance, 0);
+
+  uint32_t balance_incr = TestUtils::DistUint32();
+  acc1.IncreaseBalance(balance_incr);
+  uint128_t CURRENT_BALANCE = acc1.GetBalance();
+
+  BOOST_CHECK_EQUAL(CURRENT_BALANCE, balance + balance_incr);
+
+  BOOST_CHECK_MESSAGE(
+      !acc1.DecreaseBalance(CURRENT_BALANCE + TestUtils::DistUint64()),
+      "Balance can't be decreased to negative values");
+
+  int64_t delta = (int64_t)TestUtils::DistUint64();
+  if (delta > CURRENT_BALANCE && delta < 0) {
+    BOOST_CHECK_MESSAGE(
+        !acc1.ChangeBalance(delta),
+        "Balance" << CURRENT_BALANCE << "can't be changed by delta" << delta);
+  } else {
+    BOOST_CHECK_MESSAGE(
+        acc1.ChangeBalance(delta),
+        "Balance" << CURRENT_BALANCE << "has to be changed by delta" << delta);
+  }
+  balance = TestUtils::DistUint128();
+  acc1.SetBalance(balance);
+  BOOST_CHECK_EQUAL(balance, acc1.GetBalance());
+}
+
+BOOST_AUTO_TEST_CASE(testNonce) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  uint64_t nonce = TestUtils::DistUint16();
+  uint64_t nonce_incr = TestUtils::DistUint16();
+
+  Account acc1(0, nonce);
+  acc1.IncreaseNonce();
+  acc1.IncreaseNonceBy(nonce_incr);
+  BOOST_CHECK_EQUAL(nonce + nonce_incr + 1, acc1.GetNonce());
+
+  nonce = TestUtils::DistUint64();
+  acc1.SetNonce(nonce);
+  BOOST_CHECK_EQUAL(nonce, acc1.GetNonce());
+}
+
+BOOST_AUTO_TEST_CASE(testSerialize) {
+  uint128_t CURRENT_BALANCE = TestUtils::DistUint128();
+  Account acc1(CURRENT_BALANCE, 0);
+  std::vector<unsigned char> message1;
 
   std::vector<unsigned char> code = dev::h256::random().asBytes();
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(code);
   dev::h256 hash = dev::h256(sha2.Finalize());
   acc1.SetCode(code);
-  // (void)hash;
 
-  acc1.IncreaseBalance(10);
-  acc1.DecreaseBalance(120);
-  LOG_GENERAL(INFO, "Account1 balance: " << acc1.GetBalance());
-
-  std::vector<unsigned char> message1;
-  acc1.Serialize(message1, 0);
-
-  LOG_PAYLOAD(INFO, "Account1 serialized", message1,
-              Logger::MAX_BYTES_TO_DISPLAY)
+  BOOST_CHECK_MESSAGE(acc1.Serialize(message1, 0), "Account unserializable");
 
   Account acc2(message1, 0);
 
   std::vector<unsigned char> message2;
   acc2.Serialize(message2, 0);
-  LOG_PAYLOAD(INFO, "Account2 serialized", message2,
-              Logger::MAX_BYTES_TO_DISPLAY);
 
-  boost::multiprecision::uint128_t acc2Balance = acc2.GetBalance();
-  LOG_GENERAL(INFO, "Account2 balance: " << acc2Balance);
-  BOOST_CHECK_MESSAGE(acc2Balance == 110, "expected: " << 100 << " actual: "
-                                                       << acc2Balance << "\n");
-  // BOOST_CHECK_MESSAGE(acc2.GetStorageRoot()
-  //                         ==
-  //                         dev::h256("57136f0a3d87e187624c0adb30ff2fbdcf47a"
-  //                                      "c9613b1ba46b870e57fa3b5f89c"),
-  //                     "expected: "
-  //                         <<
-  //                         "57136f0a3d87e187624c0adb30ff2fbdcf47ac9613b1ba4"
-  //                            "6b870e57fa3b5f89c"
-  //                         << " actual: " << acc2.GetStorageRoot() << "\n");
+  uint128_t acc2Balance = acc2.GetBalance();
+
+  BOOST_CHECK_MESSAGE(
+      CURRENT_BALANCE == acc2Balance,
+      "expected: " << CURRENT_BALANCE << " actual: " << acc2Balance << "\n");
+
   BOOST_CHECK_MESSAGE(
       acc2.GetCodeHash() == hash,
       "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
