@@ -2072,8 +2072,9 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
 
   // Check whether is the new node connected to the network. Else, initiate
   // re-sync process again.
-  this_thread::sleep_for(
-      chrono::seconds(POW_WINDOW_IN_SECONDS + 2 * NEW_NODE_SYNC_INTERVAL));
+  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS +
+                                         2 * NEW_NODE_SYNC_INTERVAL +
+                                         (TX_DISTRIBUTE_TIME_IN_MS / 1000)));
   m_startedPoW = false;
   if (m_syncType != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
