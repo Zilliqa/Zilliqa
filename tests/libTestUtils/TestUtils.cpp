@@ -43,6 +43,18 @@ uint64_t DistUint64() {
                                   std::numeric_limits<uint64_t>::max());
 }
 
+uint128_t DistUint128() {
+  uint128_t left64Rnd = DistUint64();
+  uint128_t righ64tRnd = DistUint64();
+  return left64Rnd << 64 | righ64tRnd;
+}
+
+uint256_t DistUint256() {
+  uint256_t left128Rnd = DistUint128();
+  uint256_t righ128tRnd = DistUint128();
+  return left128Rnd << 128 | righ128tRnd;
+}
+
 uint8_t Dist1to99() { return RandomIntInRng<uint8_t>((uint8_t)1, (uint8_t)99); }
 
 PubKey GenerateRandomPubKey() { return PubKey(PrivKey()); }
