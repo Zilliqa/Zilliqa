@@ -25,8 +25,11 @@
 
 #define BOOST_TEST_MODULE SWInfo
 #define BOOST_TEST_DYN_LINK
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #include <boost/test/unit_test.hpp>
+#pragma GCC diagnostic pop
+
 #include <map>
 #include <vector>
 
