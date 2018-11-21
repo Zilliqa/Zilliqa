@@ -87,10 +87,9 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
 
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
-    bool retrieveSuccessButTooLate = false;
 
-    if (!StartRetrieveHistory(wakeupForUpgrade, retrieveSuccessButTooLate)) {
-      return retrieveSuccessButTooLate;
+    if (!StartRetrieveHistory(wakeupForUpgrade)) {
+      return false;
     }
 
     m_mediator.m_currentEpochNum =
@@ -158,18 +157,14 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
       }
     }
 
-    if (wakeupForUpgrade) {
-      WakeupForUpgrade();
-    } else {
-      WakeupForRecovery();
-      return true;
-    }
-
-    // When do node recovery, if retrieve the history success, then shouldn't
-    // continue to run add genesis account, but let the node to synchronize with
-    // lookup node.
-    if (retrieveSuccessButTooLate) {
-      return true;
+    /// When non-rejoin mode, call wake-up or recovery
+    if (SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType) {
+      if (wakeupForUpgrade) {
+        WakeupForUpgrade();
+      } else {
+        WakeupForRecovery();
+        return true;
+      }
     }
   }
 
@@ -239,8 +234,7 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 }
 
-bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
-                                bool& retrieveSuccessButTooLate) {
+bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -331,7 +325,6 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
     }
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
-      retrieveSuccessButTooLate = true;
       LOG_GENERAL(INFO,
                   "Node recovery too late, apply re-join process instead");
       return false;
