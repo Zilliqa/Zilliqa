@@ -300,23 +300,34 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes
-  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE) {
+  if (!ARCHIVAL_NODE && SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
-    if (!GetOfflineLookups()) {
-      LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
-      return false;
+
+    if (LOOKUP_NODE_MODE) {
+      if (!m_mediator.m_lookup->GetMyLookupOffline()) {
+        LOG_GENERAL(WARNING, "Cannot fetch data from off-line lookup node!");
+        return false;
+      }
+    } else {
+      if (!GetOfflineLookups()) {
+        LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
+        return false;
+      }
     }
     {
       unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
+      m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
 
       do {
-        m_synchronizer.FetchLatestTxBlocks(
-            m_mediator.m_lookup, m_mediator.m_txBlockChain.GetBlockCount());
+        m_mediator.m_lookup->GetTxBlockFromLookupNodes(
+            m_mediator.m_txBlockChain.GetBlockCount(), 0);
         LOG_GENERAL(INFO,
                     "Retrieve final block from lookup node, please wait...");
       } while (m_mediator.m_lookup->cv_setTxBlockFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
+
+      m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
     }
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
@@ -330,6 +341,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
+      m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
 
       do {
         m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
@@ -340,12 +352,15 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade,
       } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
+
+      m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
     }
   }
 
   /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply re-join
   /// process instead of node recovery
   if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
+      SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
            NUM_FINAL_BLOCK_PER_POW ||
        m_mediator.GetIsVacuousEpoch(

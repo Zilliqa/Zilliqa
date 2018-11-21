@@ -2677,7 +2677,8 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
           ins_byte != LookupInstructionType::SETTXBLOCKFROMSEED &&
           ins_byte != LookupInstructionType::SETSTATEFROMSEED &&
           ins_byte != LookupInstructionType::SETLOOKUPOFFLINE &&
-          ins_byte != LookupInstructionType::SETLOOKUPONLINE);
+          ins_byte != LookupInstructionType::SETLOOKUPONLINE &&
+          ins_byte != LookupInstructionType::SETSTATEDELTAFROMSEED);
 }
 
 std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes() {
