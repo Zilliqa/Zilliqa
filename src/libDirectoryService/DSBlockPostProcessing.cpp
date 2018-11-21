@@ -386,7 +386,7 @@ void DirectoryService::UpdateDSCommiteeComposition() {
                                                 Peer());
       } else {
         it = m_mediator.m_DSCommittee->begin() +
-             (Guard::GetInstance().GetNumOfDSGuard() - 1);
+             (Guard::GetInstance().GetNumOfDSGuard());
         m_mediator.m_DSCommittee->emplace(it, m_mediator.m_selfKey.second,
                                           Peer());
       }
@@ -395,7 +395,7 @@ void DirectoryService::UpdateDSCommiteeComposition() {
         m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
       } else {
         it = m_mediator.m_DSCommittee->begin() +
-             (Guard::GetInstance().GetNumOfDSGuard() - 1);
+             (Guard::GetInstance().GetNumOfDSGuard());
         m_mediator.m_DSCommittee->emplace(it, DSPowWinner);
       }
     }
