@@ -34,6 +34,8 @@
 // Hash for the committee that generated the block
 using CommitteeHash = dev::h256;
 
+const uint64_t INIT_BLOCK_NUMBER = (uint64_t)-1;
+
 /// [TODO] Base class for all supported block header types
 class BlockHeaderBase : public SerializableDataBlock {
  protected:
