@@ -137,7 +137,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function) {
   if (IsG3Log()) {
     auto cur = chrono::system_clock::now();
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    LOG(level) << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+    LOG(level) << "[" << PAD(GetPid(), TID_LEN) << "]["
                << put_time(gmtime(&cur_time_t), "%H:%M:%S:")
                << PAD(get_ms(cur), 3) << "]["
                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
@@ -150,7 +150,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function) {
     checkLog();
     auto cur = chrono::system_clock::now();
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+    m_logFile << "[" << PAD(GetPid(), TID_LEN) << "]["
               << put_time(gmtime(&cur_time_t), "%H:%M:%S:")
               << PAD(get_ms(cur), 3) << "]["
               << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
@@ -158,7 +158,7 @@ void Logger::LogGeneral(LEVELS level, const char* msg, const char* function) {
   } else {
     auto cur = chrono::system_clock::now();
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+    cout << "[" << PAD(GetPid(), TID_LEN) << "]["
          << put_time(gmtime(&cur_time_t), "%H:%M:%S:") << PAD(get_ms(cur), 3)
          << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
          << flush;
@@ -173,7 +173,7 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
     checkLog();
     auto cur = chrono::system_clock::now();
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+    m_logFile << "[" << PAD(GetPid(), TID_LEN) << "]["
               << put_time(gmtime(&cur_time_t), "%H:%M:%S:")
               << PAD(get_ms(cur), 3) << "]["
               << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
@@ -182,7 +182,7 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
   } else {
     auto cur = chrono::system_clock::now();
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+    cout << "[" << PAD(GetPid(), TID_LEN) << "]["
          << put_time(gmtime(&cur_time_t), "%H:%M:%S:") << PAD(get_ms(cur), 3)
          << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
          << "[Epoch " << epoch << "] " << msg << endl
@@ -203,7 +203,7 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
 
     if (payload.size() > max_bytes_to_display) {
-      m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+      m_logFile << "[" << PAD(GetPid(), TID_LEN) << "]["
                 << put_time(gmtime(&cur_time_t), "%H:%M:%S:")
                 << PAD(get_ms(cur), 3) << "]["
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
@@ -211,7 +211,7 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
                 << "..." << endl
                 << flush;
     } else {
-      m_logFile << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+      m_logFile << "[" << PAD(GetPid(), TID_LEN) << "]["
                 << put_time(gmtime(&cur_time_t), "%H:%M:%S:")
                 << PAD(get_ms(cur), 3) << "]["
                 << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
@@ -224,14 +224,14 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
 
     if (payload.size() > max_bytes_to_display) {
-      cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+      cout << "[" << PAD(GetPid(), TID_LEN) << "]["
            << put_time(gmtime(&cur_time_t), "%H:%M:%S:") << PAD(get_ms(cur), 3)
            << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
            << " (Len=" << payload.size() << "): " << payload_string.get()
            << "..." << endl
            << flush;
     } else {
-      cout << "[TID " << PAD(GetPid(), TID_LEN) << "]["
+      cout << "[" << PAD(GetPid(), TID_LEN) << "]["
            << put_time(gmtime(&cur_time_t), "%H:%M:%S:") << PAD(get_ms(cur), 3)
            << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
            << " (Len=" << payload.size() << "): " << payload_string.get()
@@ -250,7 +250,7 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
     checkLog();
     auto cur = chrono::system_clock::now();
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    m_logFile << "[TID " << PAD(tid, TID_LEN) << "]["
+    m_logFile << "[" << PAD(tid, TID_LEN) << "]["
               << put_time(gmtime(&cur_time_t), "%H:%M:%S:")
               << PAD(get_ms(cur), 3) << "]["
               << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
@@ -259,7 +259,7 @@ void Logger::LogEpochInfo(const char* msg, const char* function,
   } else {
     auto cur = chrono::system_clock::now();
     auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    cout << "[TID " << PAD(tid, TID_LEN) << "]["
+    cout << "[" << PAD(tid, TID_LEN) << "]["
          << put_time(gmtime(&cur_time_t), "%H:%M:%S:") << PAD(get_ms(cur), 3)
          << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "]"
          << "[Epoch " << epoch << "] " << msg << endl

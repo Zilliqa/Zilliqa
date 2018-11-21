@@ -17,38 +17,43 @@
  * program files.
  */
 
-#include <string>
-#include "libUtils/IPConverter.h"
+#include "common/Constants.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SWInfo.h"
+#include "libUtils/SysCommand.h"
 
-#define BOOST_TEST_MODULE ipconverter
+#define BOOST_TEST_MODULE SWInfo
 #define BOOST_TEST_DYN_LINK
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
+
 #include <boost/test/unit_test.hpp>
+#include <map>
+#include <vector>
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(ipconverter)
+BOOST_AUTO_TEST_SUITE(SWInfoTest)
 
-BOOST_AUTO_TEST_CASE(test_IPNumericaltoString) {
-  INIT_STDOUT_LOGGER();
-
-  std::string result = IPConverter::ToStrFromNumericalIP(
-      (boost::multiprecision::uint128_t)16777343);
-  BOOST_CHECK_MESSAGE(result == "127.0.0.1",
-                      "Expected: 127.0.0.1. Result: " + result);
+/// SW Info test of constructors and getters
+BOOST_AUTO_TEST_CASE(swinfo_copy_constructor) {
+  SWInfo swInfo(1, 2, 3, 4, 5);
+  SWInfo swInfoCopy(swInfo);
+  BOOST_CHECK(!(swInfo > swInfoCopy));
+  BOOST_CHECK(!(swInfo < swInfoCopy));
+  BOOST_CHECK(!(swInfo != swInfoCopy));
+  BOOST_CHECK_EQUAL(1, swInfo.GetMajorVersion());
+  BOOST_CHECK_EQUAL(2, swInfo.GetMinorVersion());
+  BOOST_CHECK_EQUAL(3, swInfo.GetFixVersion());
+  BOOST_CHECK_EQUAL(4, swInfo.GetUpgradeDS());
+  BOOST_CHECK_EQUAL(5, swInfo.GetCommit());
 }
 
-BOOST_AUTO_TEST_CASE(test_IPStringToNumerical) {
-  INIT_STDOUT_LOGGER();
-
-  boost::multiprecision::uint128_t result =
-      IPConverter::ToNumericalIPFromStr("127.0.0.1");
-  BOOST_CHECK_MESSAGE(result == 16777343, "Expected: 16777343. Result: " +
-                                              result.convert_to<std::string>());
+/// SysCommand test
+BOOST_AUTO_TEST_CASE(syscommand_test) {
+  std::string input = "echo TEST";
+  std::string output;
+  SysCommand::ExecuteCmdWithOutput(input, output);
+  BOOST_CHECK_EQUAL(output, "TEST\n");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
