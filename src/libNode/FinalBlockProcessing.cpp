@@ -135,8 +135,9 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (!info.m_isMicroBlockEmpty) {
-        m_unavailableMicroBlocks[blocknum].emplace_back(info.m_microBlockHash);
+      if (info.m_txnRootHash != TxnHash()) {
+        m_unavailableMicroBlocks[blocknum].push_back(
+            {info.m_microBlockHash, info.m_txnRootHash});
       }
     } else {
       if (info.m_shardId == m_myshardId) {
@@ -153,7 +154,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
         } else {
           if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
             if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
-              if (!info.m_isMicroBlockEmpty) {
+              if (info.m_txnRootHash != TxnHash()) {
                 toSendTxnToLookup = true;
               } else {
                 LOG_GENERAL(WARNING,
@@ -161,7 +162,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                 << m_microblock->GetHeader().GetTxRootHash()
                                 << ") is not null"
                                    " but isMicroBlockEmpty for me is "
-                                << info.m_isMicroBlockEmpty);
+                                << info.m_txnRootHash);
                 return false;
               }
             }
@@ -198,8 +199,16 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
     const ForwardedTxnEntry& entry) {
   for (auto it = m_unavailableMicroBlocks.at(entry.m_blockNum).begin();
        it != m_unavailableMicroBlocks.at(entry.m_blockNum).end(); it++) {
-    if (*it == entry.m_hash) {
-      LOG_GENERAL(INFO, "Remove microblock" << *it);
+    if (it->first == entry.m_hash) {
+      TxnHash txnHash = ComputeRoot(entry.m_transactions);
+      if (it->second != txnHash) {
+        LOG_GENERAL(
+            WARNING,
+            "TxnRootHash computed from forwarded txns doesn't match, expected: "
+                << it->second << " received: " << txnHash);
+        return false;
+      }
+      LOG_GENERAL(INFO, "Remove microblock" << it->first);
       LOG_GENERAL(INFO,
                   "Microblocks count before removing: "
                       << m_unavailableMicroBlocks.at(entry.m_blockNum).size());
@@ -911,7 +920,8 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
               " microblock bodies in finalblock "
                   << it.first << ": " << it.second.size());
     for (auto it2 : it.second) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), it2);
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                it2.first);
     }
   }
 

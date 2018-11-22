@@ -44,4 +44,6 @@ TxnHash ComputeRoot(
     const std::unordered_map<TxnHash, Transaction>& receivedTransactions,
     const std::unordered_map<TxnHash, Transaction>& submittedTransactions);
 
+TxnHash ComputeRoot(const std::vector<TransactionWithReceipt>& transactions);
+
 #endif  // __ROOTCOMPUTATION_H__

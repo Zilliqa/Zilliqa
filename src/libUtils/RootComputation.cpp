@@ -37,6 +37,10 @@ inline const TxnHash& GetHash(
     const std::pair<const TxnHash, Transaction>& item) {
   return item.second.GetTranID();
 }
+
+inline const TxnHash& GetHash(const TransactionWithReceipt& item) {
+  return item.GetTransaction().GetTranID();
+}
 };  // namespace
 
 template <typename... Container>
@@ -44,41 +48,26 @@ TxnHash ConcatTranAndHash(const Container&... conts) {
   LOG_MARKER();
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  bool hasValue = false;
 
   (void)std::initializer_list<int>{(
-      [](const auto& list, decltype(sha2)& sha2) {
+      [](const auto& list, decltype(sha2)& sha2, bool& hasValue) {
+        if (list.empty()) {
+          return;
+        }
+        hasValue = true;
+
         for (auto& item : list) {
           sha2.Update(GetHash(item).asBytes());
         }
-      }(conts, sha2),
+      }(conts, sha2, hasValue),
       0)...};
 
-  return TxnHash{sha2.Finalize()};
-}
-
-template <typename... Container>
-StateHash ConcatStateAndHash(const Container&... conts) {
-  LOG_MARKER();
-
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-
-  (void)std::initializer_list<int>{(
-      [](const auto& list, decltype(sha2)& sha2) {
-        for (auto& item : list) {
-          sha2.Update(GetStateID(item).asBytes());
-        }
-      }(conts, sha2),
-      0)...};
-
-  return StateHash{sha2.Finalize()};
+  return hasValue ? TxnHash{sha2.Finalize()} : TxnHash();
 }
 
 h256 ComputeRoot(const vector<h256>& hashes) {
   LOG_MARKER();
-
-  if (hashes.empty()) {
-    return TxnHash();
-  }
 
   return ConcatTranAndHash(hashes);
 }
@@ -103,4 +92,10 @@ TxnHash ComputeRoot(
   LOG_MARKER();
 
   return ConcatTranAndHash(receivedTransactions, submittedTransactions);
+}
+
+TxnHash ComputeRoot(const vector<TransactionWithReceipt>& transactions) {
+  LOG_MARKER();
+
+  return ConcatTranAndHash(transactions);
 }
