@@ -368,7 +368,7 @@ Address Account::GetAddressForContract(const Address& sender,
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   vector<unsigned char> conBytes;
-  copy(sender.asBytes().begin(), sender.asBytes().end(),
+  copy(sender.asArray().begin(), sender.asArray().end(),
        back_inserter(conBytes));
   SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
   sha2.Update(conBytes);
