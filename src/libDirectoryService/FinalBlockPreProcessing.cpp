@@ -102,7 +102,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
       numTxs += microBlock.GetHeader().GetNumTxs();
 
       mbInfos.push_back({microBlock.GetBlockHash(),
-                         microBlock.GetHeader().GetNumTxs() == 0,
+                         microBlock.GetHeader().GetTxRootHash(),
                          microBlock.GetHeader().GetShardId()});
     }
   }
@@ -883,22 +883,21 @@ bool DirectoryService::CheckMicroBlockInfo() {
     auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
     for (auto& microBlock : microBlocks) {
       if (microBlock.GetBlockHash() == microBlockInfos.at(i).m_microBlockHash) {
-        if (m_finalBlock->GetMicroBlockInfos().at(i).m_isMicroBlockEmpty !=
-            (microBlock.GetHeader().GetNumTxs() == 0)) {
+        if (m_finalBlock->GetMicroBlockInfos().at(i).m_txnRootHash !=
+            microBlock.GetHeader().GetTxRootHash()) {
           LOG_GENERAL(
               WARNING,
-              "IsMicroBlockEmpty in proposed final block is incorrect"
+              "MicroBlockInfo::m_txnRootHash in proposed final block is "
+              "incorrect"
                   << endl
                   << "MB Hash: " << microBlockInfos.at(i).m_microBlockHash
                   << endl
-                  << "Expected: " << (microBlock.GetHeader().GetNumTxs() == 0)
+                  << "Expected: " << microBlock.GetHeader().GetTxRootHash()
                   << " Received: "
-                  << m_finalBlock->GetMicroBlockInfos()
-                         .at(i)
-                         .m_isMicroBlockEmpty);
+                  << m_finalBlock->GetMicroBlockInfos().at(i).m_txnRootHash);
 
           m_consensusObject->SetConsensusErrorCode(
-              ConsensusCommon::FINALBLOCK_MICROBLOCK_EMPTY_ERROR);
+              ConsensusCommon::FINALBLOCK_MICROBLOCK_TXNROOT_ERROR);
 
           return false;
         } else if (m_finalBlock->GetMicroBlockInfos().at(i).m_shardId !=
@@ -1081,7 +1080,7 @@ bool DirectoryService::CheckMicroBlockValidity(
 
   MicroBlockInfo mbInfo{
       m_mediator.m_node->m_microblock->GetBlockHash(),
-      m_mediator.m_node->m_microblock->GetHeader().GetNumTxs() == 0,
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash(),
       m_mediator.m_node->m_microblock->GetHeader().GetShardId()};
 
   // Check whether microblock is in TxBlock
