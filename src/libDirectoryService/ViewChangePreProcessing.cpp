@@ -453,14 +453,6 @@ bool DirectoryService::NodeVCPrecheck() {
                 "Passed precheck. ");
       return true;
     }
-
-    /*for (const auto& dsblock : m_vcPreCheckDSBlocks) {
-      m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    }
-
-    for (const auto& txblock : m_vcPreCheckTxBlocks) {
-      m_mediator.m_txBlockChain.AddBlock(txblock);
-    }*/
   }
   LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Failed precheck. m_vcPreCheckDSBlocks size: "
