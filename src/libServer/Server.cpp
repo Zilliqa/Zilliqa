@@ -483,7 +483,7 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
       return "Txn Hash not Present";
     }
     const Transaction& tx = tptr->GetTransaction();
-    if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
+    if (tx.GetCode().empty() || tx.GetToAddr() != NullAddress) {
       return "ID not a contract txn";
     }
 
