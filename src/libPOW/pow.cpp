@@ -41,7 +41,7 @@ POW::POW() {
   m_epochContextLight =
       ethash::create_epoch_context(ethash::get_epoch_number(m_currentBlockNum));
 
-  if (FULL_DATASET_MINE) {
+  if (FULL_DATASET_MINE && !CUDA_GPU_MINE && !OPENCL_GPU_MINE) {
     m_epochContextFull = ethash::create_epoch_context_full(
         ethash::get_epoch_number(m_currentBlockNum));
   }
@@ -154,9 +154,11 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
     m_epochContextLight = ethash::create_epoch_context(epochNumber);
   }
 
-  if (fullDataset && (m_epochContextFull == nullptr ||
-                      ethash::get_epoch_number(block_number) !=
-                          ethash::get_epoch_number(m_currentBlockNum))) {
+  bool isMineFullCpu = fullDataset && !CUDA_GPU_MINE && !OPENCL_GPU_MINE;
+
+  if (isMineFullCpu && (m_epochContextFull == nullptr ||
+                        ethash::get_epoch_number(block_number) !=
+                            ethash::get_epoch_number(m_currentBlockNum))) {
     m_epochContextFull = ethash::create_epoch_context_full(
         ethash::get_epoch_number(block_number));
   }
@@ -334,12 +336,10 @@ ethash_mining_result_t POW::PoWMine(
 
   m_shouldMine = true;
 
-  if (fullDataset) {
-    if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
-      result = MineFullGPU(blockNum, headerHash, difficulty);
-    } else {
-      result = MineFull(headerHash, boundary);
-    }
+  if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
+    result = MineFullGPU(blockNum, headerHash, difficulty);
+  } else if (fullDataset) {
+    result = MineFull(headerHash, boundary);
   } else {
     result = MineLight(headerHash, boundary);
   }
