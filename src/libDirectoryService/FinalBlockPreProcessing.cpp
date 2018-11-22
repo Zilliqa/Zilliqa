@@ -1206,7 +1206,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
     return true;
   }
 
-#if 1
+#if VC_TEST_VC_PRECHECK_2
   if (m_consensusMyID == 3 && m_mediator.m_currentEpochNum == 2) {
     LOG_EPOCH(
         WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
