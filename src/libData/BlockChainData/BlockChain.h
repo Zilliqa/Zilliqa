@@ -71,13 +71,7 @@ class BlockChain {
   T GetBlock(const uint64_t& blockNum) {
     std::lock_guard<std::mutex> g(m_mutexBlocks);
 
-    if (blockNum >= m_blocks.size()) {
-      LOG_GENERAL(WARNING, "Block number "
-                               << blockNum
-                               << " absent, a dummy block will be used and "
-                                  "abnormal behavior may happen!");
-      return T();
-    } else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
+    if (blockNum + m_blocks.capacity() < m_blocks.size()) {
       return GetBlockFromPersistentStorage(blockNum);
     }
 
@@ -106,7 +100,9 @@ class BlockChain {
         blockNumOfExistingBlock == (uint64_t)-1) {
       m_blocks.insert_new(blockNumOfNewBlock, block);
     } else {
-      LOG_GENERAL(WARNING,"Failed to add "<<blockNumOfNewBlock<<" "<<blockNumOfExistingBlock);
+      LOG_GENERAL(WARNING, "Failed to add " << blockNumOfNewBlock << " "
+                                            << blockNumOfExistingBlock);
+      return -1;
     }
 
     return 1;
