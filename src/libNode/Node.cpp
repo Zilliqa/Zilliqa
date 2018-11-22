@@ -926,6 +926,8 @@ bool Node::ProcessTxnPacketFromLookup(
     return false;
   }
 
+  LOG_GENERAL(INFO, "Received from peer " << from);
+
   {
     // The check here is in case the lookup send the packet
     // earlier than the node receiving DS block, need to wait the
