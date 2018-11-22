@@ -224,6 +224,8 @@ void AccountStore::DiscardUnsavedUpdates() {
 bool AccountStore::RetrieveFromDisk() {
   LOG_MARKER();
 
+  InitSoft();
+
   lock(m_mutexPrimary, m_mutexDB);
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
