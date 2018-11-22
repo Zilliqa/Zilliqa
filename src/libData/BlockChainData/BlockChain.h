@@ -103,7 +103,7 @@ class BlockChain {
         m_blocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
 
     if (blockNumOfExistingBlock < blockNumOfNewBlock ||
-        blockNumOfExistingBlock == (uint64_t)-1) {
+        INIT_BLOCK_NUMBER == blockNumOfExistingBlock) {
       m_blocks.insert_new(blockNumOfNewBlock, block);
     } else {
       return -1;

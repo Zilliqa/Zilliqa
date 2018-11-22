@@ -397,7 +397,8 @@ class Node : public Executable, public Broadcastable {
 
   // Transaction body sharing variables
   std::mutex m_mutexUnavailableMicroBlocks;
-  std::unordered_map<uint64_t, std::vector<BlockHash>> m_unavailableMicroBlocks;
+  std::unordered_map<uint64_t, std::vector<std::pair<BlockHash, TxnHash>>>
+      m_unavailableMicroBlocks;
 
   /// Sharding variables
   std::atomic<uint32_t> m_myshardId;
@@ -465,8 +466,7 @@ class Node : public Executable, public Broadcastable {
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(bool& wakeupForUpgrade,
-                            bool& retrieveSuccessButTooLate);
+  bool StartRetrieveHistory(bool& wakeupForUpgrade);
 
   // Erase m_committedTransactions for given epoch number
   // void EraseCommittedTransactions(uint64_t epochNum)
