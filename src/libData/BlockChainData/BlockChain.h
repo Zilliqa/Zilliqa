@@ -106,7 +106,7 @@ class BlockChain {
         blockNumOfExistingBlock == (uint64_t)-1) {
       m_blocks.insert_new(blockNumOfNewBlock, block);
     } else {
-      return -1;
+      LOG_GENERAL(WARNING,"Failed to add "<<blockNumOfNewBlock<<" "<<blockNumOfExistingBlock);
     }
 
     return 1;
