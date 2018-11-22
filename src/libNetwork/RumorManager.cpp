@@ -44,6 +44,7 @@ RumorManager::RumorManager()
     : m_peerIdPeerBimap(),
       m_peerIdSet(),
       m_rumorIdHashBimap(),
+      m_rumorHashRawMsgBimap(),
       m_tmpRumorHashSet(),
       m_selfPeer(),
       m_rumorIdGenerator(0),
@@ -134,6 +135,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   m_peerIdSet.clear();
   m_selfPeer = myself;
   m_tmpRumorHashSet.clear();
+  m_rumorHashRawMsgBimap.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {
