@@ -55,7 +55,7 @@ class SafeMath {
       return false;
     }
 
-    T temp = base, count = exponent;
+    T temp = base, count = exponent - 1;
 
     while (count > 0) {
       if (!SafeMath::mul(temp, base, temp)) {
@@ -81,7 +81,7 @@ class SafeMath {
       return 0;
     }
 
-    T ret = base, count = exponent;
+    T ret = base, count = exponent - 1;
 
     while (count > 0) {
       if (!SafeMath::mul(ret, base, ret)) {
