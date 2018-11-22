@@ -71,7 +71,14 @@ class BlockChain {
   T GetBlock(const uint64_t& blockNum) {
     std::lock_guard<std::mutex> g(m_mutexBlocks);
 
-    if (blockNum + m_blocks.capacity() < m_blocks.size()) {
+    if (m_blocks.size() > 0 &&
+        (m_blocks.back().GetHeader().GetBlockNum() < blockNum)) {
+      LOG_GENERAL(WARNING,
+                  "BlockNum too high " << blockNum << " Dummy block used");
+      return T();
+    }
+
+    else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
       return GetBlockFromPersistentStorage(blockNum);
     }
 

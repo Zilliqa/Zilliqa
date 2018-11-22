@@ -497,22 +497,31 @@ bool DirectoryService::FinishRejoinAsDS() {
     }
     leaderPubKey = VCBlockptr->GetHeader().GetCandidateLeaderPubKey();
   } else {
-    // condition for FB
+    m_mediator.m_node->RejoinAsNormal();
   }
 
   m_consensusMyID = 0;
-
+  bool found = false;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     for (auto const& i : *m_mediator.m_DSCommittee) {
       if (i.first == m_mediator.m_selfKey.second) {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "My node ID for this PoW consensus is " << m_consensusMyID);
+        found = true;
         break;
       }
       m_consensusMyID++;
     }
   }
+  if (!found) {
+    LOG_GENERAL(
+        WARNING,
+        "Unable to find myself in ds committee, Invoke Rejoin as Normal");
+    m_mediator.m_node->RejoinAsNormal();
+    return false;
+  }
+
   // in case the recovery program is under different directory
   LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(), DS_BACKUP_MSG);
   RunConsensusOnDSBlock(true);
