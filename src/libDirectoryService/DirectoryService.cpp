@@ -69,12 +69,12 @@ void DirectoryService::StartSynchronization() {
 
   this->CleanVariables();
 
-  auto func = [this]() -> void {
-    if (!m_mediator.m_node->GetOfflineLookups()) {
-      LOG_GENERAL(WARNING, "Cannot sync currently");
-      return;
-    }
+  if (!m_mediator.m_node->GetOfflineLookups()) {
+    LOG_GENERAL(WARNING, "Cannot sync currently");
+    return;
+  }
 
+  auto func = [this]() -> void {
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
@@ -87,8 +87,7 @@ void DirectoryService::StartSynchronization() {
   };
 
   auto func2 = [this]() -> void {
-    bool result = m_mediator.m_lookup->FetchDSInfoLoop();
-    if (!result) {
+    if (!m_mediator.m_lookup->FetchDSInfoLoop()) {
       LOG_GENERAL(WARNING, "Unable to fetch DS info");
     }
   };
