@@ -3109,12 +3109,12 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
                                  it != m_mediator.m_ds->m_shards.at(i).end();
              j++, it++) {
           toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
+
+          LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
         }
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-
-      LOG_GENERAL(INFO, "Packet disposed off to " << i << " shard");
 
       DeleteTxnShardMap(i);
     } else if (i == numShards) {
