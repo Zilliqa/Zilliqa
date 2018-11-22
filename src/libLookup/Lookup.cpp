@@ -129,6 +129,8 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
 bool Lookup::GenTxnToSend(size_t num_txn,
                           map<uint32_t, vector<Transaction>>& mp,
                           uint32_t numShards) {
+
+  LOG_MARKER();
   vector<Transaction> txns;
 
   if (GENESIS_WALLETS.size() == 0) {

@@ -90,6 +90,8 @@ class GetTxnFromFile {
       return true;
     }
 
+    LOG_MARKER();
+
     const auto num_txn = NUM_TXN_TO_SEND_PER_ACCOUNT;
     std::fstream file;
     txns.clear();
