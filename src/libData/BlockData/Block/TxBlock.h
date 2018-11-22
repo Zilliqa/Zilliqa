@@ -37,18 +37,18 @@
 
 struct MicroBlockInfo {
   BlockHash m_microBlockHash;
-  bool m_isMicroBlockEmpty;
+  TxnHash m_txnRootHash;
   uint32_t m_shardId;
 
   bool operator==(const MicroBlockInfo& mbInfo) const {
-    return std::tie(m_microBlockHash, m_isMicroBlockEmpty, m_shardId) ==
-           std::tie(mbInfo.m_microBlockHash, mbInfo.m_isMicroBlockEmpty,
+    return std::tie(m_microBlockHash, m_txnRootHash, m_shardId) ==
+           std::tie(mbInfo.m_microBlockHash, mbInfo.m_txnRootHash,
                     mbInfo.m_shardId);
   }
   bool operator<(const MicroBlockInfo& mbInfo) const {
-    return std::tie(mbInfo.m_microBlockHash, mbInfo.m_isMicroBlockEmpty,
+    return std::tie(mbInfo.m_microBlockHash, mbInfo.m_txnRootHash,
                     mbInfo.m_shardId) >
-           std::tie(m_microBlockHash, m_isMicroBlockEmpty, m_shardId);
+           std::tie(m_microBlockHash, m_txnRootHash, m_shardId);
   }
   bool operator>(const MicroBlockInfo& mbInfo) const { return mbInfo < *this; }
 };

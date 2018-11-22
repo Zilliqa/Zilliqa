@@ -242,9 +242,9 @@ message ProtoMicroBlock
 
 message ProtoMbInfo
 {
-    repeated bytes mbhashes         = 1;
-    repeated bool ismicroblockempty = 2 [packed=true];
-    repeated uint32 shardids        = 3;
+    required bytes mbhash   = 1;
+    required bytes txroot   = 2;
+    required uint32 shardid = 3;
 }
 
 message ProtoTxBlock
@@ -264,7 +264,7 @@ message ProtoTxBlock
         required ByteArray rewards              = 5;
         required bytes prevhash                 = 6;
         required uint64 blocknum                = 7;
-        required uint64 timestamp            = 8;
+        required uint64 timestamp               = 8;
         required TxBlockHashSet hash            = 9;
         required uint32 numtxs                  = 10;
         required ByteArray minerpubkey          = 11;
@@ -272,8 +272,8 @@ message ProtoTxBlock
         required bytes committeehash            = 13;
     }
     required TxBlockHeader header               = 1;
-    required ProtoMbInfo mbinfo                 = 3;
-    required ProtoBlockBase blockbase           = 4;
+    repeated ProtoMbInfo mbinfos                = 2;
+    required ProtoBlockBase blockbase           = 3;
 }
 
 message ProtoVCBlock
