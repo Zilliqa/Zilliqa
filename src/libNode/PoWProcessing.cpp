@@ -173,6 +173,13 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
               lk,
               chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                               FALLBACK_EXTRA_TIME)) == cv_status::timeout) {
+        lock_guard<mutex> g(m_mutexDSBlock);
+        if (m_mediator.m_currentEpochNum ==
+            m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetEpochNum()) {
+          return;
+        }
         LOG_GENERAL(WARNING, "Time out while waiting for DS Block");
         if (GetLatestDSBlock()) {
           LOG_GENERAL(INFO, "DS block created, means I lost PoW");
