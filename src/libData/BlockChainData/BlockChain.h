@@ -32,7 +32,7 @@
 #include "libData/DataStructures/CircularArray.h"
 #include "libPersistence/BlockStorage.h"
 
-/// Transient storage for DS/Tx/VC blocks.
+/// Transient storage for DS/Tx/ Blocks. The block should have function .GetHeader().GetBlockNum()
 template <class T>
 class BlockChain {
   std::mutex m_mutexBlocks;
