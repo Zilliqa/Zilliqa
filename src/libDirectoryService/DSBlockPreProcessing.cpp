@@ -666,19 +666,20 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // Add shard guards to "FilteredPoWOrderSorter"
       // Remove it from "ShadowPoWOrderSorter"
       for (auto kv = PoWOrderSorter.begin();
-           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
-           kv++, count++) {
+           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed); kv++) {
         if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
           FilteredPoWOrderSorter.emplace(*kv);
           ShadowPoWOrderSorter.erase(kv->first);
+          count++;
         }
       }
 
       // Assign nnn shard guards if there is any slots
       for (auto kv = ShadowPoWOrderSorter.begin();
            (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTrimmed);
-           kv++, count++) {
+           kv++) {
         FilteredPoWOrderSorter.emplace(*kv);
+        count++;
       }
 
       // Sort "FilteredPoWOrderSorter" and stored it in "sortedPoWSolns"
