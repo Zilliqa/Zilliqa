@@ -528,6 +528,10 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     }
   }
 
+  if (BROADCAST_TREEBASED_CLUSTER_MODE) {
+    SendDSBlockToOtherShardNodes(message);
+  }
+
   m_mediator.m_ds->m_shards = move(t_shards);
   m_mediator.m_ds->m_DSReceivers = move(t_DSReceivers);
   m_mediator.m_ds->m_shardReceivers = move(t_shardReceivers);
@@ -646,10 +650,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       // Process sharding structure as a shard node
       if (!LoadShardingStructure()) {
         return false;
-      }
-
-      if (BROADCAST_TREEBASED_CLUSTER_MODE) {
-        SendDSBlockToOtherShardNodes(message);
       }
 
       // Process txn sharing assignments as a shard node
