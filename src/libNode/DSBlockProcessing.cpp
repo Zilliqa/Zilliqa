@@ -101,7 +101,7 @@ void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm,
       if (!GUARD_MODE) {
         dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
       } else {
-        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard() - 1);
+        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
         dsComm.emplace(it, m_mediator.m_selfKey.second, Peer());
       }
     } else {
@@ -109,7 +109,7 @@ void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm,
         dsComm.emplace_front(DSPowWinner);
 
       } else {
-        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard() - 1);
+        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
         dsComm.emplace(it, DSPowWinner);
       }
     }
