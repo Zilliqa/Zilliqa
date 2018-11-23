@@ -453,8 +453,11 @@ void Node::UpdateProcessedTransactions() {
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   LOG_MARKER();
 
-  t_createdTxns = m_createdTxns;
-  t_addrNonceTxnMap = m_addrNonceTxnMap;
+  {
+    lock_guard<mutex> g(m_mutexCreatedTransactions);
+    t_createdTxns = m_createdTxns;
+    t_addrNonceTxnMap = m_addrNonceTxnMap;
+  }
   vector<TxnHash> t_tranHashes;
   t_processedTransactions.clear();
 
