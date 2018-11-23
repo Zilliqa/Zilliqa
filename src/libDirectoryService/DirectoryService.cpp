@@ -69,12 +69,12 @@ void DirectoryService::StartSynchronization() {
 
   this->CleanVariables();
 
-  auto func = [this]() -> void {
-    if (!m_mediator.m_node->GetOfflineLookups()) {
-      LOG_GENERAL(WARNING, "Cannot sync currently");
-      return;
-    }
+  if (!m_mediator.m_node->GetOfflineLookups()) {
+    LOG_GENERAL(WARNING, "Cannot sync currently");
+    return;
+  }
 
+  auto func = [this]() -> void {
     while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
@@ -86,7 +86,13 @@ void DirectoryService::StartSynchronization() {
     }
   };
 
+  auto func2 = [this]() -> void {
+    if (!m_mediator.m_lookup->GetDSInfoLoop()) {
+      LOG_GENERAL(WARNING, "Unable to fetch DS info");
+    }
+  };
   DetachedFunction(1, func);
+  DetachedFunction(1, func2);
 }
 
 bool DirectoryService::CheckState(Action action) {
@@ -274,7 +280,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                              << m_mediator.m_currentEpochNum);
     m_consensusLeaderID =
         DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+            m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
         m_mediator.m_DSCommittee->size();
   }
 
@@ -450,30 +456,71 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   LOG_MARKER();
   m_mode = BACKUP_DS;
+  unsigned int dsSize = 0;
+  {
+    std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    dsSize = m_mediator.m_DSCommittee->size();
+    LOG_GENERAL(INFO,
+                "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
+    if (dsSize == 0) {
+      LOG_GENERAL(WARNING, "DS committee unset, failed to rejoin");
+      return false;
+    }
+  }
 
   m_consensusLeaderID = 0;
-  if (m_mediator.m_currentEpochNum > 1) {
+
+  BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
+  const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
+  PubKey leaderPubKey;
+  if (blocktype == BlockType::DS) {
     m_consensusLeaderID =
         DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
-        m_mediator.m_DSCommittee->size();
+            m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        dsSize;
+  } else if (blocktype == BlockType::VC) {
+    VCBlockSharedPtr VCBlockptr;
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
+      LOG_GENERAL(FATAL, "could not get vc block "
+                             << get<BlockLinkIndex::BLOCKHASH>(bl));
+      for (auto const& i : *m_mediator.m_DSCommittee) {
+        if (i.first == leaderPubKey) {
+          LOG_EPOCH(
+              INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Leader ID for this PoW consensus is " << m_consensusLeaderID);
+          break;
+        }
+        m_consensusLeaderID++;
+      }
+    }
+    leaderPubKey = VCBlockptr->GetHeader().GetCandidateLeaderPubKey();
+  } else {
+    m_mediator.m_node->RejoinAsNormal();
   }
 
   m_consensusMyID = 0;
+  bool found = false;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-    LOG_GENERAL(INFO,
-                "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
     for (auto const& i : *m_mediator.m_DSCommittee) {
-      LOG_GENERAL(INFO, "Loop of m_DSCommittee");
       if (i.first == m_mediator.m_selfKey.second) {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "My node ID for this PoW consensus is " << m_consensusMyID);
+        found = true;
         break;
       }
       m_consensusMyID++;
     }
   }
+  if (!found) {
+    LOG_GENERAL(
+        WARNING,
+        "Unable to find myself in ds committee, Invoke Rejoin as Normal");
+    m_mediator.m_node->RejoinAsNormal();
+    return false;
+  }
+
   // in case the recovery program is under different directory
   LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(), DS_BACKUP_MSG);
   RunConsensusOnDSBlock(true);

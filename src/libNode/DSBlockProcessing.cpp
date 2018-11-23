@@ -600,7 +600,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     uint16_t lastBlockHash = 0;
     if (m_mediator.m_currentEpochNum > 1) {
       lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+          m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
     }
     m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
 

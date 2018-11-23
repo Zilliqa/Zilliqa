@@ -1495,8 +1495,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
         "Notifying ProcessSetStateFromSeed that DSInfo has been received");
     unique_lock<mutex> lock(m_mutexDSInfoUpdation);
     m_fetchedDSInfo = true;
-    cv_dsInfoUpdate.notify_one();
   }
+  cv_dsInfoUpdate.notify_all();
 
   return true;
 }
@@ -2463,6 +2463,43 @@ void Lookup::StartSynchronization() {
   DetachedFunction(1, func);
 }
 
+bool Lookup::GetDSInfoLoop() {
+  unsigned int counter = 0;
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (m_mediator.m_DSCommittee->size() > 0) {
+      LOG_GENERAL(WARNING,
+                  "DS comm already set, make sure you cleaned variables");
+      return false;
+    }
+  }
+
+  while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
+    GetDSInfoFromLookupNodes();
+    unique_lock<mutex> lk(m_mutexDSInfoUpdation);
+    if (cv_dsInfoUpdate.wait_for(lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
+        cv_status::timeout) {
+      counter++;
+
+    } else {
+      break;
+    }
+  }
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    if (m_mediator.m_DSCommittee->size() > 0) {
+      return true;
+    } else {
+      LOG_GENERAL(WARNING, "ds committee still unset");
+      return false;
+    }
+  }
+
+  LOG_GENERAL(WARNING, "Exceeded max tries " << counter << "/"
+                                             << FETCH_LOOKUP_MSG_MAX_RETRY);
+  return false;
+}
+
 Peer Lookup::GetLookupPeerToRsync() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2868,7 +2905,6 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
       if (!m_isFirstLoop) {
         m_currDSExpired = true;
       } else {
-        GetDSInfoFromLookupNodes();
         m_isFirstLoop = false;
       }
     }
