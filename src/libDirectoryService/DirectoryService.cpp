@@ -87,7 +87,7 @@ void DirectoryService::StartSynchronization() {
   };
 
   auto func2 = [this]() -> void {
-    if (!m_mediator.m_lookup->FetchDSInfoLoop()) {
+    if (!m_mediator.m_lookup->GetDSInfoLoop()) {
       LOG_GENERAL(WARNING, "Unable to fetch DS info");
     }
   };

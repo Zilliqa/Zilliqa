@@ -90,10 +90,8 @@ class BlockChain {
                                    "behavior may happen!");
       return T();
     }
-
     return m_blocks[blockNum];
   }
-
   /// Adds a block to the chain.
   int AddBlock(const T& block) {
     uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
