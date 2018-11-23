@@ -134,7 +134,7 @@ bool DirectoryService::ProcessPoWSubmission(
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "dsblock_num            = " << blockNumber);
+            "dsblock_num                  = " << blockNumber);
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
