@@ -2455,7 +2455,7 @@ void Lookup::StartSynchronization() {
   DetachedFunction(1, func);
 }
 
-bool Lookup::FetchDSInfoLoop() {
+bool Lookup::GetDSInfoLoop() {
   unsigned int counter = 0;
   {
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
@@ -2482,7 +2482,7 @@ bool Lookup::FetchDSInfoLoop() {
     if (m_mediator.m_DSCommittee->size() > 0) {
       return true;
     } else {
-      LOG_GENERAL(WARNING, "ds committee till unset");
+      LOG_GENERAL(WARNING, "ds committee still unset");
       return false;
     }
   }
