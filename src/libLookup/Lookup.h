@@ -169,6 +169,7 @@ class Lookup : public Executable, public Broadcastable {
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
+  bool GetDSInfoLoop();
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);

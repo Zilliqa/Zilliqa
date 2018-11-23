@@ -278,9 +278,9 @@ void DirectoryService::RunConsensusOnViewChange() {
   if (dsCurBlockNum != 0 && txCurBlockNum != 0) {
     VCFetchLatestDSTxBlockFromLookupNodes();
     if (!NodeVCPrecheck()) {
-      LOG_GENERAL(
-          WARNING,
-          "Failed the vc precheck. Node is lagging behind the whole network.");
+      LOG_GENERAL(WARNING,
+                  "[RDS]Failed the vc precheck. Node is lagging behind the "
+                  "whole network.");
       RejoinAsDS();
       return;
     }
@@ -452,14 +452,6 @@ bool DirectoryService::NodeVCPrecheck() {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Passed precheck. ");
       return true;
-    }
-
-    for (const auto& dsblock : m_vcPreCheckDSBlocks) {
-      m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    }
-
-    for (const auto& txblock : m_vcPreCheckTxBlocks) {
-      m_mediator.m_txBlockChain.AddBlock(txblock);
     }
   }
   LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
