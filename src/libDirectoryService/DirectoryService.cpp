@@ -469,15 +469,22 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   m_consensusLeaderID = 0;
-
   BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
   PubKey leaderPubKey;
   if (blocktype == BlockType::DS) {
-    m_consensusLeaderID =
-        DataConversion::charArrTo16Bits(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
-        dsSize;
+    if (!GUARD_MODE){
+      m_consensusLeaderID =
+          DataConversion::charArrTo16Bits(
+              m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+          dsSize;
+    }else {
+      m_consensusLeaderID =
+          DataConversion::charArrTo16Bits(
+              m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+          Guard::GetInstance().GetNumOfDSGuard();
+    }
+
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(
