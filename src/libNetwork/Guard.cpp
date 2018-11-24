@@ -126,6 +126,11 @@ void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
 }
 
 bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in Guard mode. DS guard is not available.");
+    return false;
+  }
+
   lock_guard<mutex> g(m_mutexDSGuardList);
   if (std::find(m_DSGuardList.begin(), m_DSGuardList.end(), nodePubKey) ==
       m_DSGuardList.end()) {
@@ -136,6 +141,11 @@ bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
 }
 
 bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in Guard mode. Shard guard is not available.");
+    return false;
+  }
+
   lock_guard<mutex> g(m_mutexShardGuardList);
 
   if (std::find(m_ShardGuardList.begin(), m_ShardGuardList.end(), nodePubKey) ==
@@ -213,9 +223,12 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
 }
 
 void Guard::Init() {
-  LOG_GENERAL(INFO, "Setting up guard");
-  UpdateDSGuardlist();
-  UpdateShardGuardlist();
+  if (GUARD_MODE) {
+    UpdateDSGuardlist();
+    UpdateShardGuardlist();
+    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
+  }
+
   if (EXCLUDE_PRIV_IP) {
     LOG_GENERAL(INFO, "Adding Priv IPs to Exclusion List");
     AddToExclusionList("172.16.0.0", "172.31.255.255");
