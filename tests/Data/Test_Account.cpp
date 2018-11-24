@@ -43,6 +43,10 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   Account acc1(TestUtils::DistUint64(), 0);
   std::vector<unsigned char> data;
   acc1.InitContract(data);
+
+  Account acc2(data, 0);
+  BOOST_CHECK_EQUAL(false, acc2.isContract());
+  acc2.InitStorage();
 }
 
 BOOST_AUTO_TEST_CASE(testInit) {
@@ -51,11 +55,62 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   Account acc1(TestUtils::DistUint64(), 0);
 
+  uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
+  acc1.SetCreateBlockNum(CREATEBLOCKNUM);
+  BOOST_CHECK_EQUAL(CREATEBLOCKNUM, acc1.GetCreateBlockNum());
+
   std::string message =
       "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
-
-  std::vector<unsigned char> data(message.begin(), message.end());
+  std::vector<unsigned  char> data(message.begin(), message.end());
   acc1.InitContract(data);
+
+  BOOST_CHECK_EQUAL(true, data == acc1.GetInitData());
+
+  BOOST_CHECK_EQUAL(std::to_string(CREATEBLOCKNUM), acc1.GetInitJson()[1]["value"].asString());
+}
+
+BOOST_AUTO_TEST_CASE(testStorage) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  Account acc1(TestUtils::DistUint64(), 0);
+
+  std::vector<unsigned char> code;
+  acc1.SetCode(code);
+  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+
+  LOG_GENERAL(INFO, "SetStorage 1");
+  acc1.SetStorage("", "", "", false);
+  dev::h256 hash = dev::h256();
+  std::string rlpStr;
+  acc1.SetStorage(hash, rlpStr);
+  acc1.SetStorageRoot(hash);
+
+  acc1.GetStorageRoot();
+  BOOST_CHECK_EQUAL(0, acc1.GetStorage("").size());
+  acc1.GetRawStorage(hash);
+
+  size_t CODE_LEN = TestUtils::DistUint16() + 1;
+  code.resize(CODE_LEN, '0');
+
+  acc1.SetCode(code);
+  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+
+  uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
+  acc1.SetCreateBlockNum(CREATEBLOCKNUM);
+  BOOST_CHECK_EQUAL(CREATEBLOCKNUM, acc1.GetCreateBlockNum());
+
+  acc1.SetStorage("", "", "", false);
+  acc1.SetStorage(hash, rlpStr);
+  acc1.SetStorageRoot(hash);
+
+  acc1.GetStorageRoot();
+  acc1.GetStorage("");
+  acc1.GetRawStorage(hash);
+  std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes();
+  Json::Value storage = acc1.GetStorageJson();
+  acc1.Commit();
+  acc1.RollBack();
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {
@@ -88,6 +143,12 @@ BOOST_AUTO_TEST_CASE(testBalance) {
   balance = TestUtils::DistUint128();
   acc1.SetBalance(balance);
   BOOST_CHECK_EQUAL(balance, acc1.GetBalance());
+}
+
+BOOST_AUTO_TEST_CASE(testAddresses) {
+  Account acc1(0, 0);
+  Address addr = acc1.GetAddressFromPublicKey(TestUtils::GenerateRandomPubKey());
+  acc1.GetAddressForContract(addr, TestUtils::DistUint64());
 }
 
 BOOST_AUTO_TEST_CASE(testNonce) {
@@ -134,6 +195,10 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   BOOST_CHECK_MESSAGE(
       acc2.GetCodeHash() == hash,
       "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
+
+  std::vector<unsigned char> dst;
+  BOOST_CHECK_EQUAL(true, acc2.SerializeDelta(dst, 0, &acc1, acc2));
+  BOOST_CHECK_EQUAL(true, acc2.DeserializeDelta(dst, 0, acc1, true));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
