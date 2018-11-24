@@ -674,7 +674,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
         }
       }
 
-      // Assign nnn shard guards if there is any slots
+      // Assign non shard guards if there is any slots
       for (auto kv = ShadowPoWOrderSorter.begin();
            (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTrimmed);
            kv++) {
