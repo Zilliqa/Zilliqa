@@ -51,6 +51,11 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   {
     std::unique_lock<std::mutex> lk(m_mutexPowSolution);
 
+    if (m_powSolutions.empty()) {
+      LOG_GENERAL(INFO, "Didn't receive any pow submissions!!")
+      return true;
+    }
+
     if (!Messenger::SetDSPoWPacketSubmission(
             powpacketmessage, MessageOffset::BODY, m_powSolutions)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -62,13 +67,25 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   vector<Peer> peerList;
 
   if (BROADCAST_GOSSIP_MODE) {
-    P2PComm::GetInstance().SpreadRumor(powpacketmessage);
+    if(!P2PComm::GetInstance().SpreadRumor(powpacketmessage))
+    {
+      LOG_GENERAL(INFO, "Seems same packet was received by me from other DS member. That's even better.")
+      return true;
+    }
   } else {
     for (auto const& i : *m_mediator.m_DSCommittee) {
       peerList.push_back(i.second);
     }
     P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
   }
+
+  {
+    std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+    for (auto& sol : m_powSolutions) {
+      ProcessPoWSubmissionFromPacket(sol);
+    }
+  }
+
   return true;
 }
 
@@ -295,6 +312,11 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
                       << DataConversion::charArrToHexStr(
                              m_allPoWs[submitterPubKey].result));
         m_allPoWs[submitterPubKey] = soln;
+      } else {
+        LOG_GENERAL(INFO,
+                    "Same pow submission may be received from another packet. "
+                    "Ignore it!!")
+        return true;
       }
 
       uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
