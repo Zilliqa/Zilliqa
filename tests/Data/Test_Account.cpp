@@ -43,8 +43,7 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   Account acc1(TestUtils::DistUint64(), 0);
   std::vector<unsigned char> data;
   acc1.InitContract(data);
-  acc1.SetInitData(data);  // Satisfy coverage (coverage not taken into account
-                           // when called implicitly from InitContract)
+  acc1.SetInitData(data);
 
   Account acc2(data, 0);
   BOOST_CHECK_EQUAL(false, acc2.isContract());
@@ -54,7 +53,6 @@ BOOST_AUTO_TEST_CASE(testInit) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
-  // Account acc1(TestUtils::DistUint64(), 0);
   Account acc1 = Account();
 
   uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
@@ -85,10 +83,9 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
-  // Account acc1(TestUtils::DistUint64(), 0);
   Account acc1 = Account();
   acc1.GetStorageJson();  // Improve coverage
-  acc1.RollBack();        // coverage
+  acc1.RollBack();        // Improve coverage
 
   std::vector<unsigned char> code;
   acc1.SetCode(code);
@@ -108,9 +105,9 @@ BOOST_AUTO_TEST_CASE(testStorage) {
 
   acc1.SetCode(code);
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
-  acc1.SetStorage(hash, rlpStr);  // coverage
-  acc1.InitStorage();             // coverage
-  acc1.GetStorageJson();          // ??
+  acc1.SetStorage(hash, rlpStr);  // Improve coverage
+  acc1.InitStorage();             // Improve coverage
+  acc1.GetStorageJson();          // Improve coverage
   dev::h256 storageRoot = acc1.GetStorageRoot();
   acc1.SetStorageRoot(storageRoot);
   acc1.RollBack();  // coverage
@@ -129,7 +126,7 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   Json::Value storage = acc1.GetStorageJson();
   acc1.Commit();
   acc1.RollBack();
-  acc1.InitStorage();  // Coverage improvement
+  acc1.InitStorage();  // Improve coverage
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {
