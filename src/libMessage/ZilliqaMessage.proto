@@ -337,6 +337,11 @@ message DSPoWSubmission
     required ByteArray signature           = 2;
 }
 
+message DSPoWPacketSubmission
+{
+    repeated DSPoWSubmission dsPowSubmissions        = 1;
+}
+
 message DSMicroBlockSubmission
 {
     required uint32 microblocktype       = 1; // only LSB used

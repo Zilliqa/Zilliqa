@@ -41,6 +41,7 @@ enum DSInstructionType : unsigned char {
   FINALBLOCKCONSENSUS = 0x04,
   VIEWCHANGECONSENSUS = 0x05,
   VCPUSHLATESTDSTXBLOCK = 0x06,
+  POWPACKETSUBMISSION = 0x07
 };
 
 enum NodeInstructionType : unsigned char {
