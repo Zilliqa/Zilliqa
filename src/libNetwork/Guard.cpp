@@ -134,7 +134,6 @@ bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
   lock_guard<mutex> g(m_mutexDSGuardList);
   if (std::find(m_DSGuardList.begin(), m_DSGuardList.end(), nodePubKey) ==
       m_DSGuardList.end()) {
-    LOG_GENERAL(WARNING, "Node not inside DS guard list " << nodePubKey);
     return false;
   }
   return true;
@@ -150,7 +149,6 @@ bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
 
   if (std::find(m_ShardGuardList.begin(), m_ShardGuardList.end(), nodePubKey) ==
       m_ShardGuardList.end()) {
-    LOG_GENERAL(WARNING, "Pubk Not inside shard guard list " << nodePubKey);
     return false;
   }
   return true;
