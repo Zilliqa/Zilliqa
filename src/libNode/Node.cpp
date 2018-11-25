@@ -464,11 +464,32 @@ void Node::WakeupForUpgrade() {
     }
 
     auto func = [this]() mutable -> void {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Waiting " << POW_WINDOW_IN_SECONDS
-                           << " seconds, accepting PoW "
-                              "submissions...");
-      this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+      if (m_consensusMyID <= POW_PACKET_SENDERS) {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Waiting " << POW_WINDOW_IN_SECONDS
+                             << " seconds, accepting PoW submissions...");
+        this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+
+        // create and send POW submission packets
+        m_mediator.m_ds->SendPoWPacketSubmissionToOtherDSComm();
+
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Waiting "
+                      << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                      << " seconds, accepting PoW submissions packet from "
+                         "other DS member...");
+        this_thread::sleep_for(
+            chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
+      } else {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Waiting "
+                      << POW_WINDOW_IN_SECONDS +
+                             POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                      << " seconds, accepting PoW submissions packets...");
+        this_thread::sleep_for(chrono::seconds(
+            POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
+      }
+
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Starting consensus on ds block");
       m_mediator.m_ds->RunConsensusOnDSBlock();

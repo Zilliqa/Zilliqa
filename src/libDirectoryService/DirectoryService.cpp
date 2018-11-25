@@ -573,11 +573,6 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
       FULL_DATASET_MINE);
 
   if (m_mode == PRIMARY_DS) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                                (fromFallback ? FALLBACK_EXTRA_TIME : 0)
-                         << " seconds, accepting PoW submissions...");
-
     // Notify lookup that it's time to do PoW
     vector<unsigned char> startpow_message = {
         MessageType::LOOKUP, LookupInstructionType::RAISESTARTPOW};
@@ -586,9 +581,36 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
-    this_thread::sleep_for(
-        chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                        (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+
+    if (m_consensusMyID <= POW_PACKET_SENDERS) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                                  (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+                           << " seconds, accepting PoW submissions...");
+
+      this_thread::sleep_for(
+          chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                          (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+
+      // create and send POW submission packets
+      SendPoWPacketSubmissionToOtherDSComm();
+
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                           << " seconds, accepting PoW submissions packet from "
+                              "other DS member...");
+    } else {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                                  POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+                                  (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+                           << " seconds, accepting PoW submissions packets...");
+
+      this_thread::sleep_for(
+          chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                          POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+                          (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+    }
 
     RunConsensusOnDSBlock();
   } else {
@@ -600,10 +622,12 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     if (cv_DSBlockConsensus.wait_for(
             cv_lk, std::chrono::seconds(
                        NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                       POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
                        (fromFallback ? FALLBACK_EXTRA_TIME : 0))) ==
         std::cv_status::timeout) {
       LOG_GENERAL(INFO, "Woken up from the sleep of "
                             << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                                   POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
                                    (fromFallback ? FALLBACK_EXTRA_TIME : 0)
                             << " seconds");
     } else {
@@ -891,12 +915,14 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
 
 uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
   // Every year, always increase the difficulty by 1, to encourage miners to
-  // upgrade the hardware over time. If POW_WINDOW_IN_SECONDS = 300,
-  // NUM_FINAL_BLOCK_PER_POW = 50, TX_DISTRIBUTE_TIME_IN_MS = 10000,
-  // FINALBLOCK_DELAY_IN_MS = 3000, estimated blocks in a year is 1971000.
+  // upgrade the hardware over time. If POW_WINDOW_IN_SECONDS +
+  // POWPACKETSUBMISSION_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 50,
+  // TX_DISTRIBUTE_TIME_IN_MS = 10000, FINALBLOCK_DELAY_IN_MS = 3000, estimated
+  // blocks in a year is 1971000.
   uint64_t estimatedBlocksOneYear =
       365 * 24 * 3600 /
-      ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW) +
+      (((POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS) /
+        NUM_FINAL_BLOCK_PER_POW) +
        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000));
 
   // Round to integral multiple of NUM_FINAL_BLOCK_PER_POW

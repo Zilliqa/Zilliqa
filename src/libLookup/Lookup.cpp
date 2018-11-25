@@ -2079,9 +2079,9 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
 
   // Check whether is the new node connected to the network. Else, initiate
   // re-sync process again.
-  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS +
-                                         2 * NEW_NODE_SYNC_INTERVAL +
-                                         (TX_DISTRIBUTE_TIME_IN_MS / 1000)));
+  this_thread::sleep_for(chrono::seconds(
+      POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+      2 * NEW_NODE_SYNC_INTERVAL + (TX_DISTRIBUTE_TIME_IN_MS / 1000)));
   m_startedPoW = false;
   if (m_syncType != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -2316,7 +2316,8 @@ bool Lookup::ProcessRaiseStartPoW(
   // ProcessGetStartPoWFromSeed know that it's too late to do PoW Sleep time =
   // time it takes for new node to try getting DSInfo + actual PoW window
   this_thread::sleep_for(
-      chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS));
+      chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                      POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
   m_receivedRaiseStartPoW = false;
   cv_startPoWSubmission.notify_all();
 
@@ -2354,7 +2355,9 @@ bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
     std::unique_lock<std::mutex> cv_lk(m_MutexCVStartPoWSubmission);
 
     if (cv_startPoWSubmission.wait_for(
-            cv_lk, std::chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
+            cv_lk,
+            std::chrono::seconds(POW_WINDOW_IN_SECONDS +
+                                 POWPACKETSUBMISSION_WINDOW_IN_SECONDS)) ==
         std::cv_status::timeout) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Timed out waiting for DS leader to raise startPoW");

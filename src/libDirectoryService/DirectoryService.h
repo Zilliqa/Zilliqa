@@ -230,7 +230,6 @@ class DirectoryService : public Executable, public Broadcastable {
   bool ProcessGetDSTxBlockMessage(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
 
-  bool SendPoWPacketSubmissionToOtherDSComm();
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 
@@ -615,6 +614,8 @@ class DirectoryService : public Executable, public Broadcastable {
   static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows,
                                      bool trimBeyondCommSize = false);
   int64_t GetAllPoWSize() const;
+
+  bool SendPoWPacketSubmissionToOtherDSComm();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;
