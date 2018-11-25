@@ -965,6 +965,60 @@ void MicroBlockHeaderToProtobuf(
       microBlockHeader.GetCommitteeHash().size);
 }
 
+void DSPowSolutionToProtobuf(const DSPowSolution& powSolution,
+                             DSPoWSubmission& dsPowSubmission) {
+  dsPowSubmission.mutable_data()->set_blocknumber(powSolution.GetBlockNumber());
+  dsPowSubmission.mutable_data()->set_difficultylevel(
+      powSolution.GetDifficultyLevel());
+
+  SerializableToProtobufByteArray(
+      powSolution.GetSubmitterPeer(),
+      *dsPowSubmission.mutable_data()->mutable_submitterpeer());
+
+  SerializableToProtobufByteArray(
+      powSolution.GetSubmitterKey(),
+      *dsPowSubmission.mutable_data()->mutable_submitterpubkey());
+
+  dsPowSubmission.mutable_data()->set_nonce(powSolution.GetNonce());
+  dsPowSubmission.mutable_data()->set_resultinghash(
+      powSolution.GetResultingHash());
+  dsPowSubmission.mutable_data()->set_mixhash(powSolution.GetMixHash());
+  dsPowSubmission.mutable_data()->set_lookupid(powSolution.GetLookupId());
+
+  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+      powSolution.GetGasPrice(),
+      *dsPowSubmission.mutable_data()->mutable_gasprice());
+
+  SerializableToProtobufByteArray(powSolution.GetSignature(),
+                                  *dsPowSubmission.mutable_signature());
+}
+
+void ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
+                             DSPowSolution& powSolution) {
+  const uint64_t& blockNumber = dsPowSubmission.data().blocknumber();
+  const uint8_t& difficultyLevel = dsPowSubmission.data().difficultylevel();
+  Peer submitterPeer;
+  ProtobufByteArrayToSerializable(dsPowSubmission.data().submitterpeer(),
+                                  submitterPeer);
+  PubKey submitterKey;
+  ProtobufByteArrayToSerializable(dsPowSubmission.data().submitterpubkey(),
+                                  submitterKey);
+  const uint64_t& nonce = dsPowSubmission.data().nonce();
+  const std::string& resultingHash = dsPowSubmission.data().resultinghash();
+  const std::string& mixHash = dsPowSubmission.data().mixhash();
+  const uint32_t& lookupId = dsPowSubmission.data().lookupid();
+  boost::multiprecision::uint128_t gasPrice;
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+      dsPowSubmission.data().gasprice(), gasPrice);
+  Signature signature;
+  ProtobufByteArrayToSerializable(dsPowSubmission.signature(), signature);
+
+  DSPowSolution result(blockNumber, difficultyLevel, submitterPeer,
+                       submitterKey, nonce, resultingHash, mixHash, lookupId,
+                       gasPrice, signature);
+  powSolution = result;
+}
+
 void MicroBlockToProtobuf(const MicroBlock& microBlock,
                           ProtoMicroBlock& protoMicroBlock) {
   // Serialize header
@@ -2756,6 +2810,48 @@ bool Messenger::SetDSMicroBlockSubmission(
   }
 
   return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::SetDSPoWPacketSubmission(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<DSPowSolution>& dsPowSolutions) {
+  LOG_MARKER();
+
+  DSPoWPacketSubmission result;
+
+  for (const auto& sol : dsPowSolutions) {
+    DSPowSolutionToProtobuf(sol, *result.add_dspowsubmissions());
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSPoWPacketSubmission initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDSPowPacketSubmission(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<DSPowSolution>& dsPowSolutions) {
+  LOG_MARKER();
+
+  DSPoWPacketSubmission result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSPoWPacketSubmission initialization failed.");
+    return false;
+  }
+
+  for (const auto& powSubmission : result.dspowsubmissions()) {
+    DSPowSolution sol;
+    ProtobufToDSPowSolution(powSubmission, sol);
+    dsPowSolutions.emplace_back(move(sol));
+  }
+
+  return true;
 }
 
 bool Messenger::GetDSMicroBlockSubmission(

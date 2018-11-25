@@ -43,6 +43,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libPersistence/BlockStorage.h"
+#include "libUtils/DSPowSolution.h"
 #include "libUtils/TimeUtils.h"
 
 class Mediator;
@@ -197,6 +198,10 @@ class DirectoryService : public Executable, public Broadcastable {
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
+  // pow solutions
+  std::vector<DSPowSolution> m_powSolutions;
+  std::mutex m_mutexPowSolution;
+
   const uint32_t RESHUFFLE_INTERVAL = 500;
 
   // Message handlers
@@ -204,6 +209,10 @@ class DirectoryService : public Executable, public Broadcastable {
                          unsigned int offset, const Peer& from);
   bool ProcessPoWSubmission(const std::vector<unsigned char>& message,
                             unsigned int offset, const Peer& from);
+  bool ProcessPoWPacketSubmission(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+  bool ProcessPoWSubmissionFromPacket(const DSPowSolution& sol);
+
   bool ProcessDSBlockConsensus(const std::vector<unsigned char>& message,
                                unsigned int offset, const Peer& from);
   bool ProcessMicroblockSubmission(const std::vector<unsigned char>& message,
@@ -220,6 +229,8 @@ class DirectoryService : public Executable, public Broadcastable {
                                 unsigned int offset, const Peer& from);
   bool ProcessGetDSTxBlockMessage(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
+
+  bool SendPoWPacketSubmissionToOtherDSComm();
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 
