@@ -88,19 +88,18 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   // Account acc1(TestUtils::DistUint64(), 0);
   Account acc1 = Account();
   acc1.GetStorageJson();  // Improve coverage
+  acc1.RollBack();        // coverage
 
   std::vector<unsigned char> code;
   acc1.SetCode(code);
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
 
-  LOG_GENERAL(INFO, "SetStorage 1");
   acc1.SetStorage("", "", "", false);
   dev::h256 hash = dev::h256();
   std::string rlpStr;
   acc1.SetStorage(hash, rlpStr);
   acc1.SetStorageRoot(hash);
 
-  acc1.GetStorageRoot();
   BOOST_CHECK_EQUAL(0, acc1.GetStorage("").size());
   acc1.GetRawStorage(hash);
 
@@ -109,6 +108,12 @@ BOOST_AUTO_TEST_CASE(testStorage) {
 
   acc1.SetCode(code);
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+  acc1.SetStorage(hash, rlpStr);  // coverage
+  acc1.InitStorage();             // coverage
+  acc1.GetStorageJson();          // ??
+  dev::h256 storageRoot = acc1.GetStorageRoot();
+  acc1.SetStorageRoot(storageRoot);
+  acc1.RollBack();  // coverage
 
   uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
   acc1.SetCreateBlockNum(CREATEBLOCKNUM);
@@ -116,11 +121,6 @@ BOOST_AUTO_TEST_CASE(testStorage) {
 
   acc1.SetStorage("", "", "", false);
   acc1.SetStorage(hash, rlpStr);
-  //  std::string data =
-  //  TestUtils::GenerateRandomString(TestUtils::Dist1to99());
-  //  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  //  sha2.Update(std::vector<unsigned char>(data.front(), data.back()));
-  //  dev::h256 root(sha2.Finalize());
   acc1.SetStorageRoot(hash);
 
   acc1.GetStorage("");
