@@ -288,6 +288,8 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     if (count < POW_PACKET_SENDERS) {
       peerList.push_back(i.second);
       count++;
+    } else {
+      break;
     }
   }
 

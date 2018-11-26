@@ -615,7 +615,7 @@ class DirectoryService : public Executable, public Broadcastable {
                                      bool trimBeyondCommSize = false);
   int64_t GetAllPoWSize() const;
 
-  bool SendPoWPacketSubmissionToOtherDSComm();
+  bool CreateAndSendPoWPacketSubmissionToOtherDSComm();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

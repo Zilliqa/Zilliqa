@@ -42,7 +42,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
+bool DirectoryService::CreateAndSendPoWPacketSubmissionToOtherDSComm() {
   LOG_MARKER();
 
   vector<unsigned char> powpacketmessage = {
@@ -120,10 +120,9 @@ bool DirectoryService::ProcessPoWSubmission(
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "DirectoryService::ProcessPoWSubmissionFromPacket not expected to be "
-        "called from LookUp node.");
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessPoWSubmission not expected to be "
+                "called from LookUp node.");
     return true;
   }
 
@@ -149,7 +148,7 @@ bool DirectoryService::ProcessPoWSubmission(
                                      submitterKey, nonce, resultingHash,
                                      mixHash, signature, lookupId, gasPrice)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::ProcessPowSubmission failed.");
+              "DirectoryService::ProcessPowSubmission failed.");
     return false;
   }
 
@@ -368,10 +367,8 @@ void DirectoryService::UpdatePoWSubmissionCounterforNode(const PubKey& key) {
 }
 
 void DirectoryService::ResetPoWSubmissionCounter() {
-  {
-    lock_guard<mutex> g(m_mutexAllPoWCounter);
-    m_AllPoWCounter.clear();
-  }
+  lock_guard<mutex> g(m_mutexAllPoWCounter);
+  m_AllPoWCounter.clear();
 }
 
 void DirectoryService::AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln) {

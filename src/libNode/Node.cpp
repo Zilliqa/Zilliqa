@@ -472,7 +472,7 @@ void Node::WakeupForUpgrade() {
 
         // create and send POW submission packets
         auto func = [this]() mutable -> void {
-          m_mediator.m_ds->SendPoWPacketSubmissionToOtherDSComm();
+          m_mediator.m_ds->CreateAndSendPoWPacketSubmissionToOtherDSComm();
         };
         DetachedFunction(1, func);
 
