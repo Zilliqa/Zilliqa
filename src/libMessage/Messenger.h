@@ -25,10 +25,10 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libData/MiningData/DSPowSolution.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
-#include "libUtils/DSPowSolution.h"
 
 class Messenger {
  public:

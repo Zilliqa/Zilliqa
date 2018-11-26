@@ -39,11 +39,11 @@
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libPersistence/BlockStorage.h"
-#include "libUtils/DSPowSolution.h"
 #include "libUtils/TimeUtils.h"
 
 class Mediator;
