@@ -279,8 +279,10 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
                              << m_mediator.m_currentEpochNum);
     m_consensusLeaderID =
-        DataConversion::charArrTo16Bits(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        DataConversion::charArrTo16Bits(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetHashForRandom()
+                                            .asBytes()) %
         m_mediator.m_DSCommittee->size();
   }
 

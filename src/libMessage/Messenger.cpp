@@ -804,9 +804,24 @@ void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
 }
 
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
-                             ProtoDSBlock::DSBlockHeader& protoDSBlockHeader) {
-  protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
-  protoDSBlockHeader.set_difficulty(dsBlockHeader.GetDifficulty());
+                             ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
+                             bool concreteVarsOnly = false) {
+  if (!concreteVarsOnly) {
+    protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
+    protoDSBlockHeader.set_difficulty(dsBlockHeader.GetDifficulty());
+    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+        dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
+    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
+
+    for (const auto& winner : dsBlockHeader.GetDSPoWWinners()) {
+      powdswinner = protoDSBlockHeader.add_dswinners();
+      SerializableToProtobufByteArray(winner.first,
+                                      *powdswinner->mutable_key());
+      SerializableToProtobufByteArray(winner.second,
+                                      *powdswinner->mutable_val());
+    }
+  }
+
   protoDSBlockHeader.set_prevhash(dsBlockHeader.GetPrevHash().data(),
                                   dsBlockHeader.GetPrevHash().size);
   SerializableToProtobufByteArray(dsBlockHeader.GetLeaderPubKey(),
@@ -814,18 +829,8 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
 
   protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
   protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
-  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-      dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
                                   *protoDSBlockHeader.mutable_swinfo());
-
-  ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
-
-  for (const auto& winner : dsBlockHeader.GetDSPoWWinners()) {
-    powdswinner = protoDSBlockHeader.add_dswinners();
-    SerializableToProtobufByteArray(winner.first, *powdswinner->mutable_key());
-    SerializableToProtobufByteArray(winner.second, *powdswinner->mutable_val());
-  }
 
   ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
       protoDSBlockHeader.mutable_hash();
@@ -2099,10 +2104,11 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
 
 bool Messenger::SetDSBlockHeader(vector<unsigned char>& dst,
                                  const unsigned int offset,
-                                 const DSBlockHeader& dsBlockHeader) {
+                                 const DSBlockHeader& dsBlockHeader,
+                                 bool concreteVarsOnly) {
   ProtoDSBlock::DSBlockHeader result;
 
-  DSBlockHeaderToProtobuf(dsBlockHeader, result);
+  DSBlockHeaderToProtobuf(dsBlockHeader, result, concreteVarsOnly);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed.");

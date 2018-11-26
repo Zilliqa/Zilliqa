@@ -90,7 +90,8 @@ class Messenger {
 
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
-                               const DSBlockHeader& dsBlockHeader);
+                               const DSBlockHeader& dsBlockHeader,
+                               bool concreteVarsOnly = false);
   static bool GetDSBlockHeader(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                DSBlockHeader& dsBlockHeader);
