@@ -488,4 +488,160 @@ BOOST_AUTO_TEST_CASE(test_boost_uint1024_t) {
   LOG_GENERAL(INFO, "Test boost_uint1024_t done!");
 }
 
+BOOST_AUTO_TEST_CASE(test_int8_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test int8_t start...");
+
+  int8_t num1 = std::numeric_limits<int8_t>::min(), num2 = -1;
+  int8_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::div(num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test int8_t done!");
+}
+
+BOOST_AUTO_TEST_CASE(test_int16_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test int16_t start...");
+
+  int16_t num1 = std::numeric_limits<int16_t>::min(), num2 = -1;
+  int16_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::mul(num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::mul(num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::div(num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test int16_t done!");
+}
+
+BOOST_AUTO_TEST_CASE(test_int32_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test int32_t start...");
+
+  int32_t num1 = std::numeric_limits<int32_t>::min(), num2 = -1;
+  int32_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::mul(num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::mul(num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::div(num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test int32_t done!");
+}
+
+BOOST_AUTO_TEST_CASE(test_int64_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test int64_t start...");
+
+  int64_t num1 = std::numeric_limits<int64_t>::min(), num2 = -1;
+  int64_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::mul(num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::mul(num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::div(num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test int64_t done!");
+}
+
+BOOST_AUTO_TEST_CASE(test_boost_int128_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test boost_int128_t start...");
+
+  boost::multiprecision::int128_t
+      num1 = std::numeric_limits<boost::multiprecision::int128_t>::min(),
+      num2 = -1;
+  boost::multiprecision::int128_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::mul(
+                                   num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::mul(
+                                   num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::div(
+                                   num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test boost_int128_t done!");
+}
+
+BOOST_AUTO_TEST_CASE(test_boost_int256_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test boost_int256_t start...");
+
+  boost::multiprecision::int256_t
+      num1 = std::numeric_limits<boost::multiprecision::int256_t>::min(),
+      num2 = -1;
+  boost::multiprecision::int256_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::mul(
+                                   num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::mul(
+                                   num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::div(
+                                   num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test boost_int256_t done!");
+}
+
+BOOST_AUTO_TEST_CASE(test_boost_int512_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test boost_int512_t start...");
+
+  boost::multiprecision::int512_t
+      num1 = std::numeric_limits<boost::multiprecision::int512_t>::min(),
+      num2 = -1;
+  boost::multiprecision::int512_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::mul(
+                                   num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::mul(
+                                   num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::div(
+                                   num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test boost_int512_t done!");
+}
+
+BOOST_AUTO_TEST_CASE(test_boost_int1024_t) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Test boost_int1024_t start...");
+
+  boost::multiprecision::int1024_t
+      num1 = std::numeric_limits<boost::multiprecision::int1024_t>::min(),
+      num2 = -1;
+  boost::multiprecision::int1024_t mulRes1, mulRes2, divRes;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::mul(
+                                   num1, num2, mulRes1),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::mul(
+                                   num2, num1, mulRes2),
+                      "Test mul overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::div(
+                                   num1, num2, divRes),
+                      "Test div overflow failed!");
+
+  LOG_GENERAL(INFO, "Test boost_int1024_t done!");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
