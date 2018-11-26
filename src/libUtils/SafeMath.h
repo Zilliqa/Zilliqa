@@ -35,6 +35,19 @@ class SafeMath {
       return true;
     }
 
+    if (typeid(a) == typeid(int8_t) || typeid(a) == typeid(int16_t) ||
+        typeid(a) == typeid(int32_t) || typeid(a) == typeid(int64_t) ||
+        typeid(a) == typeid(boost::multiprecision::int128_t) ||
+        typeid(a) == typeid(boost::multiprecision::int256_t) ||
+        typeid(a) == typeid(boost::multiprecision::int512_t) ||
+        typeid(a) == typeid(boost::multiprecision::int1024_t)) {
+      if ((a == std::numeric_limits<T>::min() && b == (T)-1) ||
+          (a == (T)-1 && b == std::numeric_limits<T>::min())) {
+        LOG_GENERAL(WARNING, "Division Overflow!");
+        return false;
+      }
+    }
+
     T c = a * b;
     if (c / a != b) {
       LOG_GENERAL(WARNING, "Multiplication Underflow/Overflow!");
@@ -99,6 +112,18 @@ class SafeMath {
     if (b == 0) {
       LOG_GENERAL(WARNING, "Denominator cannot be zero!");
       return false;
+    }
+
+    if (typeid(a) == typeid(int8_t) || typeid(a) == typeid(int16_t) ||
+        typeid(a) == typeid(int32_t) || typeid(a) == typeid(int64_t) ||
+        typeid(a) == typeid(boost::multiprecision::int128_t) ||
+        typeid(a) == typeid(boost::multiprecision::int256_t) ||
+        typeid(a) == typeid(boost::multiprecision::int512_t) ||
+        typeid(a) == typeid(boost::multiprecision::int1024_t)) {
+      if (a == std::numeric_limits<T>::min() && b == (T)-1) {
+        LOG_GENERAL(WARNING, "Division Overflow!");
+        return false;
+      }
     }
 
     T c = a / b;
