@@ -295,14 +295,18 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                          << "] DSBK");
   }
 
-  if (m_consensusMyID <= POW_PACKET_SENDERS) {
+  if (m_consensusMyID < POW_PACKET_SENDERS) {
+    LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Waiting " << POW_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions...");
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
     // create and send POW submission packets
-    SendPoWPacketSubmissionToOtherDSComm();
+    auto func = [this]() mutable -> void {
+      this->SendPoWPacketSubmissionToOtherDSComm();
+    };
+    DetachedFunction(1, func);
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
@@ -311,6 +315,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     this_thread::sleep_for(
         chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
   } else {
+    LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Waiting " << POW_WINDOW_IN_SECONDS +
                                 POWPACKETSUBMISSION_WINDOW_IN_SECONDS
@@ -582,7 +587,8 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
 
-    if (m_consensusMyID <= POW_PACKET_SENDERS) {
+    if (m_consensusMyID < POW_PACKET_SENDERS) {
+      LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                                   (fromFallback ? FALLBACK_EXTRA_TIME : 0)
@@ -593,13 +599,20 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
                           (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
 
       // create and send POW submission packets
-      SendPoWPacketSubmissionToOtherDSComm();
+      auto func = [this]() mutable -> void {
+        this->SendPoWPacketSubmissionToOtherDSComm();
+      };
+      DetachedFunction(1, func);
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
                            << " seconds, accepting PoW submissions packet from "
                               "other DS member...");
+
+      this_thread::sleep_for(
+          chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
     } else {
+      LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                                   POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
@@ -622,14 +635,34 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     if (cv_DSBlockConsensus.wait_for(
             cv_lk, std::chrono::seconds(
                        NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                       POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
                        (fromFallback ? FALLBACK_EXTRA_TIME : 0))) ==
         std::cv_status::timeout) {
       LOG_GENERAL(INFO, "Woken up from the sleep of "
                             << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                                   POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
                                    (fromFallback ? FALLBACK_EXTRA_TIME : 0)
                             << " seconds");
+      // if i am suppose to create pow submission packet for other DS members
+      if (m_consensusMyID < POW_PACKET_SENDERS) {
+        // create and send POW submission packets
+        LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+        auto func = [this]() mutable -> void {
+          this->SendPoWPacketSubmissionToOtherDSComm();
+        };
+        DetachedFunction(1, func);
+      }
+
+      if (cv_DSBlockConsensus.wait_for(
+              cv_lk,
+              std::chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(INFO, "Woken up from the sleep of "
+                              << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                              << " seconds");
+      } else {
+        LOG_GENERAL(INFO,
+                    "Received announcement message. Time to "
+                    "run consensus.");
+      }
     } else {
       LOG_GENERAL(INFO,
                   "Received announcement message. Time to "
