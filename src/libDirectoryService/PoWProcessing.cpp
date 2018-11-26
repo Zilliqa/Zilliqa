@@ -48,42 +48,41 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   vector<unsigned char> powpacketmessage = {
       MessageType::DIRECTORY, DSInstructionType::POWPACKETSUBMISSION};
 
-  {
-    std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+  std::unique_lock<std::mutex> lk(m_mutexPowSolution);
 
-    if (m_powSolutions.empty()) {
-      LOG_GENERAL(INFO, "Didn't receive any pow submissions!!")
-      return true;
-    }
+  if (m_powSolutions.empty()) {
+    LOG_GENERAL(INFO, "Didn't receive any pow submissions!!")
+    return true;
+  }
 
-    if (!Messenger::SetDSPoWPacketSubmission(
-            powpacketmessage, MessageOffset::BODY, m_powSolutions)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Messenger::SetDSPoWPacketSubmission failed.");
-      return false;
-    }
+  if (!Messenger::SetDSPoWPacketSubmission(
+          powpacketmessage, MessageOffset::BODY, m_powSolutions)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetDSPoWPacketSubmission failed.");
+    return false;
   }
 
   vector<Peer> peerList;
 
   if (BROADCAST_GOSSIP_MODE) {
-    if(!P2PComm::GetInstance().SpreadRumor(powpacketmessage))
-    {
-      LOG_GENERAL(INFO, "Seems same packet was received by me from other DS member. That's even better.")
+    if (!P2PComm::GetInstance().SpreadRumor(powpacketmessage)) {
+      LOG_GENERAL(INFO,
+                  "Seems same packet was received by me from other DS member. "
+                  "That's even better.")
       return true;
     }
   } else {
+    // To-Do : not urgent , we used gossip mode for now.
+    // check the powpacketmessage already received by me somehow.
+
     for (auto const& i : *m_mediator.m_DSCommittee) {
       peerList.push_back(i.second);
     }
     P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
   }
 
-  {
-    std::unique_lock<std::mutex> lk(m_mutexPowSolution);
-    for (auto& sol : m_powSolutions) {
-      ProcessPoWSubmissionFromPacket(sol);
-    }
+  for (auto& sol : m_powSolutions) {
+    ProcessPoWSubmissionFromPacket(sol);
   }
 
   return true;
@@ -127,7 +126,7 @@ bool DirectoryService::ProcessPoWSubmission(
     return true;
   }
 
-  if (m_consensusMyID > POW_PACKET_SENDERS) {
+  if (m_consensusMyID >= POW_PACKET_SENDERS) {
     LOG_GENERAL(WARNING,
                 "I am not supposed to receive individual pow submission. I "
                 "accept only pow submission packets instead!!");
