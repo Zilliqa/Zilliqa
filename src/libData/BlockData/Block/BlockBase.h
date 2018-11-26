@@ -52,6 +52,7 @@ class BlockBase : public SerializableDataBlock {
  protected:
   BlockHash m_blockHash;
   CoSignatures m_cosigs;
+  uint64_t m_timestamp;
 
  public:
   /// Default constructor.
@@ -59,6 +60,12 @@ class BlockBase : public SerializableDataBlock {
 
   /// Returns the block hash
   const BlockHash& GetBlockHash() const;
+
+  /// Returns the timestamp
+  const uint64_t& GetTimestamp() const;
+
+  /// Set the timestamp
+  void SetTimestamp(const uint64_t& timestamp);
 
   /// Set the block hash
   void SetBlockHash(const BlockHash& blockHash);

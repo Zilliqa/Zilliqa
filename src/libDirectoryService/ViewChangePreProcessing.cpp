@@ -422,10 +422,9 @@ bool DirectoryService::ComputeNewCandidateLeader(
             m_mediator.m_currentEpochNum, m_viewChangestate,
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
-            m_viewChangeCounter, m_cumulativeFaultyLeaders, get_time_as_int(),
-            committeeHash, prevHash),
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, committeeHash,
+            prevHash),
         CoSignatures()));
-    m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
 
   return true;

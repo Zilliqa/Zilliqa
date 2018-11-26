@@ -48,8 +48,8 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
       INFO, "Block type value retrieved: " << (*block2).GetHeader().GetType());
   LOG_GENERAL(INFO, "Block version value retrieved: "
                         << (*block2).GetHeader().GetVersion());
-  LOG_GENERAL(INFO, "Block timestamp value retrieved: "
-                        << (*block2).GetHeader().GetTimestamp());
+  LOG_GENERAL(INFO,
+              "Block timestamp value retrieved: " << (*block2).GetTimestamp());
   LOG_GENERAL(INFO, "Block num txs value retrieved: "
                         << (*block2).GetHeader().GetNumTxs());
 }

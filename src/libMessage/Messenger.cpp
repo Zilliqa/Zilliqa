@@ -402,6 +402,10 @@ void BlockBaseToProtobuf(const BlockBase& base,
 
   protoBlockBase.set_blockhash(base.GetBlockHash().data(),
                                base.GetBlockHash().size);
+
+  // Timestampo
+  protoBlockBase.set_timestamp(base.GetTimestamp());
+
   // Serialize cosigs
 
   ZilliqaMessage::ProtoBlockBase::CoSignatures* cosigs =
@@ -443,6 +447,12 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
        blockHash.asArray().begin());
 
   base.SetBlockHash(blockHash);
+
+  // Deserialize timestamp
+  uint64_t timestamp;
+  timestamp = protoBlockBase.timestamp();
+
+  base.SetTimestamp(timestamp);
 }
 
 void ShardingStructureToProtobuf(
@@ -806,7 +816,6 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
   protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
-  protoDSBlockHeader.set_timestamp(dsBlockHeader.GetTimestamp());
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
                                   *protoDSBlockHeader.mutable_swinfo());
 
@@ -853,7 +862,6 @@ void ProtobufToDSBlockHeader(
     DSBlockHeader& dsBlockHeader) {
   BlockHash prevHash;
   PubKey leaderPubKey;
-  uint64_t timestamp;
   uint128_t gasprice;
   SWInfo swInfo;
   CommitteeHash committeeHash;
@@ -867,7 +875,6 @@ void ProtobufToDSBlockHeader(
                                   leaderPubKey);
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoDSBlockHeader.gasprice(), gasprice);
-  timestamp = protoDSBlockHeader.timestamp();
   ProtobufByteArrayToSerializable(protoDSBlockHeader.swinfo(), swInfo);
 
   // Deserialize powDSWinners
@@ -908,11 +915,11 @@ void ProtobufToDSBlockHeader(
 
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(
-      protoDSBlockHeader.dsdifficulty(), protoDSBlockHeader.difficulty(),
-      prevHash, leaderPubKey, protoDSBlockHeader.blocknum(),
-      protoDSBlockHeader.epochnum(), gasprice, timestamp, swInfo, powDSWinners,
-      hash, committeeHash);
+  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
+                                protoDSBlockHeader.difficulty(), prevHash,
+                                leaderPubKey, protoDSBlockHeader.blocknum(),
+                                protoDSBlockHeader.epochnum(), gasprice, swInfo,
+                                powDSWinners, hash, committeeHash);
 }
 
 void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -925,7 +932,7 @@ void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
 
   ProtobufToDSBlockHeader(protoHeader, header);
 
-  dsBlock = DSBlock(header);
+  dsBlock = DSBlock(header, CoSignatures());
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoDSBlock.blockbase();
@@ -946,7 +953,6 @@ void MicroBlockHeaderToProtobuf(
   protoMicroBlockHeader.set_prevhash(microBlockHeader.GetPrevHash().data(),
                                      microBlockHeader.GetPrevHash().size);
   protoMicroBlockHeader.set_epochnum(microBlockHeader.GetEpochNum());
-  protoMicroBlockHeader.set_timestamp(microBlockHeader.GetTimestamp());
   protoMicroBlockHeader.set_txroothash(microBlockHeader.GetTxRootHash().data(),
                                        microBlockHeader.GetTxRootHash().size);
   protoMicroBlockHeader.set_numtxs(microBlockHeader.GetNumTxs());
@@ -995,7 +1001,6 @@ void ProtobufToMicroBlockHeader(
   uint64_t gasUsed;
   uint128_t rewards;
   BlockHash prevHash;
-  uint64_t timestamp;
   TxnHash txRootHash;
   PubKey minerPubKey;
   BlockHash dsBlockHash;
@@ -1012,7 +1017,6 @@ void ProtobufToMicroBlockHeader(
            min((unsigned int)protoMicroBlockHeader.prevhash().size(),
                (unsigned int)prevHash.size),
        prevHash.asArray().begin());
-  timestamp = protoMicroBlockHeader.timestamp();
   copy(protoMicroBlockHeader.txroothash().begin(),
        protoMicroBlockHeader.txroothash().begin() +
            min((unsigned int)protoMicroBlockHeader.txroothash().size(),
@@ -1040,7 +1044,7 @@ void ProtobufToMicroBlockHeader(
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
       protoMicroBlockHeader.shardid(), gasLimit, gasUsed, rewards, prevHash,
-      protoMicroBlockHeader.epochnum(), timestamp,
+      protoMicroBlockHeader.epochnum(),
       {txRootHash, stateDeltaHash, tranReceiptHash},
       protoMicroBlockHeader.numtxs(), minerPubKey,
       protoMicroBlockHeader.dsblocknum(), committeeHash);
@@ -1068,7 +1072,7 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
          tranHashes.back().asArray().begin());
   }
 
-  microBlock = MicroBlock(header, tranHashes);
+  microBlock = MicroBlock(header, tranHashes, CoSignatures());
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoMicroBlock.blockbase();
@@ -1109,7 +1113,6 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
   protoTxBlockHeader.set_prevhash(txBlockHeader.GetPrevHash().data(),
                                   txBlockHeader.GetPrevHash().size);
   protoTxBlockHeader.set_blocknum(txBlockHeader.GetBlockNum());
-  protoTxBlockHeader.set_timestamp(txBlockHeader.GetTimestamp());
 
   ZilliqaMessage::ProtoTxBlock::TxBlockHashSet* protoHeaderHash =
       protoTxBlockHeader.mutable_hash();
@@ -1157,7 +1160,6 @@ void ProtobufToTxBlockHeader(
   uint64_t gasUsed;
   uint128_t rewards;
   BlockHash prevHash;
-  uint64_t timestamp;
   TxBlockHashSet hash;
   PubKey minerPubKey;
   CommitteeHash committeeHash;
@@ -1171,7 +1173,6 @@ void ProtobufToTxBlockHeader(
            min((unsigned int)protoTxBlockHeader.prevhash().size(),
                (unsigned int)prevHash.size),
        prevHash.asArray().begin());
-  timestamp = protoTxBlockHeader.timestamp();
 
   const ZilliqaMessage::ProtoTxBlock::TxBlockHashSet& protoTxBlockHeaderHash =
       protoTxBlockHeader.hash();
@@ -1202,9 +1203,9 @@ void ProtobufToTxBlockHeader(
 
   txBlockHeader = TxBlockHeader(
       protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
-      gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), timestamp,
-      hash, protoTxBlockHeader.numtxs(), minerPubKey,
-      protoTxBlockHeader.dsblocknum(), committeeHash);
+      gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), hash,
+      protoTxBlockHeader.numtxs(), minerPubKey, protoTxBlockHeader.dsblocknum(),
+      committeeHash);
 }
 
 void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
@@ -1226,7 +1227,7 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
     mbInfos.emplace_back(mbInfo);
   }
 
-  txBlock = TxBlock(header, mbInfos);
+  txBlock = TxBlock(header, mbInfos, CoSignatures());
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
@@ -1251,7 +1252,6 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
       *protoVCBlockHeader.mutable_candidateleaderpubkey());
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
   FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
-  protoVCBlockHeader.set_timestamp(vcBlockHeader.GetTimeStamp());
   protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
                                        vcBlockHeader.GetCommitteeHash().size);
 }
@@ -1277,7 +1277,6 @@ void ProtobufToVCBlockHeader(
     VCBlockHeader& vcBlockHeader) {
   Peer candidateLeaderNetworkInfo;
   PubKey candidateLeaderPubKey;
-  uint64_t timestamp;
   CommitteeHash committeeHash;
   BlockHash prevHash;
   vector<pair<PubKey, Peer>> faultyLeaders;
@@ -1287,7 +1286,6 @@ void ProtobufToVCBlockHeader(
       candidateLeaderNetworkInfo);
   ProtobufByteArrayToSerializable(protoVCBlockHeader.candidateleaderpubkey(),
                                   candidateLeaderPubKey);
-  timestamp = protoVCBlockHeader.timestamp();
 
   ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
 
@@ -1307,7 +1305,7 @@ void ProtobufToVCBlockHeader(
       protoVCBlockHeader.viewchangeepochno(),
       protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
       candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
-      timestamp, committeeHash, prevHash);
+      committeeHash, prevHash);
 }
 
 void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
@@ -1320,7 +1318,7 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 
   ProtobufToVCBlockHeader(protoHeader, header);
 
-  vcBlock = VCBlock(header);
+  vcBlock = VCBlock(header, CoSignatures());
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoVCBlock.blockbase();
@@ -1352,7 +1350,6 @@ void FallbackBlockHeaderToProtobuf(
       fallbackBlockHeader.GetLeaderPubKey(),
       *protoFallbackBlockHeader.mutable_leaderpubkey());
   protoFallbackBlockHeader.set_shardid(fallbackBlockHeader.GetShardId());
-  protoFallbackBlockHeader.set_timestamp(fallbackBlockHeader.GetTimeStamp());
 
   protoFallbackBlockHeader.set_committeehash(
       fallbackBlockHeader.GetCommitteeHash().data(),
@@ -1381,7 +1378,6 @@ void ProtobufToFallbackBlockHeader(
     FallbackBlockHeader& fallbackBlockHeader) {
   Peer leaderNetworkInfo;
   PubKey leaderPubKey;
-  uint64_t timestamp;
   StateHash stateRootHash;
   CommitteeHash committeeHash;
   BlockHash prevHash;
@@ -1390,7 +1386,6 @@ void ProtobufToFallbackBlockHeader(
                                   leaderNetworkInfo);
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leaderpubkey(),
                                   leaderPubKey);
-  timestamp = protoFallbackBlockHeader.timestamp();
 
   copy(protoFallbackBlockHeader.prevhash().begin(),
        protoFallbackBlockHeader.prevhash().begin() +
@@ -1415,8 +1410,8 @@ void ProtobufToFallbackBlockHeader(
       protoFallbackBlockHeader.fallbackepochno(),
       protoFallbackBlockHeader.fallbackstate(), {stateRootHash},
       protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
-      leaderPubKey, protoFallbackBlockHeader.shardid(), timestamp,
-      committeeHash, prevHash);
+      leaderPubKey, protoFallbackBlockHeader.shardid(), committeeHash,
+      prevHash);
 }
 
 void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
@@ -1429,7 +1424,7 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
 
   ProtobufToFallbackBlockHeader(protoHeader, header);
 
-  fallbackBlock = FallbackBlock(header);
+  fallbackBlock = FallbackBlock(header, CoSignatures());
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoFallbackBlock.blockbase();

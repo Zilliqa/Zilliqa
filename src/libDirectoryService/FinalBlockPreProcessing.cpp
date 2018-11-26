@@ -141,7 +141,6 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   BlockHash prevHash;
-  uint64_t timestamp = get_time_as_int();
 
   uint64_t blockNum = 0;
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
@@ -183,12 +182,11 @@ bool DirectoryService::ComposeFinalBlock() {
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(
           type, version, allGasLimit, allGasUsed, allRewards, prevHash,
-          blockNum, timestamp, {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
+          blockNum, {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
           m_mediator.m_selfKey.second,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
           committeeHash),
       mbInfos, CoSignatures(m_mediator.m_DSCommittee->size())));
-  m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
 
   LOG_STATE(
       "[STATS]["
@@ -472,8 +470,8 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
     const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t finalblockTimestamp = m_finalBlock->GetHeader().GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
+    uint64_t finalblockTimestamp = m_finalBlock->GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
     if (finalblockTimestamp <= lastTxBlockTimestamp) {
       LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
                                << lastTxBlockTimestamp

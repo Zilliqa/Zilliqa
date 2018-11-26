@@ -81,17 +81,8 @@ MicroBlock::MicroBlock(const MicroBlockHeader& header,
   }
 
   m_cosigs = move(cosigs);
-}
-
-MicroBlock::MicroBlock(const MicroBlockHeader& header,
-                       const vector<TxnHash>& tranHashes)
-    : m_header(header), m_tranHashes(tranHashes) {
-  if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "Num of Txns get from header "
-                             << m_header.GetNumTxs()
-                             << " is not equal to the size of m_tranHashes "
-                             << m_tranHashes.size());
-  }
+  SetTimestamp(get_time_as_int());
+  SetBlockHash(m_header.GetMyHash());
 }
 
 const MicroBlockHeader& MicroBlock::GetHeader() const { return m_header; }

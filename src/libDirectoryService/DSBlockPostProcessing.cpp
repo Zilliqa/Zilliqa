@@ -62,7 +62,7 @@ void DirectoryService::StoreDSBlockToStorage() {
           << std::to_string(m_pendingDSBlock->GetHeader().GetDSDifficulty())
           << ", Difficulty: "
           << std::to_string(m_pendingDSBlock->GetHeader().GetDifficulty())
-          << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp());
+          << ", Timestamp: " << m_pendingDSBlock->GetTimestamp());
 
   if (result == -1) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
