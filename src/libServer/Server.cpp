@@ -295,8 +295,7 @@ Json::Value Server::GetLatestDsBlock() {
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << Latest.GetHeader().GetBlockNum()
-                        << "  Timestamp:        "
-                        << Latest.GetHeader().GetTimestamp());
+                        << "  Timestamp:        " << Latest.GetTimestamp());
 
   return JSONConversion::convertDSblocktoJson(Latest);
 }
@@ -307,8 +306,7 @@ Json::Value Server::GetLatestTxBlock() {
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "BlockNum " << Latest.GetHeader().GetBlockNum()
-                        << "  Timestamp:        "
-                        << Latest.GetHeader().GetTimestamp());
+                        << "  Timestamp:        " << Latest.GetTimestamp());
 
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
@@ -624,7 +622,7 @@ double Server::GetTransactionRate() {
 
   try {
     TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
-    refTimeTx = tx.GetHeader().GetTimestamp();
+    refTimeTx = tx.GetTimestamp();
   } catch (const char* msg) {
     if (string(msg) == "Blocknumber Absent") {
       LOG_GENERAL(INFO, "Error in fetching ref block");
@@ -633,8 +631,7 @@ double Server::GetTransactionRate() {
   }
 
   uint64_t TimeDiff =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
-      refTimeTx;
+      m_mediator.m_txBlockChain.GetLastBlock().GetTimestamp() - refTimeTx;
 
   if (TimeDiff == 0 || refTimeTx == 0) {
     // something went wrong
@@ -661,7 +658,7 @@ double Server::GetDSBlockRate() {
     try {
       // Refernce time chosen to be the first block's timestamp
       DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
-      m_StartTimeDs = dsb.GetHeader().GetTimestamp();
+      m_StartTimeDs = dsb.GetTimestamp();
     } catch (const char* msg) {
       if (string(msg) == "Blocknumber Absent") {
         LOG_GENERAL(INFO, "No DSBlock has been mined yet");
@@ -670,8 +667,7 @@ double Server::GetDSBlockRate() {
     }
   }
   uint64_t TimeDiff =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
-      m_StartTimeDs;
+      m_mediator.m_dsBlockChain.GetLastBlock().GetTimestamp() - m_StartTimeDs;
 
   if (TimeDiff == 0) {
     LOG_GENERAL(INFO, "Wait till the second block");
@@ -695,7 +691,7 @@ double Server::GetTxBlockRate() {
     try {
       // Reference Time chosen to be first block's timestamp
       TxBlock txb = m_mediator.m_txBlockChain.GetBlock(1);
-      m_StartTimeTx = txb.GetHeader().GetTimestamp();
+      m_StartTimeTx = txb.GetTimestamp();
     } catch (const char* msg) {
       if (string(msg) == "Blocknumber Absent") {
         LOG_GENERAL(INFO, "No TxBlock has been mined yet");
@@ -704,8 +700,7 @@ double Server::GetTxBlockRate() {
     }
   }
   uint64_t TimeDiff =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetTimestamp() -
-      m_StartTimeTx;
+      m_mediator.m_txBlockChain.GetLastBlock().GetTimestamp() - m_StartTimeTx;
 
   if (TimeDiff == 0) {
     LOG_GENERAL(INFO, "Wait till the second block");

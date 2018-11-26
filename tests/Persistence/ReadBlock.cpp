@@ -46,8 +46,8 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
                         << (int)((*block).GetHeader().GetDifficulty()));
   LOG_GENERAL(INFO, "Block2 blocknum value retrieved: "
                         << (*block).GetHeader().GetBlockNum());
-  LOG_GENERAL(INFO, "Block2 timestamp value retrieved: "
-                        << (*block).GetHeader().GetTimestamp());
+  LOG_GENERAL(INFO,
+              "Block2 timestamp value retrieved: " << (*block).GetTimestamp());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

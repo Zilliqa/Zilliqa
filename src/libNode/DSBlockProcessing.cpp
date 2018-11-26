@@ -67,7 +67,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
           << ", DS PoW Difficulty: "
           << to_string(dsblock.GetHeader().GetDSDifficulty())
           << ", Difficulty: " << to_string(dsblock.GetHeader().GetDifficulty())
-          << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
+          << ", Timestamp: " << dsblock.GetTimestamp());
 
   // Update the rand1 value for next PoW
   m_mediator.UpdateDSBlockRand();

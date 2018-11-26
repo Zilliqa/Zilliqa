@@ -65,7 +65,7 @@ void DirectoryService::StoreFinalBlockToDisk() {
                 << m_finalBlock->GetHeader().GetBlockNum() << " with Type: "
                 << to_string(m_finalBlock->GetHeader().GetType())
                 << ", Version: " << m_finalBlock->GetHeader().GetVersion()
-                << ", Timestamp: " << m_finalBlock->GetHeader().GetTimestamp()
+                << ", Timestamp: " << m_finalBlock->GetTimestamp()
                 << ", NumTxs: " << m_finalBlock->GetHeader().GetNumTxs());
 
   vector<unsigned char> serializedTxBlock;
