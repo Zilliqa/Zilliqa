@@ -111,43 +111,45 @@ class SafeMath {
   }
 
   static bool sub(const T& a, const T& b, T& result) {
-    if (a == b) {
-      result = 0;
-      return true;
-    }
-
-    T aa = a, bb = b;
-    bool bPos = true;
-
-    if (a < b) {
-      bPos = false;
-      aa = b;
-      bb = a;
-    }
-
-    if (aa == 0) {
-      result = bPos ? (0 - bb) : bb;
-      return true;
-    }
-
-    if (bb == 0) {
-      result = bPos ? aa : (0 - aa);
-      return true;
-    }
-
-    T c = aa - bb;
-
-    if (aa > 0 && bb < 0 && (c < aa || c < (0 - bb))) {
-      if (bPos) {
-        LOG_GENERAL(WARNING, "Subtraction Overflow!");
-      } else {
-        LOG_GENERAL(WARNING, "Subtraction Underflow!");
+    if (typeid(a) == typeid(uint8_t) || typeid(a) == typeid(uint16_t) ||
+        typeid(a) == typeid(uint32_t) || typeid(a) == typeid(uint64_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint128_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint256_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint512_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint1024_t)) {
+      if (b > a) {
+        LOG_GENERAL(WARNING,
+                    "For unsigned subtraction, minuend should be greater than "
+                    "subtrahend!");
+        return false;
       }
-      return false;
+
+      result = a - b;
+      return true;
     }
 
-    result = bPos ? c : (0 - c);
-    return true;
+    if (typeid(a) == typeid(int8_t) || typeid(a) == typeid(int16_t) ||
+        typeid(a) == typeid(int32_t) || typeid(a) == typeid(int64_t) ||
+        typeid(a) == typeid(boost::multiprecision::int128_t) ||
+        typeid(a) == typeid(boost::multiprecision::int256_t) ||
+        typeid(a) == typeid(boost::multiprecision::int512_t) ||
+        typeid(a) == typeid(boost::multiprecision::int1024_t)) {
+      if (a > 0 && b > std::numeric_limits<T>::min() - a) {
+        LOG_GENERAL(WARNING, "Subtraction Overflow!");
+        return false;
+      }
+
+      if (a < 0 && b < std::numeric_limits<T>::max() - a) {
+        LOG_GENERAL(WARNING, "Subtraction Underflow!");
+        return false;
+      }
+
+      result = a - b;
+      return true;
+    }
+
+    LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
+    return false;
   }
 
   static bool add(const T& a, const T& b, T& result) {
