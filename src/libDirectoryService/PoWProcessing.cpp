@@ -107,6 +107,7 @@ bool DirectoryService::ProcessPoWPacketSubmission(
     return false;
   }
 
+  LOG_GENERAL(INFO, "PoW solutions received in this packet: " << tmp.size());
   for (auto& sol : tmp) {
     ProcessPoWSubmissionFromPacket(sol);
   }
@@ -311,7 +312,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
                       << DataConversion::charArrToHexStr(
                              m_allPoWs[submitterPubKey].result));
         m_allPoWs[submitterPubKey] = soln;
-      } else {
+      } else if (m_allPoWs[submitterPubKey].result == soln.result) {
         LOG_GENERAL(INFO,
                     "Same pow submission may be received from another packet. "
                     "Ignore it!!")
