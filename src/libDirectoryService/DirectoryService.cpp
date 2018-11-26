@@ -410,6 +410,11 @@ bool DirectoryService::CleanVariables() {
   m_allPoWConns.clear();
   m_mapNodeReputation.clear();
 
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    m_mediator.m_DSCommittee->clear();
+  }
+
   m_stopRecvNewMBSubmission = false;
   m_needCheckMicroBlock = true;
   m_startedRunFinalblockConsensus = false;
@@ -919,6 +924,16 @@ uint8_t DirectoryService::CalculateNewDifficulty(
     for (const auto& shard : m_shards) {
       currentNodes += shard.size();
     }
+  }
+
+  // If the nodes count less than one shard size, then use one shard size
+  // to adjust difficulty, to prevent difficulty continually increase.
+  if (currentNodes < COMM_SIZE) {
+    currentNodes = COMM_SIZE;
+    LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Current nodes number less than shard size, adjust current nodes "
+              "count to "
+                  << currentNodes);
   }
 
   LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),

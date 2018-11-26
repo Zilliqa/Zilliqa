@@ -108,36 +108,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Current dsblock is " << block_num);
 
-  bool isNoSync = false;
-
-  if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
-    m_stillMiningPrimary = true;
-    isNoSync = true;
-
-    auto func = [this]() mutable -> void {
-      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL +
-                                             POW_WINDOW_IN_SECONDS +
-                                             FALLBACK_EXTRA_TIME));
-      if (m_stillMiningPrimary) {
-        if (!GetOfflineLookups()) {
-          LOG_GENERAL(WARNING, "Cannot sync currently");
-          return;
-        }
-
-        if (GetLatestDSBlock()) {
-          LOG_GENERAL(
-              INFO,
-              "New DS Block mined but I'm still mining and didn't receive it,"
-              " rejoin");
-          RejoinAsNormal();
-        } else {
-          LOG_GENERAL(INFO, "Didn't get the latest DSBlock, what to do???");
-        }
-      }
-    };
-
-    DetachedFunction(1, func);
-  }
+  m_stillMiningPrimary = true;
 
   lock_guard<mutex> g(m_mutexGasPrice);
 
@@ -168,12 +139,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
     m_stillMiningPrimary = false;
 
-    if (isNoSync && m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
-      LOG_GENERAL(WARNING,
-                  "It's too late, the node has already started rejoining");
-      return false;
-    }
-
     // Possible scenarios
     // 1. Found solution that meets ds difficulty and difficulty
     // - Submit solution
@@ -196,7 +161,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
           LOG_GENERAL(WARNING, "DS was processed just now, ignore time out");
           return;
         }
-        LOG_GENERAL(WARNING, "Time out while waiting for DS Block");
+
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Time out while waiting for DS Block");
+
         if (GetLatestDSBlock()) {
           LOG_GENERAL(INFO, "DS block created, means I lost PoW");
           if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
