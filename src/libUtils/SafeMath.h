@@ -43,7 +43,7 @@ class SafeMath {
         typeid(a) == typeid(boost::multiprecision::int1024_t)) {
       if ((a == std::numeric_limits<T>::min() && b == (T)-1) ||
           (a == (T)-1 && b == std::numeric_limits<T>::min())) {
-        LOG_GENERAL(WARNING, "Division Overflow!");
+        LOG_GENERAL(WARNING, "Multiplication Overflow!");
         return false;
       }
     }
@@ -178,18 +178,44 @@ class SafeMath {
   }
 
   static bool add(const T& a, const T& b, T& result) {
-    T c = a + b;
+    if (typeid(a) == typeid(uint8_t) || typeid(a) == typeid(uint16_t) ||
+        typeid(a) == typeid(uint32_t) || typeid(a) == typeid(uint64_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint128_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint256_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint512_t) ||
+        typeid(a) == typeid(boost::multiprecision::uint1024_t)) {
+      result = a + b;
 
-    if (a > 0 && b > 0 && (c < a || c < b)) {
-      LOG_GENERAL(WARNING, "Addition Overflow!");
-      return false;
-    } else if (a < 0 && b < 0 && (c > a || c > b)) {
-      LOG_GENERAL(WARNING, "Addition Underflow!");
-      return false;
+      if (result < a) {
+        LOG_GENERAL(WARNING, "Addition Overflow!");
+        return false;
+      }
+
+      return true;
     }
 
-    result = c;
-    return true;
+    if (typeid(a) == typeid(int8_t) || typeid(a) == typeid(int16_t) ||
+        typeid(a) == typeid(int32_t) || typeid(a) == typeid(int64_t) ||
+        typeid(a) == typeid(boost::multiprecision::int128_t) ||
+        typeid(a) == typeid(boost::multiprecision::int256_t) ||
+        typeid(a) == typeid(boost::multiprecision::int512_t) ||
+        typeid(a) == typeid(boost::multiprecision::int1024_t)) {
+      if (a > 0 && b > std::numeric_limits<T>::max() - a) {
+        LOG_GENERAL(WARNING, "Addition Overflow!");
+        return false;
+      }
+
+      if (a < 0 && b < std::numeric_limits<T>::min() - a) {
+        LOG_GENERAL(WARNING, "Addition Underflow!");
+        return false;
+      }
+
+      result = a + b;
+      return true;
+    }
+
+    LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
+    return false;
   }
 };
 
