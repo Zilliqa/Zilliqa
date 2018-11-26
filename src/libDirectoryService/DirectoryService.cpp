@@ -304,7 +304,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
 
     // create and send POW submission packets
     auto func = [this]() mutable -> void {
-      this->CreateAndSendPoWPacketSubmissionToOtherDSComm();
+      this->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
     };
     DetachedFunction(1, func);
 
@@ -600,7 +600,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
 
       // create and send POW submission packets
       auto func = [this]() mutable -> void {
-        this->CreateAndSendPoWPacketSubmissionToOtherDSComm();
+        this->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
       };
       DetachedFunction(1, func);
 
@@ -646,7 +646,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
         // create and send POW submission packets
         LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
         auto func = [this]() mutable -> void {
-          this->CreateAndSendPoWPacketSubmissionToOtherDSComm();
+          this->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
         };
         DetachedFunction(1, func);
       }
