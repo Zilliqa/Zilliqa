@@ -89,6 +89,8 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
     bool wakeupForUpgrade = false;
 
     if (!StartRetrieveHistory(wakeupForUpgrade)) {
+      AddGenesisInfo(SyncType::NO_SYNC);
+      this->Prepare(runInitializeGenesisBlocks);
       return false;
     }
 
@@ -169,15 +171,7 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
   }
 
   if (runInitializeGenesisBlocks) {
-    this->Init();
-    if (syncType == SyncType::NO_SYNC) {
-      m_mediator.m_consensusID = 1;
-      m_consensusLeaderID = 1;
-      addBalanceToGenesisAccount();
-    } else {
-      m_mediator.m_consensusID = 0;
-      m_consensusLeaderID = 0;
-    }
+    AddGenesisInfo(syncType);
   }
 
   this->Prepare(runInitializeGenesisBlocks);
@@ -223,6 +217,20 @@ void Node::Init() {
                                            dsBlock.GetBlockHash());
 }
 
+void Node::AddGenesisInfo(SyncType syncType) {
+  LOG_MARKER();
+
+  this->Init();
+  if (syncType == SyncType::NO_SYNC) {
+    m_mediator.m_consensusID = 1;
+    m_consensusLeaderID = 1;
+    addBalanceToGenesisAccount();
+  } else {
+    m_mediator.m_consensusID = 0;
+    m_consensusLeaderID = 0;
+  }
+}
+
 void Node::Prepare(bool runInitializeGenesisBlocks) {
   LOG_MARKER();
   m_mediator.m_currentEpochNum =
@@ -255,8 +263,6 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 
-  m_retriever.reset(new Retriever(m_mediator));
-
   if (LOOKUP_NODE_MODE) {
     m_mediator.m_DSCommittee->clear();
   }
@@ -280,6 +286,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                           << " seconds for lookup wakeup...");
     this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
   }
+
+  m_retriever = std::make_shared<Retriever>(m_mediator);
 
   /// Retrieve block link
   bool ds_result = m_retriever->RetrieveBlockLink(wakeupForUpgrade);
