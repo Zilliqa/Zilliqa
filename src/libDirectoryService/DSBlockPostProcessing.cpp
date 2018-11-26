@@ -62,7 +62,7 @@ void DirectoryService::StoreDSBlockToStorage() {
           << std::to_string(m_pendingDSBlock->GetHeader().GetDSDifficulty())
           << ", Difficulty: "
           << std::to_string(m_pendingDSBlock->GetHeader().GetDifficulty())
-          << ", Timestamp: " << m_pendingDSBlock->GetHeader().GetTimestamp());
+          << ", Timestamp: " << m_pendingDSBlock->GetTimestamp());
 
   if (result == -1) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -302,8 +302,11 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
-    lastBlockHash = DataConversion::charArrTo16Bits(
-        m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
+    lastBlockHash =
+        DataConversion::charArrTo16Bits(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetHashForRandom()
+                                            .asBytes());
   }
   // Check if I am the oldest backup DS (I will no longer be part of the DS
   // committee)

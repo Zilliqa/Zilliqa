@@ -70,8 +70,6 @@ class TxBlock : public BlockBase {
   /// Constructor with specified Tx block parameters.
   TxBlock(const TxBlockHeader& header,
           const std::vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs);
-  TxBlock(const TxBlockHeader& header,
-          const std::vector<MicroBlockInfo>& mbInfos);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;

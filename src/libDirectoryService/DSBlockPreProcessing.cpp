@@ -782,14 +782,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum,
-                      m_mediator.m_currentEpochNum, GetNewGasPrice(),
-                      get_time_as_int(), m_mediator.m_curSWInfo, powDSWinners,
-                      dsBlockHashSet, committeeHash),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
-    m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
+    m_pendingDSBlock.reset(
+        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  m_mediator.m_currentEpochNum,
+                                  GetNewGasPrice(), m_mediator.m_curSWInfo,
+                                  powDSWinners, dsBlockHashSet, committeeHash),
+                    CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -800,7 +799,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // Create new consensus object
   uint32_t consensusID = 0;
   m_consensusBlockHash =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
 #ifdef VC_TEST_DS_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
@@ -959,6 +958,20 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  // Check timestamp (must be greater than timestamp of last Tx block header in
+  // the Tx blockchain)
+  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
+    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    uint64_t thisDSTimestamp = m_pendingDSBlock->GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
+    if (thisDSTimestamp <= lastTxBlockTimestamp) {
+      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
+                               << lastTxBlockTimestamp
+                               << " DSBlock: " << thisDSTimestamp);
+      return false;
+    }
+  }
+
   // Verify the DSBlockHashSet member of the DSBlockHeader
   ShardingHash shardingHash;
   if (!Messenger::GetShardingStructureHash(m_tempShards, shardingHash)) {
@@ -1097,7 +1110,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   // Dummy values for now
   uint32_t consensusID = 0x0;
   m_consensusBlockHash =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                      vector<unsigned char>& errorMsg,

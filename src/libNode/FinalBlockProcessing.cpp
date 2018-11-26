@@ -79,7 +79,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
                 << txBlock.GetHeader().GetBlockNum()
                 << " with Type: " << to_string(txBlock.GetHeader().GetType())
                 << ", Version: " << txBlock.GetHeader().GetVersion()
-                << ", Timestamp: " << txBlock.GetHeader().GetTimestamp()
+                << ", Timestamp: " << txBlock.GetTimestamp()
                 << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());
 
   // Store Tx Block to disk

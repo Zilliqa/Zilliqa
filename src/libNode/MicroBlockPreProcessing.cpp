@@ -85,7 +85,6 @@ bool Node::ComposeMicroBlock() {
   BlockHash prevHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetMyHash();
 
-  uint64_t timestamp = get_time_as_int();
   TxnHash txRootHash, txReceiptHash;
   uint32_t numTxs = 0;
   const PubKey& minerPubKey = m_mediator.m_selfKey.second;
@@ -136,12 +135,11 @@ bool Node::ComposeMicroBlock() {
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(
           type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
-          m_mediator.m_currentEpochNum, timestamp,
+          m_mediator.m_currentEpochNum,
           {txRootHash, stateDeltaHash, txReceiptHash}, numTxs, minerPubKey,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
           committeeHash),
       tranHashes, CoSignatures()));
-  m_microblock->SetBlockHash(m_microblock->GetHeader().GetMyHash());
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Micro block proposed with "
@@ -906,8 +904,8 @@ bool Node::CheckMicroBlockTimestamp() {
   // the Tx blockchain)
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
     const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t thisMicroblockTimestamp = m_microblock->GetHeader().GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
+    uint64_t thisMicroblockTimestamp = m_microblock->GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
     if (thisMicroblockTimestamp <= lastTxBlockTimestamp) {
       LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
                                << lastTxBlockTimestamp
