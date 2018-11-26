@@ -18,6 +18,7 @@
  */
 
 #include "RumorHolder.h"
+#include "common/Constants.h"
 #include "libUtils/Logger.h"
 
 #include <random>
@@ -180,7 +181,8 @@ std::pair<int, std::vector<Message>> RumorHolder::receivedMessage(
   // If this is the first time 'fromPeer' sent a PUSH/EMPTY_PUSH message in this
   // round then respond with a PULL message for each rumor
   std::vector<Message> pullMessages;
-  if (isNewPeer && (message.type() == Message::Type::LAZY_PUSH ||
+  if (isNewPeer && ((message.type() == Message::Type::LAZY_PUSH &&
+                     SEND_RESPONSE_FOR_LAZY_PUSH) ||
                     message.type() == Message::Type::EMPTY_PUSH)) {
     for (auto& kv : m_rumors) {
       RumorStateMachine& stateMach = kv.second;
