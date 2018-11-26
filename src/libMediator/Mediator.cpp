@@ -137,6 +137,7 @@ void Mediator::HeartBeatLaunch() {
     // accurate)
     const unsigned int heartBeatTimeoutInSeconds =
         NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+        POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
         ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000) *
             NUM_FINAL_BLOCK_PER_POW;
 
@@ -186,7 +187,8 @@ void Mediator::HeartBeatLaunch() {
       {
         unique_lock<mutex> lock(m_lookup->m_mutexDSInfoUpdation);
         if (m_lookup->cv_dsInfoUpdate.wait_for(
-                lock, chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
+                lock, chrono::seconds(POW_WINDOW_IN_SECONDS +
+                                      POWPACKETSUBMISSION_WINDOW_IN_SECONDS)) ==
             std::cv_status::timeout) {
           // If timed out waiting for DSInfo, rejoin as a normal node
           m_node->RejoinAsNormal();
