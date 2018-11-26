@@ -206,7 +206,7 @@ extern const std::string LEGAL_GAS_PRICE_IP;
 extern const unsigned int FALLBACK_TEST_EPOCH;
 #endif  // FALLBACK_TEST
 
-extern const bool TEST_NET_MODE;
+extern const bool GUARD_MODE;
 extern const bool EXCLUDE_PRIV_IP;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool FULL_DATASET_MINE;

@@ -41,7 +41,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/Whitelist.h"
+#include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -94,11 +94,24 @@ void Node::UpdateDSCommiteeComposition(deque<pair<PubKey, Peer>>& dsComm,
                                        const DSBlock& dsblock) {
   LOG_MARKER();
   const map<PubKey, Peer> NewDSMembers = dsblock.GetHeader().GetDSPoWWinners();
+  deque<pair<PubKey, Peer>>::iterator it;
+
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
-      dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
+      if (!GUARD_MODE) {
+        dsComm.emplace_front(m_mediator.m_selfKey.second, Peer());
+      } else {
+        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
+        dsComm.emplace(it, m_mediator.m_selfKey.second, Peer());
+      }
     } else {
-      dsComm.emplace_front(DSPowWinner);
+      if (!GUARD_MODE) {
+        dsComm.emplace_front(DSPowWinner);
+
+      } else {
+        it = dsComm.begin() + (Guard::GetInstance().GetNumOfDSGuard());
+        dsComm.emplace(it, DSPowWinner);
+      }
     }
     dsComm.pop_back();
   }
@@ -583,6 +596,14 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     const map<PubKey, Peer> dsPoWWinners =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
     unsigned int newDSMemberIndex = dsPoWWinners.size() - 1;
+
+    // Under guard mode, first n member of ds comm belongs to DS guard.
+    // As such, new ds committee member should join ds comm at index
+    // newDSMemberIndex + num of ds guard
+    if (GUARD_MODE) {
+      newDSMemberIndex += Guard::GetInstance().GetNumOfDSGuard();
+    }
+
     bool isNewDSMember = false;
 
     for (const auto& newDSMember : dsPoWWinners) {
@@ -602,7 +623,13 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       lastBlockHash = DataConversion::charArrTo16Bits(
           m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
     }
-    m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
+
+    if (!GUARD_MODE) {
+      m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
+    } else {
+      m_mediator.m_ds->m_consensusLeaderID =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+    }
 
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {

@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iterator>
 #include <thread>
 
 #include "DirectoryService.h"
@@ -31,8 +32,8 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/Whitelist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -318,9 +319,27 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][      ] IDLE");
   } else {
-    m_consensusMyID += numOfIncomingDs;
-    m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
-    LOG_GENERAL(INFO, "m_consensusLeaderID " << m_consensusLeaderID);
+    if (!GUARD_MODE) {
+      m_consensusMyID += numOfIncomingDs;
+      m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
+      LOG_GENERAL(INFO, "No DS Guard enabled. m_consensusLeaderID "
+                            << m_consensusLeaderID);
+
+    } else {
+      // DS guards index do not change
+      if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
+        m_consensusMyID += numOfIncomingDs;
+        LOG_GENERAL(INFO,
+                    "Not a DS Guard. m_consensusMyID: " << m_consensusMyID);
+      } else {
+        LOG_GENERAL(INFO, "DS Guard. m_consensusMyID: " << m_consensusMyID);
+      }
+      // Only DS guard can be ds leader
+      m_consensusLeaderID =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      LOG_GENERAL(INFO, "DS Guard enabled. m_consensusLeaderID "
+                            << m_consensusLeaderID);
+    }
 
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
         m_mediator.m_selfKey.second) {
@@ -357,13 +376,28 @@ void DirectoryService::UpdateDSCommiteeComposition() {
 
   const map<PubKey, Peer> NewDSMembers =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSPoWWinners();
+  deque<pair<PubKey, Peer>>::iterator it;
+
   for (const auto& DSPowWinner : NewDSMembers) {
     m_allPoWConns.erase(DSPowWinner.first);
     if (m_mediator.m_selfKey.second == DSPowWinner.first) {
-      m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
-                                              Peer());
+      if (!GUARD_MODE) {
+        m_mediator.m_DSCommittee->emplace_front(m_mediator.m_selfKey.second,
+                                                Peer());
+      } else {
+        it = m_mediator.m_DSCommittee->begin() +
+             (Guard::GetInstance().GetNumOfDSGuard());
+        m_mediator.m_DSCommittee->emplace(it, m_mediator.m_selfKey.second,
+                                          Peer());
+      }
     } else {
-      m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
+      if (!GUARD_MODE) {
+        m_mediator.m_DSCommittee->emplace_front(DSPowWinner);
+      } else {
+        it = m_mediator.m_DSCommittee->begin() +
+             (Guard::GetInstance().GetNumOfDSGuard());
+        m_mediator.m_DSCommittee->emplace(it, DSPowWinner);
+      }
     }
     m_mediator.m_DSCommittee->pop_back();
   }
@@ -440,11 +474,6 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->m_justDidFallback = false;
     m_mediator.m_node->CommitTxnPacketBuffer();
     m_stateDeltaFromShards.clear();
-
-    if (TEST_NET_MODE) {
-      LOG_GENERAL(INFO, "Updating shard whitelist");
-      Whitelist::GetInstance().UpdateShardWhitelist();
-    }
 
     // Start sharding work
     SetState(MICROBLOCK_SUBMISSION);

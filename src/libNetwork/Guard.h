@@ -17,15 +17,8 @@
  * program files.
  */
 
-/*
- * This should only be used in testnet release  only. This is to ensure the
- * stability of testnet.
- * Mainnet will not require this function and nodes will be incentivise to
- * perform the role as member of DS committee.
- */
-
-#ifndef __WHITELIST_H__
-#define __WHITELIST_H__
+#ifndef __GUARD_H__
+#define __GUARD_H__
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -38,21 +31,21 @@
 #include "Peer.h"
 #include "libCrypto/Schnorr.h"
 
-class Whitelist {
-  Whitelist();
-  ~Whitelist();
+class Guard {
+  Guard();
+  ~Guard();
 
   // Singleton should not implement these
-  Whitelist(Whitelist const&) = delete;
-  void operator=(Whitelist const&) = delete;
+  Guard(Guard const&) = delete;
+  void operator=(Guard const&) = delete;
 
-  // DS whitelist
-  std::mutex m_mutexDSWhiteList;
-  std::unordered_map<Peer, PubKey> m_DSWhiteList;
+  // DS guardlist
+  std::mutex m_mutexDSGuardList;
+  std::vector<PubKey> m_DSGuardList;
 
-  // Shard whitelist
-  std::mutex m_mutexShardWhiteList;
-  std::vector<PubKey> m_ShardWhiteList;
+  // Shard guardlist
+  std::mutex m_mutexShardGuardList;
+  std::vector<PubKey> m_ShardGuardList;
 
   // IPFilter
   std::mutex m_mutexIPExclusion;
@@ -61,16 +54,19 @@ class Whitelist {
       m_IPExclusionRange;
 
  public:
-  /// Returns the singleton Whitelist instance.
-  static Whitelist& GetInstance();
-  void UpdateDSWhitelist();
-  void UpdateShardWhitelist();
+  /// Returns the singleton Guard instance.
+  static Guard& GetInstance();
+  void UpdateDSGuardlist();
+  void UpdateShardGuardlist();
 
-  void AddToDSWhitelist(const Peer& whiteListPeer,
-                        const PubKey& whiteListPubKey);
-  bool IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
-                           const PubKey& nodePubKey);
-  bool IsPubkeyInShardWhiteList(const PubKey& nodePubKey);
+  void AddToDSGuardlist(const PubKey& dsGuardPubKey);
+  void AddToShardGuardlist(const PubKey& shardGuardPubKey);
+
+  bool IsNodeInDSGuardList(const PubKey& nodePubKey);
+  bool IsNodeInShardGuardList(const PubKey& nodePubKey);
+
+  unsigned int GetNumOfDSGuard();
+  unsigned int GetNumOfShardGuard();
 
   // To check if IP is a valid v4 IP and not belongs to exclusion list
   bool IsValidIP(const boost::multiprecision::uint128_t& ip_addr);
@@ -83,4 +79,4 @@ class Whitelist {
   void Init();
 };
 
-#endif  // __WHITELIST_H__
+#endif  // __GUARD_H__
