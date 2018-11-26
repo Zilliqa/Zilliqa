@@ -47,9 +47,6 @@ class VCBlock : public BlockBase {
   /// Constructor with specified VC block parameters.
   VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs);
 
-  /// Constructor with specified VC block parameters.
-  VCBlock(const VCBlockHeader& header);
-
   /// Implements the Serialize function inherited from Serializable.
   /// Return size of serialized structure
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;

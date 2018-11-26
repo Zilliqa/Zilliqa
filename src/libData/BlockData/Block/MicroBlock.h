@@ -50,8 +50,6 @@ class MicroBlock : public BlockBase {
   /// Constructor with predefined member values
   MicroBlock(const MicroBlockHeader& header,
              const std::vector<TxnHash>& tranHashes, CoSignatures&& cosigs);
-  MicroBlock(const MicroBlockHeader& header,
-             const std::vector<TxnHash>& tranHashes);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;

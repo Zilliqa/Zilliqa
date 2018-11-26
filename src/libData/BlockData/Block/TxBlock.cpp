@@ -58,11 +58,9 @@ TxBlock::TxBlock(const TxBlockHeader& header,
                  const vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs)
     : m_header(header), m_mbInfos(mbInfos) {
   m_cosigs = move(cosigs);
+  SetTimestamp(get_time_as_int());
+  SetBlockHash(m_header.GetMyHash());
 }
-
-TxBlock::TxBlock(const TxBlockHeader& header,
-                 const vector<MicroBlockInfo>& mbInfos)
-    : m_header(header), m_mbInfos(mbInfos) {}
 
 const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
 

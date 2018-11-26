@@ -67,7 +67,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
           << ", DS PoW Difficulty: "
           << to_string(dsblock.GetHeader().GetDSDifficulty())
           << ", Difficulty: " << to_string(dsblock.GetHeader().GetDifficulty())
-          << ", Timestamp: " << dsblock.GetHeader().GetTimestamp());
+          << ", Timestamp: " << dsblock.GetTimestamp());
 
   // Update the rand1 value for next PoW
   m_mediator.UpdateDSBlockRand();
@@ -448,6 +448,20 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     return false;
   }
 
+  // Check timestamp (must be greater than timestamp of last Tx block header in
+  // the Tx blockchain)
+  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
+    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    uint64_t thisDSTimestamp = dsblock.GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
+    if (thisDSTimestamp <= lastTxBlockTimestamp) {
+      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
+                               << lastTxBlockTimestamp
+                               << " DSBlock: " << thisDSTimestamp);
+      return false;
+    }
+  }
+
   if (shardingHash != dsblock.GetHeader().GetShardingHash()) {
     LOG_GENERAL(WARNING,
                 "Sharding structure hash in newly received DS Block doesn't "
@@ -621,7 +635,10 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     uint16_t lastBlockHash = 0;
     if (m_mediator.m_currentEpochNum > 1) {
       lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
+          m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetHashForRandom()
+              .asBytes());
     }
 
     if (!GUARD_MODE) {

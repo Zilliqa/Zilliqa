@@ -47,7 +47,6 @@ class FallbackBlock : public BlockBase {
 
   /// Constructor with specified fallback block parameters.
   FallbackBlock(const FallbackBlockHeader& header, CoSignatures&& cosigs);
-  FallbackBlock(const FallbackBlockHeader& header);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
