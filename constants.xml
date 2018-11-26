@@ -75,7 +75,7 @@
         <FALLBACK_TEST_EPOCH>2</FALLBACK_TEST_EPOCH>
     </tests>
     <options>
-        <TEST_NET_MODE>false</TEST_NET_MODE>
+        <GUARD_MODE>false</GUARD_MODE>
         <EXCLUDE_PRIV_IP>false</EXCLUDE_PRIV_IP>
         <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
         <FULL_DATASET_MINE>true</FULL_DATASET_MINE>
@@ -176,4 +176,14 @@
             <SCHEDULE_FLAG>4</SCHEDULE_FLAG>
         </cuda>
     </gpu>
+    <ds_guard>
+        <!--Pubkey to be provided in testnet/mainnet.
+       <DSPUBKEY></DSPUBKEY>
+       -->
+    </ds_guard>
+    <shard_guard>
+        <!--Pubkey to be provided in testnet/mainnet.
+       <SHARDPUBKEY></SHARDPUBKEY>
+       -->
+    </shard_guard>
 </node>

@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
@@ -135,7 +136,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   m_publicKeyToshardIdMap.clear();
 
   if (sortedPoWSolns.size() < m_mediator.GetShardSize(false)) {
-    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
+    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size. sortedPoWSolns: "
+                             << sortedPoWSolns.size());
   }
 
   std::set<PubKey> setTopPriorityNodes;
@@ -633,16 +635,66 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
                           << " to avoid going over COMM_SIZE " << COMM_SIZE);
 
     unsigned int count = 0;
-    for (auto kv = PoWOrderSorter.begin();
-         (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
-         kv++, count++) {
-      sortedPoWSolns.emplace_back(*kv);
+    if (!GUARD_MODE) {
+      for (auto kv = PoWOrderSorter.begin();
+           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
+           kv++, count++) {
+        sortedPoWSolns.emplace_back(*kv);
+      }
+    } else {
+      // If total num of shard nodes to be trim, ensure shard guards do not get
+      // trimmed. To do it, a new map  will be created to included all shard
+      // guards and a subset of normal shard nods
+      // Steps:
+      // 1. Maintain a map that called "FilteredPoWOrderSorter". It will
+      // eventually contains Shard guards + subset of normal nodes
+      // 2. Maintain a shadow copy of "PoWOrderSorter" called
+      // "ShadowPoWOrderSorter". It is to track non guards node.
+      // 3. Add shard guards to "FilteredPoWOrderSorter" ands remove it from
+      // "ShadowPoWOrderSorter"
+      // 4. If there are still slots left, obtained remaining normal shard node
+      // from "ShadowPoWOrderSorter". Use it to populate
+      // "FilteredPoWOrderSorter"
+      // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
+      // "PoWOrderSorter"
+
+      // Assign all shard guards first
+      std::map<array<unsigned char, 32>, PubKey> FilteredPoWOrderSorter;
+      std::map<array<unsigned char, 32>, PubKey> ShadowPoWOrderSorter =
+          PoWOrderSorter;
+
+      // Add shard guards to "FilteredPoWOrderSorter"
+      // Remove it from "ShadowPoWOrderSorter"
+      for (auto kv = PoWOrderSorter.begin();
+           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed); kv++) {
+        if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
+          FilteredPoWOrderSorter.emplace(*kv);
+          ShadowPoWOrderSorter.erase(kv->first);
+          count++;
+        }
+      }
+
+      // Assign non shard guards if there is any slots
+      for (auto kv = ShadowPoWOrderSorter.begin();
+           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTrimmed);
+           kv++) {
+        FilteredPoWOrderSorter.emplace(*kv);
+        count++;
+      }
+
+      // Sort "FilteredPoWOrderSorter" and stored it in "sortedPoWSolns"
+      for (auto kv : FilteredPoWOrderSorter) {
+        sortedPoWSolns.emplace_back(kv);
+      }
     }
+
   } else {
     for (const auto& kv : PoWOrderSorter) {
       sortedPoWSolns.emplace_back(kv);
     }
   }
+  LOG_GENERAL(INFO,
+              "Number of solns after trimming is " << sortedPoWSolns.size());
   return sortedPoWSolns;
 }
 

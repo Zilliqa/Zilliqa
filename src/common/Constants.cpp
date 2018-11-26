@@ -223,7 +223,7 @@ const unsigned int FALLBACK_TEST_EPOCH{
 
 // options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
-const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
+const bool GUARD_MODE{ReadFromOptionsFile("GUARD_MODE") == "true"};
 const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
 const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE") ==
                              "true"};

@@ -43,6 +43,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -139,10 +140,23 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   }
 
   lock_guard<mutex> g(m_mutexGasPrice);
-  ethash_mining_result winning_result = POW::GetInstance().PoWMine(
-      block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
-      FULL_DATASET_MINE);
+
+  ethash_mining_result winning_result;
+
+  uint32_t shardGuardDiff = 1;
+  // Only in guard mode that shard guard can submit diffferent PoW
+  if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
+                        m_mediator.m_selfKey.second)) {
+    winning_result = POW::GetInstance().PoWMine(
+        block_num, shardGuardDiff, rand1, rand2,
+        m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
+        lookupId, m_proposedGasPrice, FULL_DATASET_MINE);
+  } else {
+    winning_result = POW::GetInstance().PoWMine(
+        block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
+        m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
+        FULL_DATASET_MINE);
+  }
 
   if (winning_result.success) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -166,7 +180,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
-
     auto checkerThread = [this]() mutable -> void {
       unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
       if (cv_waitDSBlock.wait_for(
@@ -196,8 +209,20 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       }
     };
 
-    if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-            winning_result.result, ds_difficulty)) {
+    // In guard mode, an additional scenario
+    // 1. Shard guard submit pow with diff shardGuardDiff
+    if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
+                          m_mediator.m_selfKey.second)) {
+      if (!SendPoWResultToDSComm(block_num, shardGuardDiff,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 lookupId, m_proposedGasPrice)) {
+        return false;
+      } else {
+        DetachedFunction(1, checkerThread);
+      }
+    } else if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
+                   winning_result.result, ds_difficulty)) {
       LOG_GENERAL(INFO,
                   "Found PoW solution that met requirement for both ds "
                   "commitee and shard.");

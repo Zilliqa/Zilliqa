@@ -31,8 +31,8 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/Whitelist.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -98,13 +98,6 @@ bool DirectoryService::ProcessPoWSubmission(
     return false;
   }
 
-  if (TEST_NET_MODE && not Whitelist::GetInstance().IsNodeInDSWhiteList(
-                           submitterPeer, submitterPubKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Submitted PoW but node is not in DS whitelist. Hence, "
-              "not accepted!");
-  }
-
   // Todo: Reject PoW submissions from existing members of DS committee
 
   if (!CheckState(VERIFYPOW)) {
@@ -116,7 +109,7 @@ bool DirectoryService::ProcessPoWSubmission(
     return true;
   }
 
-  if (!Whitelist::GetInstance().IsValidIP(submitterPeer.m_ipAddress)) {
+  if (!Guard::GetInstance().IsValidIP(submitterPeer.m_ipAddress)) {
     LOG_GENERAL(WARNING,
                 "IP belong to private ip subnet or is a broadcast address");
     return false;
@@ -133,16 +126,19 @@ bool DirectoryService::ProcessPoWSubmission(
                 << DataConversion::SerializableToHexStr(submitterPubKey));
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Winner Peer ip addr           = " << submitterPeer);
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Difficulty                    = " << to_string(difficultyLevel));
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "dsblock_num            = " << blockNumber);
+            "dsblock_num                  = " << blockNumber);
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
+  uint8_t expectedShardGuardDiff = 1;
 
   // Non-genesis block
   if (blockNumber > 1) {
@@ -152,13 +148,26 @@ bool DirectoryService::ProcessPoWSubmission(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
   }
 
-  if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
-    LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
-                             << to_string(difficultyLevel)
-                             << " Expected: " << to_string(expectedDSDiff)
-                             << " or " << to_string(expectedDiff));
-    // TODO: penalise sender in reputation manager
-    return false;
+  if (!GUARD_MODE) {
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
+      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
+                               << to_string(difficultyLevel)
+                               << " Expected: " << to_string(expectedDSDiff)
+                               << " or " << to_string(expectedDiff));
+      // TODO: penalise sender in reputation manager
+      return false;
+    }
+  } else {
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
+        difficultyLevel != expectedShardGuardDiff) {
+      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
+                               << to_string(difficultyLevel)
+                               << " Expected: " << to_string(expectedDSDiff)
+                               << " or " << to_string(expectedDiff) << " or "
+                               << to_string(expectedShardGuardDiff));
+      // TODO: penalise sender in reputation manager
+      return false;
+    }
   }
 
   m_timespec = r_timer_start();

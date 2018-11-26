@@ -17,19 +17,13 @@
  * program files.
  */
 
-/*
- * This should only be used in testnet release  only. This is to ensure the
- * stability of testnet.
- * Mainnet will not require this function and nodes will be incentivise to
- * perform the role as member of DS committee.
- */
-
-#include "Whitelist.h"
+#include "Guard.h"
 
 #include <arpa/inet.h>
 #include <boost/foreach.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -40,25 +34,25 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-Whitelist::Whitelist() {}
+Guard::Guard() {}
 
-Whitelist::~Whitelist() {}
+Guard::~Guard() {}
 
-Whitelist& Whitelist::GetInstance() {
-  static Whitelist whitelistInfo;
-  return whitelistInfo;
+Guard& Guard::GetInstance() {
+  static Guard guardInstance;
+  return guardInstance;
 }
 
-void Whitelist::UpdateDSWhitelist() {
-  if (!TEST_NET_MODE) {
-    LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
+void Guard::UpdateDSGuardlist() {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in Guard mode. DS guard is not available.");
     return;
   }
 
-  ifstream config("ds_whitelist.xml");
+  ifstream config("constants.xml");
 
   if (config.fail()) {
-    LOG_GENERAL(WARNING, "No whitelist xml present");
+    LOG_GENERAL(WARNING, "No constants xml present");
     return;
   }
 
@@ -66,33 +60,30 @@ void Whitelist::UpdateDSWhitelist() {
   ptree pt;
   read_xml(config, pt);
 
-  BOOST_FOREACH (ptree::value_type const& v, pt.get_child("nodes")) {
-    if (v.first == "peer") {
-      PubKey key(DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
-                 0);
-
-      struct in_addr ip_addr;
-      inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
-      Peer peer((uint128_t)ip_addr.s_addr, v.second.get<unsigned int>("port"));
-
-      AddToDSWhitelist(peer, key);
+  for (const ptree::value_type& v : pt.get_child("node.ds_guard")) {
+    if (v.first == "DSPUBKEY") {
+      PubKey pubKey(DataConversion::HexStrToUint8Vec(v.second.data()), 0);
+      AddToDSGuardlist(pubKey);
     }
   }
 
-  LOG_GENERAL(INFO, "Total number of entries in DS whitelist:  "
-                        << m_DSWhiteList.size());
+  {
+    lock_guard<mutex> g(m_mutexDSGuardList);
+    LOG_GENERAL(INFO, "Total number of entries in DS guard list:  "
+                          << m_DSGuardList.size());
+  }
 }
 
-void Whitelist::UpdateShardWhitelist() {
-  if (!TEST_NET_MODE) {
-    LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
+void Guard::UpdateShardGuardlist() {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in guard mode. Guard list is not available.");
     return;
   }
 
-  ifstream config("shard_whitelist.xml");
+  ifstream config("constants.xml");
 
   if (config.fail()) {
-    LOG_GENERAL(WARNING, "No shard_whitelist xml present");
+    LOG_GENERAL(WARNING, "No constants xml present");
     return;
   }
 
@@ -100,62 +91,72 @@ void Whitelist::UpdateShardWhitelist() {
   ptree pt;
   read_xml(config, pt);
 
-  lock_guard<mutex> g(m_mutexShardWhiteList);
-  m_ShardWhiteList.clear();
-
-  for (auto& addr : pt.get_child("address")) {
-    PubKey key(DataConversion::HexStrToUint8Vec(addr.second.data()), 0);
-    m_ShardWhiteList.emplace_back(key);
-    // LOG_GENERAL(INFO, "Added " << key);
+  for (const ptree::value_type& v : pt.get_child("node.shard_guard")) {
+    if (v.first == "SHARDPUBKEY") {
+      PubKey pubKey(DataConversion::HexStrToUint8Vec(v.second.data()), 0);
+      AddToShardGuardlist(pubKey);
+    }
   }
-
-  LOG_GENERAL(INFO, "Total number of entries in shard whitelist:  "
-                        << m_ShardWhiteList.size());
+  {
+    lock_guard<mutex> g(m_mutexShardGuardList);
+    LOG_GENERAL(INFO, "Total number of entries in shard guard list:  "
+                          << m_ShardGuardList.size());
+  }
 }
 
-void Whitelist::AddToDSWhitelist(const Peer& whiteListPeer,
-                                 const PubKey& whiteListPubKey) {
-  if (!TEST_NET_MODE) {
-    // LOG_GENERAL(WARNING, "Not in testnet mode. Whitelisting not allowed");
+void Guard::AddToDSGuardlist(const PubKey& dsGuardPubKey) {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in Guard mode. Guard list is not available.");
     return;
   }
 
-  lock_guard<mutex> g(m_mutexDSWhiteList);
-  m_DSWhiteList.emplace(whiteListPeer, whiteListPubKey);
-  // LOG_GENERAL(INFO, "Added " << whiteListPeer << " " << whiteListPubKey);
+  lock_guard<mutex> g(m_mutexDSGuardList);
+  m_DSGuardList.emplace_back(dsGuardPubKey);
+  // LOG_GENERAL(INFO, "Added " << dsGuardPubKey);
 }
 
-bool Whitelist::IsNodeInDSWhiteList(const Peer& nodeNetworkInfo,
-                                    const PubKey& nodePubKey) {
-  lock_guard<mutex> g(m_mutexDSWhiteList);
-  if (m_DSWhiteList.find(nodeNetworkInfo) == m_DSWhiteList.end()) {
-    LOG_GENERAL(WARNING, "Node not inside whitelist " << nodeNetworkInfo << " "
-                                                      << nodePubKey);
+void Guard::AddToShardGuardlist(const PubKey& shardGuardPubKey) {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in Guard mode. Guard list is not available.");
+    return;
+  }
+
+  lock_guard<mutex> g(m_mutexShardGuardList);
+  m_ShardGuardList.emplace_back(shardGuardPubKey);
+}
+
+bool Guard::IsNodeInDSGuardList(const PubKey& nodePubKey) {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in Guard mode. DS guard is not available.");
     return false;
   }
 
-  if (m_DSWhiteList.at(nodeNetworkInfo) == nodePubKey) {
-    return true;
-  }
-
-  LOG_GENERAL(WARNING, "Node not inside whitelist " << nodeNetworkInfo << " "
-                                                    << nodePubKey);
-  return false;
+  lock_guard<mutex> g(m_mutexDSGuardList);
+  return (std::find(m_DSGuardList.begin(), m_DSGuardList.end(), nodePubKey) !=
+          m_DSGuardList.end());
 }
 
-bool Whitelist::IsPubkeyInShardWhiteList(const PubKey& nodePubKey) {
-  lock_guard<mutex> g(m_mutexShardWhiteList);
-
-  if (std::find(m_ShardWhiteList.begin(), m_ShardWhiteList.end(), nodePubKey) ==
-      m_ShardWhiteList.end()) {
-    LOG_GENERAL(WARNING, "Pubk Not inside whitelist " << nodePubKey);
+bool Guard::IsNodeInShardGuardList(const PubKey& nodePubKey) {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING, "Not in Guard mode. Shard guard is not available.");
     return false;
   }
 
-  return true;
+  lock_guard<mutex> g(m_mutexShardGuardList);
+  return (std::find(m_ShardGuardList.begin(), m_ShardGuardList.end(),
+                    nodePubKey) != m_ShardGuardList.end());
 }
 
-bool Whitelist::IsValidIP(const uint128_t& ip_addr) {
+unsigned int Guard::GetNumOfDSGuard() {
+  lock_guard<mutex> g(m_mutexDSGuardList);
+  return m_DSGuardList.size();
+}
+unsigned int Guard::GetNumOfShardGuard() {
+  lock_guard<mutex> g(m_mutexShardGuardList);
+  return m_ShardGuardList.size();
+}
+
+bool Guard::IsValidIP(const uint128_t& ip_addr) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_addr.s_addr = ip_addr.convert_to<unsigned long>();
   uint32_t ip_addr_c = ntohl(serv_addr.sin_addr.s_addr);
@@ -183,7 +184,7 @@ bool Whitelist::IsValidIP(const uint128_t& ip_addr) {
   return true;
 }
 
-void Whitelist::AddToExclusionList(const string& ft, const string& sd) {
+void Guard::AddToExclusionList(const string& ft, const string& sd) {
   struct sockaddr_in serv_addr1, serv_addr2;
   try {
     inet_aton(ft.c_str(), &serv_addr1.sin_addr);
@@ -196,7 +197,7 @@ void Whitelist::AddToExclusionList(const string& ft, const string& sd) {
   AddToExclusionList(serv_addr1.sin_addr.s_addr, serv_addr2.sin_addr.s_addr);
 }
 
-void Whitelist::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
+void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
   if (ft > (uint32_t)-1 || sd > (uint32_t)-1) {
     LOG_GENERAL(WARNING, "Wrong parameters for IPv4");
     return;
@@ -212,8 +213,13 @@ void Whitelist::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
   }
 }
 
-void Whitelist::Init() {
-  UpdateDSWhitelist();
+void Guard::Init() {
+  if (GUARD_MODE) {
+    UpdateDSGuardlist();
+    UpdateShardGuardlist();
+    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
+  }
+
   if (EXCLUDE_PRIV_IP) {
     LOG_GENERAL(INFO, "Adding Priv IPs to Exclusion List");
     AddToExclusionList("172.16.0.0", "172.31.255.255");
