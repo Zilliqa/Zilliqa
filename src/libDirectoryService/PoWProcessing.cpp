@@ -372,10 +372,6 @@ void DirectoryService::ResetPoWSubmissionCounter() {
     lock_guard<mutex> g(m_mutexAllPoWCounter);
     m_AllPoWCounter.clear();
   }
-  {
-    lock_guard<mutex> g(m_mutexPowSolution);
-    m_powSolutions.clear();
-  }
 }
 
 void DirectoryService::AddDSPoWs(PubKey Pubk, const PoWSolution& DSPOWSoln) {

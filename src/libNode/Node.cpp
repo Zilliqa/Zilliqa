@@ -464,14 +464,17 @@ void Node::WakeupForUpgrade() {
     }
 
     auto func = [this]() mutable -> void {
-      if (m_consensusMyID <= POW_PACKET_SENDERS) {
+      if (m_consensusMyID < POW_PACKET_SENDERS) {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Waiting " << POW_WINDOW_IN_SECONDS
                              << " seconds, accepting PoW submissions...");
         this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
         // create and send POW submission packets
-        m_mediator.m_ds->SendPoWPacketSubmissionToOtherDSComm();
+        auto func = [this]() mutable -> void {
+          m_mediator.m_ds->SendPoWPacketSubmissionToOtherDSComm();
+        };
+        DetachedFunction(1, func);
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Waiting "
