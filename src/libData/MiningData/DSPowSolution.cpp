@@ -19,7 +19,6 @@
 
 #include "DSPowSolution.h"
 #include <algorithm>
-#include "libCrypto/Sha2.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -90,8 +89,10 @@ const boost::multiprecision::uint128_t& DSPowSolution::GetGasPrice() const {
   return m_gasPrice;
 }
 
+/// Returns Signature
 const Signature& DSPowSolution::GetSignature() const { return m_signature; }
 
+/// Sets Signature
 void DSPowSolution::SetSignature(const Signature& signature) {
   m_signature = signature;
 }
