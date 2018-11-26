@@ -215,6 +215,10 @@ const unsigned int PUMPMESSAGE_MILLISECONDS{
 const unsigned int MAXRETRYCONN{ReadFromConstantsFile("MAXRETRYCONN")};
 const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
     ReadFromConstantsFile("SIMULATED_NETWORK_DELAY_IN_MS")};
+const unsigned int POW_PACKET_SENDERS{
+    ReadFromConstantsFile("POW_PACKET_SENDERS")};
+const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("POWPACKETSUBMISSION_WINDOW_IN_SECONDS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
