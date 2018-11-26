@@ -42,7 +42,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool DirectoryService::CreateAndSendPoWPacketSubmissionToOtherDSComm() {
+bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
   LOG_MARKER();
 
   vector<unsigned char> powpacketmessage = {
