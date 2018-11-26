@@ -56,7 +56,6 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
                     genesisBlockNumer, genesisEpochNumer, PRECISION_MIN_VALUE,
                     SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
-  dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;
 }
 
@@ -94,7 +93,6 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
                                 1, 1, BlockHash(), 0, TxBlockHashSet(), 0,
                                 keypair.second, 0, CommitteeHash()),
                   vector<MicroBlockInfo>(), CoSignatures());
-  txBlock.SetBlockHash(txBlock.GetHeader().GetMyHash());
   return txBlock;
 }
 
