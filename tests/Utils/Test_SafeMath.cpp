@@ -33,12 +33,14 @@ BOOST_AUTO_TEST_CASE(test_uint8_t) {
 
   LOG_GENERAL(INFO, "Test uint8_t start...");
 
-  uint8_t num1 = 0x0F, num2 = 0x0B, addRes, subRes1, subRes2;
+  uint8_t num1 = 0x0F, num2 = 0x0B, addRes, subRes1, subRes2, subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<uint8_t>::add(num1, num2, addRes),
                       "Test add failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint8_t>::sub(addRes, num1, subRes1),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint8_t>::sub(addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint8_t>::sub(0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
@@ -75,12 +77,14 @@ BOOST_AUTO_TEST_CASE(test_uint16_t) {
 
   LOG_GENERAL(INFO, "Test uint16_t start...");
 
-  uint16_t num1 = 0x0FFF, num2 = 0x0BBB, addRes, subRes1, subRes2;
+  uint16_t num1 = 0x0FFF, num2 = 0x0BBB, addRes, subRes1, subRes2, subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<uint16_t>::add(num1, num2, addRes),
                       "Test add failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint16_t>::sub(addRes, num1, subRes1),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint16_t>::sub(addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint16_t>::sub(0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
@@ -117,12 +121,15 @@ BOOST_AUTO_TEST_CASE(test_uint32_t) {
 
   LOG_GENERAL(INFO, "Test uint32_t start...");
 
-  uint32_t num1 = 0x0000FFFF, num2 = 0x00000BBB, addRes, subRes1, subRes2;
+  uint32_t num1 = 0x0000FFFF, num2 = 0x00000BBB, addRes, subRes1, subRes2,
+           subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<uint32_t>::add(num1, num2, addRes),
                       "Test add failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint32_t>::sub(addRes, num1, subRes1),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint32_t>::sub(addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint32_t>::sub(0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
@@ -160,12 +167,14 @@ BOOST_AUTO_TEST_CASE(test_uint64_t) {
   LOG_GENERAL(INFO, "Test uint64_t start...");
 
   uint64_t num1 = 0x000FFFFFFFFFFFFF, num2 = 0x00BBBBBBBBBBBBBB, addRes,
-           subRes1, subRes2;
+           subRes1, subRes2, subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<uint64_t>::add(num1, num2, addRes),
                       "Test add failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint64_t>::sub(addRes, num1, subRes1),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<uint64_t>::sub(addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<uint64_t>::sub(0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
@@ -203,7 +212,8 @@ BOOST_AUTO_TEST_CASE(test_boost_uint128_t) {
   LOG_GENERAL(INFO, "Test boost_uint128_t start...");
 
   boost::multiprecision::uint128_t num1("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
-      num2("0x0000000000000000000000000000000B"), addRes, subRes1, subRes2;
+      num2("0x0000000000000000000000000000000B"), addRes, subRes1, subRes2,
+      subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::add(
                                   num1, num2, addRes),
                       "Test add failed!");
@@ -212,6 +222,9 @@ BOOST_AUTO_TEST_CASE(test_boost_uint128_t) {
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint128_t>::sub(
                                   addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint128_t>::sub(
+                                   0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
@@ -259,7 +272,7 @@ BOOST_AUTO_TEST_CASE(test_boost_uint256_t) {
       num2(
           "0x000000000000000000000000000000000000000000000000000000000000000"
           "B"),
-      addRes, subRes1, subRes2;
+      addRes, subRes1, subRes2, subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::add(
                                   num1, num2, addRes),
                       "Test add failed!");
@@ -268,6 +281,9 @@ BOOST_AUTO_TEST_CASE(test_boost_uint256_t) {
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint256_t>::sub(
                                   addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint256_t>::sub(
+                                   0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
@@ -323,7 +339,7 @@ BOOST_AUTO_TEST_CASE(test_boost_uint512_t) {
           "0x000000000000000000000000000000000000000000000000000000000000000"
           "0000000000000000000000000000000000000000000000000000000000000000"
           "B"),
-      addRes, subRes1, subRes2;
+      addRes, subRes1, subRes2, subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint512_t>::add(
                                   num1, num2, addRes),
                       "Test add failed!");
@@ -332,6 +348,9 @@ BOOST_AUTO_TEST_CASE(test_boost_uint512_t) {
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint512_t>::sub(
                                   addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint512_t>::sub(
+                                   0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
@@ -396,7 +415,7 @@ BOOST_AUTO_TEST_CASE(test_boost_uint1024_t) {
           "00000000000000000000000000000000000000000000000000000000000000000"
           "00000000000000000000000000000000000000000000000000000000000000000"
           "00000000000000000000000000000000000000000000000000000000000000B"),
-      addRes, subRes1, subRes2;
+      addRes, subRes1, subRes2, subRes3;
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint1024_t>::add(
                                   num1, num2, addRes),
                       "Test add failed!");
@@ -405,6 +424,9 @@ BOOST_AUTO_TEST_CASE(test_boost_uint1024_t) {
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(true == SafeMath<boost::multiprecision::uint1024_t>::sub(
                                   addRes, num2, subRes2),
+                      "Test sub failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::uint1024_t>::sub(
+                                   0, num2, subRes3),
                       "Test sub failed!");
   BOOST_CHECK_MESSAGE(num1 == subRes2, "Test add/sub failed!");
   BOOST_CHECK_MESSAGE(num2 == subRes1, "Test add/sub failed!");
