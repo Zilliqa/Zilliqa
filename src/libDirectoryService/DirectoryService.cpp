@@ -670,6 +670,15 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     }
 
     RunConsensusOnDSBlock();
+
+    // now that we already run DSBlock Consensus, lets clear the buffered pow
+    // solutions. why not clear it at start of new ds epoch - becoz sometimes
+    // node is too late to start new ds epoch and and it already receives pow
+    // solution for next ds epoch. so we buffer them instead.
+    {
+      lock_guard<mutex> g(m_mutexPowSolution);
+      m_powSolutions.clear();
+    }
   }
 }
 
