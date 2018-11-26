@@ -493,7 +493,19 @@ BOOST_AUTO_TEST_CASE(test_int8_t) {
 
   LOG_GENERAL(INFO, "Test int8_t start...");
 
-  int8_t num1 = std::numeric_limits<int8_t>::min(), num2 = -1;
+  int8_t num1 = std::numeric_limits<int8_t>::max(), num2 = 1, addRes1, addRes2,
+         addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<int8_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::add(num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   int8_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<int8_t>::mul(num1, num2, mulRes1),
                       "Test mul overflow failed!");
@@ -510,7 +522,19 @@ BOOST_AUTO_TEST_CASE(test_int16_t) {
 
   LOG_GENERAL(INFO, "Test int16_t start...");
 
-  int16_t num1 = std::numeric_limits<int16_t>::min(), num2 = -1;
+  int16_t num1 = std::numeric_limits<int16_t>::max(), num2 = 1, addRes1,
+          addRes2, addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::add(num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::add(num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<int16_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::add(num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::add(num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   int16_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<int16_t>::mul(num1, num2, mulRes1),
                       "Test mul overflow failed!");
@@ -527,7 +551,19 @@ BOOST_AUTO_TEST_CASE(test_int32_t) {
 
   LOG_GENERAL(INFO, "Test int32_t start...");
 
-  int32_t num1 = std::numeric_limits<int32_t>::min(), num2 = -1;
+  int32_t num1 = std::numeric_limits<int32_t>::max(), num2 = 1, addRes1,
+          addRes2, addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::add(num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::add(num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<int32_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::add(num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::add(num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   int32_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<int32_t>::mul(num1, num2, mulRes1),
                       "Test mul overflow failed!");
@@ -544,7 +580,19 @@ BOOST_AUTO_TEST_CASE(test_int64_t) {
 
   LOG_GENERAL(INFO, "Test int64_t start...");
 
-  int64_t num1 = std::numeric_limits<int64_t>::min(), num2 = -1;
+  int64_t num1 = std::numeric_limits<int64_t>::max(), num2 = 1, addRes1,
+          addRes2, addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::add(num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::add(num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<int64_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::add(num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::add(num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   int64_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<int64_t>::mul(num1, num2, mulRes1),
                       "Test mul overflow failed!");
@@ -562,8 +610,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int128_t) {
   LOG_GENERAL(INFO, "Test boost_int128_t start...");
 
   boost::multiprecision::int128_t
-      num1 = std::numeric_limits<boost::multiprecision::int128_t>::min(),
-      num2 = -1;
+      num1 = std::numeric_limits<boost::multiprecision::int128_t>::max(),
+      num2 = 1, addRes1, addRes2, addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::add(
+                                   num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::add(
+                                   num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<boost::multiprecision::int128_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::add(
+                                   num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::add(
+                                   num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   boost::multiprecision::int128_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int128_t>::mul(
                                    num1, num2, mulRes1),
@@ -584,8 +647,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int256_t) {
   LOG_GENERAL(INFO, "Test boost_int256_t start...");
 
   boost::multiprecision::int256_t
-      num1 = std::numeric_limits<boost::multiprecision::int256_t>::min(),
-      num2 = -1;
+      num1 = std::numeric_limits<boost::multiprecision::int256_t>::max(),
+      num2 = 1, addRes1, addRes2, addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::add(
+                                   num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::add(
+                                   num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<boost::multiprecision::int256_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::add(
+                                   num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::add(
+                                   num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   boost::multiprecision::int256_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int256_t>::mul(
                                    num1, num2, mulRes1),
@@ -606,8 +684,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int512_t) {
   LOG_GENERAL(INFO, "Test boost_int512_t start...");
 
   boost::multiprecision::int512_t
-      num1 = std::numeric_limits<boost::multiprecision::int512_t>::min(),
-      num2 = -1;
+      num1 = std::numeric_limits<boost::multiprecision::int512_t>::max(),
+      num2 = 1, addRes1, addRes2, addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::add(
+                                   num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::add(
+                                   num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<boost::multiprecision::int512_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::add(
+                                   num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::add(
+                                   num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   boost::multiprecision::int512_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int512_t>::mul(
                                    num1, num2, mulRes1),
@@ -628,8 +721,23 @@ BOOST_AUTO_TEST_CASE(test_boost_int1024_t) {
   LOG_GENERAL(INFO, "Test boost_int1024_t start...");
 
   boost::multiprecision::int1024_t
-      num1 = std::numeric_limits<boost::multiprecision::int1024_t>::min(),
-      num2 = -1;
+      num1 = std::numeric_limits<boost::multiprecision::int1024_t>::max(),
+      num2 = 1, addRes1, addRes2, addRes3, addRes4;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::add(
+                                   num1, num2, addRes1),
+                      "Test add overflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::add(
+                                   num2, num1, addRes2),
+                      "Test add overflow failed!");
+  num1 = std::numeric_limits<boost::multiprecision::int1024_t>::min();
+  num2 = -1;
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::add(
+                                   num1, num2, addRes3),
+                      "Test add underflow failed!");
+  BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::add(
+                                   num2, num1, addRes4),
+                      "Test add underflow failed!");
+
   boost::multiprecision::int1024_t mulRes1, mulRes2, divRes;
   BOOST_CHECK_MESSAGE(false == SafeMath<boost::multiprecision::int1024_t>::mul(
                                    num1, num2, mulRes1),
