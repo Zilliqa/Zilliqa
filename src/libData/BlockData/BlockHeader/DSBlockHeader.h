@@ -74,6 +74,10 @@ class DSBlockHeader : public BlockHeaderBase {
   bool Deserialize(const std::vector<unsigned char>& src,
                    unsigned int offset) override;
 
+  /// Implements the GetHash function for serializing based on concrete vars
+  /// only, primarily used for generating randomness seed
+  BlockHash GetHashForRandom() const;
+
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDSDifficulty() const;
 

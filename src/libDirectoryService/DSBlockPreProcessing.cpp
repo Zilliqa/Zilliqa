@@ -799,7 +799,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // Create new consensus object
   uint32_t consensusID = 0;
   m_consensusBlockHash =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
 #ifdef VC_TEST_DS_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
@@ -1110,7 +1110,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   // Dummy values for now
   uint32_t consensusID = 0x0;
   m_consensusBlockHash =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                      vector<unsigned char>& errorMsg,

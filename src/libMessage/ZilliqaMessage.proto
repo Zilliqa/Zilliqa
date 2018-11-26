@@ -193,13 +193,13 @@ message ProtoDSBlock
     }
     message DSBlockHeader
     {
-        required uint32 dsdifficulty    = 1; // only LSB used
-        required uint32 difficulty      = 2; // only LSB used
+        optional uint32 dsdifficulty    = 1; // only LSB used
+        optional uint32 difficulty      = 2; // only LSB used
         required bytes prevhash         = 3; // 32 bytes
         required ByteArray leaderpubkey = 4;
         required uint64 blocknum        = 5;
         required uint64 epochnum        = 6;
-        required ByteArray gasprice     = 7;
+        optional ByteArray gasprice     = 7;
         required ByteArray swinfo       = 8;
         message PowDSWinners
         {
