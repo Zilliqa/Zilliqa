@@ -70,6 +70,7 @@ DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
 
 Shard GenerateRandomShard(size_t);
 DequeOfShard GenerateDequeueOfShard(size_t);
+std::string GenerateRandomString(size_t);
 }  // namespace TestUtils
 
 #endif  // __TESTUTILS_H__
