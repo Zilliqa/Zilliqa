@@ -157,7 +157,7 @@ extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
 extern const unsigned int FALLBACK_CHECK_INTERVAL;
 extern const unsigned int FALLBACK_EXTRA_TIME;
-extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
+extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MAX_ROUNDS_IN_BSTATE;
 extern const unsigned int MAX_ROUNDS_IN_CSTATE;
