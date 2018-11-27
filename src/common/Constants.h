@@ -220,6 +220,7 @@ extern const bool CUDA_GPU_MINE;
 extern const bool LOOKUP_NODE_MODE;
 extern const bool USE_REMOTE_TXN_CREATOR;
 extern const bool ARCHIVAL_NODE;
+extern const bool ARCHIVAL_LOOKUP;
 extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
 extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;

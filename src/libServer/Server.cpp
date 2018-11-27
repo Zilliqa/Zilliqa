@@ -39,6 +39,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
 #include "libPersistence/BlockStorage.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
 
@@ -73,6 +74,61 @@ Server::~Server() {
 }
 
 string Server::GetNetworkId() { return "TestNet"; }
+
+string Server::GetProtocolVersion() { return "Hello"; }
+
+bool Server::StartCollectorThread() {
+  map<uint32_t, vector<Transaction>> mp;
+
+  if (!m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, 0)) {
+    LOG_GENERAL(WARNING, "GenTxnToSend failed");
+    // return;
+  }
+
+  LOG_GENERAL(INFO, "Size of packet sent " << mp[0].size());
+  for (auto txn : mp[0]) {
+    m_mediator.m_lookup->AddToTxnShardMap(txn, 0);
+  }
+
+  if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(
+        WARNING,
+        "Not expected to be called from node other than LOOKUP ARCHIVAL ");
+    return false;
+  }
+  auto collectorThread = [this]() mutable -> void {
+    while (true) {
+      this_thread::sleep_for(chrono::seconds(5));
+      {
+        lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
+        if (m_mediator.m_lookup->m_txnShardMap.find(0) ==
+            m_mediator.m_lookup->m_txnShardMap.end()) {
+          continue;
+        }
+        vector<unsigned char> msg = {MessageType::LOOKUP,
+                                     LookupInstructionType::FORWARDTXN};
+
+        auto lookupNodes = m_mediator.m_lookup->GetLookupNodes();
+        vector<Peer> toSend;
+        for (uint i = 0; i < 1 && i < lookupNodes.size(); i++) {
+          toSend.push_back(lookupNodes.at(i).second);
+        }
+
+        if (!Messenger::SetTransactionArray(
+                msg, MessageOffset::BODY,
+                m_mediator.m_lookup->m_txnShardMap.at(0))) {
+          LOG_GENERAL(WARNING, "Failed set SetTransactionArray");
+        }
+
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      }
+      m_mediator.m_lookup->DeleteTxnShardMap(0);
+    }
+  };
+  DetachedFunction(1, collectorThread);
+  return true;
+}
+
 
 Json::Value Server::CreateTransaction(const Json::Value& _json) {
   LOG_MARKER();
@@ -113,11 +169,19 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
       unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
       if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
         if (tx.GetData().empty() && tx.GetCode().empty()) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          if (!ARCHIVAL_LOOKUP) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
+          }
           ret["Info"] = "Non-contract txn, sent to shard";
           ret["TranID"] = tx.GetTranID().hex();
         } else if (!tx.GetCode().empty() && tx.GetToAddr() == NullAddress) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          if (!ARCHIVAL_LOOKUP) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
+          }
           ret["Info"] = "Contract Creation txn, sent to shard";
           ret["TranID"] = tx.GetTranID().hex();
           ret["ContractAddress"] =
@@ -144,14 +208,22 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
         unsigned int to_shard =
             Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
         if (to_shard == shard) {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          if (!ARCHIVAL_LOOKUP) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
+          }
           ret["Info"] =
               "Contract Txn, Shards Match of the sender "
               "and reciever";
           ret["TranID"] = tx.GetTranID().hex();
           return ret;
         } else {
-          m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
+          if (!ARCHIVAL_LOOKUP) {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+          } else {
+            m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
+          }
           ret["Info"] = "Contract Txn, Sent To Ds";
           ret["TranID"] = tx.GetTranID().hex();
           return ret;
