@@ -160,7 +160,7 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
     }
 
     /// When non-rejoin mode, call wake-up or recovery
-    if (SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType) {
+    if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType()) {
       if (wakeupForUpgrade) {
         WakeupForUpgrade();
       } else {
@@ -301,7 +301,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes
-  if (!ARCHIVAL_NODE && SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType) {
+  if (!ARCHIVAL_NODE &&
+      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType()) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
@@ -317,7 +318,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
     {
       unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
-      m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
       do {
         m_mediator.m_lookup->GetTxBlockFromLookupNodes(
@@ -328,7 +329,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
 
-      m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
     }
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
@@ -341,7 +342,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum) {
       unique_lock<mutex> lock(
           m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
-      m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
       do {
         m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
@@ -353,14 +354,14 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                    lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
                cv_status::timeout);
 
-      m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
     }
   }
 
   /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply re-join
   /// process instead of node recovery
   if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
-      SyncType::NO_SYNC == m_mediator.m_lookup->m_syncType &&
+      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
            NUM_FINAL_BLOCK_PER_POW ||
        m_mediator.GetIsVacuousEpoch(
@@ -630,7 +631,7 @@ void Node::StartSynchronization() {
       return;
     }
 
-    while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+    while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlocks(
@@ -1013,7 +1014,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return true;
   }
 
-  if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+  if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     LOG_GENERAL(WARNING, "This node already started rejoin, ignore txn packet");
     return false;
   }
@@ -1252,9 +1253,9 @@ void Node::RejoinAsNormal() {
   }
 
   LOG_MARKER();
-  if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
       this->CleanVariables();
       this->Install(SyncType::NORMAL_SYNC);
       this->StartSynchronization();
@@ -1373,7 +1374,7 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
     return false;
   }
 
-  if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+  if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     LOG_GENERAL(WARNING, "Already in rejoining!");
     return false;
   }
@@ -1405,9 +1406,9 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
 }
 
 bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
-  if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+  if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     if (!LOOKUP_NODE_MODE) {
-      if (m_mediator.m_lookup->m_syncType == SyncType::DS_SYNC) {
+      if (m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC) {
         return true;
       }
       if (!m_fromNewProcess) {
