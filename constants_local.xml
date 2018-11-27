@@ -77,7 +77,7 @@
         <FALLBACK_TEST_EPOCH>2</FALLBACK_TEST_EPOCH>
     </tests>
     <options>
-        <GUARD_MODE>true</GUARD_MODE>
+        <GUARD_MODE>false</GUARD_MODE>
         <EXCLUDE_PRIV_IP>false</EXCLUDE_PRIV_IP>
         <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
         <FULL_DATASET_MINE>false</FULL_DATASET_MINE>
