@@ -253,6 +253,8 @@ const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 const bool SEND_RESPONSE_FOR_LAZY_PUSH{
     ReadFromOptionsFile("SEND_RESPONSE_FOR_LAZY_PUSH") == "true"};
 const bool ENABLE_FALLBACK{ReadFromOptionsFile("ENABLE_FALLBACK") == "true"};
+const bool ARCHIVAL_LOOKUP{ReadFromOptionsFile("ARCHIVAL_LOOKUP") == "true"};
+
 
 // gas
 const unsigned int MICROBLOCK_GAS_LIMIT{

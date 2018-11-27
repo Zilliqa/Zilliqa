@@ -71,8 +71,6 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_mutexNodesInNetwork;
   std::vector<Peer> m_nodesInNetwork;
   std::unordered_set<Peer> l_nodesInNetwork;
-  std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
-  std::mutex m_txnShardMapMutex;
 
   // Start PoW variables
   bool m_receivedRaiseStartPoW = false;
@@ -146,6 +144,9 @@ class Lookup : public Executable, public Broadcastable {
 
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
+
+  std::mutex m_txnShardMapMutex;
+  std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
@@ -303,6 +304,8 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessVCGetLatestDSTxBlockFromSeed(
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
+  bool ProcessForwardTxn(const std::vector<unsigned char>& message,
+                         unsigned int offset, const Peer& from);
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
 
