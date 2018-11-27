@@ -215,9 +215,9 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
 
 void Guard::Init() {
   if (GUARD_MODE) {
+    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
     UpdateDSGuardlist();
     UpdateShardGuardlist();
-    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
   }
 
   if (EXCLUDE_PRIV_IP) {
