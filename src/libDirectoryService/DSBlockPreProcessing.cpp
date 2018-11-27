@@ -683,10 +683,6 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       for (auto kv = PoWOrderSorter.begin();
            (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed); kv++) {
         if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
-          FilteredPoWOrderSorter.emplace(*kv);
-          ShadowPoWOrderSorter.erase(kv->first);
-          count++;
-
           if (count == trimmedGuardCount) {
             LOG_GENERAL(
                 INFO,
@@ -694,6 +690,9 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
                     << trimmedGuardCount << " shard guards");
             break;
           }
+          FilteredPoWOrderSorter.emplace(*kv);
+          ShadowPoWOrderSorter.erase(kv->first);
+          count++;
         }
       }
 
@@ -710,14 +709,14 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
         sortedPoWSolns.emplace_back(kv);
       }
     }
-
+    LOG_GENERAL(INFO,
+                "Number of solns after trimming is " << sortedPoWSolns.size());
   } else {
     for (const auto& kv : PoWOrderSorter) {
       sortedPoWSolns.emplace_back(kv);
     }
   }
-  LOG_GENERAL(INFO,
-              "Number of solns after trimming is " << sortedPoWSolns.size());
+
   return sortedPoWSolns;
 }
 
