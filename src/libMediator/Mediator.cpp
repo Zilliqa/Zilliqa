@@ -36,6 +36,7 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
   m_validator = nullptr;
   m_currentEpochNum = 0;
   m_isRetrievedHistory = false;
+  m_isVacuousEpoch = false;
   m_DSCommittee = make_shared<std::deque<pair<PubKey, Peer>>>();
   m_initialDSCommittee = make_shared<vector<PubKey>>();
   m_archDB = nullptr;
