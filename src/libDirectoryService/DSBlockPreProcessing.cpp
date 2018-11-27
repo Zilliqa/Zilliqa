@@ -669,10 +669,6 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
             (numNodesTrimmed - trimmedGuardCount - trimmedNonGuardCount);
       }
 
-      LOG_GENERAL(INFO, "trimmedGuardCount: " << trimmedGuardCount
-                                              << " trimmedNonGuardCount: "
-                                              << trimmedNonGuardCount);
-
       // Assign all shard guards first
       std::map<array<unsigned char, 32>, PubKey> FilteredPoWOrderSorter;
       std::map<array<unsigned char, 32>, PubKey> ShadowPoWOrderSorter =
@@ -708,9 +704,13 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       for (auto kv : FilteredPoWOrderSorter) {
         sortedPoWSolns.emplace_back(kv);
       }
+      LOG_GENERAL(INFO, "trimmedGuardCount: "
+                            << trimmedGuardCount
+                            << " trimmedNonGuardCount: " << trimmedNonGuardCount
+                            << " Total number of accepted soln: "
+                            << sortedPoWSolns.size());
     }
-    LOG_GENERAL(INFO,
-                "Number of solns after trimming is " << sortedPoWSolns.size());
+
   } else {
     for (const auto& kv : PoWOrderSorter) {
       sortedPoWSolns.emplace_back(kv);
