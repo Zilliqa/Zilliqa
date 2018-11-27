@@ -618,9 +618,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
   if (!_json.isMember("_accepted")) {
-    LOG_GENERAL(
-        WARNING,
-        "The json output of this contract doesn't contain _accepted");
+    LOG_GENERAL(WARNING,
+                "The json output of this contract doesn't contain _accepted");
     return false;
   }
 
