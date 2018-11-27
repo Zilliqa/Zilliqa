@@ -658,6 +658,21 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
       // "PoWOrderSorter"
 
+      unsigned int trimmedGuardCount = numNodesTrimmed - (numNodesTrimmed / 3);
+      unsigned int trimmedNonGuardCount = numNodesTrimmed - trimmedGuardCount;
+
+      if (trimmedGuardCount + trimmedNonGuardCount < numNodesTrimmed) {
+        LOG_GENERAL(WARNING,
+                    "Network has less than 1/3 non shard guard node. Filling "
+                    "it with guard nodes");
+        trimmedGuardCount +=
+            (numNodesTrimmed - trimmedGuardCount - trimmedNonGuardCount);
+      }
+
+      LOG_GENERAL(INFO, "trimmedGuardCount: " << trimmedGuardCount
+                                              << " trimmedNonGuardCount: "
+                                              << trimmedNonGuardCount);
+
       // Assign all shard guards first
       std::map<array<unsigned char, 32>, PubKey> FilteredPoWOrderSorter;
       std::map<array<unsigned char, 32>, PubKey> ShadowPoWOrderSorter =
@@ -671,6 +686,14 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
           FilteredPoWOrderSorter.emplace(*kv);
           ShadowPoWOrderSorter.erase(kv->first);
           count++;
+
+          if (count == trimmedGuardCount) {
+            LOG_GENERAL(
+                INFO,
+                "Did not manage to form max number of shard. Only allowed "
+                    << trimmedGuardCount << " shard guards");
+            break;
+          }
         }
       }
 
