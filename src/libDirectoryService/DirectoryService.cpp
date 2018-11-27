@@ -817,33 +817,20 @@ uint8_t DirectoryService::CalculateNewDifficulty(
     const uint8_t& currentDifficulty) {
   constexpr unsigned int MAX_ADJUST_THRESHOLD = 99;
 
-  int64_t currentNodes = 0, powSubmissions = 0;
+  int64_t powSubmissions = 0;
   {
     lock_guard<mutex> g(m_mutexAllPOW);
     powSubmissions = m_allPoWs.size();
-
-    for (const auto& shard : m_shards) {
-      currentNodes += shard.size();
-    }
-  }
-
-  // If the nodes count less than one shard size, then use one shard size
-  // to adjust difficulty, to prevent difficulty continually increase.
-  if (currentNodes < COMM_SIZE) {
-    currentNodes = COMM_SIZE;
-    LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Current nodes number less than shard size, adjust current nodes "
-              "count to "
-                  << currentNodes);
   }
 
   LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-            "currentDifficulty " << std::to_string(currentDifficulty)
-                                 << ", currentNodes " << currentNodes
-                                 << ", powSubmissions " << powSubmissions);
+            "currentDifficulty "
+                << std::to_string(currentDifficulty) << ", expectedNodes "
+                << EXPECTED_SHARD_NODE_NUM << ", powSubmissions "
+                << powSubmissions);
   return CalculateNewDifficultyCore(
-      currentDifficulty, POW_DIFFICULTY, currentNodes, powSubmissions,
-      NUM_NODE_INCR_DIFFICULTY, MAX_ADJUST_THRESHOLD,
+      currentDifficulty, POW_DIFFICULTY, powSubmissions,
+      EXPECTED_SHARD_NODE_NUM, MAX_ADJUST_THRESHOLD,
       m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
 }
 
@@ -860,23 +847,23 @@ uint8_t DirectoryService::CalculateNewDSDifficulty(
                             << ", dsPowSubmissions " << dsPowSubmissions);
 
   return CalculateNewDifficultyCore(
-      dsDifficulty, DS_POW_DIFFICULTY, currentDSNodes, dsPowSubmissions,
-      currentDSNodes, MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
+      dsDifficulty, DS_POW_DIFFICULTY, dsPowSubmissions, currentDSNodes,
+      MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
       CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDifficultyCore(
-    uint8_t currentDifficulty, uint8_t minDifficulty, int64_t currentNodes,
-    int64_t powSubmissions, int64_t expectedNodes, uint32_t maxAdjustThreshold,
-    int64_t currentEpochNum, int64_t numBlockPerYear) {
+    uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
+    int64_t expectedNodes, uint32_t maxAdjustThreshold, int64_t currentEpochNum,
+    int64_t numBlockPerYear) {
   constexpr int8_t MAX_ADJUST_STEP = 2;
   constexpr float ONE_HUNDRED_PERCENT = 100.f;
   constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
 
   int64_t adjustment = 0;
-  if (currentNodes > 0 && currentNodes != powSubmissions) {
+  if (expectedNodes > 0 && expectedNodes != powSubmissions) {
     int64_t submissionsDiff;
-    if (!SafeMath<int64_t>::sub(powSubmissions, currentNodes,
+    if (!SafeMath<int64_t>::sub(powSubmissions, expectedNodes,
                                 submissionsDiff)) {
       LOG_GENERAL(WARNING, "Calculate PoW submission difference goes wrong");
       submissionsDiff = 0;
@@ -884,27 +871,14 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
 
     // To make the adjustment work on small network.
     int64_t adjustThreshold = std::ceil(
-        currentNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF / ONE_HUNDRED_PERCENT);
+        expectedNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF / ONE_HUNDRED_PERCENT);
     if (adjustThreshold > maxAdjustThreshold) {
       adjustThreshold = maxAdjustThreshold;
     }
 
-    // If the PoW submissions change not so big, then adjust according to the
-    // expected whole network node number.
-    if (abs(submissionsDiff) < adjustThreshold) {
-      // If the PoW submissions exceeded the expected whole network node number,
-      // then increase the difficulty.
-      if (submissionsDiff > 0 && currentNodes > expectedNodes) {
-        adjustment = 1;
-      } else if (submissionsDiff < 0 && currentNodes < expectedNodes) {
-        adjustment = -1;
-      }
-    } else {
-      if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold,
-                                  adjustment)) {
-        LOG_GENERAL(WARNING, "Calculate difficulty adjustment goes wrong");
-        adjustment = 0;
-      }
+    if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold, adjustment)) {
+      LOG_GENERAL(WARNING, "Calculate difficulty adjustment goes wrong");
+      adjustment = 0;
     }
   }
 

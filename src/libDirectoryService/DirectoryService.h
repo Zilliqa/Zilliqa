@@ -586,10 +586,9 @@ class DirectoryService : public Executable, public Broadcastable {
   void StartNewDSEpochConsensus(bool fromFallback = false);
 
   static uint8_t CalculateNewDifficultyCore(
-      uint8_t currentDifficulty, uint8_t minDifficulty, int64_t currentNodes,
-      int64_t powSubmissions, int64_t expectedNodes,
-      uint32_t maxAdjustThreshold, int64_t currentEpochNum,
-      int64_t numBlockPerYear);
+      uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
+      int64_t expectedNodes, uint32_t maxAdjustThreshold,
+      int64_t currentEpochNum, int64_t numBlockPerYear);
 
   /// Calculate node priority to determine which node has the priority to join
   /// the network.
