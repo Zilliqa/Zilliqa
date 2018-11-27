@@ -670,6 +670,8 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
 }
 
 // POW difficulty adjustment test & print function
+// Enable to print POW difficulty tables
+#if 0
 void printPOWchart(char* filename, uint8_t currentDifficulty,
                    uint32_t adjustThreshold, int64_t startNumOfNodes,
                    int64_t endNumOfNodes, int numNodeIncrement) {
@@ -724,14 +726,13 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
   sprintf(filename, "diffAdjustmentTest99200.csv");
   printPOWchart(filename, 200, 99, 100, 10000, 100);
 }
-
-#if 0
+#endif
 
 // Test of Full DAG creation with the minimal ethash.h API.
 // Commented out since travis tests would take too much time.
 // Uncomment and run on your own machine if you want to confirm
 // it works fine.
-
+#if 0
 static int progress_cb(unsigned _progress)
 {
     printf("CREATING DAG. PROGRESS: %u\n", _progress);
