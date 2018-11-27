@@ -430,6 +430,8 @@ void Node::UpdateProcessedTransactions() {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
     m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
     m_createdTxns = std::move(t_createdTxns);
+    t_addrNonceTxnMap.clear();
+    t_createdTxns.clear();
   }
 
   {
@@ -441,21 +443,17 @@ void Node::UpdateProcessedTransactions() {
                                       .GetHeader()
                                       .GetBlockNum()] =
         std::move(t_processedTransactions);
+    t_processedTransactions.clear();
   }
-
-  t_addrNonceTxnMap.clear();
-  t_createdTxns.clear();
-  t_processedTransactions.clear();
 }
 
 bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   LOG_MARKER();
 
-  {
-    lock_guard<mutex> g(m_mutexCreatedTransactions);
-    t_createdTxns = m_createdTxns;
-    t_addrNonceTxnMap = m_addrNonceTxnMap;
-  }
+  lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+  t_createdTxns = m_createdTxns;
+  t_addrNonceTxnMap = m_addrNonceTxnMap;
   vector<TxnHash> t_tranHashes;
   t_processedTransactions.clear();
 
