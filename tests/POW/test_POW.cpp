@@ -675,20 +675,20 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
 void printPOWchart(char* filename, uint8_t currentDifficulty,
                    uint32_t adjustThreshold, int64_t startNumOfNodes,
                    int64_t endNumOfNodes, int numNodeIncrement) {
-  uint8_t minDifficulty = 5;
-  int64_t startNumberOfNodes = 100;
-  int64_t powSubmissions = 100;
+  uint8_t minDifficulty = 0;
+  int64_t powSubmissions = 0;
   int64_t currentEpochNum = 200;
   int64_t numBlocksPerYear = 1971000;
   uint8_t newDifficulty = currentDifficulty;
-  int64_t expectedNodes = startNumberOfNodes;
+  int64_t expectedNodes = startNumOfNodes;
 
   FILE* pFile;
   pFile = fopen(filename, "w");
   char buffer[128] = {0};
 
   if (pFile != NULL) {
-    sprintf(buffer, " NumOfNodes: , Diff: ,\n");
+    sprintf(buffer,
+            "NumOfNodes:,\n");
     fputs(buffer, pFile);
   } else {
     return;
@@ -716,15 +716,15 @@ void printPOWchart(char* filename, uint8_t currentDifficulty,
 
 BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
   char filename[128] = {0};
-  ;
   sprintf(filename, "diffAdjustmentTest9.csv");
-  printPOWchart(filename, 10, 9, 10, 600, 10);
+  printPOWchart(filename, 10, 9, 50, 600, 10);
   sprintf(filename, "diffAdjustmentTest99.csv");
   printPOWchart(filename, 10, 99, 100, 10000, 100);
-  sprintf(filename, "diffAdjustmentTest9200.csv");
-  printPOWchart(filename, 200, 9, 10, 600, 10);
-  sprintf(filename, "diffAdjustmentTest99200.csv");
-  printPOWchart(filename, 200, 99, 100, 10000, 100);
+  // Test with current difficulty 200 instead of 10 gives the same distribution
+  // chart sprintf(filename, "diffAdjustmentTest9200.csv");
+  // printPOWchart(filename, 200, 9, 10, 600, 10);
+  // sprintf(filename, "diffAdjustmentTest99200.csv");
+  // printPOWchart(filename, 200, 99, 100, 10000, 100);
 }
 #endif
 
