@@ -1451,7 +1451,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     unsigned int i = 0;
     for (auto& ds : *m_mediator.m_DSCommittee) {
-      if (m_syncType == SyncType::DS_SYNC &&
+      if (GetSyncType() == SyncType::DS_SYNC &&
           ds.second == m_mediator.m_selfPeer) {
         ds.second = Peer();
       }
@@ -1865,7 +1865,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                                       .GetHeader()
                                       .GetBlockNum()) {
         m_isFirstLoop = true;
-        m_syncType = SyncType::NO_SYNC;
+        SetSyncType(SyncType::NO_SYNC);
         m_mediator.m_ds->FinishRejoinAsDS();
       }
       m_currDSExpired = false;
@@ -1874,7 +1874,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     // rsync the txbodies here
     if (RsyncTxBodies() && !m_currDSExpired) {
       if (FinishRejoinAsLookup()) {
-        m_syncType = SyncType::NO_SYNC;
+        SetSyncType(SyncType::NO_SYNC);
       }
     }
     m_currDSExpired = false;
@@ -2083,7 +2083,7 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
       POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
       2 * NEW_NODE_SYNC_INTERVAL + (TX_DISTRIBUTE_TIME_IN_MS / 1000)));
   m_startedPoW = false;
-  if (m_syncType != SyncType::NO_SYNC) {
+  if (GetSyncType() != SyncType::NO_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Not yet connected to network");
     m_mediator.m_node->SetState(Node::SYNC);
@@ -2432,7 +2432,7 @@ bool Lookup::ProcessSetStartPoWFromSeed(
                                     .GetHeader()
                                     .GetBlockNum()) {
       m_isFirstLoop = true;
-      m_syncType = SyncType::NO_SYNC;
+      SetSyncType(SyncType::NO_SYNC);
       m_mediator.m_ds->FinishRejoinAsDS();
     }
 
@@ -2457,7 +2457,7 @@ void Lookup::StartSynchronization() {
   auto func = [this]() -> void {
     GetMyLookupOffline();
     GetDSInfoFromLookupNodes();
-    while (m_syncType != SyncType::NO_SYNC) {
+    while (GetSyncType() != SyncType::NO_SYNC) {
       GetDSBlockFromLookupNodes(m_mediator.m_dsBlockChain.GetBlockCount(), 0);
       GetTxBlockFromLookupNodes(m_mediator.m_txBlockChain.GetBlockCount(), 0);
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
@@ -2680,7 +2680,7 @@ void Lookup::RejoinAsLookup() {
   LOG_MARKER();
   if (m_syncType == SyncType::NO_SYNC) {
     auto func = [this]() mutable -> void {
-      m_syncType = SyncType::LOOKUP_SYNC;
+      SetSyncType(SyncType::LOOKUP_SYNC);
       AccountStore::GetInstance().InitSoft();
       m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
       this->StartSynchronization();
@@ -3270,4 +3270,10 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
   Peer requestingNode(from.m_ipAddress, listenPort);
   P2PComm::GetInstance().SendMessage(requestingNode, dsTxBlocksMessage);
   return true;
+}
+
+void Lookup::SetSyncType(SyncType syncType) {
+  m_syncType = syncType;
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Set sync type to " << syncType);
 }

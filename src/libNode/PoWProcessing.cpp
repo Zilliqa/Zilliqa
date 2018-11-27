@@ -165,9 +165,11 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Time out while waiting for DS Block");
 
+        POW::GetInstance().StopMining();
+
         if (GetLatestDSBlock()) {
           LOG_GENERAL(INFO, "DS block created, means I lost PoW");
-          if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
+          if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
             // exciplitly declare in the same thread
             m_mediator.m_lookup->m_startedPoW = false;
           }
