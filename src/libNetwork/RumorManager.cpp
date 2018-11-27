@@ -45,7 +45,6 @@ RumorManager::RumorManager()
       m_peerIdSet(),
       m_rumorIdHashBimap(),
       m_rumorHashRawMsgBimap(),
-      m_tmpRumorHashSet(),
       m_selfPeer(),
       m_rumorIdGenerator(0),
       m_mutex(),
@@ -134,7 +133,6 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   m_rumorIdHashBimap.clear();
   m_peerIdSet.clear();
   m_selfPeer = myself;
-  m_tmpRumorHashSet.clear();
   m_rumorHashRawMsgBimap.clear();
 
   int peerIdGenerator = 0;
@@ -158,6 +156,16 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   return true;
 }
 
+void RumorManager::SpreadBufferedRumors() {
+  std::lock_guard<std::mutex> guard(m_continueRoundMutex);
+  if (m_continueRound) {
+    for (auto& i : m_bufferRawMsg) {
+      AddRumor(i);
+    }
+    m_bufferRawMsg.clear();
+  }
+}
+
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
   if (message.size() > 0) {
@@ -165,13 +173,16 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
 
     {
       std::lock_guard<std::mutex> guard(m_continueRoundMutex);
-      if (!m_continueRound) {  // Seems logical error. Round should have
-                               // started.
+      if (!m_continueRound) {
         LOG_GENERAL(WARNING,
-                    "Round is not running. So won't initiate the rumor. MyIP:"
+                    "Round is not running. So won't initiate the rumor. "
+                    "Instead will buffer it. MyIP:"
                         << m_selfPeer << ". [Gossip_Message_Hash: "
                         << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
                         << " ]");
+
+        m_bufferRawMsg.push_back(message);
+        return false;
       }
     }
 
@@ -276,37 +287,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
-      if (message.size() >
-          0)  // if we receive EMPTY_PULL/EMPTY_PUSH SHA will assert fail
-      {
-        std::string hash =
-            DataConversion::Uint8VecToHexStr(HashUtils::BytesToHash(message));
-        {
-          std::lock_guard<std::mutex> guard(m_mutex);
-          // Is it old rumor message. If so then we have already dispatched it.
-          // Don't do it again.
-          auto it = m_rumorIdHashBimap.right.find(message);
-          if (it == m_rumorIdHashBimap.right.end()) {
-            // Now that round is not running , And i may receive same message
-            // multiple times from my other peers. So avoid sending it to
-            // dispatcher multiple times.
-            if (m_tmpRumorHashSet.insert(hash).second) {
-              LOG_GENERAL(
-                  WARNING,
-                  "Round is not running. Will accept the msg received from "
-                      << from
-                      << ", but will not "
-                         "gossip it further. [Gossip_Message_Hash: "
-                      << hash.substr(0, 6) << " ]");
-              return true;
-            } else {
-              LOG_GENERAL(WARNING,
-                          "Ignoring duplicate mesage.[Gossip_Message_Hash: "
-                              << hash.substr(0, 6));
-            }
-          }
-        }
-      }
+      LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
       return false;
     }
   }

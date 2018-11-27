@@ -558,19 +558,6 @@ void DirectoryService::StartFirstTxEpoch() {
     // Process txn sharing assignments as a shard node
     m_mediator.m_node->LoadTxnSharingInfo();
 
-    if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
-        if (i.second != Peer()) {
-          peers.emplace_back(i.second);
-        }
-      }
-
-      // Set the peerlist for RumorSpreading protocol since am no more DS
-      // member. I am now shard member.
-      P2PComm::GetInstance().InitializeRumorManager(peers);
-    }
-
     // Finally, start as a shard node
     m_mediator.m_node->StartFirstTxEpoch();
   }
