@@ -95,10 +95,10 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
-  unsigned int correct_shard_from =
-      Transaction::GetShardIndex(fromAddr, numShards);
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
+    unsigned int correct_shard_from =
+        Transaction::GetShardIndex(fromAddr, numShards);
     if (correct_shard_from != shardId) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "This tx is not sharded to me!"
