@@ -669,48 +669,60 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
   BOOST_REQUIRE(newDifficulty == 15);
 }
 
-BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
-  uint8_t currentDifficulty = 10;
+// POW difficulty adjustment test & print function
+void printPOWchart(char* filename, uint8_t currentDifficulty,
+                   uint32_t adjustThreshold, int64_t startNumOfNodes,
+                   int64_t endNumOfNodes, int numNodeIncrement) {
   uint8_t minDifficulty = 5;
   int64_t startNumberOfNodes = 100;
   int64_t powSubmissions = 100;
-  int64_t expectedNodes = startNumberOfNodes;
-  uint32_t adjustThreshold = 99;
   int64_t currentEpochNum = 200;
   int64_t numBlocksPerYear = 1971000;
-  int newDifficulty = 0;
+  uint8_t newDifficulty = currentDifficulty;
+  int64_t expectedNodes = startNumberOfNodes;
 
   FILE* pFile;
-  pFile = fopen("diffAdjustmentTest.csv", "w");
+  pFile = fopen(filename, "w");
   char buffer[128] = {0};
 
   if (pFile != NULL) {
     sprintf(buffer, " NumOfNodes: , Diff: ,\n");
     fputs(buffer, pFile);
+  } else {
+    return;
   }
-  for (int64_t currentNodes = startNumberOfNodes; currentNodes <= 100000;
-       currentNodes += 100) {
+  for (int64_t currentNodes = startNumOfNodes; currentNodes <= endNumOfNodes;
+       currentNodes += numNodeIncrement) {
     expectedNodes = currentNodes;
+    sprintf(buffer, "%ld,", currentNodes);
+    fputs(buffer, pFile);
 
-    if (pFile != NULL) {
-      sprintf(buffer, "%ld,", currentNodes);
-      fputs(buffer, pFile);
-    }
-    for (double percentage = -20; percentage <= 20; percentage++) {
+    for (double percentage = -50; percentage <= 50; percentage++) {
       powSubmissions = (currentNodes * ((100 + percentage) / 100));
       newDifficulty = DirectoryService::CalculateNewDifficultyCore(
           currentDifficulty, minDifficulty, currentNodes, powSubmissions,
           expectedNodes, adjustThreshold, currentEpochNum, numBlocksPerYear);
 
-      if (pFile != NULL) {
-        sprintf(buffer, "%d,", newDifficulty);
-        fputs(buffer, pFile);
-      }
+      sprintf(buffer, "%d,", newDifficulty);
+      fputs(buffer, pFile);
     }
     sprintf(buffer, "\n");
     fputs(buffer, pFile);
   }
   fclose(pFile);
+}
+
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_range_test) {
+  char filename[128] = {0};
+  ;
+  sprintf(filename, "diffAdjustmentTest9.csv");
+  printPOWchart(filename, 10, 9, 10, 600, 10);
+  sprintf(filename, "diffAdjustmentTest99.csv");
+  printPOWchart(filename, 10, 99, 100, 10000, 100);
+  sprintf(filename, "diffAdjustmentTest9200.csv");
+  printPOWchart(filename, 200, 9, 10, 600, 10);
+  sprintf(filename, "diffAdjustmentTest99200.csv");
+  printPOWchart(filename, 200, 99, 100, 10000, 100);
 }
 
 #if 0
