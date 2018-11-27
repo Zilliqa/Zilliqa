@@ -3153,7 +3153,11 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
       }
 
-      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      if (BROADCAST_GOSSIP_MODE) {
+        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
+      } else {
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      }
 
       DeleteTxnShardMap(i);
     } else if (i == numShards) {
@@ -3169,7 +3173,11 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
       }
 
-      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      if (BROADCAST_GOSSIP_MODE) {
+        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
+      } else {
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      }
 
       LOG_GENERAL(INFO, "[DSMB]"
                             << " Sent DS the txns");
