@@ -24,7 +24,6 @@
 #include <boost/test/unit_test.hpp>
 #include "libData/AccountData/LogEntry.h"
 
-
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
@@ -37,20 +36,28 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   Address addr;
   Json::Value jv;
   Json::Reader reader;
+  Json::FastWriter fastWriter;
+  std::string RET;
 
-  le.Install(jv, addr);
+  BOOST_CHECK_EQUAL(false, le.Install(jv, addr));
+  Json::Value jv_ret = le.GetJsonObject();
+  RET = fastWriter.write(jv_ret);
 
-  std::string jv_s = "{ \"_eventname\": \"invalid params\", \"params\": [{\"vname\": 1, \"type\":2, \"value\":3}, {\"type\":2, \"value\":3}]}";
+  BOOST_CHECK_EQUAL(true, RET.compare("null"));
+
+  std::string jv_s =
+      "{ \"_eventname\": \"invalid params\", \"params\": [{\"vname\": 1, "
+      "\"type\":2, \"value\":3}, {\"type\":2, \"value\":3}]}";
   reader.parse(jv_s, jv);
-  le.Install(jv, addr);
+  BOOST_CHECK_EQUAL(false, le.Install(jv, addr));
 
-  jv_s = "{ \"_eventname\": \"valid params\", \"params\": [{\"vname\": 1, \"type\":2, \"value\":3}, {\"vname\": 1, \"type\":2, \"value\":3}]}";
+  jv_s =
+      "{ \"_eventname\": \"valid params\", \"params\": [{\"vname\": 1, "
+      "\"type\":2, \"value\":3}, {\"vname\": 1, \"type\":2, \"value\":3}]}";
   reader.parse(jv_s, jv);
-  le.Install(jv, addr);
+  BOOST_CHECK_EQUAL(true, le.Install(jv, addr));
 
   LOG_MARKER();
-
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
