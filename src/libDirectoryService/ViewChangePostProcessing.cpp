@@ -49,6 +49,8 @@ bool DirectoryService::ComposeVCBlockForSender(
     return true;
   }
 
+  LOG_MARKER();
+
   vcblock_message.clear();
 
   vcblock_message = {MessageType::NODE, NodeInstructionType::VCBLOCK};
