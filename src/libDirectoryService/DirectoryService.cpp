@@ -75,7 +75,7 @@ void DirectoryService::StartSynchronization() {
   }
 
   auto func = [this]() -> void {
-    while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+    while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlocks(
@@ -466,10 +466,10 @@ void DirectoryService::RejoinAsDS() {
   }
 
   LOG_MARKER();
-  if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC &&
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
       m_mode == BACKUP_DS) {
     auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
       m_mediator.m_node->CleanVariables();
       m_mediator.m_node->Install(SyncType::DS_SYNC, true);
       this->StartSynchronization();
@@ -820,7 +820,7 @@ void DirectoryService::SendBlockToShardNodes(
 }
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
-  return m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC;
+  return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
