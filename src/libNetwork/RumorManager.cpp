@@ -158,7 +158,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
 void RumorManager::SpreadBufferedRumors() {
   LOG_MARKER();
   if (m_continueRound) {
-    for (auto& i : m_bufferRawMsg) {
+    for (const auto& i : m_bufferRawMsg) {
       AddRumor(i);
     }
     m_bufferRawMsg.clear();
