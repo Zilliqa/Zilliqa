@@ -302,7 +302,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   /// Retrieve lacked Tx blocks from lookup nodes
   if (!ARCHIVAL_NODE &&
-      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType()) {
+      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
+      !(LOOKUP_NODE_MODE && wakeupForUpgrade)) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
@@ -333,7 +334,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
-      LOG_GENERAL(INFO,
+      LOG_GENERAL(WARNING,
                   "Node recovery too late, apply re-join process instead");
       return false;
     }
@@ -367,7 +368,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
        m_mediator.GetIsVacuousEpoch(
            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
            1))) {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(WARNING,
                 "Node recovery with vacuous epoch or too early, apply "
                 "re-join process instead");
     return false;
@@ -1025,33 +1026,18 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
-  // Broadcast to other shard node
-  vector<Peer> toSend;
-  for (auto& it : *m_myShardMembers) {
-    toSend.push_back(it.second);
-  }
-  LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
-  if (BROADCAST_GOSSIP_MODE) {
-    if (P2PComm::GetInstance().SpreadRumor(message)) {
-      LOG_STATE("[TXNPKTPROC-INITIATE]["
-                << message.size() << "]" << std::setw(15) << std::left
-                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                << m_mediator.m_txBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum() +
-                       1
-                << "][" << shardId << "] BEGN");
-    } else {
-      LOG_STATE("[TXNPKTPROC]["
-                << message.size() << "]" << std::setw(15) << std::left
-                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                << m_mediator.m_txBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum() +
-                       1
-                << "][" << shardId << "] BEGN");
+  // If network is gossip mode enabled, lookup sends the gossip forward type
+  // message to shard nodes. And this node wont be responsible for sending
+  // gossip (txnpkt) from this function but will be done at gossip layer.
+  // However, Broadcast to other shard node if not Gossip mode enabled ( for
+  // backward compatibilty )
+  if (!BROADCAST_GOSSIP_MODE) {
+    vector<Peer> toSend;
+    for (auto& it : *m_myShardMembers) {
+      toSend.push_back(it.second);
     }
-  } else {
+    LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
+
     P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
   }
 

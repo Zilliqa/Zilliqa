@@ -252,6 +252,28 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
 
     // Injecting into sorted PoWs
     copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
+
+    // Check whether injected node submit soln (maliciously)
+    // This could happen if the node rejoin as a normal shard node by submitting
+    // PoW and DS committee injected it
+    bool isDupPubKey = false;
+    for (const auto& soln : sortedPoWSolns) {
+      if (soln.second == nodePubKey) {
+        LOG_GENERAL(WARNING,
+                    "Injected node also submitted a soln. "
+                        << m_mediator.m_DSCommittee
+                               ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                               .second);
+        isDupPubKey = true;
+        break;
+      }
+    }
+
+    // Skip the injection for this node if it is duplicated
+    if (isDupPubKey) {
+      continue;
+    }
+
     sortedPoWSolns.emplace_back(PubKeyHashArr, nodePubKey);
     sha2.Reset();
     serializedPubK.clear();
@@ -657,6 +679,17 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // "FilteredPoWOrderSorter"
       // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
       // "PoWOrderSorter"
+      unsigned int trimmedGuardCount =
+          ceil(numNodesTrimmed * ConsensusCommon::TOLERANCE_FRACTION);
+      unsigned int trimmedNonGuardCount = numNodesTrimmed - trimmedGuardCount;
+
+      if (trimmedGuardCount + trimmedNonGuardCount < numNodesTrimmed) {
+        LOG_GENERAL(WARNING,
+                    "Network has less than 1/3 non shard guard node. Filling "
+                    "it with guard nodes");
+        trimmedGuardCount +=
+            (numNodesTrimmed - trimmedGuardCount - trimmedNonGuardCount);
+      }
 
       // Assign all shard guards first
       std::map<array<unsigned char, 32>, PubKey> FilteredPoWOrderSorter;
@@ -668,6 +701,13 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       for (auto kv = PoWOrderSorter.begin();
            (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed); kv++) {
         if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
+          if (count == trimmedGuardCount) {
+            LOG_GENERAL(
+                INFO,
+                "Did not manage to form max number of shard. Only allowed "
+                    << trimmedGuardCount << " shard guards");
+            break;
+          }
           FilteredPoWOrderSorter.emplace(*kv);
           ShadowPoWOrderSorter.erase(kv->first);
           count++;
@@ -686,6 +726,11 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       for (auto kv : FilteredPoWOrderSorter) {
         sortedPoWSolns.emplace_back(kv);
       }
+      LOG_GENERAL(INFO, "trimmedGuardCount: "
+                            << trimmedGuardCount
+                            << " trimmedNonGuardCount: " << trimmedNonGuardCount
+                            << " Total number of accepted soln: "
+                            << sortedPoWSolns.size());
     }
 
   } else {
@@ -693,8 +738,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       sortedPoWSolns.emplace_back(kv);
     }
   }
-  LOG_GENERAL(INFO,
-              "Number of solns after trimming is " << sortedPoWSolns.size());
+
   return sortedPoWSolns;
 }
 

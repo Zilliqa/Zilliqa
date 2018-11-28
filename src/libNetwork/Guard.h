@@ -53,6 +53,8 @@ class Guard {
                         boost::multiprecision::uint128_t>>
       m_IPExclusionRange;
 
+  void ValidateRunTimeEnvironment();
+
  public:
   /// Returns the singleton Guard instance.
   static Guard& GetInstance();
