@@ -618,8 +618,9 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
       // 1. Generate a random k from [1, ..., order-1]
       do {
         err =
-	    BN_generate_dsa_nonce(k.get(), m_curve.m_order.get(),
-			    privkey.m_d.get(), &message[0], message.size(), NULL);
+	    (BN_generate_dsa_nonce(k.get(), m_curve.m_order.get(),
+			    privkey.m_d.get(), static_cast<const unsigned
+			    char*>(message.data()), message.size(), ctx.get()) == 0);
 	if (err) {
           LOG_GENERAL(WARNING, "Random generation failed");
           return false;
