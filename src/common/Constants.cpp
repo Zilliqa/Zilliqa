@@ -100,8 +100,8 @@ std::string ReadGPUVariableFromConstantsFile(std::string propertyName) {
 }
 
 const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
-const unsigned int DS_MULTICAST_CLUSTER_SIZE{
-    ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
+const unsigned int MULTICAST_CLUSTER_SIZE{
+    ReadFromConstantsFile("MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
 const unsigned int NUM_DS_ELECTION{ReadFromConstantsFile("NUM_DS_ELECTION")};
 const unsigned int POW_WINDOW_IN_SECONDS{

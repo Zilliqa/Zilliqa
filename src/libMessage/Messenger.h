@@ -26,8 +26,8 @@
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libDirectoryService/DirectoryService.h"
-#include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
+#include "libNetwork/ShardStruct.h"
 
 class Messenger {
  public:

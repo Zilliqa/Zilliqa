@@ -199,6 +199,9 @@ void Lookup::SendMessageToLookupNodes(
 
   // LOG_GENERAL(INFO, "i am here " <<
   // to_string(m_mediator.m_currentEpochNum).c_str())
+
+  // TODO: provide interface in P2PComm instead of repopulating the lookup into
+  // vector of Peer
   vector<Peer> allLookupNodes;
 
   for (const auto& node : m_lookupNodes) {
