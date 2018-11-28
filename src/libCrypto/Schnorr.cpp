@@ -617,16 +617,14 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
 
       // 1. Generate a random k from [1, ..., order-1]
       do {
-        // -1 means no constraint on the MSB of k
-        // 0 means no constraint on the LSB of k
         err =
-            (BN_rand(k.get(), BN_num_bits(m_curve.m_order.get()), -1, 0) == 0);
-        if (err) {
+	    BN_generate_dsa_nonce(k.get(), m_curve.m_order.get(),
+			    privkey.m_d.get(), &message[0], message.size(), NULL);
+	if (err) {
           LOG_GENERAL(WARNING, "Random generation failed");
           return false;
         }
-      } while ((BN_is_zero(k.get())) ||
-               (BN_cmp(k.get(), m_curve.m_order.get()) != -1));
+      } while (BN_is_zero(k.get()));
 
       // 2. Compute the commitment Q = kG, where G is the base point
       err = (EC_POINT_mul(m_curve.m_group.get(), Q.get(), k.get(), NULL, NULL,
