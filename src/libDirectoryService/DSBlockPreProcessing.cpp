@@ -140,14 +140,6 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
                              << sortedPoWSolns.size());
   }
 
-  std::set<PubKey> setTopPriorityNodes;
-  if (sortedPoWSolns.size() > MAX_SHARD_NODE_NUM) {
-    LOG_GENERAL(INFO, "PoWs recvd " << sortedPoWSolns.size()
-                                    << " more than max node number "
-                                    << MAX_SHARD_NODE_NUM);
-    setTopPriorityNodes = FindTopPriorityNodes();
-  }
-
   auto numShardNodes = sortedPoWSolns.size() > MAX_SHARD_NODE_NUM
                            ? MAX_SHARD_NODE_NUM
                            : sortedPoWSolns.size();
@@ -181,14 +173,6 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   for (const auto& kv : sortedPoWSolns) {
     const PubKey& key = kv.second;
-    if (!setTopPriorityNodes.empty() &&
-        setTopPriorityNodes.find(key) == setTopPriorityNodes.end()) {
-      LOG_GENERAL(INFO, "Node "
-                            << key
-                            << " failed to join because priority not enough.");
-      continue;
-    }
-
     const auto& powHash = kv.first;
     // sort all PoW submissions according to H(last_block_hash, pow_hash)
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
@@ -199,8 +183,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     sortedPoWs.emplace(sortHash, key);
   }
 
-  uint32_t i = 0;
-  uint32_t j = 0;
+  uint32_t i = 0, j = 0;
   for (const auto& kv : sortedPoWs) {
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
@@ -292,6 +275,9 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
                             .second);
     }
   }
+
+  LOG_GENERAL(INFO, "Number of PoWs after inject for DS node: "
+                        << sortedPoWSolns.size());
 }
 
 bool DirectoryService::VerifyPoWWinner(
@@ -512,6 +498,14 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
 
   uint32_t numOutOfMyPriorityList = 0;
   auto setTopPriorityNodes = FindTopPriorityNodes();
+
+  // Inject the DS committee members into priority nodes list, because the
+  // kicked out ds nodes will join the shard node, so the verify priority for
+  // these nodes will pass.
+  for (const auto& kv : *m_mediator.m_DSCommittee) {
+    setTopPriorityNodes.insert(kv.first);
+  }
+
   for (const auto& shard : shards) {
     for (const auto& shardNode : shard) {
       const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
@@ -647,19 +641,19 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
   VectorOfPoWSoln sortedPoWSolns;
   if (trimBeyondCommSize && (COMM_SIZE > 0)) {
     const unsigned int numNodesTotal = PoWOrderSorter.size();
-    const unsigned int numNodesTrimmed =
+    const unsigned int numNodesAfterTrim =
         (numNodesTotal < COMM_SIZE)
             ? numNodesTotal
             : numNodesTotal - (numNodesTotal % COMM_SIZE);
 
     LOG_GENERAL(INFO, "Trimming the solutions sorted list from "
-                          << numNodesTotal << " to " << numNodesTrimmed
+                          << numNodesTotal << " to " << numNodesAfterTrim
                           << " to avoid going over COMM_SIZE " << COMM_SIZE);
 
     unsigned int count = 0;
     if (!GUARD_MODE) {
       for (auto kv = PoWOrderSorter.begin();
-           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
+           (kv != PoWOrderSorter.end()) && (count < numNodesAfterTrim);
            kv++, count++) {
         sortedPoWSolns.emplace_back(*kv);
       }
@@ -680,15 +674,15 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
       // "PoWOrderSorter"
       unsigned int trimmedGuardCount =
-          ceil(numNodesTrimmed * ConsensusCommon::TOLERANCE_FRACTION);
-      unsigned int trimmedNonGuardCount = numNodesTrimmed - trimmedGuardCount;
+          ceil(numNodesAfterTrim * ConsensusCommon::TOLERANCE_FRACTION);
+      unsigned int trimmedNonGuardCount = numNodesAfterTrim - trimmedGuardCount;
 
-      if (trimmedGuardCount + trimmedNonGuardCount < numNodesTrimmed) {
+      if (trimmedGuardCount + trimmedNonGuardCount < numNodesAfterTrim) {
         LOG_GENERAL(WARNING,
                     "Network has less than 1/3 non shard guard node. Filling "
                     "it with guard nodes");
         trimmedGuardCount +=
-            (numNodesTrimmed - trimmedGuardCount - trimmedNonGuardCount);
+            (numNodesAfterTrim - trimmedGuardCount - trimmedNonGuardCount);
       }
 
       // Assign all shard guards first
@@ -699,7 +693,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // Add shard guards to "FilteredPoWOrderSorter"
       // Remove it from "ShadowPoWOrderSorter"
       for (auto kv = PoWOrderSorter.begin();
-           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed); kv++) {
+           (kv != PoWOrderSorter.end()) && (count < numNodesAfterTrim); kv++) {
         if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
           if (count == trimmedGuardCount) {
             LOG_GENERAL(
@@ -716,7 +710,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
 
       // Assign non shard guards if there is any slots
       for (auto kv = ShadowPoWOrderSorter.begin();
-           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTrimmed);
+           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesAfterTrim);
            kv++) {
         FilteredPoWOrderSorter.emplace(*kv);
         count++;
@@ -732,6 +726,9 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
                             << " Total number of accepted soln: "
                             << sortedPoWSolns.size());
     }
+
+    LOG_GENERAL(INFO,
+                "Number of solns after trimming is " << sortedPoWSolns.size());
 
   } else {
     for (const auto& kv : PoWOrderSorter) {
@@ -759,8 +756,39 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   lock_guard<mutex> g(m_mutexPendingDSBlock, adopt_lock);
   lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
+  MapOfPubKeyPoW allPoWs;
+
+  {
+    std::lock_guard<std::mutex> g(m_mutexAllPOW);
+    allPoWs = m_allPoWs;
+  }
+
+  if (allPoWs.size() > MAX_SHARD_NODE_NUM) {
+    LOG_GENERAL(INFO, "PoWs recvd " << allPoWs.size()
+                                    << " more than max node number "
+                                    << MAX_SHARD_NODE_NUM);
+    auto setTopPriorityNodes = FindTopPriorityNodes();
+
+    MapOfPubKeyPoW tmpAllPoWs;
+    for (const auto& pubKeyPoW : allPoWs) {
+      if (setTopPriorityNodes.find(pubKeyPoW.first) !=
+          setTopPriorityNodes.end()) {
+        tmpAllPoWs.insert(pubKeyPoW);
+      } else {
+        LOG_GENERAL(INFO,
+                    "Node " << pubKeyPoW.first
+                            << " failed to join because priority not enough.");
+        if (m_allDSPoWs.find(pubKeyPoW.first) != m_allDSPoWs.end()) {
+          m_allDSPoWs.erase(pubKeyPoW.first);
+        }
+      }
+    }
+
+    allPoWs.swap(tmpAllPoWs);
+  }
+
   auto sortedDSPoWSolns = SortPoWSoln(m_allDSPoWs);
-  auto sortedPoWSolns = SortPoWSoln(m_allPoWs, true);
+  auto sortedPoWSolns = SortPoWSoln(allPoWs, true);
 
   map<PubKey, Peer> powDSWinners;
   MapOfPubKeyPoW dsWinnerPoWs;
@@ -1094,6 +1122,14 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  // Verify the node priority before do the PoW trimming inside
+  // VerifyPoWOrdering.
+  ClearReputationOfNodeWithoutPoW();
+  if (!VerifyNodePriority(m_tempShards)) {
+    LOG_GENERAL(WARNING, "Failed to verify node priority");
+    return false;
+  }
+
   if (!VerifyPoWOrdering(m_tempShards, allPoWsFromLeader)) {
     LOG_GENERAL(WARNING, "Failed to verify ordering");
     return false;
@@ -1104,11 +1140,6 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  ClearReputationOfNodeWithoutPoW();
-  if (!VerifyNodePriority(m_tempShards)) {
-    LOG_GENERAL(WARNING, "Failed to verify node priority");
-    return false;
-  }
   // ProcessTxnBodySharingAssignment();
 
   auto func = [this]() mutable -> void {
