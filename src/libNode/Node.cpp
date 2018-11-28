@@ -302,7 +302,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
 
   /// Retrieve lacked Tx blocks from lookup nodes
   if (!ARCHIVAL_NODE &&
-      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType()) {
+      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
+      !(LOOKUP_NODE_MODE && wakeupForUpgrade)) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
