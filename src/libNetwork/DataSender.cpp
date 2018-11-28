@@ -235,10 +235,17 @@ bool DataSender::SendDataToOthers(
 
     uint16_t randomDigits =
         DataConversion::charArrTo16Bits(hashForRandom.asBytes());
+    bool committeeTooSmall = tmpCommittee.size() < TX_SHARING_CLUSTER_SIZE;
     uint16_t nodeToSendToLookUpLo =
-        randomDigits % (tmpCommittee.size() - TX_SHARING_CLUSTER_SIZE);
+        committeeTooSmall
+            ? 0
+            : (randomDigits % (tmpCommittee.size() - TX_SHARING_CLUSTER_SIZE));
     uint16_t nodeToSendToLookUpHi =
-        nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+        committeeTooSmall ? tmpCommittee.size()
+                          : nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+
+    LOG_GENERAL(INFO, "lo: " << nodeToSendToLookUpLo << " hi: "
+                             << nodeToSendToLookUpHi << " my: " << indexB2);
 
     if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
       LOG_GENERAL(INFO,
@@ -255,6 +262,10 @@ bool DataSender::SendDataToOthers(
 
     DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
                                shards, tmpCommittee, indexB2);
+
+    LOG_GENERAL(INFO,
+                "my_cluster_num + 1: " << my_cluster_num + 1
+                                       << " shards.size(): " << shards.size());
 
     if ((my_cluster_num + 1) <= shards.size()) {
       if (sendDataToShardFunc) {
