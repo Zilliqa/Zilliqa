@@ -252,6 +252,28 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
 
     // Injecting into sorted PoWs
     copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
+
+    // Check whether injected node submit soln (maliciously)
+    // This could happen if the node rejoin as a normal shard node by submitting
+    // PoW and DS committee injected it
+    bool isDupPubKey = false;
+    for (const auto& soln : sortedPoWSolns) {
+      if (soln.second == nodePubKey) {
+        LOG_GENERAL(WARNING,
+                    "Injected node also submitted a soln. "
+                        << m_mediator.m_DSCommittee
+                               ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                               .second);
+        isDupPubKey = true;
+        break;
+      }
+    }
+
+    // Skip the injection for this node if it is duplicated
+    if (isDupPubKey) {
+      continue;
+    }
+
     sortedPoWSolns.emplace_back(PubKeyHashArr, nodePubKey);
     sha2.Reset();
     serializedPubK.clear();
