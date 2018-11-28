@@ -7,6 +7,11 @@ target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_S
 target_link_libraries(Test_Account PUBLIC AccountData Crypto Trie Utils Persistence TestUtils)
 add_test(NAME Test_Account COMMAND Test_Account)
 
+add_executable(Test_LogEntry Test_LogEntry.cpp)
+target_include_directories(Test_LogEntry PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_LogEntry PUBLIC AccountData Utils TestUtils)
+add_test(NAME Test_LogEntry COMMAND Test_LogEntry)
+
 add_executable(Test_AccountStore Test_AccountStore.cpp)
 target_include_directories(Test_AccountStore PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_AccountStore PUBLIC AccountData Trie Utils Crypto Message)
