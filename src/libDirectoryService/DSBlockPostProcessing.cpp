@@ -558,19 +558,6 @@ void DirectoryService::StartFirstTxEpoch() {
     // Process txn sharing assignments as a shard node
     m_mediator.m_node->LoadTxnSharingInfo();
 
-    if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
-        if (i.second != Peer()) {
-          peers.emplace_back(i.second);
-        }
-      }
-
-      // Set the peerlist for RumorSpreading protocol since am no more DS
-      // member. I am now shard member.
-      P2PComm::GetInstance().InitializeRumorManager(peers);
-    }
-
     // Finally, start as a shard node
     m_mediator.m_node->StartFirstTxEpoch();
   }
@@ -647,6 +634,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   {
     // USe mutex during the composition and sending of vcds block message
     lock_guard<mutex> g(m_mutexVCBlockVector);
+
+    // Before sending ds block to lookup/other shard-nodes and starting my 1st
+    // txn epoch from this ds epoch, lets give enough time for all other ds
+    // nodes to receive DS block - final cosig
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(DELAY_FIRSTXNEPOCH_IN_MS));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DSBlock to be sent to the lookup nodes");
