@@ -679,8 +679,8 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // "FilteredPoWOrderSorter"
       // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
       // "PoWOrderSorter"
-
-      unsigned int trimmedGuardCount = numNodesTrimmed - (numNodesTrimmed / 3);
+      unsigned int trimmedGuardCount =
+          ceil(numNodesTrimmed * ConsensusCommon::TOLERANCE_FRACTION);
       unsigned int trimmedNonGuardCount = numNodesTrimmed - trimmedGuardCount;
 
       if (trimmedGuardCount + trimmedNonGuardCount < numNodesTrimmed) {

@@ -28,6 +28,7 @@
 #include <string>
 
 #include "Peer.h"
+#include "libConsensus/ConsensusCommon.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -214,7 +215,9 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
 }
 
 void Guard::ValidateRunTimeEnvironment() {
-  unsigned int nodeReplacementLimit = COMM_SIZE - (COMM_SIZE - (COMM_SIZE / 3));
+  unsigned int nodeReplacementLimit =
+      COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION);
+
   if (NUM_DS_ELECTION > nodeReplacementLimit) {
     LOG_GENERAL(FATAL,
                 "Check constants configuration. nodeReplacementLimit must be "
