@@ -3182,6 +3182,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
       LOG_GENERAL(INFO, "[DSMB]"
                             << " Sent DS the txns");
+
+      DeleteTxnShardMap(i);
     }
   }
 }
