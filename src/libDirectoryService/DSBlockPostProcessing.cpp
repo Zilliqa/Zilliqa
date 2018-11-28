@@ -635,6 +635,12 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     // USe mutex during the composition and sending of vcds block message
     lock_guard<mutex> g(m_mutexVCBlockVector);
 
+    // Before sending ds block to lookup/other shard-nodes and starting my 1st
+    // txn epoch from this ds epoch, lets give enough time for all other ds
+    // nodes to receive DS block - final cosig
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(DELAY_FIRSTXNEPOCH_IN_MS));
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DSBlock to be sent to the lookup nodes");
     // TODO: Refine this

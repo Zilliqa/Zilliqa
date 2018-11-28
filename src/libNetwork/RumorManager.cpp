@@ -66,9 +66,9 @@ void RumorManager::StartRounds() {
   }
 
   std::thread([&]() {
-    std::unique_lock<std::mutex> guard(m_continueRoundMutex);
-    m_continueRound = true;
     while (true) {
+      std::unique_lock<std::mutex> guard(m_continueRoundMutex);
+      m_continueRound = true;
       {  // critical section
         std::lock_guard<std::mutex> guard(m_mutex);
         std::pair<std::vector<int>, std::vector<RRS::Message>> result =
@@ -89,6 +89,7 @@ void RumorManager::StartRounds() {
       if (m_condStopRound.wait_for(guard,
                                    std::chrono::milliseconds(ROUND_TIME_IN_MS),
                                    [&] { return !m_continueRound; })) {
+        LOG_GENERAL(INFO, "Stopping round now..");
         return;
       }
     }
@@ -98,13 +99,14 @@ void RumorManager::StartRounds() {
 
 void RumorManager::StopRounds() {
   LOG_MARKER();
-  std::this_thread::sleep_for(std::chrono::milliseconds(ROUND_TIME_IN_MS * 2));
+  // std::this_thread::sleep_for(std::chrono::milliseconds(ROUND_TIME_IN_MS *
+  // 2));
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     m_continueRound = false;
   }
   m_condStopRound.notify_all();
-  std::this_thread::sleep_for(std::chrono::milliseconds(ROUND_TIME_IN_MS));
+  // std::this_thread::sleep_for(std::chrono::milliseconds(ROUND_TIME_IN_MS));
 }
 
 // PUBLIC METHODS
@@ -157,7 +159,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
 }
 
 void RumorManager::SpreadBufferedRumors() {
-  std::lock_guard<std::mutex> guard(m_continueRoundMutex);
+  LOG_MARKER();
   if (m_continueRound) {
     for (auto& i : m_bufferRawMsg) {
       AddRumor(i);
