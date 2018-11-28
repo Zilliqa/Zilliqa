@@ -99,14 +99,11 @@ void RumorManager::StartRounds() {
 
 void RumorManager::StopRounds() {
   LOG_MARKER();
-  // std::this_thread::sleep_for(std::chrono::milliseconds(ROUND_TIME_IN_MS *
-  // 2));
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     m_continueRound = false;
   }
   m_condStopRound.notify_all();
-  // std::this_thread::sleep_for(std::chrono::milliseconds(ROUND_TIME_IN_MS));
 }
 
 // PUBLIC METHODS
