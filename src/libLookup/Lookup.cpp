@@ -3131,7 +3131,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
       LOG_GENERAL(INFO, "Transaction number generated: " << transactionNumber);
 
-      if (m_txnShardMap[i].size() == 0 && mp[i].size() == 0) {
+      if (m_txnShardMap[i].empty() && mp[i].empty()) {
         LOG_GENERAL(INFO, "No txns to send to shard " << i);
         continue;
       }
