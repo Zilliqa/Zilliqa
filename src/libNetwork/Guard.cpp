@@ -221,7 +221,9 @@ void Guard::ValidateRunTimeEnvironment() {
   if (NUM_DS_ELECTION > nodeReplacementLimit) {
     LOG_GENERAL(FATAL,
                 "Check constants configuration. nodeReplacementLimit must be "
-                "bigger than NUM_DS_ELECTION. Refer to design documentation.");
+                "bigger than NUM_DS_ELECTION. Refer to design documentation. "
+                "nodeReplacementLimit: "
+                    << nodeReplacementLimit);
   } else {
     LOG_GENERAL(INFO, "Passed guard mode run time enviornment validation");
   }
