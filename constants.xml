@@ -3,7 +3,7 @@
 <node>
     <constants>
         <MSG_VERSION>1</MSG_VERSION>
-        <DS_MULTICAST_CLUSTER_SIZE>10</DS_MULTICAST_CLUSTER_SIZE>
+        <MULTICAST_CLUSTER_SIZE>10</MULTICAST_CLUSTER_SIZE>
         <TX_SHARING_CLUSTER_SIZE>10</TX_SHARING_CLUSTER_SIZE>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>200</COMM_SIZE>

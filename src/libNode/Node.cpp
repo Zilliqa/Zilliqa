@@ -1257,7 +1257,6 @@ bool Node::CleanVariables() {
   AccountStore::GetInstance().InitSoft();
   m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
   m_isPrimary = false;
-  m_isMBSender = false;
   m_stillMiningPrimary = false;
   m_myshardId = 0;
   m_proposedGasPrice = PRECISION_MIN_VALUE;

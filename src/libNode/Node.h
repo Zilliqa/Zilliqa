@@ -39,6 +39,7 @@
 #include "libData/AccountData/TxnPool.h"
 #include "libData/BlockData/Block.h"
 #include "libLookup/Synchronizer.h"
+#include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libPersistence/BlockStorage.h"
@@ -83,11 +84,7 @@ class Node : public Executable, public Broadcastable {
   std::mutex m_mutexConsensus;
 
   // Sharding information
-  std::atomic<bool> m_isMBSender;
   std::atomic<uint32_t> m_numShards;
-
-  // MicroBlock Sharing assignments
-  std::vector<Peer> m_DSMBReceivers;
 
   // Transaction sharing assignments
   std::atomic<bool> m_txnSharingIAmForwarder;
@@ -281,7 +278,8 @@ class Node : public Executable, public Broadcastable {
 
   bool RunConsensusOnMicroBlockWhenShardLeader();
   bool RunConsensusOnMicroBlockWhenShardBackup();
-  void SubmitMicroblockToDSCommittee() const;
+  bool ComposeMicroBlockMessageForSender(
+      std::vector<unsigned char>& microblock_message) const;
   bool MicroBlockValidator(const std::vector<unsigned char>& message,
                            unsigned int offset,
                            std::vector<unsigned char>& errorMsg,
@@ -328,6 +326,8 @@ class Node : public Executable, public Broadcastable {
   bool VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock);
   bool ProcessFallbackBlock(const std::vector<unsigned char>& message,
                             unsigned int cur_offset, const Peer& from);
+  bool ComposeFallbackBlockMessageForSender(
+      std::vector<unsigned char>& fallbackblock_message) const;
 
   // Is Running from New Process
   bool m_fromNewProcess = true;

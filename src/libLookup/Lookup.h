@@ -36,8 +36,8 @@
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
-#include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
+#include "libNetwork/ShardStruct.h"
 #include "libUtils/Logger.h"
 
 #include <condition_variable>
@@ -47,8 +47,6 @@
 
 class Mediator;
 class Synchronizer;
-
-using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
 
 /// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable, public Broadcastable {
