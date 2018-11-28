@@ -5,7 +5,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 add_executable(Test_Account Test_Account.cpp)
 target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_Account PUBLIC AccountData Crypto Trie Utils Persistence TestUtils)
-add_test(NAME Test_Account COMMAND Test_Account Message)
+add_test(NAME Test_Account COMMAND Test_Account)
 
 add_executable(Test_AccountStore Test_AccountStore.cpp)
 target_include_directories(Test_AccountStore PUBLIC ${CMAKE_SOURCE_DIR}/src)
