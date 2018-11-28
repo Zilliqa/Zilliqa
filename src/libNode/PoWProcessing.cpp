@@ -108,36 +108,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Current dsblock is " << block_num);
 
-  bool isNoSync = false;
-
-  if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
-    m_stillMiningPrimary = true;
-    isNoSync = true;
-
-    auto func = [this]() mutable -> void {
-      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL +
-                                             POW_WINDOW_IN_SECONDS +
-                                             FALLBACK_EXTRA_TIME));
-      if (m_stillMiningPrimary) {
-        if (!GetOfflineLookups()) {
-          LOG_GENERAL(WARNING, "Cannot sync currently");
-          return;
-        }
-
-        if (GetLatestDSBlock()) {
-          LOG_GENERAL(
-              INFO,
-              "New DS Block mined but I'm still mining and didn't receive it,"
-              " rejoin");
-          RejoinAsNormal();
-        } else {
-          LOG_GENERAL(INFO, "Didn't get the latest DSBlock, what to do???");
-        }
-      }
-    };
-
-    DetachedFunction(1, func);
-  }
+  m_stillMiningPrimary = true;
 
   lock_guard<mutex> g(m_mutexGasPrice);
 
@@ -168,12 +139,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
     m_stillMiningPrimary = false;
 
-    if (isNoSync && m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
-      LOG_GENERAL(WARNING,
-                  "It's too late, the node has already started rejoining");
-      return false;
-    }
-
     // Possible scenarios
     // 1. Found solution that meets ds difficulty and difficulty
     // - Submit solution
@@ -183,9 +148,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     auto checkerThread = [this]() mutable -> void {
       unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
       if (cv_waitDSBlock.wait_for(
-              lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL +
-                                  POW_WINDOW_IN_SECONDS + FALLBACK_EXTRA_TIME +
-                                  TX_DISTRIBUTE_TIME_IN_MS / 1000)) ==
+              lk, chrono::seconds(
+                      NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                      POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+                      FALLBACK_EXTRA_TIME + TX_DISTRIBUTE_TIME_IN_MS / 1000)) ==
           cv_status::timeout) {
         lock_guard<mutex> g(m_mutexDSBlock);
         if (m_mediator.m_currentEpochNum ==
@@ -195,10 +161,15 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
           LOG_GENERAL(WARNING, "DS was processed just now, ignore time out");
           return;
         }
-        LOG_GENERAL(WARNING, "Time out while waiting for DS Block");
+
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Time out while waiting for DS Block");
+
+        POW::GetInstance().StopMining();
+
         if (GetLatestDSBlock()) {
           LOG_GENERAL(INFO, "DS block created, means I lost PoW");
-          if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
+          if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
             // exciplitly declare in the same thread
             m_mediator.m_lookup->m_startedPoW = false;
           }
@@ -307,8 +278,14 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
 
   vector<Peer> peerList;
 
+  unsigned int count = 0;
   for (auto const& i : *m_mediator.m_DSCommittee) {
-    peerList.push_back(i.second);
+    if (count < POW_PACKET_SENDERS) {
+      peerList.push_back(i.second);
+      count++;
+    } else {
+      break;
+    }
   }
 
   P2PComm::GetInstance().SendMessage(peerList, powmessage);

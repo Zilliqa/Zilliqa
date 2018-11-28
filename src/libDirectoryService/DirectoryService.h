@@ -38,6 +38,7 @@
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
@@ -198,6 +199,10 @@ class DirectoryService : public Executable, public Broadcastable {
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
+  // pow solutions
+  std::vector<DSPowSolution> m_powSolutions;
+  std::mutex m_mutexPowSolution;
+
   const uint32_t RESHUFFLE_INTERVAL = 500;
 
   // Message handlers
@@ -205,6 +210,10 @@ class DirectoryService : public Executable, public Broadcastable {
                          unsigned int offset, const Peer& from);
   bool ProcessPoWSubmission(const std::vector<unsigned char>& message,
                             unsigned int offset, const Peer& from);
+  bool ProcessPoWPacketSubmission(const std::vector<unsigned char>& message,
+                                  unsigned int offset, const Peer& from);
+  bool ProcessPoWSubmissionFromPacket(const DSPowSolution& sol);
+
   bool ProcessDSBlockConsensus(const std::vector<unsigned char>& message,
                                unsigned int offset, const Peer& from);
   bool ProcessMicroblockSubmission(const std::vector<unsigned char>& message,
@@ -221,6 +230,7 @@ class DirectoryService : public Executable, public Broadcastable {
                                 unsigned int offset, const Peer& from);
   bool ProcessGetDSTxBlockMessage(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
+
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 
@@ -578,10 +588,9 @@ class DirectoryService : public Executable, public Broadcastable {
   void StartNewDSEpochConsensus(bool fromFallback = false);
 
   static uint8_t CalculateNewDifficultyCore(
-      uint8_t currentDifficulty, uint8_t minDifficulty, int64_t currentNodes,
-      int64_t powSubmissions, int64_t expectedNodes,
-      uint32_t maxAdjustThreshold, int64_t currentEpochNum,
-      int64_t numBlockPerYear);
+      uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
+      int64_t expectedNodes, uint32_t maxAdjustThreshold,
+      int64_t currentEpochNum, int64_t numBlockPerYear);
 
   /// Calculate node priority to determine which node has the priority to join
   /// the network.
@@ -596,6 +605,8 @@ class DirectoryService : public Executable, public Broadcastable {
   static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows,
                                      bool trimBeyondCommSize = false);
   int64_t GetAllPoWSize() const;
+
+  bool ProcessAndSendPoWPacketSubmissionToOtherDSComm();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

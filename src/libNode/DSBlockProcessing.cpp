@@ -516,13 +516,13 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   // For running from genesis
-  if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+  if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     if (!m_mediator.m_lookup->m_startedPoW) {
       LOG_GENERAL(WARNING, "Haven't started PoW, why I received a DSBlock?");
       return false;
     }
 
-    m_mediator.m_lookup->m_syncType = SyncType::NO_SYNC;
+    m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
     if (m_fromNewProcess) {
       m_fromNewProcess = false;
     }

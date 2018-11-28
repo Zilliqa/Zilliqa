@@ -814,7 +814,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
     LOG_EPOCH(
         WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "I am suspending myself to test viewchange (VC_TEST_DS_SUsPEND_3)");
+        "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_3)");
     return false;
   }
 #endif  // VC_TEST_DS_SUSPEND_3

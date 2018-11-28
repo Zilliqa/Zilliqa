@@ -157,7 +157,7 @@ extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
 extern const unsigned int FALLBACK_CHECK_INTERVAL;
 extern const unsigned int FALLBACK_EXTRA_TIME;
-extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
+extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MAX_ROUNDS_IN_BSTATE;
 extern const unsigned int MAX_ROUNDS_IN_CSTATE;
@@ -184,6 +184,8 @@ extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int MAXRETRYCONN;
 extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
+extern const unsigned int POW_PACKET_SENDERS;
+extern const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
@@ -221,6 +223,7 @@ extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
 extern const bool GET_INITIAL_DS_FROM_REPO;
 extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
+extern const bool SEND_RESPONSE_FOR_LAZY_PUSH;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
