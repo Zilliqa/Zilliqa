@@ -378,7 +378,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
           cv_lk_con_msg, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
           [this, message, offset]() -> bool {
             lock_guard<mutex> g(m_mutexConsensus);
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+            if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
               LOG_GENERAL(WARNING,
                           "The node started the process of rejoining, "
                           "Ignore rest of "
