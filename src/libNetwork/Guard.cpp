@@ -213,9 +213,19 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
   }
 }
 
+void Guard::ValidateRunTimeEnvironment() {
+  unsigned int nodeReplacementLimit = COMM_SIZE - (COMM_SIZE / 3);
+  if (NUM_DS_ELECTION > nodeReplacementLimit) {
+    LOG_GENERAL(FATAL,
+                "Check constants configuration. nodeReplacementLimit must be "
+                "bigger than NUM_DS_ELECTION");
+  }
+}
+
 void Guard::Init() {
   if (GUARD_MODE) {
     LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
+    ValidateRunTimeEnvironment();
     UpdateDSGuardlist();
     UpdateShardGuardlist();
   }
