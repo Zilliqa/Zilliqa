@@ -1,0 +1,30 @@
+syntax = "proto2";
+
+package ZilliqaMessage;
+
+// ============================================================================
+// errorMsg
+// ============================================================================
+
+message ProtoAbsentMicroBlocks
+{
+    repeated bytes hashes                 = 1;
+    required uint32 numabsentmicroblocks  = 2;
+    required uint64 currentepochnum       = 3;
+}
+
+enum ProtoConsensusError
+{
+    NOERROR         = 0;
+    DSMBMISSINGTXN  = 1;
+    CHECKMICROBLOCK = 2;
+    DSFBMISSINGMB   = 3;
+    CHECKFINALBLOCK = 4;
+}
+
+message ProtoInvalidBlock
+{
+    required ProtoConsensusError consensuserror = 1 [default = NOERROR];
+    required uint32 listenporthost              = 2;
+    required ProtoAbsentMicroBlocks microblocks = 3;
+}

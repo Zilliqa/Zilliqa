@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libMessage/ZilliqaMessage.pb.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -40,6 +41,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace ZilliqaMessage;
 
 void DirectoryService::ExtractDataFromMicroblocks(
     vector<MicroBlockInfo>& mbInfos, uint64_t& allGasLimit,
@@ -490,7 +492,7 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 }
 
 // Check microblock hashes
-bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
+bool DirectoryService::CheckMicroBlocks(ProtoInvalidBlock& errorMsg,
                                         bool fromShards) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -532,7 +534,6 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
   }
 
   m_numOfAbsentMicroBlocks = 0;
-  int offset = 0;
 
   if (!m_missingMicroBlocks[m_mediator.m_currentEpochNum].empty()) {
     if (fromShards) {
@@ -542,28 +543,21 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
 
     for (auto const& hash :
          m_missingMicroBlocks[m_mediator.m_currentEpochNum]) {
-      if (errorMsg.empty()) {
-        errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t) + BLOCK_HASH_SIZE);
-        offset += (sizeof(uint32_t) + sizeof(uint64_t));
-      } else {
-        errorMsg.resize(offset + BLOCK_HASH_SIZE);
-      }
-      copy(hash.asArray().begin(), hash.asArray().end(),
-           errorMsg.begin() + offset);
-      offset += BLOCK_HASH_SIZE;
-
+      errorMsg.mutable_microblocks()->add_hashes(
+          std::string(hash.asArray().begin(), hash.asArray().end()));
       m_numOfAbsentMicroBlocks++;
     }
 
     if (m_numOfAbsentMicroBlocks > 0) {
-      Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentMicroBlocks,
-                                        sizeof(uint32_t));
-      Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
-                                        m_mediator.m_currentEpochNum,
-                                        sizeof(uint64_t));
+      errorMsg.mutable_microblocks()->set_numabsentmicroblocks(
+          m_numOfAbsentMicroBlocks);
+      errorMsg.mutable_microblocks()->set_currentepochnum(
+          m_mediator.m_currentEpochNum);
     }
 
-    LOG_PAYLOAD(INFO, "ErrorMsg generated:", errorMsg, 200);
+    std::string error;
+    errorMsg.microblocks().SerializeToString(&error);
+    LOG_GENERAL(INFO, "ErrorMsg generated: " << error);
 
     // AccountStore::GetInstance().InitTemp();
     // LOG_GENERAL(WARNING, "Got missing microblocks, revert state delta");
@@ -1033,8 +1027,7 @@ bool DirectoryService::CheckBlockHash() {
   return true;
 }
 
-bool DirectoryService::CheckFinalBlockValidity(
-    vector<unsigned char>& errorMsg) {
+bool DirectoryService::CheckFinalBlockValidity(ProtoInvalidBlock& errorMsg) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1060,22 +1053,20 @@ bool DirectoryService::CheckFinalBlockValidity(
   // TODO: Check parent DS block number (must be = block number of last DS block
   // header in the DS blockchain)
 
-  Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
-                                    m_mediator.m_selfPeer.m_listenPortHost,
-                                    sizeof(uint32_t));
+  errorMsg.set_listenporthost(m_mediator.m_selfPeer.m_listenPortHost);
+
   return false;
 }
 
-bool DirectoryService::CheckMicroBlockValidity(
-    vector<unsigned char>& errorMsg) {
+bool DirectoryService::CheckMicroBlockValidity(ProtoInvalidBlock& errorMsg) {
+  LOG_MARKER();
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckMicroBlockValidity not expected to "
                 "be called from LookUp node.");
     return true;
   }
-
-  LOG_MARKER();
 
   bool ret = true;
 
@@ -1092,16 +1083,16 @@ bool DirectoryService::CheckMicroBlockValidity(
     ret = false;
   }
 
-  if (ret && !m_mediator.m_node->CheckMicroBlockValidity(errorMsg)) {
+  // TODO: Do we need t_errorMsg? It's not getting used.
+  vector<unsigned char> t_errorMsg;
+  if (ret && !m_mediator.m_node->CheckMicroBlockValidity(t_errorMsg)) {
     LOG_GENERAL(WARNING, "Microblock validation failed");
     ret = false;
   }
 
   if (!ret) {
     m_mediator.m_node->m_microblock = nullptr;
-    Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
+    errorMsg.set_listenporthost(m_mediator.m_selfPeer.m_listenPortHost);
   } else {
     m_microBlocks[m_mediator.m_currentEpochNum].emplace(
         *(m_mediator.m_node->m_microblock));
@@ -1112,18 +1103,18 @@ bool DirectoryService::CheckMicroBlockValidity(
 
 bool DirectoryService::FinalBlockValidator(
     const vector<unsigned char>& message, unsigned int offset,
-    vector<unsigned char>& errorMsg, const uint32_t consensusID,
+    ProtoInvalidBlock& errorMsg, const uint32_t consensusID,
     const uint64_t blockNumber, const vector<unsigned char>& blockHash,
     const uint16_t leaderID, const PubKey& leaderKey,
     vector<unsigned char>& messageToCosign) {
+  LOG_MARKER();
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FinalBlockValidator not expected to be "
                 "called from LookUp node.");
     return true;
   }
-
-  LOG_MARKER();
 
   m_finalBlock.reset(new TxBlock);
 
@@ -1139,23 +1130,26 @@ bool DirectoryService::FinalBlockValidator(
     return false;
   }
 
-  vector<unsigned char> t_errorMsg;
+  ProtoInvalidBlock t_errorMsg;
   if (CheckMicroBlocks(t_errorMsg, true)) {  // Firstly check whether the leader
                                              // has any mb that I don't have
     if (m_mediator.m_node->m_microblock != nullptr && m_needCheckMicroBlock) {
       if (!CheckMicroBlockValidity(errorMsg)) {
         LOG_GENERAL(WARNING,
                     "TODO: DS CheckMicroBlockValidity Failed, what to do?");
+
         if (m_consensusObject->GetConsensusErrorCode() ==
             ConsensusCommon::MISSING_TXN) {
-          errorMsg.insert(errorMsg.begin(), DSMBMISSINGTXN);
+          errorMsg.set_consensuserror(ProtoConsensusError::DSMBMISSINGTXN);
         } else {
           m_consensusObject->SetConsensusErrorCode(
               ConsensusCommon::INVALID_DS_MICROBLOCK);
-          errorMsg.insert(errorMsg.begin(), CHECKMICROBLOCK);
+          errorMsg.set_consensuserror(ProtoConsensusError::CHECKMICROBLOCK);
         }
+
         return false;
       }
+
       m_needCheckMicroBlock = false;
       AccountStore::GetInstance().SerializeDelta();
       AccountStore::GetInstance().CommitTempReversible();
@@ -1170,12 +1164,13 @@ bool DirectoryService::FinalBlockValidator(
   if (!CheckFinalBlockValidity(errorMsg)) {
     LOG_GENERAL(WARNING,
                 "To-do: What to do if proposed finalblock is not valid?");
-    if (m_consensusObject->GetConsensusErrorCode() ==
-        ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS) {
-      errorMsg.insert(errorMsg.begin(), DSFBMISSINGMB);
-    } else {
-      errorMsg.insert(errorMsg.begin(), CHECKFINALBLOCK);
-    }
+
+    errorMsg.set_consensuserror(
+        m_consensusObject->GetConsensusErrorCode() ==
+                ConsensusCommon::FINALBLOCK_MISSING_MICROBLOCKS
+            ? ProtoConsensusError::DSFBMISSINGMB
+            : ProtoConsensusError::CHECKFINALBLOCK);
+
     // throw exception();
     // TODO: finalblock is invalid
     return false;
@@ -1228,8 +1223,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
-                     vector<unsigned char>& errorMsg,
-                     const uint32_t consensusID, const uint64_t blockNumber,
+                     ProtoInvalidBlock& errorMsg, const uint32_t consensusID,
+                     const uint64_t blockNumber,
                      const vector<unsigned char>& blockHash,
                      const uint16_t leaderID, const PubKey& leaderKey,
                      vector<unsigned char>& messageToCosign) mutable -> bool {

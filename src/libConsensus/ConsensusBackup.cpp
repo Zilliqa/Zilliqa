@@ -27,6 +27,7 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
+using namespace ZilliqaMessage;
 
 bool ConsensusBackup::CheckState(Action action) {
   static const std::multimap<ConsensusCommon::State, Action> ACTIONS_FOR_STATE =
@@ -84,40 +85,81 @@ bool ConsensusBackup::ProcessMessageAnnounce(
   // Extract and check announce message body
   // =======================================
 
-  std::vector<unsigned char> errorMsg;
-  if (!m_msgContentValidator(announcement, offset, errorMsg, m_consensusID,
-                             m_blockNumber, m_blockHash, m_leaderID,
-                             GetCommitteeMember(m_leaderID).first,
-                             m_messageToCosign)) {
-    LOG_GENERAL(WARNING, "Message validation failed");
+  // Know which validator to call.
+  if (m_useProto) {
+    ProtoInvalidBlock errorMsg;
+    if (!m_protoMsgContentValidator(
+            announcement, offset, errorMsg, m_consensusID, m_blockNumber,
+            m_blockHash, m_leaderID, GetCommitteeMember(m_leaderID).first,
+            m_messageToCosign)) {
+      LOG_GENERAL(WARNING, "Message validation failed");
 
-    if (!errorMsg.empty()) {
-      vector<unsigned char> commitFailureMsg = {
-          m_classByte, m_insByte,
-          static_cast<unsigned char>(ConsensusMessageType::COMMITFAILURE)};
+      if (errorMsg.IsInitialized()) {
+        vector<unsigned char> commitFailureMsg = {
+            m_classByte, m_insByte,
+            static_cast<unsigned char>(ConsensusMessageType::COMMITFAILURE)};
 
-      bool result = GenerateCommitFailureMessage(
-          commitFailureMsg, MessageOffset::BODY + sizeof(unsigned char),
-          errorMsg);
+        bool result = GenerateCommitFailureMessage(
+            commitFailureMsg, MessageOffset::BODY + sizeof(unsigned char),
+            errorMsg);
 
-      if (result) {
-        // Update internal state
-        // =====================
-        m_state = ERROR;
+        if (result) {
+          // Update internal state
+          // =====================
+          m_state = ERROR;
 
-        // Unicast to the leader
-        // =====================
-        P2PComm::GetInstance().SendMessage(
-            GetCommitteeMember(m_leaderID).second, commitFailureMsg);
+          // Unicast to the leader
+          // =====================
+          P2PComm::GetInstance().SendMessage(
+              GetCommitteeMember(m_leaderID).second, commitFailureMsg);
 
-        return true;
+          return true;
+        }
       }
-    }
 
-    LOG_GENERAL(WARNING,
-                "Announcement content validation failed - dropping message but "
-                "keeping state");
-    return false;
+      LOG_GENERAL(
+          WARNING,
+          "Announcement content validation failed - dropping message but "
+          "keeping state");
+      return false;
+    }
+  } else {
+    vector<unsigned char> errorMsg;
+    if (!m_msgContentValidator(announcement, offset, errorMsg, m_consensusID,
+                               m_blockNumber, m_blockHash, m_leaderID,
+                               GetCommitteeMember(m_leaderID).first,
+                               m_messageToCosign)) {
+      LOG_GENERAL(WARNING, "Message validation failed");
+
+      if (!errorMsg.empty()) {
+        vector<unsigned char> commitFailureMsg = {
+            m_classByte, m_insByte,
+            static_cast<unsigned char>(ConsensusMessageType::COMMITFAILURE)};
+
+        bool result = GenerateCommitFailureMessage(
+            commitFailureMsg, MessageOffset::BODY + sizeof(unsigned char),
+            errorMsg);
+
+        if (result) {
+          // Update internal state
+          // =====================
+          m_state = ERROR;
+
+          // Unicast to the leader
+          // =====================
+          P2PComm::GetInstance().SendMessage(
+              GetCommitteeMember(m_leaderID).second, commitFailureMsg);
+
+          return true;
+        }
+      }
+
+      LOG_GENERAL(
+          WARNING,
+          "Announcement content validation failed - dropping message but "
+          "keeping state");
+      return false;
+    }
   }
 
   // Generate commit
@@ -160,6 +202,26 @@ bool ConsensusBackup::GenerateCommitFailureMessage(
   if (!Messenger::SetConsensusCommitFailure(
           commitFailure, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_myID, errorMsg,
+          make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
+    LOG_GENERAL(WARNING, "Messenger::SetConsensusCommitFailure failed.");
+    return false;
+  }
+
+  return true;
+}
+
+bool ConsensusBackup::GenerateCommitFailureMessage(
+    vector<unsigned char>& commitFailure, unsigned int offset,
+    const ProtoInvalidBlock& errorMsg) {
+  LOG_MARKER();
+
+  string errorMsgStr;
+  errorMsg.SerializeToString(&errorMsgStr);
+  vector<unsigned char> t_errorMsg(errorMsgStr.begin(), errorMsgStr.end());
+
+  if (!Messenger::SetConsensusCommitFailure(
+          commitFailure, offset, m_consensusID, m_blockNumber, m_blockHash,
+          m_myID, t_errorMsg,
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusCommitFailure failed.");
     return false;
@@ -419,7 +481,25 @@ ConsensusBackup::ConsensusBackup(uint32_t consensus_id, uint64_t block_number,
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
                       committee, class_byte, ins_byte),
       m_leaderID(leader_id),
-      m_msgContentValidator(msg_validator) {
+      m_msgContentValidator(msg_validator),
+      m_useProto(false) {
+  LOG_MARKER();
+  m_state = INITIAL;
+}
+
+ConsensusBackup::ConsensusBackup(uint32_t consensus_id, uint64_t block_number,
+                                 const vector<unsigned char>& block_hash,
+                                 uint16_t node_id, uint16_t leader_id,
+                                 const PrivKey& privkey,
+                                 const deque<pair<PubKey, Peer>>& committee,
+                                 unsigned char class_byte,
+                                 unsigned char ins_byte,
+                                 ProtoMsgContentValidatorFunc msg_validator)
+    : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
+                      committee, class_byte, ins_byte),
+      m_leaderID(leader_id),
+      m_protoMsgContentValidator(msg_validator),
+      m_useProto(true) {
   LOG_MARKER();
   m_state = INITIAL;
 }

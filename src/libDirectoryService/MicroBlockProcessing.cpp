@@ -40,6 +40,7 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+using namespace ZilliqaMessage;
 
 bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                                    uint32_t shardId) {
@@ -609,7 +610,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
   }
 
   // TODO: Check if every microblock is obtained
-  std::vector<unsigned char> errorMsg;
+  ProtoInvalidBlock errorMsg;
   if (!CheckMicroBlocks(errorMsg)) {
     LOG_GENERAL(WARNING,
                 "Still have missing microblocks after fetching, what to do???");

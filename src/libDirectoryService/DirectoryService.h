@@ -40,6 +40,7 @@
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libLookup/Synchronizer.h"
+#include "libMessage/MessengerErrorMsg.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libPOW/pow.h"
@@ -324,14 +325,14 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // FinalBlockValidator functions
   bool CheckBlockHash();
-  bool CheckFinalBlockValidity(std::vector<unsigned char>& errorMsg);
-  bool CheckMicroBlockValidity(std::vector<unsigned char>& errorMsg);
+  bool CheckFinalBlockValidity(ZilliqaMessage::ProtoInvalidBlock& errorMsg);
+  bool CheckMicroBlockValidity(ZilliqaMessage::ProtoInvalidBlock& errorMsg);
   bool CheckBlockTypeIsFinal();
   bool CheckFinalBlockVersion();
   bool CheckPreviousFinalBlockHash();
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
-  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
+  bool CheckMicroBlocks(ZilliqaMessage::ProtoInvalidBlock& errorMsg,
                         bool fromShards = false);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockInfo();
@@ -355,7 +356,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // Final block consensus validator function
   bool FinalBlockValidator(const std::vector<unsigned char>& message,
                            unsigned int offset,
-                           std::vector<unsigned char>& errorMsg,
+                           ZilliqaMessage::ProtoInvalidBlock& errorMsg,
                            const uint32_t consensusID,
                            const uint64_t blockNumber,
                            const std::vector<unsigned char>& blockHash,

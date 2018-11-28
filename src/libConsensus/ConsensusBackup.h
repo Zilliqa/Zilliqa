@@ -29,6 +29,7 @@
 
 #include "ConsensusCommon.h"
 #include "libCrypto/MultiSig.h"
+#include "libMessage/MessengerErrorMsg.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
@@ -39,6 +40,14 @@ typedef std::function<bool(
     const uint16_t leaderID, const PubKey& leaderKey,
     std::vector<unsigned char>& messageToCosign)>
     MsgContentValidatorFunc;
+
+typedef std::function<bool(
+    const std::vector<unsigned char>& input, unsigned int offset,
+    ZilliqaMessage::ProtoInvalidBlock& errorMsg, const uint32_t consensusID,
+    const uint64_t blockNumber, const std::vector<unsigned char>& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey,
+    std::vector<unsigned char>& messageToCosign)>
+    ProtoMsgContentValidatorFunc;
 
 /// Implements the functionality for the consensus committee backup.
 class ConsensusBackup : public ConsensusCommon {
@@ -59,6 +68,8 @@ class ConsensusBackup : public ConsensusCommon {
 
   // Function handler for validating message content
   MsgContentValidatorFunc m_msgContentValidator;
+  ProtoMsgContentValidatorFunc m_protoMsgContentValidator;
+  bool m_useProto;
 
   // Internal functions
   bool CheckState(Action action);
@@ -68,6 +79,9 @@ class ConsensusBackup : public ConsensusCommon {
   bool GenerateCommitFailureMessage(std::vector<unsigned char>& commitFailure,
                                     unsigned int offset,
                                     const std::vector<unsigned char>& errorMsg);
+  bool GenerateCommitFailureMessage(
+      std::vector<unsigned char>& commitFailure, unsigned int offset,
+      const ZilliqaMessage::ProtoInvalidBlock& errorMsg);
   bool ProcessMessageConsensusFailure(
       [[gnu::unused]] const std::vector<unsigned char>& announcement,
       [[gnu::unused]] unsigned int offset);
@@ -112,6 +126,29 @@ class ConsensusBackup : public ConsensusCommon {
       unsigned char ins_byte,    // instruction byte representing consensus
                                  // messages for the Executable class
       MsgContentValidatorFunc
+          msg_validator  // function handler for validating the content of
+                         // message for consensus (e.g., Tx block)
+  );
+
+  /// Constructor.
+  ConsensusBackup(
+      uint32_t consensus_id,  // unique identifier for this consensus session
+      uint64_t block_number,  // latest final block number
+      const std::vector<unsigned char>&
+          block_hash,    // unique identifier for this consensus session
+      uint16_t node_id,  // backup's identifier (= index in some ordered lookup
+                         // table shared by all nodes)
+      uint16_t leader_id,      // leader's identifier (= index in some ordered
+                               // lookup table shared by all nodes)
+      const PrivKey& privkey,  // backup's private key
+      const std::deque<std::pair<PubKey, Peer>>&
+          committee,  // ordered lookup table of pubkeys for this committee
+                      // (includes leader)
+      unsigned char class_byte,  // class byte representing Executable class
+                                 // using this instance of ConsensusBackup
+      unsigned char ins_byte,    // instruction byte representing consensus
+                                 // messages for the Executable class
+      ProtoMsgContentValidatorFunc
           msg_validator  // function handler for validating the content of
                          // message for consensus (e.g., Tx block)
   );
