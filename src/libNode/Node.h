@@ -355,6 +355,12 @@ class Node : public Executable, public Broadcastable {
 
   void WakeupForRecovery();
 
+  /// Set initial state, variables, and clean-up storage
+  void Init();
+
+  /// Initilize the add genesis block and account
+  void AddGenesisInfo(SyncType syncType);
+
  public:
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
@@ -436,9 +442,6 @@ class Node : public Executable, public Broadcastable {
 
   /// Install the Node
   bool Install(SyncType syncType, bool toRetrieveHistory = true);
-
-  /// Set initial state, variables, and clean-up storage
-  void Init();
 
   // Reset certain variables to the initial state
   bool CleanVariables();

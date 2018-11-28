@@ -352,8 +352,6 @@ void Node::InitiatePoW() {
   };
 
   DetachedFunction(1, func);
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Soln to pow found ");
 }
 
 void Node::UpdateStateForNextConsensusRound() {

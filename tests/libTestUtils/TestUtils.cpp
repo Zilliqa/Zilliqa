@@ -208,4 +208,19 @@ DequeOfShard GenerateDequeueOfShard(size_t size) {
 }
 
 CoSignatures GenerateRandomCoSignatures() { return CoSignatures(Dist1to99()); }
+
+std::string GenerateRandomString(size_t length) {
+  auto randchar = []() -> char {
+    const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    const size_t max_index = (sizeof(charset) - 2);
+    return charset[RandomIntInRng<uint8_t>((uint8_t)0, (uint8_t)max_index)];
+  };
+  std::string str(length, 0);
+  std::generate_n(str.begin(), length, randchar);
+  return str;
+}
+
 }  // namespace TestUtils

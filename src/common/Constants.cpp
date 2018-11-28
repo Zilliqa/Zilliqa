@@ -174,8 +174,8 @@ const unsigned int MAX_TOTAL_ROUNDS{ReadFromConstantsFile("MAX_TOTAL_ROUNDS")};
 const unsigned int ROUND_TIME_IN_MS{ReadFromConstantsFile("ROUND_TIME_IN_MS")};
 const unsigned int MAX_NEIGHBORS_PER_ROUND{
     ReadFromConstantsFile("MAX_NEIGHBORS_PER_ROUND")};
-const unsigned int NUM_NODE_INCR_DIFFICULTY{
-    ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
+const unsigned int EXPECTED_SHARD_NODE_NUM{
+    ReadFromConstantsFile("EXPECTED_SHARD_NODE_NUM")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
 const unsigned int NUM_MICROBLOCK_SENDERS{
@@ -215,6 +215,10 @@ const unsigned int PUMPMESSAGE_MILLISECONDS{
 const unsigned int MAXRETRYCONN{ReadFromConstantsFile("MAXRETRYCONN")};
 const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
     ReadFromConstantsFile("SIMULATED_NETWORK_DELAY_IN_MS")};
+const unsigned int POW_PACKET_SENDERS{
+    ReadFromConstantsFile("POW_PACKET_SENDERS")};
+const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("POWPACKETSUBMISSION_WINDOW_IN_SECONDS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
@@ -242,6 +246,8 @@ const std::string UPGRADE_HOST_ACCOUNT{
     ReadFromOptionsFile("UPGRADE_HOST_ACCOUNT")};
 const std::string UPGRADE_HOST_REPO{ReadFromOptionsFile("UPGRADE_HOST_REPO")};
 const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
+const bool SEND_RESPONSE_FOR_LAZY_PUSH{
+    ReadFromOptionsFile("SEND_RESPONSE_FOR_LAZY_PUSH") == "true"};
 
 // gas
 const unsigned int MICROBLOCK_GAS_LIMIT{

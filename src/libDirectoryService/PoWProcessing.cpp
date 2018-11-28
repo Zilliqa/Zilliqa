@@ -42,15 +42,135 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
+  LOG_MARKER();
+
+  vector<unsigned char> powpacketmessage = {
+      MessageType::DIRECTORY, DSInstructionType::POWPACKETSUBMISSION};
+
+  std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+
+  if (m_powSolutions.empty()) {
+    LOG_GENERAL(INFO, "Didn't receive any pow submissions!!")
+    return true;
+  }
+
+  if (!Messenger::SetDSPoWPacketSubmission(
+          powpacketmessage, MessageOffset::BODY, m_powSolutions)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetDSPoWPacketSubmission failed.");
+    return false;
+  }
+
+  vector<Peer> peerList;
+
+  if (BROADCAST_GOSSIP_MODE) {
+    if (!P2PComm::GetInstance().SpreadRumor(powpacketmessage)) {
+      LOG_GENERAL(INFO,
+                  "Seems same packet was received by me from other DS member. "
+                  "That's even better.")
+      return true;
+    }
+  } else {
+    // To-Do : not urgent , we used gossip mode for now.
+    // check the powpacketmessage already received by me somehow.
+
+    for (auto const& i : *m_mediator.m_DSCommittee) {
+      peerList.push_back(i.second);
+    }
+    P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
+  }
+
+  for (auto& sol : m_powSolutions) {
+    ProcessPoWSubmissionFromPacket(sol);
+  }
+
+  return true;
+}
+
+bool DirectoryService::ProcessPoWPacketSubmission(
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "DirectoryService::ProcessPoWPacketSubmission not expected to be "
+        "called from LookUp node.");
+    return true;
+  }
+
+  std::vector<DSPowSolution> tmp;
+  if (!Messenger::GetDSPowPacketSubmission(message, offset, tmp)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSPowPacketSubmission failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "PoW solutions received in this packet: " << tmp.size());
+  for (auto& sol : tmp) {
+    ProcessPoWSubmissionFromPacket(sol);
+  }
+
+  return true;
+}
+
 bool DirectoryService::ProcessPoWSubmission(
     const vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessPoWSubmission not expected to be "
                 "called from LookUp node.");
+    return true;
+  }
+
+  if (m_consensusMyID >= POW_PACKET_SENDERS) {
+    LOG_GENERAL(WARNING,
+                "I am not supposed to receive individual pow submission. I "
+                "accept only pow submission packets instead!!");
+    return true;
+  }
+
+  uint64_t blockNumber;
+  uint8_t difficultyLevel;
+  Peer submitterPeer;
+  PubKey submitterKey;
+  uint64_t nonce;
+  std::string resultingHash;
+  std::string mixHash;
+  uint32_t lookupId;
+  boost::multiprecision::uint128_t gasPrice;
+  Signature signature;
+  if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
+                                     difficultyLevel, submitterPeer,
+                                     submitterKey, nonce, resultingHash,
+                                     mixHash, signature, lookupId, gasPrice)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DirectoryService::ProcessPowSubmission failed.");
+    return false;
+  }
+
+  {
+    std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+    m_powSolutions.emplace_back(DSPowSolution(
+        blockNumber, difficultyLevel, submitterPeer, submitterKey, nonce,
+        resultingHash, mixHash, lookupId, gasPrice, signature));
+  }
+
+  return true;
+}
+
+bool DirectoryService::ProcessPoWSubmissionFromPacket(
+    const DSPowSolution& sol) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "DirectoryService::ProcessPoWSubmissionFromPacket not expected to be "
+        "called from LookUp node.");
     return true;
   }
 
@@ -73,25 +193,16 @@ bool DirectoryService::ProcessPoWSubmission(
               "Not at POW_SUBMISSION. Current state is " << m_state);
     return false;
   }
-  uint8_t difficultyLevel = 0;
-  uint64_t blockNumber = 0;
-  Peer submitterPeer;
-  PubKey submitterPubKey;
-  uint64_t nonce = 0;
-  string resultingHash;
-  string mixHash;
-  Signature signature;
-  uint32_t lookupId;
-  uint128_t gasPrice;
-
-  if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
-                                     difficultyLevel, submitterPeer,
-                                     submitterPubKey, nonce, resultingHash,
-                                     mixHash, signature, lookupId, gasPrice)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetDSPoWSubmission failed.");
-    return false;
-  }
+  uint8_t difficultyLevel = sol.GetDifficultyLevel();
+  uint64_t blockNumber = sol.GetBlockNumber();
+  Peer submitterPeer = sol.GetSubmitterPeer();
+  PubKey submitterPubKey = sol.GetSubmitterKey();
+  uint64_t nonce = sol.GetNonce();
+  string resultingHash = sol.GetResultingHash();
+  string mixHash = sol.GetMixHash();
+  Signature signature = sol.GetSignature();
+  uint32_t lookupId = sol.GetLookupId();
+  uint128_t gasPrice = sol.GetGasPrice();
 
   // Check block number
   if (!CheckWhetherDSBlockIsFresh(blockNumber)) {
@@ -209,6 +320,11 @@ bool DirectoryService::ProcessPoWSubmission(
                       << DataConversion::charArrToHexStr(
                              m_allPoWs[submitterPubKey].result));
         m_allPoWs[submitterPubKey] = soln;
+      } else if (m_allPoWs[submitterPubKey].result == soln.result) {
+        LOG_GENERAL(INFO,
+                    "Same pow submission may be received from another packet. "
+                    "Ignore it!!")
+        return true;
       }
 
       uint8_t expectedDSDiff = DS_POW_DIFFICULTY;

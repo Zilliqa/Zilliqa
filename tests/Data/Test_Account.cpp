@@ -43,33 +43,104 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   Account acc1(TestUtils::DistUint64(), 0);
   std::vector<unsigned char> data;
   acc1.InitContract(data);
+  acc1.SetInitData(data);
+
+  Account acc2(data, 0);
+  BOOST_CHECK_EQUAL(false, acc2.isContract());
 }
 
 BOOST_AUTO_TEST_CASE(testInit) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
-  Account acc1(TestUtils::DistUint64(), 0);
+  Account acc1 = Account();
+
+  uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
+  acc1.SetCreateBlockNum(CREATEBLOCKNUM);
+  BOOST_CHECK_EQUAL(CREATEBLOCKNUM, acc1.GetCreateBlockNum());
+
+  std::string invalidmessage = "[{\"vname\"]";
+  std::vector<unsigned char> data(invalidmessage.begin(), invalidmessage.end());
+  acc1.InitContract(data);
+
+  invalidmessage = "[{\"vname\":\"name\"}]";
+  data =
+      std::vector<unsigned char>(invalidmessage.begin(), invalidmessage.end());
+  acc1.InitContract(data);
 
   std::string message =
       "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
-
-  std::vector<unsigned char> data(message.begin(), message.end());
+  data = std::vector<unsigned char>(message.begin(), message.end());
   acc1.InitContract(data);
+
+  BOOST_CHECK_EQUAL(true, data == acc1.GetInitData());
+
+  BOOST_CHECK_EQUAL(std::to_string(CREATEBLOCKNUM),
+                    acc1.GetInitJson()[1]["value"].asString());
+}
+
+BOOST_AUTO_TEST_CASE(testStorage) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  Account acc1 = Account();
+  acc1.GetStorageJson();  // Improve coverage
+  acc1.RollBack();        // Improve coverage
+
+  std::vector<unsigned char> code;
+  acc1.SetCode(code);
+  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+
+  acc1.SetStorage("", "", "", false);
+  dev::h256 hash = dev::h256();
+  std::string rlpStr;
+  acc1.SetStorage(hash, rlpStr);
+  acc1.SetStorageRoot(hash);
+
+  BOOST_CHECK_EQUAL(0, acc1.GetStorage("").size());
+  acc1.GetRawStorage(hash);
+
+  size_t CODE_LEN = TestUtils::DistUint16() + 1;
+  code.resize(CODE_LEN, '0');
+
+  acc1.SetCode(code);
+  BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
+  acc1.SetStorage(hash, rlpStr);  // Improve coverage
+  acc1.InitStorage();             // Improve coverage
+  acc1.GetStorageJson();          // Improve coverage
+  dev::h256 storageRoot = acc1.GetStorageRoot();
+  acc1.SetStorageRoot(storageRoot);
+  acc1.RollBack();  // coverage
+
+  uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
+  acc1.SetCreateBlockNum(CREATEBLOCKNUM);
+  BOOST_CHECK_EQUAL(CREATEBLOCKNUM, acc1.GetCreateBlockNum());
+
+  acc1.SetStorage("", "", "", false);
+  acc1.SetStorage(hash, rlpStr);
+  acc1.SetStorageRoot(hash);
+
+  acc1.GetStorage("");
+  acc1.GetRawStorage(hash);
+  std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes();
+  Json::Value storage = acc1.GetStorageJson();
+  acc1.Commit();
+  acc1.RollBack();
+  acc1.InitStorage();  // Improve coverage
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
-  uint128_t balance = TestUtils::DistUint32();
-  Account acc1(balance, 0);
+  uint128_t BALANCE = TestUtils::DistUint32();
+  Account acc1(BALANCE, 0);
 
   uint32_t balance_incr = TestUtils::DistUint32();
   acc1.IncreaseBalance(balance_incr);
   uint128_t CURRENT_BALANCE = acc1.GetBalance();
 
-  BOOST_CHECK_EQUAL(CURRENT_BALANCE, balance + balance_incr);
+  BOOST_CHECK_EQUAL(CURRENT_BALANCE, BALANCE + balance_incr);
 
   BOOST_CHECK_MESSAGE(
       !acc1.DecreaseBalance(CURRENT_BALANCE + TestUtils::DistUint64()),
@@ -85,9 +156,20 @@ BOOST_AUTO_TEST_CASE(testBalance) {
         acc1.ChangeBalance(delta),
         "Balance" << CURRENT_BALANCE << "has to be changed by delta" << delta);
   }
-  balance = TestUtils::DistUint128();
-  acc1.SetBalance(balance);
-  BOOST_CHECK_EQUAL(balance, acc1.GetBalance());
+  BALANCE = TestUtils::DistUint128();
+  if (BALANCE == 0) {
+    BALANCE++;
+  };
+  acc1.SetBalance(BALANCE);
+  acc1.DecreaseBalance(1);
+  BOOST_CHECK_EQUAL(BALANCE - 1, acc1.GetBalance());
+}
+
+BOOST_AUTO_TEST_CASE(testAddresses) {
+  Account acc1(0, 0);
+  Address addr =
+      acc1.GetAddressFromPublicKey(TestUtils::GenerateRandomPubKey());
+  acc1.GetAddressForContract(addr, TestUtils::DistUint64());
 }
 
 BOOST_AUTO_TEST_CASE(testNonce) {
@@ -123,7 +205,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   Account acc2(message1, 0);
 
   std::vector<unsigned char> message2;
-  acc2.Serialize(message2, 0);
+  BOOST_CHECK_EQUAL(true, acc2.Serialize(message2, TestUtils::DistUint8()));
 
   uint128_t acc2Balance = acc2.GetBalance();
 
@@ -134,6 +216,10 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   BOOST_CHECK_MESSAGE(
       acc2.GetCodeHash() == hash,
       "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
+
+  std::vector<unsigned char> dst;
+  BOOST_CHECK_EQUAL(true, acc2.SerializeDelta(dst, 0, &acc1, acc2));
+  BOOST_CHECK_EQUAL(true, acc2.DeserializeDelta(dst, 0, acc1, true));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
