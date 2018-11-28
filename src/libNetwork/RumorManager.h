@@ -62,7 +62,7 @@ class RumorManager {
   int64_t m_rumorIdGenerator;
   std::mutex m_mutex;
   std::mutex m_continueRoundMutex;
-  bool m_continueRound;
+  std::atomic<bool> m_continueRound;
   std::condition_variable m_condStopRound;
 
   void SendMessages(const Peer& toPeer,
