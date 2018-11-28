@@ -334,7 +334,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
 
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
-      LOG_GENERAL(INFO,
+      LOG_GENERAL(WARNING,
                   "Node recovery too late, apply re-join process instead");
       return false;
     }
@@ -368,7 +368,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
        m_mediator.GetIsVacuousEpoch(
            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
            1))) {
-    LOG_GENERAL(INFO,
+    LOG_GENERAL(WARNING,
                 "Node recovery with vacuous epoch or too early, apply "
                 "re-join process instead");
     return false;
