@@ -110,9 +110,6 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 {
   LOG_MARKER();
 
-  // Setting the guard upon process launch
-  Guard::GetInstance().Init();
-
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
     pair<vector<unsigned char>, Peer>* message = NULL;
@@ -148,6 +145,20 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
+
+  if (GUARD_MODE) {
+    // Setting the guard upon process launch
+    Guard::GetInstance().Init();
+
+    if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
+      LOG_GENERAL(INFO, "Current node is a DS guard");
+    } else if (Guard::GetInstance().IsNodeInShardGuardList(
+                   m_mediator.m_selfKey.second)) {
+      LOG_GENERAL(INFO, "Current node is a shard guard");
+    } else {
+      LOG_GENERAL(INFO, "Current node is not a guard node");
+    }
+  }
 
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
     if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
