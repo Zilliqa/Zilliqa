@@ -28,6 +28,7 @@
 #include <string>
 
 #include "Peer.h"
+#include "libConsensus/ConsensusCommon.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -213,11 +214,27 @@ void Guard::AddToExclusionList(const uint128_t& ft, const uint128_t& sd) {
   }
 }
 
+void Guard::ValidateRunTimeEnvironment() {
+  unsigned int nodeReplacementLimit =
+      COMM_SIZE - ceil(COMM_SIZE * ConsensusCommon::TOLERANCE_FRACTION);
+
+  if (NUM_DS_ELECTION > nodeReplacementLimit) {
+    LOG_GENERAL(FATAL,
+                "Check constants configuration. nodeReplacementLimit must be "
+                "bigger than NUM_DS_ELECTION. Refer to design documentation. "
+                "nodeReplacementLimit: "
+                    << nodeReplacementLimit);
+  } else {
+    LOG_GENERAL(INFO, "Passed guard mode run time enviornment validation");
+  }
+}
+
 void Guard::Init() {
   if (GUARD_MODE) {
+    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
+    ValidateRunTimeEnvironment();
     UpdateDSGuardlist();
     UpdateShardGuardlist();
-    LOG_GENERAL(INFO, "In Guard mode. Updating DS and Shard guard lists");
   }
 
   if (EXCLUDE_PRIV_IP) {
