@@ -104,9 +104,6 @@ class ConsensusCommon {
   /// State of the active consensus session.
   ConsensusErrorCode m_consensusErrorCode;
 
-  /// The minimum fraction of peers necessary to achieve consensus.
-  static constexpr double TOLERANCE_FRACTION = 0.667;
-
   /// The unique ID assigned to the active consensus session.
   uint32_t m_consensusID;
 
@@ -205,6 +202,9 @@ class ConsensusCommon {
     return false;  // Should be implemented by ConsensusLeader and
                    // ConsensusBackup
   }
+
+  /// The minimum fraction of peers necessary to achieve consensus.
+  static constexpr double TOLERANCE_FRACTION = 0.667;
 
   /// Returns the state of the active consensus session
   State GetState() const;
