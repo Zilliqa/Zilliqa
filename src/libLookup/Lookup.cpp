@@ -137,6 +137,10 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     return false;
   }
 
+  if (!USE_REMOTE_TXN_CREATOR) {
+    return false;
+  }
+
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
   for (auto& addrStr : GENESIS_WALLETS) {
@@ -3126,6 +3130,11 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       auto transactionNumber = mp[i].size();
 
       LOG_GENERAL(INFO, "Transaction number generated: " << transactionNumber);
+
+      if (m_txnShardMap[i].empty() && mp[i].empty()) {
+        LOG_GENERAL(INFO, "No txns to send to shard " << i);
+        continue;
+      }
 
       result = Messenger::SetNodeForwardTxnBlock(
           msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
