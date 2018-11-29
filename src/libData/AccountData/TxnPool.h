@@ -70,7 +70,7 @@ struct TxnPool {
 
     auto searchNonce = NonceIndex.find({t.GetSenderPubKey(), t.GetNonce()});
     if (searchNonce != NonceIndex.end()) {
-      if (t.GetGasPrice() > searchNonce->second.GetGasPrice()) {
+      if ((t.GetGasPrice() > searchNonce->second.GetGasPrice())|| (t.GetGasPrice() == searchNonce->second.GetGasPrice() && t.GetTranID() < searchNonce->second.GetTranID())) {
         // erase from HashIdxTxns
         auto searchHash = HashIndex.find(searchNonce->second.GetTranID());
         if (searchHash != HashIndex.end()) {
