@@ -958,6 +958,10 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
     }
 
     if (m_numOfAbsentTxnHashes > 0) {
+      {
+        lock_guard<mutex> g(m_mutexCreatedTransactions);
+        LOG_GENERAL(WARNING, m_createdTxns);
+      }
       Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
                                         sizeof(uint32_t));
       Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
