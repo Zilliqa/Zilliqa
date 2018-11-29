@@ -130,6 +130,16 @@ bool Node::ComposeMicroBlock() {
       return false;
     }
   }
+
+#ifdef DM_TEST_DM_BAD_MB_ANNOUNCE
+  if (m_mediator.m_ds->m_viewChangeCounter == 0 &&
+      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+    LOG_GENERAL(WARNING,
+                "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
+    tranHashes.clear();
+  }
+#endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
+
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
