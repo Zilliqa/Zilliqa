@@ -616,13 +616,6 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
         DetachedFunction(1, reprocessconsensus);
         return true;
       }
-    } else if (m_consensusObject->GetConsensusErrorCode() ==
-               ConsensusCommon::INVALID_DS_MICROBLOCK) {
-      auto rerunconsensus = [this]() {
-        RunConsensusOnFinalBlock(SKIP_DSMICROBLOCK);
-      };
-      DetachedFunction(1, rerunconsensus);
-      return true;
     }
 
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),

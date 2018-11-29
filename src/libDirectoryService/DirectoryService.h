@@ -124,7 +124,6 @@ class DirectoryService : public Executable, public Broadcastable {
   // Consensus variables
   std::shared_ptr<ConsensusCommon> m_consensusObject;
   std::vector<unsigned char> m_consensusBlockHash;
-  unsigned int m_numForDSMBConsFail;
   std::atomic<bool> m_skippedDSMB;
   std::mutex m_mutexCommitFailure;
 
@@ -433,7 +432,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   enum RunFinalBlockConsensusOptions : unsigned char {
     NORMAL = 0x00,
-    SKIP_DSMICROBLOCK,
     FROM_VIEWCHANGE
   };
 
