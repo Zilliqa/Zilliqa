@@ -158,6 +158,11 @@ if(DM_TEST_DM_BAD_ANNOUNCE)
     add_definitions(-DDM_TEST_DM_BAD_ANNOUNCE)
 endif()
 
+if(DM_TEST_DM_BAD_MB_ANNOUNCE)
+    message(STATUS "DM 6 test enabled")
+    add_definitions(-DDM_TEST_DM_BAD_MB_ANNOUNCE)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})

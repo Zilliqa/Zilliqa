@@ -236,15 +236,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
       m_microBlocks[m_mediator.m_currentEpochNum].emplace(
           *(m_mediator.m_node->m_microblock));
     }
-  } else if (options == SKIP_DSMICROBLOCK) {
-    if (m_mediator.m_node->m_microblock != nullptr) {
-      auto iter = m_microBlocks[m_mediator.m_currentEpochNum].find(
-          *(m_mediator.m_node->m_microblock));
-      if (iter != m_microBlocks[m_mediator.m_currentEpochNum].end()) {
-        m_microBlocks[m_mediator.m_currentEpochNum].erase(iter);
-      }
-      m_mediator.m_node->m_microblock = nullptr;
-    }
   }
 
   // stores it in m_finalBlock
@@ -281,35 +272,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
     return OnNodeFinalConsensusError(errorMsg, from);
   };
 
-  m_numForDSMBConsFail = 0;
-
-  auto commitFailureFunc =
-      [this]([[gnu::unused]] const map<unsigned int, vector<unsigned char>>&
-                 m) mutable -> bool {
-    lock_guard<mutex> g(m_mutexCommitFailure);
-    if (m_numForDSMBConsFail >=
-            m_consensusObject->GetNumForConsensusFailure() &&
-        !m_skippedDSMB) {
-      // Enough failure received due to ds microblock
-      // Rerun Finalblock without ds microblock
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Enough error commit for ds microblock received, skip ds block "
-                "and rerun finalblock consensus");
-      m_skippedDSMB = true;
-      this_thread::sleep_for(chrono::milliseconds(FINALBLOCK_DELAY_IN_MS));
-      RunConsensusOnFinalBlock(SKIP_DSMICROBLOCK);
-    }
-
-    return true;
-  };
-
   m_consensusObject.reset(new ConsensusLeader(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
       m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
       *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
       static_cast<unsigned char>(FINALBLOCKCONSENSUS), commitErrorFunc,
-      (options == SKIP_DSMICROBLOCK) ? ShardCommitFailureHandlerFunc()
-                                     : commitFailureFunc));
+      ShardCommitFailureHandlerFunc()));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -719,7 +687,6 @@ bool DirectoryService::OnNodeFinalConsensusError(
   switch (type) {
     case FINALCONSENSUSERRORTYPE::CHECKMICROBLOCK: {
       LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
-      ++m_numForDSMBConsFail;
       return true;
     }
     case FINALCONSENSUSERRORTYPE::DSMBMISSINGTXN: {
@@ -1253,30 +1220,12 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   return true;
 }
 
-void DirectoryService::SkipDSMicroBlock() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::SkipDSMicroBlock not expected "
-                "to be called from LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  LOG_GENERAL(WARNING, "Failed DS microblock consensus, revert state delta");
-
-  AccountStore::GetInstance().RevertCommitTemp();
-  AccountStore::GetInstance().InitTemp();
-  AccountStore::GetInstance().DeserializeDeltaTemp(m_stateDeltaFromShards, 0);
-  AccountStore::GetInstance().SerializeDelta();
-  AccountStore::GetInstance().CommitTempReversible();
-}
-
 void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
   if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::SkipDSMicroBlock not expected "
-                "to be called from LookUp node.");
+    LOG_GENERAL(
+        WARNING,
+        "DirectoryService::PrepareRunConsensusOnFinalBlockNormal not expected "
+        "to be called from LookUp node.");
     return;
   }
 
@@ -1310,9 +1259,7 @@ void DirectoryService::RunConsensusOnFinalBlock(
   {
     lock_guard<mutex> g(m_mutexRunConsensusOnFinalBlock);
 
-    if (!((options == SKIP_DSMICROBLOCK &&
-           CheckState(PROCESS_FINALBLOCKCONSENSUS)) ||
-          m_state == VIEWCHANGE_CONSENSUS ||
+    if (!(m_state == VIEWCHANGE_CONSENSUS ||
           m_state == MICROBLOCK_SUBMISSION)) {
       LOG_GENERAL(WARNING,
                   "DirectoryService::RunConsensusOnFinalBlock "
@@ -1337,11 +1284,6 @@ void DirectoryService::RunConsensusOnFinalBlock(
       case NORMAL: {
         LOG_GENERAL(INFO, "RunConsensusOnFinalBlock NORMAL");
         PrepareRunConsensusOnFinalBlockNormal();
-        break;
-      }
-      case SKIP_DSMICROBLOCK: {
-        LOG_GENERAL(INFO, "RunConsensusOnFinalBlock SKIP_DSMICROBLOCK");
-        SkipDSMicroBlock();
         break;
       }
       case FROM_VIEWCHANGE:
@@ -1378,10 +1320,6 @@ void DirectoryService::RunConsensusOnFinalBlock(
     auto func1 = [this]() -> void { CommitFinalBlockConsensusBuffer(); };
 
     DetachedFunction(1, func1);
-  }
-
-  if (SKIP_DSMICROBLOCK) {
-    cv_viewChangeFinalBlock.notify_all();
   }
 
   auto func1 = [this]() -> void {
