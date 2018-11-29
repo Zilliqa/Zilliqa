@@ -365,7 +365,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       hash = HashUtils::BytesToHash(message);
 
       auto it1 = m_rumorIdHashBimap.right.find(message);
-      if (it1 == m_rumorIdHashBimap.right.end()) {
+      if (it1 != m_rumorIdHashBimap.right.end()) {
         recvdRumorId = it1->second;
       }
 
