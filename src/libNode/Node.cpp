@@ -1329,8 +1329,6 @@ void Node::CleanCreatedTransaction() {
     std::lock_guard<mutex> g(m_mutexCreatedTransactions);
     m_createdTxns.clear();
     t_createdTxns.clear();
-    m_addrNonceTxnMap.clear();
-    t_addrNonceTxnMap.clear();
   }
   {
     std::lock_guard<mutex> g(m_mutexTxnPacketBuffer);
