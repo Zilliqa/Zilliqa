@@ -40,9 +40,7 @@ void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
   vector<Peer> allLookupNodes;
 
   for (const auto& node : lookups) {
-    LOG_GENERAL(INFO, "Sending msg to lookup node "
-                          << node.second.GetPrintableIPAddress() << ":"
-                          << node.second.m_listenPortHost);
+    LOG_GENERAL(INFO, "Sending msg to lookup node " << node.second);
 
     allLookupNodes.emplace_back(node.second);
   }
@@ -66,7 +64,7 @@ void SendDataToShardNodesDefault(const vector<unsigned char>& message,
   auto p = shards.begin();
   advance(p, my_shards_lo);
 
-  for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++) {
+  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
     if (BROADCAST_GOSSIP_MODE) {
       // Choose N other Shard nodes to be recipient of final block
       std::vector<Peer> shardReceivers;
@@ -84,14 +82,10 @@ void SendDataToShardNodesDefault(const vector<unsigned char>& message,
 
       for (const auto& kv : *p) {
         shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-        LOG_GENERAL(
-            INFO,
-            " PubKey: " << DataConversion::SerializableToHexStr(
-                               std::get<SHARD_NODE_PUBKEY>(kv))
-                        << " IP: "
-                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                        << " Port: "
-                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+        LOG_GENERAL(INFO, " PubKey: " << DataConversion::SerializableToHexStr(
+                                             std::get<SHARD_NODE_PUBKEY>(kv))
+                                      << " IP:Port "
+                                      << std::get<SHARD_NODE_PEER>(kv));
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(shard_peers, message);
@@ -113,6 +107,10 @@ SendDataToShardFunc SendDataToShardFuncDefault =
        const unsigned int& my_shards_hi) mutable -> void {
   SendDataToShardNodesDefault(message, shards, my_shards_lo, my_shards_hi);
 };
+
+DataSender::DataSender() {}
+
+DataSender::~DataSender() {}
 
 DataSender& DataSender::GetInstance() {
   static DataSender datasender;
@@ -156,10 +154,10 @@ void DataSender::DetermineShardToSendDataTo(
 
   my_cluster_num = indexB2 / MULTICAST_CLUSTER_SIZE;
   my_shards_lo = my_cluster_num * shard_groups_count;
-  my_shards_hi = my_shards_lo + shard_groups_count - 1;
+  my_shards_hi = my_shards_lo + shard_groups_count;
 
   if (my_shards_hi >= shards.size()) {
-    my_shards_hi = shards.size() - 1;
+    my_shards_hi = shards.size();
   }
 }
 
@@ -175,7 +173,7 @@ bool DataSender::SendDataToOthers(
     LOG_GENERAL(WARNING,
                 "DataSender::SendDataToOthers not expected "
                 "to be called from LookUp node.");
-    return true;
+    return false;
   }
 
   LOG_MARKER();
@@ -235,9 +233,9 @@ bool DataSender::SendDataToOthers(
       }
     }
 
-    unsigned int my_cluster_num;
-    unsigned int my_shards_lo;
-    unsigned int my_shards_hi;
+    unsigned int my_cluster_num = UINT_MAX;
+    unsigned int my_shards_lo = 0;
+    unsigned int my_shards_hi = 0;
 
     DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
                                shards, tmpCommittee, indexB2);

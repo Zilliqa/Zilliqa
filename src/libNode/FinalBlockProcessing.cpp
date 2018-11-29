@@ -800,6 +800,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   if (!LOOKUP_NODE_MODE) {
     if (toSendTxnToLookup) {
+      // Update transaction processed
+      UpdateProcessedTransactions();
+
       CallActOnFinalblock();
     }
 

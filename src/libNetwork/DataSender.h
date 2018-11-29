@@ -43,7 +43,14 @@ extern SendDataToLookupFunc SendDataToLookupFuncDefault;
 extern SendDataToShardFunc SendDataToShardFuncDefault;
 
 class DataSender : Singleton<DataSender> {
+  DataSender();
+  ~DataSender();
+
  public:
+  // Singleton should not implement these
+  DataSender(DataSender const&) = delete;
+  void operator=(DataSender const&) = delete;
+
   static DataSender& GetInstance();
 
   void DetermineShardToSendDataTo(
