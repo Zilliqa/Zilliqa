@@ -209,7 +209,10 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     return false;
   }
 
-  // Todo: Reject PoW submissions from existing members of DS committee
+  // Reject PoW submissions from existing members of DS committee
+  if (!CheckSolnFromNonDSCommittee(submitterPubKey, submitterPeer)) {
+    return false;
+  }
 
   if (!CheckState(VERIFYPOW)) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -352,6 +355,29 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   }
 
   return result;
+}
+
+bool DirectoryService::CheckSolnFromNonDSCommittee(
+    const PubKey& submitterPubKey, const Peer& submitterPeer) {
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  for (const auto& dsMember : *m_mediator.m_DSCommittee) {
+    // Reject soln if any of the following condition is true
+    if (dsMember.first == submitterPubKey) {
+      LOG_GENERAL(WARNING,
+                  submitterPubKey
+                      << " is part of the current DS committee. Soln sent from "
+                      << submitterPeer);
+      return false;
+    }
+
+    if (dsMember.second == submitterPeer) {
+      LOG_GENERAL(WARNING,
+                  submitterPeer << " is part of the current DS committee");
+      return false;
+    }
+  }
+  return true;
 }
 
 bool DirectoryService::CheckPoWSubmissionExceedsLimitsForNode(

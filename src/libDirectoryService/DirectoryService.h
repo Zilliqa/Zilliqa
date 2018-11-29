@@ -236,6 +236,9 @@ class DirectoryService : public Executable, public Broadcastable {
 
   bool CheckState(Action action);
 
+  bool CheckSolnFromNonDSCommittee(const PubKey& submitterPubKey,
+                                   const Peer& submitterPeer);
+
   // For PoW submission counter
   bool CheckPoWSubmissionExceedsLimitsForNode(const PubKey& key);
   void UpdatePoWSubmissionCounterforNode(const PubKey& key);

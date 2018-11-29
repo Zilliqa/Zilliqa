@@ -681,7 +681,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
     ResetConsensusId();
 
-    if (m_mediator.m_lookup->GetIsServer() && USE_REMOTE_TXN_CREATOR) {
+    if (m_mediator.m_lookup->GetIsServer()) {
       m_mediator.m_lookup->SenderTxnBatchThread();
     }
 

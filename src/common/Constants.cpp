@@ -215,6 +215,10 @@ const unsigned int POW_PACKET_SENDERS{
     ReadFromConstantsFile("POW_PACKET_SENDERS")};
 const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{
     ReadFromConstantsFile("POWPACKETSUBMISSION_WINDOW_IN_SECONDS")};
+const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{
+    ReadFromConstantsFile("LOOKUP_DELAY_SEND_TXNPACKET_IN_MS")};
+const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
+    ReadFromConstantsFile("DELAY_FIRSTXNEPOCH_IN_MS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
