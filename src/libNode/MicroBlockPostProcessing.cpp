@@ -62,7 +62,7 @@ bool Node::ComposeMicroBlockMessageForSender(
     LOG_GENERAL(WARNING,
                 "Node::ComposeMicroBlockMessageForSender not expected to be "
                 "called from LookUp node.");
-    return true;
+    return false;
   }
 
   microblock_message.clear();
@@ -202,9 +202,6 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
   ConsensusCommon::State state = m_consensusObject->GetState();
 
   if (state == ConsensusCommon::State::DONE) {
-    // Update transaction processed
-    UpdateProcessedTransactions();
-
     // Update the micro block with the co-signatures from the consensus
     m_microblock->SetCoSignatures(*m_consensusObject);
 

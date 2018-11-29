@@ -42,7 +42,7 @@ bool Node::ComposeFallbackBlockMessageForSender(
     LOG_GENERAL(WARNING,
                 "Node::ComposeFallbackBlockMessageForSender not "
                 "expected to be called from LookUp node.");
-    return true;
+    return false;
   }
   fallbackblock_message.clear();
 

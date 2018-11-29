@@ -46,7 +46,7 @@ bool DirectoryService::ComposeVCBlockForSender(
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeVCBlockForSender not "
                 "expected to be called from LookUp node.");
-    return true;
+    return false;
   }
 
   LOG_MARKER();
@@ -138,7 +138,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     m_mode = BACKUP_DS;
   }
 
-  deque<std::pair<PubKey, Peer>> tmpDSCommittee = *(m_mediator.m_DSCommittee);
+  auto tmpDSCommittee = *(m_mediator.m_DSCommittee);
 
   {
     lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);

@@ -94,7 +94,7 @@ bool DirectoryService::ComposeDSBlockMessageForSender(
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeDSBlockMessageForSender not expected "
                 "to be called from LookUp node.");
-    return true;
+    return false;
   }
 
   dsblock_message.clear();
@@ -153,7 +153,7 @@ void DirectoryService::SendDSBlockToShardNodes(
   auto p = shards.begin();
   advance(p, my_shards_lo);
 
-  for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++) {
+  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
     // Get the shard ID from the leader's info in m_publicKeyToshardIdMap
     uint32_t shardId =
         m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
