@@ -137,6 +137,10 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     return false;
   }
 
+  if (!USE_REMOTE_TXN_CREATOR) {
+    return false;
+  }
+
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
   for (auto& addrStr : GENESIS_WALLETS) {
@@ -3119,6 +3123,18 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
     // return;
   }
 
+  // allow receving nodes to be ready with latest DS block ( Only** for first
+  // txn epoch of every ds epoch )
+  if ((m_mediator.m_currentEpochNum == 1) ||
+      (m_mediator.m_currentEpochNum > 1 &&
+       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Waiting for " << LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
+                             << " ms before sending txn packets to shards");
+    this_thread::sleep_for(
+        chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+  }
+
   for (unsigned int i = 0; i < numShards + 1; i++) {
     vector<unsigned char> msg = {MessageType::NODE,
                                  NodeInstructionType::FORWARDTXNPACKET};
@@ -3129,6 +3145,11 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       auto transactionNumber = mp[i].size();
 
       LOG_GENERAL(INFO, "Transaction number generated: " << transactionNumber);
+
+      if (m_txnShardMap[i].empty() && mp[i].empty()) {
+        LOG_GENERAL(INFO, "No txns to send to shard " << i);
+        continue;
+      }
 
       result = Messenger::SetNodeForwardTxnBlock(
           msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
@@ -3156,7 +3177,11 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
       }
 
-      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      if (BROADCAST_GOSSIP_MODE) {
+        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
+      } else {
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      }
 
       DeleteTxnShardMap(i);
     } else if (i == numShards) {
@@ -3172,7 +3197,11 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
       }
 
-      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      if (BROADCAST_GOSSIP_MODE) {
+        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
+      } else {
+        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+      }
 
       LOG_GENERAL(INFO, "[DSMB]"
                             << " Sent DS the txns");

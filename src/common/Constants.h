@@ -184,6 +184,8 @@ extern const unsigned int MAXRETRYCONN;
 extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
 extern const unsigned int POW_PACKET_SENDERS;
 extern const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
+extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
+extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
