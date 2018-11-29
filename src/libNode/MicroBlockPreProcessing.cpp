@@ -162,8 +162,14 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     return true;
   }
 
-  if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset) {
-    LOG_GENERAL(WARNING, "Malformed Message");
+  // [numOfAbsentHashes][epochNum][txnHash...txnHash][portNo]
+  unsigned int expectedErrorMsgSize =
+      sizeof(uint32_t) + sizeof(uint64_t) + offset + sizeof(uint32_t);
+  if (errorMsg.size() < expectedErrorMsgSize) {
+    LOG_GENERAL(WARNING, "Malformed Message. Expected size: "
+                             << expectedErrorMsgSize
+                             << " errorMsg.size(): " << errorMsg.size());
+    LOG_PAYLOAD(WARNING, "errorMsg from " << from, errorMsg, errorMsg.size());
     return false;
   }
 
