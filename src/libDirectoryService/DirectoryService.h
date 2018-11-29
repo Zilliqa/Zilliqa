@@ -157,7 +157,6 @@ class DirectoryService : public Executable, public Broadcastable {
   std::condition_variable cv_MissingMicroBlock;
 
   // View Change
-  std::atomic<uint32_t> m_viewChangeCounter;
   std::atomic<uint32_t> m_candidateLeaderIndex;
   std::vector<std::pair<PubKey, Peer>> m_cumulativeFaultyLeaders;
   std::shared_ptr<VCBlock> m_pendingVCBlock;
@@ -492,6 +491,9 @@ class DirectoryService : public Executable, public Broadcastable {
 
   /// The state (before view change) of this DirectoryService instance.
   std::atomic<DirState> m_viewChangestate;
+
+  /// The counter of viewchange happened during current epoch
+  std::atomic<uint32_t> m_viewChangeCounter;
 
   /// The ID number of this Zilliqa instance for use with consensus operations.
   uint16_t m_consensusMyID;
