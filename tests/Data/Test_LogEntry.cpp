@@ -35,7 +35,6 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   LogEntry le = LogEntry();
   Address addr;
   Json::Value jv;
-  Json::FastWriter fastWriter;
   std::string RET;
   std::string errs;
   Json::CharReaderBuilder readBuilder;
@@ -43,7 +42,7 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   Json::StreamWriterBuilder writeBuilder;
   Json::StreamWriter* writer = writeBuilder.newStreamWriter();
   std::ostringstream oss;
-  //builder["collectComments"] = false;
+  // builder["collectComments"] = false;
 
   BOOST_CHECK_EQUAL(false, le.Install(jv, addr));
 
@@ -56,15 +55,13 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   std::string jv_s =
       "{ \"_eventname\": \"invalid params\", \"params\": [{\"vname\": 1, "
       "\"type\":2, \"value\":3}, {\"type\":2, \"value\":3}]}";
-  cr->parse(jv_s.c_str(), jv_s.c_str() + jv_s.size(), &jv,
-                       &errs);
+  cr->parse(jv_s.c_str(), jv_s.c_str() + jv_s.size(), &jv, &errs);
   BOOST_CHECK_EQUAL(false, le.Install(jv, addr));
 
   jv_s =
       "{ \"_eventname\": \"valid params\", \"params\": [{\"vname\": 1, "
       "\"type\":2, \"value\":3}, {\"vname\": 1, \"type\":2, \"value\":3}]}";
-  cr->parse(jv_s.c_str(), jv_s.c_str() + jv_s.size(), &jv,
-                         &errs);
+  cr->parse(jv_s.c_str(), jv_s.c_str() + jv_s.size(), &jv, &errs);
   BOOST_CHECK_EQUAL(true, le.Install(jv, addr));
 
   LOG_MARKER();
