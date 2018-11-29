@@ -32,7 +32,8 @@
 #include "libData/DataStructures/CircularArray.h"
 #include "libPersistence/BlockStorage.h"
 
-/// Transient storage for DS/Tx/VC blocks.
+/// Transient storage for DS/Tx/ Blocks. The block should have function
+/// .GetHeader().GetBlockNum()
 template <class T>
 class BlockChain {
   std::mutex m_mutexBlocks;
@@ -71,13 +72,14 @@ class BlockChain {
   T GetBlock(const uint64_t& blockNum) {
     std::lock_guard<std::mutex> g(m_mutexBlocks);
 
-    if (blockNum >= m_blocks.size()) {
-      LOG_GENERAL(WARNING, "Block number "
-                               << blockNum
-                               << " absent, a dummy block will be used and "
-                                  "abnormal behavior may happen!");
+    if (m_blocks.size() > 0 &&
+        (m_blocks.back().GetHeader().GetBlockNum() < blockNum)) {
+      LOG_GENERAL(WARNING,
+                  "BlockNum too high " << blockNum << " Dummy block used");
       return T();
-    } else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
+    }
+
+    else if (blockNum + m_blocks.capacity() < m_blocks.size()) {
       return GetBlockFromPersistentStorage(blockNum);
     }
 
@@ -89,10 +91,8 @@ class BlockChain {
                                    "behavior may happen!");
       return T();
     }
-
     return m_blocks[blockNum];
   }
-
   /// Adds a block to the chain.
   int AddBlock(const T& block) {
     uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
@@ -103,9 +103,11 @@ class BlockChain {
         m_blocks[blockNumOfNewBlock].GetHeader().GetBlockNum();
 
     if (blockNumOfExistingBlock < blockNumOfNewBlock ||
-        blockNumOfExistingBlock == (uint64_t)-1) {
+        INIT_BLOCK_NUMBER == blockNumOfExistingBlock) {
       m_blocks.insert_new(blockNumOfNewBlock, block);
     } else {
+      LOG_GENERAL(WARNING, "Failed to add " << blockNumOfNewBlock << " "
+                                            << blockNumOfExistingBlock);
       return -1;
     }
 

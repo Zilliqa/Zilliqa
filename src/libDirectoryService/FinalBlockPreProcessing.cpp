@@ -104,7 +104,7 @@ void DirectoryService::ExtractDataFromMicroblocks(
       numTxs += microBlock.GetHeader().GetNumTxs();
 
       mbInfos.push_back({microBlock.GetBlockHash(),
-                         microBlock.GetHeader().GetNumTxs() == 0,
+                         microBlock.GetHeader().GetTxRootHash(),
                          microBlock.GetHeader().GetShardId()});
     }
   }
@@ -143,7 +143,6 @@ bool DirectoryService::ComposeFinalBlock() {
   }
 
   BlockHash prevHash;
-  uint64_t timestamp = get_time_as_int();
 
   uint64_t blockNum = 0;
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
@@ -185,12 +184,11 @@ bool DirectoryService::ComposeFinalBlock() {
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(
           type, version, allGasLimit, allGasUsed, allRewards, prevHash,
-          blockNum, timestamp, {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
+          blockNum, {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
           m_mediator.m_selfKey.second,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
           committeeHash),
       mbInfos, CoSignatures(m_mediator.m_DSCommittee->size())));
-  m_finalBlock->SetBlockHash(m_finalBlock->GetHeader().GetMyHash());
 
   LOG_STATE(
       "[STATS]["
@@ -474,8 +472,8 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
     const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t finalblockTimestamp = m_finalBlock->GetHeader().GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetHeader().GetTimestamp();
+    uint64_t finalblockTimestamp = m_finalBlock->GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
     if (finalblockTimestamp <= lastTxBlockTimestamp) {
       LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
                                << lastTxBlockTimestamp
@@ -877,22 +875,21 @@ bool DirectoryService::CheckMicroBlockInfo() {
     auto& microBlocks = m_microBlocks[m_mediator.m_currentEpochNum];
     for (auto& microBlock : microBlocks) {
       if (microBlock.GetBlockHash() == microBlockInfos.at(i).m_microBlockHash) {
-        if (m_finalBlock->GetMicroBlockInfos().at(i).m_isMicroBlockEmpty !=
-            (microBlock.GetHeader().GetNumTxs() == 0)) {
+        if (m_finalBlock->GetMicroBlockInfos().at(i).m_txnRootHash !=
+            microBlock.GetHeader().GetTxRootHash()) {
           LOG_GENERAL(
               WARNING,
-              "IsMicroBlockEmpty in proposed final block is incorrect"
+              "MicroBlockInfo::m_txnRootHash in proposed final block is "
+              "incorrect"
                   << endl
                   << "MB Hash: " << microBlockInfos.at(i).m_microBlockHash
                   << endl
-                  << "Expected: " << (microBlock.GetHeader().GetNumTxs() == 0)
+                  << "Expected: " << microBlock.GetHeader().GetTxRootHash()
                   << " Received: "
-                  << m_finalBlock->GetMicroBlockInfos()
-                         .at(i)
-                         .m_isMicroBlockEmpty);
+                  << m_finalBlock->GetMicroBlockInfos().at(i).m_txnRootHash);
 
           m_consensusObject->SetConsensusErrorCode(
-              ConsensusCommon::FINALBLOCK_MICROBLOCK_EMPTY_ERROR);
+              ConsensusCommon::FINALBLOCK_MICROBLOCK_TXNROOT_ERROR);
 
           return false;
         } else if (m_finalBlock->GetMicroBlockInfos().at(i).m_shardId !=
@@ -1072,7 +1069,7 @@ bool DirectoryService::CheckMicroBlockValidity(ProtoInvalidBlock& errorMsg) {
 
   MicroBlockInfo mbInfo{
       m_mediator.m_node->m_microblock->GetBlockHash(),
-      m_mediator.m_node->m_microblock->GetHeader().GetNumTxs() == 0,
+      m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash(),
       m_mediator.m_node->m_microblock->GetHeader().GetShardId()};
 
   // Check whether microblock is in TxBlock

@@ -37,18 +37,18 @@
 
 struct MicroBlockInfo {
   BlockHash m_microBlockHash;
-  bool m_isMicroBlockEmpty;
+  TxnHash m_txnRootHash;
   uint32_t m_shardId;
 
   bool operator==(const MicroBlockInfo& mbInfo) const {
-    return std::tie(m_microBlockHash, m_isMicroBlockEmpty, m_shardId) ==
-           std::tie(mbInfo.m_microBlockHash, mbInfo.m_isMicroBlockEmpty,
+    return std::tie(m_microBlockHash, m_txnRootHash, m_shardId) ==
+           std::tie(mbInfo.m_microBlockHash, mbInfo.m_txnRootHash,
                     mbInfo.m_shardId);
   }
   bool operator<(const MicroBlockInfo& mbInfo) const {
-    return std::tie(mbInfo.m_microBlockHash, mbInfo.m_isMicroBlockEmpty,
+    return std::tie(mbInfo.m_microBlockHash, mbInfo.m_txnRootHash,
                     mbInfo.m_shardId) >
-           std::tie(m_microBlockHash, m_isMicroBlockEmpty, m_shardId);
+           std::tie(m_microBlockHash, m_txnRootHash, m_shardId);
   }
   bool operator>(const MicroBlockInfo& mbInfo) const { return mbInfo < *this; }
 };
@@ -70,8 +70,6 @@ class TxBlock : public BlockBase {
   /// Constructor with specified Tx block parameters.
   TxBlock(const TxBlockHeader& header,
           const std::vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs);
-  TxBlock(const TxBlockHeader& header,
-          const std::vector<MicroBlockInfo>& mbInfos);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;

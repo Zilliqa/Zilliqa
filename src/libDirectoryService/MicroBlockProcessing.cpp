@@ -305,7 +305,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
     for (auto& mb : microBlocksAtEpoch) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Timestamp: " << mb.GetHeader().GetTimestamp()
+                "Timestamp: " << mb.GetTimestamp()
                               << mb.GetHeader().GetStateDeltaHash());
     }
 

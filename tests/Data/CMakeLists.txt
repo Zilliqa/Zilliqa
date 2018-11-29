@@ -3,8 +3,8 @@ configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
 add_executable(Test_Account Test_Account.cpp)
-target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_Account PUBLIC AccountData Crypto Trie Utils Persistence)
+target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_Account PUBLIC AccountData Crypto Trie Utils Persistence TestUtils)
 add_test(NAME Test_Account COMMAND Test_Account Message)
 
 add_executable(Test_AccountStore Test_AccountStore.cpp)
@@ -47,7 +47,7 @@ add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
 #target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_include_directories(Test_Block PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
-#target_link_libraries(Test_Transaction PUBLIC Data Utils Crypto Message)
+#target_link_libraries(Test_Transaction PUBLIC Data Utils Crypto)
 #target_link_libraries(Test_Block PUBLIC Data Utils Crypto)
 
 # To-do: Test_Transaction and Test_Block need to be updated after Predicate has been temporarily commented out

@@ -37,7 +37,7 @@ VCBlockHeader::VCBlockHeader(
     const uint64_t& vieWChangeDSEpochNo, const uint64_t& viewChangeEpochNo,
     const unsigned char viewChangeState, const Peer& candidateLeaderNetworkInfo,
     const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
-    const vector<pair<PubKey, Peer>>& faultyLeaders, const uint64_t& timestamp,
+    const vector<pair<PubKey, Peer>>& faultyLeaders,
     const CommitteeHash& committeeHash, const BlockHash& prevHash)
     : BlockHeaderBase(committeeHash),
       m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
@@ -47,7 +47,6 @@ VCBlockHeader::VCBlockHeader(
       m_CandidateLeaderPubKey(candidateLeaderPubKey),
       m_VCCounter(vcCounter),
       m_FaultyLeaders(faultyLeaders),
-      m_Timestamp(timestamp),
       m_prevHash(prevHash) {}
 
 bool VCBlockHeader::Serialize(vector<unsigned char>& dst,
@@ -96,8 +95,6 @@ const vector<pair<PubKey, Peer>>& VCBlockHeader::GetFaultyLeaders() const {
   return m_FaultyLeaders;
 };
 
-const uint64_t& VCBlockHeader::GetTimeStamp() const { return m_Timestamp; }
-
 bool VCBlockHeader::operator==(const VCBlockHeader& header) const {
   return (
       (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
@@ -106,8 +103,7 @@ bool VCBlockHeader::operator==(const VCBlockHeader& header) const {
       (m_CandidateLeaderNetworkInfo == header.m_CandidateLeaderNetworkInfo) &&
       (m_CandidateLeaderPubKey == header.m_CandidateLeaderPubKey) &&
       (m_VCCounter == header.m_VCCounter) &&
-      (m_FaultyLeaders == header.m_FaultyLeaders) &&
-      (m_Timestamp == header.m_Timestamp));
+      (m_FaultyLeaders == header.m_FaultyLeaders));
 }
 
 bool VCBlockHeader::operator<(const VCBlockHeader& header) const {
@@ -115,7 +111,6 @@ bool VCBlockHeader::operator<(const VCBlockHeader& header) const {
   return (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
          (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
          (m_ViewChangeState == header.m_ViewChangeState) &&
-         (m_Timestamp == header.m_Timestamp) &&
          (m_VCCounter < header.m_VCCounter);
 }
 
@@ -124,6 +119,5 @@ bool VCBlockHeader::operator>(const VCBlockHeader& header) const {
   return (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
          (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
          (m_ViewChangeState == header.m_ViewChangeState) &&
-         (m_Timestamp == header.m_Timestamp) &&
          (m_VCCounter > header.m_VCCounter);
 }

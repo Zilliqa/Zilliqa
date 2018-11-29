@@ -81,6 +81,7 @@ message ProtoBlockBase
     }
     required bytes blockhash            = 1;
     required CoSignatures cosigs        = 2;
+    required uint64 timestamp           = 3;
 }
 
 message ProtoShardingStructureWithPoWSolns
@@ -192,23 +193,22 @@ message ProtoDSBlock
     }
     message DSBlockHeader
     {
-        required uint32 dsdifficulty    = 1; // only LSB used
-        required uint32 difficulty      = 2; // only LSB used
+        optional uint32 dsdifficulty    = 1; // only LSB used
+        optional uint32 difficulty      = 2; // only LSB used
         required bytes prevhash         = 3; // 32 bytes
         required ByteArray leaderpubkey = 4;
         required uint64 blocknum        = 5;
         required uint64 epochnum        = 6;
-        required ByteArray gasprice     = 7;
-        required uint64 timestamp       = 8;
-        required ByteArray swinfo       = 9;
+        optional ByteArray gasprice     = 7;
+        required ByteArray swinfo       = 8;
         message PowDSWinners
         {
             required ByteArray key      = 1;
             required ByteArray val      = 2;
         }
-        repeated PowDSWinners dswinners = 10;
-        required DSBlockHashSet hash    = 11;
-        required bytes committeehash    = 12;
+        repeated PowDSWinners dswinners = 9;
+        required DSBlockHashSet hash    = 10;
+        required bytes committeehash    = 11;
     }
     required DSBlockHeader header       = 1;
     required ProtoBlockBase blockbase   = 2;
@@ -226,14 +226,13 @@ message ProtoMicroBlock
         required ByteArray rewards     = 6;
         required bytes prevhash        = 7;
         required uint64 epochnum       = 8;
-        required uint64 timestamp   = 9;
-        required bytes txroothash      = 10;
-        required uint32 numtxs         = 11;
-        required ByteArray minerpubkey = 12;
-        required uint64 dsblocknum     = 13;
-        required bytes statedeltahash  = 14;
-        required bytes tranreceipthash = 15;
-        required bytes committeehash   = 16;
+        required bytes txroothash      = 9;
+        required uint32 numtxs         = 10;
+        required ByteArray minerpubkey = 11;
+        required uint64 dsblocknum     = 12;
+        required bytes statedeltahash  = 13;
+        required bytes tranreceipthash = 14;
+        required bytes committeehash   = 15;
     }
     required MicroBlockHeader header   = 1;
     repeated bytes tranhashes          = 2;
@@ -242,9 +241,9 @@ message ProtoMicroBlock
 
 message ProtoMbInfo
 {
-    repeated bytes mbhashes         = 1;
-    repeated bool ismicroblockempty = 2 [packed=true];
-    repeated uint32 shardids        = 3;
+    required bytes mbhash   = 1;
+    required bytes txroot   = 2;
+    required uint32 shardid = 3;
 }
 
 message ProtoTxBlock
@@ -264,16 +263,15 @@ message ProtoTxBlock
         required ByteArray rewards              = 5;
         required bytes prevhash                 = 6;
         required uint64 blocknum                = 7;
-        required uint64 timestamp            = 8;
-        required TxBlockHashSet hash            = 9;
-        required uint32 numtxs                  = 10;
-        required ByteArray minerpubkey          = 11;
-        required uint64 dsblocknum              = 12;
-        required bytes committeehash            = 13;
+        required TxBlockHashSet hash            = 8;
+        required uint32 numtxs                  = 9;
+        required ByteArray minerpubkey          = 10;
+        required uint64 dsblocknum              = 11;
+        required bytes committeehash            = 12;
     }
     required TxBlockHeader header               = 1;
-    required ProtoMbInfo mbinfo                 = 3;
-    required ProtoBlockBase blockbase           = 4;
+    repeated ProtoMbInfo mbinfos                = 2;
+    required ProtoBlockBase blockbase           = 3;
 }
 
 message ProtoVCBlock
@@ -287,9 +285,8 @@ message ProtoVCBlock
         required ByteArray candidateleaderpubkey      = 5;
         required uint32 vccounter                     = 6;
         repeated ProtoDSNode faultyleaders            = 7;
-        required uint64 timestamp                  = 8;
-        required bytes committeehash                  = 9;
-        required bytes prevhash                       = 10;
+        required bytes committeehash                  = 8;
+        required bytes prevhash                       = 9;
     }
     required VCBlockHeader header                     = 1;
     required ProtoBlockBase blockbase                 = 2;
@@ -307,9 +304,8 @@ message ProtoFallbackBlock
         required ByteArray leadernetworkinfo = 6;
         required ByteArray leaderpubkey      = 7;
         required uint32 shardid              = 8;
-        required uint64 timestamp         = 9;
-        required bytes committeehash         = 10;
-        required bytes prevhash              = 11;
+        required bytes committeehash         = 9;
+        required bytes prevhash              = 10;
     }
     required FallbackBlockHeader header      = 1;
     required ProtoBlockBase blockbase        = 2;
@@ -335,6 +331,11 @@ message DSPoWSubmission
     }
     required Data data                     = 1;
     required ByteArray signature           = 2;
+}
+
+message DSPoWPacketSubmission
+{
+    repeated DSPoWSubmission dsPowSubmissions        = 1;
 }
 
 message DSMicroBlockSubmission
@@ -534,9 +535,9 @@ message LookupGetStateFromSeed
 
 message LookupSetStateFromSeed
 {
-    required ByteArray accounts  = 1;
-    required ByteArray pubkey    = 2;
-    required ByteArray signature = 3;
+    required ByteArray accountstore          = 1;
+    required ByteArray pubkey                = 2;
+    required ByteArray signature             = 3;
 }
 
 message LookupSetLookupOffline

@@ -31,8 +31,9 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/Whitelist.h"
+#include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -41,15 +42,135 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
+  LOG_MARKER();
+
+  vector<unsigned char> powpacketmessage = {
+      MessageType::DIRECTORY, DSInstructionType::POWPACKETSUBMISSION};
+
+  std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+
+  if (m_powSolutions.empty()) {
+    LOG_GENERAL(INFO, "Didn't receive any pow submissions!!")
+    return true;
+  }
+
+  if (!Messenger::SetDSPoWPacketSubmission(
+          powpacketmessage, MessageOffset::BODY, m_powSolutions)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetDSPoWPacketSubmission failed.");
+    return false;
+  }
+
+  vector<Peer> peerList;
+
+  if (BROADCAST_GOSSIP_MODE) {
+    if (!P2PComm::GetInstance().SpreadRumor(powpacketmessage)) {
+      LOG_GENERAL(INFO,
+                  "Seems same packet was received by me from other DS member. "
+                  "That's even better.")
+      return true;
+    }
+  } else {
+    // To-Do : not urgent , we used gossip mode for now.
+    // check the powpacketmessage already received by me somehow.
+
+    for (auto const& i : *m_mediator.m_DSCommittee) {
+      peerList.push_back(i.second);
+    }
+    P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
+  }
+
+  for (auto& sol : m_powSolutions) {
+    ProcessPoWSubmissionFromPacket(sol);
+  }
+
+  return true;
+}
+
+bool DirectoryService::ProcessPoWPacketSubmission(
+    const vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "DirectoryService::ProcessPoWPacketSubmission not expected to be "
+        "called from LookUp node.");
+    return true;
+  }
+
+  std::vector<DSPowSolution> tmp;
+  if (!Messenger::GetDSPowPacketSubmission(message, offset, tmp)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSPowPacketSubmission failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "PoW solutions received in this packet: " << tmp.size());
+  for (auto& sol : tmp) {
+    ProcessPoWSubmissionFromPacket(sol);
+  }
+
+  return true;
+}
+
 bool DirectoryService::ProcessPoWSubmission(
     const vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessPoWSubmission not expected to be "
                 "called from LookUp node.");
+    return true;
+  }
+
+  if (m_consensusMyID >= POW_PACKET_SENDERS) {
+    LOG_GENERAL(WARNING,
+                "I am not supposed to receive individual pow submission. I "
+                "accept only pow submission packets instead!!");
+    return true;
+  }
+
+  uint64_t blockNumber;
+  uint8_t difficultyLevel;
+  Peer submitterPeer;
+  PubKey submitterKey;
+  uint64_t nonce;
+  std::string resultingHash;
+  std::string mixHash;
+  uint32_t lookupId;
+  boost::multiprecision::uint128_t gasPrice;
+  Signature signature;
+  if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
+                                     difficultyLevel, submitterPeer,
+                                     submitterKey, nonce, resultingHash,
+                                     mixHash, signature, lookupId, gasPrice)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "DirectoryService::ProcessPowSubmission failed.");
+    return false;
+  }
+
+  {
+    std::unique_lock<std::mutex> lk(m_mutexPowSolution);
+    m_powSolutions.emplace_back(DSPowSolution(
+        blockNumber, difficultyLevel, submitterPeer, submitterKey, nonce,
+        resultingHash, mixHash, lookupId, gasPrice, signature));
+  }
+
+  return true;
+}
+
+bool DirectoryService::ProcessPoWSubmissionFromPacket(
+    const DSPowSolution& sol) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "DirectoryService::ProcessPoWSubmissionFromPacket not expected to be "
+        "called from LookUp node.");
     return true;
   }
 
@@ -72,39 +193,26 @@ bool DirectoryService::ProcessPoWSubmission(
               "Not at POW_SUBMISSION. Current state is " << m_state);
     return false;
   }
-  uint8_t difficultyLevel = 0;
-  uint64_t blockNumber = 0;
-  Peer submitterPeer;
-  PubKey submitterPubKey;
-  uint64_t nonce = 0;
-  string resultingHash;
-  string mixHash;
-  Signature signature;
-  uint32_t lookupId;
-  uint128_t gasPrice;
-
-  if (!Messenger::GetDSPoWSubmission(message, offset, blockNumber,
-                                     difficultyLevel, submitterPeer,
-                                     submitterPubKey, nonce, resultingHash,
-                                     mixHash, signature, lookupId, gasPrice)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetDSPoWSubmission failed.");
-    return false;
-  }
+  uint8_t difficultyLevel = sol.GetDifficultyLevel();
+  uint64_t blockNumber = sol.GetBlockNumber();
+  Peer submitterPeer = sol.GetSubmitterPeer();
+  PubKey submitterPubKey = sol.GetSubmitterKey();
+  uint64_t nonce = sol.GetNonce();
+  string resultingHash = sol.GetResultingHash();
+  string mixHash = sol.GetMixHash();
+  Signature signature = sol.GetSignature();
+  uint32_t lookupId = sol.GetLookupId();
+  uint128_t gasPrice = sol.GetGasPrice();
 
   // Check block number
   if (!CheckWhetherDSBlockIsFresh(blockNumber)) {
     return false;
   }
 
-  if (TEST_NET_MODE && not Whitelist::GetInstance().IsNodeInDSWhiteList(
-                           submitterPeer, submitterPubKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Submitted PoW but node is not in DS whitelist. Hence, "
-              "not accepted!");
+  // Reject PoW submissions from existing members of DS committee
+  if (!CheckSolnFromNonDSCommittee(submitterPubKey, submitterPeer)) {
+    return false;
   }
-
-  // Todo: Reject PoW submissions from existing members of DS committee
 
   if (!CheckState(VERIFYPOW)) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -115,7 +223,7 @@ bool DirectoryService::ProcessPoWSubmission(
     return true;
   }
 
-  if (!Whitelist::GetInstance().IsValidIP(submitterPeer.m_ipAddress)) {
+  if (!Guard::GetInstance().IsValidIP(submitterPeer.m_ipAddress)) {
     LOG_GENERAL(WARNING,
                 "IP belong to private ip subnet or is a broadcast address");
     return false;
@@ -132,16 +240,19 @@ bool DirectoryService::ProcessPoWSubmission(
                 << DataConversion::SerializableToHexStr(submitterPubKey));
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Winner Peer ip addr           = " << submitterPeer);
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Difficulty                    = " << to_string(difficultyLevel));
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "dsblock_num            = " << blockNumber);
+            "dsblock_num                  = " << blockNumber);
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
+  uint8_t expectedShardGuardDiff = 1;
 
   // Non-genesis block
   if (blockNumber > 1) {
@@ -151,21 +262,33 @@ bool DirectoryService::ProcessPoWSubmission(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty();
   }
 
-  if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
-    LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
-                             << to_string(difficultyLevel)
-                             << " Expected: " << to_string(expectedDSDiff)
-                             << " or " << to_string(expectedDiff));
-    // TODO: penalise sender in reputation manager
-    return false;
+  if (!GUARD_MODE) {
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff) {
+      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
+                               << to_string(difficultyLevel)
+                               << " Expected: " << to_string(expectedDSDiff)
+                               << " or " << to_string(expectedDiff));
+      // TODO: penalise sender in reputation manager
+      return false;
+    }
+  } else {
+    if (difficultyLevel != expectedDSDiff && difficultyLevel != expectedDiff &&
+        difficultyLevel != expectedShardGuardDiff) {
+      LOG_GENERAL(WARNING, "Difficulty level is invalid. difficultyLevel: "
+                               << to_string(difficultyLevel)
+                               << " Expected: " << to_string(expectedDSDiff)
+                               << " or " << to_string(expectedDiff) << " or "
+                               << to_string(expectedShardGuardDiff));
+      // TODO: penalise sender in reputation manager
+      return false;
+    }
   }
 
   m_timespec = r_timer_start();
 
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, rand1, rand2, submitterPeer.m_ipAddress,
-      submitterPubKey, lookupId, gasPrice, false, nonce, resultingHash,
-      mixHash);
+      submitterPubKey, lookupId, gasPrice, nonce, resultingHash, mixHash);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
@@ -200,6 +323,11 @@ bool DirectoryService::ProcessPoWSubmission(
                       << DataConversion::charArrToHexStr(
                              m_allPoWs[submitterPubKey].result));
         m_allPoWs[submitterPubKey] = soln;
+      } else if (m_allPoWs[submitterPubKey].result == soln.result) {
+        LOG_GENERAL(INFO,
+                    "Same pow submission may be received from another packet. "
+                    "Ignore it!!")
+        return true;
       }
 
       uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
@@ -227,6 +355,29 @@ bool DirectoryService::ProcessPoWSubmission(
   }
 
   return result;
+}
+
+bool DirectoryService::CheckSolnFromNonDSCommittee(
+    const PubKey& submitterPubKey, const Peer& submitterPeer) {
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  for (const auto& dsMember : *m_mediator.m_DSCommittee) {
+    // Reject soln if any of the following condition is true
+    if (dsMember.first == submitterPubKey) {
+      LOG_GENERAL(WARNING,
+                  submitterPubKey
+                      << " is part of the current DS committee. Soln sent from "
+                      << submitterPeer);
+      return false;
+    }
+
+    if (dsMember.second == submitterPeer) {
+      LOG_GENERAL(WARNING,
+                  submitterPeer << " is part of the current DS committee");
+      return false;
+    }
+  }
+  return true;
 }
 
 bool DirectoryService::CheckPoWSubmissionExceedsLimitsForNode(

@@ -1,39 +1,29 @@
-set(LIBRARY ethash)
+# ethash: C/C++ implementation of Ethash, the Ethereum Proof of Work algorithm.
+# Copyright 2018 Pawel Bylica.
+# Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
-if (CPPETHEREUM)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-endif ()
+project(ethash)
+set(PROJECT_VERSION 0.3.0)
 
-set(CMAKE_BUILD_TYPE Release)
+if(CABLE_COMPILER_GNULIKE)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Og")
 
-if (NOT MSVC)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+    if(NOT CMAKE_CROSSCOMPILING)
+        # Tune for currently most common CPUs (flag not supported in cross compilation).
+        add_compile_options(-mtune=generic)
+    endif()
+elseif(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    # For Win32 builds allow allocating more than 2 GB of memory.
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LARGEADDRESSAWARE")
 endif()
 
-set(FILES 	util.h
-          	io.c
-          	internal.c
-          	ethash.h
-          	endian.h
-          	compiler.h
-          	fnv.h
-          	data_sizes.h)
+option(ETHASH_INSTALL_CMAKE_CONFIG "Install CMake configuration scripts for find_package(CONFIG)" ON)
 
-if (MSVC)
-	list(APPEND FILES util_win32.c io_win32.c mmap_win32.c)
-else()
-	list(APPEND FILES io_posix.c)
+option(ETHASH_FUZZING "Build with fuzzer instrumentation" OFF)
+if(ETHASH_FUZZING)
+    set(CMAKE_EXE_LINKER_FLAGS "-fsanitize=fuzzer-no-link ${CMAKE_EXE_LINKER_FLAGS}")
+    add_compile_options(-fno-omit-frame-pointer -fsanitize=fuzzer,undefined,integer -fno-sanitize-recover=all)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/src/)
-list(APPEND FILES sha3.c sha3.h)
-
-add_library(ethash SHARED ${FILES})
-
-if (CRYPTOPP_FOUND)
-	TARGET_LINK_LIBRARIES(ethash ${CRYPTOPP_LIBRARIES})
-endif()
-
-if (UNIX AND NOT APPLE)
-	TARGET_LINK_LIBRARIES(ethash pthread m)
-endif()
+add_subdirectory(lib/ethash)

@@ -25,6 +25,7 @@
 #include "libData/AccountData/ForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
+#include "libData/MiningData/DSPowSolution.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
@@ -90,7 +91,8 @@ class Messenger {
 
   static bool SetDSBlockHeader(std::vector<unsigned char>& dst,
                                const unsigned int offset,
-                               const DSBlockHeader& dsBlockHeader);
+                               const DSBlockHeader& dsBlockHeader,
+                               bool concreteVarsOnly = false);
   static bool GetDSBlockHeader(const std::vector<unsigned char>& src,
                                const unsigned int offset,
                                DSBlockHeader& dsBlockHeader);
@@ -204,6 +206,14 @@ class Messenger {
       PubKey& submitterPubKey, uint64_t& nonce, std::string& resultingHash,
       std::string& mixHash, Signature& signature, uint32_t& lookupId,
       boost::multiprecision::uint128_t& gasPrice);
+
+  static bool SetDSPoWPacketSubmission(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::vector<DSPowSolution>& dsPowSolutions);
+
+  static bool GetDSPowPacketSubmission(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::vector<DSPowSolution>& dsPowSolutions);
 
   static bool SetDSMicroBlockSubmission(
       std::vector<unsigned char>& dst, const unsigned int offset,
@@ -491,8 +501,7 @@ class Messenger {
       const AccountStore& accountStore);
   static bool GetLookupSetStateFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      PubKey& lookupPubKey,
-      std::unordered_map<Address, Account>& addressToAccount);
+      PubKey& lookupPubKey, std::vector<unsigned char>& accountStoreBytes);
   static bool SetLookupSetLookupOffline(std::vector<unsigned char>& dst,
                                         const unsigned int offset,
                                         const uint32_t listenPort);

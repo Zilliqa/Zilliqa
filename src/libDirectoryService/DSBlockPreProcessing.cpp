@@ -31,7 +31,9 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
+#include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -134,7 +136,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   m_publicKeyToshardIdMap.clear();
 
   if (sortedPoWSolns.size() < m_mediator.GetShardSize(false)) {
-    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size");
+    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size. sortedPoWSolns: "
+                             << sortedPoWSolns.size());
   }
 
   std::set<PubKey> setTopPriorityNodes;
@@ -249,6 +252,28 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
 
     // Injecting into sorted PoWs
     copy(PubKeyHash.begin(), PubKeyHash.end(), PubKeyHashArr.begin());
+
+    // Check whether injected node submit soln (maliciously)
+    // This could happen if the node rejoin as a normal shard node by submitting
+    // PoW and DS committee injected it
+    bool isDupPubKey = false;
+    for (const auto& soln : sortedPoWSolns) {
+      if (soln.second == nodePubKey) {
+        LOG_GENERAL(WARNING,
+                    "Injected node also submitted a soln. "
+                        << m_mediator.m_DSCommittee
+                               ->at(m_mediator.m_DSCommittee->size() - 1 - i)
+                               .second);
+        isDupPubKey = true;
+        break;
+      }
+    }
+
+    // Skip the injection for this node if it is duplicated
+    if (isDupPubKey) {
+      continue;
+    }
+
     sortedPoWSolns.emplace_back(PubKeyHashArr, nodePubKey);
     sha2.Reset();
     serializedPubK.clear();
@@ -306,7 +331,7 @@ bool DirectoryService::VerifyPoWWinner(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
-            dsPowSoln.gasPrice, false, dsPowSoln.nonce,
+            dsPowSoln.gasPrice, dsPowSoln.nonce,
             DataConversion::charArrToHexStr(dsPowSoln.result),
             DataConversion::charArrToHexStr(dsPowSoln.mixhash));
         if (!result) {
@@ -632,16 +657,88 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
                           << " to avoid going over COMM_SIZE " << COMM_SIZE);
 
     unsigned int count = 0;
-    for (auto kv = PoWOrderSorter.begin();
-         (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
-         kv++, count++) {
-      sortedPoWSolns.emplace_back(*kv);
+    if (!GUARD_MODE) {
+      for (auto kv = PoWOrderSorter.begin();
+           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed);
+           kv++, count++) {
+        sortedPoWSolns.emplace_back(*kv);
+      }
+    } else {
+      // If total num of shard nodes to be trim, ensure shard guards do not get
+      // trimmed. To do it, a new map  will be created to included all shard
+      // guards and a subset of normal shard nods
+      // Steps:
+      // 1. Maintain a map that called "FilteredPoWOrderSorter". It will
+      // eventually contains Shard guards + subset of normal nodes
+      // 2. Maintain a shadow copy of "PoWOrderSorter" called
+      // "ShadowPoWOrderSorter". It is to track non guards node.
+      // 3. Add shard guards to "FilteredPoWOrderSorter" ands remove it from
+      // "ShadowPoWOrderSorter"
+      // 4. If there are still slots left, obtained remaining normal shard node
+      // from "ShadowPoWOrderSorter". Use it to populate
+      // "FilteredPoWOrderSorter"
+      // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
+      // "PoWOrderSorter"
+      unsigned int trimmedGuardCount =
+          ceil(numNodesTrimmed * ConsensusCommon::TOLERANCE_FRACTION);
+      unsigned int trimmedNonGuardCount = numNodesTrimmed - trimmedGuardCount;
+
+      if (trimmedGuardCount + trimmedNonGuardCount < numNodesTrimmed) {
+        LOG_GENERAL(WARNING,
+                    "Network has less than 1/3 non shard guard node. Filling "
+                    "it with guard nodes");
+        trimmedGuardCount +=
+            (numNodesTrimmed - trimmedGuardCount - trimmedNonGuardCount);
+      }
+
+      // Assign all shard guards first
+      std::map<array<unsigned char, 32>, PubKey> FilteredPoWOrderSorter;
+      std::map<array<unsigned char, 32>, PubKey> ShadowPoWOrderSorter =
+          PoWOrderSorter;
+
+      // Add shard guards to "FilteredPoWOrderSorter"
+      // Remove it from "ShadowPoWOrderSorter"
+      for (auto kv = PoWOrderSorter.begin();
+           (kv != PoWOrderSorter.end()) && (count < numNodesTrimmed); kv++) {
+        if (Guard::GetInstance().IsNodeInShardGuardList(kv->second)) {
+          if (count == trimmedGuardCount) {
+            LOG_GENERAL(
+                INFO,
+                "Did not manage to form max number of shard. Only allowed "
+                    << trimmedGuardCount << " shard guards");
+            break;
+          }
+          FilteredPoWOrderSorter.emplace(*kv);
+          ShadowPoWOrderSorter.erase(kv->first);
+          count++;
+        }
+      }
+
+      // Assign non shard guards if there is any slots
+      for (auto kv = ShadowPoWOrderSorter.begin();
+           (kv != ShadowPoWOrderSorter.end()) && (count < numNodesTrimmed);
+           kv++) {
+        FilteredPoWOrderSorter.emplace(*kv);
+        count++;
+      }
+
+      // Sort "FilteredPoWOrderSorter" and stored it in "sortedPoWSolns"
+      for (auto kv : FilteredPoWOrderSorter) {
+        sortedPoWSolns.emplace_back(kv);
+      }
+      LOG_GENERAL(INFO, "trimmedGuardCount: "
+                            << trimmedGuardCount
+                            << " trimmedNonGuardCount: " << trimmedNonGuardCount
+                            << " Total number of accepted soln: "
+                            << sortedPoWSolns.size());
     }
+
   } else {
     for (const auto& kv : PoWOrderSorter) {
       sortedPoWSolns.emplace_back(kv);
     }
   }
+
   return sortedPoWSolns;
 }
 
@@ -729,14 +826,13 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum,
-                      m_mediator.m_currentEpochNum, GetNewGasPrice(),
-                      get_time_as_int(), m_mediator.m_curSWInfo, powDSWinners,
-                      dsBlockHashSet, committeeHash),
-        CoSignatures(m_mediator.m_DSCommittee->size())));
-    m_pendingDSBlock->SetBlockHash(m_pendingDSBlock->GetHeader().GetMyHash());
+    m_pendingDSBlock.reset(
+        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
+                                  m_mediator.m_selfKey.second, blockNum,
+                                  m_mediator.m_currentEpochNum,
+                                  GetNewGasPrice(), m_mediator.m_curSWInfo,
+                                  powDSWinners, dsBlockHashSet, committeeHash),
+                    CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -747,7 +843,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // Create new consensus object
   uint32_t consensusID = 0;
   m_consensusBlockHash =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
 #ifdef VC_TEST_DS_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
@@ -762,7 +858,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
     LOG_EPOCH(
         WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "I am suspending myself to test viewchange (VC_TEST_DS_SUsPEND_3)");
+        "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_3)");
     return false;
   }
 #endif  // VC_TEST_DS_SUSPEND_3
@@ -906,6 +1002,20 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  // Check timestamp (must be greater than timestamp of last Tx block header in
+  // the Tx blockchain)
+  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
+    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    uint64_t thisDSTimestamp = m_pendingDSBlock->GetTimestamp();
+    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
+    if (thisDSTimestamp <= lastTxBlockTimestamp) {
+      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
+                               << lastTxBlockTimestamp
+                               << " DSBlock: " << thisDSTimestamp);
+      return false;
+    }
+  }
+
   // Verify the DSBlockHashSet member of the DSBlockHeader
   ShardingHash shardingHash;
   if (!Messenger::GetShardingStructureHash(m_tempShards, shardingHash)) {
@@ -1044,7 +1154,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   // Dummy values for now
   uint32_t consensusID = 0x0;
   m_consensusBlockHash =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes();
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto func = [this](const vector<unsigned char>& input, unsigned int offset,
                      vector<unsigned char>& errorMsg,

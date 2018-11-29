@@ -48,17 +48,14 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
   uint64_t genesisBlockNumer = 0;
   uint64_t genesisEpochNumer = 0;
-  uint64_t genesisTimestamp = 0;
   std::map<PubKey, Peer> powDSWinners;
 
   // FIXME: Handle exceptions.
   DSBlock dsBlock(
       DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
                     genesisBlockNumer, genesisEpochNumer, PRECISION_MIN_VALUE,
-                    genesisTimestamp, SWInfo(), powDSWinners, DSBlockHashSet(),
-                    CommitteeHash()),
+                    SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
       CoSignatures());
-  dsBlock.SetBlockHash(dsBlock.GetHeader().GetMyHash());
   return dsBlock;
 }
 
@@ -92,12 +89,10 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
 
   std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
 
-  TxBlock txBlock(
-      TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1, 1,
-                    BlockHash(), 0, 151384616955606, TxBlockHashSet(), 0,
-                    keypair.second, 0, CommitteeHash()),
-      vector<MicroBlockInfo>(), CoSignatures());
-  txBlock.SetBlockHash(txBlock.GetHeader().GetMyHash());
+  TxBlock txBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
+                                1, 1, BlockHash(), 0, TxBlockHashSet(), 0,
+                                keypair.second, 0, CommitteeHash()),
+                  vector<MicroBlockInfo>(), CoSignatures());
   return txBlock;
 }
 

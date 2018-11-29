@@ -45,7 +45,7 @@ const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
   for (auto const& i : v) {
     Json::Value mbInfoJson;
     mbInfoJson["MicroBlockHash"] = i.m_microBlockHash.hex();
-    mbInfoJson["MicroBlockEmpty"] = i.m_isMicroBlockEmpty ? 1 : 0;
+    mbInfoJson["MicroBlockTxnRootHash"] = i.m_txnRootHash.hex();
     mbInfoJson["MicroBlockShardId"] = i.m_shardId;
     mbInfosJson.append(mbInfosJson);
   }
@@ -66,7 +66,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["Rewards"] = txheader.GetRewards().str();
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = to_string(txheader.GetTimestamp());
+  ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
 
   ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
   ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
@@ -103,7 +103,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   ret_header["prevhash"] = dshead.GetPrevHash().hex();
   ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
   ret_header["blockNum"] = to_string(dshead.GetBlockNum());
-  ret_header["timestamp"] = to_string(dshead.GetTimestamp());
+  ret_header["timestamp"] = to_string(dsblock.GetTimestamp());
 
   ret["header"] = ret_header;
 

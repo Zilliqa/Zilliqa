@@ -130,8 +130,6 @@ const unsigned int CONSENSUS_OBJECT_TIMEOUT{
     ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
     ReadFromConstantsFile("FETCHING_MISSING_DATA_TIMEOUT")};
-const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT{
-    ReadFromConstantsFile("DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT")};
 const unsigned int NUM_FINAL_BLOCK_PER_POW{
     ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
 const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
@@ -176,8 +174,8 @@ const unsigned int MAX_TOTAL_ROUNDS{ReadFromConstantsFile("MAX_TOTAL_ROUNDS")};
 const unsigned int ROUND_TIME_IN_MS{ReadFromConstantsFile("ROUND_TIME_IN_MS")};
 const unsigned int MAX_NEIGHBORS_PER_ROUND{
     ReadFromConstantsFile("MAX_NEIGHBORS_PER_ROUND")};
-const unsigned int NUM_NODE_INCR_DIFFICULTY{
-    ReadFromConstantsFile("NUM_NODE_INCR_DIFFICULTY")};
+const unsigned int EXPECTED_SHARD_NODE_NUM{
+    ReadFromConstantsFile("EXPECTED_SHARD_NODE_NUM")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
 const unsigned int NUM_MICROBLOCK_SENDERS{
@@ -217,6 +215,14 @@ const unsigned int PUMPMESSAGE_MILLISECONDS{
 const unsigned int MAXRETRYCONN{ReadFromConstantsFile("MAXRETRYCONN")};
 const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
     ReadFromConstantsFile("SIMULATED_NETWORK_DELAY_IN_MS")};
+const unsigned int POW_PACKET_SENDERS{
+    ReadFromConstantsFile("POW_PACKET_SENDERS")};
+const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{
+    ReadFromConstantsFile("POWPACKETSUBMISSION_WINDOW_IN_SECONDS")};
+const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{
+    ReadFromConstantsFile("LOOKUP_DELAY_SEND_TXNPACKET_IN_MS")};
+const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
+    ReadFromConstantsFile("DELAY_FIRSTXNEPOCH_IN_MS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
@@ -225,7 +231,7 @@ const unsigned int FALLBACK_TEST_EPOCH{
 
 // options
 const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
-const bool TEST_NET_MODE{ReadFromOptionsFile("TEST_NET_MODE") == "true"};
+const bool GUARD_MODE{ReadFromOptionsFile("GUARD_MODE") == "true"};
 const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
 const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE") ==
                              "true"};
@@ -244,6 +250,8 @@ const std::string UPGRADE_HOST_ACCOUNT{
     ReadFromOptionsFile("UPGRADE_HOST_ACCOUNT")};
 const std::string UPGRADE_HOST_REPO{ReadFromOptionsFile("UPGRADE_HOST_REPO")};
 const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
+const bool SEND_RESPONSE_FOR_LAZY_PUSH{
+    ReadFromOptionsFile("SEND_RESPONSE_FOR_LAZY_PUSH") == "true"};
 
 // gas
 const unsigned int MICROBLOCK_GAS_LIMIT{

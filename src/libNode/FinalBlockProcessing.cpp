@@ -79,7 +79,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
                 << txBlock.GetHeader().GetBlockNum()
                 << " with Type: " << to_string(txBlock.GetHeader().GetType())
                 << ", Version: " << txBlock.GetHeader().GetVersion()
-                << ", Timestamp: " << txBlock.GetHeader().GetTimestamp()
+                << ", Timestamp: " << txBlock.GetTimestamp()
                 << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());
 
   // Store Tx Block to disk
@@ -135,8 +135,9 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
 
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
-      if (!info.m_isMicroBlockEmpty) {
-        m_unavailableMicroBlocks[blocknum].emplace_back(info.m_microBlockHash);
+      if (info.m_txnRootHash != TxnHash()) {
+        m_unavailableMicroBlocks[blocknum].push_back(
+            {info.m_microBlockHash, info.m_txnRootHash});
       }
     } else {
       if (info.m_shardId == m_myshardId) {
@@ -153,7 +154,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
         } else {
           if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
             if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
-              if (!info.m_isMicroBlockEmpty) {
+              if (info.m_txnRootHash != TxnHash()) {
                 toSendTxnToLookup = true;
               } else {
                 LOG_GENERAL(WARNING,
@@ -161,7 +162,7 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                 << m_microblock->GetHeader().GetTxRootHash()
                                 << ") is not null"
                                    " but isMicroBlockEmpty for me is "
-                                << info.m_isMicroBlockEmpty);
+                                << info.m_txnRootHash);
                 return false;
               }
             }
@@ -198,8 +199,16 @@ bool Node::RemoveTxRootHashFromUnavailableMicroBlock(
     const ForwardedTxnEntry& entry) {
   for (auto it = m_unavailableMicroBlocks.at(entry.m_blockNum).begin();
        it != m_unavailableMicroBlocks.at(entry.m_blockNum).end(); it++) {
-    if (*it == entry.m_hash) {
-      LOG_GENERAL(INFO, "Remove microblock" << *it);
+    if (it->first == entry.m_hash) {
+      TxnHash txnHash = ComputeRoot(entry.m_transactions);
+      if (it->second != txnHash) {
+        LOG_GENERAL(
+            WARNING,
+            "TxnRootHash computed from forwarded txns doesn't match, expected: "
+                << it->second << " received: " << txnHash);
+        return false;
+      }
+      LOG_GENERAL(INFO, "Remove microblock" << it->first);
       LOG_GENERAL(INFO,
                   "Microblocks count before removing: "
                       << m_unavailableMicroBlocks.at(entry.m_blockNum).size());
@@ -325,8 +334,9 @@ void Node::InitiatePoW() {
   }
 
   SetState(POW_SUBMISSION);
-  POW::GetInstance().EthashConfigureLightClient(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+  POW::GetInstance().EthashConfigureClient(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+      FULL_DATASET_MINE);
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Start pow ");
   auto func = [this]() mutable -> void {
@@ -342,8 +352,6 @@ void Node::InitiatePoW() {
   };
 
   DetachedFunction(1, func);
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Soln to pow found ");
 }
 
 void Node::UpdateStateForNextConsensusRound() {
@@ -611,32 +619,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                              [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
-  if (!LOOKUP_NODE_MODE) {
-    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum) {
-      std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
-      if (cv_FBWaitMB.wait_for(
-              cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
-          std::cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
-      }
-    }
-
-    PrepareGoodStateForFinalBlock();
-
-    if (!CheckState(PROCESS_FINALBLOCK)) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Too late - current state is " << m_state << ".");
-      return false;
-    }
-  }
-
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED FINAL BLOCK");
-
   uint32_t shardId = std::numeric_limits<uint32_t>::max();
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
@@ -649,6 +631,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
               "Messenger::GetNodeFinalBlock failed.");
     return false;
   }
+
+  lock_guard<mutex> g(m_mutexFinalBlock);
 
   BlockHash temp_blockHash = txBlock.GetHeader().GetMyHash();
   if (temp_blockHash != txBlock.GetBlockHash()) {
@@ -722,7 +706,31 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  lock_guard<mutex> g(m_mutexFinalBlock);
+  if (!LOOKUP_NODE_MODE) {
+    if (m_lastMicroBlockCoSig.first != m_mediator.m_currentEpochNum) {
+      std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
+      if (cv_FBWaitMB.wait_for(
+              cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
+      }
+    }
+
+    PrepareGoodStateForFinalBlock();
+
+    if (!CheckState(PROCESS_FINALBLOCK)) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Too late - current state is " << m_state << ".");
+      return false;
+    }
+  }
+
+  LOG_STATE(
+      "[FLBLK]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] RECEIVED FINAL BLOCK");
 
   bool toSendTxnToLookup = false;
 
@@ -812,8 +820,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     // Now only forwarded txn are left, so only call in lookup
     CommitForwardedTransactionBuffer();
     m_mediator.m_lookup->CommitMicroBlockStorage();
-    if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch &&
-        USE_REMOTE_TXN_CREATOR) {
+    if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch) {
       m_mediator.m_lookup->SenderTxnBatchThread();
     }
   }
@@ -910,7 +917,8 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
               " microblock bodies in finalblock "
                   << it.first << ": " << it.second.size());
     for (auto it2 : it.second) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), it2);
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                it2.first);
     }
   }
 
