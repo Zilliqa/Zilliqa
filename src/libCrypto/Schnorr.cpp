@@ -180,7 +180,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
 }
 
 PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false) {
-  // kpriv->d should be in [1,...,order-1]
+  // kpriv->d should be in [2,...,order-1]
   // -1 means no constraint on the MSB of kpriv->d
   // 0 means no constraint on the LSB of kpriv->d
 
@@ -189,13 +189,12 @@ PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false) {
 
     m_initialized = true;
     do {
-      if (!BN_rand(m_d.get(), BN_num_bits(curve.m_order.get()), -1, 0)) {
+      if (!BN_rand_range(m_d.get(), curve.m_order.get())) {
         LOG_GENERAL(WARNING, "Private key generation failed");
         m_initialized = false;
         break;
       }
-    } while (BN_is_zero(m_d.get()) || BN_is_one(m_d.get()) ||
-             (BN_cmp(m_d.get(), curve.m_order.get()) != -1));
+    } while (BN_is_zero(m_d.get()) || BN_is_one(m_d.get()));
   } else {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
@@ -596,9 +595,9 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
   // 2. Compute the commitment Q = kG, where  G is the base point
   // 3. Compute the challenge r = H(Q, kpub, m)
   // 4. If r = 0 mod(order), goto 1
-  // 4. Compute s = k - r*kpriv mod(order)
-  // 5. If s = 0 goto 1.
-  // 5  Signature on m is (r, s)
+  // 5. Compute s = k - r*kpriv mod(order)
+  // 6. If s = 0 goto 1.
+  // 7  Signature on m is (r, s)
 
   vector<unsigned char> buf(PUBKEY_COMPRESSED_SIZE_BYTES);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
