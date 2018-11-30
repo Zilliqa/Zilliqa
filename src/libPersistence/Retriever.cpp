@@ -149,8 +149,7 @@ bool Retriever::RetrieveTxBlocks(bool wakeupForUpgrade) {
 bool Retriever::RetrieveBlockLink(bool wakeupForUpgrade) {
   std::list<BlockLink> blocklinks;
 
-  std::deque<std::pair<PubKey, Peer>>& dsComm =
-      m_mediator.m_blocklinkchain.GetBuiltDSComm();
+  auto dsComm = m_mediator.m_blocklinkchain.GetBuiltDSComm();
 
   if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
     LOG_GENERAL(WARNING, "RetrieveTxBlocks skipped or incompleted");
@@ -231,6 +230,7 @@ bool Retriever::RetrieveBlockLink(bool wakeupForUpgrade) {
         return false;
       }
       m_mediator.m_node->UpdateDSCommiteeComposition(dsComm, *dsblock);
+      m_mediator.m_blocklinkchain.SetBuiltDSComm(dsComm);
       m_mediator.m_dsBlockChain.AddBlock(*dsblock);
 
     } else if (std::get<BlockLinkIndex::BLOCKTYPE>(blocklink) ==
