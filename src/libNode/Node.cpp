@@ -319,8 +319,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
         LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
         return false;
       }
-    }
-    {
+
       unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
@@ -334,15 +333,15 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                cv_status::timeout);
 
       m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
-    }
 
-    /// If node recovery lagging behind too much, apply re-join
-    /// process instead of node recovery
-    if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
-      LOG_GENERAL(WARNING,
-                  "Node recovery lagging behind too much, apply re-join "
-                  "process instead");
-      return false;
+      /// If node recovery lagging behind too much, apply re-join
+      /// process instead of node recovery
+      if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
+        LOG_GENERAL(WARNING,
+                    "Node recovery lagging behind too much, apply re-join "
+                    "process instead");
+        return false;
+      }
     }
 
     /// Retrieve lacked final-block state-delta from lookup nodes
