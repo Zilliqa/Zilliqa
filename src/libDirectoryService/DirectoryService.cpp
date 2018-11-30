@@ -508,13 +508,15 @@ bool DirectoryService::FinishRejoinAsDS() {
     if (!GUARD_MODE) {
       m_consensusLeaderID = DataConversion::charArrTo16Bits(
                                 m_mediator.m_dsBlockChain.GetLastBlock()
-                                    .GetBlockHash()
+                                    .GetHeader()
+                                    .GetHashForRandom()
                                     .asBytes()) %
                             dsSize;
     } else {
       m_consensusLeaderID = DataConversion::charArrTo16Bits(
                                 m_mediator.m_dsBlockChain.GetLastBlock()
-                                    .GetBlockHash()
+                                    .GetHeader()
+                                    .GetHashForRandom()
                                     .asBytes()) %
                             Guard::GetInstance().GetNumOfDSGuard();
     }
