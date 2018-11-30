@@ -3211,7 +3211,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         if (blocktype == BlockType::DS) {
           uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
               m_mediator.m_dsBlockChain.GetLastBlock()
-                  .GetBlockHash()
+                  .GetHeader()
+                  .GetHashForRandom()
                   .asBytes());
           uint32_t leader_id = 0;
           if (!GUARD_MODE) {
