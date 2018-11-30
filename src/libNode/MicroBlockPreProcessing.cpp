@@ -277,7 +277,9 @@ void Node::ProcessTransactionWhenShardLeader() {
   t_processedTransactions.clear();
   m_TxnOrder.clear();
 
-  auto findOneFromAddrNonceTxnMap = [](Transaction& t, map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap) -> bool {
+  auto findOneFromAddrNonceTxnMap =
+      [](Transaction& t,
+         map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap) -> bool {
     for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
          it++) {
       if (it->second.begin()->first ==
@@ -400,11 +402,9 @@ void Node::ProcessTransactionWhenShardLeader() {
       break;
     }
   }
-  //Put txns in map back into pool
-  for(const auto& kv: t_addrNonceTxnMap)
-  {
-    for(const auto& nonceTxn: kv.second)
-    {
+  // Put txns in map back into pool
+  for (const auto& kv : t_addrNonceTxnMap) {
+    for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
     }
   }
@@ -463,7 +463,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
 
-  auto findOneFromAddrNonceTxnMap = [](Transaction& t, std::map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap) -> bool {
+  auto findOneFromAddrNonceTxnMap =
+      [](Transaction& t,
+         std::map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap)
+      -> bool {
     for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
          it++) {
       if (it->second.begin()->first ==
@@ -571,12 +574,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
   }
 
-  //Put remaining txns back in pool
+  // Put remaining txns back in pool
 
-  for(const auto& kv: t_addrNonceTxnMap)
-  {
-    for(const auto& nonceTxn: kv.second)
-    {
+  for (const auto& kv : t_addrNonceTxnMap) {
+    for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
     }
   }
