@@ -628,8 +628,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     ProcessTxnBodySharingAssignment();
   }
 
-  BlockStorage::GetBlockStorage().PutShardStructure(
-      m_shards, m_mediator.m_node->m_myshardId);
+  BlockStorage::GetBlockStorage().PutShardStructure(m_shards);
 
   {
     // USe mutex during the composition and sending of vcds block message

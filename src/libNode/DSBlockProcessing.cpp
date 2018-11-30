@@ -561,8 +561,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   m_mediator.m_ds->m_shardSenders = move(t_shardSenders);
 
   m_myshardId = shardId;
-  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
-                                                    m_myshardId);
+  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards);
 
   LogReceivedDSBlockDetails(dsblock);
 

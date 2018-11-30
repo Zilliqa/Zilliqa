@@ -547,23 +547,11 @@ bool BlockStorage::GetDSCommittee(
   return true;
 }
 
-bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
-                                     const uint32_t myshardId) {
+bool BlockStorage::PutShardStructure(const DequeOfShard& shards) {
   LOG_MARKER();
 
   m_shardStructureDB->ResetDB();
   unsigned int index = 0;
-  string shardId = to_string(myshardId);
-
-  if (0 !=
-      m_shardStructureDB->Insert(
-          index++, vector<unsigned char>(shardId.begin(), shardId.end()))) {
-    LOG_GENERAL(WARNING, "Failed to store shard ID:" << myshardId);
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Stored shard ID:" << myshardId);
-
   vector<unsigned char> shardStructure;
 
   if (!Messenger::ShardStructureToArray(shardStructure, 0, shards)) {
@@ -580,20 +568,10 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
   return true;
 }
 
-bool BlockStorage::GetShardStructure(DequeOfShard& shards,
-                                     atomic<uint32_t>& myshardId) {
+bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   LOG_MARKER();
 
   unsigned int index = 0;
-  string strMyshardId = m_shardStructureDB->Lookup(index++);
-
-  if (strMyshardId.empty()) {
-    LOG_GENERAL(WARNING, "Cannot retrieve sharding structure!");
-    return false;
-  }
-
-  myshardId = stoul(strMyshardId);
-  LOG_GENERAL(INFO, "Retrieved shard ID: " << myshardId);
   string dataStr = m_shardStructureDB->Lookup(index++);
   Messenger::ArrayToShardStructure(
       vector<unsigned char>(dataStr.begin(), dataStr.end()), 0, shards);
