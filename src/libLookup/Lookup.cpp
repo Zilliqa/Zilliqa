@@ -3165,7 +3165,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       {
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
         auto it = m_mediator.m_ds->m_shards.at(i).begin();
-
+        //[FIX-ME]: Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
         for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP &&
                                  it != m_mediator.m_ds->m_shards.at(i).end();
              j++, it++) {
