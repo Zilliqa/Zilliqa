@@ -130,6 +130,16 @@ bool Node::ComposeMicroBlock() {
       return false;
     }
   }
+
+#ifdef DM_TEST_DM_BAD_MB_ANNOUNCE
+  if (m_mediator.m_ds->m_viewChangeCounter == 0 &&
+      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE) {
+    LOG_GENERAL(WARNING,
+                "Leader compose wrong state root (DM_TEST_DM_BAD_ANNOUNCE)");
+    tranHashes.clear();
+  }
+#endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
+
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
@@ -273,11 +283,13 @@ void Node::ProcessTransactionWhenShardLeader() {
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   t_createdTxns = m_createdTxns;
-  t_addrNonceTxnMap = m_addrNonceTxnMap;
+  map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
   m_TxnOrder.clear();
 
-  auto findOneFromAddrNonceTxnMap = [this](Transaction& t) -> bool {
+  auto findOneFromAddrNonceTxnMap =
+      [](Transaction& t,
+         map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap) -> bool {
     for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
          it++) {
       if (it->second.begin()->first ==
@@ -309,7 +321,7 @@ void Node::ProcessTransactionWhenShardLeader() {
 
     // check m_addrNonceTxnMap contains any txn meets right nonce,
     // if contains, process it
-    if (findOneFromAddrNonceTxnMap(t)) {
+    if (findOneFromAddrNonceTxnMap(t, t_addrNonceTxnMap)) {
       // check whether m_createdTransaction have transaction with same Addr and
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
@@ -400,6 +412,12 @@ void Node::ProcessTransactionWhenShardLeader() {
       break;
     }
   }
+  // Put txns in map back into pool
+  for (const auto& kv : t_addrNonceTxnMap) {
+    for (const auto& nonceTxn : kv.second) {
+      t_createdTxns.insert(nonceTxn.second);
+    }
+  }
 }
 
 bool Node::ProcessTransactionWhenShardBackup(
@@ -428,9 +446,7 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_addrNonceTxnMap = std::move(t_addrNonceTxnMap);
     m_createdTxns = std::move(t_createdTxns);
-    t_addrNonceTxnMap.clear();
     t_createdTxns.clear();
   }
 
@@ -453,11 +469,14 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 
   t_createdTxns = m_createdTxns;
-  t_addrNonceTxnMap = m_addrNonceTxnMap;
   vector<TxnHash> t_tranHashes;
+  map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
 
-  auto findOneFromAddrNonceTxnMap = [this](Transaction& t) -> bool {
+  auto findOneFromAddrNonceTxnMap =
+      [](Transaction& t,
+         std::map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap)
+      -> bool {
     for (auto it = t_addrNonceTxnMap.begin(); it != t_addrNonceTxnMap.end();
          it++) {
       if (it->second.begin()->first ==
@@ -490,7 +509,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
     // check t_addrNonceTxnMap contains any txn meets right nonce,
     // if contains, process it
-    if (findOneFromAddrNonceTxnMap(t)) {
+    if (findOneFromAddrNonceTxnMap(t, t_addrNonceTxnMap)) {
       // check whether m_createdTransaction have transaction with same Addr and
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
@@ -562,6 +581,14 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       }
     } else {
       break;
+    }
+  }
+
+  // Put remaining txns back in pool
+
+  for (const auto& kv : t_addrNonceTxnMap) {
+    for (const auto& nonceTxn : kv.second) {
+      t_createdTxns.insert(nonceTxn.second);
     }
   }
 

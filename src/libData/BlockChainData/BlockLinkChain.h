@@ -115,7 +115,7 @@ class BlockLinkChain {
     return std::get<BlockLinkIndex::INDEX>(m_blockLinkChain.back());
   }
 
-  std::deque<std::pair<PubKey, Peer>>& GetBuiltDSComm() {
+  const std::deque<std::pair<PubKey, Peer>>& GetBuiltDSComm() {
     return m_builtDsCommittee;
   }
 
