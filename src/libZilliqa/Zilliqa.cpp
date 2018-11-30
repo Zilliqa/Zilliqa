@@ -19,6 +19,7 @@
 
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
+#include <chrono>
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
@@ -61,6 +62,89 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
                                      << peer.m_listenPortHost);
 }
 
+#define MAKE_LITERAL_PAIR(s) \
+  { s, #s }
+
+std::map<unsigned char, std::string> DSInstructionStrings{
+    MAKE_LITERAL_PAIR(SETPRIMARY),
+    MAKE_LITERAL_PAIR(POWSUBMISSION),
+    MAKE_LITERAL_PAIR(DSBLOCKCONSENSUS),
+    MAKE_LITERAL_PAIR(MICROBLOCKSUBMISSION),
+    MAKE_LITERAL_PAIR(FINALBLOCKCONSENSUS),
+    MAKE_LITERAL_PAIR(VIEWCHANGECONSENSUS),
+    MAKE_LITERAL_PAIR(VCPUSHLATESTDSTXBLOCK),
+    MAKE_LITERAL_PAIR(POWPACKETSUBMISSION)};
+
+std::map<unsigned char, std::string> NodeInstructionStrings{
+    MAKE_LITERAL_PAIR(STARTPOW),
+    MAKE_LITERAL_PAIR(DSBLOCK),
+    MAKE_LITERAL_PAIR(SUBMITTRANSACTION),
+    MAKE_LITERAL_PAIR(MICROBLOCKCONSENSUS),
+    MAKE_LITERAL_PAIR(FINALBLOCK),
+    MAKE_LITERAL_PAIR(FORWARDTRANSACTION),
+    MAKE_LITERAL_PAIR(VCBLOCK),
+    MAKE_LITERAL_PAIR(DOREJOIN),
+    MAKE_LITERAL_PAIR(FORWARDTXNPACKET),
+    MAKE_LITERAL_PAIR(FALLBACKCONSENSUS),
+    MAKE_LITERAL_PAIR(FALLBACKBLOCK),
+    MAKE_LITERAL_PAIR(PROPOSEGASPRICE)};
+
+std::map<unsigned char, std::string> LookupInstructionStrings{
+    MAKE_LITERAL_PAIR(GETSEEDPEERS),
+    MAKE_LITERAL_PAIR(SETSEEDPEERS),
+    MAKE_LITERAL_PAIR(GETDSINFOFROMSEED),
+    MAKE_LITERAL_PAIR(SETDSINFOFROMSEED),
+    MAKE_LITERAL_PAIR(GETDSBLOCKFROMSEED),
+    MAKE_LITERAL_PAIR(SETDSBLOCKFROMSEED),
+    MAKE_LITERAL_PAIR(GETTXBLOCKFROMSEED),
+    MAKE_LITERAL_PAIR(SETTXBLOCKFROMSEED),
+    MAKE_LITERAL_PAIR(GETTXBODYFROMSEED),
+    MAKE_LITERAL_PAIR(SETTXBODYFROMSEED),
+    MAKE_LITERAL_PAIR(GETNETWORKIDFROMSEED),
+    MAKE_LITERAL_PAIR(SETNETWORKIDFROMSEED),
+    MAKE_LITERAL_PAIR(GETSTATEFROMSEED),
+    MAKE_LITERAL_PAIR(SETSTATEFROMSEED),
+    MAKE_LITERAL_PAIR(SETLOOKUPOFFLINE),
+    MAKE_LITERAL_PAIR(SETLOOKUPONLINE),
+    MAKE_LITERAL_PAIR(GETOFFLINELOOKUPS),
+    MAKE_LITERAL_PAIR(SETOFFLINELOOKUPS),
+    MAKE_LITERAL_PAIR(RAISESTARTPOW),
+    MAKE_LITERAL_PAIR(GETSTARTPOWFROMSEED),
+    MAKE_LITERAL_PAIR(SETSTARTPOWFROMSEED),
+    MAKE_LITERAL_PAIR(GETSHARDSFROMSEED),
+    MAKE_LITERAL_PAIR(SETSHARDSFROMSEED),
+    MAKE_LITERAL_PAIR(SETMICROBLOCKFROMSEED),
+    MAKE_LITERAL_PAIR(GETMICROBLOCKFROMLOOKUP),
+    MAKE_LITERAL_PAIR(SETMICROBLOCKFROMLOOKUP),
+    MAKE_LITERAL_PAIR(GETTXNFROMLOOKUP),
+    MAKE_LITERAL_PAIR(SETTXNFROMLOOKUP),
+    MAKE_LITERAL_PAIR(GETDIRBLOCKSFROMSEED),
+    MAKE_LITERAL_PAIR(SETDIRBLOCKSFROMSEED),
+    MAKE_LITERAL_PAIR(GETSTATEDELTAFROMSEED),
+    MAKE_LITERAL_PAIR(SETSTATEDELTAFROMSEED),
+    MAKE_LITERAL_PAIR(VCGETLATESTDSTXBLOCK)};
+
+std::map<unsigned char, std::map<unsigned char, std::string>>
+    MessageTypeInstructionStrings{{0, std::map<unsigned char, std::string>()},
+                                  {1, DSInstructionStrings},
+                                  {2, NodeInstructionStrings},
+                                  {3, std::map<unsigned char, std::string>()},
+                                  {4, LookupInstructionStrings}};
+
+std::map<unsigned char, std::string> MessageTypeStrings = {
+    {0, "PM"}, {1, "DS"}, {2, "NODE"}, {3, "NULL"}, {4, "Lookup"}};
+
+/*static*/ std::string Zilliqa::FormatMessageName(unsigned char msgType,
+                                                  unsigned char instruction) {
+  if (msgType >= MessageTypeStrings.size()) return "Invalid MessageType";
+
+  if (instruction >= MessageTypeInstructionStrings[msgType].size())
+    return "Invalid Instruction";
+
+  return MessageTypeStrings[msgType] + "_" +
+         MessageTypeInstructionStrings[msgType][instruction];
+}
+
 void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
@@ -77,8 +161,21 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message) {
         return;
       }
 
+      const auto ins_byte = message->first.at(MessageOffset::INST);
+      const auto msgName = FormatMessageName(msg_type, ins_byte);
+      LOG_GENERAL(
+          INFO, "Size of message " << msgName << " " << message->first.size());
+
+      auto tpStart = std::chrono::high_resolution_clock::now();
+
       bool result = msg_handlers[msg_type]->Execute(
           message->first, MessageOffset::INST, message->second);
+
+      auto tpNow = std::chrono::high_resolution_clock::now();
+      auto timeInMicro = static_cast<int64_t>(
+          (std::chrono::duration<double, std::micro>(tpNow - tpStart)).count());
+      LOG_GENERAL(INFO, "Time to process message " << msgName << " "
+                                                   << timeInMicro << " us");
 
       if (!result) {
         // To-do: Error recovery
