@@ -476,7 +476,8 @@ void Node::WakeupForUpgrade() {
     }
 
     auto func = [this]() mutable -> void {
-      if (m_consensusMyID < POW_PACKET_SENDERS) {
+      if ((m_consensusMyID < POW_PACKET_SENDERS) ||
+          (m_mediator.m_ds->m_mode == DirectoryService::PRIMARY_DS)) {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Waiting " << POW_WINDOW_IN_SECONDS
                              << " seconds, accepting PoW submissions...");
