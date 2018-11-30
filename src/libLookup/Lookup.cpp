@@ -3206,6 +3206,10 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         if (m_mediator.m_DSCommittee->empty()) {
           continue;
         }
+         BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
+         const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
+        if(blocktype == BlockType::DS)
+        {
         uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
             m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
         uint32_t leader_id = 0;
@@ -3216,6 +3220,21 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
         toSend.push_back(m_mediator.m_DSCommittee->at(leader_id).second);
         LOG_GENERAL(INFO, "ds leader id " << leader_id);
+      }
+      else if(blocktype == BlockType::VC)
+      { 
+        VCBlockSharedPtr VCBlockptr;
+        if(!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr))
+        {
+          LOG_GENERAL(WARNING,"Failed to get VC block");
+        }
+        else
+        {
+          toSend.push_back(VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo());
+        }
+      }
+        
       }
 
       if (BROADCAST_GOSSIP_MODE) {
