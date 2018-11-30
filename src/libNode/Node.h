@@ -120,8 +120,6 @@ class Node : public Executable, public Broadcastable {
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
-  std::map<Address, std::map<uint64_t, Transaction>> m_addrNonceTxnMap,
-      t_addrNonceTxnMap;
   std::vector<TxnHash> m_txnsOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
