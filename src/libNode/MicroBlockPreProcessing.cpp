@@ -643,6 +643,15 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
     return false;
   }
+  else 
+  {
+      // we either have all matches or have mismatches but within the tolerance.
+      while (leftIt != t_tranHashes.end())
+      {
+        t_processedTransactions.erase(*leftIt);
+        leftIt++;
+      }
+  }
 
   return true;
 }
