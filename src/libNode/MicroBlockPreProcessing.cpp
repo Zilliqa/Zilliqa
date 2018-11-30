@@ -642,15 +642,18 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
 
     return false;
-  }
-  else 
-  {
-      // we either have all matches or have mismatches but within the tolerance.
-      while (leftIt != t_tranHashes.end())
-      {
-        t_processedTransactions.erase(*leftIt);
-        leftIt++;
+  } else {
+    // we either have all matches or have mismatches but within the tolerance.
+    while (leftIt != t_tranHashes.end()) {
+      // remove since it was not processed.
+      t_processedTransactions.erase(*leftIt);
+      Transaction t;
+      // add since it was not processed
+      if (m_createdTxns.get(*leftIt, t)) {
+        t_createdTxns.insert(t);
       }
+      leftIt++;
+    }
   }
 
   return true;
