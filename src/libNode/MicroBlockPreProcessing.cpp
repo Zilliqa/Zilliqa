@@ -622,7 +622,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Failed to Verify due to bad txn ordering count "
                   << misordertxns << " "
-                  << "exceed limit " << TXN_MISORDER_TOLERANCE);
+                  << "exceed limit " << MAX_MISORDER_TXNS);
 
     for (const auto& th : t_tranHashes) {
       Transaction t;
@@ -644,6 +644,9 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     return false;
   } else {
     // we either have all matches or have mismatches but within the tolerance.
+    LOG_GENERAL(
+        INFO, "misordertxns: " << misordertxns
+                               << ", MAX_MISORDER_TXNS: " << MAX_MISORDER_TXNS);
     while (leftIt != t_tranHashes.end()) {
       // remove since it was not processed.
       t_processedTransactions.erase(*leftIt);
