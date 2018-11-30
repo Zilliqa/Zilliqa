@@ -56,6 +56,8 @@ class Zilliqa {
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
+  static std::string FormatMessageName(unsigned char msgType,
+                                       unsigned char instruction);
   void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
 
  public:

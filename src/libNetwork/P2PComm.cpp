@@ -344,6 +344,124 @@ void P2PComm::ClearBroadcastHashAsync(
   m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
+/*static*/ void P2PComm::ProcessBroadCastMsg(
+    std::vector<unsigned char>& message, const uint32_t messageLength,
+    const Peer& from) {
+  vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
+                                 message.begin() + HDR_LEN + HASH_LEN);
+
+  P2PComm& p2p = P2PComm::GetInstance();
+
+  // Check if this message has been received before
+  bool found = false;
+  {
+    lock_guard<mutex> guard(p2p.m_broadcastHashesMutex);
+
+    found =
+        (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
+    // While we have the lock, we should quickly add the hash
+    if (!found) {
+      SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
+      sha256.Update(message, HDR_LEN + HASH_LEN,
+                    message.size() - HDR_LEN - HASH_LEN);
+      vector<unsigned char> this_msg_hash = sha256.Finalize();
+
+      if (this_msg_hash == msg_hash) {
+        p2p.m_broadcastHashes.insert(this_msg_hash);
+      } else {
+        LOG_GENERAL(WARNING, "Incorrect message hash.");
+        return;
+      }
+    }
+  }
+
+  if (found) {
+    // We already sent and/or received this message before -> discard
+    LOG_GENERAL(INFO, "Discarding duplicate broadcast message.");
+    return;
+  }
+
+  unsigned char msg_type = 0xFF;
+  unsigned char ins_type = 0xFF;
+  if (messageLength - HASH_LEN > MessageOffset::INST) {
+    msg_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::TYPE);
+    ins_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::INST);
+  }
+
+  vector<Peer> broadcast_list =
+      m_broadcast_list_retriever(msg_type, ins_type, from);
+
+  if (broadcast_list.size() > 0) {
+    p2p.RebroadcastMessage(broadcast_list, message, msg_hash);
+  }
+
+  p2p.ClearBroadcastHashAsync(msg_hash);
+
+  LOG_STATE(
+      "[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
+                 << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
+                 << "] RECV");
+
+  // Move the shared_ptr message to raw pointer type
+  pair<vector<unsigned char>, Peer>* raw_message =
+      new pair<vector<unsigned char>, Peer>(
+          vector<unsigned char>(message.begin() + HDR_LEN + HASH_LEN,
+                                message.end()),
+          from);
+  LOG_GENERAL(INFO, "Size of broadcast message: " << message.size());
+
+  // Queue the message
+  m_dispatcher(raw_message);
+}
+
+/*static*/ void P2PComm::ProcessGossipMsg(std::vector<unsigned char>& message,
+                                          Peer& from) {
+  unsigned char gossipMsgTyp = message.at(HDR_LEN);
+
+  const uint32_t gossipMsgRound =
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN) << 24) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 1) << 16) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 2) << 8) +
+      message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 3);
+
+  const uint32_t gossipSenderPort =
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN) << 24) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1) << 16) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2) << 8) +
+      message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
+  from.m_listenPortHost = gossipSenderPort;
+
+  RumorManager::RawBytes rumor_message(
+      message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN +
+          GOSSIP_SNDR_LISTNR_PORT_LEN,
+      message.end());
+
+  P2PComm& p2p = P2PComm::GetInstance();
+  if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
+    LOG_GENERAL(INFO, "Received Gossip of type - FORWARD from Peer :" << from);
+
+    if (p2p.SpreadRumor(rumor_message)) {
+      std::pair<vector<unsigned char>, Peer>* raw_message =
+          new pair<vector<unsigned char>, Peer>(rumor_message, from);
+
+      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+
+      // Queue the message
+      m_dispatcher(raw_message);
+    }
+  } else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
+                                              gossipMsgRound, rumor_message,
+                                              from)) {
+    std::pair<vector<unsigned char>, Peer>* raw_message =
+        new pair<vector<unsigned char>, Peer>(rumor_message, from);
+
+    LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+
+    // Queue the message
+    m_dispatcher(raw_message);
+  }
+}
+
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx) {
   unique_ptr<struct bufferevent, decltype(&bufferevent_free)> socket_closer(
@@ -448,71 +566,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
       return;
     }
 
-    vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
-                                   message.begin() + HDR_LEN + HASH_LEN);
-
-    P2PComm& p2p = P2PComm::GetInstance();
-
-    // Check if this message has been received before
-    bool found = false;
-    {
-      lock_guard<mutex> guard(p2p.m_broadcastHashesMutex);
-
-      found =
-          (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
-      // While we have the lock, we should quickly add the hash
-      if (!found) {
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-        sha256.Update(message, HDR_LEN + HASH_LEN,
-                      message.size() - HDR_LEN - HASH_LEN);
-        vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-        if (this_msg_hash == msg_hash) {
-          p2p.m_broadcastHashes.insert(this_msg_hash);
-        } else {
-          LOG_GENERAL(WARNING, "Incorrect message hash.");
-          return;
-        }
-      }
-    }
-
-    if (found) {
-      // We already sent and/or received this message before -> discard
-      LOG_GENERAL(INFO, "Discarding duplicate broadcast message.");
-      return;
-    }
-
-    unsigned char msg_type = 0xFF;
-    unsigned char ins_type = 0xFF;
-    if (messageLength - HASH_LEN > MessageOffset::INST) {
-      msg_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::TYPE);
-      ins_type = message.at(HDR_LEN + HASH_LEN + MessageOffset::INST);
-    }
-
-    vector<Peer> broadcast_list =
-        m_broadcast_list_retriever(msg_type, ins_type, from);
-
-    if (broadcast_list.size() > 0) {
-      p2p.RebroadcastMessage(broadcast_list, message, msg_hash);
-    }
-
-    p2p.ClearBroadcastHashAsync(msg_hash);
-
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
-                   << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
-                   << "] RECV");
-
-    // Move the shared_ptr message to raw pointer type
-    pair<vector<unsigned char>, Peer>* raw_message =
-        new pair<vector<unsigned char>, Peer>(
-            vector<unsigned char>(message.begin() + HDR_LEN + HASH_LEN,
-                                  message.end()),
-            from);
-    LOG_GENERAL(INFO, "Size of Message: " << message.size());
-
-    // Queue the message
-    m_dispatcher(raw_message);
+    ProcessBroadCastMsg(message, messageLength, from);
   } else if (startByte == START_BYTE_NORMAL) {
     LOG_PAYLOAD(INFO, "Incoming normal message from " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
@@ -522,7 +576,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
         new pair<vector<unsigned char>, Peer>(
             vector<unsigned char>(message.begin() + HDR_LEN, message.end()),
             from);
-    LOG_GENERAL(INFO, "Size of Message: " << message.size());
+    LOG_GENERAL(INFO, "Size of normal message: " << message.size());
 
     // Queue the message
     m_dispatcher(raw_message);
@@ -536,50 +590,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
       return;
     }
 
-    unsigned char gossipMsgTyp = message.at(HDR_LEN);
-
-    const uint32_t gossipMsgRound =
-        (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN) << 24) +
-        (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 1) << 16) +
-        (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 2) << 8) +
-        message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 3);
-
-    const uint32_t gossipSenderPort =
-        (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN) << 24) +
-        (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1)
-         << 16) +
-        (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2) << 8) +
-        message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
-    from.m_listenPortHost = gossipSenderPort;
-
-    RumorManager::RawBytes rumor_message(
-        message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN +
-            GOSSIP_SNDR_LISTNR_PORT_LEN,
-        message.end());
-
-    P2PComm& p2p = P2PComm::GetInstance();
-    if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
-      LOG_GENERAL(INFO,
-                  "Received Gossip of type - FORWARD from Peer :" << from);
-
-      if (p2p.SpreadRumor(rumor_message)) {
-        std::pair<vector<unsigned char>, Peer>* raw_message =
-            new pair<vector<unsigned char>, Peer>(rumor_message, from);
-        LOG_GENERAL(INFO, "Size of Message: " << rumor_message.size());
-
-        // Queue the message
-        m_dispatcher(raw_message);
-      }
-    } else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
-                                                gossipMsgRound, rumor_message,
-                                                from)) {
-      std::pair<vector<unsigned char>, Peer>* raw_message =
-          new pair<vector<unsigned char>, Peer>(rumor_message, from);
-      LOG_GENERAL(INFO, "Size of Message: " << rumor_message.size());
-
-      // Queue the message
-      m_dispatcher(raw_message);
-    }
+    ProcessGossipMsg(message, from);
   } else {
     // Unexpected start byte. Drop this message
     LOG_GENERAL(WARNING, "Incorrect start byte.");
