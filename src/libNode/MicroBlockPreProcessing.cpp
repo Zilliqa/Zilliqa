@@ -565,28 +565,59 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
   }
 
-  if (t_tranHashes == tranHashes) {
-    return true;
-  }
+  // check for txn misorder tolerance
+  const float TXN_MISORDER_TOLERANCE =
+      (float)TXN_MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
+  const uint32_t MAX_MISORDER_TXNS =
+      std::ceil(t_tranHashes.size() * TXN_MISORDER_TOLERANCE);
 
-  for (const auto& th : t_tranHashes) {
-    Transaction t;
-    if (m_createdTxns.get(th, t)) {
-      LOG_GENERAL(INFO, "Expected txn: "
-                            << t.GetTranID() << " " << t.GetSenderAddr() << " "
-                            << t.GetNonce() << " " << t.GetGasPrice());
+  LOG_GENERAL(INFO, "Tolerance = " << std::fixed << std::setprecision(2)
+                                   << TXN_MISORDER_TOLERANCE << " = "
+                                   << MAX_MISORDER_TXNS << " txns.");
+
+  uint32_t orderedtxns = 0;
+  uint32_t misordertxns = 0;
+  auto leftIt = t_tranHashes.begin();
+  auto rightIt = tranHashes.begin();
+  while (leftIt != t_tranHashes.end() && rightIt != tranHashes.end()) {
+    if (*leftIt == *rightIt) {
+      orderedtxns++;
+      leftIt++;
+      rightIt++;
+    } else {
+      break;
     }
   }
-  for (const auto& th : tranHashes) {
-    Transaction t;
-    if (m_createdTxns.get(th, t)) {
-      LOG_GENERAL(INFO, "Received txn: "
-                            << t.GetTranID() << " " << t.GetSenderAddr() << " "
-                            << t.GetNonce() << " " << t.GetGasPrice());
+
+  misordertxns = t_tranHashes.size() - orderedtxns;
+
+  if (misordertxns > MAX_MISORDER_TXNS) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Failed to Verify due to bad txn ordering count "
+                  << misordertxns << " "
+                  << "exceed limit " << TXN_MISORDER_TOLERANCE);
+
+    for (const auto& th : t_tranHashes) {
+      Transaction t;
+      if (m_createdTxns.get(th, t)) {
+        LOG_GENERAL(INFO, "Expected txn: "
+                              << t.GetTranID() << " " << t.GetSenderAddr()
+                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+      }
     }
+    for (const auto& th : tranHashes) {
+      Transaction t;
+      if (m_createdTxns.get(th, t)) {
+        LOG_GENERAL(INFO, "Received txn: "
+                              << t.GetTranID() << " " << t.GetSenderAddr()
+                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+      }
+    }
+
+    return false;
   }
 
-  return false;
+  return true;
 }
 
 bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
