@@ -472,7 +472,7 @@ void DirectoryService::RejoinAsDS() {
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
       m_mediator.m_node->CleanVariables();
-      m_mediator.m_node->Install(SyncType::DS_SYNC, true);
+      m_mediator.m_node->Install(SyncType::DS_SYNC);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);

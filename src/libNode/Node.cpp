@@ -127,14 +127,6 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
           m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
-
-          if (!wakeupForUpgrade) {
-            LOG_GENERAL(INFO,
-                        "Node recovery cannot be applied on DS leader, apply "
-                        "re-join process instead");
-            return false;
-          }
-
           LOG_GENERAL(INFO, "Set as DS leader: "
                                 << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                 << ":"
@@ -272,6 +264,15 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   BlockStorage::GetBlockStorage().GetDSCommittee(
       m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
 
+  bool bDS = false;
+  for (auto& i : *m_mediator.m_DSCommittee) {
+    if (i.first == m_mediator.m_selfKey.second) {
+      i.second = Peer();
+      bDS = true;
+      break;
+    }
+  }
+
   std::vector<unsigned char> metaRes;
   if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::WAKEUPFORUPGRADE,
                                                   metaRes)) {
@@ -335,9 +336,12 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
       m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
     }
 
+    /// If node recovery lagging behind too much, apply re-join
+    /// process instead of node recovery
     if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
       LOG_GENERAL(WARNING,
-                  "Node recovery too late, apply re-join process instead");
+                  "Node recovery lagging behind too much, apply re-join "
+                  "process instead");
       return false;
     }
 
@@ -361,7 +365,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 
-  /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply re-join
+  /// If node recovery with vacuous epoch or in first DS epoch, apply re-join
   /// process instead of node recovery
   if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
@@ -371,7 +375,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
            1))) {
     LOG_GENERAL(WARNING,
-                "Node recovery with vacuous epoch or too early, apply "
+                "Node recovery with vacuous epoch or in first DS epoch, apply "
                 "re-join process instead");
     return false;
   }
@@ -398,8 +402,23 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   }
 
   /// Retrieve sharding structure and setup relative variables
-  BlockStorage::GetBlockStorage().GetShardStructure(
-      m_mediator.m_ds->m_shards, m_mediator.m_node->m_myshardId);
+  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
+
+  if (bDS) {
+    m_myshardId = m_mediator.m_ds->m_shards.size();
+  } else {
+    bool found = false;
+    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size() && !found;
+         ++i) {
+      for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
+        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
+          SetMyshardId(i);
+          found = true;
+          break;
+        }
+      }
+    }
+  }
 
   if (LOOKUP_NODE_MODE) {
     m_mediator.m_lookup->ProcessEntireShardingStructure();
@@ -484,10 +503,10 @@ void Node::WakeupForUpgrade() {
         this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
         // create and send POW submission packets
-        auto func = [this]() mutable -> void {
+        auto func2 = [this]() mutable -> void {
           m_mediator.m_ds->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
         };
-        DetachedFunction(1, func);
+        DetachedFunction(1, func2);
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Waiting "
@@ -568,6 +587,7 @@ void Node::WakeupForRecovery() {
     m_mediator.m_ds->SetState(
         DirectoryService::DirState::MICROBLOCK_SUBMISSION);
     auto func = [this]() mutable -> void {
+      this_thread::sleep_for(chrono::seconds(1));
       m_mediator.m_ds->RunConsensusOnFinalBlock();
     };
     DetachedFunction(1, func);
