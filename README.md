@@ -34,7 +34,7 @@ The current release has the following features implemented:
 * pBFT Consensus for DS block (with sharding structure), Shard microblock, DS microblock, and Final block 
 * [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
 * Data layer and accounts store
-* Look-up nodes to allow new nodes to join and dispatch transactions to correct shards
+* Lookup nodes to allow new nodes to join and dispatch transactions to correct shards
 * Persistent storage for transactions and state
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
 * Transaction verification and receipt
