@@ -12,13 +12,13 @@
 
 Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as _VISA_ and _MasterCard_). More importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
-## _Maoshangwang_ public testnet
+## _Maoshanwang_ public testnet
 
 * [Block Explorer](https://explorer.zilliqa.com/)
 * [API](https://api.zilliqa.com/)
 * [Wallet](https://wallet.zilliqa.com/)
   
-## _Maoshangwang_ small-scale testnet for developers
+## _Maoshanwang_ small-scale testnet for developers
 
 * [Block Explorer](https://explorer-scilla.zilliqa.com)
 * [API](https://api-scilla.zilliqa.com/)
@@ -108,7 +108,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
     pkill zilliqa
     ``` 
 
-## Joining the _Maoshangwang_ testnet
+## Joining the _Maoshanwang_ public testnet
 
 Please visit the [Mining wiki](https://github.com/Zilliqa/Zilliqa/wiki/Mining) to find out more.
 
