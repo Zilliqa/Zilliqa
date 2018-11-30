@@ -935,7 +935,7 @@ uint8_t DirectoryService::CalculateNewDifficulty(
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(
     const uint8_t& dsDifficulty) {
-  constexpr unsigned int MAX_ADJUST_THRESHOLD = 9;
+  constexpr unsigned int MAX_ADJUST_THRESHOLD = 49;
 
   int64_t currentDSNodes = m_mediator.m_DSCommittee->size();
   int64_t dsPowSubmissions = GetNumberOfDSPoWSolns();
