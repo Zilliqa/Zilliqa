@@ -617,6 +617,12 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
+  if (!_json.isMember("_accepted")) {
+    LOG_GENERAL(WARNING,
+                "The json output of this contract doesn't contain _accepted");
+    return false;
+  }
+
   if (!_json.isMember("message") || !_json.isMember("states") ||
       !_json.isMember("events")) {
     if (_json.isMember("errors")) {
@@ -627,17 +633,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     return false;
   }
 
-  if (!_json["message"].isMember("_tag") ||
-      !_json["message"].isMember("_amount") ||
-      !_json["message"].isMember("params") ||
-      !_json["message"].isMember("_recipient") ||
-      !_json["message"].isMember("_accepted")) {
-    LOG_GENERAL(WARNING,
-                "The message in the json output of this contract is corrupted");
-    return false;
-  }
-
-  if (_json["message"]["_accepted"].asString() == "true") {
+  if (_json["_accepted"].asString() == "true") {
     // LOG_GENERAL(INFO, "Contract accept amount transfer");
     if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
                                m_curAmount)) {
@@ -677,6 +673,24 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
       return false;
     }
     m_curTranReceipt.AddEntry(entry);
+  }
+
+  // If output message is null
+  if (_json["message"].isNull()) {
+    LOG_GENERAL(INFO,
+                "null message in scilla output when invoking a "
+                "contract, transaction finished");
+    return true;
+  }
+
+  // Non-null messages must have few mandatory fields.
+  if (!_json["message"].isMember("_tag") ||
+      !_json["message"].isMember("_amount") ||
+      !_json["message"].isMember("params") ||
+      !_json["message"].isMember("_recipient")) {
+    LOG_GENERAL(WARNING,
+                "The message in the json output of this contract is corrupted");
+    return false;
   }
 
   Address recipient = Address(_json["message"]["_recipient"].asString());
