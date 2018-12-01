@@ -17,8 +17,7 @@ along with cpp-ethereum.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "CUDAMiner.h"
 
-#include "libethash/internal.h"
-#include "libethash/ethash.h"
+#include <ethash/ethash.hpp>
 
 using namespace dev;
 using namespace eth;
@@ -190,7 +189,7 @@ bool CUDAMiner::cuda_configureGPU(
         cudalog << "Using grid size: " << s_gridSize << ", block size: " << s_blockSize;
 
         // by default let's only consider the DAG of the first epoch
-        const auto dagSize = ethash_get_datasize(0); // ethash::get_full_dataset_size(ethash::calculate_full_dataset_num_items(0));
+        const auto dagSize = ethash::get_full_dataset_size(ethash::calculate_full_dataset_num_items(0));
         int devicesCount = static_cast<int>(numDevices);
         for (int i = 0; i < devicesCount; i++)
         {
@@ -253,10 +252,12 @@ bool CUDAMiner::cuda_init(
         m_search_buf = new volatile search_results *[s_numStreams];
         m_streams = new cudaStream_t[s_numStreams];
 
-        const auto lightSize = ethash_get_cachesize(blockNumber);
-        const auto lightNumItems = lightSize / ETHASH_HASH_BYTES;
-        const auto dagSize = ethash_get_datasize(blockNumber);
-        const int dagNumItems = dagSize / ETHASH_MIX_BYTES;
+        const auto epoch = ethash::get_epoch_number(blockNumber);
+        const auto& context = ethash::get_global_epoch_context(epoch);
+        const auto lightNumItems = context.light_cache_num_items;
+        const auto lightSize = ethash::get_light_cache_size(lightNumItems);
+        const auto dagNumItems = context.full_dataset_num_items;
+        const auto dagSize = ethash::get_full_dataset_size(dagNumItems);
 
         CUDA_SAFE_CALL(cudaSetDevice(m_device_num));
         cudalog << "Set Device to current";
@@ -287,9 +288,8 @@ bool CUDAMiner::cuda_init(
             CUDA_SAFE_CALL(cudaMalloc(reinterpret_cast<void**>(&light), lightSize));
         }
         // copy lightData to device
-        auto ethash_light_client = ethash_light_new(blockNumber);
-        CUDA_SAFE_CALL(cudaMemcpy(reinterpret_cast<void*>(light), ethash_light_client->cache, lightSize, cudaMemcpyHostToDevice));
-        ethash_light_delete(ethash_light_client);
+        CUDA_SAFE_CALL(cudaMemcpy(reinterpret_cast<void*>(light), context.light_cache, lightSize,
+            cudaMemcpyHostToDevice));
         m_light[m_device_num] = light;
 
         if (dagNumItems != m_dag_size || !dag)  // create buffer for dag

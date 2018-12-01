@@ -70,7 +70,7 @@ class ConsensusCommon {
     WRONG_REWARDS,
     FINALBLOCK_MISSING_MICROBLOCKS,
     FINALBLOCK_INVALID_MICROBLOCK_ROOT_HASH,
-    FINALBLOCK_MICROBLOCK_EMPTY_ERROR,
+    FINALBLOCK_MICROBLOCK_TXNROOT_ERROR,
     FINALBLOCK_MBS_LEGITIMACY_ERROR,
     INVALID_DS_MICROBLOCK,
     INVALID_MICROBLOCK_STATE_DELTA_HASH,
@@ -103,9 +103,6 @@ class ConsensusCommon {
 
   /// State of the active consensus session.
   ConsensusErrorCode m_consensusErrorCode;
-
-  /// The minimum fraction of peers necessary to achieve consensus.
-  static constexpr double TOLERANCE_FRACTION = 0.667;
 
   /// The unique ID assigned to the active consensus session.
   uint32_t m_consensusID;
@@ -205,6 +202,9 @@ class ConsensusCommon {
     return false;  // Should be implemented by ConsensusLeader and
                    // ConsensusBackup
   }
+
+  /// The minimum fraction of peers necessary to achieve consensus.
+  static constexpr double TOLERANCE_FRACTION = 0.667;
 
   /// Returns the state of the active consensus session
   State GetState() const;

@@ -41,7 +41,6 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
-#include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 
 class Mediator;
@@ -121,8 +120,6 @@ class Node : public Executable, public Broadcastable {
   // Transactions information
   std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
-  std::unordered_map<Address, std::map<uint64_t, Transaction>>
-      m_addrNonceTxnMap, t_addrNonceTxnMap;
   std::vector<TxnHash> m_txnsOrdering;
   std::mutex m_mutexProcessedTransactions;
   std::unordered_map<uint64_t,
@@ -212,9 +209,6 @@ class Node : public Executable, public Broadcastable {
 
   bool IsMicroBlockTxRootHashInFinalBlock(const ForwardedTxnEntry& entry,
                                           bool& isEveryMicroBlockAvailable);
-
-  bool CheckMicroBlockRootHash(const TxBlock& finalBlock,
-                               const uint64_t& blocknum);
 
   void StoreState();
   // void StoreMicroBlocks();
@@ -359,6 +353,12 @@ class Node : public Executable, public Broadcastable {
 
   void WakeupForRecovery();
 
+  /// Set initial state, variables, and clean-up storage
+  void Init();
+
+  /// Initilize the add genesis block and account
+  void AddGenesisInfo(SyncType syncType);
+
  public:
   enum NodeState : unsigned char {
     POW_SUBMISSION = 0x00,
@@ -401,7 +401,8 @@ class Node : public Executable, public Broadcastable {
 
   // Transaction body sharing variables
   std::mutex m_mutexUnavailableMicroBlocks;
-  std::unordered_map<uint64_t, std::vector<BlockHash>> m_unavailableMicroBlocks;
+  std::unordered_map<uint64_t, std::vector<std::pair<BlockHash, TxnHash>>>
+      m_unavailableMicroBlocks;
 
   /// Sharding variables
   std::atomic<uint32_t> m_myshardId;
@@ -440,9 +441,6 @@ class Node : public Executable, public Broadcastable {
   /// Install the Node
   bool Install(SyncType syncType, bool toRetrieveHistory = true);
 
-  /// Set initial state, variables, and clean-up storage
-  void Init();
-
   // Reset certain variables to the initial state
   bool CleanVariables();
 
@@ -469,8 +467,7 @@ class Node : public Executable, public Broadcastable {
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(bool& wakeupForUpgrade,
-                            bool& retrieveSuccessButTooLate);
+  bool StartRetrieveHistory(bool& wakeupForUpgrade);
 
   // Erase m_committedTransactions for given epoch number
   // void EraseCommittedTransactions(uint64_t epochNum)

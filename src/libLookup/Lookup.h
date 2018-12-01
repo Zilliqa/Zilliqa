@@ -81,6 +81,9 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_MutexCVStartPoWSubmission;
   std::condition_variable cv_startPoWSubmission;
 
+  /// To indicate which type of synchronization is using
+  SyncType m_syncType = SyncType::NO_SYNC;
+
   // Rsync the lost txBodies from remote lookup nodes if this lookup are doing
   // its recovery
   Peer GetLookupPeerToRsync();
@@ -126,7 +129,7 @@ class Lookup : public Executable, public Broadcastable {
   std::vector<unsigned char> ComposeGetOfflineLookupNodes();
 
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
-                        uint64_t& highBlockNum);
+                        uint64_t& highBlockNum, bool partialRetrieve = false);
   void RetrieveTxBlocks(std::vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum);
 
@@ -169,6 +172,7 @@ class Lookup : public Executable, public Broadcastable {
   // TODO: move the Get and ProcessSet functions to Synchronizer
   bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
+  bool GetDSInfoLoop();
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
@@ -310,6 +314,9 @@ class Lookup : public Executable, public Broadcastable {
   bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
                const Peer& from);
 
+  inline SyncType GetSyncType() const { return m_syncType; }
+  void SetSyncType(SyncType syncType);
+
   bool m_fetchedOfflineLookups = false;
   std::mutex m_mutexOfflineLookupsUpdation;
   std::condition_variable cv_offlineLookups;
@@ -324,9 +331,6 @@ class Lookup : public Executable, public Broadcastable {
   std::condition_variable cv_setStateDeltaFromSeed;
 
   bool InitMining(uint32_t lookupIndex);
-
-  /// To indicate which type of synchronization is using
-  unsigned int m_syncType = SyncType::NO_SYNC;
 
   /// Helper variables used by new node synchronization
   bool m_startedPoW = false;

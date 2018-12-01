@@ -37,9 +37,9 @@ VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset) {
 VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
     : m_header(header) {
   m_cosigs = move(cosigs);
+  SetTimestamp(get_time_as_int());
+  SetBlockHash(m_header.GetMyHash());
 }
-
-VCBlock::VCBlock(const VCBlockHeader& header) : m_header(header) {}
 
 bool VCBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   if (!Messenger::SetVCBlock(dst, offset, *this)) {

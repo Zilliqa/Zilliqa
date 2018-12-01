@@ -23,6 +23,7 @@
 #include <json/json.h>
 #include <map>
 #include <set>
+#include <shared_mutex>
 #include <unordered_map>
 
 #pragma GCC diagnostic push
@@ -84,7 +85,7 @@ class AccountStore
 
   // primary mutex used by account store for protecting permanent states from
   // external access
-  std::mutex m_mutexPrimary;
+  mutable std::shared_timed_mutex m_mutexPrimary;
   // mutex used when manipulating with state delta
   std::mutex m_mutexDelta;
   // mutex related to reversibles
@@ -101,6 +102,9 @@ class AccountStore
  public:
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
+
+  bool Serialize(std::vector<unsigned char>& src,
+                 unsigned int offset) const override;
 
   bool Deserialize(const std::vector<unsigned char>& src,
                    unsigned int offset) override;

@@ -66,9 +66,11 @@ void Archival::InitSync() {
       }
       if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
         LOG_GENERAL(INFO,
-                    "Sleep for " << REFRESH_DELAY + POW_WINDOW_IN_SECONDS);
+                    "Sleep for " << REFRESH_DELAY + POW_WINDOW_IN_SECONDS +
+                                        POWPACKETSUBMISSION_WINDOW_IN_SECONDS);
         this_thread::sleep_for(
-            chrono::seconds(REFRESH_DELAY + POW_WINDOW_IN_SECONDS));
+            chrono::seconds(REFRESH_DELAY + POW_WINDOW_IN_SECONDS +
+                            POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
       } else {
         this_thread::sleep_for(chrono::seconds(REFRESH_DELAY));
       }

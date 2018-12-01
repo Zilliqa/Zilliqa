@@ -37,9 +37,14 @@
 #endif
 
 POW::POW() {
-  currentBlockNum = 0;
-  ethash_light_client = EthashLightNew(
-      0);  // TODO: Do we still need this? Can we call it at mediator?
+  m_currentBlockNum = 0;
+  m_epochContextLight =
+      ethash::create_epoch_context(ethash::get_epoch_number(m_currentBlockNum));
+
+  if (FULL_DATASET_MINE && !CUDA_GPU_MINE && !OPENCL_GPU_MINE) {
+    m_epochContextFull = ethash::create_epoch_context_full(
+        ethash::get_epoch_number(m_currentBlockNum));
+  }
 
   if (!LOOKUP_NODE_MODE) {
     if (OPENCL_GPU_MINE) {
@@ -50,7 +55,7 @@ POW::POW() {
   }
 }
 
-POW::~POW() { EthashLightDelete(ethash_light_client); }
+POW::~POW() {}
 
 POW& POW::GetInstance() {
   static POW pow;
@@ -87,8 +92,8 @@ std::vector<uint8_t> POW::HexStringToBytes(std::string const& _s) {
   return ret;
 }
 
-std::string POW::BlockhashToHexString(ethash_h256_t* _hash) {
-  return BytesToHexString((uint8_t*)_hash, 32);
+std::string POW::BlockhashToHexString(const ethash_hash256& _hash) {
+  return BytesToHexString(_hash.bytes, 32);
 }
 
 int POW::FromHex(char _i) {
@@ -98,21 +103,26 @@ int POW::FromHex(char _i) {
   return -1;
 }
 
-ethash_h256_t POW::StringToBlockhash(std::string const& _s) {
-  ethash_h256_t ret;
+ethash_hash256 POW::StringToBlockhash(std::string const& _s) {
+  ethash_hash256 ret;
   std::vector<uint8_t> b = HexStringToBytes(_s);
   if (b.size() != 32) {
     LOG_GENERAL(WARNING,
                 "Input to StringToBlockhash is not of size 32. Returning "
-                "uninitialize ethash_h256_t. Size is "
+                "uninitialize ethash_hash256. Size is "
                     << b.size());
     return ret;
   }
-  copy(b.begin(), b.end(), ret.b);
+  copy(b.begin(), b.end(), ret.bytes);
   return ret;
 }
 
-ethash_h256_t POW::DifficultyLevelInInt(uint8_t difficulty) {
+bool POW::CheckDificulty(const ethash_hash256& result,
+                         const ethash_hash256& boundary) {
+  return ethash::is_less_or_equal(result, boundary);
+}
+
+ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
   uint8_t b[UINT256_SIZE];
   std::fill(b, b + 32, 0xff);
   uint8_t firstNbytesToSet = difficulty / 8;
@@ -127,67 +137,46 @@ ethash_h256_t POW::DifficultyLevelInInt(uint8_t difficulty) {
   return StringToBlockhash(BytesToHexString(b, UINT256_SIZE));
 }
 
-ethash_light_t POW::EthashLightNew(uint64_t block_number) {
-  return ethash_light_new(block_number);
-}
-
-ethash_light_t POW::EthashLightReuse(ethash_light_t ethashLight,
-                                     uint64_t block_number) {
-  return ethash_light_renew(block_number, ethashLight);
-}
-
-void POW::EthashLightDelete(ethash_light_t light) {
-  ethash_light_delete(light);
-}
-
-bool POW::EthashConfigureLightClient(uint64_t block_number) {
+bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
   std::lock_guard<std::mutex> g(m_mutexLightClientConfigure);
 
-  if (block_number < currentBlockNum) {
+  if (block_number < m_currentBlockNum) {
     LOG_GENERAL(WARNING,
                 "WARNING: How come the latest block number is smaller than "
                 "current block number? block_number: "
-                    << block_number << " currentBlockNum: " << currentBlockNum);
+                    << block_number
+                    << " currentBlockNum: " << m_currentBlockNum);
   }
 
-  if (block_number != currentBlockNum) {
-    ethash_light_client = EthashLightReuse(ethash_light_client, block_number);
-    currentBlockNum = block_number;
+  if (ethash::get_epoch_number(block_number) !=
+      ethash::get_epoch_number(m_currentBlockNum)) {
+    auto epochNumber = ethash::get_epoch_number(block_number);
+    m_epochContextLight = ethash::create_epoch_context(epochNumber);
   }
+
+  bool isMineFullCpu = fullDataset && !CUDA_GPU_MINE && !OPENCL_GPU_MINE;
+
+  if (isMineFullCpu && (m_epochContextFull == nullptr ||
+                        ethash::get_epoch_number(block_number) !=
+                            ethash::get_epoch_number(m_currentBlockNum))) {
+    m_epochContextFull = ethash::create_epoch_context_full(
+        ethash::get_epoch_number(block_number));
+  }
+
+  m_currentBlockNum = block_number;
 
   return true;
 }
 
-ethash_return_value_t POW::EthashLightCompute(ethash_light_t& light,
-                                              ethash_h256_t const& header_hash,
-                                              uint64_t nonce) {
-  return ethash_light_compute(light, header_hash, nonce);
-}
-
-ethash_full_t POW::EthashFullNew(ethash_light_t& light,
-                                 ethash_callback_t& CallBack) {
-  return ethash_full_new(light, CallBack);
-}
-
-void POW::EthashFullDelete(ethash_full_t& full) { ethash_full_delete(full); }
-
-ethash_return_value_t POW::EthashFullCompute(ethash_full_t& full,
-                                             ethash_h256_t const& header_hash,
-                                             uint64_t nonce) {
-  return ethash_full_compute(full, header_hash, nonce);
-}
-
-ethash_mining_result_t POW::MineLight(ethash_light_t& light,
-                                      ethash_h256_t const& header_hash,
-                                      ethash_h256_t& difficulty) {
+ethash_mining_result_t POW::MineLight(ethash_hash256 const& header_hash,
+                                      ethash_hash256 const& boundary) {
   uint64_t nonce = std::time(0);
   while (m_shouldMine) {
-    ethash_return_value_t mineResult =
-        EthashLightCompute(light, header_hash, nonce);
-    if (ethash_check_difficulty(&mineResult.result, &difficulty)) {
+    auto mineResult = ethash::hash(*m_epochContextLight, header_hash, nonce);
+    if (ethash::is_less_or_equal(mineResult.final_hash, boundary)) {
       ethash_mining_result_t winning_result = {
-          BlockhashToHexString(&mineResult.result),
-          BlockhashToHexString(&mineResult.mix_hash), nonce, true};
+          BlockhashToHexString(mineResult.final_hash),
+          BlockhashToHexString(mineResult.mix_hash), nonce, true};
       return winning_result;
     }
     nonce++;
@@ -197,17 +186,15 @@ ethash_mining_result_t POW::MineLight(ethash_light_t& light,
   return failure_result;
 }
 
-ethash_mining_result_t POW::MineFull(ethash_full_t& full,
-                                     ethash_h256_t const& header_hash,
-                                     ethash_h256_t& difficulty) {
+ethash_mining_result_t POW::MineFull(ethash_hash256 const& header_hash,
+                                     ethash_hash256 const& boundary) {
   uint64_t nonce = std::time(0);
   while (m_shouldMine) {
-    ethash_return_value_t mineResult =
-        EthashFullCompute(full, header_hash, nonce);
-    if (ethash_check_difficulty(&mineResult.result, &difficulty)) {
+    auto mineResult = ethash::hash(*m_epochContextFull, header_hash, nonce);
+    if (ethash::is_less_or_equal(mineResult.final_hash, boundary)) {
       ethash_mining_result_t winning_result = {
-          BlockhashToHexString(&mineResult.result),
-          BlockhashToHexString(&mineResult.mix_hash), nonce, true};
+          BlockhashToHexString(mineResult.final_hash),
+          BlockhashToHexString(mineResult.mix_hash), nonce, true};
       return winning_result;
     }
     nonce++;
@@ -218,7 +205,7 @@ ethash_mining_result_t POW::MineFull(ethash_full_t& full,
 }
 
 ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
-                                        ethash_h256_t const& header_hash,
+                                        ethash_hash256 const& header_hash,
                                         uint8_t difficulty) {
   std::vector<std::unique_ptr<std::thread>> vecThread;
   uint64_t nonce = std::time(0);
@@ -249,7 +236,8 @@ ethash_mining_result_t POW::MineFullGPU(uint64_t blockNum,
   return ethash_mining_result_t{"", "", 0, false};
 }
 
-void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
+void POW::MineFullGPUThread(uint64_t blockNum,
+                            ethash_hash256 const& header_hash,
                             uint8_t difficulty, uint64_t nonce) {
   LOG_MARKER();
   auto index = m_minerIndex.load(std::memory_order_relaxed);
@@ -261,7 +249,7 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
   wp.boundary = (dev::h256)(dev::u256)((dev::bigint(1) << 256) /
                                        (dev::u256(1) << difficulty));
 
-  wp.header = dev::h256{header_hash.b, dev::h256::ConstructFromPointer};
+  wp.header = dev::h256{header_hash.bytes, dev::h256::ConstructFromPointer};
 
   constexpr uint32_t NONCE_SEGMENT_WIDTH = 40;
   const uint64_t NONCE_SEGMENT = (uint64_t)pow(2, NONCE_SEGMENT_WIDTH);
@@ -277,10 +265,10 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
       return;
     }
     auto hashResult = LightHash(blockNum, header_hash, solution.nonce);
-    ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
-    if (ethash_check_difficulty(&hashResult.result, &diffForPoW)) {
+    auto boundary = DifficultyLevelInInt(difficulty);
+    if (ethash::is_less_or_equal(hashResult.final_hash, boundary)) {
       m_vecMiningResult[index] =
-          ethash_mining_result_t{BlockhashToHexString(&hashResult.result),
+          ethash_mining_result_t{BlockhashToHexString(hashResult.final_hash),
                                  solution.mixHash.hex(), solution.nonce, true};
       m_cvMiningResult.notify_one();
       return;
@@ -290,24 +278,6 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
   m_vecMiningResult[index] = ethash_mining_result_t{"", "", 0, false};
   m_cvMiningResult.notify_one();
   return;
-}
-
-bool POW::VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
-                      uint64_t winning_nonce, ethash_h256_t& difficulty,
-                      [[gnu::unused]] ethash_h256_t& result,
-                      [[gnu::unused]] ethash_h256_t& mixhash) {
-  ethash_return_value_t mineResult =
-      EthashLightCompute(light, header_hash, winning_nonce);
-  return ethash_check_difficulty(&mineResult.result, &difficulty);
-}
-
-bool POW::VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
-                     uint64_t winning_nonce, ethash_h256_t& difficulty,
-                     [[gnu::unused]] ethash_h256_t& result,
-                     [[gnu::unused]] ethash_h256_t& mixhash) {
-  ethash_return_value_t mineResult =
-      EthashFullCompute(full, header_hash, winning_nonce);
-  return ethash_check_difficulty(&mineResult.result, &difficulty);
 }
 
 std::vector<unsigned char> POW::ConcatAndhash(
@@ -354,30 +324,24 @@ ethash_mining_result_t POW::PoWMine(
   // operation has ended(ie. m_shouldMine=false has been processed) and
   // result.success has been returned)
   std::lock_guard<std::mutex> g(m_mutexPoWMine);
-  EthashConfigureLightClient(blockNum);
-  ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+  EthashConfigureClient(blockNum, fullDataset);
+  auto boundary = DifficultyLevelInInt(difficulty);
   std::vector<unsigned char> sha3_result =
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
-  ethash_h256_t headerHash =
+  auto headerHash =
       StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
   ethash_mining_result_t result;
 
   m_shouldMine = true;
 
-  if (fullDataset) {
-    if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
-      result = MineFullGPU(blockNum, headerHash, difficulty);
-    } else {
-      ethash_callback_t CallBack = NULL;
-      ethash_full_t fullClient =
-          POW::EthashFullNew(ethash_light_client, CallBack);
-      result = MineFull(fullClient, headerHash, diffForPoW);
-      EthashFullDelete(fullClient);
-    }
+  if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
+    result = MineFullGPU(blockNum, headerHash, difficulty);
+  } else if (fullDataset) {
+    result = MineFull(headerHash, boundary);
   } else {
-    result = MineLight(ethash_light_client, headerHash, diffForPoW);
+    result = MineLight(headerHash, boundary);
   }
   return result;
 }
@@ -388,62 +352,45 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
                     const boost::multiprecision::uint128_t& ipAddr,
                     const PubKey& pubKey, uint32_t lookupId,
                     const boost::multiprecision::uint128_t& gasPrice,
-                    bool fullDataset, uint64_t winning_nonce,
-                    const std::string& winning_result,
+                    uint64_t winning_nonce, const std::string& winning_result,
                     const std::string& winning_mixhash) {
   LOG_MARKER();
-  EthashConfigureLightClient(blockNum);
-  ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
+  EthashConfigureClient(blockNum);
+  const auto boundary = DifficultyLevelInInt(difficulty);
   std::vector<unsigned char> sha3_result =
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
-  ethash_h256_t headerHash =
+  auto headerHash =
       StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
-  ethash_h256_t winnning_result = StringToBlockhash(winning_result);
-  ethash_h256_t winnning_mixhash = StringToBlockhash(winning_mixhash);
-  ethash_h256_t check_hash;
-  ethash_quick_hash(&check_hash, &headerHash, winning_nonce, &winnning_mixhash);
-  std::string check_hash_string =
-      BytesToHexString((uint8_t*)&check_hash, POW_SIZE);
+  auto winnning_result = StringToBlockhash(winning_result);
+  auto winningMixhash = StringToBlockhash(winning_mixhash);
 
-  if (!boost::iequals(check_hash_string, winning_result)) {
-    LOG_GENERAL(INFO, "Check Hash " << check_hash_string << " Result "
-                                    << winning_result << " did not match");
+  if (!ethash::is_less_or_equal(winnning_result, boundary)) {
+    LOG_GENERAL(WARNING, "PoW solution doesn't meet difficulty requirement");
     return false;
   }
 
-  bool result;
-  if (fullDataset) {
-    ethash_callback_t CallBack = NULL;
-    ethash_full_t fullClient =
-        POW::EthashFullNew(ethash_light_client, CallBack);
-    result = VerifyFull(fullClient, headerHash, winning_nonce, diffForPoW,
-                        winnning_result, winnning_mixhash);
-    EthashFullDelete(fullClient);
-  } else {
-    result = VerifyLight(ethash_light_client, headerHash, winning_nonce,
-                         diffForPoW, winnning_result, winnning_mixhash);
-  }
-  return result;
+  return ethash::verify(*m_epochContextLight, headerHash, winningMixhash,
+                        winning_nonce, boundary);
 }
 
-ethash_return_value_t POW::LightHash(uint64_t blockNum,
-                                     ethash_h256_t const& header_hash,
-                                     uint64_t nonce) {
-  EthashConfigureLightClient(blockNum);
-  return EthashLightCompute(ethash_light_client, header_hash, nonce);
+ethash::result POW::LightHash(uint64_t blockNum,
+                              ethash_hash256 const& header_hash,
+                              uint64_t nonce) {
+  EthashConfigureClient(blockNum);
+  return ethash::hash(*m_epochContextLight, header_hash, nonce);
 }
 
-bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
+bool POW::CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
                                               uint8_t difficulty) {
-  const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
-  return ethash_check_difficulty(&result, &diffForPoW);
+  const auto boundary = DifficultyLevelInInt(difficulty);
+  return ethash::is_less_or_equal(result, boundary);
 }
 
 bool POW::CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                               uint8_t difficulty) {
-  const ethash_h256_t diffForPoW = DifficultyLevelInInt(difficulty);
-  ethash_h256_t hashResult = StringToBlockhash(result);
-  return ethash_check_difficulty(&hashResult, &diffForPoW);
+  const auto boundary = DifficultyLevelInInt(difficulty);
+  ethash_hash256 hashResult = StringToBlockhash(result);
+  return ethash::is_less_or_equal(hashResult, boundary);
 }
 
 void POW::InitOpenCL() {

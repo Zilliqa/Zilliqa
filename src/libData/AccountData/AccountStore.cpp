@@ -53,7 +53,7 @@ void AccountStore::Init() {
 void AccountStore::InitSoft() {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexPrimary);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
   AccountStoreTrie<OverlayDB, unordered_map<Address, Account>>::Init();
 
@@ -85,13 +85,23 @@ AccountStore& AccountStore::GetInstance() {
   return accountstore;
 }
 
+bool AccountStore::Serialize(vector<unsigned char>& src,
+                             unsigned int offset) const {
+  LOG_MARKER();
+
+  shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
+  return AccountStoreBase<unordered_map<Address, Account>>::Serialize(src,
+                                                                      offset);
+}
+
 bool AccountStore::Deserialize(const vector<unsigned char>& src,
                                unsigned int offset) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexPrimary);
-
   this->Init();
+
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+
   if (!Messenger::GetAccountStore(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
     return false;
@@ -105,7 +115,7 @@ bool AccountStore::SerializeDelta() {
 
   lock(m_mutexDelta, m_mutexPrimary);
   lock_guard<mutex> g(m_mutexDelta, adopt_lock);
-  lock_guard<mutex> g2(m_mutexPrimary, adopt_lock);
+  unique_lock<shared_timed_mutex> g2(m_mutexPrimary, adopt_lock);
 
   m_stateDeltaSerialized.clear();
 
@@ -131,7 +141,7 @@ bool AccountStore::DeserializeDelta(const vector<unsigned char>& src,
 
   if (reversible) {
     lock(m_mutexPrimary, m_mutexReversibles);
-    lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+    unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
     lock_guard<mutex> g2(m_mutexReversibles, adopt_lock);
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
@@ -139,7 +149,7 @@ bool AccountStore::DeserializeDelta(const vector<unsigned char>& src,
       return false;
     }
   } else {
-    lock_guard<mutex> g(m_mutexPrimary);
+    unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, reversible)) {
       LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
@@ -166,7 +176,7 @@ void AccountStore::MoveUpdatesToDisk() {
   LOG_MARKER();
 
   lock(m_mutexPrimary, m_mutexDB);
-  lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
 
   ContractStorage::GetContractStorage().GetStateDB().commit();
@@ -193,7 +203,7 @@ void AccountStore::DiscardUnsavedUpdates() {
   LOG_MARKER();
 
   lock(m_mutexPrimary, m_mutexDB);
-  lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
 
   ContractStorage::GetContractStorage().GetStateDB().rollback();
@@ -214,8 +224,10 @@ void AccountStore::DiscardUnsavedUpdates() {
 bool AccountStore::RetrieveFromDisk() {
   LOG_MARKER();
 
+  InitSoft();
+
   lock(m_mutexPrimary, m_mutexDB);
-  lock_guard<mutex> g(m_mutexPrimary, adopt_lock);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
 
   vector<unsigned char> rootBytes;
@@ -337,7 +349,7 @@ void AccountStore::CommitTempReversible() {
 void AccountStore::RevertCommitTemp() {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexPrimary);
+  unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
   // Revert changed
   for (auto const entry : m_addressToAccountRevChanged) {

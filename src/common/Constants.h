@@ -136,7 +136,6 @@ extern const unsigned int VIEWCHANGE_EXTRA_TIME;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
 extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
-extern const unsigned int DS_MICROBLOCK_CONSENSUS_OBJECT_TIMEOUT;
 extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
 extern const uint32_t MAXMESSAGE;
 extern const unsigned int TX_SHARING_CLUSTER_SIZE;
@@ -158,7 +157,7 @@ extern const unsigned int FALLBACK_INTERVAL_STARTED;
 extern const unsigned int FALLBACK_INTERVAL_WAITING;
 extern const unsigned int FALLBACK_CHECK_INTERVAL;
 extern const unsigned int FALLBACK_EXTRA_TIME;
-extern const unsigned int NUM_NODE_INCR_DIFFICULTY;
+extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MAX_ROUNDS_IN_BSTATE;
 extern const unsigned int MAX_ROUNDS_IN_CSTATE;
@@ -185,6 +184,10 @@ extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int MAXRETRYCONN;
 extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
+extern const unsigned int POW_PACKET_SENDERS;
+extern const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
+extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
+extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
@@ -207,7 +210,7 @@ extern const std::string LEGAL_GAS_PRICE_IP;
 extern const unsigned int FALLBACK_TEST_EPOCH;
 #endif  // FALLBACK_TEST
 
-extern const bool TEST_NET_MODE;
+extern const bool GUARD_MODE;
 extern const bool EXCLUDE_PRIV_IP;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool FULL_DATASET_MINE;
@@ -222,6 +225,7 @@ extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
 extern const bool GET_INITIAL_DS_FROM_REPO;
 extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
+extern const bool SEND_RESPONSE_FOR_LAZY_PUSH;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;

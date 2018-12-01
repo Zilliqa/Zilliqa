@@ -12,41 +12,46 @@
 
 Zilliqa is a new blockchain platform capable of processing thousands of transactions per second with sharding built into it. With sharding, Zilliqa has the potential to match throughput benchmarks set by traditional payment methods (such as _VISA_ and _MasterCard_). More importantly, Zilliqa’s transaction throughput increases (roughly) linearly with its network size.
 
-## _D24_ Testnet
+## _Mao Shan Wang_ public testnet
 
-* [Block Explorer](https://explorer.zilliqa.com/home)
-* [Wallet](https://wallet.zilliqa.com/)  
+* [Block Explorer](https://explorer.zilliqa.com/)
+* [API](https://api.zilliqa.com/)
+* [Wallet](https://wallet.zilliqa.com/)
   
-## _D24_ Testnet with [Scilla](https://scilla-lang.org/) support
+## _Mao Shan Wang_ small-scale testnet for developers
 
-* [Interpreter IDE](https://savant-ide.zilliqa.com/)  
-* [Block Explorer](https://explorer-scilla.zilliqa.com)  
-* [Wallet](https://wallet-scilla.zilliqa.com/)  
+* [Block Explorer](https://explorer-scilla.zilliqa.com)
+* [API](https://api-scilla.zilliqa.com/)
 
 ## Available features
 
 The current release has the following features implemented:
 
-* Proof of Work (PoW) for joining the network
+* Single Ethash Proof of Work (PoW) for joining the network
 * Network sharding
 * Transaction sharding
-* Directory Service
-* Consensus for DS block (with sharding structure), Shard microblock, DS microblock, and Final block 
+* Directory Service Committee with Multiple-In, Multiple-Out (MIMO)
+* pBFT Consensus for DS block (with sharding structure), Shard microblock, DS microblock, and Final block 
 * [EC-Schnorr signature](https://en.wikipedia.org/wiki/Schnorr_signature)
-* Data layer and accounts store 
-* Looking up nodes to allow new nodes to join 
-* Persistent storage for transactions
+* Data layer and accounts store
+* Lookup nodes to allow new nodes to join and dispatch transactions to correct shards
+* Persistent storage for transactions and state
 * [Merkle Patricia tree](https://github.com/ethereum/wiki/wiki/Patricia-Tree)
-* Transaction verification
-* View change
-* [Zilliqa Wallet](https://github.com/Zilliqa/Zilliqa-Wallet)
-* [Smart contract design and implementation](https://scilla.readthedocs.io)
+* Transaction verification and receipt
+* View change mechanism
+* [Smart contract implementation](https://scilla.readthedocs.io)
 * [GPU (OpenCL and CUDA) support](https://github.com/Zilliqa/Zilliqa/wiki/GPU-mining) for PoW
+* State delta forwarding
 * Gossip protocol for network message broadcasting
+* Protocol upgrade mechanism
+* Node recovery mechanism
+* Archival nodes
+* Gas rewards and pricer
+* Coinbase rewards
 
 In the coming months, we plan to have the following features:
 
-* Incentive structure
+* Mining curve structure
 * Further unit and integration tests
 * Enhancement of existing features
 * More operating system support
@@ -57,11 +62,11 @@ In the coming months, we plan to have the following features:
 To run Zilliqa, we recommend the following minimum system requirements:
 
 * x64 _Linux_ operating system such as _Ubuntu_
-* Recent dual core processor
-* 2 GB RAM
+* Intel i5 processor or later
+* 2 GB RAM or higher
 
-> Note: Presently we are in active development on Ubuntu 16.04. The support for
-> building on other Ubuntu versions or other OSes is pending.
+> Note: Presently, we are in active development on Ubuntu 16.04. We also support macOS.
+> Support for building on other Debian-based distributions are pending.
 
 ## Dependencies
 
@@ -75,10 +80,10 @@ To run Zilliqa, we recommend the following minimum system requirements:
         libprotobuf-dev protobuf-compiler libcurl4-openssl-dev
     ```
 
-* macOS (experimental):
+* macOS:
 
     ```bash
-    brew install pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
+    brew install boost pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
     ```
 
 ## Running Zilliqa locally
@@ -102,9 +107,10 @@ To run Zilliqa, we recommend the following minimum system requirements:
     pkill zilliqa
     ``` 
 
-## Joining public testnet 
+## Joining the _Mao Shan Wang_ public testnet
 
-If you are interested in running a node on the Zilliqa testnet, please register [here](https://docs.google.com/forms/d/e/1FAIpQLSesn-MxThl4ocKCrjUYSPGc463E7-1I1O1v_GGccYbqfFr7zg/viewform).
+Please visit the [Mining wiki](https://github.com/Zilliqa/Zilliqa/wiki/Mining) to find out more.
+
 
 ## Further enquiries
 

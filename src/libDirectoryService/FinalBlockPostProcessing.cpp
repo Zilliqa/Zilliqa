@@ -65,7 +65,7 @@ void DirectoryService::StoreFinalBlockToDisk() {
                 << m_finalBlock->GetHeader().GetBlockNum() << " with Type: "
                 << to_string(m_finalBlock->GetHeader().GetType())
                 << ", Version: " << m_finalBlock->GetHeader().GetVersion()
-                << ", Timestamp: " << m_finalBlock->GetHeader().GetTimestamp()
+                << ", Timestamp: " << m_finalBlock->GetTimestamp()
                 << ", NumTxs: " << m_finalBlock->GetHeader().GetNumTxs());
 
   vector<unsigned char> serializedTxBlock;
@@ -521,7 +521,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
           cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
           [this, message, offset]() -> bool {
             lock_guard<mutex> g(m_mutexConsensus);
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+            if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
               LOG_GENERAL(WARNING,
                           "The node started the process of rejoining, "
                           "Ignore rest of "
@@ -616,13 +616,6 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
         DetachedFunction(1, reprocessconsensus);
         return true;
       }
-    } else if (m_consensusObject->GetConsensusErrorCode() ==
-               ConsensusCommon::INVALID_DS_MICROBLOCK) {
-      auto rerunconsensus = [this]() {
-        RunConsensusOnFinalBlock(SKIP_DSMICROBLOCK);
-      };
-      DetachedFunction(1, rerunconsensus);
-      return true;
     }
 
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),

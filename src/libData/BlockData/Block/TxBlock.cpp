@@ -55,45 +55,26 @@ TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset) {
 }
 
 TxBlock::TxBlock(const TxBlockHeader& header,
-                 const vector<bool>& isMicroBlockEmpty,
-                 const vector<BlockHash>& microBlockHashes,
-                 const vector<uint32_t>& shardIds, CoSignatures&& cosigs)
-    : m_header(header),
-      m_isMicroBlockEmpty(isMicroBlockEmpty),
-      m_microBlockHashes(microBlockHashes),
-      m_shardIds(shardIds) {
+                 const vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs)
+    : m_header(header), m_mbInfos(mbInfos) {
   m_cosigs = move(cosigs);
+  SetTimestamp(get_time_as_int());
+  SetBlockHash(m_header.GetMyHash());
 }
-
-TxBlock::TxBlock(const TxBlockHeader& header,
-                 const vector<bool>& isMicroBlockEmpty,
-                 const vector<BlockHash>& microBlockHashes,
-                 const vector<uint32_t>& shardIds)
-    : m_header(header),
-      m_isMicroBlockEmpty(isMicroBlockEmpty),
-      m_microBlockHashes(microBlockHashes),
-      m_shardIds(shardIds) {}
 
 const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
 
-const std::vector<bool>& TxBlock::GetIsMicroBlockEmpty() const {
-  return m_isMicroBlockEmpty;
+const std::vector<MicroBlockInfo>& TxBlock::GetMicroBlockInfos() const {
+  return m_mbInfos;
 }
-
-const vector<BlockHash>& TxBlock::GetMicroBlockHashes() const {
-  return m_microBlockHashes;
-}
-
-const vector<uint32_t>& TxBlock::GetShardIds() const { return m_shardIds; }
 
 bool TxBlock::operator==(const TxBlock& block) const {
-  return ((m_header == block.m_header) &&
-          (m_microBlockHashes == block.m_microBlockHashes));
+  return ((m_header == block.m_header) && (m_mbInfos == block.m_mbInfos));
 }
 
 bool TxBlock::operator<(const TxBlock& block) const {
-  return std::tie(block.m_header, block.m_microBlockHashes) >
-         std::tie(m_header, m_microBlockHashes);
+  return std::tie(block.m_header, block.m_mbInfos) >
+         std::tie(m_header, m_mbInfos);
 }
 
 bool TxBlock::operator>(const TxBlock& block) const { return block < *this; }

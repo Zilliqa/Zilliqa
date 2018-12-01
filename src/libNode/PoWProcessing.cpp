@@ -43,6 +43,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -107,44 +108,26 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Current dsblock is " << block_num);
 
-  bool isNoSync = false;
-
-  if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC) {
-    m_stillMiningPrimary = true;
-    isNoSync = true;
-
-    auto func = [this]() mutable -> void {
-      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL +
-                                             POW_WINDOW_IN_SECONDS +
-                                             FALLBACK_EXTRA_TIME));
-      if (m_stillMiningPrimary) {
-        if (!GetOfflineLookups()) {
-          LOG_GENERAL(WARNING, "Cannot sync currently");
-          return;
-        }
-
-        if (GetLatestDSBlock()) {
-          LOG_GENERAL(
-              INFO,
-              "New DS Block mined but I'm still mining and didn't receive it,"
-              " rejoin");
-          RejoinAsNormal();
-        } else {
-          LOG_GENERAL(INFO, "Didn't get the latest DSBlock, what to do???");
-        }
-      }
-    };
-
-    DetachedFunction(1, func);
-  }
+  m_stillMiningPrimary = true;
 
   lock_guard<mutex> g(m_mutexGasPrice);
-  bool sentToDs = false;
 
-  ethash_mining_result winning_result = POW::GetInstance().PoWMine(
-      block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
-      FULL_DATASET_MINE);
+  ethash_mining_result winning_result;
+
+  uint32_t shardGuardDiff = 1;
+  // Only in guard mode that shard guard can submit diffferent PoW
+  if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
+                        m_mediator.m_selfKey.second)) {
+    winning_result = POW::GetInstance().PoWMine(
+        block_num, shardGuardDiff, rand1, rand2,
+        m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
+        lookupId, m_proposedGasPrice, FULL_DATASET_MINE);
+  } else {
+    winning_result = POW::GetInstance().PoWMine(
+        block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
+        m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
+        FULL_DATASET_MINE);
+  }
 
   if (winning_result.success) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -156,21 +139,61 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
     m_stillMiningPrimary = false;
 
-    if (isNoSync && m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
-      LOG_GENERAL(WARNING,
-                  "It's too late, the node has already started rejoining");
-      return false;
-    }
-
     // Possible scenarios
     // 1. Found solution that meets ds difficulty and difficulty
     // - Submit solution
     // 2. Found solution that meets only difficulty
     // - Submit solution and continue to do PoW till DS difficulty met or
     //   ds block received. (stopmining())
+    auto checkerThread = [this]() mutable -> void {
+      unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
+      if (cv_waitDSBlock.wait_for(
+              lk, chrono::seconds(
+                      NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                      POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+                      FALLBACK_EXTRA_TIME + TX_DISTRIBUTE_TIME_IN_MS / 1000)) ==
+          cv_status::timeout) {
+        lock_guard<mutex> g(m_mutexDSBlock);
+        if (m_mediator.m_currentEpochNum ==
+            m_mediator.m_dsBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetEpochNum()) {
+          LOG_GENERAL(WARNING, "DS was processed just now, ignore time out");
+          return;
+        }
 
-    if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
-            winning_result.result, ds_difficulty)) {
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Time out while waiting for DS Block");
+
+        POW::GetInstance().StopMining();
+
+        if (GetLatestDSBlock()) {
+          LOG_GENERAL(INFO, "DS block created, means I lost PoW");
+          if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
+            // exciplitly declare in the same thread
+            m_mediator.m_lookup->m_startedPoW = false;
+          }
+          RejoinAsNormal();
+        } else {
+          LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
+        }
+      }
+    };
+
+    // In guard mode, an additional scenario
+    // 1. Shard guard submit pow with diff shardGuardDiff
+    if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
+                          m_mediator.m_selfKey.second)) {
+      if (!SendPoWResultToDSComm(block_num, shardGuardDiff,
+                                 winning_result.winning_nonce,
+                                 winning_result.result, winning_result.mix_hash,
+                                 lookupId, m_proposedGasPrice)) {
+        return false;
+      } else {
+        DetachedFunction(1, checkerThread);
+      }
+    } else if (POW::GetInstance().CheckSolnAgainstsTargetedDifficulty(
+                   winning_result.result, ds_difficulty)) {
       LOG_GENERAL(INFO,
                   "Found PoW solution that met requirement for both ds "
                   "commitee and shard.");
@@ -181,7 +204,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                  lookupId, m_proposedGasPrice)) {
         return false;
       } else {
-        sentToDs = true;
+        DetachedFunction(1, checkerThread);
       }
     } else {
       // If solution does not meet targeted ds difficulty, send the initial
@@ -192,7 +215,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                  lookupId, m_proposedGasPrice)) {
         return false;
       } else {
-        sentToDs = true;
+        DetachedFunction(1, checkerThread);
       }
 
       LOG_GENERAL(INFO,
@@ -216,8 +239,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                 ds_pow_winning_result.result, ds_pow_winning_result.mix_hash,
                 lookupId, m_proposedGasPrice)) {
           return false;
-        } else {
-          sentToDs = true;
         }
       } else {
         LOG_GENERAL(INFO,
@@ -225,25 +246,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     "requirement");
       }
     }
-  }
-
-  if (sentToDs) {
-    auto func = [this]() mutable -> void {
-      unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
-      if (cv_waitDSBlock.wait_for(
-              lk,
-              chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                              FALLBACK_EXTRA_TIME)) == cv_status::timeout) {
-        LOG_GENERAL(WARNING, "Time out while waiting for DS Block");
-        if (GetLatestDSBlock()) {
-          LOG_GENERAL(INFO, "DS block created, means I lost PoW");
-          RejoinAsNormal();
-        } else {
-          LOG_GENERAL(WARNING, "DS block not recvd, what to do ?");
-        }
-      }
-    };
-    DetachedFunction(1, func);
   }
 
   if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
@@ -276,10 +278,41 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
 
   vector<Peer> peerList;
 
+  unsigned int count = 0;
   for (auto const& i : *m_mediator.m_DSCommittee) {
-    peerList.push_back(i.second);
+    if (count < POW_PACKET_SENDERS) {
+      peerList.push_back(i.second);
+      count++;
+    } else {
+      break;
+    }
   }
-
+  //[FIX-ME] Send to PoW PACKET_SENDERS + 1
+  if (!m_mediator.m_DSCommittee->empty()) {
+    BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
+    const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
+    if (blocktype == BlockType::DS) {
+      uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
+          m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
+      uint32_t leader_id = 0;
+      if (!GUARD_MODE) {
+        leader_id = lastBlockHash % m_mediator.m_DSCommittee->size();
+      } else {
+        leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      }
+      peerList.push_back(m_mediator.m_DSCommittee->at(leader_id).second);
+      LOG_GENERAL(INFO, "ds leader id " << leader_id);
+    } else if (blocktype == BlockType::VC) {
+      VCBlockSharedPtr VCBlockptr;
+      if (!BlockStorage::GetBlockStorage().GetVCBlock(
+              get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
+        LOG_GENERAL(WARNING, "Failed to get VC block");
+      } else {
+        peerList.push_back(
+            VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo());
+      }
+    }
+  }
   P2PComm::GetInstance().SendMessage(peerList, powmessage);
   return true;
 }

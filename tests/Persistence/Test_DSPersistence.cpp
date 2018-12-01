@@ -67,7 +67,7 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
   }
 
   return DSBlock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, blocknum, 0,
-                               PRECISION_MIN_VALUE, 789, SWInfo(), powDSWinners,
+                               PRECISION_MIN_VALUE, SWInfo(), powDSWinners,
                                DSBlockHashSet(), CommitteeHash()),
                  CoSignatures());
 }
@@ -139,12 +139,12 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
       block1.GetHeader().GetBlockNum() == (*block2).GetHeader().GetBlockNum(),
       "blocknum shouldn't change after writing to/ reading from disk");
 
-  LOG_GENERAL(INFO, "Block1 timestamp value entered: "
-                        << block1.GetHeader().GetTimestamp());
-  LOG_GENERAL(INFO, "Block2 timestamp value retrieved: "
-                        << (*block2).GetHeader().GetTimestamp());
+  LOG_GENERAL(INFO,
+              "Block1 timestamp value entered: " << block1.GetTimestamp());
+  LOG_GENERAL(INFO,
+              "Block2 timestamp value retrieved: " << (*block2).GetTimestamp());
   BOOST_CHECK_MESSAGE(
-      block1.GetHeader().GetTimestamp() == (*block2).GetHeader().GetTimestamp(),
+      block1.GetTimestamp() == (*block2).GetTimestamp(),
       "timestamp shouldn't change after writing to/ reading from disk");
 
   // LOG_GENERAL(INFO, "Block1 LeaderPubKey value entered: " <<

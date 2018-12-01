@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -278,9 +279,9 @@ void DirectoryService::RunConsensusOnViewChange() {
   if (dsCurBlockNum != 0 && txCurBlockNum != 0) {
     VCFetchLatestDSTxBlockFromLookupNodes();
     if (!NodeVCPrecheck()) {
-      LOG_GENERAL(
-          WARNING,
-          "Failed the vc precheck. Node is lagging behind the whole network.");
+      LOG_GENERAL(WARNING,
+                  "[RDS]Failed the vc precheck. Node is lagging behind the "
+                  "whole network.");
       RejoinAsDS();
       return;
     }
@@ -421,10 +422,9 @@ bool DirectoryService::ComputeNewCandidateLeader(
             m_mediator.m_currentEpochNum, m_viewChangestate,
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
-            m_viewChangeCounter, m_cumulativeFaultyLeaders, get_time_as_int(),
-            committeeHash, prevHash),
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, committeeHash,
+            prevHash),
         CoSignatures()));
-    m_pendingVCBlock->SetBlockHash(m_pendingVCBlock->GetHeader().GetMyHash());
   }
 
   return true;
@@ -453,14 +453,6 @@ bool DirectoryService::NodeVCPrecheck() {
                 "Passed precheck. ");
       return true;
     }
-
-    for (const auto& dsblock : m_vcPreCheckDSBlocks) {
-      m_mediator.m_dsBlockChain.AddBlock(dsblock);
-    }
-
-    for (const auto& txblock : m_vcPreCheckTxBlocks) {
-      m_mediator.m_txBlockChain.AddBlock(txblock);
-    }
   }
   LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Failed precheck. m_vcPreCheckDSBlocks size: "
@@ -481,11 +473,11 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
   VCBlockSharedPtr prevVCBlockptr;
   if (CheckUseVCBlockInsteadOfDSBlock(bl, prevVCBlockptr)) {
     LOG_GENERAL(INFO,
-                "Using hash of last vc block for computing candidcate leader");
+                "Using hash of last vc block for computing candidate leader");
     sha2.Update(prevVCBlockptr->GetBlockHash().asBytes());
   } else {
     LOG_GENERAL(
-        INFO, "Using hash of last final block for computing candidcate leader");
+        INFO, "Using hash of last final block for computing candidate leader");
     sha2.Update(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
@@ -495,8 +487,14 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
                                     sizeof(uint32_t));
   sha2.Update(vcCounterBytes);
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-  uint32_t candidateLeaderIndex =
-      lastBlockHash % (m_mediator.m_DSCommittee->size());
+  uint32_t candidateLeaderIndex;
+
+  if (!GUARD_MODE) {
+    candidateLeaderIndex = lastBlockHash % m_mediator.m_DSCommittee->size();
+  } else {
+    candidateLeaderIndex =
+        lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+  }
 
   while (candidateLeaderIndex == m_consensusLeaderID) {
     LOG_GENERAL(INFO,
@@ -504,7 +502,15 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
                     << candidateLeaderIndex);
     sha2.Update(sha2.Finalize());
     lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-    candidateLeaderIndex = lastBlockHash % (m_mediator.m_DSCommittee->size());
+    if (!GUARD_MODE) {
+      candidateLeaderIndex = lastBlockHash % m_mediator.m_DSCommittee->size();
+    } else {
+      candidateLeaderIndex =
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      LOG_GENERAL(INFO, "In Guard mode. interim candidate leader is "
+                            << candidateLeaderIndex);
+    }
+
     LOG_GENERAL(INFO, "Re-computed candidate leader is at index: "
                           << candidateLeaderIndex
                           << " VC counter: " << m_viewChangeCounter);
