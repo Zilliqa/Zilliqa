@@ -35,17 +35,9 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                   jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V2)
       : jsonrpc::AbstractServer<AbstractZServer>(conn, type) {
     this->bindAndAddMethod(
-        jsonrpc::Procedure("GetClientVersion", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &AbstractZServer::GetClientVersionI);
-    this->bindAndAddMethod(
         jsonrpc::Procedure("GetNetworkId", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetNetworkIdI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetProtocolVersion", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &AbstractZServer::GetProtocolVersionI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_OBJECT, "param01",
@@ -80,25 +72,22 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetBalanceI);
     this->bindAndAddMethod(
-        jsonrpc::Procedure("GetGasPrice", jsonrpc::PARAMS_BY_POSITION,
+        jsonrpc::Procedure("GetMinimumGasPrice", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
-        &AbstractZServer::GetGasPriceI);
+        &AbstractZServer::GetMinimumGasPriceI);
     this->bindAndAddMethod(
-        jsonrpc::Procedure("GetStorageAt", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_STRING, "param02",
-                           jsonrpc::JSON_STRING, NULL),
-        &AbstractZServer::GetStorageAtI);
+        jsonrpc::Procedure("GetPrevDSDifficulty", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_INTEGER, NULL),
+        &AbstractZServer::GetPrevDSDifficultyI);
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_INTEGER, NULL),
+        &AbstractZServer::GetPrevDifficultyI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetSmartContracts", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
                            NULL),
         &AbstractZServer::GetSmartContractsI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetBlockTransactionCount",
-                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, NULL),
-        &AbstractZServer::GetBlockTransactionCountI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetContractAddressFromTransactionID",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
@@ -119,18 +108,6 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::JSON_OBJECT, "param01",
                            jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetTransactionReceiptI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("isNodeSyncing", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_BOOLEAN, NULL),
-        &AbstractZServer::isNodeSyncingI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("isNodeMining", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_BOOLEAN, NULL),
-        &AbstractZServer::isNodeMiningI);
-    this->bindAndAddMethod(
-        jsonrpc::Procedure("GetHashrate", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, NULL),
-        &AbstractZServer::GetHashrateI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetNumPeers", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_INTEGER, NULL),
@@ -214,20 +191,10 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         &AbstractZServer::GetSmartContractInitI);
   }
 
-  inline virtual void GetClientVersionI(const Json::Value& request,
-                                        Json::Value& response) {
-    (void)request;
-    response = this->GetClientVersion();
-  }
   inline virtual void GetNetworkIdI(const Json::Value& request,
                                     Json::Value& response) {
     (void)request;
     response = this->GetNetworkId();
-  }
-  inline virtual void GetProtocolVersionI(const Json::Value& request,
-                                          Json::Value& response) {
-    (void)request;
-    response = this->GetProtocolVersion();
   }
   inline virtual void CreateTransactionI(const Json::Value& request,
                                          Json::Value& response) {
@@ -259,23 +226,24 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                                   Json::Value& response) {
     response = this->GetBalance(request[0u].asString());
   }
-  inline virtual void GetGasPriceI(const Json::Value& request,
-                                   Json::Value& response) {
+  inline virtual void GetMinimumGasPriceI(const Json::Value& request,
+                                          Json::Value& response) {
     (void)request;
-    response = this->GetGasPrice();
+    response = this->GetMinimumGasPrice();
   }
-  inline virtual void GetStorageAtI(const Json::Value& request,
-                                    Json::Value& response) {
-    response =
-        this->GetStorageAt(request[0u].asString(), request[1u].asString());
+  inline virtual void GetPrevDSDifficultyI(const Json::Value& request,
+                                           Json::Value& response) {
+    (void)request;
+    response = this->GetPrevDSDifficulty();
+  }
+  inline virtual void GetPrevDifficultyI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    response = this->GetPrevDifficulty();
   }
   inline virtual void GetSmartContractsI(const Json::Value& request,
                                          Json::Value& response) {
     response = this->GetSmartContracts(request[0u].asString());
-  }
-  inline virtual void GetBlockTransactionCountI(const Json::Value& request,
-                                                Json::Value& response) {
-    response = this->GetBlockTransactionCount(request[0u].asString());
   }
   inline virtual void GetContractAddressFromTransactionIDI(
       const Json::Value& request, Json::Value& response) {
@@ -293,21 +261,6 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   inline virtual void GetTransactionReceiptI(const Json::Value& request,
                                              Json::Value& response) {
     response = this->GetTransactionReceipt(request[0u].asString());
-  }
-  inline virtual void isNodeSyncingI(const Json::Value& request,
-                                     Json::Value& response) {
-    (void)request;
-    response = this->isNodeSyncing();
-  }
-  inline virtual void isNodeMiningI(const Json::Value& request,
-                                    Json::Value& response) {
-    (void)request;
-    response = this->isNodeMining();
-  }
-  inline virtual void GetHashrateI(const Json::Value& request,
-                                   Json::Value& response) {
-    (void)request;
-    response = this->GetHashrate();
   }
   inline virtual void GetNumPeersI(const Json::Value& request,
                                    Json::Value& response) {
@@ -401,9 +354,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                                             Json::Value& response) {
     response = this->GetSmartContractInit(request[0u].asString());
   }
-  virtual std::string GetClientVersion() = 0;
   virtual std::string GetNetworkId() = 0;
-  virtual std::string GetProtocolVersion() = 0;
   virtual Json::Value CreateTransaction(const Json::Value& param01) = 0;
   virtual Json::Value GetTransaction(const std::string& param01) = 0;
   virtual Json::Value GetDsBlock(const std::string& param01) = 0;
@@ -411,19 +362,13 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetLatestDsBlock() = 0;
   virtual Json::Value GetLatestTxBlock() = 0;
   virtual Json::Value GetBalance(const std::string& param01) = 0;
-  virtual std::string GetGasPrice() = 0;
-  virtual std::string GetStorageAt(const std::string& param01,
-                                   const std::string& param02) = 0;
+  virtual std::string GetMinimumGasPrice() = 0;
   virtual Json::Value GetSmartContracts(const std::string& param01) = 0;
-  virtual std::string GetBlockTransactionCount(const std::string& param01) = 0;
   virtual std::string GetContractAddressFromTransactionID(
       const std::string& param01) = 0;
   virtual std::string CreateMessage(const Json::Value& param01) = 0;
   virtual std::string GetGasEstimate(const Json::Value& param01) = 0;
   virtual Json::Value GetTransactionReceipt(const std::string& param01) = 0;
-  virtual bool isNodeSyncing() = 0;
-  virtual bool isNodeMining() = 0;
-  virtual std::string GetHashrate() = 0;
   virtual unsigned int GetNumPeers() = 0;
   virtual std::string GetNumTxBlocks() = 0;
   virtual std::string GetNumDSBlocks() = 0;
@@ -431,6 +376,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual double GetTransactionRate() = 0;
   virtual double GetTxBlockRate() = 0;
   virtual double GetDSBlockRate() = 0;
+  virtual uint8_t GetPrevDSDifficulty() = 0;
+  virtual uint8_t GetPrevDifficulty() = 0;
   virtual std::string GetCurrentMiniEpoch() = 0;
   virtual std::string GetCurrentDSEpoch() = 0;
   virtual Json::Value DSBlockListing(unsigned int param01) = 0;
@@ -460,9 +407,7 @@ class Server : public AbstractZServer {
   Server(Mediator& mediator, jsonrpc::HttpServer& httpserver);
   ~Server();
 
-  virtual std::string GetClientVersion();
   virtual std::string GetNetworkId();
-  virtual std::string GetProtocolVersion();
   virtual Json::Value CreateTransaction(const Json::Value& _json);
   virtual Json::Value GetTransaction(const std::string& transactionHash);
   virtual Json::Value GetDsBlock(const std::string& blockNum);
@@ -470,19 +415,13 @@ class Server : public AbstractZServer {
   virtual Json::Value GetLatestDsBlock();
   virtual Json::Value GetLatestTxBlock();
   virtual Json::Value GetBalance(const std::string& address);
-  virtual std::string GetGasPrice();
-  virtual std::string GetStorageAt(const std::string& address,
-                                   const std::string& position);
+  virtual std::string GetMinimumGasPrice();
   virtual Json::Value GetSmartContracts(const std::string& address);
-  virtual std::string GetBlockTransactionCount(const std::string& blockHash);
   virtual std::string GetContractAddressFromTransactionID(
       const std::string& tranID);
   virtual std::string CreateMessage(const Json::Value& _json);
   virtual std::string GetGasEstimate(const Json::Value& _json);
   virtual Json::Value GetTransactionReceipt(const std::string& transactionHash);
-  virtual bool isNodeSyncing();
-  virtual bool isNodeMining();
-  virtual std::string GetHashrate();
   virtual unsigned int GetNumPeers();
   virtual std::string GetNumTxBlocks();
   virtual std::string GetNumDSBlocks();
@@ -490,6 +429,8 @@ class Server : public AbstractZServer {
   virtual double GetTransactionRate();
   virtual double GetTxBlockRate();
   virtual double GetDSBlockRate();
+  virtual uint8_t GetPrevDSDifficulty();
+  virtual uint8_t GetPrevDifficulty();
   virtual std::string GetCurrentMiniEpoch();
   virtual std::string GetCurrentDSEpoch();
   virtual Json::Value DSBlockListing(unsigned int page);

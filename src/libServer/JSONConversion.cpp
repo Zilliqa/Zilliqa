@@ -99,12 +99,19 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
 
   ret_sign = DataConversion::SerializableToHexStr(dsblock.GetCS2());
 
-  ret_header["difficulty"] = dshead.GetDifficulty();
-  ret_header["prevhash"] = dshead.GetPrevHash().hex();
-  ret_header["leaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
-  ret_header["blockNum"] = to_string(dshead.GetBlockNum());
-  ret_header["timestamp"] = to_string(dsblock.GetTimestamp());
+  ret_header["Difficulty"] = dshead.GetDifficulty();
+  ret_header["PrevHash"] = dshead.GetPrevHash().hex();
+  ret_header["LeaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
+  ret_header["BlockNum"] = to_string(dshead.GetBlockNum());
 
+  ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
+  ret_header["GasPrice"] = dshead.GetGasPrice().str();
+  ret_header["PoWWinners"] = Json::Value(Json::arrayValue);
+
+  for (const auto& dswinner : dshead.GetDSPoWWinners()) {
+    ret_header["PoWWinners"].append(static_cast<string>(dswinner.first));
+  }
+  ret_header["Timestamp"] = to_string(dshead.GetTimestamp());
   ret["header"] = ret_header;
 
   ret["signature"] = ret_sign;
