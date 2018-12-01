@@ -52,6 +52,8 @@ unordered_map<int, string> Path;
 
 const string logName = "epochinfo-00001-log.txt";
 
+static uint32_t launchDelay = 0;
+
 enum SyncType : unsigned int {
   NO_SYNC = 0,
   NEW_SYNC,
@@ -262,6 +264,9 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
         pids[name].erase(it);
       }
 
+      log << "Sleep " << launchDelay
+          << " seconds before re-launch a new process..." << endl;
+      sleep(launchDelay);
       StartNewProcess(PubKey[pid], PrivKey[pid], Port[pid],
                       to_string(getRestartValue(pid)), Path[pid], log);
       died.erase(pid);
@@ -273,7 +278,11 @@ void MonitorProcess(unordered_map<string, vector<pid_t>>& pids,
   }
 }
 
-int main() {
+int main(int argc, const char* argv[]) {
+  if (argc > 1) {
+    launchDelay = stoull(argv[1]);
+  }
+
   pid_t pid_parent, sid;
   ofstream log;
   log.open("daemon-log.txt", fstream::out | fstream::trunc);

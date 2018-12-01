@@ -45,7 +45,6 @@ class DSBlockHeader : public BlockHeaderBase {
   uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum;
   boost::multiprecision::uint128_t m_gasPrice;
-  uint64_t m_timestamp;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
   DSBlockHashSet m_hashset;
@@ -62,7 +61,7 @@ class DSBlockHeader : public BlockHeaderBase {
                 const BlockHash& prevHash, const PubKey& leaderPubKey,
                 const uint64_t& blockNum, const uint64_t& epochNum,
                 const boost::multiprecision::uint128_t& gasPrice,
-                const uint64_t& timestamp, const SWInfo& swInfo,
+                const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
                 const DSBlockHashSet& hashset,
                 const CommitteeHash& committeeHash);
@@ -74,6 +73,10 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::vector<unsigned char>& src,
                    unsigned int offset) override;
+
+  /// Implements the GetHash function for serializing based on concrete vars
+  /// only, primarily used for generating randomness seed
+  BlockHash GetHashForRandom() const;
 
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDSDifficulty() const;
@@ -97,9 +100,6 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the number of global minimum gas price accepteable for the coming
   /// epoch
   const boost::multiprecision::uint128_t& GetGasPrice() const;
-
-  /// Returns the Unix time at the time of creation of this block.
-  const uint64_t& GetTimestamp() const;
 
   /// Returns the software version information used during creation of this
   /// block.

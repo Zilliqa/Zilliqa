@@ -39,46 +39,17 @@ using namespace boost::multiprecision;
 
 unsigned int JSON_TRAN_OBJECT_SIZE = 10;
 
-const Json::Value JSONConversion::convertBoolArraytoJson(
-    const vector<bool>& v) {
-  Json::Value jsonBool;
+const Json::Value JSONConversion::convertMicroBlockInfoArraytoJson(
+    const vector<MicroBlockInfo>& v) {
+  Json::Value mbInfosJson = Json::arrayValue;
   for (auto const& i : v) {
-    jsonBool.append(i ? 1 : 0);
+    Json::Value mbInfoJson;
+    mbInfoJson["MicroBlockHash"] = i.m_microBlockHash.hex();
+    mbInfoJson["MicroBlockTxnRootHash"] = i.m_txnRootHash.hex();
+    mbInfoJson["MicroBlockShardId"] = i.m_shardId;
+    mbInfosJson.append(mbInfosJson);
   }
-  return jsonBool;
-}
-
-const Json::Value JSONConversion::convertTxnHashArraytoJson(
-    const vector<TxnHash>& v) {
-  Json::Value jsonTxnHash;
-
-  for (auto const& i : v) {
-    jsonTxnHash.append(i.hex());
-  }
-  return jsonTxnHash;
-}
-
-const Json::Value JSONConversion::convertTxnHashArraytoJson(
-    const vector<MicroBlockHashSet>& v) {
-  Json::Value jsonTxnHash;
-
-  for (auto const& i : v) {
-    jsonTxnHash.append(i.m_txRootHash.hex());
-  }
-  return jsonTxnHash;
-}
-
-const Json::Value JSONConversion::convertMicroBlockHashSettoJson(
-    const vector<MicroBlockHashSet>& v) {
-  Json::Value jsonMicroBlockHashSets;
-
-  for (auto const& i : v) {
-    Json::Value microBlockHashSet;
-    microBlockHashSet["txRootHash"] = i.m_txRootHash.hex();
-    microBlockHashSet["stateDeltaHash"] = i.m_stateDeltaHash.hex();
-    jsonMicroBlockHashSets.append(microBlockHashSet);
-  }
-  return jsonMicroBlockHashSets;
+  return mbInfosJson;
 }
 
 const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
@@ -95,13 +66,14 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["Rewards"] = txheader.GetRewards().str();
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = to_string(txheader.GetTimestamp());
+  ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
 
-  ret_head["TxnHash"] = txheader.GetMbRootHash().hex();
-  ret_head["StateHash"] = txheader.GetStateRootHash().hex();
+  ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
+  ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
+  ret_head["StateDeltaHash"] = txheader.GetStateDeltaHash().hex();
   ret_head["NumTxns"] = txheader.GetNumTxs();
   ret_head["NumMicroBlocks"] =
-      static_cast<uint32_t>(txblock.GetMicroBlockHashes().size());
+      static_cast<uint32_t>(txblock.GetMicroBlockInfos().size());
 
   ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
   ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
@@ -109,11 +81,8 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_body["HeaderSign"] =
       DataConversion::SerializableToHexStr(txblock.GetCS2());
 
-  ret_body["MicroBlockEmpty"] =
-      convertBoolArraytoJson(txblock.GetIsMicroBlockEmpty());
-
-  ret_body["MicroBlockHashes"] =
-      convertTxnHashArraytoJson(txblock.GetMicroBlockHashes());
+  ret_body["MicroBlockInfos"] =
+      convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
 
   ret["header"] = ret_head;
   ret["body"] = ret_body;

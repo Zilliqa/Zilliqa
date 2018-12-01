@@ -46,6 +46,9 @@ class AccountStoreBase : public SerializableDataBlock {
                           const boost::multiprecision::uint128_t& gasPrice,
                           boost::multiprecision::uint128_t& gasRefund);
 
+  bool UpdateAccounts(const Transaction& transaction,
+                      TransactionReceipt& receipt);
+
  public:
   virtual void Init();
 
@@ -57,9 +60,6 @@ class AccountStoreBase : public SerializableDataBlock {
                            unsigned int offset);
 
   virtual Account* GetAccount(const Address& address);
-
-  bool UpdateAccounts(const Transaction& transaction,
-                      TransactionReceipt& receipt);
 
   /// Verifies existence of Account in the list.
   bool IsAccountExist(const Address& address);

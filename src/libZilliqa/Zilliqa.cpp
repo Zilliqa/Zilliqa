@@ -28,7 +28,7 @@
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
-#include "libNetwork/Whitelist.h"
+#include "libNetwork/Guard.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -72,6 +72,11 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message) {
         sizeof(msg_handlers) / sizeof(Executable*);
 
     if (msg_type < msg_handlers_count) {
+      if (msg_handlers[msg_type] == NULL) {
+        LOG_GENERAL(WARNING, "Message type NULL");
+        return;
+      }
+
       bool result = msg_handlers[msg_type]->Execute(
           message->first, MessageOffset::INST, message->second);
 
@@ -104,6 +109,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
 {
   LOG_MARKER();
+
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
     pair<vector<unsigned char>, Peer>* message = NULL;
@@ -140,6 +146,20 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
   P2PComm::GetInstance().SetSelfPeer(peer);
 
+  if (GUARD_MODE) {
+    // Setting the guard upon process launch
+    Guard::GetInstance().Init();
+
+    if (Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
+      LOG_GENERAL(INFO, "Current node is a DS guard");
+    } else if (Guard::GetInstance().IsNodeInShardGuardList(
+                   m_mediator.m_selfKey.second)) {
+      LOG_GENERAL(INFO, "Current node is a shard guard");
+    } else {
+      LOG_GENERAL(INFO, "Current node is not a guard node");
+    }
+  }
+
   auto func = [this, toRetrieveHistory, syncType, key, peer]() mutable -> void {
     if (!m_n.Install((SyncType)syncType, toRetrieveHistory)) {
       if (LOOKUP_NODE_MODE) {
@@ -161,12 +181,11 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     switch (syncType) {
       case SyncType::NO_SYNC:
         LOG_GENERAL(INFO, "No Sync Needed");
-        Whitelist::GetInstance().Init();
         break;
       case SyncType::NEW_SYNC:
         LOG_GENERAL(INFO, "Sync as a new node");
         if (!toRetrieveHistory) {
-          m_mediator.m_lookup->m_syncType = SyncType::NEW_SYNC;
+          m_mediator.m_lookup->SetSyncType(SyncType::NEW_SYNC);
           m_n.m_runFromLate = true;
           m_n.StartSynchronization();
         } else {
@@ -176,18 +195,18 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         break;
       case SyncType::NORMAL_SYNC:
         LOG_GENERAL(INFO, "Sync as a normal node");
-        m_mediator.m_lookup->m_syncType = SyncType::NORMAL_SYNC;
+        m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
         m_n.m_runFromLate = true;
         m_n.StartSynchronization();
         break;
       case SyncType::DS_SYNC:
         LOG_GENERAL(INFO, "Sync as a ds node");
-        m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+        m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
         m_ds.StartSynchronization();
         break;
       case SyncType::LOOKUP_SYNC:
         LOG_GENERAL(INFO, "Sync as a lookup node");
-        m_mediator.m_lookup->m_syncType = SyncType::LOOKUP_SYNC;
+        m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         m_lookup.StartSynchronization();
         break;
       default:
@@ -240,6 +259,11 @@ vector<Peer> Zilliqa::RetrieveBroadcastList(unsigned char msg_type,
       sizeof(msg_handlers) / sizeof(Broadcastable*);
 
   if (msg_type < msg_handlers_count) {
+    if (msg_handlers[msg_type] == NULL) {
+      LOG_GENERAL(WARNING, "Message type NULL");
+      return vector<Peer>();
+    }
+
     return msg_handlers[msg_type]->GetBroadcastList(ins_type, from);
   } else {
     LOG_GENERAL(WARNING,

@@ -606,15 +606,14 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
   LOG_MARKER();
 
   if (0 != m_stateDeltaDB->Insert(finalBlockNum, stateDelta)) {
-    LOG_GENERAL(WARNING, "Failed to store state delta of final block["
-                             << finalBlockNum << "]: "
-                             << DataConversion::Uint8VecToHexStr(stateDelta));
+    LOG_PAYLOAD(WARNING,
+                "Failed to store state delta of final block " << finalBlockNum,
+                stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
     return false;
   }
 
-  LOG_GENERAL(INFO, "Stored state delta of final block["
-                        << finalBlockNum << "]: "
-                        << DataConversion::Uint8VecToHexStr(stateDelta));
+  LOG_PAYLOAD(INFO, "Stored state delta of final block " << finalBlockNum,
+              stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
   return true;
 }
 
@@ -624,9 +623,8 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
 
   string dataStr = m_stateDeltaDB->Lookup(finalBlockNum);
   stateDelta = vector<unsigned char>(dataStr.begin(), dataStr.end());
-  LOG_GENERAL(INFO, "Retrieved state delta of final block["
-                        << finalBlockNum << "]: "
-                        << DataConversion::Uint8VecToHexStr(stateDelta));
+  LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
+              stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
   return true;
 }
 

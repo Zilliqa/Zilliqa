@@ -41,7 +41,6 @@ class TxBlockHeader : public BlockHeaderBase {
   boost::multiprecision::uint128_t m_rewards;
   BlockHash m_prevHash;  // Hash of the previous block
   uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
-  uint64_t m_timestamp;
   TxBlockHashSet m_hashset;
   uint32_t m_numTxs;     // Total number of txs included in the block
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
@@ -60,9 +59,9 @@ class TxBlockHeader : public BlockHeaderBase {
                 const uint64_t& gasLimit, const uint64_t& gasUsed,
                 const boost::multiprecision::uint128_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
-                const uint64_t& timestamp, const TxBlockHashSet& blockHashSet,
-                const uint32_t numTxs, const PubKey& minerPubKey,
-                const uint64_t& dsBlockNum, const CommitteeHash& committeeHash);
+                const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
+                const PubKey& minerPubKey, const uint64_t& dsBlockNum,
+                const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(std::vector<unsigned char>& dst,
@@ -94,13 +93,6 @@ class TxBlockHeader : public BlockHeaderBase {
 
   /// Returns the number of ancestor blocks.
   const uint64_t& GetBlockNum() const;
-
-  /// Returns the Unix time at the time of creation of this block.
-  const uint64_t& GetTimestamp() const;
-
-  /// Returns the digest that represents the root of the Merkle tree that stores
-  /// all microblocks in this block.
-  const BlockHash& GetMbRootHash() const;
 
   /// Returns the digest that represents the root of the Merkle tree that stores
   /// all state uptil this block.
@@ -144,7 +136,6 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_rewards : " << t.m_rewards << std::endl
      << "m_prevHash : " << t.m_prevHash.hex() << std::endl
      << "m_blockNum : " << t.m_blockNum << std::endl
-     << "m_timestamp : " << t.m_timestamp << std::endl
      << t.m_hashset << std::endl
      << "m_numTxs : " << t.m_numTxs << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl

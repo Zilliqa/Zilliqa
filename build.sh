@@ -21,6 +21,7 @@ set -e
 dir=build
 
 run_clang_format_fix=0
+run_clang_tidy_fix=0
 
 for option in "$@"
 do
@@ -44,7 +45,12 @@ do
     style)
         CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
         run_clang_format_fix=1
-        echo "Build with LLVM Extra Tools for codying style check"
+        echo "Build with LLVM Extra Tools for coding style check (clang-format-fix)"
+    ;;
+    linter)
+        CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON ${CMAKE_EXTRA_OPTIONS}"
+        run_clang_tidy_fix=1
+        echo "Build with LLVM Extra Tools for linter check (clang-tidy-fix)"
     ;;
     heartbeattest)
         CMAKE_EXTRA_OPTIONS="-DHEARTBEATTEST=1 ${CMAKE_EXTRA_OPTIONS}"
@@ -106,6 +112,10 @@ do
         CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_BAD_ANNOUNCE=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with DSMBMerging test - DS leader composed invalid TxBlock"
     ;;
+    dm6)
+        CMAKE_EXTRA_OPTIONS="-DDM_TEST_DM_BAD_MB_ANNOUNCE=1 ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build with DSMBMerging test - DS leader composed invalid DSMicroBlock"
+    ;;
     *)
         echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [fallbacktest] [vc<1-8>] [dm<1-5>]"
         exit 1
@@ -116,4 +126,5 @@ done
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
 cmake --build ${dir} -- -j4
 ./scripts/license_checker.sh
+[ ${run_clang_tidy_fix} -ne 0 ] && cmake --build ${dir} --target clang-tidy-fix
 [ ${run_clang_format_fix} -ne 0 ] && cmake --build ${dir} --target clang-format-fix

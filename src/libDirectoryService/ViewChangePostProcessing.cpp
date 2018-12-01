@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -118,35 +119,42 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
 
     // Pushing faulty leader to back of the deque
-    for (const auto& faultyLeader :
-         m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-      // find the faulty leader and identify the index
-      deque<pair<PubKey, Peer>>::iterator iterFaultyLeader;
-      if (faultyLeader.second == m_mediator.m_selfPeer) {
-        iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
-                                m_mediator.m_DSCommittee->end(),
-                                make_pair(faultyLeader.first, Peer()));
-      } else {
-        iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
-                                m_mediator.m_DSCommittee->end(), faultyLeader);
-      }
 
-      // Remove faulty leader from the current ds committee structure temporary
-      if (iterFaultyLeader != m_mediator.m_DSCommittee->end()) {
-        m_mediator.m_DSCommittee->erase(iterFaultyLeader);
-      } else {
-        LOG_GENERAL(FATAL, "Cannot find "
-                               << faultyLeader.second
-                               << " to eject to back of ds committee");
-      }
+    if (!GUARD_MODE) {
+      for (const auto& faultyLeader :
+           m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
+        // find the faulty leader and identify the index
+        deque<pair<PubKey, Peer>>::iterator iterFaultyLeader;
+        if (faultyLeader.second == m_mediator.m_selfPeer) {
+          iterFaultyLeader = find(m_mediator.m_DSCommittee->begin(),
+                                  m_mediator.m_DSCommittee->end(),
+                                  make_pair(faultyLeader.first, Peer()));
+        } else {
+          iterFaultyLeader =
+              find(m_mediator.m_DSCommittee->begin(),
+                   m_mediator.m_DSCommittee->end(), faultyLeader);
+        }
 
-      // Add to the back of the ds commitee deque
-      if (faultyLeader.second == m_mediator.m_selfPeer) {
-        m_mediator.m_DSCommittee->emplace_back(
-            make_pair(faultyLeader.first, Peer()));
-      } else {
-        m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+        // Remove faulty leader from the current ds committee structure
+        // temporary
+        if (iterFaultyLeader != m_mediator.m_DSCommittee->end()) {
+          m_mediator.m_DSCommittee->erase(iterFaultyLeader);
+        } else {
+          LOG_GENERAL(FATAL, "Cannot find "
+                                 << faultyLeader.second
+                                 << " to eject to back of ds committee");
+        }
+
+        // Add to the back of the ds commitee deque
+        if (faultyLeader.second == m_mediator.m_selfPeer) {
+          m_mediator.m_DSCommittee->emplace_back(
+              make_pair(faultyLeader.first, Peer()));
+        } else {
+          m_mediator.m_DSCommittee->emplace_back(faultyLeader);
+        }
       }
+    } else {
+      LOG_GENERAL(INFO, "In guard mode. Actual composition remain the same.");
     }
 
     // Re-calculate the new m_consensusMyID
@@ -370,7 +378,7 @@ bool DirectoryService::ProcessViewChangeConsensus(
           cv_lk_con_msg, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
           [this, message, offset]() -> bool {
             lock_guard<mutex> g(m_mutexConsensus);
-            if (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+            if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
               LOG_GENERAL(WARNING,
                           "The node started the process of rejoining, "
                           "Ignore rest of "

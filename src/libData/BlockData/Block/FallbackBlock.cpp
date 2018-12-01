@@ -39,10 +39,9 @@ FallbackBlock::FallbackBlock(const FallbackBlockHeader& header,
                              CoSignatures&& cosigs)
     : m_header(header) {
   m_cosigs = move(cosigs);
+  SetTimestamp(get_time_as_int());
+  SetBlockHash(m_header.GetMyHash());
 }
-
-FallbackBlock::FallbackBlock(const FallbackBlockHeader& header)
-    : m_header(header) {}
 
 bool FallbackBlock::Serialize(vector<unsigned char>& dst,
                               unsigned int offset) const {

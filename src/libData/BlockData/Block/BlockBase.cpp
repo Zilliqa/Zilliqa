@@ -28,6 +28,12 @@ using namespace boost::multiprecision;
 
 BlockBase::BlockBase() {}
 
+const uint64_t& BlockBase::GetTimestamp() const { return m_timestamp; }
+
+void BlockBase::SetTimestamp(const uint64_t& timestamp) {
+  m_timestamp = timestamp;
+}
+
 const BlockHash& BlockBase::GetBlockHash() const { return m_blockHash; }
 
 void BlockBase::SetBlockHash(const BlockHash& blockHash) {

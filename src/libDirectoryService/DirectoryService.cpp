@@ -31,8 +31,9 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/Whitelist.h"
+#include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
@@ -68,13 +69,13 @@ void DirectoryService::StartSynchronization() {
 
   this->CleanVariables();
 
-  auto func = [this]() -> void {
-    if (!m_mediator.m_node->GetOfflineLookups()) {
-      LOG_GENERAL(WARNING, "Cannot sync currently");
-      return;
-    }
+  if (!m_mediator.m_node->GetOfflineLookups()) {
+    LOG_GENERAL(WARNING, "Cannot sync currently");
+    return;
+  }
 
-    while (m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC) {
+  auto func = [this]() -> void {
+    while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
       m_synchronizer.FetchLatestTxBlocks(
@@ -85,7 +86,13 @@ void DirectoryService::StartSynchronization() {
     }
   };
 
+  auto func2 = [this]() -> void {
+    if (!m_mediator.m_lookup->GetDSInfoLoop()) {
+      LOG_GENERAL(WARNING, "Unable to fetch DS info");
+    }
+  };
   DetachedFunction(1, func);
+  DetachedFunction(1, func2);
 }
 
 bool DirectoryService::CheckState(Action action) {
@@ -272,8 +279,10 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     LOG_GENERAL(WARNING, "ProcessSetPrimary called in epoch "
                              << m_mediator.m_currentEpochNum);
     m_consensusLeaderID =
-        DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
+        DataConversion::charArrTo16Bits(m_mediator.m_dsBlockChain.GetLastBlock()
+                                            .GetHeader()
+                                            .GetHashForRandom()
+                                            .asBytes()) %
         m_mediator.m_DSCommittee->size();
   }
 
@@ -294,10 +303,35 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
                          << "] DSBK");
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Waiting " << POW_WINDOW_IN_SECONDS
-                       << " seconds, accepting PoW submissions...");
-  this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+  if (m_consensusMyID < POW_PACKET_SENDERS) {
+    LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Waiting " << POW_WINDOW_IN_SECONDS
+                         << " seconds, accepting PoW submissions...");
+    this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+
+    // create and send POW submission packets
+    auto func = [this]() mutable -> void {
+      this->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
+    };
+    DetachedFunction(1, func);
+
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                         << " seconds, accepting PoW submissions packet from "
+                            "other DS member...");
+    this_thread::sleep_for(
+        chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
+  } else {
+    LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Waiting " << POW_WINDOW_IN_SECONDS +
+                                POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                         << " seconds, accepting PoW submissions packets...");
+    this_thread::sleep_for(chrono::seconds(
+        POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
+  }
+
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Starting consensus on ds block");
   RunConsensusOnDSBlock();
@@ -376,6 +410,11 @@ bool DirectoryService::CleanVariables() {
   m_allPoWConns.clear();
   m_mapNodeReputation.clear();
 
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    m_mediator.m_DSCommittee->clear();
+  }
+
   m_stopRecvNewMBSubmission = false;
   m_needCheckMicroBlock = true;
   m_startedRunFinalblockConsensus = false;
@@ -427,10 +466,10 @@ void DirectoryService::RejoinAsDS() {
   }
 
   LOG_MARKER();
-  if (m_mediator.m_lookup->m_syncType == SyncType::NO_SYNC &&
+  if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC &&
       m_mode == BACKUP_DS) {
     auto func = [this]() mutable -> void {
-      m_mediator.m_lookup->m_syncType = SyncType::DS_SYNC;
+      m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
       m_mediator.m_node->CleanVariables();
       m_mediator.m_node->Install(SyncType::DS_SYNC, true);
       this->StartSynchronization();
@@ -449,30 +488,82 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   LOG_MARKER();
   m_mode = BACKUP_DS;
+  unsigned int dsSize = 0;
+  {
+    std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    dsSize = m_mediator.m_DSCommittee->size();
+    LOG_GENERAL(INFO,
+                "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
+    if (dsSize == 0) {
+      LOG_GENERAL(WARNING, "DS committee unset, failed to rejoin");
+      return false;
+    }
+  }
 
   m_consensusLeaderID = 0;
-  if (m_mediator.m_currentEpochNum > 1) {
-    m_consensusLeaderID =
-        DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes()) %
-        m_mediator.m_DSCommittee->size();
+  BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
+  const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
+  PubKey leaderPubKey;
+  if (blocktype == BlockType::DS) {
+    if (!GUARD_MODE) {
+      m_consensusLeaderID = DataConversion::charArrTo16Bits(
+                                m_mediator.m_dsBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetHashForRandom()
+                                    .asBytes()) %
+                            dsSize;
+    } else {
+      m_consensusLeaderID = DataConversion::charArrTo16Bits(
+                                m_mediator.m_dsBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetHashForRandom()
+                                    .asBytes()) %
+                            Guard::GetInstance().GetNumOfDSGuard();
+    }
+
+  } else if (blocktype == BlockType::VC) {
+    VCBlockSharedPtr VCBlockptr;
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
+      LOG_GENERAL(FATAL, "could not get vc block "
+                             << get<BlockLinkIndex::BLOCKHASH>(bl));
+      for (auto const& i : *m_mediator.m_DSCommittee) {
+        if (i.first == leaderPubKey) {
+          LOG_EPOCH(
+              INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Leader ID for this PoW consensus is " << m_consensusLeaderID);
+          break;
+        }
+        m_consensusLeaderID++;
+      }
+    }
+    leaderPubKey = VCBlockptr->GetHeader().GetCandidateLeaderPubKey();
+  } else {
+    m_mediator.m_node->RejoinAsNormal();
   }
 
   m_consensusMyID = 0;
+  bool found = false;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-    LOG_GENERAL(INFO,
-                "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
     for (auto const& i : *m_mediator.m_DSCommittee) {
-      LOG_GENERAL(INFO, "Loop of m_DSCommittee");
       if (i.first == m_mediator.m_selfKey.second) {
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "My node ID for this PoW consensus is " << m_consensusMyID);
+        found = true;
         break;
       }
       m_consensusMyID++;
     }
   }
+  if (!found) {
+    LOG_GENERAL(
+        WARNING,
+        "Unable to find myself in ds committee, Invoke Rejoin as Normal");
+    m_mediator.m_node->RejoinAsNormal();
+    return false;
+  }
+
   // in case the recovery program is under different directory
   LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(), DS_BACKUP_MSG);
   RunConsensusOnDSBlock(true);
@@ -547,15 +638,11 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
   SetState(POW_SUBMISSION);
   cv_POWSubmission.notify_all();
 
-  POW::GetInstance().EthashConfigureLightClient(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
+  POW::GetInstance().EthashConfigureClient(
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
+      FULL_DATASET_MINE);
 
   if (m_mode == PRIMARY_DS) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                                (fromFallback ? FALLBACK_EXTRA_TIME : 0)
-                         << " seconds, accepting PoW submissions...");
-
     // Notify lookup that it's time to do PoW
     vector<unsigned char> startpow_message = {
         MessageType::LOOKUP, LookupInstructionType::RAISESTARTPOW};
@@ -564,9 +651,44 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
-    this_thread::sleep_for(
-        chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                        (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+
+    if (m_consensusMyID < POW_PACKET_SENDERS) {
+      LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                                  (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+                           << " seconds, accepting PoW submissions...");
+
+      this_thread::sleep_for(
+          chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                          (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+
+      // create and send POW submission packets
+      auto func = [this]() mutable -> void {
+        this->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
+      };
+      DetachedFunction(1, func);
+
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                           << " seconds, accepting PoW submissions packet from "
+                              "other DS member...");
+
+      this_thread::sleep_for(
+          chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
+    } else {
+      LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                                  POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+                                  (fromFallback ? FALLBACK_EXTRA_TIME : 0)
+                           << " seconds, accepting PoW submissions packets...");
+
+      this_thread::sleep_for(
+          chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                          POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+                          (fromFallback ? FALLBACK_EXTRA_TIME : 0)));
+    }
 
     RunConsensusOnDSBlock();
   } else {
@@ -584,6 +706,28 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
                             << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                                    (fromFallback ? FALLBACK_EXTRA_TIME : 0)
                             << " seconds");
+      // if i am suppose to create pow submission packet for other DS members
+      if (m_consensusMyID < POW_PACKET_SENDERS) {
+        // create and send POW submission packets
+        LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
+        auto func = [this]() mutable -> void {
+          this->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
+        };
+        DetachedFunction(1, func);
+      }
+
+      if (cv_DSBlockConsensus.wait_for(
+              cv_lk,
+              std::chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS)) ==
+          std::cv_status::timeout) {
+        LOG_GENERAL(INFO, "Woken up from the sleep of "
+                              << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
+                              << " seconds");
+      } else {
+        LOG_GENERAL(INFO,
+                    "Received announcement message. Time to "
+                    "run consensus.");
+      }
     } else {
       LOG_GENERAL(INFO,
                   "Received announcement message. Time to "
@@ -591,6 +735,15 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     }
 
     RunConsensusOnDSBlock();
+
+    // now that we already run DSBlock Consensus, lets clear the buffered pow
+    // solutions. why not clear it at start of new ds epoch - becoz sometimes
+    // node is too late to start new ds epoch and and it already receives pow
+    // solution for next ds epoch. so we buffer them instead.
+    {
+      lock_guard<mutex> g(m_mutexPowSolution);
+      m_powSolutions.clear();
+    }
   }
 }
 
@@ -669,7 +822,7 @@ void DirectoryService::SendBlockToShardNodes(
 }
 
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
-  return m_mediator.m_lookup->m_syncType != SyncType::NO_SYNC;
+  return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
@@ -691,14 +844,16 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
                          &DirectoryService::ProcessMicroblockSubmission,
                          &DirectoryService::ProcessFinalBlockConsensus,
                          &DirectoryService::ProcessViewChangeConsensus,
-                         &DirectoryService::ProcessGetDSTxBlockMessage});
+                         &DirectoryService::ProcessGetDSTxBlockMessage,
+                         &DirectoryService::ProcessPoWPacketSubmission});
   } else {
     ins_handlers.insert(ins_handlers.end(),
                         {&DirectoryService::ProcessSetPrimary,
                          &DirectoryService::ProcessPoWSubmission,
                          &DirectoryService::ProcessDSBlockConsensus,
                          &DirectoryService::ProcessMicroblockSubmission,
-                         &DirectoryService::ProcessFinalBlockConsensus});
+                         &DirectoryService::ProcessFinalBlockConsensus,
+                         &DirectoryService::ProcessPoWPacketSubmission});
   }
 
   const unsigned char ins_byte = message.at(offset);
@@ -763,29 +918,26 @@ uint8_t DirectoryService::CalculateNewDifficulty(
     const uint8_t& currentDifficulty) {
   constexpr unsigned int MAX_ADJUST_THRESHOLD = 99;
 
-  int64_t currentNodes = 0, powSubmissions = 0;
+  int64_t powSubmissions = 0;
   {
     lock_guard<mutex> g(m_mutexAllPOW);
     powSubmissions = m_allPoWs.size();
-
-    for (const auto& shard : m_shards) {
-      currentNodes += shard.size();
-    }
   }
 
   LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-            "currentDifficulty " << std::to_string(currentDifficulty)
-                                 << ", currentNodes " << currentNodes
-                                 << ", powSubmissions " << powSubmissions);
+            "currentDifficulty "
+                << std::to_string(currentDifficulty) << ", expectedNodes "
+                << EXPECTED_SHARD_NODE_NUM << ", powSubmissions "
+                << powSubmissions);
   return CalculateNewDifficultyCore(
-      currentDifficulty, POW_DIFFICULTY, currentNodes, powSubmissions,
-      NUM_NODE_INCR_DIFFICULTY, MAX_ADJUST_THRESHOLD,
+      currentDifficulty, POW_DIFFICULTY, powSubmissions,
+      EXPECTED_SHARD_NODE_NUM, MAX_ADJUST_THRESHOLD,
       m_mediator.m_currentEpochNum, CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDSDifficulty(
     const uint8_t& dsDifficulty) {
-  constexpr unsigned int MAX_ADJUST_THRESHOLD = 9;
+  constexpr unsigned int MAX_ADJUST_THRESHOLD = 49;
 
   int64_t currentDSNodes = m_mediator.m_DSCommittee->size();
   int64_t dsPowSubmissions = GetNumberOfDSPoWSolns();
@@ -796,23 +948,23 @@ uint8_t DirectoryService::CalculateNewDSDifficulty(
                             << ", dsPowSubmissions " << dsPowSubmissions);
 
   return CalculateNewDifficultyCore(
-      dsDifficulty, DS_POW_DIFFICULTY, currentDSNodes, dsPowSubmissions,
-      currentDSNodes, MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
+      dsDifficulty, DS_POW_DIFFICULTY, dsPowSubmissions, currentDSNodes,
+      MAX_ADJUST_THRESHOLD, m_mediator.m_currentEpochNum,
       CalculateNumberOfBlocksPerYear());
 }
 
 uint8_t DirectoryService::CalculateNewDifficultyCore(
-    uint8_t currentDifficulty, uint8_t minDifficulty, int64_t currentNodes,
-    int64_t powSubmissions, int64_t expectedNodes, uint32_t maxAdjustThreshold,
-    int64_t currentEpochNum, int64_t numBlockPerYear) {
+    uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,
+    int64_t expectedNodes, uint32_t maxAdjustThreshold, int64_t currentEpochNum,
+    int64_t numBlockPerYear) {
   constexpr int8_t MAX_ADJUST_STEP = 2;
   constexpr float ONE_HUNDRED_PERCENT = 100.f;
   constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
 
   int64_t adjustment = 0;
-  if (currentNodes > 0 && currentNodes != powSubmissions) {
+  if (expectedNodes > 0 && expectedNodes != powSubmissions) {
     int64_t submissionsDiff;
-    if (!SafeMath<int64_t>::sub(powSubmissions, currentNodes,
+    if (!SafeMath<int64_t>::sub(powSubmissions, expectedNodes,
                                 submissionsDiff)) {
       LOG_GENERAL(WARNING, "Calculate PoW submission difference goes wrong");
       submissionsDiff = 0;
@@ -820,27 +972,14 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
 
     // To make the adjustment work on small network.
     int64_t adjustThreshold = std::ceil(
-        currentNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF / ONE_HUNDRED_PERCENT);
+        expectedNodes * POW_CHANGE_PERCENT_TO_ADJ_DIFF / ONE_HUNDRED_PERCENT);
     if (adjustThreshold > maxAdjustThreshold) {
       adjustThreshold = maxAdjustThreshold;
     }
 
-    // If the PoW submissions change not so big, then adjust according to the
-    // expected whole network node number.
-    if (abs(submissionsDiff) < adjustThreshold) {
-      // If the PoW submissions exceeded the expected whole network node number,
-      // then increase the difficulty.
-      if (submissionsDiff > 0 && currentNodes > expectedNodes) {
-        adjustment = 1;
-      } else if (submissionsDiff < 0 && currentNodes < expectedNodes) {
-        adjustment = -1;
-      }
-    } else {
-      if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold,
-                                  adjustment)) {
-        LOG_GENERAL(WARNING, "Calculate difficulty adjustment goes wrong");
-        adjustment = 0;
-      }
+    if (!SafeMath<int64_t>::div(submissionsDiff, adjustThreshold, adjustment)) {
+      LOG_GENERAL(WARNING, "Calculate difficulty adjustment goes wrong");
+      adjustment = 0;
     }
   }
 
@@ -867,12 +1006,14 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
 
 uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
   // Every year, always increase the difficulty by 1, to encourage miners to
-  // upgrade the hardware over time. If POW_WINDOW_IN_SECONDS = 300,
-  // NUM_FINAL_BLOCK_PER_POW = 50, TX_DISTRIBUTE_TIME_IN_MS = 10000,
-  // FINALBLOCK_DELAY_IN_MS = 3000, estimated blocks in a year is 1971000.
+  // upgrade the hardware over time. If POW_WINDOW_IN_SECONDS +
+  // POWPACKETSUBMISSION_WINDOW_IN_SECONDS = 300, NUM_FINAL_BLOCK_PER_POW = 50,
+  // TX_DISTRIBUTE_TIME_IN_MS = 10000, FINALBLOCK_DELAY_IN_MS = 3000, estimated
+  // blocks in a year is 1971000.
   uint64_t estimatedBlocksOneYear =
       365 * 24 * 3600 /
-      ((POW_WINDOW_IN_SECONDS / NUM_FINAL_BLOCK_PER_POW) +
+      (((POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS) /
+        NUM_FINAL_BLOCK_PER_POW) +
        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000));
 
   // Round to integral multiple of NUM_FINAL_BLOCK_PER_POW

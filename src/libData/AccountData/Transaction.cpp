@@ -188,25 +188,19 @@ void Transaction::SetSignature(const Signature& signature) {
 
 unsigned int Transaction::GetShardIndex(const Address& fromAddr,
                                         unsigned int numShards) {
-  unsigned int target_shard = 0;
-  unsigned int numbits = log2(numShards);
-  unsigned int numbytes = numbits / 8;
-  unsigned int extrabits = numbits % 8;
+  uint32_t x = 0;
 
-  if (extrabits > 0) {
-    unsigned char msb_mask = 0;
-    for (unsigned int i = 0; i < extrabits; i++) {
-      msb_mask |= 1 << i;
-    }
-    target_shard =
-        fromAddr.asArray().at(ACC_ADDR_SIZE - numbytes - 1) & msb_mask;
+  if (numShards == 0) {
+    LOG_GENERAL(WARNING, "numShards is 0 and trying to calculate shard index");
+    return 0;
   }
 
-  for (unsigned int i = ACC_ADDR_SIZE - numbytes; i < ACC_ADDR_SIZE; i++) {
-    target_shard = (target_shard << 8) + fromAddr.asArray().at(i);
+  // Take the last four bytes of the address
+  for (unsigned int i = 0; i < 4; i++) {
+    x = (x << 8) | fromAddr.asArray().at(ACC_ADDR_SIZE - 4 + i);
   }
 
-  return target_shard;
+  return x % numShards;
 }
 
 bool Transaction::operator==(const Transaction& tran) const {

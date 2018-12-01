@@ -16,12 +16,25 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 # check dependencies
 #
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 pkg_check_modules(LIBEVENT REQUIRED libevent)
-pkg_check_modules(MINIUPNPC miniupnpc)
-pkg_check_modules(JSONRPCCPP libjsonrpccpp-server libjsonrpccpp-common)
-include_directories(${JSONCPP_INCLUDE_DIRS})
-link_directories(${JSONCPP_LIBRARY_DIRS} ${LIBEVENT_LIBRARY_DIRS} ${MINIUPNPC_LIBRARY_DIRS} ${JSONRPCCPP_LIBRARY_DIRS})
+link_directories(${LIBEVENT_LIBRARY_DIRS})
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    pkg_check_modules(MINIUPNPC miniupnpc REQUIRED)
+    link_directories(${MINIUPNPC_LIBRARY_DIRS})
+
+    find_package(jsoncpp REQUIRED)
+    find_package(libjson-rpc-cpp REQUIRED COMPONENTS jsonrpccommon jsonrpcserver)
+    set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
+    set(JSONRPCCPP_LINK_TARGETS "libjson-rpc-cpp::jsonrpccommon;libjson-rpc-cpp::jsonrpcserver")
+else()
+    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+    include_directories(${JSONCPP_INCLUDE_DIRS})
+    link_directories(${JSONCPP_LIBRARY_DIRS})
+    set(JSONCPP_LINK_TARGETS "jsoncpp")
+    set(JSONRPCCPP_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-server")
+endif()
+
 
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
@@ -145,9 +158,16 @@ if(DM_TEST_DM_BAD_ANNOUNCE)
     add_definitions(-DDM_TEST_DM_BAD_ANNOUNCE)
 endif()
 
+if(DM_TEST_DM_BAD_MB_ANNOUNCE)
+    message(STATUS "DM 6 test enabled")
+    add_definitions(-DDM_TEST_DM_BAD_MB_ANNOUNCE)
+endif()
+
 include(FindProtobuf)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
+
+include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

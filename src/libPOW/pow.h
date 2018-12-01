@@ -33,8 +33,8 @@
 
 #include "common/Constants.h"
 #include "depends/common/Miner.h"
-#include "depends/libethash/ethash.h"
-#include "depends/libethash/internal.h"
+#include "depends/libethash/include/ethash/ethash.hpp"
+//#include "ethash/ethash.hpp"
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
 
@@ -51,7 +51,7 @@ class POW {
   static std::string BytesToHexString(const uint8_t* str, const uint64_t s);
   static int FromHex(char _i);
   static std::vector<uint8_t> HexStringToBytes(std::string const& _s);
-  static ethash_h256_t DifficultyLevelInInt(uint8_t difficulty);
+  static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
   std::mutex m_mutexLightClientConfigure;
   std::mutex m_mutexPoWMine;
 
@@ -62,14 +62,16 @@ class POW {
   void operator=(POW const&) = delete;
 
  public:
-  static ethash_h256_t StringToBlockhash(std::string const& _s);
-  static std::string BlockhashToHexString(ethash_h256_t* _hash);
+  static ethash_hash256 StringToBlockhash(std::string const& _s);
+  static std::string BlockhashToHexString(const ethash_hash256& _hash);
+  static bool CheckDificulty(const ethash_hash256& result,
+                             const ethash_hash256& boundary);
 
   /// Returns the singleton POW instance.
   static POW& GetInstance();
 
   /// Initializes the POW hash function for the specified block number.
-  bool EthashConfigureLightClient(uint64_t block_number);
+  bool EthashConfigureClient(uint64_t block_number, bool fullDataset = false);
 
   /// Triggers the proof-of-work mining.
   ethash_mining_result_t PoWMine(
@@ -90,26 +92,25 @@ class POW {
                  const boost::multiprecision::uint128_t& ipAddr,
                  const PubKey& pubKey, uint32_t lookupId,
                  const boost::multiprecision::uint128_t& gasPrice,
-                 bool fullDataset, uint64_t winning_nonce,
-                 const std::string& winning_result,
+                 uint64_t winning_nonce, const std::string& winning_result,
                  const std::string& winning_mixhash);
   std::vector<unsigned char> ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
       const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
       uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
-  ethash_return_value_t LightHash(uint64_t blockNum,
-                                  ethash_h256_t const& header_hash,
-                                  uint64_t nonce);
-  bool CheckSolnAgainstsTargetedDifficulty(const ethash_h256_t& result,
+  ethash::result LightHash(uint64_t blockNum, ethash_hash256 const& header_hash,
+                           uint64_t nonce);
+  bool CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
                                            uint8_t difficulty);
   bool CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                            uint8_t difficulty);
   static std::set<unsigned int> GetGpuToUse();
 
  private:
-  ethash_light_t ethash_light_client;
-  uint64_t currentBlockNum;
+  std::shared_ptr<ethash::epoch_context> m_epochContextLight = nullptr;
+  std::shared_ptr<ethash::epoch_context_full> m_epochContextFull = nullptr;
+  uint64_t m_currentBlockNum;
   std::atomic<bool> m_shouldMine;
   std::vector<dev::eth::MinerPtr> m_miners;
   std::vector<ethash_mining_result_t> m_vecMiningResult;
@@ -117,36 +118,15 @@ class POW {
   std::condition_variable m_cvMiningResult;
   std::mutex m_mutexMiningResult;
 
-  ethash_light_t EthashLightNew(uint64_t block_number);
-  ethash_light_t EthashLightReuse(ethash_light_t ethashLight,
-                                  uint64_t block_number);
-  void EthashLightDelete(ethash_light_t light);
-  ethash_return_value_t EthashLightCompute(ethash_light_t& light,
-                                           ethash_h256_t const& header_hash,
-                                           uint64_t nonce);
-  ethash_full_t EthashFullNew(ethash_light_t& light,
-                              ethash_callback_t& CallBack);
-  void EthashFullDelete(ethash_full_t& full);
-  ethash_return_value_t EthashFullCompute(ethash_full_t& full,
-                                          ethash_h256_t const& header_hash,
-                                          uint64_t nonce);
-  ethash_mining_result_t MineLight(ethash_light_t& light,
-                                   ethash_h256_t const& header_hash,
-                                   ethash_h256_t& difficulty);
-  ethash_mining_result_t MineFull(ethash_full_t& full,
-                                  ethash_h256_t const& header_hash,
-                                  ethash_h256_t& difficulty);
+  ethash_mining_result_t MineLight(ethash_hash256 const& header_hash,
+                                   ethash_hash256 const& boundary);
+  ethash_mining_result_t MineFull(ethash_hash256 const& header_hash,
+                                  ethash_hash256 const& boundary);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
-                                     ethash_h256_t const& header_hash,
+                                     ethash_hash256 const& header_hash,
                                      uint8_t difficulty);
-  void MineFullGPUThread(uint64_t blockNum, ethash_h256_t const& header_hash,
+  void MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& header_hash,
                          uint8_t difficulty, uint64_t nonce);
-  bool VerifyLight(ethash_light_t& light, ethash_h256_t const& header_hash,
-                   uint64_t winning_nonce, ethash_h256_t& difficulty,
-                   ethash_h256_t& result, ethash_h256_t& mixhash);
-  bool VerifyFull(ethash_full_t& full, ethash_h256_t const& header_hash,
-                  uint64_t winning_nonce, ethash_h256_t& difficulty,
-                  ethash_h256_t& result, ethash_h256_t& mixhash);
   void InitOpenCL();
   void InitCUDA();
 };

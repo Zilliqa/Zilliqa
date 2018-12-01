@@ -879,5 +879,7 @@ void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers) {
     if (peers.size() != 0) {
       m_rumorManager.StartRounds();
     }
+    // Spread the buffered rumors
+    m_rumorManager.SpreadBufferedRumors();
   }
 }
