@@ -223,6 +223,8 @@ const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{
     ReadFromConstantsFile("LOOKUP_DELAY_SEND_TXNPACKET_IN_MS")};
 const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
     ReadFromConstantsFile("DELAY_FIRSTXNEPOCH_IN_MS")};
+const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{
+    ReadFromConstantsFile("TXN_MISORDER_TOLERANCE_IN_PERCENT")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
