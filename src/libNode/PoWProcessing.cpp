@@ -293,7 +293,10 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
     if (blocktype == BlockType::DS) {
       uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_dsBlockChain.GetLastBlock().GetBlockHash().asBytes());
+          m_mediator.m_dsBlockChain.GetLastBlock()
+              .GetHeader()
+              .GetHashForRandom()
+              .asBytes());
       uint32_t leader_id = 0;
       if (!GUARD_MODE) {
         leader_id = lastBlockHash % m_mediator.m_DSCommittee->size();

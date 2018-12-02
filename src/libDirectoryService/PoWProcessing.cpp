@@ -126,7 +126,7 @@ bool DirectoryService::ProcessPoWSubmission(
     return true;
   }
 
-  if (m_consensusMyID >= POW_PACKET_SENDERS) {
+  if ((m_consensusMyID >= POW_PACKET_SENDERS) && (m_mode != PRIMARY_DS)) {
     LOG_GENERAL(WARNING,
                 "I am not supposed to receive individual pow submission. I "
                 "accept only pow submission packets instead!!");
