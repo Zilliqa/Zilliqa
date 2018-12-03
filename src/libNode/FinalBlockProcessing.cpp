@@ -768,7 +768,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   }
 
-  m_mediator.HeartBeatPulse();
+  // m_mediator.HeartBeatPulse();
 
   if (txBlock.GetMicroBlockInfos().size() == 1) {
     LOG_STATE("[TXBOD][" << std::setw(15) << std::left

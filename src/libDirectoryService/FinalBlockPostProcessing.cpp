@@ -264,7 +264,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   // Clear microblock(s)
   // m_microBlocks.clear();
 
-  m_mediator.HeartBeatPulse();
+  // m_mediator.HeartBeatPulse();
 
   if (m_mode == PRIMARY_DS) {
     LOG_STATE(
