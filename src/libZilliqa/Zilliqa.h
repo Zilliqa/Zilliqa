@@ -56,8 +56,6 @@ class Zilliqa {
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
-  static std::string FormatMessageName(unsigned char msgType,
-                                       unsigned char instruction);
   void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
 
  public:
@@ -79,6 +77,9 @@ class Zilliqa {
   std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type,
                                           unsigned char ins_type,
                                           const Peer& from);
+
+  static std::string FormatMessageName(unsigned char msgType,
+                                       unsigned char instruction);
 };
 
 #endif  // __ZILLIQA_H__

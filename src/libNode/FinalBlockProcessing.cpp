@@ -458,7 +458,7 @@ bool Node::FindTxnInProcessedTxnsList(
 
   lock_guard<mutex> g(m_mutexProcessedTransactions);
 
-  auto& processedTransactions = m_processedTransactions[blockNum];
+  const auto& processedTransactions = m_processedTransactions[blockNum];
   // auto& committedTransactions = m_committedTransactions[blockNum];
   const auto& txnIt = processedTransactions.find(tx_hash);
 
