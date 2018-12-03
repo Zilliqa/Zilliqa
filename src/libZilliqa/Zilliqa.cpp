@@ -209,6 +209,9 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         m_lookup.StartSynchronization();
         break;
+      case SyncType::RECOVERY_ALL_SYNC:
+        LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
+        break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
         break;

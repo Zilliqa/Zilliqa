@@ -439,7 +439,7 @@ class Node : public Executable, public Broadcastable {
   ~Node();
 
   /// Install the Node
-  bool Install(SyncType syncType, bool toRetrieveHistory = true);
+  bool Install(const SyncType syncType, const bool toRetrieveHistory = true);
 
   // Reset certain variables to the initial state
   bool CleanVariables();
@@ -467,7 +467,7 @@ class Node : public Executable, public Broadcastable {
   Mediator& GetMediator() { return m_mediator; }
 
   /// Recover the previous state by retrieving persistence data
-  bool StartRetrieveHistory(bool& wakeupForUpgrade);
+  bool StartRetrieveHistory(const SyncType syncType, bool& wakeupForUpgrade);
 
   // Erase m_committedTransactions for given epoch number
   // void EraseCommittedTransactions(uint64_t epochNum)

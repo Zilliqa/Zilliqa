@@ -79,7 +79,7 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
 
 Node::~Node() {}
 
-bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
+bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   LOG_MARKER();
 
   // m_state = IDLE;
@@ -88,7 +88,7 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
 
-    if (!StartRetrieveHistory(wakeupForUpgrade)) {
+    if (!StartRetrieveHistory(syncType, wakeupForUpgrade)) {
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
@@ -152,7 +152,8 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
     }
 
     /// When non-rejoin mode, call wake-up or recovery
-    if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType()) {
+    if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
+        SyncType::RECOVERY_ALL_SYNC == syncType) {
       if (wakeupForUpgrade) {
         WakeupForUpgrade();
       } else {
@@ -236,7 +237,8 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       FULL_DATASET_MINE);
 }
 
-bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
+bool Node::StartRetrieveHistory(const SyncType syncType,
+                                bool& wakeupForUpgrade) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -283,7 +285,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 
-  if (wakeupForUpgrade && !LOOKUP_NODE_MODE) {
+  if (!LOOKUP_NODE_MODE &&
+      (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
                           << DS_DELAY_WAKEUP_IN_SECONDS
                           << " seconds for lookup wakeup...");
@@ -586,7 +589,6 @@ void Node::WakeupForRecovery() {
     m_mediator.m_ds->SetState(
         DirectoryService::DirState::MICROBLOCK_SUBMISSION);
     auto func = [this]() mutable -> void {
-      this_thread::sleep_for(chrono::seconds(1));
       m_mediator.m_ds->RunConsensusOnFinalBlock();
     };
     DetachedFunction(1, func);
