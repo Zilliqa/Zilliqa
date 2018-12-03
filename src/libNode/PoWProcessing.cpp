@@ -148,11 +148,12 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     auto checkerThread = [this]() mutable -> void {
       unique_lock<mutex> lk(m_mutexCVWaitDSBlock);
       if (cv_waitDSBlock.wait_for(
-              lk, chrono::seconds(
-                      NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                      POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
-                      FALLBACK_EXTRA_TIME + TX_DISTRIBUTE_TIME_IN_MS / 1000)) ==
-          cv_status::timeout) {
+              lk,
+              chrono::seconds(NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                              POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
+                              FALLBACK_EXTRA_TIME + CONSENSUS_OBJECT_TIMEOUT +
+                              DELAY_FIRSTXNEPOCH_IN_MS / 1000 +
+                              VIEWCHANGE_TIME)) == cv_status::timeout) {
         lock_guard<mutex> g(m_mutexDSBlock);
         if (m_mediator.m_currentEpochNum ==
             m_mediator.m_dsBlockChain.GetLastBlock()
