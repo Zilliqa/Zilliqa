@@ -24,13 +24,11 @@
 #include <boost/test/unit_test.hpp>
 #include "libData/AccountData/LogEntry.h"
 
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-
 BOOST_AUTO_TEST_SUITE(logentrytest)
 
 BOOST_AUTO_TEST_CASE(commitAndRollback) {
   INIT_STDOUT_LOGGER();
+  LOG_MARKER();
 
   LogEntry le = LogEntry();
   Address addr;
@@ -42,29 +40,31 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   Json::StreamWriterBuilder writeBuilder;
   Json::StreamWriter* writer = writeBuilder.newStreamWriter();
   std::ostringstream oss;
-  // builder["collectComments"] = false;
 
-  BOOST_CHECK_EQUAL(false, le.Install(jv, addr));
+  BOOST_CHECK_MESSAGE(le.Install(jv, addr) == false,
+                      "There should be nothing to install.");
 
   Json::Value jv_ret = le.GetJsonObject();
   writer->write(jv_ret, &oss);
   RET = oss.str();
-  LOG_GENERAL(INFO, "RET:" << RET << "null");
-  BOOST_CHECK_EQUAL(0, RET.compare("null"));
+  BOOST_CHECK_MESSAGE(RET.compare("null") == 0,
+                      "LogEntry.GetJsonObject() should return empty "
+                      "Json::Value when nothing installed.");
 
   std::string jv_s =
       "{ \"_eventname\": \"invalid params\", \"params\": [{\"vname\": 1, "
       "\"type\":2, \"value\":3}, {\"type\":2, \"value\":3}]}";
   cr->parse(jv_s.c_str(), jv_s.c_str() + jv_s.size(), &jv, &errs);
-  BOOST_CHECK_EQUAL(false, le.Install(jv, addr));
+  BOOST_CHECK_MESSAGE(le.Install(jv, addr) == false,
+                      "Incomplete eventObj shouldn't be installed.");
 
   jv_s =
       "{ \"_eventname\": \"valid params\", \"params\": [{\"vname\": 1, "
       "\"type\":2, \"value\":3}, {\"vname\": 1, \"type\":2, \"value\":3}]}";
   cr->parse(jv_s.c_str(), jv_s.c_str() + jv_s.size(), &jv, &errs);
-  BOOST_CHECK_EQUAL(true, le.Install(jv, addr));
-
-  LOG_MARKER();
+  BOOST_CHECK_MESSAGE(le.Install(jv, addr) == true,
+                      "Unexpected eventObj, structure had to be changed, test "
+                      "is probably obsolete.");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
