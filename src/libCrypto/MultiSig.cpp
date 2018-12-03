@@ -25,7 +25,7 @@ using namespace std;
 
 CommitSecret::CommitSecret()
     : m_s(BN_new(), BN_clear_free), m_initialized(false) {
-  // commit->secret should be in [2,...,order-1]
+  // commit->secret should be in [1,...,order-1]
 
   if (m_s == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
@@ -41,7 +41,7 @@ CommitSecret::CommitSecret()
       LOG_GENERAL(WARNING, "Value to commit rand failed");
       break;
     }
-  } while (BN_is_zero(m_s.get()) || BN_is_one(m_s.get()));
+  } while (BN_is_zero(m_s.get()));
 
   m_initialized = (!err);
 }
