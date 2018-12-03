@@ -702,8 +702,8 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
   job->m_hash.clear();
 
   // Queue job
-  while (!m_sendQueue.push(job)) {
-    // Keep attempting to push until success
+  if (!m_sendQueue.bounded_push(job)) {
+    LOG_GENERAL(WARNING, "SendQueue is full");
   }
 }
 
@@ -725,8 +725,8 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
   job->m_hash.clear();
 
   // Queue job
-  while (!m_sendQueue.push(job)) {
-    // Keep attempting to push until success
+  if (!m_sendQueue.bounded_push(job)) {
+    LOG_GENERAL(WARNING, "SendQueue is full");
   }
 }
 
@@ -744,8 +744,8 @@ void P2PComm::SendMessage(const Peer& peer,
   job->m_hash.clear();
 
   // Queue job
-  while (!m_sendQueue.push(job)) {
-    // Keep attempting to push until success
+  if (!m_sendQueue.bounded_push(job)) {
+    LOG_GENERAL(WARNING, "SendQueue is full");
   }
 }
 
@@ -771,8 +771,8 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   vector<unsigned char> hashCopy(job->m_hash);
 
   // Queue job
-  while (!m_sendQueue.push(job)) {
-    // Keep attempting to push until success
+  if (!m_sendQueue.bounded_push(job)) {
+    LOG_GENERAL(WARNING, "SendQueue is full");
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -801,8 +801,8 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   vector<unsigned char> hashCopy(job->m_hash);
 
   // Queue job
-  while (!m_sendQueue.push(job)) {
-    // Keep attempting to push until success
+  if (!m_sendQueue.bounded_push(job)) {
+    LOG_GENERAL(WARNING, "SendQueue is full");
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -824,8 +824,8 @@ void P2PComm::RebroadcastMessage(const vector<Peer>& peers,
   job->m_hash = msg_hash;
 
   // Queue job
-  while (!m_sendQueue.push(job)) {
-    // Keep attempting to push until success
+  if (!m_sendQueue.bounded_push(job)) {
+    LOG_GENERAL(WARNING, "SendQueue is full");
   }
 }
 

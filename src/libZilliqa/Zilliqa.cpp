@@ -242,8 +242,8 @@ void Zilliqa::Dispatch(pair<vector<unsigned char>, Peer>* message) {
   // LOG_MARKER();
 
   // Queue message
-  while (!m_msgQueue.push(message)) {
-    // Keep attempting to push until success
+  if (!m_msgQueue.bounded_push(message)) {
+    LOG_GENERAL(WARNING, "Input MsgQueue is full");
   }
 }
 
