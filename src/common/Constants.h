@@ -86,6 +86,7 @@ enum SyncType : unsigned int {
   NORMAL_SYNC,
   DS_SYNC,
   LOOKUP_SYNC,
+  RECOVERY_ALL_SYNC,
 };
 
 const std::string RAND1_GENESIS =

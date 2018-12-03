@@ -2687,7 +2687,7 @@ void Lookup::RejoinAsLookup() {
     auto func = [this]() mutable -> void {
       SetSyncType(SyncType::LOOKUP_SYNC);
       AccountStore::GetInstance().InitSoft();
-      m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
+      m_mediator.m_node->Install(SyncType::LOOKUP_SYNC);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);

@@ -785,11 +785,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.GetIsVacuousEpoch() &&
-        m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
-            m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetBlockNum()) {
+    if (isVacuousEpoch && m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
+                              m_mediator.m_dsBlockChain.GetLastBlock()
+                                  .GetHeader()
+                                  .GetBlockNum()) {
       auto func = [this]() mutable -> void {
         UpgradeManager::GetInstance().ReplaceNode(m_mediator);
       };

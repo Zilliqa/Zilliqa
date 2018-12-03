@@ -580,20 +580,10 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
   return true;
 }
 
-bool BlockStorage::GetShardStructure(DequeOfShard& shards,
-                                     atomic<uint32_t>& myshardId) {
+bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   LOG_MARKER();
 
-  unsigned int index = 0;
-  string strMyshardId = m_shardStructureDB->Lookup(index++);
-
-  if (strMyshardId.empty()) {
-    LOG_GENERAL(WARNING, "Cannot retrieve sharding structure!");
-    return false;
-  }
-
-  myshardId = stoul(strMyshardId);
-  LOG_GENERAL(INFO, "Retrieved shard ID: " << myshardId);
+  unsigned int index = 1;
   string dataStr = m_shardStructureDB->Lookup(index++);
   Messenger::ArrayToShardStructure(
       vector<unsigned char>(dataStr.begin(), dataStr.end()), 0, shards);
