@@ -40,7 +40,7 @@ The current release has the following features implemented:
 * Transaction verification and receipt
 * View change mechanism
 * [Smart contract implementation](https://scilla.readthedocs.io)
-* [GPU (OpenCL and CUDA) support](https://github.com/Zilliqa/Zilliqa/wiki/GPU-mining) for PoW
+* [GPU (OpenCL and CUDA) support](https://github.com/Zilliqa/Zilliqa/wiki/Mining) for PoW
 * State delta forwarding
 * Gossip protocol for network message broadcasting
 * Protocol upgrade mechanism
