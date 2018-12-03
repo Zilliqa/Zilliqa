@@ -180,9 +180,7 @@ void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
 }
 
 PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false) {
-  // kpriv->d should be in [2,...,order-1]
-  // -1 means no constraint on the MSB of kpriv->d
-  // 0 means no constraint on the LSB of kpriv->d
+  // kpriv->d should be in [1,...,order-1]
 
   if (m_d != nullptr) {
     const Curve& curve = Schnorr::GetInstance().GetCurve();
@@ -194,7 +192,7 @@ PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false) {
         m_initialized = false;
         break;
       }
-    } while (BN_is_zero(m_d.get()) || BN_is_one(m_d.get()));
+    } while (BN_is_zero(m_d.get()));
   } else {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
@@ -290,14 +288,12 @@ PubKey::PubKey(const PrivKey& privkey)
   } else {
     const Curve& curve = Schnorr::GetInstance().GetCurve();
 
-    if (BN_is_zero(privkey.m_d.get()) || BN_is_one(privkey.m_d.get()) ||
-        (BN_cmp(privkey.m_d.get(), curve.m_order.get()) != -1)) {
-      LOG_GENERAL(WARNING,
-                  "Input private key is weak. Public key "
-                  "generation failed");
-      return;
+    if (BN_is_zero(privkey.m_d.get()) || (BN_cmp(privkey.m_d.get(),
+				    curve.m_order.get()) != -1)) {
+	    LOG_GENERAL(WARNING, "Input private key is invalid. Public key "
+			    "generation failed"); 
+	    return; 
     }
-
     if (EC_POINT_mul(curve.m_group.get(), m_P.get(), privkey.m_d.get(), NULL,
                      NULL, NULL) == 0) {
       LOG_GENERAL(WARNING, "Public key generation failed");
@@ -614,7 +610,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
     do {
       err = false;
 
-      // 1. Generate a random k from [1, ..., order-1]
+      // 1. Generate a random k from [1,..., order-1]
       do {
         err =
 	    (BN_generate_dsa_nonce(k.get(), m_curve.m_order.get(),
@@ -779,6 +775,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
     if ((challenge_built != nullptr) && (ctx != nullptr) && (Q != nullptr)) {
       // 1. Check if r,s is in [1, ..., order-1]
       err2 = (BN_is_zero(toverify.m_r.get()) ||
+		      BN_is_negative(toverify.m_r.get()) || 
               (BN_cmp(toverify.m_r.get(), m_curve.m_order.get()) != -1));
       err = err || err2;
       if (err2) {
@@ -787,6 +784,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
       }
 
       err2 = (BN_is_zero(toverify.m_s.get()) ||
+		      BN_is_negative(toverify.m_s.get()) || 
               (BN_cmp(toverify.m_s.get(), m_curve.m_order.get()) != -1));
       err = err || err2;
       if (err2) {
