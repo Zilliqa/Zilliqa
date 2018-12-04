@@ -17,10 +17,15 @@
  * program files.
  */
 
+#include <arpa/inet.h>
 #include <array>
 #include <chrono>
 #include <functional>
 #include <thread>
+
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -58,6 +63,8 @@ using namespace boost::multi_index;
 
 const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
+
+#define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
@@ -266,6 +273,21 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   BlockStorage::GetBlockStorage().GetDSCommittee(
       m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
 
+  unordered_map<string, Peer> ipMapping;
+  GetIpMapping(ipMapping);
+
+  if (!ipMapping.empty()) {
+    string pubKey;
+
+    for (auto& ds : *m_mediator.m_DSCommittee) {
+      pubKey = DataConversion::SerializableToHexStr(ds.first);
+
+      if (ipMapping.find(pubKey) != ipMapping.end()) {
+        ds.second = ipMapping.at(pubKey);
+      }
+    }
+  }
+
   bool bDS = false;
   for (auto& i : *m_mediator.m_DSCommittee) {
     if (i.first == m_mediator.m_selfKey.second) {
@@ -309,7 +331,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// Retrieve lacked Tx blocks from lookup nodes
   if (!ARCHIVAL_NODE &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
-      !(LOOKUP_NODE_MODE && wakeupForUpgrade)) {
+      !(LOOKUP_NODE_MODE && wakeupForUpgrade) &&
+      SyncType::RECOVERY_ALL_SYNC != syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
@@ -406,6 +429,21 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   /// Retrieve sharding structure and setup relative variables
   BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
 
+  if (!ipMapping.empty()) {
+    string pubKey;
+
+    for (auto& shard : m_mediator.m_ds->m_shards) {
+      for (auto& node : shard) {
+        pubKey =
+            DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node));
+
+        if (ipMapping.find(pubKey) != ipMapping.end()) {
+          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+        }
+      }
+    }
+  }
+
   if (bDS) {
     m_myshardId = m_mediator.m_ds->m_shards.size();
   } else {
@@ -468,6 +506,28 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   return res;
+}
+
+void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
+  LOG_MARKER();
+
+  if (!boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
+    return;
+  }
+
+  using boost::property_tree::ptree;
+  ptree pt;
+  read_xml(IP_MAPPING_FILE_NAME, pt);
+  struct in_addr ip_addr;
+
+  for (const ptree::value_type& v : pt.get_child("mapping")) {
+    if (v.first == "peer") {
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+      ipMapping[v.second.get<std::string>("pubkey")] =
+          Peer((uint128_t)ip_addr.s_addr, v.second.get<uint32_t>("port"));
+    }
+  }
 }
 
 void Node::WakeupForUpgrade() {
