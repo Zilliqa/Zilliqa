@@ -4450,7 +4450,7 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (result.txhash().size() != 32) {
+  if (result.txhash().size() != txHash.asArray().max_size()) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
@@ -4496,7 +4496,7 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (result.txhash().size() != 32) {
+  if (result.txhash().size() != txHash.asArray().max_size()) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
