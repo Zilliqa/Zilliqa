@@ -349,6 +349,8 @@ class Node : public Executable, public Broadcastable {
       uint32_t cluster_size, uint32_t num_of_child_clusters, uint32_t& nodes_lo,
       uint32_t& nodes_hi);
 
+  void GetIpMapping(std::unordered_map<std::string, Peer>& ipMapping);
+
   void WakeupForUpgrade();
 
   void WakeupForRecovery();
