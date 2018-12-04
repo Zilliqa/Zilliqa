@@ -32,6 +32,11 @@ target_include_directories(Test_TransactionPerformance PUBLIC ${CMAKE_SOURCE_DIR
 target_link_libraries(Test_TransactionPerformance PUBLIC AccountData Utils Message)
 add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
 
+add_executable(Test_TxnOrder Test_TxnOrder.cpp)
+target_include_directories(Test_TxnOrder PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_TxnOrder PUBLIC AccountData Utils Message)
+add_test(NAME Test_TxnOrder COMMAND Test_TxnOrder)
+
 #add_executable(Test_Get_Txn Test_Get_Txn.cpp)
 #target_include_directories(Test_Get_Txn PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_link_libraries(Test_Get_Txn PUBLIC AccountData Utils Message)
