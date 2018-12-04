@@ -188,8 +188,8 @@ bool Guard::IsValidIP(const uint128_t& ip_addr) {
 void Guard::AddToExclusionList(const string& ft, const string& sd) {
   struct sockaddr_in serv_addr1, serv_addr2;
   try {
-    inet_aton(ft.c_str(), &serv_addr1.sin_addr);
-    inet_aton(sd.c_str(), &serv_addr2.sin_addr);
+    inet_pton(AF_INET, ft.c_str(), &serv_addr1.sin_addr);
+    inet_pton(AF_INET, sd.c_str(), &serv_addr2.sin_addr);
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Error " << e.what());
     return;

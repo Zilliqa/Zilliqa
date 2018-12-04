@@ -53,10 +53,12 @@ bool Peer::operator<(const Peer& r) const {
           (m_listenPortHost < r.m_listenPortHost));
 }
 
-const char* Peer::GetPrintableIPAddress() const {
+const string Peer::GetPrintableIPAddress() const {
+  char str[INET_ADDRSTRLEN];
   struct sockaddr_in serv_addr;
   serv_addr.sin_addr.s_addr = m_ipAddress.convert_to<unsigned long>();
-  return inet_ntoa(serv_addr.sin_addr);
+  inet_ntop(AF_INET, &(serv_addr.sin_addr), str, INET_ADDRSTRLEN);
+  return string(str);
 }
 
 unsigned int Peer::Serialize(vector<unsigned char>& dst,
