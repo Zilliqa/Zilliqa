@@ -165,8 +165,7 @@ bool Guard::IsValidIP(const uint128_t& ip_addr) {
     char ipStr[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(serv_addr.sin_addr), ipStr, INET_ADDRSTRLEN);
 
-    LOG_GENERAL(WARNING,
-                "Invalid IPv4 address " << string(ipStr));
+    LOG_GENERAL(WARNING, "Invalid IPv4 address " << string(ipStr));
     return false;
   }
 
@@ -182,8 +181,7 @@ bool Guard::IsValidIP(const uint128_t& ip_addr) {
       char ipStr[INET_ADDRSTRLEN];
       inet_ntop(AF_INET, &(serv_addr.sin_addr), ipStr, INET_ADDRSTRLEN);
 
-      LOG_GENERAL(WARNING,
-                  "In Exclusion List: " << string(ipStr));
+      LOG_GENERAL(WARNING, "In Exclusion List: " << string(ipStr));
       return false;
     }
   }
