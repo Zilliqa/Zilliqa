@@ -39,6 +39,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -1030,18 +1031,10 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  // Check timestamp (must be greater than timestamp of last Tx block header in
-  // the Tx blockchain)
-  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
-    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t thisDSTimestamp = m_pendingDSBlock->GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
-    if (thisDSTimestamp <= lastTxBlockTimestamp) {
-      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
-                               << lastTxBlockTimestamp
-                               << " DSBlock: " << thisDSTimestamp);
-      return false;
-    }
+  // Check timestamp
+  if (!VerifyTimestamp(m_pendingDSBlock->GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT)) {
+    return false;
   }
 
   // Verify the DSBlockHashSet member of the DSBlockHeader
