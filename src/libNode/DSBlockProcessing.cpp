@@ -51,6 +51,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/TimestampVerifier.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -433,6 +434,13 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
                                << " DSBlock: " << thisDSTimestamp);
       return false;
     }
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(
+          dsblock.GetTimestamp(),
+          CONSENSUS_OBJECT_TIMEOUT + (TX_DISTRIBUTE_TIME_IN_MS) / 1000)) {
+    return false;
   }
 
   if (shardingHash != dsblock.GetHeader().GetShardingHash()) {

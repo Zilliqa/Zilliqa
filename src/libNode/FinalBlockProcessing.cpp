@@ -54,6 +54,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/TimestampVerifier.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -643,6 +644,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << txBlock.GetBlockHash().hex());
+    return false;
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(
+          txBlock.GetTimestamp(),
+          CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
+              (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000)) {
     return false;
   }
 

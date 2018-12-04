@@ -37,6 +37,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -436,23 +437,8 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 
   LOG_MARKER();
 
-  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
-    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t finalblockTimestamp = m_finalBlock->GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
-    if (finalblockTimestamp <= lastTxBlockTimestamp) {
-      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
-                               << lastTxBlockTimestamp
-                               << " Final block: " << finalblockTimestamp);
-
-      m_consensusObject->SetConsensusErrorCode(
-          ConsensusCommon::INVALID_TIMESTAMP);
-
-      return false;
-    }
-  }
-
-  return true;
+  return VerifyTimestamp(m_finalBlock->GetTimestamp(),
+                         CONSENSUS_OBJECT_TIMEOUT);
 }
 
 // Check microblock hashes
