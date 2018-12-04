@@ -707,7 +707,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED FINAL BLOCK");
+      << "] RECEIVED FLBLK");
 
   bool toSendTxnToLookup = false;
 

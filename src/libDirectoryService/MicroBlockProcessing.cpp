@@ -403,6 +403,13 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
     return false;
   }
 
+  LOG_STATE(
+      "[MIBLK]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] RECEIVED MIBLK");
+
   const auto& microBlock = microBlocks.at(0);
   const auto& stateDelta = stateDeltas.at(0);
 
