@@ -28,20 +28,23 @@ check-commit:
 		exit 1; \
 	fi
 
+get-scilla:
+	docker pull zilliqa/scilla:latest
+
 # build zilliqa docker image for Kubernetes usage
 k8s-zilliqa: check-commit
 	cat Dockerfile Dockerfile.k8s | docker build -t zilliqa:$(commit) \
 		--build-arg COMMIT=$(commit) -
 
-k8s-scilla: check-commit
+k8s-scilla: check-commit get-scilla
 	cat Dockerfile Dockerfile.k8s | docker build -t zilliqa:$(commit).scilla \
 		--build-arg COMMIT=$(commit) --build-arg BASE=zilliqa/scilla -
 
 # build release version docker image for public usage
-release: check-commit
+release: check-commit get-scilla
 	docker build -t zilliqa:release --build-arg BASE=zilliqa/scilla --build-arg COMMIT=$(commit) .
 
-release-cuda: check-commit
+release-cuda: check-commit get-scilla
 	docker build -t scilla:cuda --build-arg BASE=zilliqa/scilla -f Dockerfile.cuda .
 	docker build -t zilliqa:release-cuda --build-arg BASE=scilla:cuda --build-arg EXTRA_CMAKE_ARGS="-DCUDA_MINE=1" --build-arg COMMIT=$(commit) .
 
