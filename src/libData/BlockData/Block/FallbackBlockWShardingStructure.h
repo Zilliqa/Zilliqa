@@ -18,7 +18,7 @@
  */
 
 #include "FallbackBlock.h"
-#include "libDirectoryService/ShardStruct.h"
+#include "libNetwork/ShardStruct.h"
 
 #ifndef __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
 #define __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__
