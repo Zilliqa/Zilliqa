@@ -4450,6 +4450,12 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
+  if (result.txhash().size() != 32) {
+    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
+                                         << " is not 32 bytes");
+    return false;
+  }
+
   copy(result.txhash().begin(), result.txhash().end(),
        txHash.asArray().begin());
   listenPort = result.listenport();
@@ -4487,6 +4493,12 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
+    return false;
+  }
+
+  if (result.txhash().size() != 32) {
+    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
+                                         << " is not 32 bytes");
     return false;
   }
 
