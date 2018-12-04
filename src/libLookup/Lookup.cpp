@@ -77,7 +77,7 @@ void Lookup::SetLookupNodes() {
   for (const ptree::value_type& v : pt.get_child("node.lookups")) {
     if (v.first == "peer") {
       struct in_addr ip_addr;
-      inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
       PubKey pubKey(
@@ -471,7 +471,7 @@ bool Lookup::SetDSCommitteInfo() {
                  0);
 
       struct in_addr ip_addr;
-      inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer peer((uint128_t)ip_addr.s_addr, v.second.get<unsigned int>("port"));
       m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
     }
