@@ -17,6 +17,9 @@
  * program files.
  */
 
+#ifndef __TXNPOOL_H__
+#define __TXNPOOL_H__
+
 #include <functional>
 #include <map>
 #include <unordered_map>
@@ -143,3 +146,5 @@ struct TxnPool {
     return false;
   }
 };
+
+#endif  // __TXNPOOL_H__
