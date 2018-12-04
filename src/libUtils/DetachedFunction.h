@@ -37,14 +37,14 @@ class DetachedFunction {
     std::function<typename std::result_of<callable(arguments...)>::type()> task(
         std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
 
-    bool attemp_flag = false;
+    bool attempt_flag = false;
 
     for (int i = 0; i < num_threads; i++) {
       for (int j = 0; j < MaxAttempt; j++) {
         try {
-          if (!attemp_flag) {
+          if (!attempt_flag) {
             std::thread(task).detach();  // attempt to detach a non-thread
-            attemp_flag = true;
+            attempt_flag = true;
           }
         } catch (const std::system_error& e) {
           LOG_GENERAL(WARNING,
@@ -53,7 +53,7 @@ class DetachedFunction {
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
       }
-      attemp_flag = false;
+      attempt_flag = false;
     }
   }
 };
