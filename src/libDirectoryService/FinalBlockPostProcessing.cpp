@@ -122,13 +122,6 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
   LOG_MARKER();
 
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BEFORE SENDING FINAL BLOCK");
-
   const uint64_t dsBlockNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -156,7 +149,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
     sha256.Update(finalblock_message);
     vector<unsigned char> this_msg_hash = sha256.Finalize();
     LOG_STATE(
-        "[INFOR]["
+        "[SDFBBLK]["
         << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
         << "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
         << "]["
@@ -310,6 +303,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
       composeFinalBlockMessageForSender, SendDataToLookupFuncDefault,
       sendFinalBlockToShardNodes);
+
+  LOG_STATE(
+      "[FLBLK]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] AFTER SENDING FLBLK");
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
