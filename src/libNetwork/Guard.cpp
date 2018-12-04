@@ -162,8 +162,11 @@ bool Guard::IsValidIP(const uint128_t& ip_addr) {
   serv_addr.sin_addr.s_addr = ip_addr.convert_to<unsigned long>();
   uint32_t ip_addr_c = ntohl(serv_addr.sin_addr.s_addr);
   if (ip_addr <= 0 || ip_addr >= (uint32_t)-1) {
+    char ipStr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(serv_addr.sin_addr), ipStr, INET_ADDRSTRLEN);
+
     LOG_GENERAL(WARNING,
-                "Invalid IPv4 address " << inet_ntoa(serv_addr.sin_addr));
+                "Invalid IPv4 address " << string(ipStr));
     return false;
   }
 
@@ -176,8 +179,11 @@ bool Guard::IsValidIP(const uint128_t& ip_addr) {
   lock_guard<mutex> g(m_mutexIPExclusion);
   for (const auto& ip_pair : m_IPExclusionRange) {
     if (ip_pair.first <= ip_addr_c && ip_pair.second >= ip_addr_c) {
+      char ipStr[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, &(serv_addr.sin_addr), ipStr, INET_ADDRSTRLEN);
+
       LOG_GENERAL(WARNING,
-                  "In Exclusion List: " << inet_ntoa(serv_addr.sin_addr));
+                  "In Exclusion List: " << string(ipStr));
       return false;
     }
   }
