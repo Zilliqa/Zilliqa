@@ -56,6 +56,7 @@ boost::multiprecision::uint256_t DistUint256();
 PubKey GenerateRandomPubKey();
 PubKey GenerateRandomPubKey(PrivKey);
 KeyPair GenerateRandomKeyPair();
+Address GetAddressFromPubKey(PubKey);
 Peer GenerateRandomPeer();
 Peer GenerateRandomPeer(uint8_t, bool);
 DSBlockHeader GenerateRandomDSBlockHeader();
@@ -64,6 +65,9 @@ TxBlockHeader GenerateRandomTxBlockHeader();
 VCBlockHeader GenerateRandomVCBlockHeader();
 FallbackBlockHeader GenerateRandomFallbackBlockHeader();
 CoSignatures GenerateRandomCoSignatures();
+Signature GetSignature(const std::vector<unsigned char>&, const PrivKey&,
+                       const PubKey&);
+Signature GenerateRandomSignature();
 
 using DS_Comitte_t = std::deque<std::pair<PubKey, Peer>>;
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
@@ -71,6 +75,7 @@ DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
 Shard GenerateRandomShard(size_t);
 DequeOfShard GenerateDequeueOfShard(size_t);
 std::string GenerateRandomString(size_t);
+std::vector<unsigned char> GenerateRandomCharVector(size_t);
 }  // namespace TestUtils
 
 #endif  // __TESTUTILS_H__
