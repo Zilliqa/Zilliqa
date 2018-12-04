@@ -36,12 +36,12 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   struct sockaddr_in serv_addr;
 
-  inet_aton("0.0.0.0", &serv_addr.sin_addr);
+  inet_pton(AF_INET, "0.0.0.0", &serv_addr.sin_addr);
 
   bool b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
   BOOST_CHECK_MESSAGE(!b, "0.0.0.0 is not a valid IP");
 
-  inet_aton("255.255.255.255", &serv_addr.sin_addr);
+  inet_pton(AF_INET, "255.255.255.255", &serv_addr.sin_addr);
   b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
   BOOST_CHECK_MESSAGE(!b, "255.255.255.255 is not a valid IP");
@@ -49,13 +49,13 @@ BOOST_AUTO_TEST_CASE(test1) {
   if (EXCLUDE_PRIV_IP) {
     Guard::GetInstance().AddToExclusionList("172.16.0.0", "172.31.255.255");
     // Guard::GetInstance().Init();
-    inet_aton("172.25.4.3", &serv_addr.sin_addr);
+    inet_pton(AF_INET, "172.25.4.3", &serv_addr.sin_addr);
 
     b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
     BOOST_CHECK_MESSAGE(!b, "The address should not be valid");
   }
-  inet_aton("172.14.4.3", &serv_addr.sin_addr);
+  inet_pton(AF_INET, "172.14.4.3", &serv_addr.sin_addr);
   b = Guard::GetInstance().IsValidIP(serv_addr.sin_addr.s_addr);
 
   BOOST_CHECK_MESSAGE(b, "The address should be valid");

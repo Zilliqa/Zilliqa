@@ -72,7 +72,7 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   curr_offset += UINT256_SIZE;
 
   struct sockaddr_in localhost;
-  inet_aton("127.0.0.1", &localhost.sin_addr);
+  inet_pton(AF_INET, "127.0.0.1", &localhost.sin_addr);
 
   dsblockmsg.resize(curr_offset + 16);
   Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset,
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
 
   uint32_t listen_port = 5000;
   struct in_addr ip_addr;
-  inet_aton("127.0.0.1", &ip_addr);
+  inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
   SendDSBlockFirstToMatchDSBlockNum(lookup_node);
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockRetrieval) {
 
   uint32_t listen_port = 5000;
   struct in_addr ip_addr;
-  inet_aton("127.0.0.1", &ip_addr);
+  inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
   vector<unsigned char> getTxBlockMessage = {
