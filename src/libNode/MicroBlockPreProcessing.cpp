@@ -40,6 +40,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountData/TxnOrderVerifier.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
@@ -592,37 +593,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
   }
 
-  // check for txn misorder tolerance
-  const float TXN_MISORDER_TOLERANCE =
-      (float)TXN_MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
-  const uint32_t MAX_MISORDER_TXNS =
-      std::ceil(t_tranHashes.size() * TXN_MISORDER_TOLERANCE);
-
-  LOG_GENERAL(INFO, "Tolerance = " << std::fixed << std::setprecision(2)
-                                   << TXN_MISORDER_TOLERANCE << " = "
-                                   << MAX_MISORDER_TXNS << " txns.");
-
-  uint32_t orderedtxns = 0;
-  uint32_t misordertxns = 0;
-  auto leftIt = t_tranHashes.begin();
-  auto rightIt = tranHashes.begin();
-  while (leftIt != t_tranHashes.end() && rightIt != tranHashes.end()) {
-    if (*leftIt == *rightIt) {
-      orderedtxns++;
-      leftIt++;
-      rightIt++;
-    } else {
-      break;
-    }
-  }
-
-  misordertxns = t_tranHashes.size() - orderedtxns;
-
-  if (misordertxns > MAX_MISORDER_TXNS) {
+  if (!VerifyTxnOrderWTolerance(t_tranHashes, tranHashes,
+                                TXN_MISORDER_TOLERANCE_IN_PERCENT)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Failed to Verify due to bad txn ordering count "
-                  << misordertxns << " "
-                  << "exceed limit " << MAX_MISORDER_TXNS);
+              "Failed to Verify due to bad txn ordering");
 
     for (const auto& th : t_tranHashes) {
       Transaction t;
@@ -642,21 +616,6 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
 
     return false;
-  } else {
-    // we either have all matches or have mismatches but within the tolerance.
-    LOG_GENERAL(
-        INFO, "misordertxns: " << misordertxns
-                               << ", MAX_MISORDER_TXNS: " << MAX_MISORDER_TXNS);
-    while (leftIt != t_tranHashes.end()) {
-      // remove since it was not processed.
-      t_processedTransactions.erase(*leftIt);
-      Transaction t;
-      // add since it was not processed
-      if (m_createdTxns.get(*leftIt, t)) {
-        t_createdTxns.insert(t);
-      }
-      leftIt++;
-    }
   }
 
   return true;
