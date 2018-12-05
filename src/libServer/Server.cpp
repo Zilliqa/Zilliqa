@@ -75,12 +75,13 @@ Server::~Server() {
 
 string Server::GetNetworkId() { return "TestNet"; }
 
-string Server::GetProtocolVersion() { return "Hello"; }
-
 bool Server::StartCollectorThread() {
   map<uint32_t, vector<Transaction>> mp;
 
-  if (!m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, 0)) {
+  // Change Back
+
+  if (USE_REMOTE_TXN_CREATOR &&
+      !m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, 0)) {
     LOG_GENERAL(WARNING, "GenTxnToSend failed");
     // return;
   }
@@ -90,6 +91,8 @@ bool Server::StartCollectorThread() {
     m_mediator.m_lookup->AddToTxnShardMap(txn, 0);
   }
 
+  // Change Back
+
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(
         WARNING,
@@ -97,8 +100,9 @@ bool Server::StartCollectorThread() {
     return false;
   }
   auto collectorThread = [this]() mutable -> void {
+    this_thread::sleep_for(chrono::seconds(120));  //[Remove this]
     while (true) {
-      this_thread::sleep_for(chrono::seconds(5));
+      this_thread::sleep_for(chrono::seconds(5));  // SET this to a constant
       {
         lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
         if (m_mediator.m_lookup->m_txnShardMap.find(0) ==
@@ -128,7 +132,6 @@ bool Server::StartCollectorThread() {
   DetachedFunction(1, collectorThread);
   return true;
 }
-
 
 Json::Value Server::CreateTransaction(const Json::Value& _json) {
   LOG_MARKER();
