@@ -119,7 +119,7 @@ bool Server::StartCollectorThread() {
         const uint32_t NUM_ACTUAL_LOOKUP = 1;
 
         vector<Peer> toSend;
-        for (uint i = NUM_ACTUAL_LOOKUP; i < 1 && i < lookupNodes.size(); i++) {
+        for (uint i = NUM_ACTUAL_LOOKUP; i < lookupNodes.size(); i++) {
           toSend.push_back(lookupNodes.at(i).second);
         }
 
