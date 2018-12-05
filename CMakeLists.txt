@@ -52,7 +52,7 @@ find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
     execute_process(
-        COMMAND ${HOMEBREW} --prefix openssl
+        COMMAND ${HOMEBREW} --prefix openssl@1.1
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
