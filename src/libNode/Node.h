@@ -140,7 +140,7 @@ class Node : public Executable, public Broadcastable {
       m_forwardedTxnBuffer;
 
   std::mutex m_mutexTxnPacketBuffer;
-  std::unordered_map<uint64_t, std::vector<unsigned char>> m_txnPacketBuffer;
+  std::vector<std::vector<unsigned char>> m_txnPacketBuffer;
 
   std::mutex m_mutexMicroBlockConsensusBuffer;
   std::unordered_map<uint32_t,
@@ -243,7 +243,8 @@ class Node : public Executable, public Broadcastable {
   bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
   bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
-                                      const uint32_t shardId,
+                                      const uint64_t& dsBlockNum,
+                                      const uint32_t& shardId,
                                       const std::vector<Transaction>& txns);
   bool ProcessProposeGasPrice(const std::vector<unsigned char>& message,
                               unsigned int offset, const Peer& from);
