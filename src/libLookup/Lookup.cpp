@@ -192,10 +192,24 @@ bool Lookup::GenTxnToSend(size_t num_txn,
   return true;
 }
 
-VectorOfLookupNode Lookup::GetLookupNodes() const {
+const VectorOfLookupNode& Lookup::GetLookupNodes() const {
   LOG_MARKER();
   lock_guard<mutex> lock(m_mutexLookupNodes);
   return m_lookupNodes;
+}
+
+bool Lookup::IsLookupNode(const PubKey& pubKey) const {
+  return std::find_if(GetLookupNodes().begin(), GetLookupNodes().end(),
+                      [&pubKey](const std::pair<PubKey, Peer>& node) {
+                        return node.first == pubKey;
+                      }) != GetLookupNodes().end();
+}
+
+bool Lookup::IsLookupNode(const Peer& peerInfo) const {
+  return std::find_if(GetLookupNodes().begin(), GetLookupNodes().end(),
+                      [&peerInfo](const std::pair<PubKey, Peer>& node) {
+                        return node.second == peerInfo;
+                      }) != GetLookupNodes().end();
 }
 
 void Lookup::SendMessageToLookupNodes(
@@ -3153,7 +3167,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       }
 
       result = Messenger::SetNodeForwardTxnBlock(
-          msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
+          msg, MessageOffset::BODY, m_mediator.m_currentEpochNum,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), i,
           m_mediator.m_selfKey, m_txnShardMap[i], mp[i]);
     }
 
@@ -3188,11 +3203,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         LOG_GENERAL(INFO, "leader id " << leader_id);
       }
 
-      if (BROADCAST_GOSSIP_MODE) {
-        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
-      } else {
-        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-      }
+      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
       DeleteTxnShardMap(i);
     } else if (i == numShards) {
@@ -3237,11 +3248,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
       }
 
-      if (BROADCAST_GOSSIP_MODE) {
-        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
-      } else {
-        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-      }
+      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
       LOG_GENERAL(INFO, "[DSMB]"
                             << " Sent DS the txns");

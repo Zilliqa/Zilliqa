@@ -145,7 +145,11 @@ class Lookup : public Executable, public Broadcastable {
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
-  VectorOfLookupNode GetLookupNodes() const;
+  const VectorOfLookupNode& GetLookupNodes() const;
+
+  bool IsLookupNode(const PubKey& pubKey) const;
+
+  bool IsLookupNode(const Peer& peerInfo) const;
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
