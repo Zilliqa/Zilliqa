@@ -78,29 +78,28 @@ string Server::GetNetworkId() { return "TestNet"; }
 bool Server::StartCollectorThread() {
   map<uint32_t, vector<Transaction>> mp;
 
-  // Change Back
-
-  if (USE_REMOTE_TXN_CREATOR &&
-      !m_mediator.m_lookup->GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, 0)) {
-    LOG_GENERAL(WARNING, "GenTxnToSend failed");
-    // return;
-  }
-
-  LOG_GENERAL(INFO, "Size of packet sent " << mp[0].size());
-  for (auto txn : mp[0]) {
-    m_mediator.m_lookup->AddToTxnShardMap(txn, 0);
-  }
-
-  // Change Back
-
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(
         WARNING,
         "Not expected to be called from node other than LOOKUP ARCHIVAL ");
     return false;
   }
-  auto collectorThread = [this]() mutable -> void {
+  auto collectorThread = [this, &mp]() mutable -> void {
     this_thread::sleep_for(chrono::seconds(120));  //[Remove this]
+                                                   // Change Back
+
+    if (USE_REMOTE_TXN_CREATOR && !m_mediator.m_lookup->GenTxnToSend(
+                                      NUM_TXN_TO_SEND_PER_ACCOUNT, mp, 0)) {
+      LOG_GENERAL(WARNING, "GenTxnToSend failed");
+      // return;
+    }
+
+    LOG_GENERAL(INFO, "Size of packet sent " << mp[0].size());
+    for (auto txn : mp[0]) {
+      m_mediator.m_lookup->AddToTxnShardMap(txn, 0);
+    }
+
+    // Change Back
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
