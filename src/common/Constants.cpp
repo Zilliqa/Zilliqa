@@ -221,6 +221,8 @@ const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
     ReadFromConstantsFile("DELAY_FIRSTXNEPOCH_IN_MS")};
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("TXN_MISORDER_TOLERANCE_IN_PERCENT")};
+const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{
+    ReadFromConstantsFile("SYS_TIMESTAMP_VARIANCE_IN_SECONDS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{

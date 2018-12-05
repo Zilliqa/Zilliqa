@@ -27,6 +27,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 
@@ -66,6 +67,12 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
                 "Calculated: "
                     << temp_blockHash << " Received: "
                     << m_pendingFallbackBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(m_pendingFallbackBlock->GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT)) {
     return false;
   }
 
