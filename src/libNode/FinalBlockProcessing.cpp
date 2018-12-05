@@ -155,6 +155,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
           if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
             if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
               if (info.m_txnRootHash != TxnHash()) {
+                // Update transaction processed
+                UpdateProcessedTransactions();
                 toSendTxnToLookup = true;
               } else {
                 LOG_GENERAL(WARNING,
