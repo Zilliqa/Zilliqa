@@ -703,25 +703,15 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
   std::vector<InstructionHandler> ins_handlers;
 
-  if (!LOOKUP_NODE_MODE) {
-    ins_handlers.insert(ins_handlers.end(),
-                        {&DirectoryService::ProcessSetPrimary,
-                         &DirectoryService::ProcessPoWSubmission,
-                         &DirectoryService::ProcessDSBlockConsensus,
-                         &DirectoryService::ProcessMicroblockSubmission,
-                         &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessViewChangeConsensus,
-                         &DirectoryService::ProcessGetDSTxBlockMessage,
-                         &DirectoryService::ProcessPoWPacketSubmission});
-  } else {
-    ins_handlers.insert(ins_handlers.end(),
-                        {&DirectoryService::ProcessSetPrimary,
-                         &DirectoryService::ProcessPoWSubmission,
-                         &DirectoryService::ProcessDSBlockConsensus,
-                         &DirectoryService::ProcessMicroblockSubmission,
-                         &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessPoWPacketSubmission});
-  }
+  ins_handlers.insert(ins_handlers.end(),
+                      {&DirectoryService::ProcessSetPrimary,
+                       &DirectoryService::ProcessPoWSubmission,
+                       &DirectoryService::ProcessDSBlockConsensus,
+                       &DirectoryService::ProcessMicroblockSubmission,
+                       &DirectoryService::ProcessFinalBlockConsensus,
+                       &DirectoryService::ProcessViewChangeConsensus,
+                       &DirectoryService::ProcessGetDSTxBlockMessage,
+                       &DirectoryService::ProcessPoWPacketSubmission});
 
   const unsigned char ins_byte = message.at(offset);
 
