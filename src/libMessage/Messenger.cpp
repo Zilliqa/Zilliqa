@@ -6390,3 +6390,44 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
 
   return true;
 }
+
+bool Messenger::SetDSLookupNewDSGuardIdentity(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t epochNumber, const Peer& dsGuardNewNetworkInfo,
+    const uint64_t timestamp, const pair<PrivKey, PubKey>& dsguardkey) {
+  LOG_MARKER();
+  DSLookupSetDSGuardNetworkInfoUpdate result;
+
+  result.mutable_data()->set_epochnumber(epochNumber);
+  SerializableToProtobufByteArray(
+      dsguardkey.second, *result.mutable_data()->mutable_dsguardpubkey());
+  PeerToProtobuf(dsGuardNewNetworkInfo,
+                 *result.mutable_data()->mutable_dsguardnewnetworkinfo());
+  result.mutable_data()->set_timestamp(timestamp);
+
+  if (result.data().IsInitialized()) {
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, dsguardkey.first, dsguardkey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(
+        WARNING,
+        "DSLookupSetDSGuardNetworkInfoUpdate.Data initialization failed.");
+    return false;
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "DSLookupSetDSGuardNetworkInfoUpdate initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
