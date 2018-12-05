@@ -152,6 +152,21 @@ bool DirectoryService::ProcessPoWSubmission(
     return false;
   }
 
+  if (resultingHash.size() != 64) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Wrong resultingHash size "
+                  << resultingHash.size() << " submitted by "
+                  << submitterPeer.GetPrintableIPAddress());
+    return false;
+  }
+
+  if (mixHash.size() != 64) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Wrong mixHash size " << mixHash.size() << " submitted by "
+                                    << submitterPeer.GetPrintableIPAddress());
+    return false;
+  }
+
   {
     std::unique_lock<std::mutex> lk(m_mutexPowSolution);
     m_powSolutions.emplace_back(DSPowSolution(
