@@ -24,7 +24,8 @@
 #include <map>
 #include <unordered_map>
 
-#include "libData/AccountData/Transaction.h"
+#include "Account.h"
+#include "Transaction.h"
 
 struct TxnPool {
   struct PubKeyNonceHash {
@@ -146,5 +147,15 @@ struct TxnPool {
     return false;
   }
 };
+
+inline std::ostream& operator<<(std::ostream& os, const TxnPool& t) {
+  os << "Txn in txnPool: " << std::endl;
+  for (const auto& entry : t.HashIndex) {
+    os << "TranID: " << entry.first.hex() << " Sender:"
+       << Account::GetAddressFromPublicKey(entry.second.GetSenderPubKey())
+       << " Nonce: " << entry.second.GetNonce() << std::endl;
+  }
+  return os;
+}
 
 #endif  // __TXNPOOL_H__

@@ -22,8 +22,8 @@
 
 #include <tuple>
 
+#include "Peer.h"
 #include "libCrypto/Schnorr.h"
-#include "libNetwork/Peer.h"
 
 enum ShardData {
   SHARD_NODE_PUBKEY,
@@ -33,5 +33,7 @@ enum ShardData {
 
 using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
 using DequeOfShard = std::deque<Shard>;
+
+using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
 
 #endif /*__SHARD_STRUCT__*/

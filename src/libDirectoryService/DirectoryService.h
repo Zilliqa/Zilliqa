@@ -33,7 +33,6 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "ShardStruct.h"
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
@@ -41,8 +40,10 @@
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
+#include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
+#include "libNetwork/ShardStruct.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
 
@@ -284,13 +285,14 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // internal calls from ProcessDSBlockConsensus
   void StoreDSBlockToStorage();  // To further refactor
-  void SendDSBlockToLookupNodes();
-  void SendDSBlockToNewDSMembers();
-  void SetupMulticastConfigForDSBlock(unsigned int& my_DS_cluster_num,
-                                      unsigned int& my_shards_lo,
-                                      unsigned int& my_shards_hi) const;
-  void SendDSBlockToShardNodes(const unsigned int my_shards_lo,
-                               const unsigned int my_shards_hi);
+  bool ComposeDSBlockMessageForSender(
+      std::vector<unsigned char>& dsblock_message);
+  void SendDSBlockToLookupNodesAndNewDSMembers(
+      const std::vector<unsigned char>& dsblock_message);
+  void SendDSBlockToShardNodes(
+      const std::vector<unsigned char>& dsblock_message,
+      const DequeOfShard& shards, const unsigned int& my_shards_lo,
+      const unsigned int& my_shards_hi);
   void UpdateMyDSModeAndConsensusId();
   void UpdateDSCommiteeComposition();
 
@@ -298,12 +300,13 @@ class DirectoryService : public Executable, public Broadcastable {
       const std::vector<unsigned char>& message, unsigned int offset);
 
   // internal calls from ProcessFinalBlockConsensus
-  bool SendFinalBlockToLookupNodes();
+  bool ComposeFinalBlockMessageForSender(
+      std::vector<unsigned char>& finalblock_message);
+  void SendFinalBlockToShardNodes(
+      const std::vector<unsigned char>& finalblock_message,
+      const DequeOfShard& shards, const unsigned int& my_shards_lo,
+      const unsigned int& my_shards_hi);
   void ProcessFinalBlockConsensusWhenDone();
-
-  void SendFinalBlockToShardNodes(unsigned int my_DS_cluster_num,
-                                  unsigned int my_shards_lo,
-                                  unsigned int my_shards_hi);
   void CommitFinalBlockConsensusBuffer();
 
   // Final Block functions
@@ -416,6 +419,7 @@ class DirectoryService : public Executable, public Broadcastable {
 
   bool VCFetchLatestDSTxBlockFromLookupNodes();
   std::vector<unsigned char> ComposeVCGetDSTxBlockMessage();
+  bool ComposeVCBlockForSender(std::vector<unsigned char>& vcblock_message);
 
   // Reset certain variables to the initial state
   bool CleanVariables();
@@ -586,14 +590,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   /// Used by PoW winner to finish setup as the next DS leader
   void StartFirstTxEpoch();
-
-  void DetermineShardsToSendBlockTo(unsigned int& my_DS_cluster_num,
-                                    unsigned int& my_shards_lo,
-                                    unsigned int& my_shards_hi);
-  void SendBlockToShardNodes(unsigned int my_DS_cluster_num,
-                             unsigned int my_shards_lo,
-                             unsigned int my_shards_hi,
-                             std::vector<unsigned char>& block_message);
 
   /// Begin next round of DS consensus
   void StartNewDSEpochConsensus(bool fromFallback = false);
