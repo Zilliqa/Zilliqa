@@ -229,15 +229,6 @@ DequeOfShard GenerateDequeueOfShard(size_t size) {
 
 CoSignatures GenerateRandomCoSignatures() { return CoSignatures(Dist1to99()); }
 
-// unsigned char randchar() {
-//  const char charset[] =
-//      "0123456789"
-//      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-//      "abcdefghijklmnopqrstuvwxyz";
-//  const size_t max_index = (sizeof(charset) - 2);
-//  return charset[RandomIntInRng<uint8_t>((uint8_t)0, (uint8_t)max_index)];
-//}
-
 auto randchar = []() -> unsigned char {
   const char charset[] =
       "0123456789"
