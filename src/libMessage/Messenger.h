@@ -769,5 +769,10 @@ class Messenger {
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint64_t epochNumber, const Peer& dsGuardNewNetworkInfo,
       const uint64_t timestamp, const std::pair<PrivKey, PubKey>& dsguardkey);
+
+  static bool GetDSLookupNewDSGuardIdentity(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& epochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
+      PubKey& dsGuardPubkey);
 };
 #endif  // __MESSENGER_H__

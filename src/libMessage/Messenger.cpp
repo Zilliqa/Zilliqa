@@ -6431,3 +6431,41 @@ bool Messenger::SetDSLookupNewDSGuardIdentity(
 
   return SerializeToArray(result, dst, offset);
 }
+
+bool Messenger::GetDSLookupNewDSGuardIdentity(const vector<unsigned char>& src,
+                                              const unsigned int offset,
+                                              uint64_t& epochNumber,
+                                              Peer& dsGuardNewNetworkInfo,
+                                              uint64_t& timestamp,
+                                              PubKey& dsGuardPubkey) {
+  LOG_MARKER();
+
+  DSLookupSetDSGuardNetworkInfoUpdate result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSPoWSubmission initialization failed.");
+    return false;
+  }
+
+  // First deseriallize the fields needed just for signature check
+  ProtobufByteArrayToSerializable(result.data().dsguardpubkey(), dsGuardPubkey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  // Check signature
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     dsGuardPubkey)) {
+    LOG_GENERAL(WARNING, "PoW submission signature wrong.");
+    return false;
+  }
+
+  // Deserialize the remaining fields
+  epochNumber = result.data().epochnumber();
+  ProtobufToPeer(result.data().dsguardnewnetworkinfo(), dsGuardNewNetworkInfo);
+  timestamp = result.data().timestamp();
+
+  return true;
+}
