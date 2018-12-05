@@ -30,6 +30,7 @@
 
 #include "Peer.h"
 #include "libCrypto/Schnorr.h"
+#include "libMediator/Mediator.h"
 
 class Guard {
   Guard();
@@ -66,6 +67,8 @@ class Guard {
 
   bool IsNodeInDSGuardList(const PubKey& nodePubKey);
   bool IsNodeInShardGuardList(const PubKey& nodePubKey);
+
+  bool UpdateDSGuardIdentity(const Mediator& mediator);
 
   unsigned int GetNumOfDSGuard();
   unsigned int GetNumOfShardGuard();

@@ -28,6 +28,7 @@
 #include <string>
 
 #include "Peer.h"
+#include "common/Messages.h"
 #include "libConsensus/ConsensusCommon.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -155,6 +156,34 @@ unsigned int Guard::GetNumOfDSGuard() {
 unsigned int Guard::GetNumOfShardGuard() {
   lock_guard<mutex> g(m_mutexShardGuardList);
   return m_ShardGuardList.size();
+}
+
+// This feature is only available to ds guard nodes
+// Pre-condition: Must still have access to existing public and private key pair
+bool Guard::UpdateDSGuardIdentity(const Mediator& mediator) {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Not in guard mode. Unable to update ds guard network identity.");
+    return false;
+  }
+
+  // To provide current pubkey, new IP, new Port and current timestamp
+  vector<unsigned char> updatedsguardidentitymessage = {
+      MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
+
+  if (!Messenger::SetDSLookupNewDSGuardIdentity(
+          updatedsguardidentitymessage, MessageOffset::BODY,
+          mediator.m_currentEpochNum, mediator.m_selfPeer, get_time_as_int(),
+          mediator.m_selfKey)) {
+    LOG_EPOCH(WARNING, to_string(mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetDSLookupNewDSGuardIdentity failed.");
+    return false;
+  }
+
+  // Gossip to all lookups and DS committee
+
+  return true;
 }
 
 bool Guard::IsValidIP(const uint128_t& ip_addr) {
