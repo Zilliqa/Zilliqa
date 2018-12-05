@@ -63,7 +63,7 @@ bool Node::ComposeFallbackBlockMessageForSender(
 void Node::ProcessFallbackConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::ProcessViewChangeConsensusWhenDone not "
+                "DirectoryService::ProcessFallbackConsensusWhenDone not "
                 "expected to be called from LookUp node.");
     return;
   }
