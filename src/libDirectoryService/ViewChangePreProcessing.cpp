@@ -37,6 +37,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 
@@ -83,6 +84,12 @@ bool DirectoryService::ViewChangeValidator(
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << m_pendingVCBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(m_pendingVCBlock->GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT)) {
     return false;
   }
 

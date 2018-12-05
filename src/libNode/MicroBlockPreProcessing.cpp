@@ -51,6 +51,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -971,27 +972,10 @@ bool Node::CheckMicroBlockTimestamp() {
     return true;
   }
 
-  // Check timestamp (must be greater than timestamp of last Tx block header in
-  // the Tx blockchain)
-  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
-    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t thisMicroblockTimestamp = m_microblock->GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
-    if (thisMicroblockTimestamp <= lastTxBlockTimestamp) {
-      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
-                               << lastTxBlockTimestamp
-                               << " Microblock: " << thisMicroblockTimestamp);
+  LOG_MARKER();
 
-      m_consensusObject->SetConsensusErrorCode(
-          ConsensusCommon::INVALID_TIMESTAMP);
-
-      return false;
-    }
-  }
-
-  LOG_GENERAL(INFO, "Timestamp check passed");
-
-  return true;
+  return VerifyTimestamp(m_microblock->GetTimestamp(),
+                         CONSENSUS_OBJECT_TIMEOUT);
 }
 
 unsigned char Node::CheckLegitimacyOfTxnHashes(

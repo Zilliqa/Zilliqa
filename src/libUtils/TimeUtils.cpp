@@ -19,6 +19,7 @@
 
 #include "TimeUtils.h"
 #include <mutex>
+
 using namespace std::chrono;
 using namespace boost::multiprecision;
 static std::mutex gmtimeMutex;
@@ -45,4 +46,20 @@ long int get_ms(const time_point<system_clock> time) {
   return duration_cast<milliseconds>(
              time - system_clock::from_time_t(system_clock::to_time_t(time)))
       .count();
+}
+
+std::string microsec_timestamp_to_readable(const uint64_t& timestamp) {
+  const time_t rawtime = (const time_t)timestamp;
+
+  struct tm* dt;
+  char buffer[30];
+  dt = localtime(&rawtime);
+  strftime(buffer, sizeof(buffer), "%m%d%H%M%y", dt);
+  delete dt;
+  return std::string(buffer);
+}
+
+bool is_timestamp_in_range(const uint64_t& timestamp, const uint64_t& loBound,
+                           const uint64_t& hiBound) {
+  return timestamp >= loBound && timestamp <= hiBound;
 }
