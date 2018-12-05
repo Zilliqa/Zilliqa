@@ -87,7 +87,7 @@ class TransactionWithReceipt : public SerializableDataBlock {
   static TxnHash ComputeTransactionReceiptsHash(
       const std::vector<TransactionWithReceipt>& txrs) {
     if (txrs.empty()) {
-      LOG_GENERAL(INFO, "TxnOrder is empty");
+      LOG_GENERAL(INFO, "txrs is empty");
       return TxnHash();
     }
 
