@@ -21,11 +21,9 @@
 #include <string>
 #include <vector>
 #include "libCrypto/Schnorr.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE transactiontest
