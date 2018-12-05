@@ -24,7 +24,17 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-FallbackBlockHeader::FallbackBlockHeader() : m_leaderConsensusId(0) {}
+FallbackBlockHeader::FallbackBlockHeader()
+    : BlockHeaderBase(),
+      m_fallbackDSEpochNo((uint64_t)-1),
+      m_fallbackEpochNo((uint64_t)-1),
+      m_fallbackState(0),
+      m_hashset(),
+      m_leaderConsensusId(0),
+      m_leaderNetworkInfo(),
+      m_leaderPubKey(),
+      m_shardId(0),
+      m_prevHash() {}
 
 FallbackBlockHeader::FallbackBlockHeader(const vector<unsigned char>& src,
                                          unsigned int offset) {
