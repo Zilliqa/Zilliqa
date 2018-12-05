@@ -38,34 +38,51 @@ bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,
     m_tranHashMap.insert({receivedTxns.at(i), i});
   }
 
-  std::vector<unsigned int> matchedIndex;
+  std::vector<unsigned int> matchedIndexes;
 
   for (const auto& th : expectedTxns) {
     auto t = m_tranHashMap.find(th);
+    // if txn was found in map &&
+    // (matchedIndexs empty || the txn has larger index than previous element
+    //    (to ensure txn has incremental index in the order)) &&
+    // if the index of this txn was in the potion where can guarantee the
+    // successive of the verification,
+    //    which can be used to avoid too big index being inserted in the
+    //    matchedIndexes too early causing all the txns left was not able to be
+    //    inserted. e.g. to verify 10 txns with tolerance of 20%, ordered by 0 9
+    //    1 3 2 4 5 6 7 8 10, the expected order is 0 1 2 3 4 5 6 7 8 9 10 11 12
+    //    when it comes to 9, which is out of the 20% of the size of the
+    //    received order(2) + sizeof matchedIndexes(1), discard when it comes to
+    //    3, which is in the the range (2 + sizeof{0,1}) = 4, accept finally the
+    //    indexed items are 0 1 3 4 5 6 7 8 10, size(9), which is more than 80%
+    //    of the size in the expecting order (12*0.8 = 9), thus return true if
+    //    the expectig order is 0 1 2 3 4 5 6 7 8 9 10 11 12 13, then the min
+    //    size will be (10), it will return false
     if (t != m_tranHashMap.end() &&
-        (matchedIndex.empty() || t->second > matchedIndex.back()) &&
-        (t->second <= ((tolerance_in_percent * receivedTxns.size() / 100 +
-                        matchedIndex.size())))) {
-      matchedIndex.push_back(t->second);
+        (matchedIndexes.empty() || t->second > matchedIndexes.back()) &&
+        (t->second < ((tolerance_in_percent * receivedTxns.size() / 100 +
+                       matchedIndexes.size())))) {
+      matchedIndexes.push_back(t->second);
     }
   }
 
   unsigned int min_ordered_txn_num =
-      (100 - tolerance_in_percent) * receivedTxns.size() / 100;
+      (100 - tolerance_in_percent) *
+      std::max(expectedTxns.size(), receivedTxns.size()) / 100;
 
   LOG_GENERAL(INFO, "Minimum in order num required: "
                         << min_ordered_txn_num << " actual in order num: "
-                        << matchedIndex.size() << " similarity: "
-                        << (matchedIndex.size() * 100 / receivedTxns.size())
+                        << matchedIndexes.size() << " similarity: "
+                        << (matchedIndexes.size() * 100 / expectedTxns.size())
                         << "% "
                         << "tolerance: " << tolerance_in_percent << "%");
 
-  if (matchedIndex.size() >= min_ordered_txn_num) {
+  if (matchedIndexes.size() >= min_ordered_txn_num) {
     return true;
   }
 
-  LOG_GENERAL(INFO, "Txns in order:");
-  for (const auto& index : matchedIndex) {
+  LOG_GENERAL(INFO, "Txns not in order:");
+  for (const auto& index : matchedIndexes) {
     LOG_GENERAL(INFO, receivedTxns.at(index).hex());
   }
 
