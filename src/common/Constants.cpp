@@ -255,7 +255,6 @@ const bool SEND_RESPONSE_FOR_LAZY_PUSH{
 const bool ENABLE_FALLBACK{ReadFromOptionsFile("ENABLE_FALLBACK") == "true"};
 const bool ARCHIVAL_LOOKUP{ReadFromOptionsFile("ARCHIVAL_LOOKUP") == "true"};
 
-
 // gas
 const unsigned int MICROBLOCK_GAS_LIMIT{
     ReadFromGasFile("MICROBLOCK_GAS_LIMIT")};
