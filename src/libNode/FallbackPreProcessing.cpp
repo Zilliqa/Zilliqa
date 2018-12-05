@@ -353,12 +353,18 @@ void Node::FallbackTimerLaunch() {
 }
 
 void Node::FallbackTimerPulse() {
+  if (!ENABLE_FALLBACK) {
+    return;
+  }
   lock_guard<mutex> g(m_mutexFallbackTimer);
   m_fallbackTimer = 0;
   m_fallbackStarted = false;
 }
 
 void Node::FallbackStop() {
+  if (!ENABLE_FALLBACK) {
+    return;
+  }
   lock_guard<mutex> g(m_mutexFallbackTimer);
   m_runFallback = false;
 }
