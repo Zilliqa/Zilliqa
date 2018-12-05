@@ -1333,23 +1333,6 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   SendMessageToRandomLookupNode(msg);
 }
 
-void Lookup::CommitMicroBlockStorage() {
-  LOG_MARKER();
-  lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
-  const uint64_t& currentEpoch = m_mediator.m_currentEpochNum;
-  LOG_GENERAL(INFO, "[SendMB]" << currentEpoch);
-
-  for (auto& epochMBpair : m_microBlocksBuffer) {
-    if (epochMBpair.first > currentEpoch) {
-      continue;
-    }
-    for (auto& mb : epochMBpair.second) {
-      AddMicroBlockToStorage(mb);
-    }
-    epochMBpair.second.clear();
-  }
-}
-
 bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from) {
   //#ifndef IS_LOOKUP_NODE
