@@ -441,7 +441,7 @@ bool Node::ComposeMBnForwardTxnMessageForSender(
     vector<unsigned char>& mb_txns_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Node::ComposeForwardTxnMessageForSender not expected to be "
+                "Node::ComposeMBnForwardTxnMessageForSender not expected to be "
                 "called from LookUp node.");
     return false;
   }
@@ -478,7 +478,7 @@ bool Node::ComposeMBnForwardTxnMessageForSender(
   if (!Messenger::SetNodeMBnForwardTransaction(
           mb_txns_message, MessageOffset::BODY, *m_microblock, txns_to_send)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetNodeForwardTransaction failed.");
+              "Messenger::SetNodeMBnForwardTransaction failed.");
     return false;
   }
 
@@ -934,7 +934,7 @@ bool Node::ProcessMBnForwardTransaction(const vector<unsigned char>& message,
 
   if (!Messenger::GetNodeMBnForwardTransaction(message, cur_offset, entry)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetNodeForwardTransaction failed.");
+              "Messenger::ProcessMBnForwardTransaction failed.");
     return false;
   }
 

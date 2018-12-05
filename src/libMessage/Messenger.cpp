@@ -3368,7 +3368,7 @@ bool Messenger::SetNodeMBnForwardTransaction(
   }
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeForwardTransaction initialization failed.");
+    LOG_GENERAL(WARNING, "SetNodeMBnForwardTransaction initialization failed.");
     return false;
   }
 

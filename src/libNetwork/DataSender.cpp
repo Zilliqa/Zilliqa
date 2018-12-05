@@ -233,11 +233,11 @@ bool DataSender::SendDataToOthers(
       }
     }
 
-    unsigned int my_cluster_num = UINT_MAX;
-    unsigned int my_shards_lo = 0;
-    unsigned int my_shards_hi = 0;
-
     if (!shards.empty()) {
+      unsigned int my_cluster_num = UINT_MAX;
+      unsigned int my_shards_lo = 0;
+      unsigned int my_shards_hi = 0;
+
       DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
                                  shards, tmpCommittee, indexB2);
 
