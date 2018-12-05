@@ -24,7 +24,18 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-TxBlockHeader::TxBlockHeader() : m_blockNum(INIT_BLOCK_NUMBER) {}
+TxBlockHeader::TxBlockHeader()
+    : m_type(0),
+      m_version(0),
+      m_gasLimit(0),
+      m_gasUsed(0),
+      m_rewards(0),
+      m_prevHash(),
+      m_blockNum(INIT_BLOCK_NUMBER),
+      m_hashset(),
+      m_numTxs(0),
+      m_minerPubKey(),
+      m_dsBlockNum(INIT_BLOCK_NUMBER) {}
 
 TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {
