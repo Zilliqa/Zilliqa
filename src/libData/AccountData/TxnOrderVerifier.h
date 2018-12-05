@@ -81,7 +81,7 @@ bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,
     return true;
   }
 
-  LOG_GENERAL(INFO, "Txns not in order:");
+  LOG_GENERAL(INFO, "Txns not in order, ordered txns:");
   for (const auto& index : matchedIndexes) {
     LOG_GENERAL(INFO, receivedTxns.at(index).hex());
   }
