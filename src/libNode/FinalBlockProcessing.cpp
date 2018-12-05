@@ -776,7 +776,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   if (!LOOKUP_NODE_MODE) {
     if (toSendTxnToLookup) {
-      // CallActOnFinalblock();
+      CallActOnFinalblock();
     }
 
     if (isVacuousEpoch) {
