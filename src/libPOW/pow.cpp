@@ -124,15 +124,16 @@ bool POW::CheckDificulty(const ethash_hash256& result,
 
 ethash_hash256 POW::DifficultyLevelInInt(uint8_t difficulty) {
   uint8_t b[UINT256_SIZE];
-  std::fill(b, b + 32, 0xff);
+  std::fill(b, b + UINT256_SIZE, 0xFF);
   uint8_t firstNbytesToSet = difficulty / 8;
   uint8_t nBytesBitsToSet = difficulty % 8;
 
   for (int i = 0; i < firstNbytesToSet; i++) {
     b[i] = 0;
   }
-  const unsigned char masks[9] = {0xFF, 0x7F, 0x3F, 0x1F,
-                                  0x0F, 0x07, 0x01, 0x00};
+
+  const unsigned char masks[] = {0xFF, 0x7F, 0x3F, 0x1F,
+                                 0x0F, 0x07, 0x03, 0x01};
   b[firstNbytesToSet] = masks[nBytesBitsToSet];
   return StringToBlockhash(BytesToHexString(b, UINT256_SIZE));
 }
