@@ -238,9 +238,6 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessGetNetworkId(const std::vector<unsigned char>& message,
                            unsigned int offset, const Peer& from);
 
-  bool ProcessSetMicroBlockFromSeed(const std::vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from);
-
   bool ProcessGetTxnsFromLookup(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   bool ProcessSetTxnsFromLookup(const std::vector<unsigned char>& message,
