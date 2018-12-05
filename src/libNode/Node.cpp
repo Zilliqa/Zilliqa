@@ -406,7 +406,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (!LOOKUP_NODE_MODE) {
+  if (bDS) {
     for (uint64_t blockNum =
              m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
@@ -473,12 +473,13 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (!LOOKUP_NODE_MODE) {
+  if (bDS) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-            0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+                1,
+            0, m_mediator.m_ds->m_shards.size() - 1, microBlocks)) {
       for (const auto& microBlock : microBlocks) {
         LOG_GENERAL(INFO,
                     "Retrieve microblock with epochNum: "
