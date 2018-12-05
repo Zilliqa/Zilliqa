@@ -939,6 +939,17 @@ bool Node::ProcessMBnForwardTransaction(const vector<unsigned char>& message,
   }
 
   // Verify Microblock agains forwarded txns
+  // BlockHash
+  BlockHash temp_blockHash = entry.m_microBlock.GetHeader().GetMyHash();
+  if (temp_blockHash != entry.m_microBlock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in newly received Micro Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash << " Received: "
+                    << entry.m_microBlock.GetBlockHash().hex());
+    return false;
+  }
+
   // Verify txnhash
   TxnHash txnHash = ComputeRoot(entry.m_transactions);
   if (txnHash != entry.m_microBlock.GetHeader().GetTxRootHash()) {
