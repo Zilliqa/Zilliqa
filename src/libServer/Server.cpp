@@ -101,7 +101,8 @@ bool Server::StartCollectorThread() {
   }
   auto collectorThread = [this]() mutable -> void {
     this_thread::sleep_for(chrono::seconds(120));  //[Remove this]
-    LOG_GENERAL(INFO,"[ARCHLOOK]"<<"Start thread");
+    LOG_GENERAL(INFO, "[ARCHLOOK]"
+                          << "Start thread");
     while (true) {
       this_thread::sleep_for(chrono::seconds(5));  // SET this to a constant
       {
@@ -114,8 +115,11 @@ bool Server::StartCollectorThread() {
                                      LookupInstructionType::FORWARDTXN};
 
         auto lookupNodes = m_mediator.m_lookup->GetLookupNodes();
+
+        const uint32_t NUM_ACTUAL_LOOKUP = 1;
+
         vector<Peer> toSend;
-        for (uint i = 0; i < 1 && i < lookupNodes.size(); i++) {
+        for (uint i = NUM_ACTUAL_LOOKUP; i < 1 && i < lookupNodes.size(); i++) {
           toSend.push_back(lookupNodes.at(i).second);
         }
 
