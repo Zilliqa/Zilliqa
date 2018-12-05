@@ -3449,8 +3449,8 @@ bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeForwardTxnBlock(
     std::vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t epochNumber, const uint32_t shardId,
-    const std::pair<PrivKey, PubKey>& lookupKey,
+    const uint64_t& epochNumber, const uint64_t& dsBlockNum,
+    const uint32_t& shardId, const std::pair<PrivKey, PubKey>& lookupKey,
     const std::vector<Transaction>& txnsCurrent,
     const std::vector<Transaction>& txnsGenerated) {
   LOG_MARKER();
@@ -3458,6 +3458,7 @@ bool Messenger::SetNodeForwardTxnBlock(
   NodeForwardTxnBlock result;
 
   result.set_epochnumber(epochNumber);
+  result.set_dsblocknum(dsBlockNum);
   result.set_shardid(shardId);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
@@ -3504,7 +3505,8 @@ bool Messenger::SetNodeForwardTxnBlock(
 
 bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                        const unsigned int offset,
-                                       uint64_t& epochNumber, uint32_t& shardId,
+                                       uint64_t& epochNumber,
+                                       uint64_t& dsBlockNum, uint32_t& shardId,
                                        PubKey& lookupPubKey,
                                        std::vector<Transaction>& txns) {
   LOG_MARKER();
@@ -3519,6 +3521,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
   }
 
   epochNumber = result.epochnumber();
+  dsBlockNum = result.dsblocknum();
   shardId = result.shardid();
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
