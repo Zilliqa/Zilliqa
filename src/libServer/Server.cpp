@@ -101,6 +101,7 @@ bool Server::StartCollectorThread() {
   }
   auto collectorThread = [this]() mutable -> void {
     this_thread::sleep_for(chrono::seconds(120));  //[Remove this]
+    LOG_GENERAL(INFO,"[ARCHLOOK]"<<"Start thread");
     while (true) {
       this_thread::sleep_for(chrono::seconds(5));  // SET this to a constant
       {
