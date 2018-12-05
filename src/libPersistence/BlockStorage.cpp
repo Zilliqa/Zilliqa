@@ -475,6 +475,8 @@ bool BlockStorage::PutDSCommittee(
     const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
     const uint16_t& consensusLeaderID) {
   LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDsCommittee);
   m_dsCommitteeDB->ResetDB();
   unsigned int index = 0;
   string leaderId = to_string(consensusLeaderID);
@@ -514,6 +516,7 @@ bool BlockStorage::GetDSCommittee(
   LOG_MARKER();
 
   unsigned int index = 0;
+  lock_guard<mutex> g(m_mutexDsCommittee);
   string strConsensusLeaderID = m_dsCommitteeDB->Lookup(index++);
 
   if (strConsensusLeaderID.empty()) {
@@ -551,6 +554,7 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
                                      const uint32_t myshardId) {
   LOG_MARKER();
 
+  lock_guard<mutex> g(m_mutexShardStructure);
   m_shardStructureDB->ResetDB();
   unsigned int index = 0;
   string shardId = to_string(myshardId);
@@ -584,7 +588,13 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   LOG_MARKER();
 
   unsigned int index = 1;
-  string dataStr = m_shardStructureDB->Lookup(index++);
+  string dataStr;
+
+  {
+    lock_guard<mutex> g(m_mutexShardStructure);
+    dataStr = m_shardStructureDB->Lookup(index++);
+  }
+
   Messenger::ArrayToShardStructure(
       vector<unsigned char>(dataStr.begin(), dataStr.end()), 0, shards);
   LOG_GENERAL(INFO, "Retrieved sharding structure");
@@ -621,42 +631,66 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
 bool BlockStorage::ResetDB(DBTYPE type) {
   bool ret = false;
   switch (type) {
-    case META:
+    case META: {
+      lock_guard<mutex> g(m_mutexMetadata);
       ret = m_metadataDB->ResetDB();
       break;
-    case DS_BLOCK:
+    }
+    case DS_BLOCK: {
+      lock_guard<mutex> g(m_mutexDsBlockchain);
       ret = m_dsBlockchainDB->ResetDB();
       break;
-    case TX_BLOCK:
+    }
+    case TX_BLOCK: {
+      lock_guard<mutex> g(m_mutexTxBlockchain);
       ret = m_txBlockchainDB->ResetDB();
       break;
-    case TX_BODY:
+    }
+    case TX_BODY: {
+      lock_guard<mutex> g(m_mutexTxBody);
       ret = m_txBodyDB->ResetDB();
       break;
-    case TX_BODY_TMP:
+    }
+    case TX_BODY_TMP: {
+      lock_guard<mutex> g(m_mutexTxBodyTmp);
       ret = m_txBodyTmpDB->ResetDB();
       break;
-    case MICROBLOCK:
+    }
+    case MICROBLOCK: {
+      lock_guard<mutex> g(m_mutexMicroBlock);
       ret = m_microBlockDB->ResetDB();
       break;
-    case DS_COMMITTEE:
+    }
+    case DS_COMMITTEE: {
+      lock_guard<mutex> g(m_mutexDsCommittee);
       ret = m_dsCommitteeDB->ResetDB();
       break;
-    case VC_BLOCK:
+    }
+    case VC_BLOCK: {
+      lock_guard<mutex> g(m_mutexVCBlock);
       ret = m_VCBlockDB->ResetDB();
       break;
-    case FB_BLOCK:
+    }
+    case FB_BLOCK: {
+      lock_guard<mutex> g(m_mutexFallbackBlock);
       ret = m_fallbackBlockDB->ResetDB();
       break;
-    case BLOCKLINK:
+    }
+    case BLOCKLINK: {
+      lock_guard<mutex> g(m_mutexBlockLink);
       ret = m_blockLinkDB->ResetDB();
       break;
-    case SHARD_STRUCTURE:
+    }
+    case SHARD_STRUCTURE: {
+      lock_guard<mutex> g(m_mutexShardStructure);
       ret = m_shardStructureDB->ResetDB();
       break;
-    case STATE_DELTA:
+    }
+    case STATE_DELTA: {
+      lock_guard<mutex> g(m_mutexStateDelta);
       ret = m_stateDeltaDB->ResetDB();
       break;
+    }
   }
   if (!ret) {
     LOG_GENERAL(INFO, "FAIL: Reset DB " << type << " failed");
@@ -667,42 +701,66 @@ bool BlockStorage::ResetDB(DBTYPE type) {
 std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
   std::vector<std::string> ret;
   switch (type) {
-    case META:
+    case META: {
+      lock_guard<mutex> g(m_mutexMetadata);
       ret.push_back(m_metadataDB->GetDBName());
       break;
-    case DS_BLOCK:
+    }
+    case DS_BLOCK: {
+      lock_guard<mutex> g(m_mutexDsBlockchain);
       ret.push_back(m_dsBlockchainDB->GetDBName());
       break;
-    case TX_BLOCK:
+    }
+    case TX_BLOCK: {
+      lock_guard<mutex> g(m_mutexTxBlockchain);
       ret.push_back(m_txBlockchainDB->GetDBName());
       break;
-    case TX_BODY:
+    }
+    case TX_BODY: {
+      lock_guard<mutex> g(m_mutexTxBody);
       ret.push_back(m_txBodyDB->GetDBName());
       break;
-    case TX_BODY_TMP:
+    }
+    case TX_BODY_TMP: {
+      lock_guard<mutex> g(m_mutexTxBodyTmp);
       ret.push_back(m_txBodyTmpDB->GetDBName());
       break;
-    case MICROBLOCK:
+    }
+    case MICROBLOCK: {
+      lock_guard<mutex> g(m_mutexMicroBlock);
       ret.push_back(m_microBlockDB->GetDBName());
       break;
-    case DS_COMMITTEE:
+    }
+    case DS_COMMITTEE: {
+      lock_guard<mutex> g(m_mutexDsCommittee);
       ret.push_back(m_dsCommitteeDB->GetDBName());
       break;
-    case VC_BLOCK:
+    }
+    case VC_BLOCK: {
+      lock_guard<mutex> g(m_mutexVCBlock);
       ret.push_back(m_VCBlockDB->GetDBName());
       break;
-    case FB_BLOCK:
+    }
+    case FB_BLOCK: {
+      lock_guard<mutex> g(m_mutexFallbackBlock);
       ret.push_back(m_fallbackBlockDB->GetDBName());
       break;
-    case BLOCKLINK:
+    }
+    case BLOCKLINK: {
+      lock_guard<mutex> g(m_mutexBlockLink);
       ret.push_back(m_blockLinkDB->GetDBName());
       break;
-    case SHARD_STRUCTURE:
+    }
+    case SHARD_STRUCTURE: {
+      lock_guard<mutex> g(m_mutexShardStructure);
       ret.push_back(m_shardStructureDB->GetDBName());
       break;
-    case STATE_DELTA:
+    }
+    case STATE_DELTA: {
+      lock_guard<mutex> g(m_mutexStateDelta);
       ret.push_back(m_stateDeltaDB->GetDBName());
       break;
+    }
   }
 
   return ret;
