@@ -272,6 +272,11 @@ void Node::FallbackTimerLaunch() {
     return;
   }
 
+  if (!ENABLE_FALLBACK) {
+    LOG_GENERAL(INFO, "Fallback is currenlty disabled");
+    return;
+  }
+
   LOG_MARKER();
 
   if (FALLBACK_INTERVAL_STARTED < FALLBACK_CHECK_INTERVAL ||
