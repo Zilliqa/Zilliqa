@@ -46,6 +46,17 @@ make -j -l4
 make install
 }
 
+function install_openssl() {
+# install openssl-1.1.1
+# only 1.1.x has the necessary BN_generate_dsa_nonce function in bn.h
+curl -sL https://www.openssl.org/source/openssl-1.1.1.tar.gz
+tar -xzf openssl-1.1.1.tar.gz
+cd openssl-1.1.1
+./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)'
+make
+make install
+}
+
 # presently a docker version ubuntu 16.04 is used
 function on_sudoless_ubuntu() {
 
@@ -56,7 +67,6 @@ apt-get install -y \
     cmake \
     build-essential \
     pkg-config \
-    libssl-dev \
     libboost-system-dev \
     libboost-filesystem-dev \
     libboost-test-dev \
@@ -70,6 +80,9 @@ apt-get install -y \
     libprotobuf-dev \
     libcurl4-openssl-dev \
     protobuf-compiler
+
+# install openssl-1.1.1
+install_openssl
 
 # install development dependencies
 apt-get install -y \
