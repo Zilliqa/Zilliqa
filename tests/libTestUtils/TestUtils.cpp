@@ -59,26 +59,6 @@ uint8_t Dist1to99() { return RandomIntInRng<uint8_t>((uint8_t)1, (uint8_t)99); }
 
 PubKey GenerateRandomPubKey() { return PubKey(PrivKey()); }
 
-Address GetAddressFromPubKey(PubKey pubKey) {
-  Address address;
-
-  vector<unsigned char> vec;
-  pubKey.Serialize(vec, 0);
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(vec);
-
-  const vector<unsigned char>& output = sha2.Finalize();
-
-  if (output.size() != 32) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-  }
-
-  copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
-
-  return address;
-}
-
 Peer GenerateRandomPeer() {
   uint128_t ip_address = DistUint32();
   uint32_t listen_port_host = DistUint32();

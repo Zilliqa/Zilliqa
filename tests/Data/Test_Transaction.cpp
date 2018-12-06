@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   }
 
   KeyPair sender = Schnorr::GetInstance().GenKeyPair();
-  Address fromCheck = TestUtils::GetAddressFromPubKey(sender.second);
+  Address fromCheck = Account::GetAddressFromPublicKey(sender.second);
   Signature sig = TestUtils::GetSignature(
       TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender.first,
       sender.second);
