@@ -403,10 +403,11 @@ message NodeVCBlock
 message NodeForwardTxnBlock
 {
     required uint64 epochnumber            = 1;
-    required uint32 shardid                = 2;
-    required ByteArray pubkey              = 3;
-    repeated ProtoTransaction transactions = 4;
-    required ByteArray signature           = 5;
+    required uint64 dsblocknum             = 2;
+    required uint32 shardid                = 3;
+    required ByteArray pubkey              = 4;
+    repeated ProtoTransaction transactions = 5;
+    required ByteArray signature           = 6;
 }
 
 message NodeMicroBlockAnnouncement
