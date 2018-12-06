@@ -113,8 +113,6 @@ class Lookup : public Executable, public Broadcastable {
   std::vector<unsigned char> ComposeGetDSInfoMessage(bool initialDS = false);
   std::vector<unsigned char> ComposeGetStateMessage();
 
-  std::unordered_map<uint64_t, std::vector<MicroBlock>> m_microBlocksBuffer;
-
   std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
                                                       uint64_t highBlockNum);
   std::vector<unsigned char> ComposeGetTxBlockMessage(uint64_t lowBlockNum,
@@ -244,8 +242,6 @@ class Lookup : public Executable, public Broadcastable {
                                 unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
-
-  void CommitMicroBlockStorage();
 
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
