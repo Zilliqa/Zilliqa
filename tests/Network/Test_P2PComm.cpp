@@ -198,7 +198,7 @@ int main() {
   this_thread::sleep_for(chrono::seconds(1));  // short delay to prepare socket
 
   struct in_addr ip_addr;
-  inet_aton("127.0.0.1", &ip_addr);
+  inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer peer = {ip_addr.s_addr, 30303};
   vector<unsigned char> message1 = {'H', 'e', 'l',
                                     'l', 'o', '\0'};  // Send Hello once

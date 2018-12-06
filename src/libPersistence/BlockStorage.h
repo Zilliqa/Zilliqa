@@ -198,8 +198,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutShardStructure(const DequeOfShard& shards, const uint32_t myshardId);
 
   /// Retrieve shard structure
-  bool GetShardStructure(DequeOfShard& shards,
-                         std::atomic<uint32_t>& myshardId);
+  bool GetShardStructure(DequeOfShard& shards);
 
   /// Save state delta
   bool PutStateDelta(const uint64_t& finalBlockNum,
@@ -216,6 +215,20 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Clean all DB
   bool ResetAll();
+
+ private:
+  std::mutex m_mutexMetadata;
+  std::mutex m_mutexDsBlockchain;
+  std::mutex m_mutexTxBlockchain;
+  std::mutex m_mutexMicroBlock;
+  std::mutex m_mutexDsCommittee;
+  std::mutex m_mutexVCBlock;
+  std::mutex m_mutexFallbackBlock;
+  std::mutex m_mutexBlockLink;
+  std::mutex m_mutexShardStructure;
+  std::mutex m_mutexStateDelta;
+  std::mutex m_mutexTxBody;
+  std::mutex m_mutexTxBodyTmp;
 };
 
 #endif  // BLOCKSTORAGE_H

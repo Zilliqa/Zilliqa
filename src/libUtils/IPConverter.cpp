@@ -22,14 +22,16 @@
 
 const std::string IPConverter::ToStrFromNumericalIP(
     const boost::multiprecision::uint128_t& ip) {
+  char str[INET_ADDRSTRLEN];
   struct sockaddr_in serv_addr;
   serv_addr.sin_addr.s_addr = ip.convert_to<unsigned long>();
-  return inet_ntoa(serv_addr.sin_addr);
+  inet_ntop(AF_INET, &(serv_addr.sin_addr), str, INET_ADDRSTRLEN);
+  return std::string(str);
 }
 
 const boost::multiprecision::uint128_t IPConverter::ToNumericalIPFromStr(
     const std::string& ipStr) {
   struct in_addr ip_addr;
-  inet_aton(ipStr.c_str(), &ip_addr);
+  inet_pton(AF_INET, ipStr.c_str(), &ip_addr);
   return (boost::multiprecision::uint128_t)ip_addr.s_addr;
 }

@@ -28,7 +28,6 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -37,10 +36,34 @@
 
 using namespace std;
 
+bool Node::ComposeFallbackBlockMessageForSender(
+    vector<unsigned char>& fallbackblock_message) const {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Node::ComposeFallbackBlockMessageForSender not "
+                "expected to be called from LookUp node.");
+    return false;
+  }
+  fallbackblock_message.clear();
+
+  fallbackblock_message = {MessageType::NODE,
+                           NodeInstructionType::FALLBACKBLOCK};
+
+  if (!Messenger::SetNodeFallbackBlock(fallbackblock_message,
+                                       MessageOffset::BODY,
+                                       *m_pendingFallbackBlock)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeFallbackBlock failed.");
+    return false;
+  }
+
+  return true;
+}
+
 void Node::ProcessFallbackConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::ProcessViewChangeConsensusWhenDone not "
+                "DirectoryService::ProcessFallbackConsensusWhenDone not "
                 "expected to be called from LookUp node.");
     return;
   }
@@ -188,41 +211,15 @@ void Node::ProcessFallbackConsensusWhenDone() {
     m_mediator.m_ds->m_shards.pop_front();
   }
 
-  // Broadcasting fallback block to lookup nodes
-  vector<unsigned char> fallbackblock_message = {
-      MessageType::NODE, NodeInstructionType::FALLBACKBLOCK};
-
-  if (!Messenger::SetNodeFallbackBlock(fallbackblock_message,
-                                       MessageOffset::BODY,
-                                       *m_pendingFallbackBlock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetNodeFallbackBlock failed.");
-    return;
-  }
-
-  unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
-  unsigned int nodeToSendToLookUpHi =
-      nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
-
-  if (m_mediator.m_ds->m_consensusMyID > nodeToSendToLookUpLo &&
-      m_mediator.m_ds->m_consensusMyID < nodeToSendToLookUpHi) {
-    m_mediator.m_lookup->SendMessageToLookupNodes(fallbackblock_message);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the part of the subset of newly DS committee after fallback "
-              "that have sent the FallbackBlock to the lookup nodes");
-  }
-
-  //
-
-  // Broadcasting fallback block to nodes in other shard
-  unsigned int my_DS_cluster_num;
-  unsigned int my_shards_lo;
-  unsigned int my_shards_hi;
-
-  m_mediator.m_ds->DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo,
-                                                my_shards_hi);
-  m_mediator.m_ds->SendBlockToShardNodes(my_DS_cluster_num, my_shards_lo,
-                                         my_shards_hi, fallbackblock_message);
+  auto composeFallbackBlockMessageForSender =
+      [this](vector<unsigned char>& fallback_message) -> bool {
+    return ComposeFallbackBlockMessageForSender(fallback_message);
+  };
+  DataSender::GetInstance().SendDataToOthers(
+      *m_microblock, *m_myShardMembers, m_mediator.m_ds->m_shards,
+      m_mediator.m_lookup->GetLookupNodes(),
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+      composeFallbackBlockMessageForSender);
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);

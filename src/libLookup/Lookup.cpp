@@ -129,7 +129,7 @@ void Lookup::SetLookupNodes() {
   for (const ptree::value_type& v : pt.get_child("node.lookups")) {
     if (v.first == "peer") {
       struct in_addr ip_addr;
-      inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
       PubKey pubKey(
@@ -250,12 +250,29 @@ VectorOfLookupNode Lookup::GetLookupNodes() const {
   return m_lookupNodes;
 }
 
+bool Lookup::IsLookupNode(const PubKey& pubKey) const {
+  return std::find_if(GetLookupNodes().begin(), GetLookupNodes().end(),
+                      [&pubKey](const std::pair<PubKey, Peer>& node) {
+                        return node.first == pubKey;
+                      }) != GetLookupNodes().end();
+}
+
+bool Lookup::IsLookupNode(const Peer& peerInfo) const {
+  return std::find_if(GetLookupNodes().begin(), GetLookupNodes().end(),
+                      [&peerInfo](const std::pair<PubKey, Peer>& node) {
+                        return node.second == peerInfo;
+                      }) != GetLookupNodes().end();
+}
+
 void Lookup::SendMessageToLookupNodes(
     const std::vector<unsigned char>& message) const {
   LOG_MARKER();
 
   // LOG_GENERAL(INFO, "i am here " <<
   // to_string(m_mediator.m_currentEpochNum).c_str())
+
+  // TODO: provide interface in P2PComm instead of repopulating the lookup into
+  // vector of Peer
   vector<Peer> allLookupNodes;
 
   for (const auto& node : m_lookupNodes) {
@@ -523,7 +540,7 @@ bool Lookup::SetDSCommitteInfo() {
                  0);
 
       struct in_addr ip_addr;
-      inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer peer((uint128_t)ip_addr.s_addr, v.second.get<unsigned int>("port"));
       m_mediator.m_DSCommittee->emplace_back(make_pair(key, peer));
     }
@@ -2739,7 +2756,7 @@ void Lookup::RejoinAsLookup() {
     auto func = [this]() mutable -> void {
       SetSyncType(SyncType::LOOKUP_SYNC);
       AccountStore::GetInstance().InitSoft();
-      m_mediator.m_node->Install(SyncType::LOOKUP_SYNC, true);
+      m_mediator.m_node->Install(SyncType::LOOKUP_SYNC);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);
@@ -3203,7 +3220,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       }
 
       result = Messenger::SetNodeForwardTxnBlock(
-          msg, MessageOffset::BODY, m_mediator.m_currentEpochNum, i,
+          msg, MessageOffset::BODY, m_mediator.m_currentEpochNum,
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(), i,
           m_mediator.m_selfKey, m_txnShardMap[i], mp[i]);
     }
 
@@ -3238,11 +3256,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         LOG_GENERAL(INFO, "leader id " << leader_id);
       }
 
-      if (BROADCAST_GOSSIP_MODE) {
-        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
-      } else {
-        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-      }
+      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
       DeleteTxnShardMap(i);
     } else if (i == numShards) {
@@ -3287,11 +3301,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
       }
 
-      if (BROADCAST_GOSSIP_MODE) {
-        P2PComm::GetInstance().SendRumorToForeignPeers(toSend, msg);
-      } else {
-        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
-      }
+      P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
       LOG_GENERAL(INFO, "[DSMB]"
                             << " Sent DS the txns");

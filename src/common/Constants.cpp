@@ -100,8 +100,8 @@ std::string ReadGPUVariableFromConstantsFile(std::string propertyName) {
 }
 
 const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
-const unsigned int DS_MULTICAST_CLUSTER_SIZE{
-    ReadFromConstantsFile("DS_MULTICAST_CLUSTER_SIZE")};
+const unsigned int MULTICAST_CLUSTER_SIZE{
+    ReadFromConstantsFile("MULTICAST_CLUSTER_SIZE")};
 const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
 const unsigned int NUM_DS_ELECTION{ReadFromConstantsFile("NUM_DS_ELECTION")};
 const unsigned int POW_WINDOW_IN_SECONDS{
@@ -178,12 +178,8 @@ const unsigned int EXPECTED_SHARD_NODE_NUM{
     ReadFromConstantsFile("EXPECTED_SHARD_NODE_NUM")};
 const unsigned int MAX_SHARD_NODE_NUM{
     ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
-const unsigned int NUM_MICROBLOCK_SENDERS{
-    ReadFromConstantsFile("NUM_MICROBLOCK_SENDERS")};
-const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS{
-    ReadFromConstantsFile("NUM_MICROBLOCK_GOSSIP_RECEIVERS")};
-const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD{
-    ReadFromConstantsFile("NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD")};
+const unsigned int NUM_GOSSIP_RECEIVERS{
+    ReadFromConstantsFile("NUM_GOSSIP_RECEIVERS")};
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
     ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
 const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
@@ -225,6 +221,8 @@ const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
     ReadFromConstantsFile("DELAY_FIRSTXNEPOCH_IN_MS")};
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("TXN_MISORDER_TOLERANCE_IN_PERCENT")};
+const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{
+    ReadFromConstantsFile("SYS_TIMESTAMP_VARIANCE_IN_SECONDS")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
@@ -254,6 +252,9 @@ const std::string UPGRADE_HOST_REPO{ReadFromOptionsFile("UPGRADE_HOST_REPO")};
 const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
 const bool SEND_RESPONSE_FOR_LAZY_PUSH{
     ReadFromOptionsFile("SEND_RESPONSE_FOR_LAZY_PUSH") == "true"};
+const bool ENABLE_FALLBACK{ReadFromOptionsFile("ENABLE_FALLBACK") == "true"};
+const bool ENABLE_CHECK_PERFORMANCE_LOG{
+    ReadFromOptionsFile("ENABLE_CHECK_PERFORMANCE_LOG") == "true"};
 
 // gas
 const unsigned int MICROBLOCK_GAS_LIMIT{

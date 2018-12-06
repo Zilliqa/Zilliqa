@@ -24,7 +24,15 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-VCBlockHeader::VCBlockHeader() {}
+VCBlockHeader::VCBlockHeader()
+    : m_VieWChangeDSEpochNo((uint64_t)-1),
+      m_VieWChangeEpochNo((uint64_t)-1),
+      m_ViewChangeState(0),
+      m_CandidateLeaderNetworkInfo(),
+      m_CandidateLeaderPubKey(),
+      m_VCCounter(0),
+      m_FaultyLeaders(),
+      m_prevHash() {}
 
 VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {

@@ -472,7 +472,7 @@ void DirectoryService::RejoinAsDS() {
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::DS_SYNC);
       m_mediator.m_node->CleanVariables();
-      m_mediator.m_node->Install(SyncType::DS_SYNC, true);
+      m_mediator.m_node->Install(SyncType::DS_SYNC);
       this->StartSynchronization();
     };
     DetachedFunction(1, func);
@@ -569,52 +569,6 @@ bool DirectoryService::FinishRejoinAsDS() {
   LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(), DS_BACKUP_MSG);
   RunConsensusOnDSBlock(true);
   return true;
-}
-
-void DirectoryService::DetermineShardsToSendBlockTo(
-    unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
-    unsigned int& my_shards_hi) {
-  // Multicast block to my assigned shard's nodes - send BLOCK message
-  // Message = [block]
-
-  // Multicast assignments:
-  // 1. Divide DS committee into clusters of size 20
-  // 2. Each cluster talks to all shard members in each shard
-  //    DS cluster 0 => Shard 0
-  //    DS cluster 1 => Shard 1
-  //    ...
-  //    DS cluster 0 => Shard (num of DS clusters)
-  //    DS cluster 1 => Shard (num of DS clusters + 1)
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::DetermineShardsToSendBlockTo not "
-                "expected to be called from LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  unsigned int num_DS_clusters =
-      m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
-  if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0) {
-    num_DS_clusters++;
-  }
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "DEBUG num of ds clusters " << num_DS_clusters)
-  unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
-  if ((m_shards.size() % num_DS_clusters) > 0) {
-    shard_groups_count++;
-  }
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "DEBUG num of shard group count " << shard_groups_count)
-
-  my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
-  my_shards_lo = my_DS_cluster_num * shard_groups_count;
-  my_shards_hi = my_shards_lo + shard_groups_count - 1;
-
-  if (my_shards_hi >= m_shards.size()) {
-    my_shards_hi = m_shards.size() - 1;
-  }
 }
 
 void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
@@ -734,80 +688,6 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
   }
 }
 
-void DirectoryService::SendBlockToShardNodes(
-    unsigned int my_DS_cluster_num, unsigned int my_shards_lo,
-    unsigned int my_shards_hi, vector<unsigned char>& block_message) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::SendBlockToShardNodes not expected to "
-                "be called from LookUp node.");
-    return;
-  }
-  // Too few target shards - avoid asking all DS clusters to send
-  LOG_MARKER();
-
-  if ((my_DS_cluster_num + 1) <= m_shards.size()) {
-    auto p = m_shards.begin();
-    advance(p, my_shards_lo);
-
-    for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++) {
-      if (BROADCAST_TREEBASED_CLUSTER_MODE) {
-        // Choose N other Shard nodes to be recipient of block
-        std::vector<Peer> shardBlockReceivers;
-
-        SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-        sha256.Update(block_message);
-        vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-        LOG_GENERAL(
-            INFO,
-            "Sending message with hash: ["
-                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-                << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
-                << NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD << " shard peers");
-
-        unsigned int numOfBlockReceivers = std::min(
-            NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD, (uint32_t)p->size());
-
-        for (unsigned int i = 0; i < numOfBlockReceivers; i++) {
-          const auto& kv = p->at(i);
-          shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-
-          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    " PubKey: "
-                        << DataConversion::SerializableToHexStr(
-                               std::get<SHARD_NODE_PUBKEY>(kv))
-                        << " IP: "
-                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                        << " Port: "
-                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
-        }
-
-        P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers,
-                                                    block_message);
-      } else {
-        vector<Peer> shard_peers;
-
-        for (const auto& kv : *p) {
-          shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    " PubKey: "
-                        << DataConversion::SerializableToHexStr(
-                               std::get<SHARD_NODE_PUBKEY>(kv))
-                        << " IP: "
-                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                        << " Port: "
-                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
-        }
-
-        P2PComm::GetInstance().SendBroadcastMessage(shard_peers, block_message);
-      }
-
-      p++;
-    }
-  }
-}
-
 bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
@@ -823,25 +703,15 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
   std::vector<InstructionHandler> ins_handlers;
 
-  if (!LOOKUP_NODE_MODE) {
-    ins_handlers.insert(ins_handlers.end(),
-                        {&DirectoryService::ProcessSetPrimary,
-                         &DirectoryService::ProcessPoWSubmission,
-                         &DirectoryService::ProcessDSBlockConsensus,
-                         &DirectoryService::ProcessMicroblockSubmission,
-                         &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessViewChangeConsensus,
-                         &DirectoryService::ProcessGetDSTxBlockMessage,
-                         &DirectoryService::ProcessPoWPacketSubmission});
-  } else {
-    ins_handlers.insert(ins_handlers.end(),
-                        {&DirectoryService::ProcessSetPrimary,
-                         &DirectoryService::ProcessPoWSubmission,
-                         &DirectoryService::ProcessDSBlockConsensus,
-                         &DirectoryService::ProcessMicroblockSubmission,
-                         &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessPoWPacketSubmission});
-  }
+  ins_handlers.insert(ins_handlers.end(),
+                      {&DirectoryService::ProcessSetPrimary,
+                       &DirectoryService::ProcessPoWSubmission,
+                       &DirectoryService::ProcessDSBlockConsensus,
+                       &DirectoryService::ProcessMicroblockSubmission,
+                       &DirectoryService::ProcessFinalBlockConsensus,
+                       &DirectoryService::ProcessViewChangeConsensus,
+                       &DirectoryService::ProcessGetDSTxBlockMessage,
+                       &DirectoryService::ProcessPoWPacketSubmission});
 
   const unsigned char ins_byte = message.at(offset);
 

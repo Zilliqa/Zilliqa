@@ -80,10 +80,10 @@ int main(int argc, const char* argv[]) {
                                              << mappedPort);
     }
 
-    inet_aton(nt->externalIP().c_str(), &ip_addr);
+    inet_pton(AF_INET, nt->externalIP().c_str(), &ip_addr);
     my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
   } else {
-    inet_aton(argv[3], &ip_addr);
+    inet_pton(AF_INET, argv[3], &ip_addr);
     my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
   }
 

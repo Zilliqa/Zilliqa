@@ -54,6 +54,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/TimestampVerifier.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -155,6 +156,8 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
           if (m_microblock->GetBlockHash() == info.m_microBlockHash) {
             if (m_microblock->GetHeader().GetTxRootHash() != TxnHash()) {
               if (info.m_txnRootHash != TxnHash()) {
+                // Update transaction processed
+                UpdateProcessedTransactions();
                 toSendTxnToLookup = true;
               } else {
                 LOG_GENERAL(WARNING,
@@ -455,7 +458,7 @@ bool Node::FindTxnInProcessedTxnsList(
 
   lock_guard<mutex> g(m_mutexProcessedTransactions);
 
-  auto& processedTransactions = m_processedTransactions[blockNum];
+  const auto& processedTransactions = m_processedTransactions[blockNum];
   // auto& committedTransactions = m_committedTransactions[blockNum];
   const auto& txnIt = processedTransactions.find(tx_hash);
 
@@ -644,6 +647,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  // Check timestamp
+  if (!VerifyTimestamp(
+          txBlock.GetTimestamp(),
+          CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT +
+              (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000)) {
+    return false;
+  }
+
   // Check block number
   if (!m_mediator.CheckWhetherBlockIsLatest(
           dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
@@ -785,11 +796,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.GetIsVacuousEpoch() &&
-        m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
-            m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetBlockNum()) {
+    if (isVacuousEpoch && m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
+                              m_mediator.m_dsBlockChain.GetLastBlock()
+                                  .GetHeader()
+                                  .GetBlockNum()) {
       auto func = [this]() mutable -> void {
         UpgradeManager::GetInstance().ReplaceNode(m_mediator);
       };
