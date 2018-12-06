@@ -46,7 +46,6 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
   key.first.Serialize(tmp1, 0);
   key.second.Serialize(tmp2, 0);
 
-  LOG_PAYLOAD(INFO, "Private Key", tmp1, PRIV_KEY_SIZE * 2);
   LOG_PAYLOAD(INFO, "Public Key", tmp2, PUB_KEY_SIZE * 2);
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
