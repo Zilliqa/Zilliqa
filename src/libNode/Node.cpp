@@ -479,7 +479,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
-            0, m_mediator.m_ds->m_shards.size() - 1, microBlocks)) {
+            0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
       for (const auto& microBlock : microBlocks) {
         LOG_GENERAL(INFO,
                     "Retrieve microblock with epochNum: "
