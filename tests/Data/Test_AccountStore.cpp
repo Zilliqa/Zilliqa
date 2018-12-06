@@ -113,139 +113,125 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
       "Wrong root: Call to MoveUpdatesToDisk() has changed the root hash!");
 }
 
-//   BOOST_AUTO_TEST_CASE(varyingOrderOfAddAccountCalls)
-//   {
-//       INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(varyingOrderOfAddAccountCalls) {
+  INIT_STDOUT_LOGGER();
 
-//       LOG_MARKER();
+  LOG_MARKER();
 
-//       PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().DoesAccountExist(address1)
-//                               == false,
-//                           "DoesAccountExist returning true wrongly!");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().IsAccountExist(address1) == false,
+      "IsAccountExist returning true wrongly!");
 
-//       /*
-//       ============================================================
-//       */
+  /*
+  ============================================================
+  */
 
-//       Account account1(1, 11);
-//       AccountStore::GetInstance().AddAccount(address1, account1);
+  Account account1(1, 11);
+  AccountStore::GetInstance().AddAccount(address1, account1);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
-//       auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().IsAccountExist(address1) == true,
+      "IsAccountExist returning true wrongly!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().DoesAccountExist(address1)
-//                               == true,
-//                           "DoesAccountExist returning false wrongly!");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 1,
+                      "GetBalance returning wrong balance!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) ==
-//       1,
-//                           "GetBalance returning wrong balance!");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 11,
+                      "GetBalance returning wrong nonce!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) ==
-//       11,
-//                           "GetBalance returning wrong nonce!");
+  /*
+  ============================================================
+  */
 
-//       /*
-//       ============================================================
-//       */
+  Account account2(2, 22);
+  AccountStore::GetInstance().AddAccount(address1, account2);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
 
-//       Account account2(2, 22);
-//       AccountStore::GetInstance().AddAccount(address1, account2);
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 1,
+                      "Wrong balance: Call to AddAccount(addr, account) on "
+                      "already existing address-account worked!");
 
-//       auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 11,
+                      "Wrong nonce: Call to AddAccount(addr, account) on"
+                      "already existing address-account worked!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) ==
-//       1,
-//                           "Wrong balance: Call to AddAccount(addr, account)
-//                           on " "already existing address-account worked!");
+  BOOST_CHECK_MESSAGE(root1 == root2,
+                      "Wrong root: Call to AddAccount(addr, account) on "
+                      "already existing address-account changed root!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) ==
-//       11,
-//                           "Wrong nonce: Call to AddAccount(addr, account) on
-//                           " "already existing address-account worked!");
+  /*
+  ============================================================
+  */
 
-//       BOOST_CHECK_MESSAGE(root1 == root2,
-//                           "Wrong root: Call to AddAccount(addr, account) on "
-//                           "already existing address-account changed root!");
+  AccountStore::GetInstance().AddAccount(pubKey1, account2);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root3 = AccountStore::GetInstance().GetStateRootHash();
 
-//       /*
-//       ============================================================
-//       */
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 1,
+                      "Wrong balance: Call to AddAccount(pubKey, account) on "
+                      "already existing address-account worked!");
 
-//       AccountStore::GetInstance().AddAccount(pubKey1, account2);
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 11,
+                      "Wrong nonce: Call to AddAccount(pubKey, account) on "
+                      "already existing address-account worked!");
 
-//       auto root3 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(root1 == root3,
+                      "Wrong root: Call to AddAccount(pubKey, account) on "
+                      "already existing address-account changed root!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) ==
-//       1,
-//                           "Wrong balance: Call to AddAccount(pubKey, account)
-//                           on " "already existing address-account worked!");
+  /*
+  ============================================================
+  */
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) ==
-//       11,
-//                           "Wrong nonce: Call to AddAccount(pubKey, account)
-//                           on " "already existing address-account worked!");
+  PubKey pubKey2 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address2 = Account::GetAddressFromPublicKey(pubKey2);
 
-//       BOOST_CHECK_MESSAGE(root1 == root3,
-//                           "Wrong root: Call to AddAccount(pubKey, account) on
-//                           " "already existing address-account changed
-//                           root!");
+  AccountStore::GetInstance().AddAccount(pubKey2, account2);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root4 = AccountStore::GetInstance().GetStateRootHash();
 
-//       /*
-//       ============================================================
-//       */
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address2) == 2,
+                      "Second unqiue call to AddAccount(pubKey, account) "
+                      "followed by GetBalance not working!");
 
-//       PubKey pubKey2 = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address2 = Account::GetAddressFromPublicKey(pubKey2);
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address2) == 22,
+                      "Second unqiue call to AddAccount(pubKey, account) "
+                      "followed by GetNonce not working!");
 
-//       AccountStore::GetInstance().AddAccount(pubKey2, account2);
+  BOOST_CHECK_MESSAGE(
+      root1 != root4,
+      "Wrong root: Call to AddAccount(pubKey, account) didn't change root!");
 
-//       auto root4 = AccountStore::GetInstance().GetStateRootHash();
+  /*
+  ============================================================
+  */
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address2) ==
-//       2,
-//                           "Second unqiue call to AddAccount(pubKey, account)
-//                           " "followed by GetBalance not working!");
+  PubKey pubKey3 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address3 = Account::GetAddressFromPublicKey(pubKey3);
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address2) ==
-//       22,
-//                           "Second unqiue call to AddAccount(pubKey, account)
-//                           " "followed by GetNonce not working!");
+  Account account3(3, 33);
+  AccountStore::GetInstance().AddAccount(address3, account3);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root5 = AccountStore::GetInstance().GetStateRootHash();
 
-//       BOOST_CHECK_MESSAGE(
-//           root1 != root4,
-//           "Wrong root: Call to AddAccount(pubKey, account) didn't change
-//           root!");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address3) == 3,
+                      "Third unqiue call to AddAccount(addr, account) "
+                      "followed by GetBalance not working!");
 
-//       /*
-//       ============================================================
-//       */
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address3) == 33,
+                      "Third unqiue call to AddAccount(addr, account) "
+                      "followed by GetNonce not working!");
 
-//       PubKey pubKey3 = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address3 = Account::GetAddressFromPublicKey(pubKey3);
-
-//       Account account3(3, 33);
-//       AccountStore::GetInstance().AddAccount(address3, account3);
-
-//       auto root5 = AccountStore::GetInstance().GetStateRootHash();
-
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address3) ==
-//       3,
-//                           "Third unqiue call to AddAccount(addr, account) "
-//                           "followed by GetBalance not working!");
-
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address3) ==
-//       33,
-//                           "Third unqiue call to AddAccount(addr, account) "
-//                           "followed by GetNonce not working!");
-
-//       BOOST_CHECK_MESSAGE(
-//           root1 != root4 && root4 != root5,
-//           "Wrong root: Call to AddAccount(addr, account) didn't change
-//           root!");
-//   }
+  BOOST_CHECK_MESSAGE(
+      root1 != root4 && root4 != root5,
+      "Wrong root: Call to AddAccount(addr, account) didn't change root!");
+}
 
 //   BOOST_AUTO_TEST_CASE(increaseBalance)
 //   {
