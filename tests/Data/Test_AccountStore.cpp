@@ -233,36 +233,31 @@ BOOST_AUTO_TEST_CASE(varyingOrderOfAddAccountCalls) {
       "Wrong root: Call to AddAccount(addr, account) didn't change root!");
 }
 
-//   BOOST_AUTO_TEST_CASE(increaseBalance)
-//   {
-//       INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(increaseBalance) {
+  INIT_STDOUT_LOGGER();
 
-//       LOG_MARKER();
+  LOG_MARKER();
 
-//       PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//       Account account1(21, 211);
-//       AccountStore::GetInstance().AddAccount(address1, account1);
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccount(address1, account1);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
-//       auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  AccountStore::GetInstance().IncreaseBalance(address1, 9);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
 
-//       AccountStore::GetInstance().IncreaseBalance(address1, 9);
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 30,
+                      "IncreaseBalance didn't increase balance rightly!");
 
-//       auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 211,
+                      "IncreaseBalance changed nonce!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) ==
-//       30,
-//                           "IncreaseBalance didn't increase balance rightly!
-//                           ");
-
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) ==
-//       211,
-//                           "IncreaseBalance changed nonce!");
-
-//       BOOST_CHECK_MESSAGE(root1 != root2, "IncreaseBalance didn't change
-//       root!");
-//   }
+  BOOST_CHECK_MESSAGE(root1 != root2, "IncreaseBalance didn't change root!");
+}
 
 //   BOOST_AUTO_TEST_CASE(decreaseBalance)
 //   {
