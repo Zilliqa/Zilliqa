@@ -682,7 +682,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Non-vacuous epoch, going to sleep for "
                   << TX_DISTRIBUTE_TIME_IN_MS << " milliseconds");
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+    std::this_thread::sleep_for(chrono::milliseconds(
+        TX_DISTRIBUTE_TIME_IN_MS +
+                (m_mediator.m_dsBlockChain.GetLastBlock()
+                     .GetHeader()
+                     .GetEpochNum() == m_mediator.m_currentEpochNum)
+            ? LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
+            : 0));
   }
 
   if (!m_mediator.GetIsVacuousEpoch()) {
