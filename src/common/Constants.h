@@ -86,6 +86,7 @@ enum SyncType : unsigned int {
   NORMAL_SYNC,
   DS_SYNC,
   LOOKUP_SYNC,
+  RECOVERY_ALL_SYNC,
   NEW_LOOKUP_SYNC
 };
 
@@ -120,7 +121,7 @@ extern const std::string TXN_PATH;
 extern const std::string DB_HOST;
 
 extern const unsigned int MSG_VERSION;
-extern const unsigned int DS_MULTICAST_CLUSTER_SIZE;
+extern const unsigned int MULTICAST_CLUSTER_SIZE;
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
@@ -165,9 +166,7 @@ extern const unsigned int MAX_ROUNDS_IN_CSTATE;
 extern const unsigned int MAX_TOTAL_ROUNDS;
 extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
 extern const unsigned int ROUND_TIME_IN_MS;
-extern const unsigned int NUM_MICROBLOCK_SENDERS;
-extern const unsigned int NUM_MICROBLOCK_GOSSIP_RECEIVERS;
-extern const unsigned int NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD;
+extern const unsigned int NUM_GOSSIP_RECEIVERS;
 extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
@@ -190,6 +189,7 @@ extern const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
 extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
 extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
 extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
+extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;
@@ -228,6 +228,8 @@ extern const bool GET_INITIAL_DS_FROM_REPO;
 extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
 extern const bool SEND_RESPONSE_FOR_LAZY_PUSH;
+extern const bool ENABLE_FALLBACK;
+extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;

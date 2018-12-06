@@ -150,20 +150,26 @@ RumorHolder::RumorHolder(const RumorHolder& other)
     : m_id(other.m_id),
       m_networkConfig(other.m_networkConfig),
       m_peers(other.m_peers),
+      m_peersInCurrentRound(other.m_peersInCurrentRound),
       m_rumors(other.m_rumors),
       m_mutex(),
       m_nextMemberCb(other.m_nextMemberCb),
-      m_statistics(other.m_statistics) {}
+      m_nonPriorityPeers(other.m_nonPriorityPeers),
+      m_statistics(other.m_statistics),
+      m_maxNeighborsPerRound(other.m_maxNeighborsPerRound) {}
 
 // MOVE CONSTRUCTOR
 RumorHolder::RumorHolder(RumorHolder&& other) noexcept
     : m_id(other.m_id),
       m_networkConfig(other.m_networkConfig),
       m_peers(std::move(other.m_peers)),
+      m_peersInCurrentRound(std::move(other.m_peersInCurrentRound)),
       m_rumors(std::move(other.m_rumors)),
       m_mutex(),
       m_nextMemberCb(std::move(other.m_nextMemberCb)),
-      m_statistics(std::move(other.m_statistics)) {}
+      m_nonPriorityPeers(std::move(other.m_nonPriorityPeers)),
+      m_statistics(std::move(other.m_statistics)),
+      m_maxNeighborsPerRound(other.m_maxNeighborsPerRound) {}
 
 // PUBLIC METHODS
 bool RumorHolder::addRumor(int rumorId) {

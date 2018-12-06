@@ -27,8 +27,8 @@
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libDirectoryService/DirectoryService.h"
-#include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
+#include "libNetwork/ShardStruct.h"
 
 class Messenger {
  public:
@@ -326,13 +326,14 @@ class Messenger {
 
   static bool SetNodeForwardTxnBlock(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t epochNumber, const uint32_t shardId,
-      const std::pair<PrivKey, PubKey>& lookupKey,
+      const uint64_t& epochNumber, const uint64_t& dsBlockNum,
+      const uint32_t& shardId, const std::pair<PrivKey, PubKey>& lookupKey,
       const std::vector<Transaction>& txnsCurrent,
       const std::vector<Transaction>& txnsGenerated);
   static bool GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                      const unsigned int offset,
-                                     uint64_t& epochNumber, uint32_t& shardId,
+                                     uint64_t& epochNumber,
+                                     uint64_t& dsBlockNum, uint32_t& shardId,
                                      PubKey& lookupPubKey,
                                      std::vector<Transaction>& txns);
 

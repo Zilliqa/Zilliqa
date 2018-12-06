@@ -57,11 +57,11 @@ struct Peer : public Serializable {
   bool operator<(const Peer& r) const;
 
   /// Utility function for printing peer IP info.
-  const char* GetPrintableIPAddress() const;
+  const std::string GetPrintableIPAddress() const;
 
   /// Utility std::string conversion function for peer IP info.
   explicit operator std::string() const {
-    return "<" + std::string(GetPrintableIPAddress()) + ":" +
+    return "<" + GetPrintableIPAddress() + ":" +
            std::to_string(m_listenPortHost) + ">";
   }
 
