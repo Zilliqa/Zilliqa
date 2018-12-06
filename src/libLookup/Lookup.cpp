@@ -192,7 +192,7 @@ bool Lookup::GenTxnToSend(size_t num_txn,
   return true;
 }
 
-const VectorOfLookupNode& Lookup::GetLookupNodes() const {
+VectorOfLookupNode Lookup::GetLookupNodes() const {
   LOG_MARKER();
   lock_guard<mutex> lock(m_mutexLookupNodes);
   return m_lookupNodes;
