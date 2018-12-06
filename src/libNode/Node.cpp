@@ -1078,6 +1078,10 @@ bool Node::ProcessTxnPacketFromLookup(
   //
 
   if (m_mediator.m_lookup->IsLookupNode(from)) {
+    if (epochNumber < m_mediator.m_currentEpochNum) {
+      LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
+      return false;
+    }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
     m_txnPacketBuffer.emplace_back(message);
@@ -1124,11 +1128,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
-  // If network is gossip mode enabled, lookup sends the gossip forward type
-  // message to shard nodes. And this node wont be responsible for sending
-  // gossip (txnpkt) from this function but will be done at gossip layer.
-  // However, Broadcast to other shard node if not Gossip mode enabled ( for
-  // backward compatibilty )
   if (BROADCAST_GOSSIP_MODE) {
     if (P2PComm::GetInstance().SpreadRumor(message)) {
       LOG_STATE("[TXNPKTPROC-INITIATE]["
