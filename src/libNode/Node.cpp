@@ -1086,6 +1086,9 @@ bool Node::ProcessTxnPacketFromLookup(
     LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
     m_txnPacketBuffer.emplace_back(message);
   } else {
+    LOG_GENERAL(INFO,
+                "Packet received from a non-lookup node, "
+                "should be from gossip neightor and process it");
     return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
                                           transactions);
   }
