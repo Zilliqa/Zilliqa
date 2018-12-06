@@ -42,7 +42,6 @@
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -3168,7 +3167,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       {
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
         auto it = m_mediator.m_ds->m_shards.at(i).begin();
-        //[FIX-ME]: Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
+        // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
         for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP &&
                                  it != m_mediator.m_ds->m_shards.at(i).end();
              j++, it++) {
@@ -3185,7 +3184,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
             lastBlockHash % m_mediator.m_ds->m_shards.at(i).size();
         toSend.push_back(get<SHARD_NODE_PEER>(
             m_mediator.m_ds->m_shards.at(i).at(leader_id)));
-        LOG_GENERAL(INFO, "leader id " << leader_id);
+        LOG_GENERAL(INFO, "Shard leader id " << leader_id);
       }
 
       if (BROADCAST_GOSSIP_MODE) {
@@ -3206,34 +3205,17 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
              j++, it++) {
           toSend.push_back(it->second);
         }
+
         if (m_mediator.m_DSCommittee->empty()) {
           continue;
         }
-        BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-        const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
-        if (blocktype == BlockType::DS) {
-          uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-              m_mediator.m_dsBlockChain.GetLastBlock()
-                  .GetHeader()
-                  .GetHashForRandom()
-                  .asBytes());
-          uint32_t leader_id = 0;
-          if (!GUARD_MODE) {
-            leader_id = lastBlockHash % m_mediator.m_DSCommittee->size();
-          } else {
-            leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
-          }
-          toSend.push_back(m_mediator.m_DSCommittee->at(leader_id).second);
-          LOG_GENERAL(INFO, "ds leader id " << leader_id);
-        } else if (blocktype == BlockType::VC) {
-          VCBlockSharedPtr VCBlockptr;
-          if (!BlockStorage::GetBlockStorage().GetVCBlock(
-                  get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
-            LOG_GENERAL(WARNING, "Failed to get VC block");
-          } else {
-            toSend.push_back(
-                VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo());
-          }
+
+        Peer dsLeaderPeer;
+        if (Node::GetDSLeaderPeer(
+                m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                m_mediator.m_dsBlockChain.GetLastBlock(),
+                *m_mediator.m_DSCommittee, dsLeaderPeer)) {
+          toSend.push_back(dsLeaderPeer);
         }
       }
 
