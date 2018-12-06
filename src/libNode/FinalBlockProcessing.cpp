@@ -830,7 +830,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     // Now only forwarded txn are left, so only call in lookup
     CommitForwardedTransactionBuffer();
     m_mediator.m_lookup->CommitMicroBlockStorage();
-    if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch) {
+    if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch &&
+        !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread();
     }
   }

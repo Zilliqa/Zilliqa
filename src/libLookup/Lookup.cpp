@@ -127,6 +127,44 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
   return txn;
 }
 
+bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
+  vector<Transaction> txns;
+  unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
+
+  for (auto& addrStr : GENESIS_WALLETS) {
+    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
+
+    txns.clear();
+
+    uint64_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+
+    if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
+                                     num_txn, txns)) {
+      LOG_GENERAL(WARNING, "Failed to get txns from file");
+      continue;
+    }
+
+    copy(txns.begin(), txns.end(), back_inserter(txn));
+
+    LOG_GENERAL(INFO, "[Batching] Last Nonce sent "
+                          << nonce + num_txn << " of Addr " << addr.hex());
+    txns.clear();
+
+    if (!GetTxnFromFile::GetFromFile(addr,
+                                     static_cast<uint32_t>(nonce) + num_txn + 1,
+                                     NUM_TXN_TO_DS, txns)) {
+      LOG_GENERAL(WARNING, "Failed to get txns for DS");
+      continue;
+    }
+
+    copy(txns.begin(), txns.end(), back_inserter(txn));
+  }
+  if (txn.empty()) {
+    return false;
+  }
+  return true;
+}
+
 bool Lookup::GenTxnToSend(size_t num_txn,
                           map<uint32_t, vector<Transaction>>& mp,
                           uint32_t numShards) {
@@ -144,12 +182,13 @@ bool Lookup::GenTxnToSend(size_t num_txn,
 
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
+  if (numShards == 0) {
+    return false;
+  }
+
   for (auto& addrStr : GENESIS_WALLETS) {
     Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
 
-    if (numShards == 0) {
-      return false;
-    }
     auto txnShard = Transaction::GetShardIndex(addr, numShards);
     txns.clear();
 
@@ -161,19 +200,6 @@ bool Lookup::GenTxnToSend(size_t num_txn,
       return false;
     }
 
-    /*Address receiverAddr = GenOneReceiver();
-    unsigned int curr_offset = 0;
-    txns.reserve(n);
-    for (auto i = 0u; i != n; i++)
-    {
-
-        Transaction txn(0, nonce + i + 1, receiverAddr,
-                        make_pair(privKey, pubKey), 10 * i + 2, 1, 1, {},
-                        {});
-
-        curr_offset = txn.Serialize(txns, curr_offset);
-    }*/
-    //[Change back here]
     copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
 
     LOG_GENERAL(INFO, "[Batching] Last Nonce sent "
