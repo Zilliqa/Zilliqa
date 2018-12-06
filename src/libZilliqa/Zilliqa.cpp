@@ -65,12 +65,17 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
 /*static*/ std::string Zilliqa::FormatMessageName(unsigned char msgType,
                                                   unsigned char instruction) {
   const std::string InvalidMessageType = "INVALID_MESSAGE";
-  if (msgType >= ARRAY_SIZE(MessageTypeStrings)) return InvalidMessageType;
-
-  if (NULL == MessageTypeInstructionStrings[msgType]) return InvalidMessageType;
-
-  if (instruction >= MessageTypeInstructionSize[msgType])
+  if (msgType >= ARRAY_SIZE(MessageTypeStrings)) {
     return InvalidMessageType;
+  }
+
+  if (NULL == MessageTypeInstructionStrings[msgType]) {
+    return InvalidMessageType;
+  }
+
+  if (instruction >= MessageTypeInstructionSize[msgType]) {
+    return InvalidMessageType;
+  }
 
   return MessageTypeStrings[msgType] + "_" +
          MessageTypeInstructionStrings[msgType][instruction];
@@ -92,21 +97,28 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message) {
         return;
       }
 
-      const auto ins_byte = message->first.at(MessageOffset::INST);
-      const auto msgName = FormatMessageName(msg_type, ins_byte);
-      LOG_GENERAL(
-          INFO, MessageSizeKeyword << msgName << " " << message->first.size());
+      std::chrono::time_point<std::chrono::high_resolution_clock> tpStart;
+      std::string msgName;
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        const auto ins_byte = message->first.at(MessageOffset::INST);
+        msgName = FormatMessageName(msg_type, ins_byte);
+        LOG_GENERAL(INFO, MessageSizeKeyword << msgName << " "
+                                             << message->first.size());
 
-      auto tpStart = std::chrono::high_resolution_clock::now();
+        tpStart = std::chrono::high_resolution_clock::now();
+      }
 
       bool result = msg_handlers[msg_type]->Execute(
           message->first, MessageOffset::INST, message->second);
 
-      auto tpNow = std::chrono::high_resolution_clock::now();
-      auto timeInMicro = static_cast<int64_t>(
-          (std::chrono::duration<double, std::micro>(tpNow - tpStart)).count());
-      LOG_GENERAL(INFO,
-                  MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        auto tpNow = std::chrono::high_resolution_clock::now();
+        auto timeInMicro = static_cast<int64_t>(
+            (std::chrono::duration<double, std::micro>(tpNow - tpStart))
+                .count());
+        LOG_GENERAL(
+            INFO, MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
+      }
 
       if (!result) {
         // To-do: Error recovery
