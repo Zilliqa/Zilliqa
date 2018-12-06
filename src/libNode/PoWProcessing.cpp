@@ -287,33 +287,13 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
       break;
     }
   }
-  //[FIX-ME] Send to PoW PACKET_SENDERS + 1
+  // Send to PoW PACKET_SENDERS + DS Leader
   if (!m_mediator.m_DSCommittee->empty()) {
-    BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-    const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
-    if (blocktype == BlockType::DS) {
-      uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetHashForRandom()
-              .asBytes());
-      uint32_t leader_id = 0;
-      if (!GUARD_MODE) {
-        leader_id = lastBlockHash % m_mediator.m_DSCommittee->size();
-      } else {
-        leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
-      }
-      peerList.push_back(m_mediator.m_DSCommittee->at(leader_id).second);
-      LOG_GENERAL(INFO, "ds leader id " << leader_id);
-    } else if (blocktype == BlockType::VC) {
-      VCBlockSharedPtr VCBlockptr;
-      if (!BlockStorage::GetBlockStorage().GetVCBlock(
-              get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
-        LOG_GENERAL(WARNING, "Failed to get VC block");
-      } else {
-        peerList.push_back(
-            VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo());
-      }
+    Peer dsLeaderPeer;
+    if (Node::GetDSLeaderPeer(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                              m_mediator.m_dsBlockChain.GetLastBlock(),
+                              *m_mediator.m_DSCommittee, dsLeaderPeer)) {
+      peerList.push_back(dsLeaderPeer);
     }
   }
   P2PComm::GetInstance().SendMessage(peerList, powmessage);
