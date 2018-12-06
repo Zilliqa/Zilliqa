@@ -2057,6 +2057,11 @@ bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
       accountStore.AddAccount(address, acc);
       oriAccount = accountStore.GetAccount(address);
       fullCopy = true;
+
+      if (oriAccount == nullptr) {
+        LOG_GENERAL(WARNING, "Failed to create account for " << address);
+        return false;
+      }
     }
 
     account = *oriAccount;
@@ -2108,6 +2113,12 @@ bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
     }
 
     oriAccount = accountStoreTemp.GetAccount(address);
+
+    if (oriAccount == nullptr) {
+      LOG_GENERAL(WARNING, "Failed to create account for " << address);
+      return false;
+    }
+
     account = *oriAccount;
 
     if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
