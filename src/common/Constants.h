@@ -228,6 +228,7 @@ extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
 extern const bool SEND_RESPONSE_FOR_LAZY_PUSH;
 extern const bool ENABLE_FALLBACK;
+extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
 
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
