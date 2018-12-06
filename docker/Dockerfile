@@ -61,6 +61,13 @@ RUN curl -sL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/
     && cmake --build mongo-cxx-build --target install \
     && rm -rf mongo-cxx-*
 
+# libCrypto requires openssl-1.1.x.
+RUN curl -sL https://www.openssl.org/source/openssl-1.1.1.tar.gz | tar -zx -C . \
+    && cd openssl-1.1.1 \
+    && ./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' \
+    && make \
+    && make install
+
 # Intentionally left blank unless specific commit is provided in commandline
 ARG COMMIT=
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
