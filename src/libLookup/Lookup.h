@@ -145,7 +145,7 @@ class Lookup : public Executable, public Broadcastable {
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
-  const VectorOfLookupNode& GetLookupNodes() const;
+  VectorOfLookupNode GetLookupNodes() const;
 
   bool IsLookupNode(const PubKey& pubKey) const;
 
