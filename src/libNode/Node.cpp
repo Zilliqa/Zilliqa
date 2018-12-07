@@ -406,7 +406,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (!LOOKUP_NODE_MODE) {
+  if (bDS) {
     for (uint64_t blockNum =
              m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
@@ -473,11 +473,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (!LOOKUP_NODE_MODE) {
+  if (bDS) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+                1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
       for (const auto& microBlock : microBlocks) {
         LOG_GENERAL(INFO,
@@ -1024,13 +1025,14 @@ bool Node::ProcessTxnPacketFromLookup(
     return false;
   }
 
-  uint64_t epochNumber = 0;
+  uint64_t epochNumber = 0, dsBlockNum = 0;
   uint32_t shardId = 0;
   PubKey lookupPubKey;
   vector<Transaction> transactions;
 
-  if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber, shardId,
-                                         lookupPubKey, transactions)) {
+  if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
+                                         dsBlockNum, shardId, lookupPubKey,
+                                         transactions)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeForwardTxnBlock failed.");
     return false;
@@ -1069,26 +1071,35 @@ bool Node::ProcessTxnPacketFromLookup(
            0) ||
           m_justDidFallback))) {
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace(epochNumber, message);
+      m_txnPacketBuffer.emplace_back(message);
       return true;
     }
   }
 
-  if (epochNumber < m_mediator.m_currentEpochNum) {
-    LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
-    return false;
-  } else if (epochNumber == m_mediator.m_currentEpochNum) {
-    return ProcessTxnPacketFromLookupCore(message, shardId, transactions);
-  } else {
+  //
+
+  if (m_mediator.m_lookup->IsLookupNode(from)) {
+    if (epochNumber < m_mediator.m_currentEpochNum) {
+      LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
+      return false;
+    }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    m_txnPacketBuffer.emplace(epochNumber, message);
+    LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
+    m_txnPacketBuffer.emplace_back(message);
+  } else {
+    LOG_GENERAL(INFO,
+                "Packet received from a non-lookup node, "
+                "should be from gossip neightor and process it");
+    return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
+                                          transactions);
   }
 
   return true;
 }
 
 bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
-                                          const uint32_t shardId,
+                                          const uint64_t& dsBlockNum,
+                                          const uint32_t& shardId,
                                           const vector<Transaction>& txns) {
   LOG_MARKER();
 
@@ -1104,18 +1115,44 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
+  if (dsBlockNum !=
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+    LOG_GENERAL(WARNING, "Wrong DS block num ("
+                             << dsBlockNum << "), m_myshardId ("
+                             << m_mediator.m_dsBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                             << ")");
+    return false;
+  }
+
   if (shardId != m_myshardId) {
     LOG_GENERAL(WARNING, "Wrong Shard (" << shardId << "), m_myshardId ("
                                          << m_myshardId << ")");
     return false;
   }
 
-  // If network is gossip mode enabled, lookup sends the gossip forward type
-  // message to shard nodes. And this node wont be responsible for sending
-  // gossip (txnpkt) from this function but will be done at gossip layer.
-  // However, Broadcast to other shard node if not Gossip mode enabled ( for
-  // backward compatibilty )
-  if (!BROADCAST_GOSSIP_MODE) {
+  if (BROADCAST_GOSSIP_MODE) {
+    if (P2PComm::GetInstance().SpreadRumor(message)) {
+      LOG_STATE("[TXNPKTPROC-INITIATE]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    } else {
+      LOG_STATE("[TXNPKTPROC]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    }
+  } else {
     vector<Peer> toSend;
     for (auto& it : *m_myShardMembers) {
       toSend.push_back(it.second);
@@ -1256,23 +1293,21 @@ void Node::CommitTxnPacketBuffer() {
   }
 
   lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-  auto it = m_txnPacketBuffer.find(m_mediator.m_currentEpochNum);
-
-  if (it != m_txnPacketBuffer.end()) {
-    uint64_t epochNumber = 0;
+  for (const auto& message : m_txnPacketBuffer) {
+    uint64_t epochNumber = 0, dsBlockNum = 0;
     uint32_t shardId = 0;
     PubKey lookupPubKey;
     vector<Transaction> transactions;
 
-    if (!Messenger::GetNodeForwardTxnBlock(it->second, MessageOffset::BODY,
-                                           epochNumber, shardId, lookupPubKey,
-                                           transactions)) {
+    if (!Messenger::GetNodeForwardTxnBlock(message, MessageOffset::BODY,
+                                           epochNumber, dsBlockNum, shardId,
+                                           lookupPubKey, transactions)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::GetNodeForwardTxnBlock failed.");
       return;
     }
 
-    ProcessTxnPacketFromLookupCore(it->second, shardId, transactions);
+    ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId, transactions);
   }
 }
 

@@ -718,6 +718,13 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessGetDSTxBlockMessage not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
+
   if (m_state != VIEWCHANGE_CONSENSUS_PREP) {
     LOG_EPOCH(
         WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
