@@ -32,6 +32,14 @@ bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,
                               unsigned int tolerance_in_percent) {
   LOG_MARKER();
 
+  if (expectedTxns.empty() && receivedTxns.empty()) {
+    return true;
+  }
+
+  if (expectedTxns.empty()) {
+    return false;
+  }
+
   std::unordered_map<TxnHash, unsigned int> m_tranHashMap;
 
   for (unsigned int i = 0; i < receivedTxns.size(); i++) {
