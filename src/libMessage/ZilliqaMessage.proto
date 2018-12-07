@@ -115,17 +115,6 @@ message ProtoShardingStructure
     repeated Shard shards           = 1;
 }
 
-message ProtoTxSharingAssignments
-{
-    message AssignedNodes
-    {
-        repeated ByteArray receivers  = 1;
-        repeated ByteArray senders    = 2;
-    }
-    repeated ByteArray dsnodes        = 1;
-    repeated AssignedNodes shardnodes = 2;
-}
-
 message ProtoDSWinnerPoW
 {
      required ByteArray pubkey         = 1;
@@ -188,8 +177,7 @@ message ProtoDSBlock
     message DSBlockHashSet
     {
         required bytes shardinghash     = 1;
-        required bytes txsharinghash    = 2;
-        required bytes reservedfield    = 3;
+        required bytes reservedfield    = 2;
     }
     message DSBlockHeader
     {
@@ -350,8 +338,7 @@ message DSDSBlockAnnouncement
 {
     required ProtoDSBlock dsblock                        = 1;
     required ProtoShardingStructureWithPoWSolns sharding = 2;
-    required ProtoTxSharingAssignments assignments       = 3;
-    repeated ProtoDSWinnerPoW dswinnerpows               = 4;
+    repeated ProtoDSWinnerPoW dswinnerpows               = 3;
 }
 
 message DSFinalBlockAnnouncement
@@ -375,7 +362,6 @@ message NodeDSBlock
     required ProtoDSBlock dsblock                  = 2;
     repeated ProtoVCBlock vcblocks                 = 3;
     required ProtoShardingStructure sharding       = 4;
-    required ProtoTxSharingAssignments assignments = 5;
 }
 
 message NodeFinalBlock

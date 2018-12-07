@@ -43,10 +43,6 @@ class Messenger {
 
   static bool GetShardingStructureHash(const DequeOfShard& shards,
                                        ShardingHash& dst);
-  static bool GetTxSharingAssignmentsHash(
-      const std::vector<Peer>& dsReceivers,
-      const std::vector<std::vector<Peer>>& shardReceivers,
-      const std::vector<std::vector<Peer>>& shardSenders, TxSharingHash& dst);
 
   static bool SetAccount(std::vector<unsigned char>& dst,
                          const unsigned int offset, const Account& account);
@@ -231,10 +227,8 @@ class Messenger {
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
       const std::pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
-      const DequeOfShard& shards, const std::vector<Peer>& dsReceivers,
-      const std::vector<std::vector<Peer>>& shardReceivers,
-      const std::vector<std::vector<Peer>>& shardSenders,
-      const MapOfPubKeyPoW& allPoWs, const MapOfPubKeyPoW& dsWinnerPoWs,
+      const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
+      const MapOfPubKeyPoW& dsWinnerPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool GetDSDSBlockAnnouncement(
@@ -242,10 +236,7 @@ class Messenger {
       const uint32_t consensusID, const uint64_t blockNumber,
       const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
       const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
-      std::vector<Peer>& dsReceivers,
-      std::vector<std::vector<Peer>>& shardReceivers,
-      std::vector<std::vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
-      MapOfPubKeyPoW& dsWinnerPoWs,
+      MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
       std::vector<unsigned char>& messageToCosign);
 
   static bool SetDSFinalBlockAnnouncement(
@@ -282,20 +273,18 @@ class Messenger {
   // Node messages
   // ============================================================================
 
-  static bool SetNodeVCDSBlocksMessage(
-      std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint32_t shardId, const DSBlock& dsBlock,
-      const std::vector<VCBlock>& vcBlocks, const DequeOfShard& shards,
-      const std::vector<Peer>& dsReceivers,
-      const std::vector<std::vector<Peer>>& shardReceivers,
-      const std::vector<std::vector<Peer>>& shardSenders);
+  static bool SetNodeVCDSBlocksMessage(std::vector<unsigned char>& dst,
+                                       const unsigned int offset,
+                                       const uint32_t shardId,
+                                       const DSBlock& dsBlock,
+                                       const std::vector<VCBlock>& vcBlocks,
+                                       const DequeOfShard& shards);
 
-  static bool GetNodeVCDSBlocksMessage(
-      const std::vector<unsigned char>& src, const unsigned int offset,
-      uint32_t& shardId, DSBlock& dsBlock, std::vector<VCBlock>& vcBlocks,
-      DequeOfShard& shards, std::vector<Peer>& dsReceivers,
-      std::vector<std::vector<Peer>>& shardReceivers,
-      std::vector<std::vector<Peer>>& shardSenders);
+  static bool GetNodeVCDSBlocksMessage(const std::vector<unsigned char>& src,
+                                       const unsigned int offset,
+                                       uint32_t& shardId, DSBlock& dsBlock,
+                                       std::vector<VCBlock>& vcBlocks,
+                                       DequeOfShard& shards);
 
   static bool SetNodeFinalBlock(std::vector<unsigned char>& dst,
                                 const unsigned int offset,
