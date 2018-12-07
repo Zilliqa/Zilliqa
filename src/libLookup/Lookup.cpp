@@ -3198,24 +3198,28 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       // To send DS
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-        auto it = m_mediator.m_DSCommittee->begin();
-
-        for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP &&
-                                 it != m_mediator.m_DSCommittee->end();
-             j++, it++) {
-          toSend.push_back(it->second);
-        }
 
         if (m_mediator.m_DSCommittee->empty()) {
           continue;
         }
 
+        // Send to NUM_NODES_TO_SEND_LOOKUP which including DS leader
         Peer dsLeaderPeer;
         if (Node::GetDSLeaderPeer(
                 m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                 m_mediator.m_dsBlockChain.GetLastBlock(),
                 *m_mediator.m_DSCommittee, dsLeaderPeer)) {
           toSend.push_back(dsLeaderPeer);
+        }
+
+        unsigned int count = 0;
+        for (auto const& i : *m_mediator.m_DSCommittee) {
+          if (count < NUM_NODES_TO_SEND_LOOKUP && i.second != dsLeaderPeer) {
+            toSend.push_back(i.second);
+            count++;
+          } else {
+            break;
+          }
         }
       }
 

@@ -278,24 +278,26 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
 
   vector<Peer> peerList;
 
-  unsigned int count = 0;
-  for (auto const& i : *m_mediator.m_DSCommittee) {
-    if (count < POW_PACKET_SENDERS) {
-      peerList.push_back(i.second);
-      count++;
-    } else {
-      break;
-    }
-  }
-  // Send to PoW PACKET_SENDERS + DS Leader
+  // Send to PoW PACKET_SENDERS which including DS leader
+  Peer dsLeaderPeer;
   if (!m_mediator.m_DSCommittee->empty()) {
-    Peer dsLeaderPeer;
     if (Node::GetDSLeaderPeer(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                               m_mediator.m_dsBlockChain.GetLastBlock(),
                               *m_mediator.m_DSCommittee, dsLeaderPeer)) {
       peerList.push_back(dsLeaderPeer);
     }
   }
+
+  unsigned int count = 0;
+  for (auto const& i : *m_mediator.m_DSCommittee) {
+    if (count < POW_PACKET_SENDERS && i.second != dsLeaderPeer) {
+      peerList.push_back(i.second);
+      count++;
+    } else {
+      break;
+    }
+  }
+
   P2PComm::GetInstance().SendMessage(peerList, powmessage);
   return true;
 }
