@@ -52,9 +52,9 @@ function install_openssl() {
 curl -OL https://www.openssl.org/source/openssl-1.1.1.tar.gz
 tar -xzf openssl-1.1.1.tar.gz
 cd openssl-1.1.1
-./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' > /dev/null 2>&1
-make
-make install
+./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' > /dev/null
+make > /dev/null
+make install > /dev/null
 }
 
 # presently a docker version ubuntu 16.04 is used
