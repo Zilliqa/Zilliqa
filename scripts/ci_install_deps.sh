@@ -49,7 +49,7 @@ make install
 function install_openssl() {
 # install openssl-1.1.1
 # only 1.1.x has the necessary BN_generate_dsa_nonce function in bn.h
-curl -sL https://www.openssl.org/source/openssl-1.1.1.tar.gz
+curl -OL https://www.openssl.org/source/openssl-1.1.1.tar.gz
 tar -xzf openssl-1.1.1.tar.gz
 cd openssl-1.1.1
 ./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' > /dev/null 2>&1
