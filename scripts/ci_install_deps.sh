@@ -52,7 +52,7 @@ function install_openssl() {
 curl -sL https://www.openssl.org/source/openssl-1.1.1.tar.gz
 tar -xzf openssl-1.1.1.tar.gz
 cd openssl-1.1.1
-./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)'
+./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' > /dev/null 2>&1
 make
 make install
 }
