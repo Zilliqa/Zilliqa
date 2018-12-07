@@ -233,20 +233,22 @@ bool DataSender::SendDataToOthers(
       }
     }
 
-    unsigned int my_cluster_num = UINT_MAX;
-    unsigned int my_shards_lo = 0;
-    unsigned int my_shards_hi = 0;
+    if (!shards.empty()) {
+      unsigned int my_cluster_num = UINT_MAX;
+      unsigned int my_shards_lo = 0;
+      unsigned int my_shards_hi = 0;
 
-    DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
-                               shards, tmpCommittee, indexB2);
+      DetermineShardToSendDataTo(my_cluster_num, my_shards_lo, my_shards_hi,
+                                 shards, tmpCommittee, indexB2);
 
-    LOG_GENERAL(INFO,
-                "my_cluster_num + 1: " << my_cluster_num + 1
+      LOG_GENERAL(
+          INFO, "my_cluster_num + 1: " << my_cluster_num + 1
                                        << " shards.size(): " << shards.size());
 
-    if ((my_cluster_num + 1) <= shards.size()) {
-      if (sendDataToShardFunc) {
-        sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
+      if ((my_cluster_num + 1) <= shards.size()) {
+        if (sendDataToShardFunc) {
+          sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
+        }
       }
     }
   }

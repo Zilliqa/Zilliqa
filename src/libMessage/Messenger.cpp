@@ -3362,16 +3362,15 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetNodeForwardTransaction(
+bool Messenger::SetNodeMBnForwardTransaction(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t blockNum, const BlockHash& hash,
-    const vector<TransactionWithReceipt>& txns) {
+    const MicroBlock& microBlock, const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
-  NodeForwardTransaction result;
+  NodeMBnForwardTransaction result;
 
-  result.set_blocknum(blockNum);
-  result.set_microblockhash(hash.asArray().data(), hash.asArray().size());
+  MicroBlockToProtobuf(microBlock, *result.mutable_microblock());
+
   unsigned int txnsCount = 0;
 
   for (const auto& txn : txns) {
@@ -3380,22 +3379,23 @@ bool Messenger::SetNodeForwardTransaction(
   }
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeForwardTransaction initialization failed.");
+    LOG_GENERAL(WARNING, "SetNodeMBnForwardTransaction initialization failed.");
     return false;
   }
 
-  LOG_GENERAL(INFO, "BlockNum: " << blockNum << " MBHash: " << hash.hex()
+  LOG_GENERAL(INFO, "EpochNum: " << microBlock.GetHeader().GetEpochNum()
+                                 << " MBHash: " << microBlock.GetBlockHash()
                                  << " Txns: " << txnsCount);
 
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
-                                          const unsigned int offset,
-                                          ForwardedTxnEntry& entry) {
+bool Messenger::GetNodeMBnForwardTransaction(const vector<unsigned char>& src,
+                                             const unsigned int offset,
+                                             MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
-  NodeForwardTransaction result;
+  NodeMBnForwardTransaction result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
@@ -3404,10 +3404,7 @@ bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
     return false;
   }
 
-  entry.m_blockNum = result.blocknum();
-
-  copy(result.microblockhash().begin(), result.microblockhash().end(),
-       entry.m_hash.asArray().begin());
+  ProtobufToMicroBlock(result.microblock(), entry.m_microBlock);
 
   unsigned int txnsCount = 0;
 
