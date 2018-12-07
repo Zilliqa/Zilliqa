@@ -1347,65 +1347,6 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   SendMessageToRandomLookupNode(msg);
 }
 
-void Lookup::CommitMicroBlockStorage() {
-  LOG_MARKER();
-  lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
-  const uint64_t& currentEpoch = m_mediator.m_currentEpochNum;
-  LOG_GENERAL(INFO, "[SendMB]" << currentEpoch);
-
-  for (auto& epochMBpair : m_microBlocksBuffer) {
-    if (epochMBpair.first > currentEpoch) {
-      continue;
-    }
-    for (auto& mb : epochMBpair.second) {
-      AddMicroBlockToStorage(mb);
-    }
-    epochMBpair.second.clear();
-  }
-}
-
-bool Lookup::ProcessSetMicroBlockFromSeed(const vector<unsigned char>& message,
-                                          unsigned int offset,
-                                          const Peer& from) {
-  // message = [epochNum][microblock]
-
-  unsigned int curr_offset = offset;
-
-  uint64_t epochNum = Serializable::GetNumber<uint64_t>(message, curr_offset,
-
-                                                        sizeof(uint64_t));
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Function not expected to be called from non-lookup node");
-    return false;
-  }
-  if (epochNum <= 1) {
-    return false;
-  }
-  curr_offset += sizeof(uint64_t);
-
-  MicroBlock microblock(message, curr_offset);
-
-  uint32_t id = microblock.GetHeader().GetShardId();
-
-  LOG_GENERAL(INFO, "[SendMB]"
-                        << "Recvd from " << from << " EpochNum:" << epochNum
-                        << " ShardId:" << id);
-
-  if (epochNum > m_mediator.m_currentEpochNum) {
-    LOG_GENERAL(INFO, "[SendMB]"
-                          << "Save MicroBlock , epoch:" << epochNum
-                          << " id:" << id);
-    lock_guard<mutex> g(m_mutexMicroBlocksBuffer);
-    m_microBlocksBuffer[epochNum].push_back(microblock);
-    return true;
-  } else if (epochNum <= m_mediator.m_currentEpochNum) {
-    AddMicroBlockToStorage(microblock);
-  }
-
-  return true;
-}
-
 bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
                                       unsigned int offset, const Peer& from) {
   //#ifndef IS_LOOKUP_NODE
@@ -3020,7 +2961,6 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Lookup::ProcessSetStartPoWFromSeed,
       &Lookup::ProcessGetShardFromSeed,
       &Lookup::ProcessSetShardFromSeed,
-      &Lookup::ProcessSetMicroBlockFromSeed,
       &Lookup::ProcessGetMicroBlockFromLookup,
       &Lookup::ProcessSetMicroBlockFromLookup,
       &Lookup::ProcessGetTxnsFromLookup,
