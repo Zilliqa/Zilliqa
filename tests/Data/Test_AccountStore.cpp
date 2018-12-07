@@ -300,81 +300,72 @@ BOOST_AUTO_TEST_CASE(decreaseBalance) {
       "DecreaseBalance changed root even though result goes below 0!");
 }
 
-//   BOOST_AUTO_TEST_CASE(transferBalance)
-//   {
-//       INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(transferBalance) {
+  INIT_STDOUT_LOGGER();
 
-//       LOG_MARKER();
+  LOG_MARKER();
 
-//       PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//       Account account1(21, 211);
-//       AccountStore::GetInstance().AddAccount(address1, account1);
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccount(address1, account1);
 
-//       PubKey pubKey2 = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address2 = Account::GetAddressFromPublicKey(pubKey2);
+  PubKey pubKey2 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address2 = Account::GetAddressFromPublicKey(pubKey2);
 
-//       Account account2(0, 1);
-//       AccountStore::GetInstance().AddAccount(address2, account2);
+  Account account2(0, 1);
+  AccountStore::GetInstance().AddAccount(address2, account2);
 
-//       AccountStore::GetInstance().TransferBalance(address1, address2, 1);
+  AccountStore::GetInstance().TransferBalance(address1, address2, 1);
 
-//       BOOST_CHECK_MESSAGE(
-//           AccountStore::GetInstance().GetBalance(address1) == 20,
-//           "DecreaseBalance didn't decrease balance in call to
-//           TransferBalance!");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address1) == 20,
+      "DecreaseBalance didn't decrease balance in call to TransferBalance!");
 
-//       BOOST_CHECK_MESSAGE(
-//           AccountStore::GetInstance().GetBalance(address2) == 1,
-//           "IncreaseBalance didn't increase balance in call to
-//           TransferBalance!");
+  BOOST_CHECK_MESSAGE(
+      AccountStore::GetInstance().GetBalance(address2) == 1,
+      "IncreaseBalance didn't increase balance in call to TransferBalance!");
 
-//       /*
-//       ============================================================
-//       */
+  /*
+  ============================================================
+  */
 
-//       AccountStore::GetInstance().TransferBalance(address1, address2, 21);
+  AccountStore::GetInstance().TransferBalance(address1, address2, 21);
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) ==
-//       20,
-//                           "DecreaseBalance decreased balance in call to "
-//                           "TransferBalance even though balance<delta!");
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 20,
+                      "DecreaseBalance decreased balance in call to "
+                      "TransferBalance even though balance<delta!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address2) ==
-//       1,
-//                           "IncreaseBalance increased balance in call to "
-//                           "TransferBalance even though balance<delta!");
-//   }
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address2) == 1,
+                      "IncreaseBalance increased balance in call to "
+                      "TransferBalance even though balance<delta!");
+}
 
-//   BOOST_AUTO_TEST_CASE(increaseNonce)
-//   {
-//       INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(increaseNonce) {
+  INIT_STDOUT_LOGGER();
 
-//       LOG_MARKER();
+  LOG_MARKER();
 
-//       PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
-//       Address address1 = Account::GetAddressFromPublicKey(pubKey1);
+  PubKey pubKey1 = Schnorr::GetInstance().GenKeyPair().second;
+  Address address1 = Account::GetAddressFromPublicKey(pubKey1);
 
-//       Account account1(21, 211);
-//       AccountStore::GetInstance().AddAccount(address1, account1);
+  Account account1(21, 211);
+  AccountStore::GetInstance().AddAccount(address1, account1);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root1 = AccountStore::GetInstance().GetStateRootHash();
 
-//       auto root1 = AccountStore::GetInstance().GetStateRootHash();
+  AccountStore::GetInstance().IncreaseNonce(address1);
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  auto root2 = AccountStore::GetInstance().GetStateRootHash();
 
-//       AccountStore::GetInstance().IncreaseNonce(address1);
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) == 21,
+                      "IncreaseNonce changed balance! ");
 
-//       auto root2 = AccountStore::GetInstance().GetStateRootHash();
+  BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) == 212,
+                      "IncreaseNonce didn't change nonce rightly!");
 
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetBalance(address1) ==
-//       21,
-//                           "IncreaseNonce changed balance! ");
-
-//       BOOST_CHECK_MESSAGE(AccountStore::GetInstance().GetNonce(address1) ==
-//       212,
-//                           "IncreaseNonce didn't change nonce rightly!");
-
-//       BOOST_CHECK_MESSAGE(root1 != root2, "IncreaseNonce didn't change
-//       root!");
-// }
+  BOOST_CHECK_MESSAGE(root1 != root2, "IncreaseNonce didn't change root!");
+}
 
 BOOST_AUTO_TEST_SUITE_END()
