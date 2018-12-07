@@ -87,11 +87,11 @@ void Lookup::InitSync() {
     uint64_t dsBlockNum = 0;
     uint64_t txBlockNum = 0;
 
-    // Initialize all blockchains and blocklinkchain
-    Init();
-
     // Set myself offline
     GetMyLookupOffline();
+
+    // Initialize all blockchains and blocklinkchain
+    Init();
 
     while (GetSyncType() != SyncType::NO_SYNC) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
