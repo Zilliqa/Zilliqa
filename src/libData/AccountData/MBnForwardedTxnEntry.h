@@ -17,27 +17,29 @@
  * program files.
  */
 
-#ifndef __FORWARDEDTXNENTRY_H__
-#define __FORWARDEDTXNENTRY_H__
+#ifndef __MBNFORWARDEDTXNENTRY_H__
+#define __MBNFORWARDEDTXNENTRY_H__
 
 #include "AccountStore.h"
 #include "Transaction.h"
 #include "TransactionReceipt.h"
-#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include "libData/BlockData/Block/MicroBlock.h"
 
-struct ForwardedTxnEntry {
-  uint64_t m_blockNum;
-  BlockHash m_hash;
+struct MBnForwardedTxnEntry {
+  MicroBlock m_microBlock;
   std::vector<TransactionWithReceipt> m_transactions;
 
-  friend std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t);
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const MBnForwardedTxnEntry& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t) {
-  os << "<ForwardedTxnEntry>" << std::endl
-     << "m_blockNum : " << t.m_blockNum << std::endl
-     << "m_hash : " << t.m_hash.hex();
+inline std::ostream& operator<<(std::ostream& os,
+                                const MBnForwardedTxnEntry& t) {
+  os << "<MBnForwardedTxnEntry>"
+     << " mbHash : " << t.m_microBlock.GetBlockHash().hex()
+     << " epochNum : " << t.m_microBlock.GetHeader().GetEpochNum()
+     << " shardId : " << t.m_microBlock.GetHeader().GetShardId();
   return os;
 }
 
-#endif  // __FORWARDEDTXNENTRY_H__
+#endif  // __MBNFORWARDEDTXNENTRY_H__

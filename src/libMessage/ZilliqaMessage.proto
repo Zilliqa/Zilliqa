@@ -388,11 +388,10 @@ message NodeFinalBlock
     repeated uint32 shardids      = 6;
 }
 
-message NodeForwardTransaction
+message NodeMBnForwardTransaction
 {
-    required uint64 blocknum             = 1;
-    required bytes microblockhash        = 2;
-    repeated ByteArray txnswithreceipt   = 3;
+    required ProtoMicroBlock microblock = 1;
+    repeated ByteArray txnswithreceipt  = 2;
 }
 
 message NodeVCBlock
