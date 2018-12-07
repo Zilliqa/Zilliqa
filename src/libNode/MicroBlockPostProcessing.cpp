@@ -205,6 +205,17 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     // Update the micro block with the co-signatures from the consensus
     m_microblock->SetCoSignatures(*m_consensusObject);
 
+    if (m_isPrimary) {
+      LOG_STATE("[MICON][" << setw(15) << left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "]["
+                           << m_mediator.m_txBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum() +
+                                  1
+                           << "] DONE");
+    }
+
     // TODO: provide interface in DataSender instead of repopulating the DS into
     // shard
     DequeOfShard ds_shards;

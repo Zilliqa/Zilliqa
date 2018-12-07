@@ -147,18 +147,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(finalblock_message);
-    vector<unsigned char> this_msg_hash = sha256.Finalize();
-    LOG_STATE(
-        "[SDFBBLK]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-        << "]["
-        << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-               .substr(0, 6)
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] FBBLKGEN");
+    auto this_msg_hash = sha256.Finalize();
 
     if (BROADCAST_GOSSIP_MODE) {
       // Choose N other Shard nodes to be recipient of final block
@@ -202,35 +191,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
     p++;
   }
-
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] AFTER SENDING FINAL BLOCK");
 }
-
-// void DirectoryService::StoreMicroBlocksToDisk()
-// {
-//     LOG_MARKER();
-//     for(auto microBlock : m_microBlocks)
-//     {
-
-//         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " <<
-//         microBlock.GetHeader().GetTxRootHash() <<
-//             " with Type: " << microBlock.GetHeader().GetType() <<
-//             ", Version: " << microBlock.GetHeader().GetVersion() <<
-//             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
-//             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
-
-//         vector<unsigned char> serializedMicroBlock;
-//         microBlock.Serialize(serializedMicroBlock, 0);
-//         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(),
-//                                                serializedMicroBlock);
-//     }
-//     m_microBlocks.clear();
-// }
 
 void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
