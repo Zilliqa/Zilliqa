@@ -180,8 +180,13 @@ bool DirectoryService::SaveCoinbase(const vector<bool>& b1,
   LOG_MARKER();
   LOG_GENERAL(INFO, "Save coin base for shardId: " << shard_id << ", epochNum: "
                                                    << epochNum);
-  if (shard_id == (int32_t)m_shards.size() ||
-      shard_id == CoinbaseReward::FINALBLOCK_REWARD) {
+
+  if (shard_id == (int32_t)m_shards.size()) {
+    LOG_GENERAL(INFO, "Skip the micro block with shardId = shard size.");
+    return true;
+  }
+
+  if (shard_id == CoinbaseReward::FINALBLOCK_REWARD) {
     // DS
     lock(m_mediator.m_mutexDSCommittee, m_mutexCoinbaseRewardees);
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee, adopt_lock);

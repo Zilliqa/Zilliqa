@@ -145,6 +145,10 @@ class Lookup : public Executable, public Broadcastable {
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
 
+  bool IsLookupNode(const PubKey& pubKey) const;
+
+  bool IsLookupNode(const Peer& peerInfo) const;
+
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
                     std::map<uint32_t, std::vector<Transaction>>& mp,

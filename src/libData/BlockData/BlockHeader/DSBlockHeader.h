@@ -43,7 +43,7 @@ class DSBlockHeader : public BlockHeaderBase {
   BlockHash m_prevHash;    // Hash of the previous block
   PubKey m_leaderPubKey;   // The one who proposed this DS block
   uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
-  uint64_t m_epochNum;
+  uint64_t m_epochNum;     // Tx Epoch Num when the DS block was generated
   boost::multiprecision::uint128_t m_gasPrice;
   SWInfo m_swInfo;
   std::map<PubKey, Peer> m_PoWDSWinners;
@@ -94,7 +94,7 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the number of ancestor blocks.
   const uint64_t& GetBlockNum() const;
 
-  /// Returns the number of epoch when block is mined
+  /// Returns the number of tx epoch when block is mined
   const uint64_t& GetEpochNum() const;
 
   /// Returns the number of global minimum gas price accepteable for the coming
