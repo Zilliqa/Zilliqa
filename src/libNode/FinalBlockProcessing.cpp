@@ -707,7 +707,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED FINAL BLOCK");
+      << "] RECVD FLBLK");
 
   bool toSendTxnToLookup = false;
 
@@ -982,7 +982,7 @@ bool Node::ProcessMBnForwardTransaction(const vector<unsigned char>& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED MB & TXN BODIES #"
+      << "] RECVD MB & TXN BODIES #"
       << entry.m_microBlock.GetHeader().GetEpochNum() << " shard "
       << entry.m_microBlock.GetHeader().GetShardId());
 

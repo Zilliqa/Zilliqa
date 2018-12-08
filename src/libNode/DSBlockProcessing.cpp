@@ -344,7 +344,7 @@ void Node::StartFirstTxEpoch() {
         << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
-        << "] RECEIVED SHARDING STRUCTURE");
+        << "] RECVD SHARDING STRUCTURE");
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -570,7 +570,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED DSBLOCK");
+      << "] RECVD DSBLOCK");
 
   if (LOOKUP_NODE_MODE) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

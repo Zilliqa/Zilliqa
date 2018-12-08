@@ -172,19 +172,7 @@ void DirectoryService::SendDSBlockToShardNodes(
     // Send the message
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(dsblock_message_to_shard);
-    vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-    LOG_STATE(
-        "[INFOR]["
-        << std::setw(15) << std::left
-        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-        << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "]["
-        << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-               .substr(0, 6)
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] SHMSG");
+    auto this_msg_hash = sha256.Finalize();
 
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
       // Choose N other Shard nodes to be recipient of DS block
