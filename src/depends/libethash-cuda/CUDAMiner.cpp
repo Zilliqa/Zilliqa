@@ -441,6 +441,11 @@ bool CUDAMiner::mine(const WorkPackage &w, Solution &solution)
         }
     }
 
+    // Zilliqa mining is create mining thread every time need to do POW.
+    // So need to set the device to use every time.
+    unsigned device = s_devices[m_index] > -1 ? s_devices[m_index] : m_index;
+    CUDA_SAFE_CALL(cudaSetDevice(device));
+
     // Persist most recent job anyway. No need to do another
     // conditional check if they're different
     m_currentWP = w;
