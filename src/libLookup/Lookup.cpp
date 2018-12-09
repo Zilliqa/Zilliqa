@@ -103,6 +103,7 @@ void Lookup::SetLookupNodes() {
 void Lookup::SetAboveLayer() {
   using boost::property_tree::ptree;
   ptree pt;
+  read_xml("constants.xml", pt);
   if (m_level == 0) {
     LOG_GENERAL(INFO, "I am lookup node");
     m_seedNodes.clear();
