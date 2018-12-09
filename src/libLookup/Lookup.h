@@ -65,6 +65,7 @@ class Lookup : public Executable, public Broadcastable {
   bool m_isFirstLoop = true;
   // tells if server is running or not
   bool m_isServer = false;
+  uint8_t m_level = (uint8_t)-1;
 
   // Sharding committee members
 
@@ -84,6 +85,7 @@ class Lookup : public Executable, public Broadcastable {
   // its recovery
   Peer GetLookupPeerToRsync();
 
+  void SetAboveLayer();
   // Doing Rsync commands
   bool RsyncTxBodies();
 
@@ -170,6 +172,7 @@ class Lookup : public Executable, public Broadcastable {
   void SendMessageToSeedNodes(const std::vector<unsigned char>& message) const;
 
   // TODO: move the Get and ProcessSet functions to Synchronizer
+  std::vector<Peer> GetAboveLayer();
   bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();

@@ -57,6 +57,7 @@ using namespace boost::multiprecision;
 
 Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
   SetLookupNodes();
+  SetAboveLayer();
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
   }
@@ -74,19 +75,69 @@ void Lookup::SetLookupNodes() {
   ptree pt;
   read_xml("constants.xml", pt);
 
-  for (const ptree::value_type& v : pt.get_child("node.lookups")) {
-    if (v.first == "peer") {
-      struct in_addr ip_addr;
-      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
-      Peer lookup_node((uint128_t)ip_addr.s_addr,
-                       v.second.get<uint32_t>("port"));
-      PubKey pubKey(
-          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
-          0);
-      m_lookupNodes.emplace_back(pubKey, lookup_node);
+  const vector<string> lookupTypes = {"node.lookups", "node.upper_seed",
+                                      "node.lower_seed"};
+
+  uint8_t level = 0;
+  vector<Peer> levelAbove;
+  for (const auto& lookupType : lookupTypes) {
+    for (const ptree::value_type& v : pt.get_child(lookupType)) {
+      if (v.first == "peer") {
+        struct in_addr ip_addr;
+        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+        Peer lookup_node((uint128_t)ip_addr.s_addr,
+                         v.second.get<uint32_t>("port"));
+        PubKey pubKey(DataConversion::HexStrToUint8Vec(
+                          v.second.get<std::string>("pubkey")),
+                      0);
+        if (pubKey == m_mediator.m_selfKey.second) {
+          m_level = level;
+        }
+        m_lookupNodes.emplace_back(pubKey, lookup_node);
+      }
+    }
+    level++;
+  }
+}
+
+void Lookup::SetAboveLayer() {
+  using boost::property_tree::ptree;
+  ptree pt;
+  if (m_level == 0) {
+    LOG_GENERAL(INFO, "I am lookup node");
+    m_seedNodes.clear();
+  } else if (m_level > 1) {
+    LOG_GENERAL(INFO, "I am a layer " << m_level << " node");
+    for (const ptree::value_type& v : pt.get_child("node.upper_seed")) {
+      if (v.first == "peer") {
+        struct in_addr ip_addr;
+        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+        Peer lookup_node((uint128_t)ip_addr.s_addr,
+                         v.second.get<uint32_t>("port"));
+        PubKey pubKey(DataConversion::HexStrToUint8Vec(
+                          v.second.get<std::string>("pubkey")),
+                      0);
+        m_seedNodes.emplace_back(lookup_node);
+      }
+    }
+  } else {
+    LOG_GENERAL(INFO, "I am an upper layer seed node");
+    for (const ptree::value_type& v : pt.get_child("node.lookups")) {
+      if (v.first == "peer") {
+        struct in_addr ip_addr;
+        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+        Peer lookup_node((uint128_t)ip_addr.s_addr,
+                         v.second.get<uint32_t>("port"));
+        PubKey pubKey(DataConversion::HexStrToUint8Vec(
+                          v.second.get<std::string>("pubkey")),
+                      0);
+        m_seedNodes.emplace_back(lookup_node);
+      }
     }
   }
 }
+
+vector<Peer> Lookup::GetAboveLayer() { return m_seedNodes; }
 
 std::once_flag generateReceiverOnce;
 
@@ -3312,6 +3363,12 @@ bool Lookup::VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
 
 bool Lookup::ProcessForwardTxn(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessForwardTxn not expected to be called from "
+                "non-lookup node");
+  }
+
   vector<Transaction> txns;
   if (!Messenger::GetTransactionArray(message, offset, txns)) {
     LOG_GENERAL(WARNING, "Failed to Messenger::GetTransactionArray");
@@ -3320,22 +3377,28 @@ bool Lookup::ProcessForwardTxn(const vector<unsigned char>& message,
 
   LOG_GENERAL(INFO, "Recvd from " << from);
 
-  uint32_t shard_size = 0;
-  {
-    lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    shard_size = m_mediator.m_ds->m_shards.size();
-  }
+  if (!ARCHIVAL_LOOKUP) {
+    uint32_t shard_size = 0;
+    {
+      lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+      shard_size = m_mediator.m_ds->m_shards.size();
+    }
 
-  if (shard_size == 0) {
-    LOG_GENERAL(WARNING, "Shard size 0");
-    return false;
-  }
+    if (shard_size == 0) {
+      LOG_GENERAL(WARNING, "Shard size 0");
+      return false;
+    }
 
-  for (auto txn : txns) {
-    const PubKey& senderPubKey = txn.GetSenderPubKey();
-    const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
-    unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
-    AddToTxnShardMap(txn, shard);
+    for (auto txn : txns) {
+      const PubKey& senderPubKey = txn.GetSenderPubKey();
+      const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+      unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
+      AddToTxnShardMap(txn, shard);
+    }
+  } else {
+    for (auto txn : txns) {
+      AddToTxnShardMap(txn, 0);
+    }
   }
 
   return true;
