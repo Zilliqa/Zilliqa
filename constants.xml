@@ -170,6 +170,8 @@
         </peer>
     -->
     </lookups>
+    <upper_seed></upper_seed>
+    <lower_seed></lower_seed>
     <gpu>
         <!-- Which GPU to use, can use multiple GPU, for example: "0, 2, 4" -->
         <GPU_TO_USE>0</GPU_TO_USE>
