@@ -677,6 +677,82 @@ bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 
+bool DirectoryService::ProcessNewDSGuardIdentity(
+    const std::vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  uint64_t epochNumber;
+  Peer dsGuardNewNetworkInfo;
+  uint64_t timestamp;
+  PubKey dsGuardPubkey;
+
+  if (!Messenger::GetDSLookupNewDSGuardIdentity(message, offset, epochNumber,
+                                                dsGuardNewNetworkInfo,
+                                                timestamp, dsGuardPubkey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSLookupNewDSGuardIdentity failed.");
+    return false;
+  }
+
+  uint64_t currentDSEpochNumber =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+  uint64_t loCurrentDSEpochNumber = currentDSEpochNumber - 1;
+  uint64_t hiCurrentDSEpochNumber = currentDSEpochNumber + 1;
+
+  if (!(epochNumber <= hiCurrentDSEpochNumber + 1 &&
+        epochNumber >= loCurrentDSEpochNumber - 1)) {
+    LOG_GENERAL(WARNING,
+                "Update of network failure due to not within range of expected "
+                "ds epoch loCurrentDSEpochNumber: "
+                    << loCurrentDSEpochNumber
+                    << " hiCurrentDSEpochNumber: " << hiCurrentDSEpochNumber
+                    << " epochNumber: " << epochNumber);
+    return false;
+  }
+
+  {
+    // Update DS committee
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+    unsigned int indexOfDSGuard;
+    bool foundDSGuardNode;
+    for (indexOfDSGuard = 0;
+         indexOfDSGuard < Guard::GetInstance().GetNumOfDSGuard();
+         indexOfDSGuard++) {
+      if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
+        foundDSGuardNode = true;
+        break;
+      }
+    }
+
+    // Lookup to store the info
+    if (foundDSGuardNode &&
+        m_mediator.m_DSCommittee->at(indexOfDSGuard).second !=
+            dsGuardNewNetworkInfo) {
+      m_mediator.m_DSCommittee->at(indexOfDSGuard).second =
+          dsGuardNewNetworkInfo;
+      {
+        std::mutex m_mutexLookupStoreForGuardNodeUpdate;
+        DSGuardUpdateStruct dsGuardNodeIden(dsGuardPubkey,
+                                            dsGuardNewNetworkInfo, timestamp);
+        if (m_lookupStoreForGuardNodeUpdate.find(epochNumber) ==
+            m_lookupStoreForGuardNodeUpdate.end()) {
+          vector<DSGuardUpdateStruct> temp = {dsGuardNodeIden};
+          m_lookupStoreForGuardNodeUpdate.emplace(epochNumber, temp);
+        } else {
+          vector<DSGuardUpdateStruct> temp =
+              m_lookupStoreForGuardNodeUpdate.at(epochNumber);
+          temp.emplace_back(dsGuardNodeIden);
+          m_lookupStoreForGuardNodeUpdate.at(epochNumber) = temp;
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 bool DirectoryService::Execute(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from) {
   // LOG_MARKER();
