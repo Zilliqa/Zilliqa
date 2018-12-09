@@ -123,6 +123,9 @@ bool Server::StartCollectorThread() {
           LOG_GENERAL(WARNING, "Failed set SetTransactionArray");
         }
 
+        for (const auto& pr : upperLayerNodes) {
+          LOG_GENERAL(INFO, "Sent to " << pr);
+        }
         P2PComm::GetInstance().SendBroadcastMessage(upperLayerNodes, msg);
       }
       m_mediator.m_lookup->DeleteTxnShardMap(0);
