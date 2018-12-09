@@ -115,14 +115,7 @@ bool Server::StartCollectorThread() {
         vector<unsigned char> msg = {MessageType::LOOKUP,
                                      LookupInstructionType::FORWARDTXN};
 
-        auto lookupNodes = m_mediator.m_lookup->GetLookupNodes();
-
-        const uint32_t NUM_ACTUAL_LOOKUP = 1;
-
-        vector<Peer> toSend;
-        for (uint i = NUM_ACTUAL_LOOKUP; i < lookupNodes.size(); i++) {
-          toSend.push_back(lookupNodes.at(i).second);
-        }
+        auto upperLayerNodes = m_mediator.m_lookup->GetAboveLayer();
 
         if (!Messenger::SetTransactionArray(
                 msg, MessageOffset::BODY,
@@ -130,7 +123,7 @@ bool Server::StartCollectorThread() {
           LOG_GENERAL(WARNING, "Failed set SetTransactionArray");
         }
 
-        P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
+        P2PComm::GetInstance().SendBroadcastMessage(upperLayerNodes, msg);
       }
       m_mediator.m_lookup->DeleteTxnShardMap(0);
     }
