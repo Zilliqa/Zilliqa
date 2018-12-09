@@ -31,11 +31,13 @@
 #include <map>
 #include <set>
 #include <shared_mutex>
+#include <tuple>
 #include <vector>
 
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
+#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
@@ -72,6 +74,28 @@ struct PoWSolution {
     return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
            std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.lookupId,
                     rhs.gasPrice);
+  }
+};
+
+struct DSGuardUpdateStruct {
+  PubKey dsGuardPubkey;
+  Peer dsGuardNewNetworkInfo;
+  uint64_t timestamp;
+
+  DSGuardUpdateStruct()
+      : dsGuardPubkey(PubKey()), dsGuardNewNetworkInfo(Peer()), timestamp(9) {}
+
+  DSGuardUpdateStruct(const PubKey& curDSGuardPubkey,
+                      const Peer& newDSGuardNetworkInfo,
+                      const uint64_t timestampOfChangeRequest)
+      : dsGuardPubkey(curDSGuardPubkey),
+        dsGuardNewNetworkInfo(newDSGuardNetworkInfo),
+        timestamp(timestampOfChangeRequest) {}
+
+  bool operator==(const DSGuardUpdateStruct& rhs) const {
+    return std::tie(dsGuardPubkey, dsGuardNewNetworkInfo, timestamp) ==
+           std::tie(rhs.dsGuardPubkey, rhs.dsGuardNewNetworkInfo,
+                    rhs.timestamp);
   }
 };
 
@@ -172,6 +196,14 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexVCBlockVector;
   std::vector<VCBlock> m_VCBlockVector;
 
+  // Guard mode recovery. currently used only by lookup node.
+  std::mutex m_mutexLookupStoreForGuardNodeUpdate;
+  // structure is as follows
+  // map<dsepochnumber, vector<turple>>
+  // turple = [Pubkey, Peer, timestamp]
+  std::map<uint64_t, std::vector<DSGuardUpdateStruct>>
+      m_lookupStoreForGuardNodeUpdate;
+
   // Consensus and consensus object
   std::condition_variable cv_DSBlockConsensus;
   std::mutex m_MutexCVDSBlockConsensus;
@@ -222,6 +254,8 @@ class DirectoryService : public Executable, public Broadcastable {
                                 unsigned int offset, const Peer& from);
   bool ProcessGetDSTxBlockMessage(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
+  bool ProcessNewDSGuardIdentity(const std::vector<unsigned char>& message,
+                                 unsigned int offset, const Peer& from);
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
