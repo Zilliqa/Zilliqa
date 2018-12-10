@@ -820,3 +820,21 @@ message NodeGetGuardNodeNetworkInfoUpdate
     required uint32 portno   = 1;
     required uint64 dsepochnumber   = 2;
 }
+
+message ProtoDSGuardUpdateStruct
+{
+    required ByteArray dsguardpubkey            = 1;
+    required ProtoPeer dsguardnewnetworkinfo    = 2;
+    required uint64 timestamp                   = 3;
+}
+
+// From sending New DS guard node network info to requesing shard node
+message NodeSetGuardNodeNetworkInfoUpdate
+{
+    message Data
+    {
+        repeated ProtoDSGuardUpdateStruct dsguardupdatestruct = 1;
+    }
+    required Data data                              = 1;
+    required ByteArray signature                    = 2;
+}
