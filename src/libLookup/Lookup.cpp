@@ -212,10 +212,7 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
 
     copy(txns.begin(), txns.end(), back_inserter(txn));
   }
-  if (txn.empty()) {
-    return false;
-  }
-  return true;
+  return !txn.empty();
 }
 
 bool Lookup::GenTxnToSend(size_t num_txn,
@@ -3155,10 +3152,10 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
   map<uint32_t, vector<Transaction>> mp;
 
-  /*if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, numShards)) {
+  if (!GenTxnToSend(NUM_TXN_TO_SEND_PER_ACCOUNT, mp, numShards)) {
     LOG_GENERAL(WARNING, "GenTxnToSend failed");
     // return;
-  }*/
+  }
 
   // allow receving nodes to be ready with latest DS block ( Only** for first
   // txn epoch of every ds epoch )
@@ -3321,6 +3318,7 @@ bool Lookup::ProcessForwardTxn(const vector<unsigned char>& message,
   }
 
   vector<Transaction> txns;
+
   if (!Messenger::GetTransactionArray(message, offset, txns)) {
     LOG_GENERAL(WARNING, "Failed to Messenger::GetTransactionArray");
     return false;

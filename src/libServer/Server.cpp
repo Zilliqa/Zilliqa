@@ -86,7 +86,6 @@ bool Server::StartCollectorThread() {
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
     vector<Transaction> txns;
-    // Change Back
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
@@ -114,17 +113,19 @@ bool Server::StartCollectorThread() {
                                      LookupInstructionType::FORWARDTXN};
 
         auto upperLayerNodes = m_mediator.m_lookup->GetAboveLayer();
+        auto upperLayerNode =
+            upperLayerNodes.at(rand() % upperLayerNodes.size());
 
         if (!Messenger::SetTransactionArray(
                 msg, MessageOffset::BODY,
                 m_mediator.m_lookup->m_txnShardMap.at(0))) {
-          LOG_GENERAL(WARNING, "Failed set SetTransactionArray");
+          continue;
         }
 
         for (const auto& pr : upperLayerNodes) {
           LOG_GENERAL(INFO, "Sent to " << pr);
         }
-        P2PComm::GetInstance().SendBroadcastMessage(upperLayerNodes, msg);
+        P2PComm::GetInstance().SendMessage(upperLayerNode, msg);
       }
       m_mediator.m_lookup->DeleteTxnShardMap(0);
     }
