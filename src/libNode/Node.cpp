@@ -1362,6 +1362,7 @@ void Node::RejoinAsNormal() {
     auto func = [this]() mutable -> void {
       m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
       this->CleanVariables();
+      this->m_mediator.m_ds->CleanVariables();
       this->Install(SyncType::NORMAL_SYNC);
       this->StartSynchronization();
       this->ResetRejoinFlags();
