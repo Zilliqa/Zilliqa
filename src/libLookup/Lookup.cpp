@@ -64,7 +64,7 @@ Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
 
 Lookup::~Lookup() {}
 
-void Lookup::Init() {
+void Lookup::InitAsNewJoiner() {
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
@@ -91,7 +91,7 @@ void Lookup::InitSync() {
     GetMyLookupOffline();
 
     // Initialize all blockchains and blocklinkchain
-    Init();
+    InitAsNewJoiner();
 
     while (GetSyncType() != SyncType::NO_SYNC) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
