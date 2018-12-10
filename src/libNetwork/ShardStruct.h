@@ -17,27 +17,23 @@
  * program files.
  */
 
-#ifndef __FORWARDEDTXNENTRY_H__
-#define __FORWARDEDTXNENTRY_H__
+#ifndef __SHARD_STRUCT__
+#define __SHARD_STRUCT__
 
-#include "AccountStore.h"
-#include "Transaction.h"
-#include "TransactionReceipt.h"
-#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include <tuple>
 
-struct ForwardedTxnEntry {
-  uint64_t m_blockNum;
-  BlockHash m_hash;
-  std::vector<TransactionWithReceipt> m_transactions;
+#include "Peer.h"
+#include "libCrypto/Schnorr.h"
 
-  friend std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t);
+enum ShardData {
+  SHARD_NODE_PUBKEY,
+  SHARD_NODE_PEER,
+  SHARD_NODE_REP,
 };
 
-inline std::ostream& operator<<(std::ostream& os, const ForwardedTxnEntry& t) {
-  os << "<ForwardedTxnEntry>" << std::endl
-     << "m_blockNum : " << t.m_blockNum << std::endl
-     << "m_hash : " << t.m_hash.hex();
-  return os;
-}
+using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
+using DequeOfShard = std::deque<Shard>;
 
-#endif  // __FORWARDEDTXNENTRY_H__
+using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
+
+#endif /*__SHARD_STRUCT__*/

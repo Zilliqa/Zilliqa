@@ -77,6 +77,9 @@ class Zilliqa {
   std::vector<Peer> RetrieveBroadcastList(unsigned char msg_type,
                                           unsigned char ins_type,
                                           const Peer& from);
+
+  static std::string FormatMessageName(unsigned char msgType,
+                                       unsigned char instruction);
 };
 
 #endif  // __ZILLIQA_H__

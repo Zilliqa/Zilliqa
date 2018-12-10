@@ -197,7 +197,7 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
         PubKey key(
             DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")), 0);
         struct in_addr ip_addr;
-        inet_aton(v.second.get<string>("ip").c_str(), &ip_addr);
+        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
         Peer peer((uint128_t)ip_addr.s_addr,
                   v.second.get<unsigned int>("port"));
         if (peer != m_selfPeer) {

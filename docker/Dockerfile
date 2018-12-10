@@ -68,12 +68,13 @@ ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
 ARG BUILD_TYPE=RelWithDebInfo
+ARG EXTRA_CMAKE_ARGS=
 
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT} \
     # && git -C ${SOURCE_DIR} submodule update --init --recursive \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
+        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
     && cmake --build ${BUILD_DIR} --target install \
     && rm -rf ${BUILD_DIR}

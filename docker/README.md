@@ -14,3 +14,5 @@ A few most useful commands are provided through `Makefile` for quick access. The
 - `make ci`: build CI image used by CI services for testing
 - `make k8s-zilliqa COMMIT=XXXXXXX`: build Zilliqa image for Kubernetes testnets
 - `make k8s-scilla COMMIT=XXXXXXX`: build Zilliqa image with Scilla for Kubernetes testnets
+- `make release COMMIT=XXXXXXX`: build a release version image for public usage
+- `make release-cuda COMMIT=XXXXXXX`: build a release version image with CUDA driver for public usage

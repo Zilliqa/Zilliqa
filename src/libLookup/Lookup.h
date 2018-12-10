@@ -36,8 +36,8 @@
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
-#include "libDirectoryService/ShardStruct.h"
 #include "libNetwork/Peer.h"
+#include "libNetwork/ShardStruct.h"
 #include "libUtils/Logger.h"
 
 #include <condition_variable>
@@ -47,8 +47,6 @@
 
 class Mediator;
 class Synchronizer;
-
-using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
 
 /// Processes requests pertaining to network, transaction, or block information
 class Lookup : public Executable, public Broadcastable {
@@ -115,8 +113,6 @@ class Lookup : public Executable, public Broadcastable {
   std::vector<unsigned char> ComposeGetDSInfoMessage(bool initialDS = false);
   std::vector<unsigned char> ComposeGetStateMessage();
 
-  std::unordered_map<uint64_t, std::vector<MicroBlock>> m_microBlocksBuffer;
-
   std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
                                                       uint64_t highBlockNum);
   std::vector<unsigned char> ComposeGetTxBlockMessage(uint64_t lowBlockNum,
@@ -148,6 +144,10 @@ class Lookup : public Executable, public Broadcastable {
 
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
+
+  bool IsLookupNode(const PubKey& pubKey) const;
+
+  bool IsLookupNode(const Peer& peerInfo) const;
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
@@ -240,17 +240,12 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessGetNetworkId(const std::vector<unsigned char>& message,
                            unsigned int offset, const Peer& from);
 
-  bool ProcessSetMicroBlockFromSeed(const std::vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from);
-
   bool ProcessGetTxnsFromLookup(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   bool ProcessSetTxnsFromLookup(const std::vector<unsigned char>& message,
                                 unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
-
-  void CommitMicroBlockStorage();
 
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 

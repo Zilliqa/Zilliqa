@@ -27,6 +27,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 
@@ -66,6 +67,12 @@ bool Node::FallbackValidator(const vector<unsigned char>& message,
                 "Calculated: "
                     << temp_blockHash << " Received: "
                     << m_pendingFallbackBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(m_pendingFallbackBlock->GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT)) {
     return false;
   }
 
@@ -265,6 +272,11 @@ void Node::FallbackTimerLaunch() {
     return;
   }
 
+  if (!ENABLE_FALLBACK) {
+    LOG_GENERAL(INFO, "Fallback is currently disabled");
+    return;
+  }
+
   LOG_MARKER();
 
   if (FALLBACK_INTERVAL_STARTED < FALLBACK_CHECK_INTERVAL ||
@@ -341,12 +353,18 @@ void Node::FallbackTimerLaunch() {
 }
 
 void Node::FallbackTimerPulse() {
+  if (!ENABLE_FALLBACK) {
+    return;
+  }
   lock_guard<mutex> g(m_mutexFallbackTimer);
   m_fallbackTimer = 0;
   m_fallbackStarted = false;
 }
 
 void Node::FallbackStop() {
+  if (!ENABLE_FALLBACK) {
+    return;
+  }
   lock_guard<mutex> g(m_mutexFallbackTimer);
   m_runFallback = false;
 }

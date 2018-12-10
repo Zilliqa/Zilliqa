@@ -103,7 +103,10 @@ bool tcp_client::conn(string address, int port) {
       // strcpy(ip , inet_ntoa(*addr_list[i]) );
       server.sin_addr = *addr_list[i];
 
-      cout << address << " resolved to " << inet_ntoa(*addr_list[i]) << endl;
+      char str[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, *addr_list[i], str, INET_ADDRSTRLEN);
+
+      cout << address << " resolved to " << string(str) << endl;
 
       break;
     }
@@ -188,7 +191,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 
   uint32_t listen_port = 5000;
   struct in_addr ip_addr;
-  inet_aton("127.0.0.1", &ip_addr);
+  inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
   vector<unsigned char> dsblockmsg = {MessageType::DIRECTORY,
@@ -221,7 +224,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   curr_offset += UINT256_SIZE;
 
   struct sockaddr_in localhost;
-  inet_aton("127.0.0.1", &localhost.sin_addr);
+  inet_pton(AF_INET, "127.0.0.1", &localhost.sin_addr);
 
   dsblockmsg.resize(curr_offset + 16);
   Serializable::SetNumber<uint128_t>(dsblockmsg, curr_offset,

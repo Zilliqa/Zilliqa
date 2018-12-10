@@ -39,6 +39,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -911,7 +912,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BGIN");
+      << "] BGIN, POWS = " << m_allPoWs.size());
 
   // Refer to Effective mordern C++. Item 32: Use init capture to move objects
   // into closures.
@@ -1030,18 +1031,10 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
-  // Check timestamp (must be greater than timestamp of last Tx block header in
-  // the Tx blockchain)
-  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
-    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t thisDSTimestamp = m_pendingDSBlock->GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
-    if (thisDSTimestamp <= lastTxBlockTimestamp) {
-      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
-                               << lastTxBlockTimestamp
-                               << " DSBlock: " << thisDSTimestamp);
-      return false;
-    }
+  // Check timestamp
+  if (!VerifyTimestamp(m_pendingDSBlock->GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT)) {
+    return false;
   }
 
   // Verify the DSBlockHashSet member of the DSBlockHeader
@@ -1281,9 +1274,6 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
 
   {
     lock_guard<mutex> g(m_mutexAllPOW);
-    LOG_STATE("[POWR][" << std::setw(15) << std::left
-                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                        << m_allPoWs.size() << "] ");
 
     if (m_allPoWs.size() == 0) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),

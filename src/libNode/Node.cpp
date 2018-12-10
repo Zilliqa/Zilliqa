@@ -17,10 +17,15 @@
  * program files.
  */
 
+#include <arpa/inet.h>
 #include <array>
 #include <chrono>
 #include <functional>
 #include <thread>
+
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -59,6 +64,8 @@ using namespace boost::multi_index;
 const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
+#define IP_MAPPING_FILE_NAME "ipMapping.xml"
+
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
@@ -79,7 +86,7 @@ Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,
 
 Node::~Node() {}
 
-bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
+bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
   LOG_MARKER();
 
   // m_state = IDLE;
@@ -88,7 +95,7 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
 
-    if (!StartRetrieveHistory(wakeupForUpgrade)) {
+    if (!StartRetrieveHistory(syncType, wakeupForUpgrade)) {
       AddGenesisInfo(SyncType::NO_SYNC);
       this->Prepare(runInitializeGenesisBlocks);
       return false;
@@ -127,14 +134,6 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
           m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
-
-          if (!wakeupForUpgrade) {
-            LOG_GENERAL(INFO,
-                        "Node recovery cannot be applied on DS leader, apply "
-                        "re-join process instead");
-            return false;
-          }
-
           LOG_GENERAL(INFO, "Set as DS leader: "
                                 << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                 << ":"
@@ -160,7 +159,8 @@ bool Node::Install(SyncType syncType, bool toRetrieveHistory) {
     }
 
     /// When non-rejoin mode, call wake-up or recovery
-    if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType()) {
+    if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
+        SyncType::RECOVERY_ALL_SYNC == syncType) {
       if (wakeupForUpgrade) {
         WakeupForUpgrade();
       } else {
@@ -244,7 +244,8 @@ void Node::Prepare(bool runInitializeGenesisBlocks) {
       FULL_DATASET_MINE);
 }
 
-bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
+bool Node::StartRetrieveHistory(const SyncType syncType,
+                                bool& wakeupForUpgrade) {
   LOG_MARKER();
 
   m_mediator.m_txBlockChain.Reset();
@@ -272,6 +273,30 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   BlockStorage::GetBlockStorage().GetDSCommittee(
       m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
 
+  unordered_map<string, Peer> ipMapping;
+  GetIpMapping(ipMapping);
+
+  if (!ipMapping.empty()) {
+    string pubKey;
+
+    for (auto& ds : *m_mediator.m_DSCommittee) {
+      pubKey = DataConversion::SerializableToHexStr(ds.first);
+
+      if (ipMapping.find(pubKey) != ipMapping.end()) {
+        ds.second = ipMapping.at(pubKey);
+      }
+    }
+  }
+
+  bool bDS = false;
+  for (auto& i : *m_mediator.m_DSCommittee) {
+    if (i.first == m_mediator.m_selfKey.second) {
+      i.second = Peer();
+      bDS = true;
+      break;
+    }
+  }
+
   std::vector<unsigned char> metaRes;
   if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::WAKEUPFORUPGRADE,
                                                   metaRes)) {
@@ -282,7 +307,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 
-  if (wakeupForUpgrade && !LOOKUP_NODE_MODE) {
+  if (!LOOKUP_NODE_MODE &&
+      (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
                           << DS_DELAY_WAKEUP_IN_SECONDS
                           << " seconds for lookup wakeup...");
@@ -305,7 +331,8 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   /// Retrieve lacked Tx blocks from lookup nodes
   if (!ARCHIVAL_NODE &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
-      !(LOOKUP_NODE_MODE && wakeupForUpgrade)) {
+      !(LOOKUP_NODE_MODE && wakeupForUpgrade) &&
+      SyncType::RECOVERY_ALL_SYNC != syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
 
     if (LOOKUP_NODE_MODE) {
@@ -318,8 +345,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
         LOG_GENERAL(WARNING, "Cannot fetch data from lookup node!");
         return false;
       }
-    }
-    {
+
       unique_lock<mutex> lock(m_mediator.m_lookup->m_MutexCVSetTxBlockFromSeed);
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
@@ -333,12 +359,15 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
                cv_status::timeout);
 
       m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
-    }
 
-    if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
-      LOG_GENERAL(WARNING,
-                  "Node recovery too late, apply re-join process instead");
-      return false;
+      /// If node recovery lagging behind too much, apply re-join
+      /// process instead of node recovery
+      if (m_mediator.m_txBlockChain.GetBlockCount() > oldTxNum + 1) {
+        LOG_GENERAL(WARNING,
+                    "Node recovery lagging behind too much, apply re-join "
+                    "process instead");
+        return false;
+      }
     }
 
     /// Retrieve lacked final-block state-delta from lookup nodes
@@ -361,7 +390,7 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
     }
   }
 
-  /// If recovery mode with vacuous epoch or less than 1 DS epoch, apply re-join
+  /// If node recovery with vacuous epoch or in first DS epoch, apply re-join
   /// process instead of node recovery
   if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
@@ -371,13 +400,13 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
            1))) {
     LOG_GENERAL(WARNING,
-                "Node recovery with vacuous epoch or too early, apply "
+                "Node recovery with vacuous epoch or in first DS epoch, apply "
                 "re-join process instead");
     return false;
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (!LOOKUP_NODE_MODE) {
+  if (bDS) {
     for (uint64_t blockNum =
              m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
          blockNum <=
@@ -398,8 +427,38 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   }
 
   /// Retrieve sharding structure and setup relative variables
-  BlockStorage::GetBlockStorage().GetShardStructure(
-      m_mediator.m_ds->m_shards, m_mediator.m_node->m_myshardId);
+  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
+
+  if (!ipMapping.empty()) {
+    string pubKey;
+
+    for (auto& shard : m_mediator.m_ds->m_shards) {
+      for (auto& node : shard) {
+        pubKey =
+            DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node));
+
+        if (ipMapping.find(pubKey) != ipMapping.end()) {
+          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+        }
+      }
+    }
+  }
+
+  if (bDS) {
+    m_myshardId = m_mediator.m_ds->m_shards.size();
+  } else {
+    bool found = false;
+    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size() && !found;
+         ++i) {
+      for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
+        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
+          SetMyshardId(i);
+          found = true;
+          break;
+        }
+      }
+    }
+  }
 
   if (LOOKUP_NODE_MODE) {
     m_mediator.m_lookup->ProcessEntireShardingStructure();
@@ -414,11 +473,12 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (!LOOKUP_NODE_MODE) {
+  if (bDS) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
-            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+                1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
       for (const auto& microBlock : microBlocks) {
         LOG_GENERAL(INFO,
@@ -447,6 +507,28 @@ bool Node::StartRetrieveHistory(bool& wakeupForUpgrade) {
   }
 
   return res;
+}
+
+void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
+  LOG_MARKER();
+
+  if (!boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
+    return;
+  }
+
+  using boost::property_tree::ptree;
+  ptree pt;
+  read_xml(IP_MAPPING_FILE_NAME, pt);
+  struct in_addr ip_addr;
+
+  for (const ptree::value_type& v : pt.get_child("mapping")) {
+    if (v.first == "peer") {
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+      ipMapping[v.second.get<std::string>("pubkey")] =
+          Peer((uint128_t)ip_addr.s_addr, v.second.get<uint32_t>("port"));
+    }
+  }
 }
 
 void Node::WakeupForUpgrade() {
@@ -484,10 +566,10 @@ void Node::WakeupForUpgrade() {
         this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
 
         // create and send POW submission packets
-        auto func = [this]() mutable -> void {
+        auto func2 = [this]() mutable -> void {
           m_mediator.m_ds->ProcessAndSendPoWPacketSubmissionToOtherDSComm();
         };
-        DetachedFunction(1, func);
+        DetachedFunction(1, func2);
 
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Waiting "
@@ -943,13 +1025,14 @@ bool Node::ProcessTxnPacketFromLookup(
     return false;
   }
 
-  uint64_t epochNumber = 0;
+  uint64_t epochNumber = 0, dsBlockNum = 0;
   uint32_t shardId = 0;
   PubKey lookupPubKey;
   vector<Transaction> transactions;
 
-  if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber, shardId,
-                                         lookupPubKey, transactions)) {
+  if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
+                                         dsBlockNum, shardId, lookupPubKey,
+                                         transactions)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeForwardTxnBlock failed.");
     return false;
@@ -988,26 +1071,35 @@ bool Node::ProcessTxnPacketFromLookup(
            0) ||
           m_justDidFallback))) {
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
-      m_txnPacketBuffer.emplace(epochNumber, message);
+      m_txnPacketBuffer.emplace_back(message);
       return true;
     }
   }
 
-  if (epochNumber < m_mediator.m_currentEpochNum) {
-    LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
-    return false;
-  } else if (epochNumber == m_mediator.m_currentEpochNum) {
-    return ProcessTxnPacketFromLookupCore(message, shardId, transactions);
-  } else {
+  //
+
+  if (m_mediator.m_lookup->IsLookupNode(from)) {
+    if (epochNumber < m_mediator.m_currentEpochNum) {
+      LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
+      return false;
+    }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-    m_txnPacketBuffer.emplace(epochNumber, message);
+    LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
+    m_txnPacketBuffer.emplace_back(message);
+  } else {
+    LOG_GENERAL(INFO,
+                "Packet received from a non-lookup node, "
+                "should be from gossip neightor and process it");
+    return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
+                                          transactions);
   }
 
   return true;
 }
 
 bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
-                                          const uint32_t shardId,
+                                          const uint64_t& dsBlockNum,
+                                          const uint32_t& shardId,
                                           const vector<Transaction>& txns) {
   LOG_MARKER();
 
@@ -1023,18 +1115,44 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
+  if (dsBlockNum !=
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+    LOG_GENERAL(WARNING, "Wrong DS block num ("
+                             << dsBlockNum << "), m_myshardId ("
+                             << m_mediator.m_dsBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum()
+                             << ")");
+    return false;
+  }
+
   if (shardId != m_myshardId) {
     LOG_GENERAL(WARNING, "Wrong Shard (" << shardId << "), m_myshardId ("
                                          << m_myshardId << ")");
     return false;
   }
 
-  // If network is gossip mode enabled, lookup sends the gossip forward type
-  // message to shard nodes. And this node wont be responsible for sending
-  // gossip (txnpkt) from this function but will be done at gossip layer.
-  // However, Broadcast to other shard node if not Gossip mode enabled ( for
-  // backward compatibilty )
-  if (!BROADCAST_GOSSIP_MODE) {
+  if (BROADCAST_GOSSIP_MODE) {
+    if (P2PComm::GetInstance().SpreadRumor(message)) {
+      LOG_STATE("[TXNPKTPROC-INITIATE]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    } else {
+      LOG_STATE("[TXNPKTPROC]["
+                << message.size() << "]" << std::setw(15) << std::left
+                << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                << m_mediator.m_txBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum() +
+                       1
+                << "][" << shardId << "] BEGN");
+    }
+  } else {
     vector<Peer> toSend;
     for (auto& it : *m_myShardMembers) {
       toSend.push_back(it.second);
@@ -1175,23 +1293,21 @@ void Node::CommitTxnPacketBuffer() {
   }
 
   lock_guard<mutex> g(m_mutexTxnPacketBuffer);
-  auto it = m_txnPacketBuffer.find(m_mediator.m_currentEpochNum);
-
-  if (it != m_txnPacketBuffer.end()) {
-    uint64_t epochNumber = 0;
+  for (const auto& message : m_txnPacketBuffer) {
+    uint64_t epochNumber = 0, dsBlockNum = 0;
     uint32_t shardId = 0;
     PubKey lookupPubKey;
     vector<Transaction> transactions;
 
-    if (!Messenger::GetNodeForwardTxnBlock(it->second, MessageOffset::BODY,
-                                           epochNumber, shardId, lookupPubKey,
-                                           transactions)) {
+    if (!Messenger::GetNodeForwardTxnBlock(message, MessageOffset::BODY,
+                                           epochNumber, dsBlockNum, shardId,
+                                           lookupPubKey, transactions)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::GetNodeForwardTxnBlock failed.");
       return;
     }
 
-    ProcessTxnPacketFromLookupCore(it->second, shardId, transactions);
+    ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId, transactions);
   }
 }
 
@@ -1279,7 +1395,6 @@ bool Node::CleanVariables() {
   AccountStore::GetInstance().InitSoft();
   m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
   m_isPrimary = false;
-  m_isMBSender = false;
   m_stillMiningPrimary = false;
   m_myshardId = 0;
   m_proposedGasPrice = PRECISION_MIN_VALUE;
@@ -1514,7 +1629,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Node::ProcessSubmitTransaction,
       &Node::ProcessMicroblockConsensus,
       &Node::ProcessFinalBlock,
-      &Node::ProcessForwardTransaction,
+      &Node::ProcessMBnForwardTransaction,
       &Node::ProcessVCBlock,
       &Node::ProcessDoRejoin,
       &Node::ProcessTxnPacketFromLookup,

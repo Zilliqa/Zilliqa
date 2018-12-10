@@ -19,10 +19,11 @@
 
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/server/connectors/httpserver.h>
+#include <chrono>
 
 #include "Zilliqa.h"
 #include "common/Constants.h"
-#include "common/Messages.h"
+#include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "libArchival/Archival.h"
 #include "libCrypto/Schnorr.h"
@@ -45,7 +46,6 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
   key.first.Serialize(tmp1, 0);
   key.second.Serialize(tmp2, 0);
 
-  LOG_PAYLOAD(INFO, "Private Key", tmp1, PRIV_KEY_SIZE * 2);
   LOG_PAYLOAD(INFO, "Public Key", tmp2, PUB_KEY_SIZE * 2);
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -59,6 +59,25 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
 
   LOG_GENERAL(INFO, "My address is " << toAddr << " and port is "
                                      << peer.m_listenPortHost);
+}
+
+/*static*/ std::string Zilliqa::FormatMessageName(unsigned char msgType,
+                                                  unsigned char instruction) {
+  const std::string InvalidMessageType = "INVALID_MESSAGE";
+  if (msgType >= ARRAY_SIZE(MessageTypeStrings)) {
+    return InvalidMessageType;
+  }
+
+  if (NULL == MessageTypeInstructionStrings[msgType]) {
+    return InvalidMessageType;
+  }
+
+  if (instruction >= MessageTypeInstructionSize[msgType]) {
+    return InvalidMessageType;
+  }
+
+  return MessageTypeStrings[msgType] + "_" +
+         MessageTypeInstructionStrings[msgType][instruction];
 }
 
 void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message) {
@@ -77,8 +96,28 @@ void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message) {
         return;
       }
 
+      std::chrono::time_point<std::chrono::high_resolution_clock> tpStart;
+      std::string msgName;
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        const auto ins_byte = message->first.at(MessageOffset::INST);
+        msgName = FormatMessageName(msg_type, ins_byte);
+        LOG_GENERAL(INFO, MessageSizeKeyword << msgName << " "
+                                             << message->first.size());
+
+        tpStart = std::chrono::high_resolution_clock::now();
+      }
+
       bool result = msg_handlers[msg_type]->Execute(
           message->first, MessageOffset::INST, message->second);
+
+      if (ENABLE_CHECK_PERFORMANCE_LOG) {
+        auto tpNow = std::chrono::high_resolution_clock::now();
+        auto timeInMicro = static_cast<int64_t>(
+            (std::chrono::duration<double, std::micro>(tpNow - tpStart))
+                .count());
+        LOG_GENERAL(
+            INFO, MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
+      }
 
       if (!result) {
         // To-do: Error recovery
@@ -209,6 +248,9 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
         m_lookup.StartSynchronization();
         break;
+      case SyncType::RECOVERY_ALL_SYNC:
+        LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
+        break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
         break;
@@ -242,8 +284,8 @@ void Zilliqa::Dispatch(pair<vector<unsigned char>, Peer>* message) {
   // LOG_MARKER();
 
   // Queue message
-  while (!m_msgQueue.push(message)) {
-    // Keep attempting to push until success
+  if (!m_msgQueue.bounded_push(message)) {
+    LOG_GENERAL(WARNING, "Input MsgQueue is full");
   }
 }
 

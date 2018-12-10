@@ -2057,6 +2057,11 @@ bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
       accountStore.AddAccount(address, acc);
       oriAccount = accountStore.GetAccount(address);
       fullCopy = true;
+
+      if (oriAccount == nullptr) {
+        LOG_GENERAL(WARNING, "Failed to create account for " << address);
+        return false;
+      }
     }
 
     account = *oriAccount;
@@ -2108,6 +2113,12 @@ bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
     }
 
     oriAccount = accountStoreTemp.GetAccount(address);
+
+    if (oriAccount == nullptr) {
+      LOG_GENERAL(WARNING, "Failed to create account for " << address);
+      return false;
+    }
+
     account = *oriAccount;
 
     if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
@@ -3351,16 +3362,15 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetNodeForwardTransaction(
+bool Messenger::SetNodeMBnForwardTransaction(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t blockNum, const BlockHash& hash,
-    const vector<TransactionWithReceipt>& txns) {
+    const MicroBlock& microBlock, const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
-  NodeForwardTransaction result;
+  NodeMBnForwardTransaction result;
 
-  result.set_blocknum(blockNum);
-  result.set_microblockhash(hash.asArray().data(), hash.asArray().size());
+  MicroBlockToProtobuf(microBlock, *result.mutable_microblock());
+
   unsigned int txnsCount = 0;
 
   for (const auto& txn : txns) {
@@ -3369,22 +3379,23 @@ bool Messenger::SetNodeForwardTransaction(
   }
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "NodeForwardTransaction initialization failed.");
+    LOG_GENERAL(WARNING, "SetNodeMBnForwardTransaction initialization failed.");
     return false;
   }
 
-  LOG_GENERAL(INFO, "BlockNum: " << blockNum << " MBHash: " << hash.hex()
+  LOG_GENERAL(INFO, "EpochNum: " << microBlock.GetHeader().GetEpochNum()
+                                 << " MBHash: " << microBlock.GetBlockHash()
                                  << " Txns: " << txnsCount);
 
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
-                                          const unsigned int offset,
-                                          ForwardedTxnEntry& entry) {
+bool Messenger::GetNodeMBnForwardTransaction(const vector<unsigned char>& src,
+                                             const unsigned int offset,
+                                             MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
-  NodeForwardTransaction result;
+  NodeMBnForwardTransaction result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
@@ -3393,10 +3404,7 @@ bool Messenger::GetNodeForwardTransaction(const vector<unsigned char>& src,
     return false;
   }
 
-  entry.m_blockNum = result.blocknum();
-
-  copy(result.microblockhash().begin(), result.microblockhash().end(),
-       entry.m_hash.asArray().begin());
+  ProtobufToMicroBlock(result.microblock(), entry.m_microBlock);
 
   unsigned int txnsCount = 0;
 
@@ -3449,8 +3457,8 @@ bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
 
 bool Messenger::SetNodeForwardTxnBlock(
     std::vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t epochNumber, const uint32_t shardId,
-    const std::pair<PrivKey, PubKey>& lookupKey,
+    const uint64_t& epochNumber, const uint64_t& dsBlockNum,
+    const uint32_t& shardId, const std::pair<PrivKey, PubKey>& lookupKey,
     const std::vector<Transaction>& txnsCurrent,
     const std::vector<Transaction>& txnsGenerated) {
   LOG_MARKER();
@@ -3458,6 +3466,7 @@ bool Messenger::SetNodeForwardTxnBlock(
   NodeForwardTxnBlock result;
 
   result.set_epochnumber(epochNumber);
+  result.set_dsblocknum(dsBlockNum);
   result.set_shardid(shardId);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
@@ -3504,7 +3513,8 @@ bool Messenger::SetNodeForwardTxnBlock(
 
 bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                        const unsigned int offset,
-                                       uint64_t& epochNumber, uint32_t& shardId,
+                                       uint64_t& epochNumber,
+                                       uint64_t& dsBlockNum, uint32_t& shardId,
                                        PubKey& lookupPubKey,
                                        std::vector<Transaction>& txns) {
   LOG_MARKER();
@@ -3519,6 +3529,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
   }
 
   epochNumber = result.epochnumber();
+  dsBlockNum = result.dsblocknum();
   shardId = result.shardid();
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
