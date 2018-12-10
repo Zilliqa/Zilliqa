@@ -116,7 +116,7 @@ extern const std::string DB_HOST;
 
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
-extern const unsigned int SEED_TXN_COLLECTION_TIME;
+extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
 
 // Consensus constants
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;

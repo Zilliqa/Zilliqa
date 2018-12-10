@@ -89,7 +89,7 @@ bool Server::StartCollectorThread() {
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
-      this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME));
+      this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME_IN_SEC));
       txns.clear();
       if (USE_REMOTE_TXN_CREATOR && !m_mediator.m_lookup->GenTxnToSend(
                                         NUM_TXN_TO_SEND_PER_ACCOUNT, txns)) {
