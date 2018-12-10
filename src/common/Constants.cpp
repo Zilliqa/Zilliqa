@@ -22,6 +22,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+using namespace std;
+
 using boost::property_tree::ptree;
 
 struct PTree {
@@ -35,52 +37,23 @@ struct PTree {
   ~PTree() = delete;
 };
 
-unsigned int ReadFromConstantsFile(std::string propertyName) {
+unsigned int ReadConstantNumeric(const string& propertyName,
+                                 const char* path = "node.general.") {
   auto pt = PTree::GetInstance();
-  return pt.get<unsigned int>("node.constants." + propertyName);
+  return pt.get<unsigned int>(path + propertyName);
 }
 
-unsigned int ReadFromTestsFile(std::string propertyName) {
+string ReadConstantString(string propertyName,
+                          const char* path = "node.general.") {
   auto pt = PTree::GetInstance();
-  return pt.get<unsigned int>("node.tests." + propertyName);
+  return pt.get<string>(path + propertyName);
 }
 
-std::string ReadFromOptionsFile(std::string propertyName) {
+const vector<string> ReadAccountsFromConstantsFile(string propName) {
   auto pt = PTree::GetInstance();
-  return pt.get<std::string>("node.options." + propertyName);
-}
-
-unsigned int ReadFromGasFile(std::string propertyName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<unsigned int>("node.gas." + propertyName);
-}
-
-std::string ReadFromGasFileInString(std::string propertyName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<std::string>("node.gas." + propertyName);
-}
-
-std::string ReadSmartContractConstants(std::string propertyName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<std::string>("node.smart_contract." + propertyName);
-}
-
-std::string ReadDispatcherConstants(std::string propertyName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<std::string>("node.dispatcher." + propertyName);
-}
-
-std::string ReadArchivalConstants(std::string propertyName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<std::string>("node.archival." + propertyName);
-}
-
-const std::vector<std::string> ReadAccountsFromConstantsFile(
-    std::string propName) {
-  auto pt = PTree::GetInstance();
-  std::vector<std::string> result;
+  vector<string> result;
   for (auto& acc : pt.get_child("node.accounts")) {
-    auto child = acc.second.get_optional<std::string>(propName);
+    auto child = acc.second.get_optional<string>(propName);
     if (child) {
       // LOG_GENERAL("constants " << child.get());
       result.push_back(child.get());
@@ -89,245 +62,301 @@ const std::vector<std::string> ReadAccountsFromConstantsFile(
   return result;
 }
 
-unsigned int ReadGpuConstants(std::string propertyName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<unsigned int>("node.gpu." + propertyName);
-}
+// General constants
+const unsigned int MSG_VERSION{ReadConstantNumeric("MSG_VERSION")};
+const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
+const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
+const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 
-std::string ReadGPUVariableFromConstantsFile(std::string propertyName) {
-  auto pt = PTree::GetInstance();
-  return pt.get<std::string>("node.gpu." + propertyName);
-}
+// Archival constants
+const bool ARCHIVAL_NODE{
+    ReadConstantString("ARCHIVAL_NODE", "node.archival.") == "true"};
+const string DB_HOST{ReadConstantString("DB_HOST", "node.archival.")};
 
-const unsigned int MSG_VERSION{ReadFromConstantsFile("MSG_VERSION")};
-const unsigned int MULTICAST_CLUSTER_SIZE{
-    ReadFromConstantsFile("MULTICAST_CLUSTER_SIZE")};
-const unsigned int COMM_SIZE{ReadFromConstantsFile("COMM_SIZE")};
-const unsigned int NUM_DS_ELECTION{ReadFromConstantsFile("NUM_DS_ELECTION")};
-const unsigned int POW_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("POW_WINDOW_IN_SECONDS")};
-const unsigned int NEW_NODE_SYNC_INTERVAL{
-    ReadFromConstantsFile("NEW_NODE_SYNC_INTERVAL")};
-const unsigned int RECOVERY_SYNC_TIMEOUT{
-    ReadFromConstantsFile("RECOVERY_SYNC_TIMEOUT")};
-const unsigned int POW_SUBMISSION_TIMEOUT{
-    ReadFromConstantsFile("POW_SUBMISSION_TIMEOUT")};
-const unsigned int DS_POW_DIFFICULTY{
-    ReadFromConstantsFile("DS_POW_DIFFICULTY")};
-const unsigned int POW_DIFFICULTY{ReadFromConstantsFile("POW_DIFFICULTY")};
-const unsigned int POW_SUBMISSION_LIMIT{
-    ReadFromConstantsFile("POW_SUBMISSION_LIMIT")};
-const unsigned int MICROBLOCK_TIMEOUT{
-    ReadFromConstantsFile("MICROBLOCK_TIMEOUT")};
-const unsigned int VIEWCHANGE_TIME{ReadFromConstantsFile("VIEWCHANGE_TIME")};
-const unsigned int VIEWCHANGE_PRECHECK_TIME{
-    ReadFromConstantsFile("VIEWCHANGE_PRECHECK_TIME")};
-const unsigned int VIEWCHANGE_EXTRA_TIME{
-    ReadFromConstantsFile("VIEWCHANGE_EXTRA_TIME")};
-const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
-    ReadFromConstantsFile("CONSENSUS_MSG_ORDER_BLOCK_WINDOW")};
-const unsigned int CONSENSUS_OBJECT_TIMEOUT{
-    ReadFromConstantsFile("CONSENSUS_OBJECT_TIMEOUT")};
-const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
-    ReadFromConstantsFile("FETCHING_MISSING_DATA_TIMEOUT")};
-const unsigned int NUM_FINAL_BLOCK_PER_POW{
-    ReadFromConstantsFile("NUM_FINAL_BLOCK_PER_POW")};
-const uint32_t MAXMESSAGE{ReadFromConstantsFile("MAXMESSAGE")};
-const unsigned int TX_SHARING_CLUSTER_SIZE{
-    ReadFromConstantsFile("TX_SHARING_CLUSTER_SIZE")};
-const unsigned int NEW_NODE_POW_DELAY{
-    ReadFromConstantsFile("NEW_NODE_POW_DELAY")};
-const unsigned int POST_VIEWCHANGE_BUFFER{
-    ReadFromConstantsFile("POST_VIEWCHANGE_BUFFER")};
-const unsigned int COINBASE_REWARD{ReadFromConstantsFile("COINBASE_REWARD")};
-const unsigned int DEBUG_LEVEL{ReadFromConstantsFile("DEBUG_LEVEL")};
-const unsigned int BROADCAST_INTERVAL{
-    ReadFromConstantsFile("BROADCAST_INTERVAL")};
-const unsigned int BROADCAST_EXPIRY{ReadFromConstantsFile("BROADCAST_EXPIRY")};
-const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
-    ReadFromConstantsFile("TX_DISTRIBUTE_TIME_IN_MS")};
-const unsigned int FINALBLOCK_DELAY_IN_MS{
-    ReadFromConstantsFile("FINALBLOCK_DELAY_IN_MS")};
-const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
-    ReadFromConstantsFile("NUM_TXN_TO_SEND_PER_ACCOUNT")};
-const unsigned int NUM_NODES_TO_SEND_LOOKUP{
-    ReadFromConstantsFile("NUM_NODES_TO_SEND_LOOKUP")};
-const unsigned int MAX_INDEXES_PER_TXN{
-    ReadFromConstantsFile("MAX_INDEXES_PER_TXN")};
-const unsigned int SENDQUEUE_SIZE{ReadFromConstantsFile("SENDQUEUE_SIZE")};
-const unsigned int MSGQUEUE_SIZE{ReadFromConstantsFile("MSGQUEUE_SIZE")};
-const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
-    ReadFromConstantsFile("POW_CHANGE_PERCENT_TO_ADJ_DIFF")};
-const unsigned int FALLBACK_INTERVAL_STARTED{
-    ReadFromConstantsFile("FALLBACK_INTERVAL_STARTED")};
-const unsigned int FALLBACK_INTERVAL_WAITING{
-    ReadFromConstantsFile("FALLBACK_INTERVAL_WAITING")};
-const unsigned int FALLBACK_CHECK_INTERVAL{
-    ReadFromConstantsFile("FALLBACK_CHECK_INTERVAL")};
-const unsigned int FALLBACK_EXTRA_TIME{
-    ReadFromConstantsFile("FALLBACK_EXTRA_TIME")};
-const unsigned int MAX_ROUNDS_IN_BSTATE{
-    ReadFromConstantsFile("MAX_ROUNDS_IN_BSTATE")};
-const unsigned int MAX_ROUNDS_IN_CSTATE{
-    ReadFromConstantsFile("MAX_ROUNDS_IN_CSTATE")};
-const unsigned int MAX_TOTAL_ROUNDS{ReadFromConstantsFile("MAX_TOTAL_ROUNDS")};
-const unsigned int ROUND_TIME_IN_MS{ReadFromConstantsFile("ROUND_TIME_IN_MS")};
-const unsigned int MAX_NEIGHBORS_PER_ROUND{
-    ReadFromConstantsFile("MAX_NEIGHBORS_PER_ROUND")};
-const unsigned int EXPECTED_SHARD_NODE_NUM{
-    ReadFromConstantsFile("EXPECTED_SHARD_NODE_NUM")};
-const unsigned int MAX_SHARD_NODE_NUM{
-    ReadFromConstantsFile("MAX_SHARD_NODE_NUM")};
-const unsigned int NUM_GOSSIP_RECEIVERS{
-    ReadFromConstantsFile("NUM_GOSSIP_RECEIVERS")};
-const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
-    ReadFromConstantsFile("HEARTBEAT_INTERVAL_IN_SECONDS")};
-const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
-    ReadFromConstantsFile("TERMINATION_COUNTDOWN_IN_SECONDS")};
-const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
-    ReadFromConstantsFile("DS_DELAY_WAKEUP_IN_SECONDS")};
-const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
-    ReadFromConstantsFile("SHARD_DELAY_WAKEUP_IN_SECONDS")};
-const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD{
-    ReadFromConstantsFile("NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD")};
-const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{
-    ReadFromConstantsFile("NUM_OF_TREEBASED_CHILD_CLUSTERS")};
-const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
-    ReadFromConstantsFile("FETCH_LOOKUP_MSG_MAX_RETRY")};
-const unsigned int MAX_CONTRACT_DEPTH{
-    ReadFromConstantsFile("MAX_CONTRACT_DEPTH")};
+// Consensus constants
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("COMMIT_WINDOW_IN_SECONDS")};
+    ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};
+const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW{
+    ReadConstantNumeric("CONSENSUS_MSG_ORDER_BLOCK_WINDOW", "node.consensus.")};
+const unsigned int CONSENSUS_OBJECT_TIMEOUT{
+    ReadConstantNumeric("CONSENSUS_OBJECT_TIMEOUT", "node.consensus.")};
 const unsigned int NUM_CONSENSUS_SUBSETS{
-    ReadFromConstantsFile("NUM_CONSENSUS_SUBSETS")};
-const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
-    ReadFromConstantsFile("MISORDER_TOLERANCE_IN_PERCENT")};
-const unsigned int MAX_CODE_SIZE_IN_BYTES{
-    ReadFromConstantsFile("MAX_CODE_SIZE_IN_BYTES")};
-const unsigned int LOOKUP_REWARD_IN_PERCENT{
-    ReadFromConstantsFile("LOOKUP_REWARD_IN_PERCENT")};
-const unsigned int PUMPMESSAGE_MILLISECONDS{
-    ReadFromConstantsFile("PUMPMESSAGE_MILLISECONDS")};
-const unsigned int MAXRETRYCONN{ReadFromConstantsFile("MAXRETRYCONN")};
-const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
-    ReadFromConstantsFile("SIMULATED_NETWORK_DELAY_IN_MS")};
-const unsigned int POW_PACKET_SENDERS{
-    ReadFromConstantsFile("POW_PACKET_SENDERS")};
-const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{
-    ReadFromConstantsFile("POWPACKETSUBMISSION_WINDOW_IN_SECONDS")};
-const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{
-    ReadFromConstantsFile("LOOKUP_DELAY_SEND_TXNPACKET_IN_MS")};
-const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
-    ReadFromConstantsFile("DELAY_FIRSTXNEPOCH_IN_MS")};
-const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{
-    ReadFromConstantsFile("TXN_MISORDER_TOLERANCE_IN_PERCENT")};
-const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{
-    ReadFromConstantsFile("SYS_TIMESTAMP_VARIANCE_IN_SECONDS")};
+    ReadConstantNumeric("NUM_CONSENSUS_SUBSETS", "node.consensus.")};
 
-#ifdef FALLBACK_TEST
-const unsigned int FALLBACK_TEST_EPOCH{
-    ReadFromTestsFile("FALLBACK_TEST_EPOCH")};
-#endif  // FALLBACK_TEST
-
-// options
-const bool EXCLUDE_PRIV_IP{ReadFromOptionsFile("EXCLUDE_PRIV_IP") == "true"};
-const bool GUARD_MODE{ReadFromOptionsFile("GUARD_MODE") == "true"};
-const bool ENABLE_DO_REJOIN{ReadFromOptionsFile("ENABLE_DO_REJOIN") == "true"};
-const bool FULL_DATASET_MINE{ReadFromOptionsFile("FULL_DATASET_MINE") ==
-                             "true"};
-const bool OPENCL_GPU_MINE{ReadFromOptionsFile("OPENCL_GPU_MINE") == "true"};
-const bool CUDA_GPU_MINE{ReadFromOptionsFile("CUDA_GPU_MINE") == "true"};
-const bool LOOKUP_NODE_MODE{ReadFromOptionsFile("LOOKUP_NODE_MODE") == "true"};
-const bool BROADCAST_GOSSIP_MODE{ReadFromOptionsFile("BROADCAST_GOSSIP_MODE") ==
-                                 "true"};
-const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS{
-    ReadFromOptionsFile("GOSSIP_CUSTOM_ROUNDS_SETTINGS") == "true"};
+// Data sharing constants
 const bool BROADCAST_TREEBASED_CLUSTER_MODE{
-    ReadFromOptionsFile("BROADCAST_TREEBASED_CLUSTER_MODE") == "true"};
-const bool GET_INITIAL_DS_FROM_REPO{
-    ReadFromOptionsFile("GET_INITIAL_DS_FROM_REPO") == "true"};
-const std::string UPGRADE_HOST_ACCOUNT{
-    ReadFromOptionsFile("UPGRADE_HOST_ACCOUNT")};
-const std::string UPGRADE_HOST_REPO{ReadFromOptionsFile("UPGRADE_HOST_REPO")};
-const bool ARCHIVAL_NODE{ReadFromOptionsFile("ARCHIVAL_NODE") == "true"};
-const bool SEND_RESPONSE_FOR_LAZY_PUSH{
-    ReadFromOptionsFile("SEND_RESPONSE_FOR_LAZY_PUSH") == "true"};
-const bool ENABLE_FALLBACK{ReadFromOptionsFile("ENABLE_FALLBACK") == "true"};
-const bool ENABLE_CHECK_PERFORMANCE_LOG{
-    ReadFromOptionsFile("ENABLE_CHECK_PERFORMANCE_LOG") == "true"};
+    ReadConstantString("BROADCAST_TREEBASED_CLUSTER_MODE",
+                       "node.data_sharing.") == "true"};
+const unsigned int MULTICAST_CLUSTER_SIZE{
+    ReadConstantNumeric("MULTICAST_CLUSTER_SIZE", "node.data_sharing.")};
+const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD{ReadConstantNumeric(
+    "NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD", "node.data_sharing.")};
+const unsigned int NUM_NODES_TO_SEND_LOOKUP{
+    ReadConstantNumeric("NUM_NODES_TO_SEND_LOOKUP", "node.data_sharing.")};
+const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS{ReadConstantNumeric(
+    "NUM_OF_TREEBASED_CHILD_CLUSTERS", "node.data_sharing.")};
+const unsigned int POW_PACKET_SENDERS{
+    ReadConstantNumeric("POW_PACKET_SENDERS", "node.data_sharing.")};
+const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS{ReadConstantNumeric(
+    "POWPACKETSUBMISSION_WINDOW_IN_SECONDS", "node.data_sharing.")};
+const unsigned int TX_SHARING_CLUSTER_SIZE{
+    ReadConstantNumeric("TX_SHARING_CLUSTER_SIZE", "node.data_sharing.")};
 
-// gas
+// Dispatcher constants
+const string TXN_PATH{ReadConstantString("TXN_PATH", "node.dispatcher.")};
+const bool USE_REMOTE_TXN_CREATOR{
+    ReadConstantString("USE_REMOTE_TXN_CREATOR", "node.dispatcher.") == "true"};
+
+// Epoch timing constants
+const unsigned int DELAY_FIRSTXNEPOCH_IN_MS{
+    ReadConstantNumeric("DELAY_FIRSTXNEPOCH_IN_MS", "node.epoch_timing.")};
+const unsigned int FETCHING_MISSING_DATA_TIMEOUT{
+    ReadConstantNumeric("FETCHING_MISSING_DATA_TIMEOUT", "node.epoch_timing.")};
+const unsigned int FINALBLOCK_DELAY_IN_MS{
+    ReadConstantNumeric("FINALBLOCK_DELAY_IN_MS", "node.epoch_timing.")};
+const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS{ReadConstantNumeric(
+    "LOOKUP_DELAY_SEND_TXNPACKET_IN_MS", "node.epoch_timing.")};
+const unsigned int MICROBLOCK_TIMEOUT{
+    ReadConstantNumeric("MICROBLOCK_TIMEOUT", "node.epoch_timing.")};
+const unsigned int NEW_NODE_POW_DELAY{
+    ReadConstantNumeric("NEW_NODE_POW_DELAY", "node.epoch_timing.")};
+const unsigned int NEW_NODE_SYNC_INTERVAL{
+    ReadConstantNumeric("NEW_NODE_SYNC_INTERVAL", "node.epoch_timing.")};
+const unsigned int POW_SUBMISSION_TIMEOUT{
+    ReadConstantNumeric("POW_SUBMISSION_TIMEOUT", "node.epoch_timing.")};
+const unsigned int POW_WINDOW_IN_SECONDS{
+    ReadConstantNumeric("POW_WINDOW_IN_SECONDS", "node.epoch_timing.")};
+const unsigned int RECOVERY_SYNC_TIMEOUT{
+    ReadConstantNumeric("RECOVERY_SYNC_TIMEOUT", "node.epoch_timing.")};
+const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
+    ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
+
+// Fallback constants
+const bool ENABLE_FALLBACK{
+    ReadConstantString("ENABLE_FALLBACK", "node.fallback.") == "true"};
+const unsigned int FALLBACK_CHECK_INTERVAL{
+    ReadConstantNumeric("FALLBACK_CHECK_INTERVAL", "node.fallback.")};
+const unsigned int FALLBACK_EXTRA_TIME{
+    ReadConstantNumeric("FALLBACK_EXTRA_TIME", "node.fallback.")};
+const unsigned int FALLBACK_INTERVAL_STARTED{
+    ReadConstantNumeric("FALLBACK_INTERVAL_STARTED", "node.fallback.")};
+const unsigned int FALLBACK_INTERVAL_WAITING{
+    ReadConstantNumeric("FALLBACK_INTERVAL_WAITING", "node.fallback.")};
+
+// Gas constants
 const unsigned int MICROBLOCK_GAS_LIMIT{
-    ReadFromGasFile("MICROBLOCK_GAS_LIMIT")};
-const unsigned int CONTRACT_CREATE_GAS{ReadFromGasFile("CONTRACT_CREATE_GAS")};
-const unsigned int CONTRACT_INVOKE_GAS{ReadFromGasFile("CONTRACT_INVOKE_GAS")};
-const unsigned int NORMAL_TRAN_GAS{ReadFromGasFile("NORMAL_TRAN_GAS")};
+    ReadConstantNumeric("MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int CONTRACT_CREATE_GAS{
+    ReadConstantNumeric("CONTRACT_CREATE_GAS", "node.gas.")};
+const unsigned int CONTRACT_INVOKE_GAS{
+    ReadConstantNumeric("CONTRACT_INVOKE_GAS", "node.gas.")};
+const unsigned int NORMAL_TRAN_GAS{
+    ReadConstantNumeric("NORMAL_TRAN_GAS", "node.gas.")};
 const unsigned int GAS_CONGESTION_PERCENT{
-    ReadFromGasFile("GAS_CONGESTION_PERCENT")};
+    ReadConstantNumeric("GAS_CONGESTION_PERCENT", "node.gas.")};
 const unsigned int UNFILLED_PERCENT_LOW{
-    ReadFromGasFile("UNFILLED_PERCENT_LOW")};
+    ReadConstantNumeric("UNFILLED_PERCENT_LOW", "node.gas.")};
 const unsigned int UNFILLED_PERCENT_HIGH{
-    ReadFromGasFile("UNFILLED_PERCENT_HIGH")};
-const unsigned int GAS_PRICE_PRECISION{ReadFromGasFile("GAS_PRICE_PRECISION")};
-const unsigned int GAS_PRICE_DROP_RATIO{
-    ReadFromGasFile("GAS_PRICE_DROP_RATIO")};
-const unsigned int GAS_PRICE_RAISE_RATIO_LOWER{
-    ReadFromGasFile("GAS_PRICE_RAISE_RATIO_LOWER")};
-const unsigned int GAS_PRICE_RAISE_RATIO_UPPER{
-    ReadFromGasFile("GAS_PRICE_RAISE_RATIO_UPPER")};
-const unsigned int GAS_PRICE_TOLERANCE{ReadFromGasFile("GAS_PRICE_TOLERANCE")};
-const unsigned int MEAN_GAS_PRICE_DS_NUM{
-    ReadFromGasFile("MEAN_GAS_PRICE_DS_NUM")};
+    ReadConstantNumeric("UNFILLED_PERCENT_HIGH", "node.gas.")};
+const unsigned int GAS_PRICE_PRECISION{
+    ReadConstantNumeric("GAS_PRICE_PRECISION", "node.gas.")};
 const boost::multiprecision::uint128_t PRECISION_MIN_VALUE{
     SafeMath<boost::multiprecision::uint128_t>::power(10, GAS_PRICE_PRECISION)};
-const std::string LEGAL_GAS_PRICE_IP{
-    ReadFromGasFileInString("LEGAL_GAS_PRICE_IP")};
+const unsigned int GAS_PRICE_DROP_RATIO{
+    ReadConstantNumeric("GAS_PRICE_DROP_RATIO", "node.gas.")};
+const unsigned int GAS_PRICE_RAISE_RATIO_LOWER{
+    ReadConstantNumeric("GAS_PRICE_RAISE_RATIO_LOWER", "node.gas.")};
+const unsigned int GAS_PRICE_RAISE_RATIO_UPPER{
+    ReadConstantNumeric("GAS_PRICE_RAISE_RATIO_UPPER", "node.gas.")};
+const unsigned int GAS_PRICE_TOLERANCE{
+    ReadConstantNumeric("GAS_PRICE_TOLERANCE", "node.gas.")};
+const unsigned int MEAN_GAS_PRICE_DS_NUM{
+    ReadConstantNumeric("MEAN_GAS_PRICE_DS_NUM", "node.gas.")};
+const string LEGAL_GAS_PRICE_IP{
+    ReadConstantString("LEGAL_GAS_PRICE_IP", "node.gas.")};
 
-// accounts
-const std::vector<std::string> GENESIS_WALLETS{
-    ReadAccountsFromConstantsFile("wallet_address")};
-const std::vector<std::string> GENESIS_KEYS{
-    ReadAccountsFromConstantsFile("private_key")};
+// Gossip constants
+const bool BROADCAST_GOSSIP_MODE{
+    ReadConstantString("BROADCAST_GOSSIP_MODE", "node.gossip.") == "true"};
+const bool SEND_RESPONSE_FOR_LAZY_PUSH{
+    ReadConstantString("SEND_RESPONSE_FOR_LAZY_PUSH", "node.gossip.") ==
+    "true"};
+const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS{
+    ReadConstantString("GOSSIP_CUSTOM_ROUNDS_SETTINGS", "node.gossip.") ==
+    "true"};
+const unsigned int MAX_ROUNDS_IN_BSTATE{ReadConstantNumeric(
+    "MAX_ROUNDS_IN_BSTATE", "node.gossip.gossip_custom_rounds.")};
+const unsigned int MAX_ROUNDS_IN_CSTATE{ReadConstantNumeric(
+    "MAX_ROUNDS_IN_CSTATE", "node.gossip.gossip_custom_rounds.")};
+const unsigned int MAX_TOTAL_ROUNDS{ReadConstantNumeric(
+    "MAX_TOTAL_ROUNDS", "node.gossip.gossip_custom_rounds.")};
+const unsigned int MAX_NEIGHBORS_PER_ROUND{
+    ReadConstantNumeric("MAX_NEIGHBORS_PER_ROUND", "node.gossip.")};
+const unsigned int NUM_GOSSIP_RECEIVERS{
+    ReadConstantNumeric("NUM_GOSSIP_RECEIVERS", "node.gossip.")};
+const unsigned int ROUND_TIME_IN_MS{
+    ReadConstantNumeric("ROUND_TIME_IN_MS", "node.gossip.")};
+const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
+    ReadConstantNumeric("SIMULATED_NETWORK_DELAY_IN_MS", "node.gossip.")};
 
-// smart contract
-const std::string SCILLA_ROOT{ReadSmartContractConstants("SCILLA_ROOT")};
-const std::string SCILLA_CHECKER{SCILLA_ROOT + '/' +
-                                 ReadSmartContractConstants("SCILLA_CHECKER")};
-const std::string SCILLA_BINARY{SCILLA_ROOT + '/' +
-                                ReadSmartContractConstants("SCILLA_BINARY")};
-const std::string SCILLA_FILES{ReadSmartContractConstants("SCILLA_FILES")};
-const std::string SCILLA_LOG{ReadSmartContractConstants("SCILLA_LOG")};
-const std::string SCILLA_LIB{SCILLA_ROOT + '/' +
-                             ReadSmartContractConstants("SCILLA_LIB")};
-const std::string INIT_JSON{SCILLA_FILES + '/' +
-                            ReadSmartContractConstants("INIT_JSON")};
-const std::string INPUT_STATE_JSON{
-    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_STATE_JSON")};
-const std::string INPUT_BLOCKCHAIN_JSON{
-    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_BLOCKCHAIN_JSON")};
-const std::string INPUT_MESSAGE_JSON{
-    SCILLA_FILES + '/' + ReadSmartContractConstants("INPUT_MESSAGE_JSON")};
-const std::string OUTPUT_JSON{SCILLA_FILES + '/' +
-                              ReadSmartContractConstants("OUTPUT_JSON")};
-const std::string INPUT_CODE{SCILLA_FILES + '/' +
-                             ReadSmartContractConstants("INPUT_CODE")};
-
-// dispatcher
-const std::string TXN_PATH{ReadDispatcherConstants("TXN_PATH")};
-const bool USE_REMOTE_TXN_CREATOR{
-    ReadDispatcherConstants("USE_REMOTE_TXN_CREATOR") == "true"};
-
-// archival
-const std::string DB_HOST{ReadArchivalConstants("DB_HOST")};
-
-// GPU
-const std::string GPU_TO_USE{ReadGPUVariableFromConstantsFile("GPU_TO_USE")};
+// GPU mining constants
+const string GPU_TO_USE{ReadConstantString("GPU_TO_USE", "node.gpu.")};
 const unsigned int OPENCL_LOCAL_WORK_SIZE{
-    ReadGpuConstants("opencl.LOCAL_WORK_SIZE")};
+    ReadConstantNumeric("LOCAL_WORK_SIZE", "node.gpu.opencl.")};
 const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
-    ReadGpuConstants("opencl.GLOBAL_WORK_SIZE_MULTIPLIER")};
-const unsigned int OPENCL_START_EPOCH{ReadGpuConstants("opencl.START_EPOCH")};
-const unsigned int CUDA_BLOCK_SIZE{ReadGpuConstants("cuda.BLOCK_SIZE")};
-const unsigned int CUDA_GRID_SIZE{ReadGpuConstants("cuda.GRID_SIZE")};
-const unsigned int CUDA_STREAM_NUM{ReadGpuConstants("cuda.STREAM_NUM")};
-const unsigned int CUDA_SCHEDULE_FLAG{ReadGpuConstants("cuda.SCHEDULE_FLAG")};
+    ReadConstantNumeric("GLOBAL_WORK_SIZE_MULTIPLIER", "node.gpu.opencl.")};
+const unsigned int OPENCL_START_EPOCH{
+    ReadConstantNumeric("START_EPOCH", "node.gpu.opencl.")};
+const unsigned int CUDA_BLOCK_SIZE{
+    ReadConstantNumeric("BLOCK_SIZE", "node.gpu.cuda.")};
+const unsigned int CUDA_GRID_SIZE{
+    ReadConstantNumeric("GRID_SIZE", "node.gpu.cuda.")};
+const unsigned int CUDA_STREAM_NUM{
+    ReadConstantNumeric("STREAM_NUM", "node.gpu.cuda.")};
+const unsigned int CUDA_SCHEDULE_FLAG{
+    ReadConstantNumeric("SCHEDULE_FLAG", "node.gpu.cuda.")};
+
+// Guard mode constants
+const bool GUARD_MODE{ReadConstantString("GUARD_MODE", "node.guard_mode.") ==
+                      "true"};
+const bool EXCLUDE_PRIV_IP{
+    ReadConstantString("EXCLUDE_PRIV_IP", "node.guard_mode.") == "true"};
+
+// Heartbeat constants
+const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
+    ReadConstantNumeric("HEARTBEAT_INTERVAL_IN_SECONDS", "node.heartbeat.")};
+
+// Network composition constants
+const unsigned int COMM_SIZE{
+    ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
+const unsigned int NUM_DS_ELECTION{
+    ReadConstantNumeric("NUM_DS_ELECTION", "node.network_composition.")};
+
+// P2PComm constants
+const unsigned int BROADCAST_INTERVAL{
+    ReadConstantNumeric("BROADCAST_INTERVAL", "node.p2pcomm.")};
+const unsigned int BROADCAST_EXPIRY{
+    ReadConstantNumeric("BROADCAST_EXPIRY", "node.p2pcomm.")};
+const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY{
+    ReadConstantNumeric("FETCH_LOOKUP_MSG_MAX_RETRY", "node.p2pcomm.")};
+const uint32_t MAXMESSAGE{ReadConstantNumeric("MAXMESSAGE", "node.p2pcomm.")};
+const unsigned int MAXRETRYCONN{
+    ReadConstantNumeric("MAXRETRYCONN", "node.p2pcomm.")};
+const unsigned int MSGQUEUE_SIZE{
+    ReadConstantNumeric("MSGQUEUE_SIZE", "node.p2pcomm.")};
+const unsigned int PUMPMESSAGE_MILLISECONDS{
+    ReadConstantNumeric("PUMPMESSAGE_MILLISECONDS", "node.p2pcomm.")};
+const unsigned int SENDQUEUE_SIZE{
+    ReadConstantNumeric("SENDQUEUE_SIZE", "node.p2pcomm.")};
+
+// PoW constants
+const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
+                         "true"};
+const bool FULL_DATASET_MINE{
+    ReadConstantString("FULL_DATASET_MINE", "node.pow.") == "true"};
+const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
+                           "true"};
+const unsigned int DS_POW_DIFFICULTY{
+    ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
+const unsigned int POW_DIFFICULTY{
+    ReadConstantNumeric("POW_DIFFICULTY", "node.pow.")};
+const unsigned int POW_SUBMISSION_LIMIT{
+    ReadConstantNumeric("POW_SUBMISSION_LIMIT", "node.pow.")};
+const unsigned int NUM_FINAL_BLOCK_PER_POW{
+    ReadConstantNumeric("NUM_FINAL_BLOCK_PER_POW", "node.pow.")};
+const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF{
+    ReadConstantNumeric("POW_CHANGE_PERCENT_TO_ADJ_DIFF", "node.pow.")};
+const unsigned int EXPECTED_SHARD_NODE_NUM{
+    ReadConstantNumeric("EXPECTED_SHARD_NODE_NUM", "node.pow.")};
+const unsigned int MAX_SHARD_NODE_NUM{
+    ReadConstantNumeric("MAX_SHARD_NODE_NUM", "node.pow.")};
+const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
+    ReadConstantNumeric("MISORDER_TOLERANCE_IN_PERCENT", "node.pow.")};
+
+// Recovery and upgrading constants
+const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
+    ReadConstantNumeric("DS_DELAY_WAKEUP_IN_SECONDS", "node.recovery.")};
+const bool GET_INITIAL_DS_FROM_REPO{
+    ReadConstantString("GET_INITIAL_DS_FROM_REPO", "node.recovery.") == "true"};
+const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
+    ReadConstantNumeric("SHARD_DELAY_WAKEUP_IN_SECONDS", "node.recovery.")};
+const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
+    ReadConstantNumeric("TERMINATION_COUNTDOWN_IN_SECONDS", "node.recovery.")};
+const string UPGRADE_HOST_ACCOUNT{
+    ReadConstantString("UPGRADE_HOST_ACCOUNT", "node.recovery.")};
+const string UPGRADE_HOST_REPO{
+    ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
+
+// Smart contract constants
+const string SCILLA_ROOT{
+    ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
+const string SCILLA_CHECKER{
+    SCILLA_ROOT + '/' +
+    ReadConstantString("SCILLA_CHECKER", "node.smart_contract.")};
+const string SCILLA_BINARY{
+    SCILLA_ROOT + '/' +
+    ReadConstantString("SCILLA_BINARY", "node.smart_contract.")};
+const string SCILLA_FILES{
+    ReadConstantString("SCILLA_FILES", "node.smart_contract.")};
+const string SCILLA_LOG{
+    ReadConstantString("SCILLA_LOG", "node.smart_contract.")};
+const string SCILLA_LIB{
+    SCILLA_ROOT + '/' +
+    ReadConstantString("SCILLA_LIB", "node.smart_contract.")};
+const string INIT_JSON{SCILLA_FILES + '/' +
+                       ReadConstantString("INIT_JSON", "node.smart_contract.")};
+const string INPUT_STATE_JSON{
+    SCILLA_FILES + '/' +
+    ReadConstantString("INPUT_STATE_JSON", "node.smart_contract.")};
+const string INPUT_BLOCKCHAIN_JSON{
+    SCILLA_FILES + '/' +
+    ReadConstantString("INPUT_BLOCKCHAIN_JSON", "node.smart_contract.")};
+const string INPUT_MESSAGE_JSON{
+    SCILLA_FILES + '/' +
+    ReadConstantString("INPUT_MESSAGE_JSON", "node.smart_contract.")};
+const string OUTPUT_JSON{
+    SCILLA_FILES + '/' +
+    ReadConstantString("OUTPUT_JSON", "node.smart_contract.")};
+const string INPUT_CODE{
+    SCILLA_FILES + '/' +
+    ReadConstantString("INPUT_CODE", "node.smart_contract.")};
+
+// Test constants
+const bool ENABLE_CHECK_PERFORMANCE_LOG{
+    ReadConstantString("ENABLE_CHECK_PERFORMANCE_LOG", "node.tests.") ==
+    "true"};
+#ifdef FALLBACK_TEST
+const unsigned int FALLBACK_TEST_EPOCH{
+    ReadConstantNumeric("FALLBACK_TEST_EPOCH", "node.tests.")};
+#endif  // FALLBACK_TEST
+const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
+    ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
+
+// Transaction constants
+const unsigned int COINBASE_REWARD{
+    ReadConstantNumeric("COINBASE_REWARD", "node.transactions.")};
+const unsigned int LOOKUP_REWARD_IN_PERCENT{
+    ReadConstantNumeric("LOOKUP_REWARD_IN_PERCENT", "node.transactions.")};
+const unsigned int MAX_CODE_SIZE_IN_BYTES{
+    ReadConstantNumeric("MAX_CODE_SIZE_IN_BYTES", "node.transactions.")};
+const unsigned int MAX_CONTRACT_DEPTH{
+    ReadConstantNumeric("MAX_CONTRACT_DEPTH", "node.transactions.")};
+const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{ReadConstantNumeric(
+    "SYS_TIMESTAMP_VARIANCE_IN_SECONDS", "node.transactions.")};
+const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(
+    "TXN_MISORDER_TOLERANCE_IN_PERCENT", "node.transactions.")};
+
+// Viewchange constants
+const unsigned int POST_VIEWCHANGE_BUFFER{
+    ReadConstantNumeric("POST_VIEWCHANGE_BUFFER", "node.viewchange.")};
+const unsigned int VIEWCHANGE_EXTRA_TIME{
+    ReadConstantNumeric("VIEWCHANGE_EXTRA_TIME", "node.viewchange.")};
+const unsigned int VIEWCHANGE_PRECHECK_TIME{
+    ReadConstantNumeric("VIEWCHANGE_PRECHECK_TIME", "node.viewchange.")};
+const unsigned int VIEWCHANGE_TIME{
+    ReadConstantNumeric("VIEWCHANGE_TIME", "node.viewchange.")};
+
+// Genesis accounts
+const vector<string> GENESIS_WALLETS{
+    ReadAccountsFromConstantsFile("wallet_address")};
+const vector<string> GENESIS_KEYS{ReadAccountsFromConstantsFile("private_key")};
