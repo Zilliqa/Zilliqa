@@ -309,7 +309,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  if (!LOOKUP_NODE_MODE &&
+  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE &&
       (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
                           << DS_DELAY_WAKEUP_IN_SECONDS
@@ -429,46 +429,50 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve sharding structure and setup relative variables
-  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
+  if (!ARCHIVAL_NODE) {
+    BlockStorage::GetBlockStorage().GetShardStructure(
+        m_mediator.m_ds->m_shards);
 
-  if (!ipMapping.empty()) {
-    string pubKey;
+    if (!ipMapping.empty()) {
+      string pubKey;
 
-    for (auto& shard : m_mediator.m_ds->m_shards) {
-      for (auto& node : shard) {
-        pubKey =
-            DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node));
+      for (auto& shard : m_mediator.m_ds->m_shards) {
+        for (auto& node : shard) {
+          pubKey = DataConversion::SerializableToHexStr(
+              get<SHARD_NODE_PUBKEY>(node));
 
-        if (ipMapping.find(pubKey) != ipMapping.end()) {
-          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+          if (ipMapping.find(pubKey) != ipMapping.end()) {
+            get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+          }
         }
       }
     }
-  }
 
-  if (bDS) {
-    m_myshardId = m_mediator.m_ds->m_shards.size();
-  } else {
-    bool found = false;
-    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size() && !found;
-         ++i) {
-      for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
-        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
-          SetMyshardId(i);
-          found = true;
-          break;
+    if (bDS) {
+      m_myshardId = m_mediator.m_ds->m_shards.size();
+    } else {
+      bool found = false;
+      for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size() && !found;
+           ++i) {
+        for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
+          if (get<SHARD_NODE_PUBKEY>(shardNode) ==
+              m_mediator.m_selfKey.second) {
+            SetMyshardId(i);
+            found = true;
+            break;
+          }
         }
       }
     }
-  }
 
-  if (LOOKUP_NODE_MODE) {
-    m_mediator.m_lookup->ProcessEntireShardingStructure();
-  } else {
-    LoadShardingStructure(true);
-    m_mediator.m_ds->ProcessShardingStructure(
-        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-        m_mediator.m_ds->m_mapNodeReputation);
+    if (LOOKUP_NODE_MODE) {
+      m_mediator.m_lookup->ProcessEntireShardingStructure();
+    } else {
+      LoadShardingStructure(true);
+      m_mediator.m_ds->ProcessShardingStructure(
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+          m_mediator.m_ds->m_mapNodeReputation);
+    }
   }
 
   m_mediator.m_consensusID =
