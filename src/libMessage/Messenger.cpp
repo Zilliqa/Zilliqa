@@ -6391,7 +6391,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetDSLookupNewDSGuardIdentity(
+bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
     vector<unsigned char>& dst, const unsigned int offset,
     const uint64_t epochNumber, const Peer& dsGuardNewNetworkInfo,
     const uint64_t timestamp, const pair<PrivKey, PubKey>& dsguardkey) {
@@ -6432,12 +6432,10 @@ bool Messenger::SetDSLookupNewDSGuardIdentity(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSLookupNewDSGuardIdentity(const vector<unsigned char>& src,
-                                              const unsigned int offset,
-                                              uint64_t& epochNumber,
-                                              Peer& dsGuardNewNetworkInfo,
-                                              uint64_t& timestamp,
-                                              PubKey& dsGuardPubkey) {
+bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint64_t& epochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
+    PubKey& dsGuardPubkey) {
   LOG_MARKER();
 
   DSLookupSetDSGuardNetworkInfoUpdate result;
@@ -6466,6 +6464,45 @@ bool Messenger::GetDSLookupNewDSGuardIdentity(const vector<unsigned char>& src,
   epochNumber = result.data().epochnumber();
   ProtobufToPeer(result.data().dsguardnewnetworkinfo(), dsGuardNewNetworkInfo);
   timestamp = result.data().timestamp();
+
+  return true;
+}
+
+bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t portNo, const uint64_t dsEpochNumber) {
+  LOG_MARKER();
+
+  NodeGetGuardNodeNetworkInfoUpdate result;
+  result.set_portno(portNo);
+  result.set_dsepochnumber(dsEpochNumber);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(
+        WARNING,
+        "SetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint32_t& portNo, uint64_t& dsEpochNumber) {
+  LOG_MARKER();
+
+  NodeGetGuardNodeNetworkInfoUpdate result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(
+        WARNING,
+        "GetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
+    return false;
+  }
+
+  portNo = result.portno();
+  dsEpochNumber = result.dsepochnumber();
 
   return true;
 }
