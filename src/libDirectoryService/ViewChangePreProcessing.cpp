@@ -37,6 +37,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 
@@ -83,6 +84,12 @@ bool DirectoryService::ViewChangeValidator(
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << m_pendingVCBlock->GetBlockHash().hex());
+    return false;
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(m_pendingVCBlock->GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT)) {
     return false;
   }
 
@@ -710,6 +717,13 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
     const vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessGetDSTxBlockMessage not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
 
   if (m_state != VIEWCHANGE_CONSENSUS_PREP) {
     LOG_EPOCH(

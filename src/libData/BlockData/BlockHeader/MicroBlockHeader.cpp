@@ -24,7 +24,19 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-MicroBlockHeader::MicroBlockHeader() { m_epochNum = (uint64_t)-1; }
+MicroBlockHeader::MicroBlockHeader()
+    : m_type(0),
+      m_version(0),
+      m_shardId(0),
+      m_gasLimit(0),
+      m_gasUsed(0),
+      m_rewards(0),
+      m_prevHash(),
+      m_epochNum((uint64_t)-1),
+      m_hashset(),
+      m_numTxs(0),
+      m_minerPubKey(),
+      m_dsBlockNum(INIT_BLOCK_NUMBER) {}
 
 MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
                                    unsigned int offset) {

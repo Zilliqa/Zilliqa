@@ -17,21 +17,29 @@
  * program files.
  */
 
-#ifndef __SHARD_STRUCT__
-#define __SHARD_STRUCT__
+#ifndef __MBNFORWARDEDTXNENTRY_H__
+#define __MBNFORWARDEDTXNENTRY_H__
 
-#include <tuple>
+#include "AccountStore.h"
+#include "Transaction.h"
+#include "TransactionReceipt.h"
+#include "libData/BlockData/Block/MicroBlock.h"
 
-#include "libCrypto/Schnorr.h"
-#include "libNetwork/Peer.h"
+struct MBnForwardedTxnEntry {
+  MicroBlock m_microBlock;
+  std::vector<TransactionWithReceipt> m_transactions;
 
-enum ShardData {
-  SHARD_NODE_PUBKEY,
-  SHARD_NODE_PEER,
-  SHARD_NODE_REP,
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const MBnForwardedTxnEntry& t);
 };
 
-using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
-using DequeOfShard = std::deque<Shard>;
+inline std::ostream& operator<<(std::ostream& os,
+                                const MBnForwardedTxnEntry& t) {
+  os << "<MBnForwardedTxnEntry>"
+     << " mbHash : " << t.m_microBlock.GetBlockHash().hex()
+     << " epochNum : " << t.m_microBlock.GetHeader().GetEpochNum()
+     << " shardId : " << t.m_microBlock.GetHeader().GetShardId();
+  return os;
+}
 
-#endif /*__SHARD_STRUCT__*/
+#endif  // __MBNFORWARDEDTXNENTRY_H__

@@ -88,50 +88,41 @@ void DirectoryService::StoreDSBlockToStorage() {
       m_pendingDSBlock->GetBlockHash());
 }
 
-void DirectoryService::SendDSBlockToLookupNodes() {
+bool DirectoryService::ComposeDSBlockMessageForSender(
+    vector<unsigned char>& dsblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::SendDSBlockToLookupNodes not expected "
+                "DirectoryService::ComposeDSBlockMessageForSender not expected "
                 "to be called from LookUp node.");
-    return;
+    return false;
   }
 
-  vector<unsigned char> dsblock_message = {MessageType::NODE,
-                                           NodeInstructionType::DSBLOCK};
+  dsblock_message.clear();
+  dsblock_message = {MessageType::NODE, NodeInstructionType::DSBLOCK};
   if (!Messenger::SetNodeVCDSBlocksMessage(
           dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
           m_VCBlockVector, m_shards, m_DSReceivers, m_shardReceivers,
           m_shardSenders)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetNodeVCDSBlocksMessage failed.");
-    return;
+    return false;
   }
 
-  m_mediator.m_lookup->SendMessageToLookupNodes(dsblock_message);
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I the part of the subset of the DS committee that have sent the "
-            "DSBlock to the lookup nodes");
+  return true;
 }
 
-void DirectoryService::SendDSBlockToNewDSMembers() {
-  LOG_MARKER();
+void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
+    const vector<unsigned char>& dsblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::SendDSBlockToNewDSMembers not expected "
+                "DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers not "
+                "expected "
                 "to be called from LookUp node.");
     return;
   }
+  LOG_MARKER();
 
-  vector<unsigned char> dsblock_message = {MessageType::NODE,
-                                           NodeInstructionType::DSBLOCK};
-  if (!Messenger::SetNodeVCDSBlocksMessage(
-          dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
-          m_VCBlockVector, m_shards, m_DSReceivers, m_shardReceivers,
-          m_shardSenders)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetNodeVCDSBlocksMessage failed.");
-    return;
-  }
+  m_mediator.m_lookup->SendMessageToLookupNodes(dsblock_message);
 
   vector<Peer> newDSmembers;
   for (const auto& newDSmember :
@@ -143,99 +134,45 @@ void DirectoryService::SendDSBlockToNewDSMembers() {
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "I the part of the subset of the DS committee that have sent the "
-            "DSBlock to the new DS leader");
-}
-
-void DirectoryService::SetupMulticastConfigForDSBlock(
-    unsigned int& my_DS_cluster_num, unsigned int& my_shards_lo,
-    unsigned int& my_shards_hi) const {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::SetupMulticastConfigForDSBlock not "
-                "expected to be called from LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  unsigned int num_DS_clusters =
-      m_mediator.m_DSCommittee->size() / DS_MULTICAST_CLUSTER_SIZE;
-  if ((m_mediator.m_DSCommittee->size() % DS_MULTICAST_CLUSTER_SIZE) > 0) {
-    // If there are still ds lefts, add a new ds cluster
-    num_DS_clusters++;
-  }
-
-  unsigned int shard_groups_count = m_shards.size() / num_DS_clusters;
-  if ((m_shards.size() % num_DS_clusters) > 0) {
-    // If there is still nodes, increase num of shard
-    shard_groups_count++;
-  }
-
-  my_DS_cluster_num = m_consensusMyID / DS_MULTICAST_CLUSTER_SIZE;
-  my_shards_lo = my_DS_cluster_num * shard_groups_count;
-  my_shards_hi = my_shards_lo + shard_groups_count -
-                 1;  // Multicast configuration to my assigned shard's nodes -
-                     // send SHARDING message
-  if (my_shards_hi >= m_shards.size()) {
-    my_shards_hi = m_shards.size() - 1;
-  }
-
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "my_shards_lo: " << my_shards_lo
-                             << " my_shards_hi: " << my_shards_hi
-                             << " my_DS_cluster_num  : " << my_DS_cluster_num);
-  LOG_EPOCH(
-      INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-      "shard_groups_count : " << shard_groups_count
-                              << " m shard size       : " << m_shards.size());
+            "DSBlock to the lookup nodes and newly joined ds nodes");
 }
 
 void DirectoryService::SendDSBlockToShardNodes(
-    const unsigned int my_shards_lo, const unsigned int my_shards_hi) {
-  LOG_MARKER();
-
+    [[gnu::unused]] const vector<unsigned char>& dsblock_message,
+    const DequeOfShard& shards, const unsigned int& my_shards_lo,
+    const unsigned int& my_shards_hi) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SendDSBlockToShardNodes not expected to "
                 "be called from LookUp node.");
     return;
   }
-  auto p = m_shards.begin();
+
+  LOG_MARKER();
+
+  auto p = shards.begin();
   advance(p, my_shards_lo);
 
-  for (unsigned int i = my_shards_lo; i <= my_shards_hi; i++) {
+  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
     // Get the shard ID from the leader's info in m_publicKeyToshardIdMap
     uint32_t shardId =
         m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
 
-    // Generate the message
-    vector<unsigned char> dsblock_message = {MessageType::NODE,
-                                             NodeInstructionType::DSBLOCK};
+    vector<unsigned char> dsblock_message_to_shard = {
+        MessageType::NODE, NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeVCDSBlocksMessage(
-            dsblock_message, MessageOffset::BODY, shardId, *m_pendingDSBlock,
-            m_VCBlockVector, m_shards, m_DSReceivers, m_shardReceivers,
-            m_shardSenders)) {
+            dsblock_message_to_shard, MessageOffset::BODY, shardId,
+            *m_pendingDSBlock, m_VCBlockVector, m_shards, m_DSReceivers,
+            m_shardReceivers, m_shardSenders)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetNodeVCDSBlocksMessage failed.");
-      return;
+      continue;
     }
 
     // Send the message
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-    sha256.Update(dsblock_message);
-    vector<unsigned char> this_msg_hash = sha256.Finalize();
-
-    LOG_STATE(
-        "[INFOR]["
-        << std::setw(15) << std::left
-        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-        << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6) << "]["
-        << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-               .substr(0, 6)
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] SHMSG");
+    sha256.Update(dsblock_message_to_shard);
+    auto this_msg_hash = sha256.Finalize();
 
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
       // Choose N other Shard nodes to be recipient of DS block
@@ -273,13 +210,14 @@ void DirectoryService::SendDSBlockToShardNodes(
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
-                                                  dsblock_message);
+                                                  dsblock_message_to_shard);
     } else {
       vector<Peer> shard_peers;
       for (const auto& kv : *p) {
         shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
       }
-      P2PComm::GetInstance().SendBroadcastMessage(shard_peers, dsblock_message);
+      P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                  dsblock_message_to_shard);
     }
 
     p++;
@@ -643,53 +581,31 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DSBlock to be sent to the lookup nodes");
-    // TODO: Refine this
-    unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
-    unsigned int nodeToSendToLookUpHi =
-        nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
 
-    if (m_consensusMyID > nodeToSendToLookUpLo &&
-        m_consensusMyID < nodeToSendToLookUpHi) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I the DS folks that will soon be sending the DSBlock to the "
-                "lookup nodes");
-      SendDSBlockToLookupNodes();
-    }
+    auto composeDSBlockMessageForSender =
+        [this](vector<unsigned char>& message) -> bool {
+      return ComposeDSBlockMessageForSender(message);
+    };
 
-    // Let's reuse the same DS nodes to send the DS Block to the new DS leader
-    // Why is this done separately?  Because the new DS leader is not part of
-    // m_shards. In multicast code below, we use m_shards as the basis for
-    // sending to all the shard nodes.
+    auto sendDSBlockToLookupNodesAndNewDSMembers =
+        [this]([[gnu::unused]] const VectorOfLookupNode& lookups,
+               const vector<unsigned char>& message) -> void {
+      SendDSBlockToLookupNodesAndNewDSMembers(message);
+    };
 
-    if (m_consensusMyID > nodeToSendToLookUpLo &&
-        m_consensusMyID < nodeToSendToLookUpHi) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Part of the DS Committee that will sending the DSBlock to the "
-                "new DS members");
-      SendDSBlockToNewDSMembers();
-    }
+    auto sendDSBlockToShardNodes =
+        [this](const std::vector<unsigned char>& message,
+               const DequeOfShard& shards, const unsigned int& my_shards_lo,
+               const unsigned int& my_shards_hi) -> void {
+      SendDSBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
+    };
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "New DSBlock hash is  = 0x"
-                  << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-                  << "\n");
-
-    unsigned int my_DS_cluster_num, my_shards_lo, my_shards_hi;
-    SetupMulticastConfigForDSBlock(my_DS_cluster_num, my_shards_lo,
-                                   my_shards_hi);
-
-    LOG_STATE(
-        "[DSBLK]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] BEFORE SENDING DSBLOCK");
-
-    // Too few target nodes - avoid asking all DS clusters to send
-    if ((my_DS_cluster_num + 1) <= m_shards.size()) {
-      SendDSBlockToShardNodes(my_shards_lo, my_shards_hi);
-    }
+    DataSender::GetInstance().SendDataToOthers(
+        *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards,
+        m_mediator.m_lookup->GetLookupNodes(),
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+        composeDSBlockMessageForSender, sendDSBlockToLookupNodesAndNewDSMembers,
+        sendDSBlockToShardNodes);
   }
 
   LOG_STATE(

@@ -56,42 +56,32 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
-void Node::SubmitMicroblockToDSCommittee() const {
+bool Node::ComposeMicroBlockMessageForSender(
+    vector<unsigned char>& microblock_message) const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Node::SubmitMicroblockToDSCommittee not expected to be "
+                "Node::ComposeMicroBlockMessageForSender not expected to be "
                 "called from LookUp node.");
-    return;
+    return false;
   }
 
-  vector<unsigned char> microblock = {MessageType::DIRECTORY,
-                                      DSInstructionType::MICROBLOCKSUBMISSION};
+  microblock_message.clear();
+
+  microblock_message = {MessageType::DIRECTORY,
+                        DSInstructionType::MICROBLOCKSUBMISSION};
   vector<unsigned char> stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   if (!Messenger::SetDSMicroBlockSubmission(
-          microblock, MessageOffset::BODY,
+          microblock_message, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
           m_mediator.m_currentEpochNum, {*m_microblock}, {stateDelta})) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
-    return;
+    return false;
   }
 
-  LOG_STATE("[MICRO][" << std::setw(15) << std::left
-                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                       << m_mediator.m_currentEpochNum << "] SENT");
-
-  if (BROADCAST_GOSSIP_MODE) {
-    P2PComm::GetInstance().SendRumorToForeignPeers(m_DSMBReceivers, microblock);
-  } else {
-    deque<Peer> peerList;
-
-    for (auto const& i : *m_mediator.m_DSCommittee) {
-      peerList.push_back(i.second);
-    }
-    P2PComm::GetInstance().SendBroadcastMessage(peerList, microblock);
-  }
+  return true;
 }
 
 bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
@@ -120,7 +110,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         make_pair(from, message));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Process micro block arrived earlier, saved to buffer");
+              "Process micro block arrived early, saved to buffer");
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
       LOG_GENERAL(WARNING, "Consensus ID in message ("
@@ -212,32 +202,50 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
   ConsensusCommon::State state = m_consensusObject->GetState();
 
   if (state == ConsensusCommon::State::DONE) {
-    // Update transaction processed
-    UpdateProcessedTransactions();
-
     // Update the micro block with the co-signatures from the consensus
     m_microblock->SetCoSignatures(*m_consensusObject);
 
     if (m_isPrimary) {
-      LOG_STATE("[MICON][" << std::setw(15) << std::left
+      LOG_STATE("[MICON][" << setw(15) << left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "][" << m_mediator.m_currentEpochNum << "] DONE");
-      // Multicast micro block to all DS nodes
-      SubmitMicroblockToDSCommittee();
+                           << "]["
+                           << m_mediator.m_txBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum() +
+                                  1
+                           << "] DONE");
     }
 
-    if (m_isMBSender) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Designated as Microblock sender");
-
-      // Multicast micro block to all DS nodes
-      SubmitMicroblockToDSCommittee();
+    // TODO: provide interface in DataSender instead of repopulating the DS into
+    // shard
+    DequeOfShard ds_shards;
+    Shard ds_shard;
+    {
+      lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+      for (const auto& entry : *m_mediator.m_DSCommittee) {
+        ds_shard.emplace_back(entry.first, entry.second, 0);
+      }
     }
+    ds_shards.emplace_back(ds_shard);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Micro block consensus "
-                  << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
-                  << ")");
+    auto composeMicroBlockMessageForSender =
+        [this](vector<unsigned char>& microblock_message) -> bool {
+      return ComposeMicroBlockMessageForSender(microblock_message);
+    };
+    DataSender::GetInstance().SendDataToOthers(
+        *m_microblock, *m_myShardMembers, ds_shards,
+        m_mediator.m_lookup->GetLookupNodes(),
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+        composeMicroBlockMessageForSender, nullptr);
+
+    LOG_STATE(
+        "[MIBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] AFTER SENDING MIBLK");
+
     m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
     m_lastMicroBlockCoSig.second = move(
         CoSignatures(m_consensusObject->GetCS1(), m_consensusObject->GetB1(),

@@ -32,7 +32,6 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -40,6 +39,30 @@
 #include "libUtils/SanityChecks.h"
 
 using namespace std;
+
+bool DirectoryService::ComposeVCBlockForSender(
+    vector<unsigned char>& vcblock_message) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ComposeVCBlockForSender not "
+                "expected to be called from LookUp node.");
+    return false;
+  }
+
+  LOG_MARKER();
+
+  vcblock_message.clear();
+
+  vcblock_message = {MessageType::NODE, NodeInstructionType::VCBLOCK};
+
+  if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
+                                 *m_pendingVCBlock)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeVCBlock failed.");
+    return false;
+  }
+  return true;
+}
 
 void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
@@ -114,6 +137,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
               "After view change, I am ds backup");
     m_mode = BACKUP_DS;
   }
+
+  auto tmpDSCommittee = *(m_mediator.m_DSCommittee);
 
   {
     lock_guard<mutex> g2(m_mediator.m_mutexDSCommittee);
@@ -235,38 +260,15 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     LOG_GENERAL(WARNING, "Unable to put VC Block");
   }
 
-  vector<unsigned char> vcblock_message = {MessageType::NODE,
-                                           NodeInstructionType::VCBLOCK};
-
-  if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
-                                 *m_pendingVCBlock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetNodeVCBlock failed.");
-    return;
-  }
-
+  SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;
+  SendDataToShardFunc t_sendDataToShardFunc = nullptr;
   // Broadcasting vcblock to lookup nodes iff view change do not occur before ds
   // block consensus. This is to be consistent with how normal node process the
   // vc block (before ds block).
   if (viewChangeState != DSBLOCK_CONSENSUS &&
       viewChangeState != DSBLOCK_CONSENSUS_PREP) {
-    unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
-    unsigned int nodeToSendToLookUpHi =
-        nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
-
-    if (m_consensusMyID > nodeToSendToLookUpLo &&
-        m_consensusMyID < nodeToSendToLookUpHi) {
-      m_mediator.m_lookup->SendMessageToLookupNodes(vcblock_message);
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I the part of the subset of DS committee that have sent the "
-                "VCBlock to the lookup nodes");
-    }
+    t_sendDataToLookupFunc = SendDataToLookupFuncDefault;
   }
-
-  // Broadcasting vcblock to lookup nodes
-  unsigned int my_DS_cluster_num;
-  unsigned int my_shards_lo;
-  unsigned int my_shards_hi;
 
   switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
@@ -280,10 +282,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP: {
-      DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo,
-                                   my_shards_hi);
-      SendBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi,
-                            vcblock_message);
+      t_sendDataToShardFunc = SendDataToShardFuncDefault;
       break;
     }
     case VIEWCHANGE_CONSENSUS:
@@ -292,6 +291,19 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       LOG_EPOCH(
           INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
           "illegal view change state. state: " << to_string(viewChangeState));
+  }
+
+  if (t_sendDataToLookupFunc || t_sendDataToShardFunc) {
+    auto composeVCBlockForSender =
+        [this](vector<unsigned char>& vcblock_message) -> bool {
+      return ComposeVCBlockForSender(vcblock_message);
+    };
+
+    DataSender::GetInstance().SendDataToOthers(
+        *m_pendingVCBlock, tmpDSCommittee, m_shards,
+        m_mediator.m_lookup->GetLookupNodes(),
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+        composeVCBlockForSender, t_sendDataToLookupFunc, t_sendDataToShardFunc);
   }
 }
 

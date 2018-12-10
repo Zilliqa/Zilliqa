@@ -31,7 +31,6 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -80,16 +79,18 @@ void DirectoryService::StoreFinalBlockToDisk() {
       stateDelta);
 }
 
-bool DirectoryService::SendFinalBlockToLookupNodes() {
+bool DirectoryService::ComposeFinalBlockMessageForSender(
+    vector<unsigned char>& finalblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "DirectoryService::SendFinalBlockToLookupNodes not "
+                "DirectoryService::ComposeFinalBlockMessageForSender not "
                 "expected to be called from LookUp node.");
-    return true;
+    return false;
   }
 
-  vector<unsigned char> finalblock_message = {MessageType::NODE,
-                                              NodeInstructionType::FINALBLOCK};
+  finalblock_message.clear();
+
+  finalblock_message = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
 
   const uint64_t dsBlockNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -105,14 +106,13 @@ bool DirectoryService::SendFinalBlockToLookupNodes() {
     return false;
   }
 
-  m_mediator.m_lookup->SendMessageToLookupNodes(finalblock_message);
-
   return true;
 }
 
 void DirectoryService::SendFinalBlockToShardNodes(
-    unsigned int my_DS_cluster_num, unsigned int my_shards_lo,
-    unsigned int my_shards_hi) {
+    [[gnu::unused]] const vector<unsigned char>& finalblock_message,
+    const DequeOfShard& shards, const unsigned int& my_shards_lo,
+    const unsigned int& my_shards_hi) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SendFinalBlockToShardNodes not expected "
@@ -120,26 +120,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
     return;
   }
 
-  // Too few target shards - avoid asking all DS clusters to send
   LOG_MARKER();
-
-  if ((my_DS_cluster_num + 1) > m_shards.size()) {
-    LOG_STATE(
-        "[FLBLK]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] NOT SUPPOSED TO BE SENDING BLOCK");
-    return;
-  }
-
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BEFORE SENDING FINAL BLOCK");
 
   const uint64_t dsBlockNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
@@ -147,14 +128,15 @@ void DirectoryService::SendFinalBlockToShardNodes(
   vector<unsigned char> stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-  auto p = m_shards.begin();
+  auto p = shards.begin();
   advance(p, my_shards_lo);
 
-  for (unsigned int shardId = my_shards_lo; shardId <= my_shards_hi;
-       shardId++) {
+  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
+    uint32_t shardId =
+        m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
+
     vector<unsigned char> finalblock_message = {
         MessageType::NODE, NodeInstructionType::FINALBLOCK};
-
     if (!Messenger::SetNodeFinalBlock(
             finalblock_message, MessageOffset::BODY, shardId, dsBlockNumber,
             m_mediator.m_consensusID, *m_finalBlock, stateDelta)) {
@@ -165,24 +147,13 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
     sha256.Update(finalblock_message);
-    vector<unsigned char> this_msg_hash = sha256.Finalize();
-    LOG_STATE(
-        "[INFOR]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "][" << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-        << "]["
-        << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand)
-               .substr(0, 6)
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] FBBLKGEN");
+    auto this_msg_hash = sha256.Finalize();
 
     if (BROADCAST_GOSSIP_MODE) {
       // Choose N other Shard nodes to be recipient of final block
       std::vector<Peer> shardFinalBlockReceivers;
-      unsigned int numOfFinalBlockReceivers = std::min(
-          NUM_FINALBLOCK_GOSSIP_RECEIVERS_PER_SHARD, (uint32_t)p->size());
+      unsigned int numOfFinalBlockReceivers =
+          std::min(NUM_GOSSIP_RECEIVERS, (uint32_t)p->size());
 
       for (unsigned int i = 0; i < numOfFinalBlockReceivers; i++) {
         const auto& kv = p->at(i);
@@ -220,35 +191,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
 
     p++;
   }
-
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] AFTER SENDING FINAL BLOCK");
 }
-
-// void DirectoryService::StoreMicroBlocksToDisk()
-// {
-//     LOG_MARKER();
-//     for(auto microBlock : m_microBlocks)
-//     {
-
-//         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " <<
-//         microBlock.GetHeader().GetTxRootHash() <<
-//             " with Type: " << microBlock.GetHeader().GetType() <<
-//             ", Version: " << microBlock.GetHeader().GetVersion() <<
-//             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
-//             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
-
-//         vector<unsigned char> serializedMicroBlock;
-//         microBlock.Serialize(serializedMicroBlock, 0);
-//         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(),
-//                                                serializedMicroBlock);
-//     }
-//     m_microBlocks.clear();
-// }
 
 void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   if (LOOKUP_NODE_MODE) {
@@ -303,38 +246,38 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     m_mediator.m_node->CallActOnFinalblock();
   }
 
-  // TODO: Refine this
-  unsigned int nodeToSendToLookUpLo = m_mediator.GetShardSize(true) / 4;
-  unsigned int nodeToSendToLookUpHi =
-      nodeToSendToLookUpLo + TX_SHARING_CLUSTER_SIZE;
+  auto composeFinalBlockMessageForSender =
+      [this](vector<unsigned char>& message) -> bool {
+    return ComposeFinalBlockMessageForSender(message);
+  };
 
-  if (m_consensusMyID > nodeToSendToLookUpLo &&
-      m_consensusMyID < nodeToSendToLookUpHi) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Part of the DS committeement (assigned) that will send the "
-              "Final Block to "
-              "the lookup nodes");
-    SendFinalBlockToLookupNodes();
-  }
+  auto sendFinalBlockToShardNodes =
+      [this](const std::vector<unsigned char>& message,
+             const DequeOfShard& shards, const unsigned int& my_shards_lo,
+             const unsigned int& my_shards_hi) -> void {
+    SendFinalBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
+  };
 
-  // uint8_t tx_sharing_mode
-  //     = (m_sharingAssignment.size() > 0) ? DS_FORWARD_ONLY : ::IDLE;
-  // m_mediator.m_node->ActOnFinalBlock(tx_sharing_mode, m_sharingAssignment);
+  DataSender::GetInstance().SendDataToOthers(
+      *m_finalBlock, *m_mediator.m_DSCommittee, m_shards,
+      m_mediator.m_lookup->GetLookupNodes(),
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+      composeFinalBlockMessageForSender, SendDataToLookupFuncDefault,
+      sendFinalBlockToShardNodes);
 
-  unsigned int my_DS_cluster_num;
-  unsigned int my_shards_lo;
-  unsigned int my_shards_hi;
-
-  DetermineShardsToSendBlockTo(my_DS_cluster_num, my_shards_lo, my_shards_hi);
-  SendFinalBlockToShardNodes(my_DS_cluster_num, my_shards_lo, my_shards_hi);
+  LOG_STATE(
+      "[FLBLK]["
+      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+      << "]["
+      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
+      << "] AFTER SENDING FLBLK");
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (m_mediator.GetIsVacuousEpoch() &&
-        m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
-            m_mediator.m_dsBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetBlockNum()) {
+    if (isVacuousEpoch && m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
+                              m_mediator.m_dsBlockChain.GetLastBlock()
+                                  .GetHeader()
+                                  .GetBlockNum()) {
       auto func = [this]() mutable -> void {
         UpgradeManager::GetInstance().ReplaceNode(m_mediator);
       };

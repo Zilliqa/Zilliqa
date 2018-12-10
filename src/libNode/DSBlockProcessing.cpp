@@ -51,6 +51,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/TimestampVerifier.h"
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
@@ -343,39 +344,12 @@ void Node::StartFirstTxEpoch() {
         << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
-        << "] RECEIVED SHARDING STRUCTURE");
+        << "] RECVD SHARDING STRUCTURE");
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_myshardId << "][" << std::setw(3)
                          << std::left << m_consensusMyID << "] SCBK");
-  }
-
-  // Choose N other nodes to be sender of microblock to ds committee.
-  // TODO: Randomly choose these nodes?
-  m_isMBSender = false;
-  unsigned int numOfMBSender = NUM_MICROBLOCK_SENDERS;
-  if (m_myShardMembers->size() < numOfMBSender) {
-    numOfMBSender = m_myShardMembers->size();
-  }
-
-  // Shard leader will not have the flag set
-  for (unsigned int i = 1; i < numOfMBSender; i++) {
-    if (m_mediator.m_selfKey.second == m_myShardMembers->at(i).first) {
-      // Selected node to be sender of its shard's micrblock
-      m_isMBSender = true;
-      break;
-    }
-  }
-
-  // Choose N other DS nodes to be recipient of microblock
-  m_DSMBReceivers.clear();
-  unsigned int numOfMBReceivers =
-      std::min(NUM_MICROBLOCK_GOSSIP_RECEIVERS,
-               (uint32_t)m_mediator.m_DSCommittee->size());
-
-  for (unsigned int i = 0; i < numOfMBReceivers; i++) {
-    m_DSMBReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
   }
 
   m_justDidFallback = false;
@@ -460,6 +434,13 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
                                << " DSBlock: " << thisDSTimestamp);
       return false;
     }
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(
+          dsblock.GetTimestamp(),
+          CONSENSUS_OBJECT_TIMEOUT + (TX_DISTRIBUTE_TIME_IN_MS) / 1000)) {
+    return false;
   }
 
   if (shardingHash != dsblock.GetHeader().GetShardingHash()) {
@@ -589,7 +570,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED DSBLOCK");
+      << "] RECVD DSBLOCK");
 
   if (LOOKUP_NODE_MODE) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
