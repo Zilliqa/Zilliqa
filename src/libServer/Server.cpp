@@ -106,7 +106,8 @@ bool Server::StartCollectorThread() {
       {
         lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
         if (m_mediator.m_lookup->m_txnShardMap.find(0) ==
-            m_mediator.m_lookup->m_txnShardMap.end()) {
+                m_mediator.m_lookup->m_txnShardMap.end() ||
+            m_mediator.m_lookup->m_txnShardMap.at(0).empty()) {
           continue;
         }
         vector<unsigned char> msg = {MessageType::LOOKUP,
@@ -122,9 +123,8 @@ bool Server::StartCollectorThread() {
           continue;
         }
 
-        for (const auto& pr : upperLayerNodes) {
-          LOG_GENERAL(INFO, "Sent to " << pr);
-        }
+        LOG_GENERAL(INFO, "Sent to " << upperLayerNode);
+
         P2PComm::GetInstance().SendMessage(upperLayerNode, msg);
       }
       m_mediator.m_lookup->DeleteTxnShardMap(0);
