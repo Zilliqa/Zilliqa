@@ -68,6 +68,8 @@ void Lookup::InitAsNewJoiner() {
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
+
+  SetLookupNodes();
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     m_mediator.m_DSCommittee->clear();
@@ -87,11 +89,11 @@ void Lookup::InitSync() {
     uint64_t dsBlockNum = 0;
     uint64_t txBlockNum = 0;
 
-    // Set myself offline
-    GetMyLookupOffline();
-
     // Initialize all blockchains and blocklinkchain
     InitAsNewJoiner();
+
+    // Set myself offline
+    GetMyLookupOffline();
 
     while (GetSyncType() != SyncType::NO_SYNC) {
       if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
@@ -134,6 +136,18 @@ void Lookup::SetLookupNodes() {
           DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
           0);
       m_lookupNodes.emplace_back(pubKey, lookup_node);
+    }
+  }
+
+  // Add myself to lookupnodes
+  if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    const PubKey& myPubKey = m_mediator.m_selfKey.second;
+    if (std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                     [&myPubKey](const std::pair<PubKey, Peer>& node) {
+                       return node.first == myPubKey;
+                     }) == m_lookupNodes.end()) {
+      m_lookupNodes.emplace_back(m_mediator.m_selfKey.second,
+                                 m_mediator.m_selfPeer);
     }
   }
 }
@@ -3019,6 +3033,7 @@ void Lookup::CheckBufferTxBlocks() {
 
 void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(
     const uint64_t& index_num) {
+  LOG_MARKER();
   vector<unsigned char> message = {MessageType::LOOKUP,
                                    LookupInstructionType::GETDIRBLOCKSFROMSEED};
 
