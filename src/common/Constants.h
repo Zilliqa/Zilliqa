@@ -105,6 +105,139 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 const std::string dsNodeFile = "dsnodes.xml";
 
+// General constants
+extern const unsigned int DEBUG_LEVEL;
+extern const unsigned int MSG_VERSION;
+extern const bool ENABLE_DO_REJOIN;
+extern const bool LOOKUP_NODE_MODE;
+
+// Archival constants
+extern const bool ARCHIVAL_NODE;
+extern const std::string DB_HOST;
+
+// Consensus constants
+extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
+extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
+extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
+extern const unsigned int NUM_CONSENSUS_SUBSETS;
+
+// Data sharing constants
+extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
+extern const unsigned int MULTICAST_CLUSTER_SIZE;
+extern const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
+extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
+extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
+extern const unsigned int POW_PACKET_SENDERS;
+extern const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
+extern const unsigned int TX_SHARING_CLUSTER_SIZE;
+
+// Dispatcher constants
+extern const bool USE_REMOTE_TXN_CREATOR;
+extern const std::string TXN_PATH;
+
+// Epoch timing constants
+extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
+extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
+extern const unsigned int FINALBLOCK_DELAY_IN_MS;
+extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
+extern const unsigned int MICROBLOCK_TIMEOUT;
+extern const unsigned int NEW_NODE_POW_DELAY;
+extern const unsigned int NEW_NODE_SYNC_INTERVAL;
+extern const unsigned int POW_SUBMISSION_TIMEOUT;
+extern const unsigned int POW_WINDOW_IN_SECONDS;
+extern const unsigned int RECOVERY_SYNC_TIMEOUT;
+extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
+
+// Fallback constants
+extern const bool ENABLE_FALLBACK;
+extern const unsigned int FALLBACK_CHECK_INTERVAL;
+extern const unsigned int FALLBACK_EXTRA_TIME;
+extern const unsigned int FALLBACK_INTERVAL_STARTED;
+extern const unsigned int FALLBACK_INTERVAL_WAITING;
+
+// Gas constants
+extern const unsigned int MICROBLOCK_GAS_LIMIT;
+extern const unsigned int CONTRACT_CREATE_GAS;
+extern const unsigned int CONTRACT_INVOKE_GAS;
+extern const unsigned int NORMAL_TRAN_GAS;
+extern const unsigned int GAS_CONGESTION_PERCENT;
+extern const unsigned int UNFILLED_PERCENT_LOW;
+extern const unsigned int UNFILLED_PERCENT_HIGH;
+extern const unsigned int GAS_PRICE_PRECISION;
+extern const boost::multiprecision::uint128_t PRECISION_MIN_VALUE;
+extern const unsigned int GAS_PRICE_DROP_RATIO;
+extern const unsigned int GAS_PRICE_RAISE_RATIO_LOWER;
+extern const unsigned int GAS_PRICE_RAISE_RATIO_UPPER;
+extern const unsigned int GAS_PRICE_TOLERANCE;
+extern const unsigned int MEAN_GAS_PRICE_DS_NUM;
+extern const std::string LEGAL_GAS_PRICE_IP;
+
+// Gossip constants
+extern const bool BROADCAST_GOSSIP_MODE;
+extern const bool SEND_RESPONSE_FOR_LAZY_PUSH;
+extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
+extern const unsigned int MAX_ROUNDS_IN_BSTATE;
+extern const unsigned int MAX_ROUNDS_IN_CSTATE;
+extern const unsigned int MAX_TOTAL_ROUNDS;
+extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
+extern const unsigned int NUM_GOSSIP_RECEIVERS;
+extern const unsigned int ROUND_TIME_IN_MS;
+extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
+
+// GPU mining constants
+extern const std::string GPU_TO_USE;
+extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
+extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
+extern const unsigned int OPENCL_START_EPOCH;
+extern const unsigned int CUDA_BLOCK_SIZE;
+extern const unsigned int CUDA_GRID_SIZE;
+extern const unsigned int CUDA_STREAM_NUM;
+extern const unsigned int CUDA_SCHEDULE_FLAG;
+
+// Guard mode constants
+extern const bool GUARD_MODE;
+extern const bool EXCLUDE_PRIV_IP;
+
+// Heartbeat constants
+extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
+
+// Network composition constants
+extern const unsigned int COMM_SIZE;
+extern const unsigned int NUM_DS_ELECTION;
+
+// P2PComm constants
+extern const unsigned int BROADCAST_INTERVAL;
+extern const unsigned int BROADCAST_EXPIRY;
+extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
+extern const uint32_t MAXMESSAGE;
+extern const unsigned int MAXRETRYCONN;
+extern const unsigned int MSGQUEUE_SIZE;
+extern const unsigned int PUMPMESSAGE_MILLISECONDS;
+extern const unsigned int SENDQUEUE_SIZE;
+
+// PoW constants
+extern const bool CUDA_GPU_MINE;
+extern const bool FULL_DATASET_MINE;
+extern const bool OPENCL_GPU_MINE;
+extern const unsigned int DS_POW_DIFFICULTY;
+extern const unsigned int POW_DIFFICULTY;
+extern const unsigned int POW_SUBMISSION_LIMIT;
+extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
+extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
+extern const unsigned int EXPECTED_SHARD_NODE_NUM;
+extern const unsigned int MAX_SHARD_NODE_NUM;
+extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
+extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
+
+// Recovery and upgrading constants
+extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
+extern const bool GET_INITIAL_DS_FROM_REPO;
+extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
+extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
+extern const std::string UPGRADE_HOST_ACCOUNT;
+extern const std::string UPGRADE_HOST_REPO;
+
+// Smart contract constants
 extern const std::string SCILLA_ROOT;
 extern const std::string SCILLA_CHECKER;
 extern const std::string SCILLA_BINARY;
@@ -117,130 +250,30 @@ extern const std::string INPUT_BLOCKCHAIN_JSON;
 extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
-extern const std::string TXN_PATH;
-extern const std::string DB_HOST;
 
-extern const unsigned int MSG_VERSION;
-extern const unsigned int MULTICAST_CLUSTER_SIZE;
-extern const unsigned int COMM_SIZE;
-extern const unsigned int NUM_DS_ELECTION;
-extern const unsigned int POW_WINDOW_IN_SECONDS;
-extern const unsigned int NEW_NODE_SYNC_INTERVAL;
-extern const unsigned int RECOVERY_SYNC_TIMEOUT;
-extern const unsigned int POW_SUBMISSION_TIMEOUT;
-extern const unsigned int DS_POW_DIFFICULTY;
-extern const unsigned int POW_DIFFICULTY;
-extern const unsigned int POW_SUBMISSION_LIMIT;
-extern const unsigned int MICROBLOCK_TIMEOUT;
-extern const unsigned int VIEWCHANGE_TIME;
-extern const unsigned int VIEWCHANGE_PRECHECK_TIME;
-extern const unsigned int VIEWCHANGE_EXTRA_TIME;
-extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
-extern const unsigned int CONSENSUS_OBJECT_TIMEOUT;
-extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
-extern const unsigned int NUM_FINAL_BLOCK_PER_POW;
-extern const uint32_t MAXMESSAGE;
-extern const unsigned int TX_SHARING_CLUSTER_SIZE;
-extern const unsigned int NEW_NODE_POW_DELAY;
-extern const unsigned int POST_VIEWCHANGE_BUFFER;
-extern const unsigned int COINBASE_REWARD;
-extern const unsigned int DEBUG_LEVEL;
-extern const unsigned int BROADCAST_INTERVAL;
-extern const unsigned int BROADCAST_EXPIRY;
-extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
-extern const unsigned int FINALBLOCK_DELAY_IN_MS;
-extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
-extern const unsigned int NUM_NODES_TO_SEND_LOOKUP;
-extern const unsigned int MAX_INDEXES_PER_TXN;
-extern const unsigned int SENDQUEUE_SIZE;
-extern const unsigned int MSGQUEUE_SIZE;
-extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
-extern const unsigned int FALLBACK_INTERVAL_STARTED;
-extern const unsigned int FALLBACK_INTERVAL_WAITING;
-extern const unsigned int FALLBACK_CHECK_INTERVAL;
-extern const unsigned int FALLBACK_EXTRA_TIME;
-extern const unsigned int EXPECTED_SHARD_NODE_NUM;
-extern const unsigned int MAX_SHARD_NODE_NUM;
-extern const unsigned int MAX_ROUNDS_IN_BSTATE;
-extern const unsigned int MAX_ROUNDS_IN_CSTATE;
-extern const unsigned int MAX_TOTAL_ROUNDS;
-extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
-extern const unsigned int ROUND_TIME_IN_MS;
-extern const unsigned int NUM_GOSSIP_RECEIVERS;
-extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
-extern const unsigned int ROUND_TIME_IN_MS;
-extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
-extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
-extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
-extern const unsigned int NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
-extern const unsigned int NUM_OF_TREEBASED_CHILD_CLUSTERS;
-extern const unsigned int FETCH_LOOKUP_MSG_MAX_RETRY;
-extern const unsigned int MAX_CONTRACT_DEPTH;
-extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
-extern const unsigned int NUM_CONSENSUS_SUBSETS;
-extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
-extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
-extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
-extern const unsigned int PUMPMESSAGE_MILLISECONDS;
-extern const unsigned int MAXRETRYCONN;
-extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
-extern const unsigned int POW_PACKET_SENDERS;
-extern const unsigned int POWPACKETSUBMISSION_WINDOW_IN_SECONDS;
-extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
-extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
-extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
-extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
-
-// gas
-extern const unsigned int MICROBLOCK_GAS_LIMIT;
-extern const unsigned int CONTRACT_CREATE_GAS;
-extern const unsigned int CONTRACT_INVOKE_GAS;
-extern const unsigned int NORMAL_TRAN_GAS;
-extern const unsigned int GAS_CONGESTION_PERCENT;
-extern const unsigned int UNFILLED_PERCENT_LOW;
-extern const unsigned int UNFILLED_PERCENT_HIGH;
-extern const unsigned int GAS_PRICE_PRECISION;
-extern const unsigned int GAS_PRICE_DROP_RATIO;
-extern const unsigned int GAS_PRICE_RAISE_RATIO_UPPER;
-extern const unsigned int GAS_PRICE_RAISE_RATIO_LOWER;
-extern const unsigned int GAS_PRICE_TOLERANCE;
-extern const unsigned int MEAN_GAS_PRICE_DS_NUM;
-extern const boost::multiprecision::uint128_t PRECISION_MIN_VALUE;
-extern const std::string LEGAL_GAS_PRICE_IP;
-
+// Test constants
+extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
 #ifdef FALLBACK_TEST
 extern const unsigned int FALLBACK_TEST_EPOCH;
 #endif  // FALLBACK_TEST
+extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 
-extern const bool GUARD_MODE;
-extern const bool EXCLUDE_PRIV_IP;
-extern const bool ENABLE_DO_REJOIN;
-extern const bool FULL_DATASET_MINE;
-extern const bool OPENCL_GPU_MINE;
-extern const bool CUDA_GPU_MINE;
-extern const bool LOOKUP_NODE_MODE;
-extern const bool USE_REMOTE_TXN_CREATOR;
-extern const bool ARCHIVAL_NODE;
-extern const bool BROADCAST_GOSSIP_MODE;
-extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;
-extern const bool BROADCAST_TREEBASED_CLUSTER_MODE;
-extern const bool GET_INITIAL_DS_FROM_REPO;
-extern const std::string UPGRADE_HOST_ACCOUNT;
-extern const std::string UPGRADE_HOST_REPO;
-extern const bool SEND_RESPONSE_FOR_LAZY_PUSH;
-extern const bool ENABLE_FALLBACK;
-extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
+// Transaction constants
+extern const unsigned int COINBASE_REWARD;
+extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
+extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
+extern const unsigned int MAX_CONTRACT_DEPTH;
+extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
+extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
 
+// Viewchange constants
+extern const unsigned int POST_VIEWCHANGE_BUFFER;
+extern const unsigned int VIEWCHANGE_EXTRA_TIME;
+extern const unsigned int VIEWCHANGE_PRECHECK_TIME;
+extern const unsigned int VIEWCHANGE_TIME;
+
+// Genesis accounts
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
-
-extern const std::string GPU_TO_USE;
-extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
-extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
-extern const unsigned int OPENCL_START_EPOCH;
-extern const unsigned int CUDA_BLOCK_SIZE;
-extern const unsigned int CUDA_GRID_SIZE;
-extern const unsigned int CUDA_STREAM_NUM;
-extern const unsigned int CUDA_SCHEDULE_FLAG;
 
 #endif  // __CONSTANTS_H__

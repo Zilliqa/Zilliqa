@@ -86,10 +86,6 @@ class Node : public Executable, public Broadcastable {
   // Sharding information
   std::atomic<uint32_t> m_numShards;
 
-  // Transaction sharing assignments
-  std::atomic<bool> m_txnSharingIAmForwarder;
-  std::vector<std::vector<Peer>> m_txnSharingAssignedNodes;
-
   // Consensus variables
   std::mutex m_mutexProcessConsensusMessage;
   std::condition_variable cv_processConsensusMessage;
@@ -173,11 +169,6 @@ class Node : public Executable, public Broadcastable {
       std::array<unsigned char, 32>& rand2);
   bool ProcessSubmitMissingTxn(const std::vector<unsigned char>& message,
                                unsigned int offset, const Peer& from);
-
-  // internal calls from ActOnFinalBlock for NODE_FORWARD_ONLY and
-  // SEND_AND_FORWARD
-  void LoadForwardingAssignmentFromFinalBlock(
-      const std::vector<Peer>& fellowForwarderNodes, const uint64_t& blocknum);
 
   bool FindTxnInProcessedTxnsList(
       const uint64_t& blockNum, uint8_t sharing_mode,
@@ -395,9 +386,6 @@ class Node : public Executable, public Broadcastable {
 
   std::mutex m_mutexIsEveryMicroBlockAvailable;
 
-  // Transaction sharing assignment
-  std::atomic<bool> m_txnSharingIAmSender;
-
   // Transaction body sharing variables
   std::mutex m_mutexUnavailableMicroBlocks;
   std::unordered_map<uint64_t, std::vector<std::pair<BlockHash, TxnHash>>>
@@ -539,11 +527,6 @@ class Node : public Executable, public Broadcastable {
 
   /// Used by oldest DS node to configure sharding variables as a new shard node
   bool LoadShardingStructure(bool callByRetrieve = false);
-
-  /// Used by oldest DS node to configure txn sharing assignments as a new shard
-  /// node
-
-  void LoadTxnSharingInfo();
 
   // Rejoin the network as a shard node in case of failure happens in protocol
   void RejoinAsNormal();

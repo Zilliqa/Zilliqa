@@ -110,10 +110,6 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the digest that represents the hash of the sharding structure
   const ShardingHash& GetShardingHash() const;
 
-  /// Returns the digest that represents the hash of the transaction sharing
-  /// assignments
-  const TxSharingHash& GetTxSharingHash() const;
-
   /// Returns a reference to the reserved field in the hash set
   const std::array<unsigned char, RESERVED_FIELD_SIZE>&
   GetHashSetReservedField() const;
