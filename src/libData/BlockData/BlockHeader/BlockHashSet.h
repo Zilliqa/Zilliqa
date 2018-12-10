@@ -28,18 +28,15 @@ using ShardingHash = dev::h256;
 using TxSharingHash = dev::h256;
 
 struct DSBlockHashSet {
-  ShardingHash m_shardingHash;    // Hash of sharding structure
-  TxSharingHash m_txSharingHash;  // Hash of transaction sharing assignments
+  ShardingHash m_shardingHash;  // Hash of sharding structure
   std::array<unsigned char, RESERVED_FIELD_SIZE>
       m_reservedField;  // Reserved storage for extra hashes
 
   bool operator==(const DSBlockHashSet& hashSet) const {
-    return std::tie(m_shardingHash, m_txSharingHash) ==
-           std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash);
+    return std::tie(m_shardingHash) == std::tie(hashSet.m_shardingHash);
   }
   bool operator<(const DSBlockHashSet& hashSet) const {
-    return std::tie(hashSet.m_shardingHash, hashSet.m_txSharingHash) >
-           std::tie(m_shardingHash, m_txSharingHash);
+    return std::tie(hashSet.m_shardingHash) > std::tie(m_shardingHash);
   }
   bool operator>(const DSBlockHashSet& hashSet) const {
     return hashSet < *this;
@@ -51,7 +48,6 @@ struct DSBlockHashSet {
 inline std::ostream& operator<<(std::ostream& os, const DSBlockHashSet& t) {
   os << "<DSBlockHashSet>" << std::endl
      << "m_shardingHash : " << t.m_shardingHash.hex() << std::endl
-     << "m_txSharingHash : " << t.m_txSharingHash.hex() << std::endl
      << "m_reservedField : "
      << DataConversion::charArrToHexStr(t.m_reservedField);
   return os;
@@ -64,7 +60,6 @@ struct hash<DSBlockHashSet> {
   size_t operator()(DSBlockHashSet const& hashSet) const noexcept {
     std::size_t seed = 0;
     boost::hash_combine(seed, hashSet.m_shardingHash.hex());
-    boost::hash_combine(seed, hashSet.m_txSharingHash.hex());
     boost::hash_combine(
         seed, DataConversion::charArrToHexStr(hashSet.m_reservedField));
 
