@@ -813,3 +813,10 @@ message DSLookupSetDSGuardNetworkInfoUpdate
     required Data data                              = 1;
     required ByteArray signature                    = 2; 
 }
+
+// To update shard node of guard node's network info change
+message NodeGetGuardNodeNetworkInfoUpdate
+{
+    required uint32 portno   = 1;
+    required uint64 dsepochnumber   = 2;
+}

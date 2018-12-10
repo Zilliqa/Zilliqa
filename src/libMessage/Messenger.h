@@ -762,17 +762,25 @@ class Messenger {
       PubKey& lookupPubKey);
 
   // ============================================================================
-  // DS Guard identity update
+  // DS Guard network identity update
   // ============================================================================
 
-  static bool SetDSLookupNewDSGuardIdentity(
+  static bool SetDSLookupNewDSGuardNetworkInfo(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const uint64_t epochNumber, const Peer& dsGuardNewNetworkInfo,
       const uint64_t timestamp, const std::pair<PrivKey, PubKey>& dsguardkey);
 
-  static bool GetDSLookupNewDSGuardIdentity(
+  static bool GetDSLookupNewDSGuardNetworkInfo(
       const std::vector<unsigned char>& src, const unsigned int offset,
       uint64_t& epochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
       PubKey& dsGuardPubkey);
+
+  static bool SetLookupGetNewDSGuardNetworkInfoFromLookup(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint32_t portNo, const uint64_t dsEpochNumber);
+
+  static bool GetLookupGetNewDSGuardNetworkInfoFromLookup(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint32_t& portNo, uint64_t& dsEpochNumber);
 };
 #endif  // __MESSENGER_H__
