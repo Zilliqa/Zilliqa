@@ -76,6 +76,7 @@
         <LOOKUP_DELAY_SEND_TXNPACKET_IN_MS>4000</LOOKUP_DELAY_SEND_TXNPACKET_IN_MS>
         <TXN_MISORDER_TOLERANCE_IN_PERCENT>50</TXN_MISORDER_TOLERANCE_IN_PERCENT>
         <SYS_TIMESTAMP_VARIANCE_IN_SECONDS>3600</SYS_TIMESTAMP_VARIANCE_IN_SECONDS>
+        <SEED_TXN_COLLECTION_TIME>5</SEED_TXN_COLLECTION_TIME>
     </constants>
     <tests>
         <FALLBACK_TEST_EPOCH>2</FALLBACK_TEST_EPOCH>
@@ -148,8 +149,8 @@
             <pubkey/>
         </peer>
     </lookups>
-    <upper_seed></upper_seed>
-    <lower_seed></lower_seed>
+    <upper_seed/>
+    <lower_seed/>
     <gpu>
         <!-- Which GPU to use, can use multiple GPU, for example: "0, 2, 4" -->
         <GPU_TO_USE>0</GPU_TO_USE>

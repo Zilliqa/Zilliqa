@@ -189,6 +189,7 @@ extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
 extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
 extern const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS;
+extern const unsigned int SEED_TXN_COLLECTION_TIME;
 
 // gas
 extern const unsigned int MICROBLOCK_GAS_LIMIT;

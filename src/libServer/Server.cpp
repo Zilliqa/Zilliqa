@@ -83,14 +83,14 @@ bool Server::StartCollectorThread() {
     return false;
   }
   auto collectorThread = [this]() mutable -> void {
-    this_thread::sleep_for(chrono::seconds(120));  //[Remove this]
-                                                   // Change Back
+    this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
+
     vector<Transaction> txns;
     // Change Back
     LOG_GENERAL(INFO, "[ARCHLOOK]"
                           << "Start thread");
     while (true) {
-      this_thread::sleep_for(chrono::seconds(5));  // SET this to a constant
+      this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME));
       txns.clear();
       if (USE_REMOTE_TXN_CREATOR && !m_mediator.m_lookup->GenTxnToSend(
                                         NUM_TXN_TO_SEND_PER_ACCOUNT, txns)) {
