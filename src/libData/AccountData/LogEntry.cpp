@@ -41,14 +41,6 @@ bool LogEntry::Install(const Json::Value& eventObj,
                                        << ", The params is corrupted");
       return false;
     }
-    // if (p["indexed"].asString() == "True")
-    // {
-    // 	numIndexed++;
-    // 	if (numIndexed > MAX_INDEXES_PER_TXN)
-    // 	{
-    // 		return false;
-    // 	}
-    // }
   }
 
   m_eventObj["address"] = "0x" + address.hex();

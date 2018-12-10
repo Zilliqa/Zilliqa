@@ -85,8 +85,8 @@ def run_setup(numnodes, printnodes):
 def patch_constants_xml(filepath):
         root = ET.parse(filepath).getroot()
 
-        options = root.find('options')
-        options.find('ARCHIVAL_NODE').text = 'true'
+        general = root.find('general')
+        general.find('ARCHIVAL_NODE').text = 'true'
 
         tree = ET.ElementTree(root)
         tree.write(filepath)
