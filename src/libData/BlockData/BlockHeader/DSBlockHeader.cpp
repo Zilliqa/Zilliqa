@@ -124,10 +124,6 @@ const ShardingHash& DSBlockHeader::GetShardingHash() const {
   return m_hashset.m_shardingHash;
 }
 
-const TxSharingHash& DSBlockHeader::GetTxSharingHash() const {
-  return m_hashset.m_txSharingHash;
-}
-
 const array<unsigned char, RESERVED_FIELD_SIZE>&
 DSBlockHeader::GetHashSetReservedField() const {
   return m_hashset.m_reservedField;
