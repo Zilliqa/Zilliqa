@@ -223,6 +223,8 @@ const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{
     ReadFromConstantsFile("TXN_MISORDER_TOLERANCE_IN_PERCENT")};
 const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{
     ReadFromConstantsFile("SYS_TIMESTAMP_VARIANCE_IN_SECONDS")};
+const unsigned int SEED_TXN_COLLECTION_TIME{
+    ReadFromConstantsFile("SEED_TXN_COLLECTION_TIME")};
 
 #ifdef FALLBACK_TEST
 const unsigned int FALLBACK_TEST_EPOCH{
