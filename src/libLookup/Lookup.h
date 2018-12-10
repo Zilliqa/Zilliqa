@@ -93,6 +93,11 @@ class Lookup : public Executable, public Broadcastable {
   /// network
   bool FinishRejoinAsLookup();
 
+  /// Post processing after the new Lookup node successfully synchronized with
+  /// the
+  /// network
+  bool FinishNewJoinAsLookup();
+
   // Reset certain variables to the initial state
   bool CleanVariables();
 
