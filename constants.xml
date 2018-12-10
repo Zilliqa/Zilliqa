@@ -13,7 +13,7 @@
     </archival>
     <seed>
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
-        <SEED_TXN_COLLECTION_TIME>5</SEED_TXN_COLLECTION_TIME>
+        <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
     </seed>
     <consensus>
         <COMMIT_WINDOW_IN_SECONDS>5</COMMIT_WINDOW_IN_SECONDS>
@@ -214,6 +214,8 @@
         </peer>
     -->
     </lookups>
+    <upper_seed/>
+    <lower_seed/>
     <ds_guard>
         <!--Pubkey to be provided in testnet/mainnet.
         <DSPUBKEY></DSPUBKEY>
