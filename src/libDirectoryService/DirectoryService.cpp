@@ -687,11 +687,11 @@ bool DirectoryService::ProcessNewDSGuardIdentity(
   uint64_t timestamp;
   PubKey dsGuardPubkey;
 
-  if (!Messenger::GetDSLookupNewDSGuardIdentity(message, offset, epochNumber,
-                                                dsGuardNewNetworkInfo,
-                                                timestamp, dsGuardPubkey)) {
+  if (!Messenger::GetDSLookupNewDSGuardNetworkInfo(message, offset, epochNumber,
+                                                   dsGuardNewNetworkInfo,
+                                                   timestamp, dsGuardPubkey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetDSLookupNewDSGuardIdentity failed.");
+              "Messenger::GetDSLookupNewDSGuardNetworkInfo failed.");
     return false;
   }
 
