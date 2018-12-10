@@ -114,7 +114,7 @@ extern const bool LOOKUP_NODE_MODE;
 extern const bool ARCHIVAL_NODE;
 extern const std::string DB_HOST;
 
-//Seed Node
+// Seed Node
 extern const bool ARCHIVAL_LOOKUP;
 extern const unsigned int SEED_TXN_COLLECTION_TIME;
 
@@ -176,9 +176,7 @@ extern const unsigned int GAS_PRICE_TOLERANCE;
 extern const unsigned int MEAN_GAS_PRICE_DS_NUM;
 extern const std::string LEGAL_GAS_PRICE_IP;
 
-
 // Gossip constants
->>>>>>> 6c6b589367100a9af57f3875ed0d10c49f0aa162
 extern const bool BROADCAST_GOSSIP_MODE;
 extern const bool SEND_RESPONSE_FOR_LAZY_PUSH;
 extern const bool GOSSIP_CUSTOM_ROUNDS_SETTINGS;

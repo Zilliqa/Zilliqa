@@ -74,8 +74,10 @@ const bool ARCHIVAL_NODE{
 const string DB_HOST{ReadConstantString("DB_HOST", "node.archival.")};
 
 // Seed constans
-const bool ARCHIVAL_LOOKUP{ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
-const unsigned int {ReadConstantNumeric("SEED_TXN_COLLECTION_TIME","node.seed.")}
+const bool ARCHIVAL_LOOKUP{
+    ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
+const unsigned int SEED_TXN_COLLECTION_TIME{
+    ReadConstantNumeric("SEED_TXN_COLLECTION_TIME", "node.seed.")};
 
 // Consensus constants
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
@@ -146,7 +148,6 @@ const unsigned int FALLBACK_INTERVAL_STARTED{
     ReadConstantNumeric("FALLBACK_INTERVAL_STARTED", "node.fallback.")};
 const unsigned int FALLBACK_INTERVAL_WAITING{
     ReadConstantNumeric("FALLBACK_INTERVAL_WAITING", "node.fallback.")};
-
 
 // Gas constants
 const unsigned int MICROBLOCK_GAS_LIMIT{

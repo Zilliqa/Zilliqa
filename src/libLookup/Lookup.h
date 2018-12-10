@@ -145,7 +145,6 @@ class Lookup : public Executable, public Broadcastable {
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
 
-
   std::mutex m_txnShardMapMutex;
   std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
 
