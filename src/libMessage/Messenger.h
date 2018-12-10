@@ -585,7 +585,7 @@ class Messenger {
                                          DequeOfShard& shards);
 
   static bool SetLookupGetMicroBlockFromLookup(
-      std::vector<unsigned char>& dest, const unsigned int offset,
+      std::vector<unsigned char>& dst, const unsigned int offset,
       const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
   static bool GetLookupGetMicroBlockFromLookup(
