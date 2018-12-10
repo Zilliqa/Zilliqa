@@ -102,11 +102,9 @@ void Lookup::InitSync() {
       }
       LOG_GENERAL(INFO,
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
-      m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
+      ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      m_mediator.m_lookup->GetTxBlockFromLookupNodes(txBlockNum, 0);
-      m_mediator.m_lookup->GetDSInfoFromLookupNodes();
-      m_mediator.m_lookup->GetStateFromLookupNodes();
+      GetTxBlockFromLookupNodes(txBlockNum, 0);
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
@@ -1505,8 +1503,10 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
   //    Data::GetInstance().SetDSPeers(dsPeers);
   //#endif // IS_LOOKUP_NODE
 
-  if (!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying &&
-      (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
+  if ((!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying &&
+       (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) ||
+      (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC &&
+       m_dsInfoWaitingNotifying)) {
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "Notifying ProcessSetStateFromSeed that DSInfo has been received");
@@ -1742,6 +1742,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "At new DS epoch now, try getting state from lookup");
     GetStateFromLookupNodes();
+  } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "New lookup - always try getting state from other lookup");
+    GetStateFromLookupNodes();
   }
 
   cv_setTxBlockFromSeed.notify_all();
@@ -1887,11 +1891,44 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
       }
       m_currDSExpired = false;
     }
-  } else if (m_syncType == SyncType::LOOKUP_SYNC ||
-             m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+  } else if (m_syncType == SyncType::LOOKUP_SYNC) {
     if (!m_currDSExpired) {
       if (FinishRejoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
+      }
+    }
+    m_currDSExpired = false;
+  } else if (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    m_dsInfoWaitingNotifying = true;
+
+    GetDSInfoFromLookupNodes();
+
+    {
+      unique_lock<mutex> lock(m_mutexDSInfoUpdation);
+      while (!m_fetchedDSInfo) {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Waiting for DSInfo");
+
+        if (cv_dsInfoUpdate.wait_for(lock,
+                                     chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
+            std::cv_status::timeout) {
+          // timed out
+          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Timed out waiting for DSInfo");
+          m_dsInfoWaitingNotifying = false;
+          return false;
+        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Get ProcessDsInfo Notified");
+        m_dsInfoWaitingNotifying = false;
+      }
+      m_fetchedDSInfo = false;
+    }
+
+    if (!m_currDSExpired) {
+      if (FinishNewJoinAsLookup()) {
+        SetSyncType(SyncType::NO_SYNC);
+        m_isFirstLoop = true;
       }
     }
     m_currDSExpired = false;
@@ -2717,6 +2754,17 @@ bool Lookup::FinishRejoinAsLookup() {
   return GetMyLookupOnline();
 }
 
+bool Lookup::FinishNewJoinAsLookup() {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::FinishNewJoinAsLookup not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
+
+  return GetMyLookupOnline();
+}
+
 bool Lookup::CleanVariables() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2922,7 +2970,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     }
 
     if (m_syncType == SyncType::DS_SYNC ||
-        m_syncType == SyncType::LOOKUP_SYNC) {
+        m_syncType == SyncType::LOOKUP_SYNC ||
+        m_syncType == SyncType::NEW_LOOKUP_SYNC) {
       if (!m_isFirstLoop) {
         m_currDSExpired = true;
       } else {
