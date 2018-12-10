@@ -250,59 +250,6 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
   return true;
 }
 
-void Node::LoadTxnSharingInfo() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::LoadTxnSharingInfo not expected to be called from "
-                "LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  m_txnSharingIAmSender = false;
-  m_txnSharingIAmForwarder = false;
-  m_txnSharingAssignedNodes.clear();
-
-  // m_txnSharingAssignedNodes below is basically just the combination of
-  // ds_receivers, shard_receivers, and shard_senders We will get rid of this
-  // inefficiency eventually
-
-  m_txnSharingAssignedNodes.emplace_back();
-
-  for (auto& m_DSReceiver : m_mediator.m_ds->m_DSReceivers) {
-    m_txnSharingAssignedNodes.back().emplace_back(m_DSReceiver);
-  }
-
-  for (unsigned int i = 0; i < m_mediator.m_ds->m_shardReceivers.size(); i++) {
-    m_txnSharingAssignedNodes.emplace_back();
-
-    for (unsigned int j = 0; j < m_mediator.m_ds->m_shardReceivers.at(i).size();
-         j++) {
-      m_txnSharingAssignedNodes.back().emplace_back(
-          m_mediator.m_ds->m_shardReceivers.at(i).at(j));
-
-      if ((i == m_myshardId) &&
-          (m_txnSharingAssignedNodes.back().back() == m_mediator.m_selfPeer)) {
-        m_txnSharingIAmForwarder = true;
-      }
-    }
-
-    m_txnSharingAssignedNodes.emplace_back();
-
-    for (unsigned int j = 0; j < m_mediator.m_ds->m_shardSenders.at(i).size();
-         j++) {
-      m_txnSharingAssignedNodes.back().emplace_back(
-          m_mediator.m_ds->m_shardSenders.at(i).at(j));
-
-      if ((i == m_myshardId) &&
-          (m_txnSharingAssignedNodes.back().back() == m_mediator.m_selfPeer)) {
-        m_txnSharingIAmSender = true;
-      }
-    }
-  }
-}
-
 void Node::StartFirstTxEpoch() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -344,7 +291,7 @@ void Node::StartFirstTxEpoch() {
         << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
-        << "] RECEIVED SHARDING STRUCTURE");
+        << "] RECVD SHARDING STRUCTURE");
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -402,13 +349,9 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   Peer newleaderIP;
 
   DequeOfShard t_shards;
-  std::vector<Peer> t_DSReceivers;
-  std::vector<std::vector<Peer>> t_shardReceivers;
-  std::vector<std::vector<Peer>> t_shardSenders;
 
-  if (!Messenger::GetNodeVCDSBlocksMessage(
-          message, cur_offset, shardId, dsblock, vcBlocks, t_shards,
-          t_DSReceivers, t_shardReceivers, t_shardSenders)) {
+  if (!Messenger::GetNodeVCDSBlocksMessage(message, cur_offset, shardId,
+                                           dsblock, vcBlocks, t_shards)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeVCDSBlocksMessage failed.");
     return false;
@@ -449,21 +392,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
                 "match. Calculated: "
                     << shardingHash
                     << " Received: " << dsblock.GetHeader().GetShardingHash());
-    return false;
-  }
-  TxSharingHash txSharingHash;
-  if (!Messenger::GetTxSharingAssignmentsHash(t_DSReceivers, t_shardReceivers,
-                                              t_shardSenders, txSharingHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetTxSharingAssignmentsHash failed.");
-    return false;
-  }
-  if (txSharingHash != dsblock.GetHeader().GetTxSharingHash()) {
-    LOG_GENERAL(WARNING,
-                "Tx sharing structure hash in newly received DS Block doesn't "
-                "match. Calculated: "
-                    << txSharingHash
-                    << " Received: " << dsblock.GetHeader().GetTxSharingHash());
     return false;
   }
 
@@ -537,9 +465,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   }
 
   m_mediator.m_ds->m_shards = move(t_shards);
-  m_mediator.m_ds->m_DSReceivers = move(t_DSReceivers);
-  m_mediator.m_ds->m_shardReceivers = move(t_shardReceivers);
-  m_mediator.m_ds->m_shardSenders = move(t_shardSenders);
 
   m_myshardId = shardId;
   BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
@@ -570,7 +495,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED DSBLOCK");
+      << "] RECVD DSBLOCK");
 
   if (LOOKUP_NODE_MODE) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -639,9 +564,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
         return false;
       }
 
-      // Process txn sharing assignments as a DS node
-      m_mediator.m_ds->ProcessTxnBodySharingAssignment();
-
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
         LOG_GENERAL(INFO,
@@ -676,9 +598,6 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       if (BROADCAST_TREEBASED_CLUSTER_MODE) {
         SendDSBlockToOtherShardNodes(message);
       }
-
-      // Process txn sharing assignments as a shard node
-      LoadTxnSharingInfo();
 
       // Finally, start as a shard node
       StartFirstTxEpoch();
