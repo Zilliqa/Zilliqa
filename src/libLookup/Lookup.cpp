@@ -3338,14 +3338,14 @@ bool Lookup::ProcessForwardTxn(const vector<unsigned char>& message,
       return false;
     }
 
-    for (auto txn : txns) {
+    for (const auto& txn : txns) {
       const PubKey& senderPubKey = txn.GetSenderPubKey();
       const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
       unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
       AddToTxnShardMap(txn, shard);
     }
   } else {
-    for (auto txn : txns) {
+    for (const auto& txn : txns) {
       AddToTxnShardMap(txn, 0);
     }
   }
