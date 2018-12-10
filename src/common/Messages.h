@@ -61,6 +61,8 @@ enum NodeInstructionType : unsigned char {
 #ifdef HEARTBEAT_TEST
   HEARTBEATKILLPULSE = 0x0C,
 #endif  // HEARTBEAT_TEST
+  GUARDNODEIDENUPDATE = 0x0D,
+
 };
 
 enum LookupInstructionType : unsigned char {
@@ -96,6 +98,7 @@ enum LookupInstructionType : unsigned char {
   GETSTATEDELTAFROMSEED = 0x1D,
   SETSTATEDELTAFROMSEED = 0x1E,
   VCGETLATESTDSTXBLOCK = 0x1F,
+  GETGUARDNODEIDENTITYUPDATE = 0x20,
 };
 
 enum TxSharingMode : unsigned char {
