@@ -1673,11 +1673,18 @@ std::string Node::GetActionString(Action action) const {
 /*static*/ bool Node::GetDSLeaderPeer(const BlockLink& lastBlockLink,
                                       const DSBlock& latestDSBlock,
                                       const DequeOfDSNode& dsCommittee,
+                                      const uint64_t epochNumber,
                                       Peer& dsLeaderPeer) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
   if (blocktype == BlockType::DS) {
-    uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-        latestDSBlock.GetHeader().GetHashForRandom().asBytes());
+    uint16_t lastBlockHash = 0;
+    // To cater for boostrap of blockchain. The zero and first epoch the DS
+    // leader is at index0
+    if (latestDSBlock.GetHeader().GetBlockNum() > 1) {
+      lastBlockHash = DataConversion::charArrTo16Bits(
+          latestDSBlock.GetHeader().GetHashForRandom().asBytes());
+    }
+
     uint32_t leader_id = 0;
     if (!GUARD_MODE) {
       leader_id = lastBlockHash % dsCommittee.size();
@@ -1685,7 +1692,9 @@ std::string Node::GetActionString(Action action) const {
       leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
     }
     dsLeaderPeer = dsCommittee.at(leader_id).second;
-    LOG_GENERAL(INFO, "ds leader id " << leader_id);
+    LOG_EPOCH(INFO, to_string(epochNumber).c_str(),
+              "lastBlockHash " << lastBlockHash << ", current ds leader id "
+                               << leader_id << ", Peer " << dsLeaderPeer);
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(

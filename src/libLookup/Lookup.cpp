@@ -3208,16 +3208,18 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         if (Node::GetDSLeaderPeer(
                 m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                 m_mediator.m_dsBlockChain.GetLastBlock(),
-                *m_mediator.m_DSCommittee, dsLeaderPeer)) {
+                *m_mediator.m_DSCommittee, m_mediator.m_currentEpochNum,
+                dsLeaderPeer)) {
           toSend.push_back(dsLeaderPeer);
         }
 
-        unsigned int count = 0;
         for (auto const& i : *m_mediator.m_DSCommittee) {
-          if (count < NUM_NODES_TO_SEND_LOOKUP && i.second != dsLeaderPeer) {
+          if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
+              i.second != dsLeaderPeer) {
             toSend.push_back(i.second);
-            count++;
-          } else {
+          }
+
+          if (toSend.size() >= NUM_NODES_TO_SEND_LOOKUP) {
             break;
           }
         }
