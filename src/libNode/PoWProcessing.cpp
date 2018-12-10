@@ -283,17 +283,18 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   if (!m_mediator.m_DSCommittee->empty()) {
     if (Node::GetDSLeaderPeer(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
                               m_mediator.m_dsBlockChain.GetLastBlock(),
-                              *m_mediator.m_DSCommittee, dsLeaderPeer)) {
+                              *m_mediator.m_DSCommittee,
+                              m_mediator.m_currentEpochNum, dsLeaderPeer)) {
       peerList.push_back(dsLeaderPeer);
     }
   }
 
-  unsigned int count = 0;
   for (auto const& i : *m_mediator.m_DSCommittee) {
-    if (count < POW_PACKET_SENDERS && i.second != dsLeaderPeer) {
+    if (peerList.size() < POW_PACKET_SENDERS && i.second != dsLeaderPeer) {
       peerList.push_back(i.second);
-      count++;
-    } else {
+    }
+
+    if (peerList.size() >= POW_PACKET_SENDERS) {
       break;
     }
   }

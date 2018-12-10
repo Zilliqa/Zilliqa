@@ -573,7 +573,7 @@ class Node : public Executable, public Broadcastable {
   static bool GetDSLeaderPeer(const BlockLink& lastBlockLink,
                               const DSBlock& latestDSBlock,
                               const DequeOfDSNode& dsCommittee,
-                              Peer& dsLeaderPeer);
+                              const uint64_t epochNumber, Peer& dsLeaderPeer);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
