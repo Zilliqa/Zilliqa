@@ -129,16 +129,18 @@ bool Retriever::RetrieveTxBlocks(bool wakeupForUpgrade) {
 
   /// Retrieve final block state delta from last DS epoch to
   /// current TX epoch
-  for (const auto& block : blocks) {
-    if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
-      std::vector<unsigned char> stateDelta;
-      BlockStorage::GetBlockStorage().GetStateDelta(
-          block->GetHeader().GetBlockNum(), stateDelta);
+  if (!ARCHIVAL_NODE) {
+    for (const auto& block : blocks) {
+      if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
+        std::vector<unsigned char> stateDelta;
+        BlockStorage::GetBlockStorage().GetStateDelta(
+            block->GetHeader().GetBlockNum(), stateDelta);
 
-      if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
-        LOG_GENERAL(WARNING,
-                    "AccountStore::GetInstance().DeserializeDelta failed");
-        return false;
+        if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
+          LOG_GENERAL(WARNING,
+                      "AccountStore::GetInstance().DeserializeDelta failed");
+          return false;
+        }
       }
     }
   }
