@@ -1938,6 +1938,41 @@ bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
+bool Messenger::StateDeltaToAddressMap(
+    const vector<unsigned char>& src, const unsigned int offset,
+    unordered_map<Address, int>& accountMap) {
+  ProtoAccountStore result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed");
+    return false;
+  }
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+
+    uint128_t tmpNumber;
+
+    ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+        entry.account().balance(), tmpNumber);
+
+    int balanceDelta =
+        entry.account().numbersign() ? (int)tmpNumber : 0 - (int)tmpNumber;
+
+    accountMap.insert(make_pair(address, balanceDelta));
+  }
+
+  return true;
+}
+
 bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
                                      const unsigned int offset,
                                      AccountStore& accountStore,

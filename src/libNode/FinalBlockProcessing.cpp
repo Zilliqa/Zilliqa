@@ -714,6 +714,23 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
+  if (isVacuousEpoch) {
+    unordered_map<Address, int> addressMap;
+    if (!Messenger::StateDeltaToAddressMap(stateDelta, 0, addressMap)) {
+      LOG_GENERAL(WARNING, "Messenger::StateDeltaToAccountMap failed");
+    } else {
+      auto it = addressMap.find(
+          Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second));
+      if (it != addressMap.end()) {
+        LOG_GENERAL(INFO, "[REWARD]"
+                              << "Woohoo! Got " << it->second << " as reward");
+      } else {
+        LOG_GENERAL(INFO, "[REWARD]"
+                              << "Got no reward this ds epoch");
+      }
+    }
+  }
+
   ProcessStateDeltaFromFinalBlock(stateDelta,
                                   txBlock.GetHeader().GetStateDeltaHash());
 
