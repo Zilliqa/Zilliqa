@@ -39,7 +39,7 @@
 #define LIMIT(s, len)                              \
   std::setw(len) << std::setfill(' ') << std::left \
                  << std::string(s).substr(0, len)
-#define PAD(n, len) std::setw(len) << std::setfill(' ') << std::right << n
+#define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger {
@@ -156,49 +156,49 @@ class ScopeMarker {
 #define INIT_EPOCHINFO_LOGGER(fname_prefix) \
   Logger::GetEpochInfoLogger(fname_prefix, true)
 #define LOG_MARKER() ScopeMarker marker(__FUNCTION__)
-#define LOG_STATE(msg)                                             \
-  {                                                                \
-    std::ostringstream oss;                                        \
-    auto cur = std::chrono::system_clock::now();                   \
-    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);   \
-    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:") \
-        << PAD(get_ms(cur), 3) << " ]" << msg;                     \
-    Logger::GetStateLogger(NULL, true)                             \
-        .LogState(oss.str().c_str(), __FUNCTION__);                \
+#define LOG_STATE(msg)                                                \
+  {                                                                   \
+    std::ostringstream oss;                                           \
+    auto cur = std::chrono::system_clock::now();                      \
+    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);      \
+    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.") \
+        << PAD(get_ms(cur), 3, '0') << " ]" << msg;                   \
+    Logger::GetStateLogger(NULL, true)                                \
+        .LogState(oss.str().c_str(), __FUNCTION__);                   \
   }
-#define LOG_GENERAL(level, msg)                                           \
-  {                                                                       \
-    if (Logger::GetLogger(NULL, true).IsG3Log()) {                        \
-      auto cur = std::chrono::system_clock::now();                        \
-      auto cur_time_t = std::chrono::system_clock::to_time_t(cur);        \
-      LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN) << "][" \
-                 << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")       \
-                 << PAD(get_ms(cur), 3) << "]["                           \
-                 << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] " \
-                 << msg;                                                  \
-    } else {                                                              \
-      std::ostringstream oss;                                             \
-      oss << msg;                                                         \
-      Logger::GetLogger(NULL, true)                                       \
-          .LogGeneral(level, oss.str().c_str(), __FUNCTION__);            \
-    }                                                                     \
+#define LOG_GENERAL(level, msg)                                                \
+  {                                                                            \
+    if (Logger::GetLogger(NULL, true).IsG3Log()) {                             \
+      auto cur = std::chrono::system_clock::now();                             \
+      auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
+      LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
+                 << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
+                 << PAD(get_ms(cur), 3, '0') << "]["                           \
+                 << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "      \
+                 << msg;                                                       \
+    } else {                                                                   \
+      std::ostringstream oss;                                                  \
+      oss << msg;                                                              \
+      Logger::GetLogger(NULL, true)                                            \
+          .LogGeneral(level, oss.str().c_str(), __FUNCTION__);                 \
+    }                                                                          \
   }
-#define LOG_EPOCH(level, epoch, msg)                                      \
-  {                                                                       \
-    if (Logger::GetLogger(NULL, true).IsG3Log()) {                        \
-      auto cur = std::chrono::system_clock::now();                        \
-      auto cur_time_t = std::chrono::system_clock::to_time_t(cur);        \
-      LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN) << "][" \
-                 << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")       \
-                 << PAD(get_ms(cur), 3) << "]["                           \
-                 << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "]"  \
-                 << "[Epoch " << epoch << "] " << msg;                    \
-    } else {                                                              \
-      std::ostringstream oss;                                             \
-      oss << msg;                                                         \
-      Logger::GetLogger(NULL, true)                                       \
-          .LogEpoch(level, epoch, oss.str().c_str(), __FUNCTION__);       \
-    }                                                                     \
+#define LOG_EPOCH(level, epoch, msg)                                           \
+  {                                                                            \
+    if (Logger::GetLogger(NULL, true).IsG3Log()) {                             \
+      auto cur = std::chrono::system_clock::now();                             \
+      auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
+      LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
+                 << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
+                 << PAD(get_ms(cur), 3, '0') << "]["                           \
+                 << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "]"       \
+                 << "[Epoch " << epoch << "] " << msg;                         \
+    } else {                                                                   \
+      std::ostringstream oss;                                                  \
+      oss << msg;                                                              \
+      Logger::GetLogger(NULL, true)                                            \
+          .LogEpoch(level, epoch, oss.str().c_str(), __FUNCTION__);            \
+    }                                                                          \
   }
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
   {                                                                            \
@@ -208,16 +208,18 @@ class ScopeMarker {
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       if ((payload).size() > max_bytes_to_display) {                           \
-        LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["    \
-                   << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")          \
-                   << PAD(get_ms(cur), 3) << "]["                              \
+        LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ')       \
+                   << "]["                                                     \
+                   << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")       \
+                   << PAD(get_ms(cur), 3, '0') << "]["                         \
                    << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "    \
                    << msg << " (Len=" << (payload).size()                      \
                    << "): " << payload_string.get() << "...";                  \
       } else {                                                                 \
-        LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN) << "]["    \
-                   << std::put_time(gmtime(&cur_time_t), "%H:%M:%S:")          \
-                   << PAD(get_ms(cur), 3) << "]["                              \
+        LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ')       \
+                   << "]["                                                     \
+                   << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")       \
+                   << PAD(get_ms(cur), 3, '0') << "]["                         \
                    << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "    \
                    << msg << " (Len=" << (payload).size()                      \
                    << "): " << payload_string.get();                           \

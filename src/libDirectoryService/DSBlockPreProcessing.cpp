@@ -912,7 +912,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BGIN");
+      << "] BGIN, POWS = " << m_allPoWs.size());
 
   // Refer to Effective mordern C++. Item 32: Use init capture to move objects
   // into closures.
@@ -1274,9 +1274,6 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
 
   {
     lock_guard<mutex> g(m_mutexAllPOW);
-    LOG_STATE("[POWR][" << std::setw(15) << std::left
-                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                        << m_allPoWs.size() << "] ");
 
     if (m_allPoWs.size() == 0) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),

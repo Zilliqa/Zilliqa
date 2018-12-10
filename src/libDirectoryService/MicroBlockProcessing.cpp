@@ -311,7 +311,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                 << " of " << m_shards.size() << " microblocks received");
 
   if (microBlocksAtEpoch.size() == m_shards.size()) {
-    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+    LOG_STATE("[MIBLK][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum
                          << "] LAST RECVD");
@@ -327,7 +327,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
     DetachedFunction(1, func);
   } else {
-    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+    LOG_STATE("[MIBLK][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum
                          << "] FRST RECVD");
