@@ -673,7 +673,8 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
   struct event_base* base = event_base_new();
   if (base == NULL) {
     LOG_GENERAL(WARNING, "event_base_new failure.");
-    return;    // fixme: should we exit here?
+    // fixme: should we exit here?
+    return;
   }
   
   struct evconnlistener* listener = evconnlistener_new_bind(
@@ -684,7 +685,8 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
   if (listener == NULL) {
     LOG_GENERAL(WARNING, "evconnlistener_new_bind failure.");
     event_base_free(base);
-    return;    // fixme: should we exit here?
+    // fixme: should we exit here?
+    return;
   }
   
   event_base_dispatch(base);
