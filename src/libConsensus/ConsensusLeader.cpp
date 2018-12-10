@@ -781,6 +781,11 @@ ConsensusLeader::ConsensusLeader(
   m_commitPoints.emplace_back(*m_commitPoint);
   m_commitPointMap.at(m_myID) = *m_commitPoint;
   m_commitCounter = 1;
+
+  m_allCommitsReceived = false;
+  m_commitRedundantCounter = 0;
+  m_commitFailureCounter = 0;
+  m_numSubsetsRunning = 0;
 }
 
 ConsensusLeader::~ConsensusLeader() {}

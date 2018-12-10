@@ -107,6 +107,11 @@ class P2PComm {
   boost::lockfree::queue<SendJob*> m_sendQueue;
   void ProcessSendJob(SendJob* job);
 
+  static void ProcessBroadCastMsg(std::vector<unsigned char>& message,
+                                  const uint32_t messageLength,
+                                  const Peer& from);
+  static void ProcessGossipMsg(std::vector<unsigned char>& message, Peer& from);
+
   static void EventCallback(struct bufferevent* bev, short events, void* ctx);
   static void AcceptConnectionCallback(evconnlistener* listener,
                                        evutil_socket_t cli_sock,

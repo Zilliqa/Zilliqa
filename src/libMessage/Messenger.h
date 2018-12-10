@@ -22,7 +22,7 @@
 #include <boost/variant.hpp>
 #include "common/Serializable.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/AccountData/ForwardedTxnEntry.h"
+#include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libData/MiningData/DSPowSolution.h"
@@ -316,23 +316,24 @@ class Messenger {
   static bool GetNodeVCBlock(const std::vector<unsigned char>& src,
                              const unsigned int offset, VCBlock& vcBlock);
 
-  static bool SetNodeForwardTransaction(
+  static bool SetNodeMBnForwardTransaction(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t blockNum, const BlockHash& hash,
+      const MicroBlock& microBlock,
       const std::vector<TransactionWithReceipt>& txns);
-  static bool GetNodeForwardTransaction(const std::vector<unsigned char>& src,
-                                        const unsigned int offset,
-                                        ForwardedTxnEntry& entry);
+  static bool GetNodeMBnForwardTransaction(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      MBnForwardedTxnEntry& entry);
 
   static bool SetNodeForwardTxnBlock(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t epochNumber, const uint32_t shardId,
-      const std::pair<PrivKey, PubKey>& lookupKey,
+      const uint64_t& epochNumber, const uint64_t& dsBlockNum,
+      const uint32_t& shardId, const std::pair<PrivKey, PubKey>& lookupKey,
       const std::vector<Transaction>& txnsCurrent,
       const std::vector<Transaction>& txnsGenerated);
   static bool GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
                                      const unsigned int offset,
-                                     uint64_t& epochNumber, uint32_t& shardId,
+                                     uint64_t& epochNumber,
+                                     uint64_t& dsBlockNum, uint32_t& shardId,
                                      PubKey& lookupPubKey,
                                      std::vector<Transaction>& txns);
 
