@@ -158,8 +158,9 @@ unsigned int Guard::GetNumOfShardGuard() {
   return m_ShardGuardList.size();
 }
 
-// This feature is only available to ds guard nodes
-// Pre-condition: Must still have access to existing public and private key pair
+// This feature is only available to ds guard nodes. This only guard nodes to
+// change its network information. Pre-condition: Must still have access to
+// existing public and private key pair
 bool Guard::UpdateDSGuardIdentity(const Mediator& mediator) {
   if (!GUARD_MODE) {
     LOG_GENERAL(
@@ -172,12 +173,12 @@ bool Guard::UpdateDSGuardIdentity(const Mediator& mediator) {
   vector<unsigned char> updatedsguardidentitymessage = {
       MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
 
-  if (!Messenger::SetDSLookupNewDSGuardIdentity(
+  if (!Messenger::SetDSLookupNewDSGuardNetworkInfo(
           updatedsguardidentitymessage, MessageOffset::BODY,
           mediator.m_currentEpochNum, mediator.m_selfPeer, get_time_as_int(),
           mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetDSLookupNewDSGuardIdentity failed.");
+              "Messenger::SetDSLookupNewDSGuardNetworkInfo failed.");
     return false;
   }
 
