@@ -1097,6 +1097,10 @@ bool Node::ProcessTxnPacketFromLookup(
                 "should be from gossip neightor and process it");
     return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
                                           lookupPubKey, transactions);
+  } else if (from.GetPrintableIPAddress() == "127.0.0.1") {
+    LOG_GENERAL(INFO, "Received packet from local, supposed to be local test");
+    return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
+                                          lookupPubKey, transactions);
   } else {
     LOG_GENERAL(WARNING, "Received packet neither from lookup or shard member");
     return false;
