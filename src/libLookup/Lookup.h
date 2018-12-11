@@ -93,11 +93,18 @@ class Lookup : public Executable, public Broadcastable {
   /// network
   bool FinishRejoinAsLookup();
 
+  /// Post processing after the new Lookup node successfully synchronized with
+  /// the network
+  bool FinishNewJoinAsLookup();
+
   // Reset certain variables to the initial state
   bool CleanVariables();
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
+
+  /// Initialize all blockchains and blocklinkchain
+  void InitAsNewJoiner();
 
   std::mutex m_mutexSetDSBlockFromSeed;
   std::mutex m_mutexSetTxBlockFromSeed;
@@ -135,6 +142,9 @@ class Lookup : public Executable, public Broadcastable {
 
   /// Destructor.
   ~Lookup();
+
+  /// Sync new lookup node.
+  void InitSync();
 
   // Setting the lookup nodes
   // Hardcoded for now -- to be called by constructor
