@@ -3456,7 +3456,8 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
     return false;
   }
 
-  if (m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.find(dsEpochNo) == m_mediator.m_ds.m_lookupStoreForGuardNodeUpdate.end()){
+  if (m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.find(dsEpochNo) ==
+      m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.end()) {
     LOG_GENERAL(INFO, "No record found. No update needed.");
     return false;
   }
@@ -3466,7 +3467,9 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
       MessageType::NODE, NodeInstructionType::DSGUARDNODENETWORKINFOUPDATE};
 
   if (!Messenger::SetNodeSetNewDSGuardNetworkInfo(
-          setNewDSGuardNetworkInfo, MessageOffset::BODY, m_mediator.m_ds.m_lookupStoreForGuardNodeUpdate.at(dsEpochNo)) {
+          setNewDSGuardNetworkInfo, MessageOffset::BODY,
+          m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.at(dsEpochNo),
+          m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetNodeSetNewDSGuardNetworkInfo failed.");
     return false;
