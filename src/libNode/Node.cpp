@@ -1467,8 +1467,22 @@ void Node::CleanCreatedTransaction() {
   m_TxnOrder.clear();
 }
 
-// bool Node::IsShardNode(const Peer& peerInfo) const {
-// }
+bool Node::IsShardNode(const PubKey& pubKey) {
+  lock_guard<mutex> lock(m_mutexShardMember);
+  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                      [&pubKey](const std::pair<PubKey, Peer>& node) {
+                        return node.first == pubKey;
+                      }) != m_myShardMembers->end();
+}
+
+bool Node::IsShardNode(const Peer& peerInfo) {
+  lock_guard<mutex> lock(m_mutexShardMember);
+  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                      [&peerInfo](const std::pair<PubKey, Peer>& node) {
+                        return node.second.GetIpAddress() ==
+                               peerInfo.GetIpAddress();
+                      }) != m_myShardMembers->end();
+}
 
 bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
                            unsigned int offset,
@@ -1606,11 +1620,11 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
   nodes_hi = std::min(nodes_hi, (uint32_t)m_myShardMembers->size() - 1);
 
   LOG_GENERAL(
-      INFO,
-      "I am broadcasting message with hash: ["
-          << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-          << "] further to following " << nodes_hi - nodes_lo + 1 << " peers."
-          << "(" << nodes_lo << "~" << nodes_hi << ")");
+      INFO, "I am broadcasting message with hash: ["
+                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+                << "] further to following " << nodes_hi - nodes_lo + 1
+                << " peers."
+                << "(" << nodes_lo << "~" << nodes_hi << ")");
 
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);

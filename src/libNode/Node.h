@@ -551,6 +551,9 @@ class Node : public Executable, public Broadcastable {
 
   void UpdateProcessedTransactions();
 
+  bool IsShardNode(const PubKey& pubKey);
+  bool IsShardNode(const Peer& peerInfo);
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
   std::string GetStateString() const;
