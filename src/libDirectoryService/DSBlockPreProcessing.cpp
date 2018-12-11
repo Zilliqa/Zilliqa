@@ -530,107 +530,6 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
   return true;
 }
 
-void DirectoryService::ComputeTxnSharingAssignments(
-    const vector<Peer>& proposedDSMembers) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::ComputeTxnSharingAssignments not "
-                "expected to be called from LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  // PART 1
-  // First version: We just take the first X nodes in DS committee
-  // Take note that this is the OLD DS committee -> we must consider that
-  // winnerpeer is the new DS member (and the last node in the committee will no
-  // longer be a DS node)
-
-  m_DSReceivers.clear();
-
-  uint32_t num_ds_nodes =
-      (m_mediator.m_DSCommittee->size() < TX_SHARING_CLUSTER_SIZE)
-          ? m_mediator.m_DSCommittee->size()
-          : TX_SHARING_CLUSTER_SIZE;
-
-  // Add the new DS leader first
-  for (const auto& proposedMember : proposedDSMembers) {
-    m_DSReceivers.emplace_back(proposedMember);
-  }
-
-  m_mediator.m_node->m_txnSharingIAmSender = true;
-  num_ds_nodes--;
-
-  // Add the rest from the current DS committee
-  for (unsigned int i = 0; i < num_ds_nodes; i++) {
-    if (i != m_consensusMyID) {
-      m_DSReceivers.emplace_back(m_mediator.m_DSCommittee->at(i).second);
-    } else {
-      // when i == m_consensusMyID use m_mediator.m_selfPeer since IP/ port in
-      // m_mediator.m_DSCommittee->at(m_consensusMyID).second is zeroed out
-      m_DSReceivers.emplace_back(m_mediator.m_selfPeer);
-    }
-  }
-
-  // PART 2 and 3
-  // First version: We just take the first X nodes for receiving and next X
-  // nodes for sending
-
-  m_shardReceivers.clear();
-  m_shardSenders.clear();
-
-  for (const auto& shard : m_shards) {
-    // PART 2
-
-    m_shardReceivers.emplace_back();
-
-    uint32_t nodes_recv_lo = 0;
-    uint32_t nodes_recv_hi = nodes_recv_lo + TX_SHARING_CLUSTER_SIZE - 1;
-
-    if (nodes_recv_hi >= shard.size()) {
-      nodes_recv_hi = shard.size() - 1;
-    }
-
-    unsigned int num_nodes = nodes_recv_hi - nodes_recv_lo + 1;
-
-    auto node_peer = shard.begin();
-    for (unsigned int j = 0; j < num_nodes; j++) {
-      m_shardReceivers.back().emplace_back(
-          std::get<SHARD_NODE_PEER>(*node_peer));
-      node_peer++;
-    }
-
-    // PART 3
-
-    m_shardSenders.emplace_back();
-
-    uint32_t nodes_send_lo = 0;
-    uint32_t nodes_send_hi = 0;
-
-    if (shard.size() <= TX_SHARING_CLUSTER_SIZE) {
-      nodes_send_lo = nodes_recv_lo;
-      nodes_send_hi = nodes_recv_hi;
-    } else if (shard.size() < (2 * TX_SHARING_CLUSTER_SIZE)) {
-      nodes_send_lo = shard.size() - TX_SHARING_CLUSTER_SIZE;
-      nodes_send_hi = nodes_send_lo + TX_SHARING_CLUSTER_SIZE - 1;
-    } else {
-      nodes_send_lo = TX_SHARING_CLUSTER_SIZE;
-      nodes_send_hi = nodes_send_lo + TX_SHARING_CLUSTER_SIZE - 1;
-    }
-
-    num_nodes = nodes_send_hi - nodes_send_lo + 1;
-
-    node_peer = shard.begin();
-    advance(node_peer, nodes_send_lo);
-
-    for (unsigned int j = 0; j < num_nodes; j++) {
-      m_shardSenders.back().emplace_back(std::get<SHARD_NODE_PEER>(*node_peer));
-      node_peer++;
-    }
-  }
-}
-
 VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
                                               bool trimBeyondCommSize) {
   std::map<array<unsigned char, 32>, PubKey> PoWOrderSorter;
@@ -819,8 +718,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     proposedDSMembersInfo.emplace_back(m_allPoWConns[proposedMember.second]);
   }
 
-  ComputeTxnSharingAssignments(proposedDSMembersInfo);
-
   // Compute the DSBlockHashSet member of the DSBlockHeader
   DSBlockHashSet dsBlockHashSet;
   if (!Messenger::GetShardingStructureHash(m_shards,
@@ -832,14 +729,6 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   BlockStorage::GetBlockStorage().PutShardStructure(
       m_shards, m_mediator.m_node->m_myshardId);
-
-  if (!Messenger::GetTxSharingAssignmentsHash(m_DSReceivers, m_shardReceivers,
-                                              m_shardSenders,
-                                              dsBlockHashSet.m_txSharingHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetTxSharingAssignmentsHash failed.");
-    return false;
-  }
 
   // Compute the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
@@ -912,7 +801,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       << std::setw(15) << std::left
       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BGIN");
+      << "] BGIN, POWS = " << m_allPoWs.size());
 
   // Refer to Effective mordern C++. Item 32: Use init capture to move objects
   // into closures.
@@ -925,54 +814,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
           vector<unsigned char>& messageToCosign) mutable -> bool {
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
-        *m_pendingDSBlock, m_shards, m_DSReceivers, m_shardReceivers,
-        m_shardSenders, m_allPoWs, dsWinnerPoWs, messageToCosign);
+        *m_pendingDSBlock, m_shards, m_allPoWs, dsWinnerPoWs, messageToCosign);
   };
 
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
   return true;
-}
-
-void DirectoryService::ProcessTxnBodySharingAssignment() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::ProcessTxnBodySharingAssignment not "
-                "expected to be called from LookUp node.");
-    return;
-  }
-
-  bool i_am_forwarder = false;
-  for (const auto& receiver : m_DSReceivers) {
-    if (receiver == m_mediator.m_selfPeer) {
-      m_mediator.m_node->m_txnSharingIAmSender = true;
-      i_am_forwarder = true;
-      break;
-    }
-  }
-
-  unsigned int num_ds_nodes = m_DSReceivers.size();
-
-  m_sharingAssignment.clear();
-
-  if ((i_am_forwarder) && (m_mediator.m_DSCommittee->size() > num_ds_nodes)) {
-    for (const auto& ds : *m_mediator.m_DSCommittee) {
-      bool is_a_receiver = false;
-
-      if (num_ds_nodes > 0) {
-        for (const auto& receiver : m_DSReceivers) {
-          if (ds.second == receiver) {
-            is_a_receiver = true;
-            break;
-          }
-        }
-        num_ds_nodes--;
-      }
-
-      if (!is_a_receiver) {
-        m_sharingAssignment.emplace_back(ds.second);
-      }
-    }
-  }
 }
 
 bool DirectoryService::DSBlockValidator(
@@ -990,9 +836,6 @@ bool DirectoryService::DSBlockValidator(
     return true;
   }
 
-  m_tempDSReceivers.clear();
-  m_tempShardReceivers.clear();
-  m_tempShardSenders.clear();
   m_tempShards.clear();
 
   lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
@@ -1006,8 +849,7 @@ bool DirectoryService::DSBlockValidator(
 
   if (!Messenger::GetDSDSBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
-          leaderKey, *m_pendingDSBlock, m_tempShards, m_tempDSReceivers,
-          m_tempShardReceivers, m_tempShardSenders, allPoWsFromLeader,
+          leaderKey, *m_pendingDSBlock, m_tempShards, allPoWsFromLeader,
           dsWinnerPoWsFromLeader, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
@@ -1050,23 +892,6 @@ bool DirectoryService::DSBlockValidator(
                 "match. Calculated: "
                     << shardingHash << " Received: "
                     << m_pendingDSBlock->GetHeader().GetShardingHash());
-    return false;
-  }
-
-  TxSharingHash txSharingHash;
-  if (!Messenger::GetTxSharingAssignmentsHash(
-          m_tempDSReceivers, m_tempShardReceivers, m_tempShardSenders,
-          txSharingHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetTxSharingAssignmentsHash failed.");
-    return false;
-  }
-  if (txSharingHash != m_pendingDSBlock->GetHeader().GetTxSharingHash()) {
-    LOG_GENERAL(WARNING,
-                "Tx sharing structure hash in newly received DS Block doesn't "
-                "match. Calculated: "
-                    << txSharingHash << " Received: "
-                    << m_pendingDSBlock->GetHeader().GetTxSharingHash());
     return false;
   }
 
@@ -1132,8 +957,6 @@ bool DirectoryService::DSBlockValidator(
     LOG_GENERAL(WARNING, "Failed to verify gas price");
     return false;
   }
-
-  // ProcessTxnBodySharingAssignment();
 
   auto func = [this]() mutable -> void {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
@@ -1274,9 +1097,6 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
 
   {
     lock_guard<mutex> g(m_mutexAllPOW);
-    LOG_STATE("[POWR][" << std::setw(15) << std::left
-                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                        << m_allPoWs.size() << "] ");
 
     if (m_allPoWs.size() == 0) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1288,8 +1108,6 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
       }
     }
   }
-
-  m_mediator.m_node->m_txnSharingIAmSender = false;
 
   // Upon consensus object creation failure, one should not return from the
   // function, but rather wait for view change.

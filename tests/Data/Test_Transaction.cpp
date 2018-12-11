@@ -25,6 +25,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libValidator/Validator.h"
@@ -40,7 +41,6 @@ BOOST_AUTO_TEST_SUITE(transactiontest)
 
 BOOST_AUTO_TEST_CASE(test1) {
   INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   Address toAddr;
@@ -59,21 +59,29 @@ BOOST_AUTO_TEST_CASE(test1) {
   }
 
   KeyPair sender = Schnorr::GetInstance().GenKeyPair();
-  Address fromCheck;
-  // To obtain address
-  std::vector<unsigned char> vec;
-  sender.second.Serialize(vec, 0);
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(vec);
-
-  const std::vector<unsigned char>& output = sha2.Finalize();
-
-  copy(output.end() - ACC_ADDR_SIZE, output.end(), fromCheck.asArray().begin());
+  Address fromCheck = Account::GetAddressFromPublicKey(sender.second);
+  Signature sig = TestUtils::GetSignature(
+      TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender.first,
+      sender.second);
 
   Transaction tx1(1, 5, toAddr, sender, 55, PRECISION_MIN_VALUE, 22, {}, {});
+  Transaction tx2 =
+      Transaction(1, 5, toAddr, sender.second, 55, PRECISION_MIN_VALUE, 22, {},
+                  {}, sig);  // Coverage increase
+
+  BOOST_CHECK_MESSAGE(tx1.GetSenderAddr() == fromCheck,
+                      "Address from public key converted not properly.");
 
   BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx1),
                       "Signature not verified\n");
+
+  BOOST_CHECK_MESSAGE(0 == tx1.GetShardIndex(fromAddr, 0),
+                      "Shard index > 0 when passing zero shards");
+
+  uint32_t shardSize = TestUtils::DistUint32();
+  tx1.GetShardIndex(
+      fromCheck,
+      shardSize);  // Check against nothing, just to increase coverage
 
   std::vector<unsigned char> message1;
   tx1.Serialize(message1, 0);
@@ -81,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   LOG_PAYLOAD(INFO, "Transaction1 serialized", message1,
               Logger::MAX_BYTES_TO_DISPLAY);
 
-  Transaction tx2(message1, 0);
+  tx2 = Transaction(message1, 0);
 
   if (tx1 == tx2) {
     LOG_PAYLOAD(INFO, "SERIALZED", message1, Logger::MAX_BYTES_TO_DISPLAY);
@@ -105,8 +113,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   const uint128_t& gasLimit2 = tx2.GetGasLimit();
   const vector<unsigned char>& code2 = tx2.GetCode();
   const vector<unsigned char>& data2 = tx2.GetData();
-  const Signature& signature2 = tx2.GetSignature();
-  // Predicate pred2 = tx2.GetPredicate();
+  Signature sign = TestUtils::GenerateRandomSignature();
 
   std::vector<unsigned char> byteVec;
   byteVec.resize(TRAN_HASH_SIZE);
@@ -159,107 +166,34 @@ BOOST_AUTO_TEST_CASE(test1) {
   LOG_PAYLOAD(INFO, "Transaction2 data", data2, Logger::MAX_BYTES_TO_DISPLAY);
   BOOST_CHECK_MESSAGE(data2 == tx1.GetData(), "Data not converted properly");
 
-  LOG_GENERAL(INFO, "Transaction2 signature: " << signature2);
-  BOOST_CHECK_MESSAGE(signature2 == tx1.GetSignature(),
-                      "Signature not converted properly");
-
   BOOST_CHECK_MESSAGE(m_validator->VerifyTransaction(tx2),
                       "Signature not verified\n");
 
-  // pair<PrivKey, PubKey> KeyPair = Schnorr::GetInstance().GenKeyPair();
+  tx2.SetSignature(sign);
 
-  // byteVec.clear();
-  // byteVec.resize(sizeof(uint32_t) + UINT256_SIZE + ACC_ADDR_SIZE
-  //                + PUB_KEY_SIZE + UINT256_SIZE);
-  // unsigned int curOffset = 0;
-  // Serializable::SetNumber<uint32_t>(byteVec, curOffset, 0, sizeof(uint32_t));
-  // curOffset += sizeof(uint32_t);
-  // Serializable::SetNumber<uint128_t>(byteVec, curOffset, 1, UINT256_SIZE);
-  // curOffset += UINT256_SIZE;
-  // string str = "1234567890123456789012345678901234567890";
-  // array<unsigned char, 32> toAddr_arr =
-  // DataConversion::HexStrToStdArray(str); copy(toAddr_arr.begin(),
-  // toAddr_arr.end(), byteVec.begin() + curOffset); curOffset += ACC_ADDR_SIZE;
+  BOOST_CHECK_MESSAGE(sign == tx2.GetSignature(),
+                      "Signature not converted properly");
+}
 
-  // Address toAddr3(str);
-  // PubKey pbk = KeyPair.second;
-  // pbk.Serialize(byteVec, curOffset);
-  // curOffset += PUB_KEY_SIZE;
-  // Serializable::SetNumber<uint128_t>(byteVec, curOffset, 100, UINT256_SIZE);
-  // curOffset += UINT256_SIZE;
+BOOST_AUTO_TEST_CASE(testOperators) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
 
-  // LOG_GENERAL(INFO,
-  //             "Size :" << byteVec.size() << " VectorHex: "
-  //                      << DataConversion::Uint8VecToHexStr(byteVec));
+  TxnHash txH1 = TxnHash();
+  TxnHash txH2 = txH1;
+  KeyPair kp = TestUtils::GenerateRandomKeyPair();
+  Signature sig = TestUtils::GetSignature(
+      TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), kp.first,
+      kp.second);
 
-  // Signature sign;
+  Transaction tx1 = Transaction(txH1, TransactionCoreInfo(), sig);
+  Transaction tx2 = Transaction(txH1, TransactionCoreInfo(), sig);
+  txH2.operator++();
+  Transaction tx3 = Transaction(txH2, TransactionCoreInfo(), sig);
 
-  // Schnorr::GetInstance().Sign(byteVec, KeyPair.first, KeyPair.second, sign);
-
-  // vector<unsigned char> sign_ser;
-  // sign.Serialize(sign_ser, 0);
-
-  // array<unsigned char, TRAN_SIG_SIZE> sign_arr;
-
-  // copy(sign_ser.begin(), sign_ser.end(), sign_arr.begin());
-
-  // Transaction txv(0, 1, toAddr3, pbk, 100, sign_arr);
-
-  // BOOST_CHECK_MESSAGE(b, "Signature not verified\n");
-
-  // byteVec.clear();
-  // byteVec.resize(1);
-  // byteVec.at(0) = pred2.GetType();
-  // LOG_PAYLOAD("Transaction2 predicate type", byteVec,
-  // Logger::MAX_BYTES_TO_DISPLAY); BOOST_CHECK_MESSAGE(pred2.GetType() == 3,
-  // "expected: "<<3<<" actual: "<<pred2.GetType()<<"\n");
-
-  // byteVec.at(0) = pred2.GetAccConOp();
-  // LOG_PAYLOAD("Transaction2 predicate accConOp", byteVec,
-  // Logger::MAX_BYTES_TO_DISPLAY); BOOST_CHECK_MESSAGE(pred2.GetAccConOp() ==
-  // 2, "expected: "<<2<<" actual: "<<pred2.GetAccConOp()<<"\n");
-
-  // uint128_t accConBalance2 = pred2.GetAccConBalance();
-  // LOG_GENERAL(INFO, "Transaction2 predicate accConBalance: " <<
-  // accConBalance2); BOOST_CHECK_MESSAGE(accConBalance2 == 1, "expected:
-  // "<<1<<" actual: "<<accConBalance2<<"\n");
-
-  // byteVec.clear();
-  // byteVec.resize(ACC_ADDR_SIZE);
-  // const std::array<unsigned char, ACC_ADDR_SIZE> & accConAddr2 =
-  // pred2.GetAccConAddr(); copy(accConAddr2.begin(), accConAddr2.end(),
-  // byteVec.begin()); LOG_PAYLOAD("Transaction2 predicate accConAddr", byteVec,
-  // Logger::MAX_BYTES_TO_DISPLAY); BOOST_CHECK_MESSAGE(byteVec.at(8) == 16,
-  // "expected: "<<16<<" actual: "<<byteVec.at(8)<<"\n");
-
-  // byteVec.clear();
-  // byteVec.resize(1);
-  // byteVec.at(0) = pred2.GetTxConOp();
-  // LOG_PAYLOAD("Transaction2 predicate txConOp", byteVec,
-  // Logger::MAX_BYTES_TO_DISPLAY); BOOST_CHECK_MESSAGE(pred2.GetTxConOp() == 1,
-  // "expected: "<<1<<" actual: "<<pred2.GetTxConOp()<<"\n");
-
-  // uint128_t txConAmount2 = pred2.GetTxConAmount();
-  // LOG_GENERAL(INFO, "Transaction2 predicate txConAmount: " << txConAmount2);
-  // BOOST_CHECK_MESSAGE(txConAmount2 == 33, "expected: "<<55<<" actual:
-  // "<<txConAmount2<<"\n");
-
-  // byteVec.clear();
-  // byteVec.resize(ACC_ADDR_SIZE);
-  // const std::array<unsigned char, ACC_ADDR_SIZE> & txConToAddr2 =
-  // pred2.GetTxConToAddr(); copy(txConToAddr2.begin(), txConToAddr2.end(),
-  // byteVec.begin()); LOG_PAYLOAD("Transaction2 predicate txConToAddr",
-  // byteVec, Logger::MAX_BYTES_TO_DISPLAY); BOOST_CHECK_MESSAGE(byteVec.at(8)
-  // == 12, "expected: "<<12<<" actual: "<<byteVec.at(8)<<"\n");
-
-  // byteVec.clear();
-  // byteVec.resize(ACC_ADDR_SIZE);
-  // const std::array<unsigned char, ACC_ADDR_SIZE> & txConFromAddr2 =
-  // pred2.GetTxConFromAddr(); copy(txConFromAddr2.begin(),
-  // txConFromAddr2.end(), byteVec.begin()); LOG_PAYLOAD("Transaction2 predicate
-  // txConFromAddr", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
-  // BOOST_CHECK_MESSAGE(byteVec.at(8) == 16, "expected: "<<16<<" actual:
-  // "<<byteVec.at(8)<<"\n");
+  BOOST_CHECK_MESSAGE(tx1 == tx2, "Equality operator failed");
+  BOOST_CHECK_MESSAGE(tx3 > tx1, "More-than operator failed");
+  BOOST_CHECK_MESSAGE(tx1 < tx3, "Less-than operator failed");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
