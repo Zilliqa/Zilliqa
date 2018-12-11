@@ -63,6 +63,58 @@ Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
 
 Lookup::~Lookup() {}
 
+void Lookup::InitAsNewJoiner() {
+  m_mediator.m_dsBlockChain.Reset();
+  m_mediator.m_txBlockChain.Reset();
+  m_mediator.m_blocklinkchain.Reset();
+
+  SetLookupNodes();
+  {
+    std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    m_mediator.m_DSCommittee->clear();
+  }
+  AccountStore::GetInstance().Init();
+
+  Synchronizer tempSyncer;
+  tempSyncer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
+                                     m_mediator.m_txBlockChain);
+  const auto& dsBlock = m_mediator.m_dsBlockChain.GetBlock(0);
+  m_mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
+                                           dsBlock.GetBlockHash());
+}
+
+void Lookup::InitSync() {
+  auto func = [this]() -> void {
+    uint64_t dsBlockNum = 0;
+    uint64_t txBlockNum = 0;
+
+    // Initialize all blockchains and blocklinkchain
+    InitAsNewJoiner();
+
+    // Set myself offline
+    GetMyLookupOffline();
+
+    while (GetSyncType() != SyncType::NO_SYNC) {
+      if (m_mediator.m_dsBlockChain.GetBlockCount() != 1) {
+        dsBlockNum = m_mediator.m_dsBlockChain.GetBlockCount();
+      }
+      if (m_mediator.m_txBlockChain.GetBlockCount() != 1) {
+        txBlockNum = m_mediator.m_txBlockChain.GetBlockCount();
+      }
+      LOG_GENERAL(INFO,
+                  "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
+      ComposeAndSendGetDirectoryBlocksFromSeed(
+          m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
+      GetTxBlockFromLookupNodes(txBlockNum, 0);
+
+      this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
+    }
+    // Register myself with multiplier.
+    // TBD
+  };
+  DetachedFunction(1, func);
+}
+
 void Lookup::SetLookupNodes() {
   LOG_MARKER();
 
@@ -83,6 +135,18 @@ void Lookup::SetLookupNodes() {
           DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
           0);
       m_lookupNodes.emplace_back(pubKey, lookup_node);
+    }
+  }
+
+  // Add myself to lookupnodes
+  if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    const PubKey& myPubKey = m_mediator.m_selfKey.second;
+    if (std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                     [&myPubKey](const std::pair<PubKey, Peer>& node) {
+                       return node.first == myPubKey;
+                     }) == m_lookupNodes.end()) {
+      m_lookupNodes.emplace_back(m_mediator.m_selfKey.second,
+                                 m_mediator.m_selfPeer);
     }
   }
 }
@@ -1452,8 +1516,10 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
   //    Data::GetInstance().SetDSPeers(dsPeers);
   //#endif // IS_LOOKUP_NODE
 
-  if (!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying &&
-      (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
+  if ((!LOOKUP_NODE_MODE && m_dsInfoWaitingNotifying &&
+       (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) ||
+      (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC &&
+       m_dsInfoWaitingNotifying)) {
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
         "Notifying ProcessSetStateFromSeed that DSInfo has been received");
@@ -1689,6 +1755,10 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "At new DS epoch now, try getting state from lookup");
     GetStateFromLookupNodes();
+  } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "New lookup - always try getting state from other lookup");
+    GetStateFromLookupNodes();
   }
 
   cv_setTxBlockFromSeed.notify_all();
@@ -1835,10 +1905,43 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
       m_currDSExpired = false;
     }
   } else if (m_syncType == SyncType::LOOKUP_SYNC) {
-    // rsync the txbodies here
-    if (RsyncTxBodies() && !m_currDSExpired) {
+    if (!m_currDSExpired) {
       if (FinishRejoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
+      }
+    }
+    m_currDSExpired = false;
+  } else if (LOOKUP_NODE_MODE && m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+    m_dsInfoWaitingNotifying = true;
+
+    GetDSInfoFromLookupNodes();
+
+    {
+      unique_lock<mutex> lock(m_mutexDSInfoUpdation);
+      while (!m_fetchedDSInfo) {
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Waiting for DSInfo");
+
+        if (cv_dsInfoUpdate.wait_for(lock,
+                                     chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
+            std::cv_status::timeout) {
+          // timed out
+          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "Timed out waiting for DSInfo");
+          m_dsInfoWaitingNotifying = false;
+          return false;
+        }
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "Get ProcessDsInfo Notified");
+        m_dsInfoWaitingNotifying = false;
+      }
+      m_fetchedDSInfo = false;
+    }
+
+    if (!m_currDSExpired) {
+      if (FinishNewJoinAsLookup()) {
+        SetSyncType(SyncType::NO_SYNC);
+        m_isFirstLoop = true;
       }
     }
     m_currDSExpired = false;
@@ -2664,6 +2767,17 @@ bool Lookup::FinishRejoinAsLookup() {
   return GetMyLookupOnline();
 }
 
+bool Lookup::FinishNewJoinAsLookup() {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::FinishNewJoinAsLookup not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
+
+  return GetMyLookupOnline();
+}
+
 bool Lookup::CleanVariables() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2703,7 +2817,8 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
           ins_byte != LookupInstructionType::SETSTATEFROMSEED &&
           ins_byte != LookupInstructionType::SETLOOKUPOFFLINE &&
           ins_byte != LookupInstructionType::SETLOOKUPONLINE &&
-          ins_byte != LookupInstructionType::SETSTATEDELTAFROMSEED);
+          ins_byte != LookupInstructionType::SETSTATEDELTAFROMSEED &&
+          ins_byte != LookupInstructionType::SETDIRBLOCKSFROMSEED);
 }
 
 std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes() {
@@ -2868,7 +2983,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     }
 
     if (m_syncType == SyncType::DS_SYNC ||
-        m_syncType == SyncType::LOOKUP_SYNC) {
+        m_syncType == SyncType::LOOKUP_SYNC ||
+        m_syncType == SyncType::NEW_LOOKUP_SYNC) {
       if (!m_isFirstLoop) {
         m_currDSExpired = true;
       } else {
@@ -2916,6 +3032,7 @@ void Lookup::CheckBufferTxBlocks() {
 
 void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(
     const uint64_t& index_num) {
+  LOG_MARKER();
   vector<unsigned char> message = {MessageType::LOOKUP,
                                    LookupInstructionType::GETDIRBLOCKSFROMSEED};
 

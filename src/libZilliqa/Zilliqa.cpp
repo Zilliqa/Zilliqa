@@ -232,6 +232,16 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
                       "Error: Sync for new node shouldn't retrieve history");
         }
         break;
+      case SyncType::NEW_LOOKUP_SYNC:
+        LOG_GENERAL(INFO, "Sync as a new lookup node");
+        if (!toRetrieveHistory) {
+          m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+          m_lookup.InitSync();
+        } else {
+          LOG_GENERAL(FATAL,
+                      "Error: Sync for new lookup shouldn't retrieve history");
+        }
+        break;
       case SyncType::NORMAL_SYNC:
         LOG_GENERAL(INFO, "Sync as a normal node");
         m_mediator.m_lookup->SetSyncType(SyncType::NORMAL_SYNC);
