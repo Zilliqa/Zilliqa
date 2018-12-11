@@ -67,6 +67,8 @@ Lookup::~Lookup() {}
 void Lookup::SetLookupNodes() {
   LOG_MARKER();
 
+  std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+
   m_lookupNodes.clear();
   m_lookupNodesOffline.clear();
   // Populate tree structure pt
@@ -226,13 +228,16 @@ void Lookup::SendMessageToLookupNodes(
   // vector of Peer
   vector<Peer> allLookupNodes;
 
-  for (const auto& node : m_lookupNodes) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Sending msg to lookup node "
-                  << node.second.GetPrintableIPAddress() << ":"
-                  << node.second.m_listenPortHost);
+  {
+    lock_guard<mutex> lock(m_mutexLookupNodes);
+    for (const auto& node : m_lookupNodes) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Sending msg to lookup node "
+                    << node.second.GetPrintableIPAddress() << ":"
+                    << node.second.m_listenPortHost);
 
-    allLookupNodes.emplace_back(node.second);
+      allLookupNodes.emplace_back(node.second);
+    }
   }
 
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
@@ -246,13 +251,16 @@ void Lookup::SendMessageToLookupNodesSerial(
   // to_string(m_mediator.m_currentEpochNum).c_str())
   vector<Peer> allLookupNodes;
 
-  for (const auto& node : m_lookupNodes) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Sending msg to lookup node "
-                  << node.second.GetPrintableIPAddress() << ":"
-                  << node.second.m_listenPortHost);
+  {
+    lock_guard<mutex> lock(m_mutexLookupNodes);
+    for (const auto& node : m_lookupNodes) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Sending msg to lookup node "
+                    << node.second.GetPrintableIPAddress() << ":"
+                    << node.second.m_listenPortHost);
 
-    allLookupNodes.emplace_back(node.second);
+      allLookupNodes.emplace_back(node.second);
+    }
   }
 
   P2PComm::GetInstance().SendMessage(allLookupNodes, message);
@@ -264,6 +272,7 @@ void Lookup::SendMessageToRandomLookupNode(
 
   // int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
   // - NUM_LOOKUP_USE_FOR_SYNC;
+  lock_guard<mutex> lock(m_mutexLookupNodes);
   if (0 == m_lookupNodes.size()) {
     LOG_GENERAL(WARNING, "There is no lookup node existed yet!");
     return;
@@ -2480,9 +2489,12 @@ Peer Lookup::GetLookupPeerToRsync() {
   LOG_MARKER();
 
   std::vector<Peer> t_Peers;
-  for (const auto& p : m_lookupNodes) {
-    if (p.second != m_mediator.m_selfPeer) {
-      t_Peers.emplace_back(p.second);
+  {
+    lock_guard<mutex> lock(m_mutexLookupNodes);
+    for (const auto& p : m_lookupNodes) {
+      if (p.second != m_mediator.m_selfPeer) {
+        t_Peers.emplace_back(p.second);
+      }
     }
   }
 
@@ -2550,19 +2562,21 @@ bool Lookup::GetMyLookupOffline() {
 
   LOG_MARKER();
 
-  std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
-  // Remove selfPeerInfo from m_lookupNodes
-  auto selfPeer(m_mediator.m_selfPeer);
-  auto iter = std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                           [&selfPeer](const std::pair<PubKey, Peer>& node) {
-                             return node.second == selfPeer;
-                           });
-  if (iter != m_lookupNodes.end()) {
-    m_lookupNodesOffline.emplace_back(*iter);
-    m_lookupNodes.erase(iter);
-  } else {
-    LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodes");
-    return false;
+  {
+    std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+    // Remove selfPeerInfo from m_lookupNodes
+    auto selfPeer(m_mediator.m_selfPeer);
+    auto iter = std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                             [&selfPeer](const std::pair<PubKey, Peer>& node) {
+                               return node.second == selfPeer;
+                             });
+    if (iter != m_lookupNodes.end()) {
+      m_lookupNodesOffline.emplace_back(*iter);
+      m_lookupNodes.erase(iter);
+    } else {
+      LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodes");
+      return false;
+    }
   }
 
   SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
