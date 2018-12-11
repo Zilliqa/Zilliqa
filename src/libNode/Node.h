@@ -230,6 +230,7 @@ class Node : public Executable, public Broadcastable {
   bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
                                       const uint64_t& dsBlockNum,
                                       const uint32_t& shardId,
+                                      const PubKey& lookupPubKey,
                                       const std::vector<Transaction>& txns);
   bool ProcessProposeGasPrice(const std::vector<unsigned char>& message,
                               unsigned int offset, const Peer& from);
@@ -553,6 +554,11 @@ class Node : public Executable, public Broadcastable {
 
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
+
+  static bool GetDSLeaderPeer(const BlockLink& lastBlockLink,
+                              const DSBlock& latestDSBlock,
+                              const DequeOfDSNode& dsCommittee,
+                              const uint64_t epochNumber, Peer& dsLeaderPeer);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

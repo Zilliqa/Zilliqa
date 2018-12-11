@@ -18,55 +18,32 @@
  */
 #include <string>
 
-std::string cfCodeStr = R"((***************************************************)
+std::string cfCodeStr = R"(scilla_version 0
+
+(***************************************************)
 (*               Associated library                *)
 (***************************************************)
+
+import BoolUtils
+
 library Crowdfunding
-
-let andb = 
-  fun (b : Bool) =>
-  fun (c : Bool) =>
-    match b with 
-    | False => False
-    | True  =>
-      match c with 
-      | False => False
-      | True  => True
-      end
-    end
-
-let orb = 
-  fun (b : Bool) => fun (c : Bool) =>
-    match b with 
-    | True  => True
-    | False =>
-      match c with 
-      | False => False
-      | True  => True
-      end
-    end
-
-let negb = fun (b : Bool) => 
-  match b with
-  | True => False
-  | False => True
-  end
 
 let one_msg = 
   fun (msg : Message) => 
     let nil_msg = Nil {Message} in
     Cons {Message} msg nil_msg
-    
+
+
 let check_update = 
-  fun (bs : Map Address Uint128) =>
-  fun (_sender : Address) =>
+  fun (bs : Map ByStr20 Uint128) =>
+  fun (_sender : ByStr20) =>
   fun (_amount : Uint128) =>
     let c = builtin contains bs _sender in
     match c with 
     | False => 
       let bs1 = builtin put bs _sender _amount in
-      Some {Map Address Uint128} bs1 
-    | True  => None {Map Address Uint128}
+      Some {Map ByStr20 Uint128} bs1 
+    | True  => None {Map ByStr20 Uint128}
     end
 
 let blk_leq =
@@ -92,12 +69,12 @@ let reclaimed_code = Int32 9
 contract Crowdfunding
 
 (*  Parameters *)
-(owner     : Address,
+(owner     : ByStr20,
  max_block : BNum,
  goal      : Uint128)
 
 (* Mutable fields *)
-field backers : Map Address Uint128 = Emp Address Uint128
+field backers : Map ByStr20 Uint128 = Emp ByStr20 Uint128
 field funded : Bool = False
 
 transition Donate ()
@@ -109,55 +86,46 @@ transition Donate ()
     res = check_update bs _sender _amount;
     match res with
     | None => 
-      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0; 
-              code : already_backed_code};
-      msgs = one_msg msg;
-      send msgs
+      e = {_eventname : "DonationFailure"; donor : _sender; amount : _amount; code : already_backed_code};
+      event e
     | Some bs1 =>
       backers := bs1; 
       accept; 
-      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0; 
-              code : accepted_code};
-      msgs = one_msg msg;
-      send msgs     
+      e = {_eventname : "DonationSuccess"; donor : _sender; amount : _amount; code : accepted_code};
+      event e
     end  
   | False => 
-    msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0; 
-            code : missed_deadline_code};
-    msgs = one_msg msg;
-    send msgs
+  e = {_eventname : "DonationFailure"; donor : _sender; amount : _amount; code : missed_deadline_code};
+    event e
   end 
 end
 
 transition GetFunds ()
   is_owner = builtin eq owner _sender;
   match is_owner with
-  | False => 
-    msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
-            code : not_owner_code};
-    msgs = one_msg msg;
-    send msgs
+  | False =>
+  e = {_eventname : "GetFundsFailure"; caller : _sender; amount : Uint128 0; code : not_owner_code};
+    event e
   | True => 
     blk <- & BLOCKNUMBER;
     in_time = blk_leq blk max_block;
     c1 = negb in_time;
-    bal <- balance;
+    bal <- _balance;
     c2 = builtin lt bal goal;
     c3 = negb c2;
     c4 = andb c1 c3;
     match c4 with 
     | False =>  
-      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
-              code : cannot_get_funds};
-      msgs = one_msg msg;
-      send msgs
+    e = {_eventname : "GetFundsFailure"; caller : _sender; amount : Uint128 0; code : cannot_get_funds};
+      event e
     | True => 
       tt = True;
       funded := tt;
-      msg  = {_tag : Main; _recipient : owner; _amount : bal; 
-              code : got_funds_code};
-      msgs = one_msg msg;
-      send msgs
+      msg  = {_tag : ""; _recipient : owner; _amount : bal}; 
+    msgs = one_msg msg;
+    e = {_eventname : "GetFundsSuccess"; caller : owner; amount : bal; code : got_funds_code};
+      event e;
+    send msgs
     end
   end   
 end
@@ -168,10 +136,8 @@ transition ClaimBack ()
   after_deadline = builtin blt max_block blk;
   match after_deadline with
   | False =>
-    msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
-            code : too_early_code};
-    msgs = one_msg msg;
-    send msgs
+  e = { _eventname : "ClaimBackFailure"; caller : _sender; amount : Uint128 0; code : too_early_code};
+    event e
   | True =>
     bs <- backers;
     bal <- _balance;
@@ -184,25 +150,22 @@ transition ClaimBack ()
     c5 = andb c3 c4;
     match c5 with
     | False =>
-      msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
-              code : cannot_reclaim_code};
-      msgs = one_msg msg;
-      send msgs
+    e = { _eventname : "ClaimBackFailure"; caller : _sender; amount : Uint128 0; code : cannot_reclaim_code};
+      event e
     | True =>
       res = builtin get bs _sender;
       match res with
       | None =>
-        msg  = {_tag : ""; _recipient : _sender; _amount : Uint128 0;
-                code : cannot_reclaim_code};
-        msgs = one_msg msg;
-        send msgs
+      e = { _eventname : "ClaimBackFailure"; caller : _sender; amount : Uint128 0; code : cannot_reclaim_code};
+        event e
       | Some v =>
         bs1 = builtin remove bs _sender;
         backers := bs1;
-        msg  = {_tag : Main; _recipient : _sender; _amount : v; 
-                code : reclaimed_code};
-        msgs = one_msg msg;
-        send msgs
+      msg  = {_tag : ""; _recipient : _sender; _amount : v};
+      msgs = one_msg msg;
+      e = { _eventname : "ClaimBackSuccess"; caller : _sender; amount : v; code : reclaimed_code};
+        event e;
+      send msgs
       end
     end
   end  
@@ -211,7 +174,7 @@ end)";
 std::string cfInitStr = R"([
     {
         "vname" : "owner",
-        "type" : "Address", 
+        "type" : "ByStr20", 
         "value" : "$ADDR"
     },
     {
@@ -242,33 +205,164 @@ std::string cfDataGetFundsStr = R"({
     "params": []
 })";
 
-std::string cfOutStr = R"({
-  "message": {
-    "_tag": "Main",
-    "_amount": "0",
-    "params": [
-      {
-        "vname": "to",
-        "type": "Address",
-        "value": "0x12345678901234567890123456789012345678ab"
-      },
-      { "vname": "code", "type": "Int", "value": "1" }
-    ]
-  },
+std::string cfOutStr0 = R"({
+  "scilla_major_version": "0",
+  "gas_remaining": "293",
+  "_accepted": "false",
+  "message": null,
+  "states": [],
+  "events": []
+})";
+
+std::string cfOutStr1 = R"({
+  "scilla_major_version": "0",
+  "gas_remaining": "4373",
+  "_accepted": "true",
+  "message": null,
   "states": [
-    { "vname": "_balance", "type": "Int", "value": "100" },
+    { "vname": "_balance", "type": "Uint128", "value": "100" },
     {
       "vname": "backers",
-      "type": "Map",
+      "type": "Map (ByStr20) (Uint128) ",
       "value": [
-        { "keyType": "Address", "valType": "Int" },
-        { "key": "0x12345678901234567890123456789012345678ab", "val": "100" }
+        { "key": "0x5c6712c8f3b049e98e733cfdb38a8e37a1c724c0", "val": "100" }
       ]
     },
     {
       "vname": "funded",
-      "type": "ADT",
+      "type": "Bool",
       "value": { "constructor": "False", "argtypes": [], "arguments": [] }
+    }
+  ],
+  "events": [
+    {
+      "_eventname": "DonationSuccess",
+      "params": [
+        {
+          "vname": "donor",
+          "type": "ByStr20",
+          "value": "0x5c6712c8f3b049e98e733cfdb38a8e37a1c724c0"
+        },
+        { "vname": "amount", "type": "Uint128", "value": "100" },
+        { "vname": "code", "type": "Int32", "value": "1" }
+      ]
+    }
+  ]
+}
+)";
+
+std::string cfOutStr2 = R"({
+  "scilla_major_version": "0",
+  "gas_remaining": "4264",
+  "_accepted": "true",
+  "message": null,
+  "states": [
+    { "vname": "_balance", "type": "Uint128", "value": "300" },
+    {
+      "vname": "backers",
+      "type": "Map (ByStr20) (Uint128) ",
+      "value": [
+        { "key": "0x0287e3c3e69cd86102e29cc80563a4811b79ee55", "val": "200" },
+        { "key": "0x5c6712c8f3b049e98e733cfdb38a8e37a1c724c0", "val": "100" }
+      ]
+    },
+    {
+      "vname": "funded",
+      "type": "Bool",
+      "value": { "constructor": "False", "argtypes": [], "arguments": [] }
+    }
+  ],
+  "events": [
+    {
+      "_eventname": "DonationSuccess",
+      "params": [
+        {
+          "vname": "donor",
+          "type": "ByStr20",
+          "value": "0x0287e3c3e69cd86102e29cc80563a4811b79ee55"
+        },
+        { "vname": "amount", "type": "Uint128", "value": "200" },
+        { "vname": "code", "type": "Int32", "value": "1" }
+      ]
     }
   ]
 })";
+
+std::string cfOutStr3 = R"({
+  "scilla_major_version": "0",
+  "gas_remaining": "4441",
+  "_accepted": "false",
+  "message": null,
+  "states": [
+    { "vname": "_balance", "type": "Uint128", "value": "300" },
+    {
+      "vname": "backers",
+      "type": "Map (ByStr20) (Uint128) ",
+      "value": [
+        { "key": "0x0287e3c3e69cd86102e29cc80563a4811b79ee55", "val": "200" },
+        { "key": "0x5c6712c8f3b049e98e733cfdb38a8e37a1c724c0", "val": "100" }
+      ]
+    },
+    {
+      "vname": "funded",
+      "type": "Bool",
+      "value": { "constructor": "False", "argtypes": [], "arguments": [] }
+    }
+  ],
+  "events": [
+    {
+      "_eventname": "GetFundsFailure",
+      "params": [
+        {
+          "vname": "caller",
+          "type": "ByStr20",
+          "value": "0x0287e3c3e69cd86102e29cc80563a4811b79ee55"
+        },
+        { "vname": "amount", "type": "Uint128", "value": "0" },
+        { "vname": "code", "type": "Int32", "value": "4" }
+      ]
+    }
+  ]
+})";
+
+std::string cfOutStr4 = R"({
+  "scilla_major_version": "0",
+  "gas_remaining": "4137",
+  "_accepted": "false",
+  "message": {
+    "_tag": "",
+    "_amount": "100",
+    "_recipient": "0x5c6712c8f3b049e98e733cfdb38a8e37a1c724c0",
+    "params": []
+  },
+  "states": [
+    { "vname": "_balance", "type": "Uint128", "value": "200" },
+    {
+      "vname": "backers",
+      "type": "Map (ByStr20) (Uint128) ",
+      "value": [
+        { "key": "0x0287e3c3e69cd86102e29cc80563a4811b79ee55", "val": "200" }
+      ]
+    },
+    {
+      "vname": "funded",
+      "type": "Bool",
+      "value": { "constructor": "False", "argtypes": [], "arguments": [] }
+    }
+  ],
+  "events": [
+    {
+      "_eventname": "ClaimBackSuccess",
+      "params": [
+        {
+          "vname": "caller",
+          "type": "ByStr20",
+          "value": "0x5c6712c8f3b049e98e733cfdb38a8e37a1c724c0"
+        },
+        { "vname": "amount", "type": "Uint128", "value": "100" },
+        { "vname": "code", "type": "Int32", "value": "9" }
+      ]
+    }
+  ]
+}
+)";

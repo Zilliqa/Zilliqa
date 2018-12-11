@@ -297,7 +297,7 @@ void Node::StartFirstTxEpoch() {
         << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                1
-        << "] RECEIVED SHARDING STRUCTURE");
+        << "] RECVD SHARDING STRUCTURE");
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -501,7 +501,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECEIVED DSBLOCK");
+      << "] RECVD DSBLOCK");
 
   if (LOOKUP_NODE_MODE) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -560,6 +560,10 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
     }
 
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "lastBlockHash " << lastBlockHash << ", new DS leader Id "
+                               << m_mediator.m_ds->m_consensusLeaderID);
+
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {
       // Process sharding structure as a DS node
@@ -572,14 +576,16 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-        LOG_GENERAL(INFO,
-                    "DS leader is at " << m_mediator.m_ds->m_consensusLeaderID);
+        LOG_GENERAL(INFO, "New DS leader is at "
+                              << m_mediator.m_ds->m_consensusLeaderID);
         if (m_mediator.m_ds->m_consensusLeaderID ==
             m_mediator.m_ds->m_consensusMyID) {
           // I am the new DS committee leader
           m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
           LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                         DS_LEADER_MSG);
+          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "I am now DS leader for the next round");
           LOG_STATE("[IDENT][" << std::setw(15) << std::left
                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                << "][0     ] DSLD");
@@ -587,6 +593,8 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
           m_mediator.m_ds->m_mode = DirectoryService::Mode::BACKUP_DS;
           LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                         DS_BACKUP_MSG);
+          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "I am now DS backup for the next round");
         }
       }
 

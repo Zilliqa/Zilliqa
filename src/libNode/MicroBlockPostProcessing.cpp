@@ -110,7 +110,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
         make_pair(from, message));
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Process micro block arrived earlier, saved to buffer");
+              "Process micro block arrived early, saved to buffer");
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
       LOG_GENERAL(WARNING, "Consensus ID in message ("
@@ -205,6 +205,17 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     // Update the micro block with the co-signatures from the consensus
     m_microblock->SetCoSignatures(*m_consensusObject);
 
+    if (m_isPrimary) {
+      LOG_STATE("[MICON][" << setw(15) << left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "]["
+                           << m_mediator.m_txBlockChain.GetLastBlock()
+                                      .GetHeader()
+                                      .GetBlockNum() +
+                                  1
+                           << "] DONE");
+    }
+
     // TODO: provide interface in DataSender instead of repopulating the DS into
     // shard
     DequeOfShard ds_shards;
@@ -230,10 +241,14 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
           composeMicroBlockMessageForSender, nullptr);
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Micro block consensus "
-                  << "is DONE!!! (Epoch " << m_mediator.m_currentEpochNum
-                  << ")");
+    LOG_STATE(
+        "[MIBLK]["
+        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
+        << "]["
+        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
+               1
+        << "] AFTER SENDING MIBLK");
+
     m_lastMicroBlockCoSig.first = m_mediator.m_currentEpochNum;
     m_lastMicroBlockCoSig.second = move(
         CoSignatures(m_consensusObject->GetCS1(), m_consensusObject->GetB1(),

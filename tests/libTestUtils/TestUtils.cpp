@@ -209,18 +209,39 @@ DequeOfShard GenerateDequeueOfShard(size_t size) {
 
 CoSignatures GenerateRandomCoSignatures() { return CoSignatures(Dist1to99()); }
 
+auto randchar = []() -> unsigned char {
+  const char charset[] =
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz";
+  const size_t max_index = (sizeof(charset) - 2);
+  return charset[RandomIntInRng<uint8_t>((uint8_t)0, (uint8_t)max_index)];
+};
+
 std::string GenerateRandomString(size_t length) {
-  auto randchar = []() -> char {
-    const char charset[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-    const size_t max_index = (sizeof(charset) - 2);
-    return charset[RandomIntInRng<uint8_t>((uint8_t)0, (uint8_t)max_index)];
-  };
   std::string str(length, 0);
   std::generate_n(str.begin(), length, randchar);
   return str;
+}
+
+vector<unsigned char> GenerateRandomCharVector(size_t length) {
+  vector<unsigned char> cv(length, 0);
+  std::generate_n(cv.begin(), length, randchar);
+  return cv;
+}
+
+Signature GetSignature(const vector<unsigned char>& data,
+                       const PrivKey& privkey, const PubKey& pubkey) {
+  Signature result;
+
+  Schnorr::GetInstance().Sign(data, privkey, pubkey, result);
+  return result;
+}
+
+Signature GenerateRandomSignature() {
+  KeyPair kp = GenerateRandomKeyPair();
+  return GetSignature(GenerateRandomCharVector(Dist1to99()), kp.first,
+                      kp.second);
 }
 
 }  // namespace TestUtils

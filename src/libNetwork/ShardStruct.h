@@ -36,4 +36,6 @@ using DequeOfShard = std::deque<Shard>;
 
 using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
 
+using DequeOfDSNode = std::deque<std::pair<PubKey, Peer>>;
+
 #endif /*__SHARD_STRUCT__*/
