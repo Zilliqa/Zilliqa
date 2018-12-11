@@ -196,11 +196,6 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexVCBlockVector;
   std::vector<VCBlock> m_VCBlockVector;
 
-  // Guard mode recovery. currently used only by lookup node.
-  std::mutex m_mutexLookupStoreForGuardNodeUpdate;
-  std::map<uint64_t, std::vector<DSGuardUpdateStruct>>
-      m_lookupStoreForGuardNodeUpdate;
-
   // Consensus and consensus object
   std::condition_variable cv_DSBlockConsensus;
   std::mutex m_MutexCVDSBlockConsensus;
@@ -549,6 +544,11 @@ class DirectoryService : public Executable, public Broadcastable {
 
   std::mutex m_MutexCVViewChangePrecheck;
   std::condition_variable cv_viewChangePrecheck;
+
+  // Guard mode recovery. currently used only by lookup node.
+  std::mutex m_mutexLookupStoreForGuardNodeUpdate;
+  std::map<uint64_t, std::vector<DSGuardUpdateStruct>>
+      m_lookupStoreForGuardNodeUpdate;
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
