@@ -263,7 +263,6 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
       m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
       LOG_GENERAL(INFO, "No DS Guard enabled. m_consensusLeaderID "
                             << m_consensusLeaderID);
-
     } else {
       // DS guards index do not change
       if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
@@ -283,13 +282,13 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
         m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am now Leader DS");
+                "I am now DS leader for the next round");
       LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                     DS_LEADER_MSG);
       m_mode = PRIMARY_DS;
     } else {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am now backup DS");
+                "I am now DS backup for the next round");
       LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                     DS_BACKUP_MSG);
       m_mode = BACKUP_DS;

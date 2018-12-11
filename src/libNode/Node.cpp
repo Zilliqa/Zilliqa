@@ -48,6 +48,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libUtils/DataConversion.h"
@@ -1701,4 +1702,42 @@ std::string Node::GetActionString(Action action) const {
   return (ActionStrings.find(action) == ActionStrings.end())
              ? "Unknown"
              : ActionStrings.at(action);
+}
+
+/*static*/ bool Node::GetDSLeaderPeer(const BlockLink& lastBlockLink,
+                                      const DSBlock& latestDSBlock,
+                                      const DequeOfDSNode& dsCommittee,
+                                      const uint64_t epochNumber,
+                                      Peer& dsLeaderPeer) {
+  const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
+  if (blocktype == BlockType::DS) {
+    uint16_t lastBlockHash = 0;
+    // To cater for boostrap of blockchain. The zero and first epoch the DS
+    // leader is at index0
+    if (latestDSBlock.GetHeader().GetBlockNum() > 1) {
+      lastBlockHash = DataConversion::charArrTo16Bits(
+          latestDSBlock.GetHeader().GetHashForRandom().asBytes());
+    }
+
+    uint32_t leader_id = 0;
+    if (!GUARD_MODE) {
+      leader_id = lastBlockHash % dsCommittee.size();
+    } else {
+      leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+    }
+    dsLeaderPeer = dsCommittee.at(leader_id).second;
+    LOG_EPOCH(INFO, to_string(epochNumber).c_str(),
+              "lastBlockHash " << lastBlockHash << ", current ds leader id "
+                               << leader_id << ", Peer " << dsLeaderPeer);
+  } else if (blocktype == BlockType::VC) {
+    VCBlockSharedPtr VCBlockptr;
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(lastBlockLink), VCBlockptr)) {
+      LOG_GENERAL(WARNING, "Failed to get VC block");
+      return false;
+    } else {
+      dsLeaderPeer = VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo();
+    }
+  }
+  return true;
 }
