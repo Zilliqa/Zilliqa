@@ -64,6 +64,7 @@ BOOST_AUTO_TEST_CASE(testContract) {
   LOG_MARKER();
 
   if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
     return;
   }
 
