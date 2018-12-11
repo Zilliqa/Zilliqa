@@ -6509,7 +6509,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
 
 bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
     vector<unsigned char>& dst, unsigned int offset,
-    const vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct,
+    const vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
     const std::pair<PrivKey, PubKey>& lookupKey) {
   LOG_MARKER();
   NodeSetGuardNodeNetworkInfoUpdate result;
@@ -6553,7 +6553,8 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
 
 bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
     const vector<unsigned char>& src, const unsigned int offset,
-    vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct) {
+    vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
+    PubKey& lookupPubKey) {
   LOG_MARKER();
   NodeSetGuardNodeNetworkInfoUpdate result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -6561,6 +6562,17 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
                 "NodeSetGuardNodeNetworkInfoUpdate initialization failed.");
+    return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.lookuppubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     lookupPubKey)) {
+    LOG_GENERAL(WARNING, "NodeSetGuardNodeNetworkInfoUpdate signature wrong.");
     return false;
   }
 
