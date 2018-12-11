@@ -625,6 +625,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   if (!m_mediator.CheckWhetherBlockIsLatest(
           dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
     LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
+    // Missed some final block, rejoin to get from lookup.
+    if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
+      if (!LOOKUP_NODE_MODE) {
+        RejoinAsNormal();
+        return false;
+      }
+    }
     return false;
   }
 
