@@ -1537,6 +1537,26 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
   return true;
 }
 
+void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
+  LOG_MARKER();
+  vector<unsigned char> queryLookupForDSGuardNetworkInfoUpdate = {
+      MessageType::LOOKUP,
+      LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
+  uint64_t dsEpochNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
+  if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
+          queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
+          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
+    return;
+  }
+
+  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+      queryLookupForDSGuardNetworkInfoUpdate);
+}
+
 bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
                                            unsigned int offset,
                                            [[gnu::unused]] const Peer& from) {
