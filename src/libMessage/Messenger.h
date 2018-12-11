@@ -782,5 +782,13 @@ class Messenger {
   static bool GetLookupGetNewDSGuardNetworkInfoFromLookup(
       const std::vector<unsigned char>& src, const unsigned int offset,
       uint32_t& portNo, uint64_t& dsEpochNumber);
+
+  static bool SetNodeSetNewDSGuardNetworkInfo(
+      std::vector<unsigned char>& dst, unsigned int offset,
+      const std::vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct);
+
+  static bool SetNodeGetNewDSGuardNetworkInfo(
+      const std::vector<unsigned char>& dst, const unsigned int offset,
+      std::vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct);
 };
 #endif  // __MESSENGER_H__
