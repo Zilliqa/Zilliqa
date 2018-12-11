@@ -836,5 +836,6 @@ message NodeSetGuardNodeNetworkInfoUpdate
         repeated ProtoDSGuardUpdateStruct dsguardupdatestruct = 1;
     }
     required Data data                              = 1;
-    required ByteArray signature                    = 2;
+    required ByteArray lookuppubkey                 = 2;
+    required ByteArray signature                    = 3;
 }
