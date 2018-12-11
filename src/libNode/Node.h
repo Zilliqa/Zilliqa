@@ -550,6 +550,11 @@ class Node : public Executable, public Broadcastable {
 
   void UpdateProcessedTransactions();
 
+  static bool GetDSLeaderPeer(const BlockLink& lastBlockLink,
+                              const DSBlock& latestDSBlock,
+                              const DequeOfDSNode& dsCommittee,
+                              const uint64_t epochNumber, Peer& dsLeaderPeer);
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
   std::string GetStateString() const;
