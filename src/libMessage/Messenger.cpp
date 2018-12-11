@@ -6506,3 +6506,55 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
 
   return true;
 }
+
+bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
+    vector<unsigned char>& dst, unsigned int offset,
+    const vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct) {
+  LOG_MARKER();
+  NodeSetGuardNodeNetworkInfoUpdate result;
+  for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
+    ProtoDSGuardUpdateStruct* proto_DSGuardUpdateStruct =
+        result.mutable_data()->add_dsguardupdatestruct();
+    SerializableToProtobufByteArray(
+        dsguardupdate.dsGuardPubkey,
+        *proto_DSGuardUpdateStruct->mutable_dsguardpubkey());
+    PeerToProtobuf(dsguardupdate.dsGuardNewNetworkInfo,
+                   *proto_DSGuardUpdateStruct->mutable_dsguardnewnetworkinfo());
+    proto_DSGuardUpdateStruct->set_timestamp(dsguardupdate.timestamp);
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "SetNodeSetNewDSGuardNetworkInfo initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct) {
+  LOG_MARKER();
+  NodeSetGuardNodeNetworkInfoUpdate result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "NodeSetGuardNodeNetworkInfoUpdate initialization failed.");
+    return false;
+  }
+
+  for (const auto& proto_DSGuardUpdateStruct :
+       result.data().dsguardupdatestruct()) {
+    PubKey tempPubk;
+    ProtobufByteArrayToSerializable(proto_DSGuardUpdateStruct.dsguardpubkey(),
+                                    tempPubk);
+    Peer tempPeer;
+    ProtobufToPeer(proto_DSGuardUpdateStruct.dsguardnewnetworkinfo(), tempPeer);
+    uint64_t tempTimestamp = proto_DSGuardUpdateStruct.timestamp();
+    vecOfDSGuardUpdateStruct.emplace_back(
+        DSGuardUpdateStruct(tempPubk, tempPeer, tempTimestamp));
+  }
+
+  return true;
+}
