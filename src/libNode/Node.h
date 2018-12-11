@@ -373,6 +373,7 @@ class Node : public Executable, public Broadcastable {
   // std::mutex m_mutexAllMicroBlocksRecvd;
   // bool m_allMicroBlocksRecvd = true;
 
+  std::mutex m_mutexShardMember;
   std::shared_ptr<std::deque<std::pair<PubKey, Peer>>> m_myShardMembers;
 
   std::shared_ptr<MicroBlock> m_microblock;

@@ -71,7 +71,9 @@ void Node::ProcessFallbackConsensusWhenDone() {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Fallback consensus is DONE!!!");
 
-  lock_guard<mutex> g(m_mutexPendingFallbackBlock);
+  lock(m_mutexPendingFallbackBlock, m_mutexShardMember);
+  lock_guard<mutex> g(m_mutexPendingFallbackBlock, adopt_lock);
+  lock_guard<mutex> g2(m_mutexShardMember, adopt_lock);
 
   m_pendingFallbackBlock->SetCoSignatures(*m_consensusObject);
 
@@ -215,11 +217,14 @@ void Node::ProcessFallbackConsensusWhenDone() {
       [this](vector<unsigned char>& fallback_message) -> bool {
     return ComposeFallbackBlockMessageForSender(fallback_message);
   };
-  DataSender::GetInstance().SendDataToOthers(
-      *m_microblock, *m_myShardMembers, m_mediator.m_ds->m_shards,
-      m_mediator.m_lookup->GetLookupNodes(),
-      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-      composeFallbackBlockMessageForSender);
+
+  {
+    DataSender::GetInstance().SendDataToOthers(
+        *m_microblock, *m_myShardMembers, m_mediator.m_ds->m_shards,
+        m_mediator.m_lookup->GetLookupNodes(),
+        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+        composeFallbackBlockMessageForSender);
+  }
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
