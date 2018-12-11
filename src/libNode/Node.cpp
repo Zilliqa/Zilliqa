@@ -1565,6 +1565,16 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
     return false;
   }
 
+  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+                                lookupPubkey)) {
+    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The message sender pubkey: "
+                  << lookupPubkey << " is not in my lookup node list.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Received from lookup " << from);
+
   m_requestedForDSGuardNetworkInfoUpdate = false;
 
   return true;
