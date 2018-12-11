@@ -210,6 +210,9 @@ class Node : public Executable, public Broadcastable {
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
   void StoreDSBlockToDisk(const DSBlock& dsblock);
 
+  // DS Guard network info update
+  void QueryLookupForDSGuardNetworkInfoUpdate();
+
   // Message handlers
   bool ProcessStartPoW(const std::vector<unsigned char>& message,
                        unsigned int offset, const Peer& from);
