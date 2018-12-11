@@ -3433,3 +3433,45 @@ void Lookup::SetSyncType(SyncType syncType) {
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Set sync type to " << syncType);
 }
+
+bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetDSGuardNetworkInfo not expected to be "
+                "called from other than the LookUp node.");
+    return true;
+  }
+
+  LOG_MARKER();
+
+  uint32_t portNo = 0;
+  uint64_t dsEpochNo = 0;
+
+  if (!Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
+          message, offset, portNo, dsEpochNo)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
+    return false;
+  }
+
+  if (m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.find(dsEpochNo) == m_mediator.m_ds.m_lookupStoreForGuardNodeUpdate.end()){
+    LOG_GENERAL(INFO, "No record found. No update needed.");
+    return false;
+  }
+
+  Peer requestingNode(from.m_ipAddress, portNo);
+  vector<unsigned char> setNewDSGuardNetworkInfo = {
+      MessageType::NODE, NodeInstructionType::DSGUARDNODENETWORKINFOUPDATE};
+
+  if (!Messenger::SetNodeSetNewDSGuardNetworkInfo(
+          setNewDSGuardNetworkInfo, MessageOffset::BODY, m_mediator.m_ds.m_lookupStoreForGuardNodeUpdate.at(dsEpochNo)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeSetNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
+  return true;
+}
