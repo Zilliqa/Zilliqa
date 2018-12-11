@@ -339,8 +339,8 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckPreviousFinalBlockHash();
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
-  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
-                        bool fromShards = false);
+  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg, bool fromShards,
+                        bool generateErrorMsg);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockInfo();
   bool CheckStateRoot();
