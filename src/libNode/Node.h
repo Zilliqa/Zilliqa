@@ -154,6 +154,9 @@ class Node : public Executable, public Broadcastable {
   std::condition_variable cv_fallbackConsensusObj;
   bool m_runFallback;
 
+  // Updating of ds guard var
+  std::atomic_bool m_requestedForDSGuardNetworkInfoUpdate = {false};
+
   bool CheckState(Action action);
 
   // To block certain types of incoming message for certain states
@@ -232,6 +235,10 @@ class Node : public Executable, public Broadcastable {
                                       const std::vector<Transaction>& txns);
   bool ProcessProposeGasPrice(const std::vector<unsigned char>& message,
                               unsigned int offset, const Peer& from);
+
+  bool ProcessDSGuardNetworkInfoUpdate(
+      const std::vector<unsigned char>& message, unsigned int offset,
+      const Peer& from);
 
 #ifdef HEARTBEAT_TEST
   bool ProcessKillPulse(const std::vector<unsigned char>& message,
