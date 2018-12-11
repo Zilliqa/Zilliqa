@@ -37,21 +37,6 @@
 using namespace boost::multiprecision;
 using namespace std;
 
-uint32_t GetShardIndex(const Address& fromAddr, unsigned int numShards) {
-  uint32_t x = 0;
-
-  if (numShards == 0) {
-    return 0;
-  }
-
-  // Take the last four bytes of the address
-  for (unsigned int i = 0; i < 4; i++) {
-    x = (x << 8) | fromAddr.asArray().at(ACC_ADDR_SIZE - 4 + i);
-  }
-
-  return x % numShards;
-}
-
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
 BOOST_AUTO_TEST_CASE(test1) {
