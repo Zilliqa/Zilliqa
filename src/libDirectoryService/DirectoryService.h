@@ -101,10 +101,6 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexConsensus;
 
   // Temporary buffers for sharding committee members and transaction sharing
-  // assignments during DSBlock consensus
-  std::vector<Peer> m_tempDSReceivers;
-  std::vector<std::vector<Peer>> m_tempShardReceivers;
-  std::vector<std::vector<Peer>> m_tempShardSenders;
   DequeOfShard m_tempShards;  // vector<vector<pair<PubKey, Peer>>>;
   std::map<PubKey, uint32_t> m_tempPublicKeyToshardIdMap;
   std::map<PubKey, uint16_t> m_tempMapNodeReputation;
@@ -272,7 +268,6 @@ class DirectoryService : public Executable, public Broadcastable {
                       const std::map<PubKey, Peer>& powDSWinner,
                       const MapOfPubKeyPoW& dsPow);
 
-  void ComputeTxnSharingAssignments(const std::vector<Peer>& proposedDSMembers);
   bool VerifyPoWWinner(const MapOfPubKeyPoW& dsWinnerPoWsFromLeader);
   bool VerifyDifficulty();
   bool VerifyPoWOrdering(const DequeOfShard& shards,
@@ -421,9 +416,6 @@ class DirectoryService : public Executable, public Broadcastable {
   std::vector<unsigned char> ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(std::vector<unsigned char>& vcblock_message);
 
-  // Reset certain variables to the initial state
-  bool CleanVariables();
-
   void CleanFinalblockConsensusBuffer();
 
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
@@ -449,11 +441,6 @@ class DirectoryService : public Executable, public Broadcastable {
     VIEWCHANGE_CONSENSUS,
     ERROR
   };
-
-  /// Transaction sharing assignments
-  std::vector<Peer> m_DSReceivers;
-  std::vector<std::vector<Peer>> m_shardReceivers;
-  std::vector<std::vector<Peer>> m_shardSenders;
 
   enum SUBMITMICROBLOCKTYPE : unsigned char {
     SHARDMICROBLOCK = 0x00,
@@ -584,10 +571,6 @@ class DirectoryService : public Executable, public Broadcastable {
       std::map<PubKey, uint32_t>& publicKeyToshardIdMap,
       std::map<PubKey, uint16_t>& mapNodeReputation);
 
-  /// Used by PoW winner to configure txn sharing assignment variables as the
-  /// next DS leader
-  void ProcessTxnBodySharingAssignment();
-
   /// Used by PoW winner to finish setup as the next DS leader
   void StartFirstTxEpoch();
 
@@ -614,6 +597,9 @@ class DirectoryService : public Executable, public Broadcastable {
   int64_t GetAllPoWSize() const;
 
   bool ProcessAndSendPoWPacketSubmissionToOtherDSComm();
+
+  // Reset certain variables to the initial state
+  bool CleanVariables();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

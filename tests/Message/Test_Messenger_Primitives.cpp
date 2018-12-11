@@ -78,29 +78,6 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
   BOOST_CHECK(Messenger::GetShardingStructureHash(shards, dst));
 }
 
-BOOST_AUTO_TEST_CASE(test_GetTxSharingAssignmentsHash) {
-  vector<Peer> dsReceivers;
-  vector<vector<Peer>> shardReceivers;
-  vector<vector<Peer>> shardSenders;
-  TxSharingHash dst;
-
-  for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
-    dsReceivers.emplace_back();
-  }
-
-  for (unsigned int i = 0, count = TestUtils::Dist1to99(); i < count; i++) {
-    shardReceivers.emplace_back();
-    shardSenders.emplace_back();
-    for (unsigned int j = 0, countj = TestUtils::Dist1to99(); j < countj; j++) {
-      shardReceivers.back().emplace_back();
-      shardSenders.back().emplace_back();
-    }
-  }
-
-  BOOST_CHECK(Messenger::GetTxSharingAssignmentsHash(
-      dsReceivers, shardReceivers, shardSenders, dst));
-}
-
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
   vector<unsigned char> dst;
   unsigned int offset = 0;
