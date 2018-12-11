@@ -1077,8 +1077,6 @@ bool Node::ProcessTxnPacketFromLookup(
     }
   }
 
-  //
-
   if (m_mediator.m_lookup->IsLookupNode(from)) {
     if (epochNumber < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
@@ -1087,12 +1085,15 @@ bool Node::ProcessTxnPacketFromLookup(
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
     m_txnPacketBuffer.emplace_back(message);
-  } else {
+  } else if (IsShardNode(from)) {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neightor and process it");
     return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
                                           transactions);
+  } else {
+    LOG_GENERAL(WARNING, "Received packet neither from lookup or shard member");
+    return false;
   }
 
   return true;
