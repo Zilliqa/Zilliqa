@@ -676,19 +676,19 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
     // fixme: should we exit here?
     return;
   }
-  
+
   struct evconnlistener* listener = evconnlistener_new_bind(
       base, AcceptConnectionCallback, nullptr,
       LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
       (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
-  
+
   if (listener == NULL) {
     LOG_GENERAL(WARNING, "evconnlistener_new_bind failure.");
     event_base_free(base);
     // fixme: should we exit here?
     return;
   }
-  
+
   event_base_dispatch(base);
   evconnlistener_free(listener);
   event_base_free(base);
