@@ -238,7 +238,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
           m_mediator.m_lookup->SetSyncType(SyncType::NEW_LOOKUP_SYNC);
           m_lookup.InitSync();
         } else {
-          LOG_GENERAL(WARNING,
+          LOG_GENERAL(FATAL,
                       "Error: Sync for new lookup shouldn't retrieve history");
         }
         break;
