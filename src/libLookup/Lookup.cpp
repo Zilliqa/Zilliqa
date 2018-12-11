@@ -210,7 +210,8 @@ bool Lookup::IsLookupNode(const Peer& peerInfo) const {
   VectorOfLookupNode lookups = GetLookupNodes();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&peerInfo](const std::pair<PubKey, Peer>& node) {
-                        return node.second == peerInfo;
+                        return node.second.GetIpAddress() ==
+                               peerInfo.GetIpAddress();
                       }) != lookups.end();
 }
 
