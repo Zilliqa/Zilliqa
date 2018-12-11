@@ -186,8 +186,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   Mediator& m_mediator;
 
-  uint32_t m_numOfAbsentMicroBlocks;
-
   // Coinbase
   std::map<uint64_t, std::map<int32_t, std::vector<Address>>>
       m_coinbaseRewardees;

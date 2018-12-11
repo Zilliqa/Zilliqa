@@ -484,9 +484,6 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
     }
   }
 
-  m_numOfAbsentMicroBlocks = 0;
-  int offset = 0;
-
   if (!m_missingMicroBlocks[m_mediator.m_currentEpochNum].empty()) {
     if (fromShards) {
       LOG_GENERAL(INFO, "Only check for microblocks from shards, failed");
@@ -494,6 +491,9 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
     }
 
     if (generateErrorMsg) {
+      unsigned int numOfAbsentMicroBlocks = 0;
+      int offset = 0;
+
       for (auto const& hash :
            m_missingMicroBlocks[m_mediator.m_currentEpochNum]) {
         if (errorMsg.empty()) {
@@ -507,11 +507,11 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
              errorMsg.begin() + offset);
         offset += BLOCK_HASH_SIZE;
 
-        m_numOfAbsentMicroBlocks++;
+        numOfAbsentMicroBlocks++;
       }
 
-      if (m_numOfAbsentMicroBlocks > 0) {
-        Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentMicroBlocks,
+      if (numOfAbsentMicroBlocks > 0) {
+        Serializable::SetNumber<uint32_t>(errorMsg, 0, numOfAbsentMicroBlocks,
                                           sizeof(uint32_t));
         Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
                                           m_mediator.m_currentEpochNum,
