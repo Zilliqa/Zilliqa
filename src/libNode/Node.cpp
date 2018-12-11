@@ -1537,6 +1537,39 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
   return true;
 }
 
+bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
+                                           unsigned int offset,
+                                           [[gnu::unused]] const Peer& from) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Node::ProcessDSGuardNetworkInfoUpdate not expected to be called from "
+        "LookUp node.");
+    return true;
+  }
+
+  if (!m_requestedForDSGuardNetworkInfoUpdate) {
+    LOG_GENERAL(WARNING,
+                "Did not request for DS Guard node network info update");
+    return false;
+  }
+
+  LOG_MARKER();
+
+  vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct;
+  PubKey lookupPubkey;
+  if (!Messenger::SetNodeGetNewDSGuardNetworkInfo(
+          message, offset, vecOfDSGuardUpdateStruct, lookupPubkey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeGetNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  m_requestedForDSGuardNetworkInfoUpdate = false;
+
+  return true;
+}
+
 bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     if (!LOOKUP_NODE_MODE) {
