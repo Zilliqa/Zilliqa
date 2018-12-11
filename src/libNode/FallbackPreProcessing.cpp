@@ -410,7 +410,7 @@ bool Node::ComposeFallbackBlock() {
   BlockHash prevHash = get<BlockLinkIndex::BLOCKHASH>(
       m_mediator.m_blocklinkchain.GetLatestBlockLink());
 
-  lock_guard<mutex> g(m_mutexPendingFallbackBlock)
+  lock_guard<mutex> g(m_mutexPendingFallbackBlock);
 
   // To-do: Handle exceptions.
   m_pendingFallbackBlock.reset(new FallbackBlock(
@@ -418,10 +418,9 @@ bool Node::ComposeFallbackBlock() {
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1,
           m_mediator.m_currentEpochNum, m_fallbackState,
-          {AccountStore::GetInstance().GetStateRootHash()},
-          m_consensusLeaderID, leaderNetworkInfo,
-          m_myShardMembers->at(m_consensusLeaderID).first, m_myshardId,
-          committeeHash, prevHash),
+          {AccountStore::GetInstance().GetStateRootHash()}, m_consensusLeaderID,
+          leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
+          m_myshardId, committeeHash, prevHash),
       CoSignatures()));
 
   return true;
