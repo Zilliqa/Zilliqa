@@ -785,7 +785,8 @@ class Messenger {
 
   static bool SetNodeSetNewDSGuardNetworkInfo(
       std::vector<unsigned char>& dst, unsigned int offset,
-      const std::vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct);
+      const std::vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct,
+      const std::pair<PrivKey, PubKey>& lookupKey);
 
   static bool SetNodeGetNewDSGuardNetworkInfo(
       const std::vector<unsigned char>& dst, const unsigned int offset,
