@@ -621,13 +621,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  // Check block number
-  if (!m_mediator.CheckWhetherBlockIsLatest(
-          dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
-    LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
-    return false;
-  }
-
   if (consensusID != m_mediator.m_consensusID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus ID is not correct. Expected ID: "
@@ -666,6 +659,21 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   if (!VerifyFinalBlockCoSignature(txBlock)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "TxBlock co-sig verification failed");
+    return false;
+  }
+
+  // Check block number. Now put after verify co-sig to prevent malicious Tx
+  // block message to make the node rejoin.
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
+    LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
+    // Missed some final block, rejoin to get from lookup.
+    if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
+      if (!LOOKUP_NODE_MODE) {
+        RejoinAsNormal();
+        return false;
+      }
+    }
     return false;
   }
 
