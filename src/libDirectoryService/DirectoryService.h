@@ -416,9 +416,6 @@ class DirectoryService : public Executable, public Broadcastable {
   std::vector<unsigned char> ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(std::vector<unsigned char>& vcblock_message);
 
-  // Reset certain variables to the initial state
-  bool CleanVariables();
-
   void CleanFinalblockConsensusBuffer();
 
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
@@ -600,6 +597,9 @@ class DirectoryService : public Executable, public Broadcastable {
   int64_t GetAllPoWSize() const;
 
   bool ProcessAndSendPoWPacketSubmissionToOtherDSComm();
+
+  // Reset certain variables to the initial state
+  bool CleanVariables();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;
