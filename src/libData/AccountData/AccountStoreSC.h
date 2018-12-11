@@ -66,14 +66,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   bool ParseCreateContract(uint64_t& gasRemained,
                            const std::string& runnerPrint);
-  bool ParseCreateContractOutput(Json::Value& jsonOutput,
-                                 const std::string& runnerPrint = "");
   bool ParseCreateContractJsonOutput(const Json::Value& _json,
                                      uint64_t& gasRemained);
 
   bool ParseCallContract(uint64_t& gasRemained, const std::string& runnerPrint);
-  bool ParseCallContractOutput(Json::Value& jsonOutput,
-                               const std::string& runnerPrint = "");
   bool ParseCallContractJsonOutput(const Json::Value& _json,
                                    uint64_t& gasRemained);
 
@@ -106,6 +102,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool UpdateAccounts(const uint64_t& blockNum, const unsigned int& numShards,
                       const bool& isDS, const Transaction& transaction,
                       TransactionReceipt& receipt);
+
+  bool ParseCreateContractOutput(Json::Value& jsonOutput,
+                                 const std::string& runnerPrint = "");
+  bool ParseCallContractOutput(Json::Value& jsonOutput,
+                               const std::string& runnerPrint = "");
 };
 
 #include "AccountStoreAtomic.tpp"
