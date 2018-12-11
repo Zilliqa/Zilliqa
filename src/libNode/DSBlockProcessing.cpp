@@ -212,33 +212,36 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
 
   const auto& my_shard = m_mediator.m_ds->m_shards.at(m_myshardId);
 
-  // m_myShardMembers->clear();
-  m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);
-
   // All nodes; first entry is leader
   unsigned int index = 0;
   bool foundMe = false;
-  for (const auto& shardNode : my_shard) {
-    m_myShardMembers->emplace_back(std::get<SHARD_NODE_PUBKEY>(shardNode),
-                                   std::get<SHARD_NODE_PEER>(shardNode));
 
-    // Zero out my IP to avoid sending to myself
-    if (m_mediator.m_selfPeer == m_myShardMembers->back().second) {
-      m_consensusMyID = index;  // Set my ID
-      m_myShardMembers->back().second = Peer();
-      foundMe = true;
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
+    // m_myShardMembers->clear();
+    m_myShardMembers.reset(new std::deque<pair<PubKey, Peer>>);
+    for (const auto& shardNode : my_shard) {
+      m_myShardMembers->emplace_back(std::get<SHARD_NODE_PUBKEY>(shardNode),
+                                     std::get<SHARD_NODE_PEER>(shardNode));
+
+      // Zero out my IP to avoid sending to myself
+      if (m_mediator.m_selfPeer == m_myShardMembers->back().second) {
+        m_consensusMyID = index;  // Set my ID
+        m_myShardMembers->back().second = Peer();
+        foundMe = true;
+      }
+
+      LOG_EPOCH(
+          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          " PubKey: " << DataConversion::SerializableToHexStr(
+                             m_myShardMembers->back().first)
+                      << " IP: "
+                      << m_myShardMembers->back().second.GetPrintableIPAddress()
+                      << " Port: "
+                      << m_myShardMembers->back().second.m_listenPortHost);
+
+      index++;
     }
-
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        " PubKey: " << DataConversion::SerializableToHexStr(
-                           m_myShardMembers->back().first)
-                    << " IP: "
-                    << m_myShardMembers->back().second.GetPrintableIPAddress()
-                    << " Port: "
-                    << m_myShardMembers->back().second.m_listenPortHost);
-
-    index++;
   }
 
   if (!foundMe && !callByRetrieve) {
@@ -267,6 +270,9 @@ void Node::StartFirstTxEpoch() {
     lastBlockHash = DataConversion::charArrTo16Bits(
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
+
+  lock_guard<mutex> g(m_mutexShardMember);
+
   m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
 
   // Check if I am the leader or backup of the shard
@@ -285,13 +291,14 @@ void Node::StartFirstTxEpoch() {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I am backup member of the sharded committee");
 
-    LOG_STATE(
-        "[SHSTU]["
-        << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-        << "]["
-        << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
-               1
-        << "] RECEIVED SHARDING STRUCTURE");
+    LOG_STATE("[SHSTU][" << setw(15) << left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "]["
+                         << m_mediator.m_txBlockChain.GetLastBlock()
+                                    .GetHeader()
+                                    .GetBlockNum() +
+                                1
+                         << "] RECEIVED SHARDING STRUCTURE");
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()

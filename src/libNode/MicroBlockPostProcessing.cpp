@@ -221,11 +221,14 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
         [this](vector<unsigned char>& microblock_message) -> bool {
       return ComposeMicroBlockMessageForSender(microblock_message);
     };
-    DataSender::GetInstance().SendDataToOthers(
-        *m_microblock, *m_myShardMembers, ds_shards,
-        m_mediator.m_lookup->GetLookupNodes(),
-        m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeMicroBlockMessageForSender, nullptr);
+    {
+      lock_guard<mutex> g(m_mutexShardMember);
+      DataSender::GetInstance().SendDataToOthers(
+          *m_microblock, *m_myShardMembers, ds_shards,
+          m_mediator.m_lookup->GetLookupNodes(),
+          m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+          composeMicroBlockMessageForSender, nullptr);
+    }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Micro block consensus "

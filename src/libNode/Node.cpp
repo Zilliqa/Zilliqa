@@ -628,6 +628,7 @@ void Node::WakeupForRecovery() {
     return;
   }
 
+  lock_guard<mutex> g(m_mutexShardMember);
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     m_myShardMembers = m_mediator.m_DSCommittee;
   }
@@ -1154,8 +1155,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     }
   } else {
     vector<Peer> toSend;
-    for (auto& it : *m_myShardMembers) {
-      toSend.push_back(it.second);
+    {
+      lock_guard<mutex> g(m_mutexShardMember);
+      for (auto& it : *m_myShardMembers) {
+        toSend.push_back(it.second);
+      }
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
 
@@ -1393,7 +1397,10 @@ bool Node::CleanVariables() {
 
   FallbackStop();
   AccountStore::GetInstance().InitSoft();
-  m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
+    m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
+  }
   m_isPrimary = false;
   m_stillMiningPrimary = false;
   m_myshardId = 0;
@@ -1459,6 +1466,9 @@ void Node::CleanCreatedTransaction() {
   }
   m_TxnOrder.clear();
 }
+
+// bool Node::IsShardNode(const Peer& peerInfo) const {
+// }
 
 bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
                            unsigned int offset,
@@ -1575,9 +1585,12 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
   sha256.Update(message);  // raw_message hash
   std::vector<unsigned char> this_msg_hash = sha256.Finalize();
 
+  lock_guard<mutex> g(m_mutexShardMember);
+
   GetNodesToBroadCastUsingTreeBasedClustering(
       cluster_size, num_of_child_clusters, nodes_lo, nodes_hi);
 
+  std::vector<Peer> shardBlockReceivers;
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
     LOG_GENERAL(
@@ -1593,12 +1606,12 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
   nodes_hi = std::min(nodes_hi, (uint32_t)m_myShardMembers->size() - 1);
 
   LOG_GENERAL(
-      INFO, "I am broadcasting message with hash: ["
-                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-                << "] further to following " << nodes_hi - nodes_lo + 1
-                << " peers."
-                << "(" << nodes_lo << "~" << nodes_hi << ")");
-  std::vector<Peer> shardBlockReceivers;
+      INFO,
+      "I am broadcasting message with hash: ["
+          << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+          << "] further to following " << nodes_hi - nodes_lo + 1 << " peers."
+          << "(" << nodes_lo << "~" << nodes_hi << ")");
+
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);
     shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
