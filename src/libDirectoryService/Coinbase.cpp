@@ -304,7 +304,7 @@ void DirectoryService::InitCoinbase() {
             if (addr ==
                 Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second)) {
               LOG_GENERAL(INFO, "[REWARD]"
-                                    << "Woohoo! Rewarded " << reward_each);
+                                    << "Rewarded " << reward_each);
             }
             suc_counter++;
           }

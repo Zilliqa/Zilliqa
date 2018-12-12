@@ -266,8 +266,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
                                                      tmpNumber);
 
-  int balanceDelta =
-      protoAccount.numbersign() ? (int)tmpNumber : 0 - (int)tmpNumber;
+  int256_t balanceDelta = protoAccount.numbersign() ? tmpNumber : 0 - tmpNumber;
   account.ChangeBalance(balanceDelta);
 
   account.IncreaseNonceBy(protoAccount.nonce());
@@ -1940,7 +1939,7 @@ bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
 
 bool Messenger::StateDeltaToAddressMap(
     const vector<unsigned char>& src, const unsigned int offset,
-    unordered_map<Address, int>& accountMap) {
+    unordered_map<Address, int256_t>& accountMap) {
   ProtoAccountStore result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -1964,8 +1963,8 @@ bool Messenger::StateDeltaToAddressMap(
     ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
         entry.account().balance(), tmpNumber);
 
-    int balanceDelta =
-        entry.account().numbersign() ? (int)tmpNumber : 0 - (int)tmpNumber;
+    int256_t balanceDelta =
+        entry.account().numbersign() ? tmpNumber : 0 - tmpNumber;
 
     accountMap.insert(make_pair(address, balanceDelta));
   }
