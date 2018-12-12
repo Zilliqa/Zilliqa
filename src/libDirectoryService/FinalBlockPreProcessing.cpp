@@ -492,7 +492,7 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
 
     if (generateErrorMsg) {
       unsigned int numOfAbsentMicroBlocks = 0;
-      int offset = 0;
+      unsigned int offset = 0;
 
       for (auto const& hash :
            m_missingMicroBlocks[m_mediator.m_currentEpochNum]) {
