@@ -25,6 +25,34 @@
 #include "SafeMath.h"
 
 template <class T>
+bool SafeMath<T>::add(const T& a, const T& b, T& result) {
+  if (IsSignedInt(a)) {
+    return add_signint(a, b, result);
+  }
+
+  if (IsUnsignedInt(a)) {
+    return add_unsignint(a, b, result);
+  }
+
+  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
+  return false;
+}
+
+template <class T>
+bool SafeMath<T>::sub(const T& a, const T& b, T& result) {
+  if (IsSignedInt(a)) {
+    return sub_signint(a, b, result);
+  }
+
+  if (IsUnsignedInt(a)) {
+    return sub_unsignint(a, b, result);
+  }
+
+  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
+  return false;
+}
+
+template <class T>
 bool SafeMath<T>::mul(const T& a, const T& b, T& result) {
   if (a == 0 || b == 0) {
     result = 0;
@@ -32,20 +60,34 @@ bool SafeMath<T>::mul(const T& a, const T& b, T& result) {
   }
 
   if (IsSignedInt(a)) {
-    if ((a == std::numeric_limits<T>::min() && b == (T)-1) ||
-        (a == (T)-1 && b == std::numeric_limits<T>::min())) {
-      LOG_GENERAL(WARNING, "Multiplication Overflow!");
-      return false;
-    }
+    return mul_signint(a, b, result);
   }
 
-  T c = a * b;
-  if (c / a != b) {
-    LOG_GENERAL(WARNING, "Multiplication Underflow/Overflow!");
+  if (IsUnsignedInt(a)) {
+    return mul_unsignint(a, b, result);
+  }
+
+  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
+  return false;
+}
+
+template <class T>
+bool SafeMath<T>::div(const T& a, const T& b, T& result) {
+  if (b == 0) {
+    LOG_GENERAL(WARNING, "Denominator cannot be zero!");
     return false;
   }
-  result = c;
-  return true;
+
+  if (IsSignedInt(a)) {
+    return div_signint(a, b, result);
+  }
+
+  if (IsUnsignedInt(a)) {
+    return div_unsignint(a, b, result);
+  }
+
+  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
+  return false;
 }
 
 template <class T>
@@ -102,57 +144,6 @@ T SafeMath<T>::power(const T& base, const T& exponent, bool isCritical) {
 }
 
 template <class T>
-bool SafeMath<T>::div(const T& a, const T& b, T& result) {
-  if (b == 0) {
-    LOG_GENERAL(WARNING, "Denominator cannot be zero!");
-    return false;
-  }
-
-  if (IsSignedInt(a)) {
-    if (a == std::numeric_limits<T>::min() && b == (T)-1) {
-      LOG_GENERAL(WARNING, "Division Overflow!");
-      return false;
-    }
-  }
-
-  T c = a / b;
-  if (a != b * c + a % b) {
-    return false;
-  }
-
-  result = c;
-  return true;
-}
-
-template <class T>
-bool SafeMath<T>::sub(const T& a, const T& b, T& result) {
-  if (IsSignedInt(a)) {
-    return sub_signint(a, b, result);
-  }
-
-  if (IsUnsignedInt(a)) {
-    return sub_unsignint(a, b, result);
-  }
-
-  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
-  return false;
-}
-
-template <class T>
-bool SafeMath<T>::add(const T& a, const T& b, T& result) {
-  if (IsSignedInt(a)) {
-    return add_signint(a, b, result);
-  }
-
-  if (IsUnsignedInt(a)) {
-    return add_unsignint(a, b, result);
-  }
-
-  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
-  return false;
-}
-
-template <class T>
 bool SafeMath<T>::IsSignedInt(const T& a) {
   return (typeid(a) == typeid(int8_t) || typeid(a) == typeid(int16_t) ||
           typeid(a) == typeid(int32_t) || typeid(a) == typeid(int64_t) ||
@@ -202,12 +193,12 @@ bool SafeMath<T>::add_unsignint(const T& a, const T& b, T& result) {
 
 template <class T>
 bool SafeMath<T>::sub_signint(const T& a, const T& b, T& result) {
-  if (a > 0 && b > std::numeric_limits<T>::min() - a) {
+  if (a > 0 && b < a - std::numeric_limits<T>::max()) {
     LOG_GENERAL(WARNING, "Subtraction Overflow!");
     return false;
   }
 
-  if (a < 0 && b < std::numeric_limits<T>::max() - a) {
+  if (a < 0 && b > a - std::numeric_limits<T>::min()) {
     LOG_GENERAL(WARNING, "Subtraction Underflow!");
     return false;
   }
@@ -226,5 +217,76 @@ bool SafeMath<T>::sub_unsignint(const T& a, const T& b, T& result) {
   }
 
   result = a - b;
+  return true;
+}
+
+template <class T>
+bool SafeMath<T>::mul_signint(const T& a, const T& b, T& result) {
+  if ((a == std::numeric_limits<T>::min() && b == (T)-1) ||
+      (a == (T)-1 && b == std::numeric_limits<T>::min())) {
+    LOG_GENERAL(WARNING, "Multiplication Overflow!");
+    return false;
+  }
+
+  bool good;
+
+  if (a < 0 && b < 0) {
+    good = (a >= std::numeric_limits<T>::max() / b);
+  } else if (a < 0 && b > 0) {
+    good = (a >= std::numeric_limits<T>::min() / b);
+  } else if (a > 0 && b < 0) {
+    good = (b >= std::numeric_limits<T>::min() / a);
+  } else {
+    good = (a <= std::numeric_limits<T>::max() / b);
+  }
+
+  if (!good) {
+    LOG_GENERAL(WARNING, "Multiplication Underflow/Overflow!");
+    return false;
+  }
+
+  result = a * b;
+  return true;
+}
+
+template <class T>
+bool SafeMath<T>::mul_unsignint(const T& a, const T& b, T& result) {
+  T c = a * b;
+
+  if (c / a != b) {
+    LOG_GENERAL(WARNING, "Multiplication Underflow/Overflow!");
+    return false;
+  }
+
+  result = c;
+  return true;
+}
+
+template <class T>
+bool SafeMath<T>::div_signint(const T& a, const T& b, T& result) {
+  if (a == std::numeric_limits<T>::min() && b == (T)-1) {
+    LOG_GENERAL(WARNING, "Division Overflow!");
+    return false;
+  }
+
+  T c = a / b;
+
+  if (a != b * c + a % b) {
+    return false;
+  }
+
+  result = c;
+  return true;
+}
+
+template <class T>
+bool SafeMath<T>::div_unsignint(const T& a, const T& b, T& result) {
+  T c = a / b;
+
+  if (a != b * c + a % b) {
+    return false;
+  }
+
+  result = c;
   return true;
 }
