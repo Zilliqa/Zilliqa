@@ -23,12 +23,12 @@
 template <class T>
 class SafeMath {
  public:
+  static bool add(const T& a, const T& b, T& result);
+  static bool sub(const T& a, const T& b, T& result);
   static bool mul(const T& a, const T& b, T& result);
+  static bool div(const T& a, const T& b, T& result);
   static bool power(const T& base, const T& exponent, T& result);
   static T power(const T& base, const T& exponent, bool isCritical = false);
-  static bool div(const T& a, const T& b, T& result);
-  static bool sub(const T& a, const T& b, T& result);
-  static bool add(const T& a, const T& b, T& result);
 
  private:
   static bool IsSignedInt(const T& a);
@@ -37,6 +37,10 @@ class SafeMath {
   static bool add_unsignint(const T& a, const T& b, T& result);
   static bool sub_signint(const T& a, const T& b, T& result);
   static bool sub_unsignint(const T& a, const T& b, T& result);
+  static bool mul_signint(const T& a, const T& b, T& result);
+  static bool mul_unsignint(const T& a, const T& b, T& result);
+  static bool div_signint(const T& a, const T& b, T& result);
+  static bool div_unsignint(const T& a, const T& b, T& result);
 };
 
 #include "SafeMath.tpp"
