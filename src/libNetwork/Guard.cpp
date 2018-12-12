@@ -161,7 +161,7 @@ unsigned int Guard::GetNumOfShardGuard() {
 // This feature is only available to ds guard nodes. This only guard nodes to
 // change its network information. Pre-condition: Must still have access to
 // existing public and private key pair
-bool Guard::UpdateDSGuardIdentity(const Mediator& mediator) {
+bool Guard::UpdateDSGuardIdentity(Mediator& mediator) {
   if (!GUARD_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -182,7 +182,25 @@ bool Guard::UpdateDSGuardIdentity(const Mediator& mediator) {
     return false;
   }
 
-  // Gossip to all lookups and DS committee
+  // Broadcast to lookup
+  // mediator.m_lookup->SendMessageToLookupNodes(updatedsguardidentitymessage);
+
+  {
+    // Gossip to all DS committee
+    lock_guard<mutex> lock(mediator.m_mutexDSCommittee);
+    deque<Peer> peerInfo;
+
+    for (auto const& i : *mediator.m_DSCommittee) {
+      peerInfo.push_back(i.second);
+    }
+
+    if (BROADCAST_GOSSIP_MODE) {
+      P2PComm::GetInstance().SpreadRumor(updatedsguardidentitymessage);
+    } else {
+      P2PComm::GetInstance().SendMessage(peerInfo,
+                                         updatedsguardidentitymessage);
+    }
+  }
 
   return true;
 }

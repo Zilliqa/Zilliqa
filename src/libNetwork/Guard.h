@@ -68,7 +68,7 @@ class Guard {
   bool IsNodeInDSGuardList(const PubKey& nodePubKey);
   bool IsNodeInShardGuardList(const PubKey& nodePubKey);
 
-  bool UpdateDSGuardIdentity(const Mediator& mediator);
+  bool UpdateDSGuardIdentity(Mediator& mediator);
 
   unsigned int GetNumOfDSGuard();
   unsigned int GetNumOfShardGuard();
