@@ -184,6 +184,10 @@ class Messenger {
   static bool GetPeer(const std::vector<unsigned char>& src,
                       const unsigned int offset, Peer& peer);
 
+  static bool StateDeltaToAddressMap(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::unordered_map<Address, boost::multiprecision::int256_t>& accountMap);
+
   // ============================================================================
   // Directory Service messages
   // ============================================================================
@@ -268,6 +272,15 @@ class Messenger {
       const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
       const PubKey& leaderKey, VCBlock& vcBlock,
       std::vector<unsigned char>& messageToCosign);
+
+  static bool SetDSMissingMicroBlocksErrorMsg(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::vector<BlockHash>& missingMicroBlockHashes,
+      const uint64_t epochNum, const uint32_t listenPort);
+  static bool GetDSMissingMicroBlocksErrorMsg(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::vector<BlockHash>& missingMicroBlockHashes, uint64_t& epochNum,
+      uint32_t& listenPort);
 
   // ============================================================================
   // Node messages
@@ -368,6 +381,16 @@ class Messenger {
   static bool ArrayToShardStructure(const std::vector<unsigned char>& src,
                                     const unsigned int offset,
                                     DequeOfShard& shards);
+
+  static bool SetNodeMissingTxnsErrorMsg(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::vector<TxnHash>& missingTxnHashes, const uint64_t epochNum,
+      const uint32_t listenPort);
+  static bool GetNodeMissingTxnsErrorMsg(const std::vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         std::vector<TxnHash>& missingTxnHashes,
+                                         uint64_t& epochNum,
+                                         uint32_t& listenPort);
 
   // ============================================================================
   // Lookup messages
