@@ -4464,7 +4464,8 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(result.txhash(), txHash.asArray(), 32ul)) {
+  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(
+          result.txhash(), txHash.asArray(), 32ul)) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
@@ -4508,7 +4509,8 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(result.txhash(), txHash.asArray(), 32ul)) {
+  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(
+          result.txhash(), txHash.asArray(), 32ul)) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
