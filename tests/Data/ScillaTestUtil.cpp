@@ -22,9 +22,7 @@
 #include "ScillaTestUtil.h"
 #include "common/Constants.h"
 
-namespace {
-
-bool parseJsonFile(Json::Value &j, std::string filename) {
+bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
   if (!boost::filesystem::is_regular_file(filename)) return false;
 
   std::ifstream in(filename, std::ios::binary);
@@ -39,10 +37,8 @@ bool parseJsonFile(Json::Value &j, std::string filename) {
   return reader->parse(fstr.c_str(), fstr.c_str() + fstr.size(), &j, &errors);
 }
 
-}  // end anonymous namespace
-
 // Get ScillaTest for contract "name" and test numbered "i".
-bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string &contrName,
+bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
                                    unsigned int i) {
   if (SCILLA_ROOT.empty()) {
     return false;
@@ -62,11 +58,11 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string &contrName,
   std::string is(std::to_string(i));
 
   // Get all JSONs
-  if (!parseJsonFile(t.init, testDir + "/init_" + is + ".json") ||
-      !parseJsonFile(t.state, testDir + "/state_" + is + ".json") ||
-      !parseJsonFile(t.blockchain, testDir + "/blockchain_" + is + ".json") ||
-      !parseJsonFile(t.expOutput, testDir + "/output_" + is + ".json") ||
-      !parseJsonFile(t.message, testDir + "/message_" + is + ".json")) {
+  if (!ParseJsonFile(t.init, testDir + "/init.json") ||
+      !ParseJsonFile(t.state, testDir + "/state_" + is + ".json") ||
+      !ParseJsonFile(t.blockchain, testDir + "/blockchain_" + is + ".json") ||
+      !ParseJsonFile(t.expOutput, testDir + "/output_" + is + ".json") ||
+      !ParseJsonFile(t.message, testDir + "/message_" + is + ".json")) {
     return false;
   }
 
