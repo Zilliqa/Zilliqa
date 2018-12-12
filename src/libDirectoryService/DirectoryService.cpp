@@ -716,7 +716,7 @@ bool DirectoryService::ProcessNewDSGuardIdentity(
     lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
     unsigned int indexOfDSGuard;
-    bool foundDSGuardNode;
+    bool foundDSGuardNode = false;
     for (indexOfDSGuard = 0;
          indexOfDSGuard < Guard::GetInstance().GetNumOfDSGuard();
          indexOfDSGuard++) {
