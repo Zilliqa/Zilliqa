@@ -113,6 +113,20 @@ void NumberToArray(const T& number, vector<unsigned char>& dst,
   Serializable::SetNumber<T>(dst, offset, number, S);
 }
 
+template <class K, class V>
+bool copyWithSizeCheck(const K& arr, V& result, size_t maxSize) {
+  // Fixed length copying.
+  if (maxSize > 0) {
+    if (arr.size() != maxSize) {
+      return false;
+    }
+
+    copy(arr.begin(), arr.end(), result.begin());
+    return true;
+  }
+  return false;
+}
+
 void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       account.GetBalance(), *protoAccount.mutable_balance());
@@ -4450,14 +4464,12 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (result.txhash().size() != txHash.asArray().max_size()) {
+  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(result.txhash(), txHash.asArray(), 32ul)) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
   }
 
-  copy(result.txhash().begin(), result.txhash().end(),
-       txHash.asArray().begin());
   listenPort = result.listenport();
 
   return true;
@@ -4496,14 +4508,12 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (result.txhash().size() != txHash.asArray().max_size()) {
+  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(result.txhash(), txHash.asArray(), 32ul)) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
   }
 
-  copy(result.txhash().begin(), result.txhash().end(),
-       txHash.asArray().begin());
   ProtobufByteArrayToSerializable(result.txbody(), txBody);
 
   return true;
