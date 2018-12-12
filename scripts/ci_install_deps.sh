@@ -60,7 +60,7 @@ cd openssl-1.1.1
 make > /dev/null
 make install > /dev/null
 cd ..
-rm -rf openssl-1.1.1.tar.gz openssl-1.1.1.tar.gz
+rm -rf openssl-1.1.1 openssl-1.1.1.tar.gz
 }
 
 # presently a docker version ubuntu 16.04 is used
