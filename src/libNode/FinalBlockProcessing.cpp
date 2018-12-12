@@ -715,7 +715,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
   if (isVacuousEpoch) {
-    unordered_map<Address, int> addressMap;
+    unordered_map<Address, int256_t> addressMap;
     if (!Messenger::StateDeltaToAddressMap(stateDelta, 0, addressMap)) {
       LOG_GENERAL(WARNING, "Messenger::StateDeltaToAccountMap failed");
     } else {
@@ -723,10 +723,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
           Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second));
       if (it != addressMap.end()) {
         LOG_GENERAL(INFO, "[REWARD]"
-                              << "Woohoo! Got " << it->second << " as reward");
+                              << " Got " << it->second << " as reward");
       } else {
         LOG_GENERAL(INFO, "[REWARD]"
-                              << "Got no reward this ds epoch");
+                              << "Got no reward thist ds epoch");
       }
     }
   }

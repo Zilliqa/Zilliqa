@@ -186,7 +186,7 @@ class Messenger {
 
   static bool StateDeltaToAddressMap(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      std::unordered_map<Address, int>& accountMap);
+      std::unordered_map<Address, boost::multiprecision::int256_t>& accountMap);
 
   // ============================================================================
   // Directory Service messages
