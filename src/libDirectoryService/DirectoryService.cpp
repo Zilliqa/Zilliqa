@@ -688,6 +688,12 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     return false;
   }
 
+  if (!Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
+    LOG_GENERAL(
+        WARNING,
+        "Current node is not a ds guard node. Unable to update network info.");
+  }
+
   // To provide current pubkey, new IP, new Port and current timestamp
   vector<unsigned char> updatedsguardidentitymessage = {
       MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
