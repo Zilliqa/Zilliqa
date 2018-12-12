@@ -33,7 +33,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-#include "CrowdFundingCodes.h"
+#include "ScillaTestUtil.h"
 
 #define BOOST_TEST_MODULE contracttest
 #define BOOST_TEST_DYN_LINK
@@ -52,13 +52,18 @@ PrivKey priv1(
     priv2(
         DataConversion::HexStrToUint8Vec(
             "0FC87BC5ACF5D1243DE7301972B9649EE31688F291F781396B0F67AD98A88147"),
+        0),
+    priv3(
+        DataConversion::HexStrToUint8Vec(
+            "0AB52CF5D3F9A1E730243DB96419729EE31688F29B0F67AD98A881471F781396"),
         0);
-KeyPair sender(priv1, {priv1}), sender2(priv2, {priv2});
-Address fromAddr, fromAddr2;
+
+KeyPair owner(priv1, {priv1}), donor1(priv2, {priv2}), donor2(priv3, {priv3});
+Address ownerAddr, donor1Addr, donor2Addr, contrAddr;
 uint64_t nonce = 0;
 
 // Create Transaction to create contract
-BOOST_AUTO_TEST_CASE(testContract) {
+BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -70,235 +75,97 @@ BOOST_AUTO_TEST_CASE(testContract) {
 
   AccountStore::GetInstance().Init();
 
-  // PrivKey senderPrivKey(
-  //     DataConversion::HexStrToUint8Vec(
-  //         "1658F915F3F9AE35E6B471B7670F53AD1A5BE15D7331EC7FD5E503F21D3450C8"),
-  //     0);
-  // PubKey senderPubKey(senderPrivKey);
-  // sender.first = senderPrivKey;
-  // sender.second = senderPubKey;
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  donor1Addr = Account::GetAddressFromPublicKey(donor1.second);
+  donor2Addr = Account::GetAddressFromPublicKey(donor2.second);
 
-  fromAddr = Account::GetAddressFromPublicKey(sender.second);
+  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
 
-  // PrivKey senderPrivKey2(
-  //     DataConversion::HexStrToUint8Vec(
-  //         "0FC87BC5ACF5D1243DE7301972B9649EE31688F291F781396B0F67AD98A88147"),
-  //     0);
-  // PubKey senderPubKey2(senderPrivKey2);
-  // sender2.first = senderPrivKey2;
-  // sender2.second = senderPubKey2;
-
-  fromAddr2 = Account::GetAddressFromPublicKey(sender2.second);
-
-  AccountStore::GetInstance().AddAccount(fromAddr, {2000000, nonce});
-
-  toAddress = Account::GetAddressForContract(fromAddr, nonce);
-  LOG_GENERAL(INFO, "CrowdFunding Address: " << toAddress);
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "CrowdFunding Address: " << contrAddr);
 
   {
-    std::vector<unsigned char> code(cfCodeStr.begin(), cfCodeStr.end());
-
-    string initStr =
-        regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + toAddress.hex());
-    std::vector<unsigned char> data(initStr.begin(), initStr.end());
-
-    Transaction tx0(1, nonce, NullAddress, sender, 0, PRECISION_MIN_VALUE, 5000,
-                    code, data);
-
-    TransactionReceipt tr0;
-    AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx0, tr0);
-
-    bool checkToAddr = true;
-    Account* account = AccountStore::GetInstance().GetAccount(toAddress);
-    if (account == nullptr) {
-      checkToAddr = false;
-    } else {
-      nonce++;
+    // Deploying the contract can use data from the 1st Scilla test.
+    ScillaTestUtil::ScillaTest t1;
+    if (!ScillaTestUtil::GetScillaTest(t1, "crowdfunding", 1)) {
+      LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_1.");
+      return;
     }
-    BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
 
-    cfOutStr0.erase(std::remove(cfOutStr0.begin(), cfOutStr0.end(), ' '),
-                    cfOutStr0.end());
-    cfOutStr0.erase(std::remove(cfOutStr0.begin(), cfOutStr0.end(), '\n'),
-                    cfOutStr0.end());
+    // Replace owner address in init.json.
+    // At the same time, find the index of _creation_block
+    int creation_block_index = -1;
+    for (auto it = t1.init.begin(); it != t1.init.end(); it++) {
+        if ((*it)["vname"] == "owner")
+          (*it)["value"] = "0x" + ownerAddr.hex();
+        if ((*it)["vname"] == "_creation_block")
+          creation_block_index = it - t1.init.begin();
+    }
+    // Remove _creation_block from init.json as it will be inserted automatically.
+    if (creation_block_index >= 0) {
+        Json::Value dummy;
+        t1.init.removeIndex(Json::ArrayIndex(creation_block_index), &dummy);
+    }
 
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
+    // Get blocknumber from blockchain.json
+    uint64_t bnum = 0;
+    for (auto it = t1.blockchain.begin(); it != t1.blockchain.end(); it++)
+      if ((*it)["vname"] == "BLOCKNUMBER")
+        bnum = atoi ((*it)["value"].asCString());
 
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
+    // Transaction to deploy contract.
+    std::string initStr = JSONUtils::convertJsontoStr(t1.init);
+    std::vector<unsigned char> data(initStr.begin(), initStr.end());
+    Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
+                    t1.code, data);
+    TransactionReceipt tr0;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    Account* account = AccountStore::GetInstance().GetAccount(toAddress);
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account == nullptr, "Error with creation of contract account");
+    nonce++;
 
-    BOOST_CHECK_MESSAGE(cfOutStr0 == output_file,
-                        "Error: didn't get desired output");
+    // Execute message_1, the Donate transaction.
+    uint64_t amount = atoi (t1.message["_amount"].asCString());
+    // Remove _amount and _sender as they will be automatically inserted.
+    t1.message.removeMember("_amount");
+    t1.message.removeMember("_sender");
+    std::string msgStr = JSONUtils::convertJsontoStr(t1.message);
+    std::vector<unsigned char> dataDonate(msgStr.begin(), msgStr.end());
 
-    LOG_GENERAL(INFO, "[Create] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-  }
-
-  std::vector<unsigned char> dataDonate(cfDataDonateStr.begin(),
-                                        cfDataDonateStr.end());
-
-  {
-    Transaction tx1(1, nonce, toAddress, sender, 100, PRECISION_MIN_VALUE, 5000,
+    Transaction tx1(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE, 5000,
                     {}, dataDonate);
     TransactionReceipt tr1;
-    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx1, tr1)) {
+    if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1)) {
       nonce++;
     }
 
-    cfOutStr1.erase(std::remove(cfOutStr1.begin(), cfOutStr1.end(), ' '),
-                    cfOutStr1.end());
-    cfOutStr1.erase(std::remove(cfOutStr1.begin(), cfOutStr1.end(), '\n'),
-                    cfOutStr1.end());
-
-    cfOutStr1 =
-        regex_replace(cfOutStr1, regex("\\$ADDR"), "0x" + fromAddr.hex());
-
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr1 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, "[Call1] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call1] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
-  }
-
-  {
-    Transaction tx2(1, nonce, toAddress, sender2, 200, PRECISION_MIN_VALUE,
-                    5000, {}, dataDonate);
-    TransactionReceipt tr2;
-    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx2, tr2)) {
-      nonce++;
+    Json::Value iOutput;
+    if (!ScillaTestUtil::ParseJsonFile(iOutput, OUTPUT_JSON)) {
+      LOG_GENERAL(WARNING, "Unable to parse output of interpreter.");
+      return;
     }
 
-    cfOutStr2.erase(std::remove(cfOutStr2.begin(), cfOutStr2.end(), ' '),
-                    cfOutStr2.end());
-    cfOutStr2.erase(std::remove(cfOutStr2.begin(), cfOutStr2.end(), '\n'),
-                    cfOutStr2.end());
-
-    cfOutStr2 =
-        regex_replace(cfOutStr2, regex("\\$ADDR1"), "0x" + fromAddr.hex());
-    cfOutStr2 =
-        regex_replace(cfOutStr2, regex("\\$ADDR2"), "0x" + fromAddr2.hex());
-
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr2 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, cfOutStr2);
-    LOG_GENERAL(INFO, output_file);
-
-    LOG_GENERAL(INFO, "[Call2] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call2] Sender2 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO, "[Call2] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
-  }
-
-  std::vector<unsigned char> dataGetFunds(cfDataGetFundsStr.begin(),
-                                          cfDataGetFundsStr.end());
-
-  {
-    Transaction tx3(1, nonce, toAddress, sender2, 0, PRECISION_MIN_VALUE, 5000,
-                    {}, dataGetFunds);
-    TransactionReceipt tr3;
-    if (AccountStore::GetInstance().UpdateAccounts(200, 1, true, tx3, tr3)) {
-      nonce++;
+    uint128_t contrBal = AccountStore::GetInstance().GetBalance(contrAddr);
+    // Get balance as given by the interpreter.
+    uint128_t oBal = 0;
+    Json::Value states = iOutput["states"];
+    for (auto it = states.begin(); it != states.end(); it++) {
+      if ((*it)["vname"] == "_balance")
+        oBal = atoi ((*it)["value"].asCString());
     }
 
-    cfOutStr3.erase(std::remove(cfOutStr3.begin(), cfOutStr3.end(), ' '),
-                    cfOutStr3.end());
-    cfOutStr3.erase(std::remove(cfOutStr3.begin(), cfOutStr3.end(), '\n'),
-                    cfOutStr3.end());
+    LOG_GENERAL(INFO, "[Call1] Owner balance: "
+                          << AccountStore::GetInstance().GetBalance(ownerAddr));
+    LOG_GENERAL(INFO, "[Call1] Donor1 balance: "
+                          << AccountStore::GetInstance().GetBalance(donor1Addr));
+    LOG_GENERAL(INFO, "[Call1] Donor2 balance: "
+                          << AccountStore::GetInstance().GetBalance(donor2Addr));
+    LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
+    LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal );
+    BOOST_CHECK_MESSAGE(contrBal == oBal, "Balance mis-match after Donate");
 
-    cfOutStr3 =
-        regex_replace(cfOutStr3, regex("\\$ADDR1"), "0x" + fromAddr.hex());
-    cfOutStr3 =
-        regex_replace(cfOutStr3, regex("\\$ADDR2"), "0x" + fromAddr2.hex());
-
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr3 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, cfOutStr3);
-    LOG_GENERAL(INFO, output_file);
-
-    LOG_GENERAL(INFO, "[Call3] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call3] Sender2 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO, "[Call3] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
-  }
-
-  std::vector<unsigned char> dataClaimBack(cfDataClaimBackStr.begin(),
-                                           cfDataClaimBackStr.end());
-
-  {
-    Transaction tx4(1, nonce, toAddress, sender, 0, PRECISION_MIN_VALUE, 5000,
-                    {}, dataClaimBack);
-    TransactionReceipt tr4;
-    if (AccountStore::GetInstance().UpdateAccounts(300, 1, true, tx4, tr4)) {
-      nonce++;
-    }
-
-    cfOutStr4.erase(std::remove(cfOutStr4.begin(), cfOutStr4.end(), ' '),
-                    cfOutStr4.end());
-    cfOutStr4.erase(std::remove(cfOutStr4.begin(), cfOutStr4.end(), '\n'),
-                    cfOutStr4.end());
-
-    cfOutStr4 =
-        regex_replace(cfOutStr4, regex("\\$ADDR1"), "0x" + fromAddr.hex());
-    cfOutStr4 =
-        regex_replace(cfOutStr4, regex("\\$ADDR2"), "0x" + fromAddr2.hex());
-
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr4 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, "[Call4] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call4] Sender2 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO, "[Call4] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
+    // TODO: Do the other tests.
   }
 }
 
