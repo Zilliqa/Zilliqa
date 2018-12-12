@@ -334,8 +334,7 @@ const unsigned int FALLBACK_TEST_EPOCH{
 const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
 const bool ALLOW_TXN_PACKET_FROM_LOCAL{
-    ReadConstantString("ALLOW_TXN_PACKET_FROM_LOCAL", "node.tests.") ==
-    "true"};
+    ReadConstantString("ALLOW_TXN_PACKET_FROM_LOCAL", "node.tests.") == "true"};
 
 // Transaction constants
 const unsigned int COINBASE_REWARD{
