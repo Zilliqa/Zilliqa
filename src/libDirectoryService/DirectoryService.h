@@ -445,6 +445,8 @@ class DirectoryService : public Executable, public Broadcastable {
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
   uint64_t CalculateNumberOfBlocksPerYear() const;
 
+  bool UpdateDSGuardIdentity();
+
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
