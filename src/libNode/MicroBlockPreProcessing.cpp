@@ -940,14 +940,14 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
       return LEGITIMACYRESULT::WRONGORDER;
     }
 
-    if (!Messenger::SetNodeMissingTxnsErrorMsg(
-            errorMsg, 0, missingTxnHashes, m_mediator.m_currentEpochNum,
-            m_mediator.m_selfPeer.m_listenPortHost)) {
-      LOG_GENERAL(WARNING, "Messenger::SetNodeMissingTxnsErrorMsg failed.");
-      return false;
-    }
-
     if (missingTxnHashes.size() > 0) {
+      if (!Messenger::SetNodeMissingTxnsErrorMsg(
+              errorMsg, 0, missingTxnHashes, m_mediator.m_currentEpochNum,
+              m_mediator.m_selfPeer.m_listenPortHost)) {
+        LOG_GENERAL(WARNING, "Messenger::SetNodeMissingTxnsErrorMsg failed.");
+        return false;
+      }
+
       {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         LOG_GENERAL(WARNING, m_createdTxns);
