@@ -384,7 +384,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool OnNodeFinalConsensusError(const std::vector<unsigned char>& errorMsg,
                                  const Peer& from);
   bool OnNodeMissingMicroBlocks(const std::vector<unsigned char>& errorMsg,
-                                const Peer& from);
+                                const unsigned int offset, const Peer& from);
 
   // void StoreMicroBlocksToDisk();
 

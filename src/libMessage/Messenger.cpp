@@ -3148,6 +3148,58 @@ bool Messenger::GetDSVCBlockAnnouncement(
   return true;
 }
 
+bool Messenger::SetDSMissingMicroBlocksErrorMsg(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<BlockHash>& missingMicroBlockHashes, const uint64_t epochNum,
+    const uint32_t listenPort) {
+  LOG_MARKER();
+
+  DSMissingMicroBlocksErrorMsg result;
+
+  for (const auto& hash : missingMicroBlockHashes) {
+    result.add_mbhashes(hash.data(), hash.size);
+  }
+
+  result.set_epochnum(epochNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSMissingMicroBlocksErrorMsg initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDSMissingMicroBlocksErrorMsg(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<BlockHash>& missingMicroBlockHashes, uint64_t& epochNum,
+    uint32_t& listenPort) {
+  LOG_MARKER();
+
+  DSMissingMicroBlocksErrorMsg result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSMissingMicroBlocksErrorMsg initialization failed.");
+    return false;
+  }
+
+  for (const auto& hash : result.mbhashes()) {
+    missingMicroBlockHashes.emplace_back();
+    unsigned int size = min((unsigned int)hash.size(),
+                            (unsigned int)missingMicroBlockHashes.back().size);
+    copy(hash.begin(), hash.begin() + size,
+         missingMicroBlockHashes.back().asArray().begin());
+  }
+
+  epochNum = result.epochnum();
+  listenPort = result.listenport();
+
+  return true;
+}
+
 // ============================================================================
 // Node messages
 // ============================================================================
@@ -3703,6 +3755,60 @@ bool Messenger::ArrayToShardStructure(const std::vector<unsigned char>& src,
   protoShardingStructure.ParseFromArray(src.data() + offset,
                                         src.size() - offset);
   ProtobufToShardingStructure(protoShardingStructure, shards);
+  return true;
+}
+
+bool Messenger::SetNodeMissingTxnsErrorMsg(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<TxnHash>& missingTxnHashes, const uint64_t epochNum,
+    const uint32_t listenPort) {
+  LOG_MARKER();
+
+  NodeMissingTxnsErrorMsg result;
+
+  for (const auto& hash : missingTxnHashes) {
+    LOG_EPOCH(INFO, to_string(epochNum).c_str(), "Missing txn: " << hash);
+    result.add_txnhashes(hash.data(), hash.size);
+  }
+
+  result.set_epochnum(epochNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeMissingTxnsErrorMsg initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeMissingTxnsErrorMsg(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<TxnHash>& missingTxnHashes,
+                                           uint64_t& epochNum,
+                                           uint32_t& listenPort) {
+  LOG_MARKER();
+
+  NodeMissingTxnsErrorMsg result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeMissingTxnsErrorMsg initialization failed.");
+    return false;
+  }
+
+  for (const auto& hash : result.txnhashes()) {
+    missingTxnHashes.emplace_back();
+    unsigned int size = min((unsigned int)hash.size(),
+                            (unsigned int)missingTxnHashes.back().size);
+    copy(hash.begin(), hash.begin() + size,
+         missingTxnHashes.back().asArray().begin());
+  }
+
+  epochNum = result.epochnum();
+  listenPort = result.listenport();
+
   return true;
 }
 
