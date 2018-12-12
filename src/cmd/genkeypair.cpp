@@ -50,8 +50,7 @@ int main([[gnu::unused]] int argc, [[gnu::unused]] const char* argv[]) {
   Print(pubkey);
   cout << " ";
   Print(privkey);
-  // FIXME: add '\n' back
-  // cout << '\n';
+  cout << '\n';
 
   return 0;
 }
