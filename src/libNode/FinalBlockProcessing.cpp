@@ -766,6 +766,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
+    // Check whether any ds guard change network info
+    QueryLookupForDSGuardNetworkInfoUpdate();
+
     // Remove because shard nodes will be shuffled in next epoch.
     CleanMicroblockConsensusBuffer();
 
@@ -809,6 +812,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
 
     if (isVacuousEpoch) {
+      m_requestedForDSGuardNetworkInfoUpdate = false;
       InitiatePoW();
     } else {
       auto main_func = [this]() mutable -> void { BeginNextConsensusRound(); };
