@@ -18,61 +18,56 @@
  */
 
 #include <boost/filesystem.hpp>
-// #include "libUtils/Logger.h"
-#include "common/Constants.h"
+#include "libUtils/Logger.h"
 #include "ScillaTestUtil.h"
+#include "common/Constants.h"
 
 namespace {
 
-  bool parseJsonFile(Json::Value &j, std::string filename) {
+bool parseJsonFile(Json::Value &j, std::string filename) {
+  if (!boost::filesystem::is_regular_file(filename)) return false;
 
-    if (!boost::filesystem::is_regular_file (filename))
-      return false;
+  std::ifstream in(filename, std::ios::binary);
+  std::string fstr;
 
-    std::ifstream in(filename, std::ios::binary);
-    std::string fstr;
+  fstr = {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 
-    fstr = {std::istreambuf_iterator<char>(in),
-              std::istreambuf_iterator<char>()};
+  Json::CharReaderBuilder builder;
+  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  std::string errors;
 
-    Json::CharReaderBuilder builder;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    std::string errors;
+  return reader->parse(fstr.c_str(), fstr.c_str() + fstr.size(), &j, &errors);
+}
 
-    return reader->parse(fstr.c_str(), fstr.c_str() + fstr.size(), &j, &errors);
-  }
-
-} // end anonymous namespace
+}  // end anonymous namespace
 
 // Get ScillaTest for contract "name" and test numbered "i".
-bool ScillaTestUtil::GetScillaTest (ScillaTest &t, std::string &contrName, unsigned int i)
-{
+bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string &contrName,
+                                   unsigned int i) {
   if (SCILLA_ROOT.empty()) {
     return false;
   }
 
   // TODO: Does this require a separate entry in constants.xml?
   std::string testDir = SCILLA_ROOT + "/tests/contracts/" + contrName;
-  if (!boost::filesystem::is_directory(testDir))
-    return false;
+  if (!boost::filesystem::is_directory(testDir)) return false;
 
-  if (!boost::filesystem::is_regular_file (testDir + "/contract.scilla"))
+  if (!boost::filesystem::is_regular_file(testDir + "/contract.scilla"))
     return false;
 
   std::ifstream in(testDir + "/contract.scilla", std::ios::binary);
   t.code = {std::istreambuf_iterator<char>(in),
-              std::istreambuf_iterator<char>()};
+            std::istreambuf_iterator<char>()};
 
   std::string is(std::to_string(i));
 
   // Get all JSONs
-  if (!parseJsonFile (t.init, testDir + "/init_" + is + ".json") ||
-      !parseJsonFile (t.state, testDir + "/state_" + is + ".json") ||
-      !parseJsonFile (t.blockchain, testDir + "/blockchain_" + is + ".json") ||
-      !parseJsonFile (t.expOutput, testDir + "/output_" + is + ".json") ||
-      !parseJsonFile (t.message, testDir + "/message_" + is + ".json"))
-  {
-      return false;
+  if (!parseJsonFile(t.init, testDir + "/init_" + is + ".json") ||
+      !parseJsonFile(t.state, testDir + "/state_" + is + ".json") ||
+      !parseJsonFile(t.blockchain, testDir + "/blockchain_" + is + ".json") ||
+      !parseJsonFile(t.expOutput, testDir + "/output_" + is + ".json") ||
+      !parseJsonFile(t.message, testDir + "/message_" + is + ".json")) {
+    return false;
   }
 
   return true;
