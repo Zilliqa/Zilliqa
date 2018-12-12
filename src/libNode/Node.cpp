@@ -1770,6 +1770,8 @@ std::string Node::GetActionString(Action action) const {
     } else {
       dsLeaderPeer = VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo();
     }
+  } else {
+    return false;
   }
   return true;
 }
