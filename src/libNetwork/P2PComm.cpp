@@ -41,6 +41,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -549,17 +550,26 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   const uint32_t messageLength =
       (message[2] << 24) + (message[3] << 16) + (message[4] << 8) + message[5];
 
-  // Check for length consistency
-  if (messageLength != message.size() - HDR_LEN) {
-    LOG_GENERAL(WARNING, "Incorrect message length.");
-    return;
+  {
+    // Check for length consistency
+    uint32_t res;
+
+    if (!SafeMath<uint32_t>::sub(message.size(), HDR_LEN, res)) {
+      LOG_GENERAL(WARNING, "Unexpected subtraction operation!");
+      return;
+    }
+
+    if (messageLength != res) {
+      LOG_GENERAL(WARNING, "Incorrect message length.");
+      return;
+    }
   }
 
   if (startByte == START_BYTE_BROADCAST) {
     LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
-    if ((messageLength - HDR_LEN) <= HASH_LEN) {
+    if (messageLength <= HASH_LEN) {
       LOG_GENERAL(WARNING,
                   "Hash missing or empty broadcast message (messageLength = "
                       << messageLength << ")");

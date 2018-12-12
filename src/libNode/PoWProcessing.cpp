@@ -282,44 +282,27 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
 
   vector<Peer> peerList;
 
-  unsigned int count = 0;
+  // Send to PoW PACKET_SENDERS which including DS leader
+  Peer dsLeaderPeer;
+  if (!m_mediator.m_DSCommittee->empty()) {
+    if (Node::GetDSLeaderPeer(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                              m_mediator.m_dsBlockChain.GetLastBlock(),
+                              *m_mediator.m_DSCommittee,
+                              m_mediator.m_currentEpochNum, dsLeaderPeer)) {
+      peerList.push_back(dsLeaderPeer);
+    }
+  }
+
   for (auto const& i : *m_mediator.m_DSCommittee) {
-    if (count < POW_PACKET_SENDERS) {
+    if (peerList.size() < POW_PACKET_SENDERS && i.second != dsLeaderPeer) {
       peerList.push_back(i.second);
-      count++;
-    } else {
+    }
+
+    if (peerList.size() >= POW_PACKET_SENDERS) {
       break;
     }
   }
-  //[FIX-ME] Send to PoW PACKET_SENDERS + 1
-  if (!m_mediator.m_DSCommittee->empty()) {
-    BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-    const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
-    if (blocktype == BlockType::DS) {
-      uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-          m_mediator.m_dsBlockChain.GetLastBlock()
-              .GetHeader()
-              .GetHashForRandom()
-              .asBytes());
-      uint32_t leader_id = 0;
-      if (!GUARD_MODE) {
-        leader_id = lastBlockHash % m_mediator.m_DSCommittee->size();
-      } else {
-        leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
-      }
-      peerList.push_back(m_mediator.m_DSCommittee->at(leader_id).second);
-      LOG_GENERAL(INFO, "ds leader id " << leader_id);
-    } else if (blocktype == BlockType::VC) {
-      VCBlockSharedPtr VCBlockptr;
-      if (!BlockStorage::GetBlockStorage().GetVCBlock(
-              get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
-        LOG_GENERAL(WARNING, "Failed to get VC block");
-      } else {
-        peerList.push_back(
-            VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo());
-      }
-    }
-  }
+
   P2PComm::GetInstance().SendMessage(peerList, powmessage);
   return true;
 }

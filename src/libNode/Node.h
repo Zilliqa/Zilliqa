@@ -122,8 +122,6 @@ class Node : public Executable, public Broadcastable {
   // operates under m_mutexProcessedTransaction
   std::vector<TxnHash> m_TxnOrder;
 
-  uint32_t m_numOfAbsentTxnHashes;
-
   uint64_t m_gasUsedTotal;
   boost::multiprecision::uint128_t m_txnFees;
 
@@ -230,6 +228,7 @@ class Node : public Executable, public Broadcastable {
   bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
                                       const uint64_t& dsBlockNum,
                                       const uint32_t& shardId,
+                                      const PubKey& lookupPubKey,
                                       const std::vector<Transaction>& txns);
   bool ProcessProposeGasPrice(const std::vector<unsigned char>& message,
                               unsigned int offset, const Peer& from);
@@ -489,7 +488,7 @@ class Node : public Executable, public Broadcastable {
   bool ComposeMicroBlock();
   bool CheckMicroBlockValidity(std::vector<unsigned char>& errorMsg);
   bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                         const Peer& from);
+                         const unsigned int offset, const Peer& from);
 
   void UpdateStateForNextConsensusRound();
 
@@ -549,6 +548,11 @@ class Node : public Executable, public Broadcastable {
       const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
 
   void UpdateProcessedTransactions();
+
+  static bool GetDSLeaderPeer(const BlockLink& lastBlockLink,
+                              const DSBlock& latestDSBlock,
+                              const DequeOfDSNode& dsCommittee,
+                              const uint64_t epochNumber, Peer& dsLeaderPeer);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
