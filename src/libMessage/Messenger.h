@@ -789,7 +789,7 @@ class Messenger {
       const std::pair<PrivKey, PubKey>& lookupKey);
 
   static bool SetNodeGetNewDSGuardNetworkInfo(
-      const std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::vector<unsigned char>& src, const unsigned int offset,
       std::vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
       PubKey& lookupPubKey);
 };
