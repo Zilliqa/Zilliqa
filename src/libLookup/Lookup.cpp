@@ -3255,25 +3255,31 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
     if (i < numShards) {
       {
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+        uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
+            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
+        uint32_t leader_id =
+            lastBlockHash % m_mediator.m_ds->m_shards.at(i).size();
+        LOG_GENERAL(INFO, "Shard leader id " << leader_id);
+
         auto it = m_mediator.m_ds->m_shards.at(i).begin();
         // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
         for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP &&
                                  it != m_mediator.m_ds->m_shards.at(i).end();
              j++, it++) {
-          toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
-
-          LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
+          if (distance(m_mediator.m_ds->m_shards.at(i).begin(), it) ==
+              leader_id) {
+            j--;
+          } else {
+            toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
+            LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
+          }
         }
         if (m_mediator.m_ds->m_shards.at(i).empty()) {
           continue;
         }
-        uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
-            m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-        uint32_t leader_id =
-            lastBlockHash % m_mediator.m_ds->m_shards.at(i).size();
+
         toSend.push_back(get<SHARD_NODE_PEER>(
             m_mediator.m_ds->m_shards.at(i).at(leader_id)));
-        LOG_GENERAL(INFO, "Shard leader id " << leader_id);
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
