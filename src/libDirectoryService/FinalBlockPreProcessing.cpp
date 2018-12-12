@@ -948,13 +948,12 @@ bool DirectoryService::CheckFinalBlockValidity(
     return true;
   }
 
-  if (CheckBlockHash() && CheckBlockTypeIsFinal() && CheckFinalBlockVersion() &&
-      CheckFinalBlockNumber() && CheckPreviousFinalBlockHash() &&
-      CheckFinalBlockTimestamp() && CheckMicroBlocks(errorMsg, false, true) &&
-      CheckLegitimacyOfMicroBlocks() && CheckMicroBlockInfo() &&
-      CheckStateRoot() && CheckStateDeltaHash()) {
-    return true;
-  }
+  return CheckBlockHash() && CheckBlockTypeIsFinal() &&
+         CheckFinalBlockVersion() && CheckFinalBlockNumber() &&
+         CheckPreviousFinalBlockHash() && CheckFinalBlockTimestamp() &&
+         CheckMicroBlocks(errorMsg, false, true) &&
+         CheckLegitimacyOfMicroBlocks() && CheckMicroBlockInfo() &&
+         CheckStateRoot() && CheckStateDeltaHash();
 
   // TODO: Check gas limit (must satisfy some equations)
   // TODO: Check gas used (must be <= gas limit)
@@ -963,8 +962,6 @@ bool DirectoryService::CheckFinalBlockValidity(
   // DS blockchain)
   // TODO: Check parent DS block number (must be = block number of last DS block
   // header in the DS blockchain)
-
-  return false;
 }
 
 bool DirectoryService::CheckMicroBlockValidity(
