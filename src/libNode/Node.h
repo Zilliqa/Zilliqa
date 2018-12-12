@@ -122,8 +122,6 @@ class Node : public Executable, public Broadcastable {
   // operates under m_mutexProcessedTransaction
   std::vector<TxnHash> m_TxnOrder;
 
-  uint32_t m_numOfAbsentTxnHashes;
-
   uint64_t m_gasUsedTotal;
   boost::multiprecision::uint128_t m_txnFees;
 
@@ -490,7 +488,7 @@ class Node : public Executable, public Broadcastable {
   bool ComposeMicroBlock();
   bool CheckMicroBlockValidity(std::vector<unsigned char>& errorMsg);
   bool OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                         const Peer& from);
+                         const unsigned int offset, const Peer& from);
 
   void UpdateStateForNextConsensusRound();
 
