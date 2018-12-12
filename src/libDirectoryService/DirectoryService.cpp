@@ -677,6 +677,54 @@ bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 
+// This feature is only available to ds guard nodes. This only guard nodes to
+// change its network information. Pre-condition: Must still have access to
+// existing public and private key pair
+bool DirectoryService::UpdateDSGuardIdentity() {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Not in guard mode. Unable to update ds guard network identity.");
+    return false;
+  }
+
+  // To provide current pubkey, new IP, new Port and current timestamp
+  vector<unsigned char> updatedsguardidentitymessage = {
+      MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
+
+  if (!Messenger::SetDSLookupNewDSGuardNetworkInfo(
+          updatedsguardidentitymessage, MessageOffset::BODY,
+          m_mediator.m_currentEpochNum, m_mediator.m_selfPeer,
+          get_time_as_int(), m_mediator.m_selfKey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetDSLookupNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  // Send to all lookups
+  m_mediator.m_lookup->SendMessageToLookupNodesSerial(
+      updatedsguardidentitymessage);
+
+  {
+    // Gossip to all DS committee
+    lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    deque<Peer> peerInfo;
+
+    for (auto const& i : *m_mediator.m_DSCommittee) {
+      peerInfo.push_back(i.second);
+    }
+
+    if (BROADCAST_GOSSIP_MODE) {
+      P2PComm::GetInstance().SpreadRumor(updatedsguardidentitymessage);
+    } else {
+      P2PComm::GetInstance().SendMessage(peerInfo,
+                                         updatedsguardidentitymessage);
+    }
+  }
+
+  return true;
+}
+
 bool DirectoryService::ProcessNewDSGuardIdentity(
     const std::vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
