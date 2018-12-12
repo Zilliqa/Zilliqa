@@ -186,8 +186,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   Mediator& m_mediator;
 
-  uint32_t m_numOfAbsentMicroBlocks;
-
   // Coinbase
   std::map<uint64_t, std::map<int32_t, std::vector<Address>>>
       m_coinbaseRewardees;
@@ -339,8 +337,8 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckPreviousFinalBlockHash();
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
-  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
-                        bool fromShards = false);
+  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg, bool fromShards,
+                        bool generateErrorMsg);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockInfo();
   bool CheckStateRoot();
