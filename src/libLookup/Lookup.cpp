@@ -2129,8 +2129,6 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
         FULL_DATASET_MINE);
 
-    this_thread::sleep_for(chrono::seconds(NEW_NODE_POW_DELAY));
-
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Starting PoW for new ds block number " << curDsBlockNum + 1);
 
