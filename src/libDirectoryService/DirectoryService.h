@@ -186,8 +186,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   Mediator& m_mediator;
 
-  uint32_t m_numOfAbsentMicroBlocks;
-
   // Coinbase
   std::map<uint64_t, std::map<int32_t, std::vector<Address>>>
       m_coinbaseRewardees;
@@ -339,8 +337,8 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckPreviousFinalBlockHash();
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
-  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
-                        bool fromShards = false);
+  bool CheckMicroBlocks(std::vector<unsigned char>& errorMsg, bool fromShards,
+                        bool generateErrorMsg);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockInfo();
   bool CheckStateRoot();
@@ -386,7 +384,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool OnNodeFinalConsensusError(const std::vector<unsigned char>& errorMsg,
                                  const Peer& from);
   bool OnNodeMissingMicroBlocks(const std::vector<unsigned char>& errorMsg,
-                                const Peer& from);
+                                const unsigned int offset, const Peer& from);
 
   // void StoreMicroBlocksToDisk();
 
@@ -415,9 +413,6 @@ class DirectoryService : public Executable, public Broadcastable {
   bool VCFetchLatestDSTxBlockFromLookupNodes();
   std::vector<unsigned char> ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(std::vector<unsigned char>& vcblock_message);
-
-  // Reset certain variables to the initial state
-  bool CleanVariables();
 
   void CleanFinalblockConsensusBuffer();
 
@@ -600,6 +595,9 @@ class DirectoryService : public Executable, public Broadcastable {
   int64_t GetAllPoWSize() const;
 
   bool ProcessAndSendPoWPacketSubmissionToOtherDSComm();
+
+  // Reset certain variables to the initial state
+  bool CleanVariables();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

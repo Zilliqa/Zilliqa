@@ -307,7 +307,8 @@ bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
     return false;
   } else if (epochNum > m_currentEpochNum) {
     LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
-              "Missing of some Tx blocks. Requested: " << epochNum);
+              "Missing of some Tx blocks. Requested: "
+                  << m_currentEpochNum << " while present: " << epochNum);
     // Todo: handle missing Tx blocks.
     return false;
   }

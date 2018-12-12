@@ -109,7 +109,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
 
-    LOG_GENERAL(INFO, "Create Contract");
+    LOG_GENERAL(INFO, "Create contract");
 
     if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS) {
       LOG_GENERAL(WARNING,
@@ -200,6 +200,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       this->IncreaseNonce(fromAddr);
 
+      LOG_GENERAL(
+          INFO,
+          "Create contract failed, but return true in order to change state");
+
       return true;  // Return true because the states already changed
     }
   }
@@ -226,7 +230,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
   } else {
-    LOG_GENERAL(INFO, "Call Contract");
+    LOG_GENERAL(INFO, "Call contract");
 
     if (transaction.GetGasLimit() < CONTRACT_INVOKE_GAS) {
       LOG_GENERAL(WARNING,
@@ -322,6 +326,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       this->IncreaseNonce(fromAddr);
 
+      LOG_GENERAL(
+          INFO,
+          "Call contract failed, but return true in order to change state");
+
       return true;  // Return true because the states already changed
     }
   }
@@ -330,6 +338,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   receipt.SetResult(true);
   receipt.update();
+
+  if (transaction.GetCode().size() > 0 || callContract) {
+    LOG_GENERAL(INFO, "Executing contract transaction finished");
+  }
 
   return true;
 }

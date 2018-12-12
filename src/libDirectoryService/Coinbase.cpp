@@ -301,6 +301,11 @@ void DirectoryService::InitCoinbase() {
                   addr, genesisAccount, reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
+            if (addr ==
+                Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second)) {
+              LOG_GENERAL(INFO, "[REWARD]"
+                                    << "Rewarded " << reward_each);
+            }
             suc_counter++;
           }
         }

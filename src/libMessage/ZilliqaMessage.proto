@@ -352,6 +352,13 @@ message DSVCBlockAnnouncement
     required ByteArray vcblock = 1;
 }
 
+message DSMissingMicroBlocksErrorMsg
+{
+    repeated bytes mbhashes    = 1;
+    required uint64 epochnum   = 2;
+    required uint32 listenport = 3;
+}
+
 // ============================================================================
 // Node messages
 // ============================================================================
@@ -408,6 +415,13 @@ message NodeFallbackBlockAnnouncement
 message NodeFallbackBlock
 {
     required ProtoFallbackBlock fallbackblock = 1;
+}
+
+message NodeMissingTxnsErrorMsg
+{
+    repeated bytes txnhashes   = 1;
+    required uint64 epochnum   = 2;
+    required uint32 listenport = 3;
 }
 
 // ============================================================================
