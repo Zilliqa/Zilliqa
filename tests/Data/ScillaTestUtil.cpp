@@ -17,10 +17,10 @@
  * program files.
  */
 
-#include <boost/filesystem.hpp>
-#include "libUtils/Logger.h"
 #include "ScillaTestUtil.h"
+#include <boost/filesystem.hpp>
 #include "common/Constants.h"
+#include "libUtils/Logger.h"
 
 bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
   if (!boost::filesystem::is_regular_file(filename)) return false;

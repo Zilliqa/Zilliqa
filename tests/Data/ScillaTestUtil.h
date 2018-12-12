@@ -17,7 +17,6 @@
  * program files.
  */
 
-
 #ifndef __SCILLATESTUTIL_H__
 #define __SCILLATESTUTIL_H__
 
@@ -27,17 +26,17 @@ namespace ScillaTestUtil {
 
 // The constituents of a Scilla test.
 struct ScillaTest {
-    // Scilla ASCII source.
-    std::vector<unsigned char> code;
-    // inititialization, message, state and expected output JSONs.
-    Json::Value init, message, state, blockchain, expOutput;
+  // Scilla ASCII source.
+  std::vector<unsigned char> code;
+  // inititialization, message, state and expected output JSONs.
+  Json::Value init, message, state, blockchain, expOutput;
 };
 
 // Parse a JSON file from filesystem.
 bool ParseJsonFile(Json::Value &j, std::string filename);
 // Get ScillaTest for contract "name" and test numbered "i".
-bool GetScillaTest (ScillaTest &t, std::string contrName, unsigned int i);
+bool GetScillaTest(ScillaTest &t, std::string contrName, unsigned int i);
 
-} // end namespace ScillaTestUtil
+}  // end namespace ScillaTestUtil
 
-#endif // __SCILLATESTUTIL_H__
+#endif  // __SCILLATESTUTIL_H__
