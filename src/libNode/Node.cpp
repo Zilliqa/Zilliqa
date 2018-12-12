@@ -1091,20 +1091,12 @@ bool Node::ProcessTxnPacketFromLookup(
               << m_mediator.m_currentEpochNum << "][" << shardId << "]["
               << string(lookupPubKey).substr(0, 6) << "] RECVFROMLOOKUP");
     m_txnPacketBuffer.emplace_back(message);
-  } else if (IsShardNode(from)) {
+  } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neightor and process it");
     return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
                                           lookupPubKey, transactions);
-  } else if (ALLOW_TXN_PACKET_FROM_LOCAL &&
-             from.GetPrintableIPAddress() == "127.0.0.1") {
-    LOG_GENERAL(INFO, "Received packet from local");
-    return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
-                                          lookupPubKey, transactions);
-  } else {
-    LOG_GENERAL(WARNING, "Received packet neither from lookup or shard member");
-    return false;
   }
 
   return true;
