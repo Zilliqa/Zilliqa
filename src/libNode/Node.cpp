@@ -448,17 +448,18 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       }
     }
 
+    bool bInShardStructure = false;
+
     if (bDS) {
       m_myshardId = m_mediator.m_ds->m_shards.size();
     } else {
-      bool found = false;
-      for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size() && !found;
-           ++i) {
+      for (unsigned int i = 0;
+           i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
         for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
           if (get<SHARD_NODE_PUBKEY>(shardNode) ==
               m_mediator.m_selfKey.second) {
             SetMyshardId(i);
-            found = true;
+            bInShardStructure = true;
             break;
           }
         }
@@ -472,6 +473,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       m_mediator.m_ds->ProcessShardingStructure(
           m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
           m_mediator.m_ds->m_mapNodeReputation);
+    }
+
+    if (!LOOKUP_NODE_MODE && !bDS && !bInShardStructure) {
+      LOG_GENERAL(WARNING,
+                  "Node is not in network, apply re-join process instead");
+      return false;
     }
   }
 
