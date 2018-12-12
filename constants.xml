@@ -214,8 +214,24 @@
         </peer>
     -->
     </lookups>
-    <upper_seed/>
-    <lower_seed/>
+    <upper_seed>
+    <!--
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+            <pubkey></pubkey>
+        </peer>
+    -->
+    <upper_seed>
+    <lower_seed>
+    <!--
+            <peer>
+            <ip></ip>
+            <port>30303</port>
+            <pubkey></pubkey>
+        </peer>
+    -->
+    </lower_seed>
     <ds_guard>
         <!--Pubkey to be provided in testnet/mainnet.
         <DSPUBKEY></DSPUBKEY>
