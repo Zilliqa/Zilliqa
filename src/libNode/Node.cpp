@@ -1086,13 +1086,18 @@ bool Node::ProcessTxnPacketFromLookup(
     }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
+    LOG_STATE("[TXNPKTPROC]["
+              << message.size() << "]" << std::setw(15) << std::left
+              << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+              << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+              << string(lookupPubKey).substr(0, 6) << "] RECVFROMLOOKUP");
     m_txnPacketBuffer.emplace_back(message);
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neightor and process it");
     return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
-                                          transactions);
+                                          lookupPubKey, transactions);
   }
 
   return true;
@@ -1101,6 +1106,7 @@ bool Node::ProcessTxnPacketFromLookup(
 bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                                           const uint64_t& dsBlockNum,
                                           const uint32_t& shardId,
+                                          const PubKey& lookupPubKey,
                                           const vector<Transaction>& txns) {
   LOG_MARKER();
 
@@ -1134,24 +1140,23 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   }
 
   if (BROADCAST_GOSSIP_MODE) {
+    LOG_STATE("[TXNPKTPROC-CORE]["
+              << message.size() << "]" << std::setw(15) << std::left
+              << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+              << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+              << string(lookupPubKey).substr(0, 6) << " BEGN");
     if (P2PComm::GetInstance().SpreadRumor(message)) {
       LOG_STATE("[TXNPKTPROC-INITIATE]["
                 << message.size() << "]" << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                << m_mediator.m_txBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum() +
-                       1
-                << "][" << shardId << "] BEGN");
+                << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+                << string(lookupPubKey).substr(0, 6) << " BEGN");
     } else {
       LOG_STATE("[TXNPKTPROC]["
                 << message.size() << "]" << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-                << m_mediator.m_txBlockChain.GetLastBlock()
-                           .GetHeader()
-                           .GetBlockNum() +
-                       1
-                << "][" << shardId << "] BEGN");
+                << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+                << string(lookupPubKey).substr(0, 6) << " BEGN");
     }
   } else {
     vector<Peer> toSend;
@@ -1223,12 +1228,12 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                                         << m_createdTxns.size());
   }
 
-  LOG_STATE(
-      "[TXNPKTPROC]["
-      << std::setw(15) << std::left
-      << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "][" << shardId << "] DONE [" << processed_count << "]");
+  LOG_STATE("[TXNPKTPROC]["
+            << std::setw(15) << std::left
+            << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+            << m_mediator.m_currentEpochNum << "][" << shardId << "]["
+            << string(lookupPubKey).substr(0, 6) << " DONE [" << processed_count
+            << "]");
   return true;
 }
 
@@ -1308,7 +1313,8 @@ void Node::CommitTxnPacketBuffer() {
       return;
     }
 
-    ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId, transactions);
+    ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId, lookupPubKey,
+                                   transactions);
   }
 }
 
@@ -1739,6 +1745,8 @@ std::string Node::GetActionString(Action action) const {
     } else {
       dsLeaderPeer = VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo();
     }
+  } else {
+    return false;
   }
   return true;
 }

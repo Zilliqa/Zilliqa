@@ -58,7 +58,6 @@ class ThreadPool {
         _bailout(false),
         _poolName(poolName),
         _jobAvailableVar(),
-        _waitVar(),
         _jobsLeftMutex(),
         _queueMutex() {
     _threads.reserve(threadCount);
@@ -127,15 +126,6 @@ class ThreadPool {
     }
   }
 
-  /// Waits for the pool to empty before continuing. This does not call
-  /// `std::thread::join`, it only waits until all jobs have finished executing.
-  void WaitAll() {
-    std::unique_lock<std::mutex> lock(_jobsLeftMutex);
-    if (_jobsLeft > 0) {
-      _waitVar.wait(lock, [this] { return _jobsLeft == 0; });
-    }
-  }
-
   /// Gets the vector of threads themselves, in order to set the affinity, or
   /// anything else you might want to do
   std::vector<std::thread>& GetThreads() { return _threads; }
@@ -182,8 +172,6 @@ class ThreadPool {
         std::lock_guard<std::mutex> lock(_jobsLeftMutex);
         --_jobsLeft;
       }
-
-      _waitVar.notify_one();
     }
   }
 
@@ -198,7 +186,6 @@ class ThreadPool {
   bool _bailout;
   std::string _poolName;
   std::condition_variable _jobAvailableVar;
-  std::condition_variable _waitVar;
   std::mutex _jobsLeftMutex;
   std::mutex _queueMutex;
 };
