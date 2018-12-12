@@ -184,6 +184,10 @@ class Messenger {
   static bool GetPeer(const std::vector<unsigned char>& src,
                       const unsigned int offset, Peer& peer);
 
+  static bool StateDeltaToAddressMap(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::unordered_map<Address, boost::multiprecision::int256_t>& accountMap);
+
   // ============================================================================
   // Directory Service messages
   // ============================================================================
