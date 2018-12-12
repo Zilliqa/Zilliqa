@@ -1595,8 +1595,22 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
 
   LOG_GENERAL(INFO, "Received from lookup " << from);
 
-  m_requestedForDSGuardNetworkInfoUpdate = false;
+  {
+    // Process and update ds committee network info
+    lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
+      replace_if(m_mediator.m_DSCommittee->begin(),
+                 m_mediator.m_DSCommittee->begin() +
+                     Guard::GetInstance().GetNumOfDSGuard(),
+                 [&dsguardupdate](const pair<PubKey, Peer>& element) {
+                   return element.first == dsguardupdate.dsGuardPubkey;
+                 },
+                 make_pair(dsguardupdate.dsGuardPubkey,
+                           dsguardupdate.dsGuardNewNetworkInfo));
+    }
+  }
 
+  m_requestedForDSGuardNetworkInfoUpdate = false;
   return true;
 }
 
