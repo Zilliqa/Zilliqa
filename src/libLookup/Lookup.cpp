@@ -3263,12 +3263,13 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
         auto it = m_mediator.m_ds->m_shards.at(i).begin();
         // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
-        for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP &&
+        unsigned int num_node_to_send = NUM_NODES_TO_SEND_LOOKUP;
+        for (unsigned int j = 0; j < num_node_to_send &&
                                  it != m_mediator.m_ds->m_shards.at(i).end();
              j++, it++) {
           if (distance(m_mediator.m_ds->m_shards.at(i).begin(), it) ==
               leader_id) {
-            j--;
+            num_node_to_send++;
           } else {
             toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
             LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
@@ -3277,9 +3278,6 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         if (m_mediator.m_ds->m_shards.at(i).empty()) {
           continue;
         }
-
-        toSend.push_back(get<SHARD_NODE_PEER>(
-            m_mediator.m_ds->m_shards.at(i).at(leader_id)));
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
