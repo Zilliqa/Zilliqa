@@ -114,17 +114,14 @@ void NumberToArray(const T& number, vector<unsigned char>& dst,
 }
 
 template <class K, class V>
-bool copyWithSizeCheck(const K& arr, V& result, size_t maxSize) {
+bool copyWithSizeCheck(const K& arr, V& result) {
   // Fixed length copying.
-  if (maxSize > 0) {
-    if (arr.size() != maxSize) {
-      return false;
-    }
-
-    copy(arr.begin(), arr.end(), result.begin());
-    return true;
+  if (arr.size() != result.max_size()) {
+    return false;
   }
-  return false;
+
+  copy(arr.begin(), arr.end(), result.begin());
+  return true;
 }
 
 void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
@@ -4464,8 +4461,7 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(
-          result.txhash(), txHash.asArray(), 32ul)) {
+  if (!copyWithSizeCheck(result.txhash(), txHash.asArray())) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
@@ -4509,8 +4505,7 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (!copyWithSizeCheck<string, array<unsigned char, 32ul>>(
-          result.txhash(), txHash.asArray(), 32ul)) {
+  if (!copyWithSizeCheck(result.txhash(), txHash.asArray())) {
     LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
                                          << " is not 32 bytes");
     return false;
@@ -5957,10 +5952,13 @@ bool Messenger::GetBlockLink(
 
   get<BlockLinkIndex::INDEX>(blocklink) = result.index();
   get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
-  copy(result.blockhash().begin(),
-       result.blockhash().begin() + min((unsigned int)result.blockhash().size(),
-                                        (unsigned int)blkhash.size),
-       blkhash.asArray().begin());
+
+  if (!copyWithSizeCheck(result.blockhash(), blkhash.asArray())) {
+    LOG_GENERAL(WARNING, "Block hash size " << result.blockhash().size()
+                                            << " is not 32 bytes");
+    return false;
+  }
+
   get<BlockLinkIndex::BLOCKTYPE>(blocklink) = (BlockType)result.blocktype();
   get<BlockLinkIndex::BLOCKHASH>(blocklink) = blkhash;
 
