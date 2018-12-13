@@ -64,11 +64,15 @@ class DataConversion {
   /// Converts a serializable object to alphanumeric hex string.
   static std::string SerializableToHexStr(const Serializable& input);
 
-  static const std::string CharArrayToString(
-      const std::vector<unsigned char>& v);
+  static inline const std::string CharArrayToString(
+      const std::vector<unsigned char>& v) {
+    return std::string(v.begin(), v.end());
+  }
 
-  static const std::vector<unsigned char> StringToCharArray(
-      const std::string& input);
+  static inline const std::vector<unsigned char> StringToCharArray(
+      const std::string& input) {
+    return std::vector<unsigned char>(input.begin(), input.end());
+  }
 
   static uint16_t charArrTo16Bits(const std::vector<unsigned char>& hex_arr);
 };

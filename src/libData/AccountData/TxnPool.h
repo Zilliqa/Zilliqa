@@ -17,6 +17,9 @@
  * program files.
  */
 
+#ifndef __TXNPOOL_H__
+#define __TXNPOOL_H__
+
 #include <functional>
 #include <map>
 #include <unordered_map>
@@ -154,3 +157,5 @@ inline std::ostream& operator<<(std::ostream& os, const TxnPool& t) {
   }
   return os;
 }
+
+#endif  // __TXNPOOL_H__

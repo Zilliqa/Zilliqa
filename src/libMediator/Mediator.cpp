@@ -30,18 +30,26 @@
 using namespace std;
 
 Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
-    : m_selfKey(key), m_selfPeer(peer) {
-  m_ds = nullptr;
-  m_node = nullptr;
-  m_validator = nullptr;
-  m_currentEpochNum = 0;
-  m_isRetrievedHistory = false;
-  m_isVacuousEpoch = false;
-  m_DSCommittee = make_shared<std::deque<pair<PubKey, Peer>>>();
-  m_initialDSCommittee = make_shared<vector<PubKey>>();
-  m_archDB = nullptr;
-  m_archival = nullptr;
-}
+    : m_heartBeatTime(0),
+      m_selfKey(key),
+      m_selfPeer(peer),
+      m_ds(nullptr),
+      m_node(nullptr),
+      m_lookup(nullptr),
+      m_validator(nullptr),
+      m_archDB(nullptr),
+      m_archival(nullptr),
+      m_dsBlockChain(),
+      m_txBlockChain(),
+      m_blocklinkchain(),
+      m_consensusID(0),
+      m_DSCommittee(make_shared<std::deque<pair<PubKey, Peer>>>()),
+      m_initialDSCommittee(make_shared<vector<PubKey>>()),
+      m_dsBlockRand({0}),
+      m_txBlockRand({0}),
+      m_isRetrievedHistory(false),
+      m_isVacuousEpoch(false),
+      m_curSWInfo() {}
 
 Mediator::~Mediator() {}
 
@@ -299,7 +307,8 @@ bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
     return false;
   } else if (epochNum > m_currentEpochNum) {
     LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
-              "Missing of some Tx blocks. Requested: " << epochNum);
+              "Missing of some Tx blocks. Requested: "
+                  << m_currentEpochNum << " while present: " << epochNum);
     // Todo: handle missing Tx blocks.
     return false;
   }

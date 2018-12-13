@@ -17,13 +17,14 @@
  * program files.
  */
 
-#include <array>
-#include <string>
+#include <algorithm>
+#include <cstdlib>
 #include <vector>
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TxnOrderVerifier.h"
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE transactiontest
@@ -35,120 +36,7 @@ using namespace std;
 
 using KeyPair = std::pair<PrivKey, PubKey>;
 
-BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
-
-// decltype(auto) GenWithSigning(const KeyPair& sender, const KeyPair& receiver,
-//                               size_t n)
-// {
-//     LOG_MARKER();
-//     unsigned int version = 0;
-//     auto nonce = 0;
-
-//     const auto& fromPrivKey = sender.first;
-//     const auto& fromPubKey = sender.second;
-//     auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
-
-//     std::vector<Transaction> txns;
-//     txns.reserve(n);
-
-//     for (auto i = 0u; i < n; i++)
-//     {
-//         auto amount = i;
-
-//         Transaction txn{version,    nonce,  toAddr,
-//                         fromPubKey, amount, {/* empty sig */}};
-
-//         std::vector<unsigned char> buf;
-//         txn.SerializeWithoutSignature(buf, 0);
-
-//         Signature sig;
-//         Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
-
-//         vector<unsigned char> sigBuf;
-//         sig.Serialize(sigBuf, 0);
-//         txn.SetSignature(sigBuf);
-
-//         txns.emplace_back(move(txn));
-//     }
-
-//     return txns;
-// }
-
-// decltype(auto) GenWithoutSigning(const KeyPair& sender, const KeyPair&
-// receiver,
-//                                  size_t n)
-// {
-//     LOG_MARKER();
-//     unsigned int version = 0;
-//     auto nonce = 0;
-
-//     // const auto &fromPrivKey = sender.first;
-//     const auto& fromPubKey = sender.second;
-//     auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
-
-//     std::vector<Transaction> txns;
-//     txns.reserve(n);
-
-//     for (auto i = 0u; i < n; i++)
-//     {
-//         auto amount = i;
-
-//         Transaction txn{version,    nonce,  toAddr,
-//                         fromPubKey, amount, {/* empty sig */}};
-
-//         std::vector<unsigned char> buf;
-//         txn.SerializeWithoutSignature(buf, 0);
-
-//         // Signature sig;
-//         // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
-
-//         // vector<unsigned char> sigBuf;
-//         // sig.Serialize(sigBuf, 0);
-//         // txn.SetSignature(sigBuf);
-
-//         txns.emplace_back(move(txn));
-//     }
-
-//     return txns;
-// }
-
-// decltype(auto) GenWithoutSigningAndSerializing(const KeyPair& sender,
-//                                                const KeyPair& receiver,
-//                                                size_t n)
-// {
-//     LOG_MARKER();
-//     unsigned int version = 0;
-//     auto nonce = 0;
-
-//     // const auto &fromPrivKey = sender.first;
-//     const auto& fromPubKey = sender.second;
-//     auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
-
-//     std::vector<Transaction> txns;
-//     txns.reserve(n);
-
-//     for (auto i = 0u; i < n; i++)
-//     {
-//         auto amount = i;
-
-//         Transaction txn{version,    nonce,  toAddr,
-//                         fromPubKey, amount, {/* empty sig */}};
-
-//         // std::vector<unsigned char> buf;
-//         // txn.SerializeWithoutSignature(buf, 0);
-
-//         // Signature sig;
-//         // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
-
-//         // vector<unsigned char> sigBuf;
-//         // sig.Serialize(sigBuf, 0);
-//         // txn.SetSignature(sigBuf);
-
-//         txns.emplace_back(move(txn));
-//     }
-
-//     return txns;
-// }
+BOOST_AUTO_TEST_SUITE(TxnOrderVerifying)
 
 decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
                                  size_t n) {
@@ -183,7 +71,7 @@ decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
 
 BOOST_AUTO_TEST_CASE(GenTxn1000) {
   INIT_STDOUT_LOGGER();
-  auto n = 1000u;
+  auto n = 100u;
   auto sender = Schnorr::GetInstance().GenKeyPair();
   auto receiver = Schnorr::GetInstance().GenKeyPair();
 
@@ -218,13 +106,52 @@ BOOST_AUTO_TEST_CASE(GenTxn1000) {
 
   LOG_GENERAL(INFO, "Generating " << n << " txns with dummy values");
 
-  auto t_start = std::chrono::high_resolution_clock::now();
-  auto txns4 = GenWithDummyValue(sender, receiver, n);
-  auto t_end = std::chrono::high_resolution_clock::now();
+  auto txns = GenWithDummyValue(sender, receiver, n);
 
-  LOG_GENERAL(
-      INFO, (std::chrono::duration<double, std::milli>(t_end - t_start).count())
-                << " ms");
+  std::vector<TxnHash> local_txnHashes;
+  for (const auto& t : txns) {
+    local_txnHashes.emplace_back(t.GetTranID());
+  }
+
+  std::vector<TxnHash> rcvd_txnHashes_1 = local_txnHashes,
+                       rcvd_txnHashes_2 = local_txnHashes,
+                       rcvd_txnHashes_3 = local_txnHashes,
+                       rcvd_txnHashes_4 = local_txnHashes;
+
+  BOOST_CHECK_EQUAL(
+      true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_1,
+                                     TXN_MISORDER_TOLERANCE_IN_PERCENT));
+
+  // Shuffle # tolerance_num txns from the head
+  std::random_shuffle(
+      rcvd_txnHashes_2.begin(),
+      rcvd_txnHashes_2.begin() + TXN_MISORDER_TOLERANCE_IN_PERCENT * n / 100);
+
+  BOOST_CHECK_EQUAL(
+      true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_2,
+                                     TXN_MISORDER_TOLERANCE_IN_PERCENT));
+
+  // Shuffle # tolerance_num txns from the tail
+  std::random_shuffle(
+      rcvd_txnHashes_3.end() - TXN_MISORDER_TOLERANCE_IN_PERCENT * n / 100,
+      rcvd_txnHashes_3.end());
+
+  BOOST_CHECK_EQUAL(
+      true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_3,
+                                     TXN_MISORDER_TOLERANCE_IN_PERCENT));
+
+  // Shuffle the txns totally
+  std::random_shuffle(rcvd_txnHashes_4.begin(), rcvd_txnHashes_4.end());
+
+  bool verifyAfterFullyShuffle = VerifyTxnOrderWTolerance(
+      local_txnHashes, rcvd_txnHashes_4, TXN_MISORDER_TOLERANCE_IN_PERCENT);
+  if (!verifyAfterFullyShuffle) {
+    LOG_GENERAL(INFO, "Verification failed as expected after fully shuffled.");
+  } else {
+    LOG_GENERAL(INFO,
+                "Verification succeed surprisingly after fully shuffled! Maybe "
+                "not well shuffled");
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
