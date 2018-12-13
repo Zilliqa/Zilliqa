@@ -170,11 +170,12 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     account.SetCode(tmpVec);
 
     dev::h256 tmpHash;
-    copy(protoAccount.codehash().begin(),
-         protoAccount.codehash().begin() +
-             min((unsigned int)protoAccount.codehash().size(),
-                 (unsigned int)tmpHash.size),
-         tmpHash.asArray().begin());
+    if (!copyWithSizeCheck(protoAccount.codehash(), tmpHash.asArray())) {
+      LOG_GENERAL(WARNING, "Code hash size "
+                               << protoAccount.codehash().size() << " is not "
+                               << tmpHash.asArray().max_size() << " bytes");
+      return false;
+    }
 
     if (account.GetCodeHash() != tmpHash) {
       LOG_GENERAL(WARNING,
@@ -196,10 +197,13 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     }
 
     for (const auto& entry : protoAccount.storage()) {
-      copy(entry.keyhash().begin(),
-           entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
-                                         (unsigned int)tmpHash.size),
-           tmpHash.asArray().begin());
+      if (!copyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
+        LOG_GENERAL(WARNING, "Key hash size "
+                                 << entry.keyhash().size() << " is not "
+                                 << tmpHash.asArray().max_size() << " bytes");
+        return false;
+      }
+
       account.SetStorage(tmpHash, entry.data());
     }
 
@@ -328,10 +332,13 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       dev::h256 tmpHash;
 
       for (const auto& entry : protoAccount.storage()) {
-        copy(entry.keyhash().begin(),
-             entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
-                                           (unsigned int)tmpHash.size),
-             tmpHash.asArray().begin());
+        if (!copyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
+          LOG_GENERAL(WARNING, "Key hash size "
+                                   << entry.keyhash().size() << " is not "
+                                   << tmpHash.asArray().max_size() << " bytes");
+          return false;
+        }
+
         account.SetStorage(tmpHash, entry.data());
       }
 
@@ -450,13 +457,12 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
 
   // Deserialize the block hash
   BlockHash blockHash;
-
-  copy(protoBlockBase.blockhash().begin(),
-       protoBlockBase.blockhash().begin() +
-           min((unsigned int)protoBlockBase.blockhash().size(),
-               (unsigned int)blockHash.size),
-       blockHash.asArray().begin());
-
+  if (!copyWithSizeCheck(protoBlockBase.blockhash(), blockHash.asArray())) {
+    LOG_GENERAL(WARNING, "Key hash size "
+                             << protoBlockBase.blockhash().size() << " is not "
+                             << blockHash.asArray().max_size() << " bytes");
+    return;
+  }
   base.SetBlockHash(blockHash);
 
   // Deserialize timestamp
@@ -882,11 +888,14 @@ void ProtobufToDSBlockHeader(
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
-  copy(protoDSBlockHeader.prevhash().begin(),
-       protoDSBlockHeader.prevhash().begin() +
-           min((unsigned int)protoDSBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
+  if (!copyWithSizeCheck(protoDSBlockHeader.prevhash(), prevHash.asArray())) {
+    LOG_GENERAL(WARNING, "Key hash size "
+                             << protoDSBlockHeader.prevhash().size()
+                             << " is not " << prevHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
@@ -4462,8 +4471,9 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
   }
 
   if (!copyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
-                                         << " is not 32 bytes");
+    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size() << " is not "
+                                         << txHash.asArray().max_size()
+                                         << " bytes");
     return false;
   }
 
@@ -4506,8 +4516,9 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
   }
 
   if (!copyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size()
-                                         << " is not 32 bytes");
+    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size() << " is not "
+                                         << txHash.asArray().max_size()
+                                         << " bytes");
     return false;
   }
 
@@ -5954,8 +5965,9 @@ bool Messenger::GetBlockLink(
   get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
 
   if (!copyWithSizeCheck(result.blockhash(), blkhash.asArray())) {
-    LOG_GENERAL(WARNING, "Block hash size " << result.blockhash().size()
-                                            << " is not 32 bytes");
+    LOG_GENERAL(WARNING, "Block hash size "
+                             << result.blockhash().size() << " is not "
+                             << blkhash.asArray().max_size() << " bytes");
     return false;
   }
 
