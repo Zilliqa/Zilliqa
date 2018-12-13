@@ -736,6 +736,13 @@ bool DirectoryService::ProcessNewDSGuardIdentity(
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
+  if (!GUARD_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Not in guard mode. Unable to update ds guard network identity.");
+    return false;
+  }
+
   uint64_t epochNumber;
   Peer dsGuardNewNetworkInfo;
   uint64_t timestamp;
