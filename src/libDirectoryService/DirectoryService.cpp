@@ -731,7 +731,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   return true;
 }
 
-bool DirectoryService::ProcessNewDSGuardIdentity(
+bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     const std::vector<unsigned char>& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
