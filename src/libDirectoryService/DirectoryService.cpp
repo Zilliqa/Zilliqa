@@ -682,9 +682,8 @@ bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
 // existing public and private key pair
 bool DirectoryService::UpdateDSGuardIdentity() {
   if (!GUARD_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "Not in guard mode. Unable to update ds guard network identity.");
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to update ds guard network info.");
     return false;
   }
 
@@ -737,9 +736,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   LOG_MARKER();
 
   if (!GUARD_MODE) {
-    LOG_GENERAL(
-        WARNING,
-        "Not in guard mode. Unable to update ds guard network identity.");
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to update ds guard network info.");
     return false;
   }
 
