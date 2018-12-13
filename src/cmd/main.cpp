@@ -45,7 +45,7 @@ int main(int argc, const char* argv[]) {
   INIT_EPOCHINFO_LOGGER("epochinfo");
 
   if (argc != num_args_required) {
-    cout << "Copyright (C) Zilliqa. Version 1.0 (Durian). "
+    cout << "Copyright (C) Zilliqa. Version 3.0 (Durian - Mao Shan Wang). "
             "<https://www.zilliqa.com/> "
          << endl;
     cout << "For bug reporting, please create an issue at "
