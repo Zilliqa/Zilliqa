@@ -445,8 +445,6 @@ class DirectoryService : public Executable, public Broadcastable {
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
   uint64_t CalculateNumberOfBlocksPerYear() const;
 
-  bool UpdateDSGuardIdentity();
-
  public:
   enum Mode : unsigned char { IDLE = 0x00, PRIMARY_DS, BACKUP_DS };
 
@@ -631,6 +629,9 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // Reset certain variables to the initial state
   bool CleanVariables();
+
+  // For DS guard to under ds guard network information while in GUARD_MODE
+  bool UpdateDSGuardIdentity();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

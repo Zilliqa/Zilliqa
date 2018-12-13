@@ -726,6 +726,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
                                          updatedsguardidentitymessage);
     }
   }
+  m_awaitingToSubmitNetworkInfoUpdate = false;
 
   return true;
 }
