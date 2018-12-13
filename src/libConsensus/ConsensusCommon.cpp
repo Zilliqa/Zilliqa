@@ -198,35 +198,43 @@ ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
 bool ConsensusCommon::GetConsensusID(const std::vector<unsigned char>& message,
                                      const unsigned int offset,
                                      uint32_t& consensusID) const {
-  switch (message.at(offset)) {
-    case ConsensusMessageType::ANNOUNCE:
-      return Messenger::GetConsensusID<ZilliqaMessage::ConsensusAnnouncement>(
-          message, offset + 1, consensusID);
-    case ConsensusMessageType::CONSENSUSFAILURE:
-      return true;
-    case ConsensusMessageType::COMMIT:
-    case ConsensusMessageType::FINALCOMMIT:
-      return Messenger::GetConsensusID<ZilliqaMessage::ConsensusCommit>(
-          message, offset + 1, consensusID);
-    case ConsensusMessageType::COMMITFAILURE:
-      return Messenger::GetConsensusID<ZilliqaMessage::ConsensusCommitFailure>(
-          message, offset + 1, consensusID);
-    case ConsensusMessageType::CHALLENGE:
-    case ConsensusMessageType::FINALCHALLENGE:
-      return Messenger::GetConsensusID<ZilliqaMessage::ConsensusChallenge>(
-          message, offset + 1, consensusID);
-    case ConsensusMessageType::RESPONSE:
-    case ConsensusMessageType::FINALRESPONSE:
-      return Messenger::GetConsensusID<ZilliqaMessage::ConsensusResponse>(
-          message, offset + 1, consensusID);
-    case ConsensusMessageType::COLLECTIVESIG:
-    case ConsensusMessageType::FINALCOLLECTIVESIG:
-      return Messenger::GetConsensusID<ZilliqaMessage::ConsensusCollectiveSig>(
-          message, offset + 1, consensusID);
-    default:
-      LOG_GENERAL(WARNING, "Unknown consensus message received");
-      break;
+  if (message.size() > offset) {
+    switch (message.at(offset)) {
+      case ConsensusMessageType::ANNOUNCE:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusAnnouncement>(
+            message, offset + 1, consensusID);
+      case ConsensusMessageType::CONSENSUSFAILURE:
+        return true;
+      case ConsensusMessageType::COMMIT:
+      case ConsensusMessageType::FINALCOMMIT:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusCommit>(
+            message, offset + 1, consensusID);
+      case ConsensusMessageType::COMMITFAILURE:
+        return Messenger::GetConsensusID<
+            ZilliqaMessage::ConsensusCommitFailure>(message, offset + 1,
+                                                    consensusID);
+      case ConsensusMessageType::CHALLENGE:
+      case ConsensusMessageType::FINALCHALLENGE:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusChallenge>(
+            message, offset + 1, consensusID);
+      case ConsensusMessageType::RESPONSE:
+      case ConsensusMessageType::FINALRESPONSE:
+        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusResponse>(
+            message, offset + 1, consensusID);
+      case ConsensusMessageType::COLLECTIVESIG:
+      case ConsensusMessageType::FINALCOLLECTIVESIG:
+        return Messenger::GetConsensusID<
+            ZilliqaMessage::ConsensusCollectiveSig>(message, offset + 1,
+                                                    consensusID);
+      default:
+        LOG_GENERAL(WARNING, "Unknown consensus message received");
+        break;
+    }
+  } else {
+    LOG_GENERAL(WARNING, "Consensus message offset " << offset << " >= size "
+                                                     << message.size());
   }
+
   return false;
 }
 
@@ -296,7 +304,14 @@ unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize) {
 
 bool ConsensusCommon::CanProcessMessage(const vector<unsigned char>& message,
                                         unsigned int offset) {
+  if (message.size() <= offset) {
+    LOG_GENERAL(WARNING, "Consensus message offset " << offset << " >= size "
+                                                     << message.size());
+    return false;
+  }
+
   const unsigned char messageType = message.at(offset);
+
   if (messageType == ConsensusMessageType::COLLECTIVESIG) {
     if (m_state == INITIAL) {
       LOG_GENERAL(WARNING,

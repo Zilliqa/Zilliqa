@@ -84,17 +84,27 @@ class TransactionWithReceipt : public SerializableDataBlock {
     return m_tranReceipt;
   }
 
+  static TxnHash ComputeTransactionReceiptsHash(
+      const std::vector<TransactionWithReceipt>& txrs) {
+    if (txrs.empty()) {
+      LOG_GENERAL(INFO, "txrs is empty");
+      return TxnHash();
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    for (const auto& tr : txrs) {
+      sha2.Update(DataConversion::StringToCharArray(
+          tr.GetTransactionReceipt().GetString()));
+    }
+    return TxnHash(sha2.Finalize());
+  }
+
   static bool ComputeTransactionReceiptsHash(
       const std::vector<TxnHash>& txnOrder,
       std::unordered_map<TxnHash, TransactionWithReceipt>& txrs,
       TxnHash& trHash) {
-    if (txnOrder.empty()) {
-      LOG_GENERAL(INFO, "TxnOrder is empty");
-      trHash = TxnHash();
-      return true;
-    }
+    std::vector<TransactionWithReceipt> vec;
 
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     for (const auto& th : txnOrder) {
       auto it = txrs.find(th);
       if (it == txrs.end()) {
@@ -102,10 +112,9 @@ class TransactionWithReceipt : public SerializableDataBlock {
                                  << th.hex() << " from processedTransactions");
         return false;
       }
-      sha2.Update(DataConversion::StringToCharArray(
-          it->second.GetTransactionReceipt().GetString()));
+      vec.emplace_back(it->second);
     }
-    trHash = TxnHash(sha2.Finalize());
+    trHash = ComputeTransactionReceiptsHash(vec);
     return true;
   }
 };

@@ -40,6 +40,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountData/TxnOrderVerifier.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
@@ -51,6 +52,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -160,10 +162,8 @@ bool Node::ComposeMicroBlock() {
 }
 
 bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                             const Peer& from) {
+                             const unsigned int offset, const Peer& from) {
   LOG_MARKER();
-
-  unsigned int offset = 0;
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -172,35 +172,17 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     return true;
   }
 
-  if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset) {
-    LOG_GENERAL(WARNING, "Malformed Message");
+  vector<TxnHash> missingTransactions;
+  uint64_t epochNum = 0;
+  uint32_t portNo = 0;
+
+  if (!Messenger::GetNodeMissingTxnsErrorMsg(
+          errorMsg, offset, missingTransactions, epochNum, portNo)) {
+    LOG_GENERAL(WARNING, "Messenger::GetNodeMissingTxnsErrorMsg failed.");
     return false;
   }
 
-  uint32_t numOfAbsentHashes =
-      Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
-  offset += sizeof(uint32_t);
-
-  uint64_t epochNum =
-      Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
-  offset += sizeof(uint64_t);
-
-  vector<TxnHash> missingTransactions;
-
-  for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
-    TxnHash txnHash;
-    copy(errorMsg.begin() + offset, errorMsg.begin() + offset + TRAN_HASH_SIZE,
-         txnHash.asArray().begin());
-    offset += TRAN_HASH_SIZE;
-
-    missingTransactions.emplace_back(txnHash);
-  }
-
-  uint32_t portNo =
-      Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
-
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer peer(ipAddr, portNo);
+  Peer peer(from.m_ipAddress, portNo);
 
   lock_guard<mutex> g(m_mutexProcessedTransactions);
 
@@ -221,15 +203,15 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                                   ? t_processedTransactions
                                   : m_processedTransactions[epochNum];
 
-  for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
+  for (const auto& hash : missingTransactions) {
     // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn "
     // << missingTransactions[i])
-    auto found = processedTransactions.find(missingTransactions[i]);
+    auto found = processedTransactions.find(hash);
     if (found != processedTransactions.end()) {
-      txns.push_back(found->second.GetTransaction());
+      txns.emplace_back(found->second.GetTransaction());
     } else {
-      LOG_GENERAL(INFO, "Leader unable to find txn proposed in microblock "
-                            << missingTransactions[i]);
+      LOG_GENERAL(INFO,
+                  "Leader unable to find txn proposed in microblock " << hash);
       continue;
     }
   }
@@ -592,37 +574,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
   }
 
-  // check for txn misorder tolerance
-  const float TXN_MISORDER_TOLERANCE =
-      (float)TXN_MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
-  const uint32_t MAX_MISORDER_TXNS =
-      std::ceil(t_tranHashes.size() * TXN_MISORDER_TOLERANCE);
-
-  LOG_GENERAL(INFO, "Tolerance = " << std::fixed << std::setprecision(2)
-                                   << TXN_MISORDER_TOLERANCE << " = "
-                                   << MAX_MISORDER_TXNS << " txns.");
-
-  uint32_t orderedtxns = 0;
-  uint32_t misordertxns = 0;
-  auto leftIt = t_tranHashes.begin();
-  auto rightIt = tranHashes.begin();
-  while (leftIt != t_tranHashes.end() && rightIt != tranHashes.end()) {
-    if (*leftIt == *rightIt) {
-      orderedtxns++;
-      leftIt++;
-      rightIt++;
-    } else {
-      break;
-    }
-  }
-
-  misordertxns = t_tranHashes.size() - orderedtxns;
-
-  if (misordertxns > MAX_MISORDER_TXNS) {
+  if (!VerifyTxnOrderWTolerance(t_tranHashes, tranHashes,
+                                TXN_MISORDER_TOLERANCE_IN_PERCENT)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Failed to Verify due to bad txn ordering count "
-                  << misordertxns << " "
-                  << "exceed limit " << MAX_MISORDER_TXNS);
+              "Failed to Verify due to bad txn ordering");
 
     for (const auto& th : t_tranHashes) {
       Transaction t;
@@ -642,21 +597,6 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
 
     return false;
-  } else {
-    // we either have all matches or have mismatches but within the tolerance.
-    LOG_GENERAL(
-        INFO, "misordertxns: " << misordertxns
-                               << ", MAX_MISORDER_TXNS: " << MAX_MISORDER_TXNS);
-    while (leftIt != t_tranHashes.end()) {
-      // remove since it was not processed.
-      t_processedTransactions.erase(*leftIt);
-      Transaction t;
-      // add since it was not processed
-      if (m_createdTxns.get(*leftIt, t)) {
-        t_createdTxns.insert(t);
-      }
-      leftIt++;
-    }
   }
 
   return true;
@@ -678,10 +618,16 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
       !m_mediator.GetIsVacuousEpoch()) {
+    unsigned int sleep_time =
+        TX_DISTRIBUTE_TIME_IN_MS +
+        ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() ==
+          m_mediator.m_currentEpochNum)
+             ? LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
+             : 0);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Non-vacuous epoch, going to sleep for "
-                  << TX_DISTRIBUTE_TIME_IN_MS << " milliseconds");
-    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+              "Non-vacuous epoch, going to sleep for " << sleep_time
+                                                       << " milliseconds");
+    std::this_thread::sleep_for(chrono::milliseconds(sleep_time));
   }
 
   if (!m_mediator.GetIsVacuousEpoch()) {
@@ -710,7 +656,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   auto nodeMissingTxnsFunc = [this](const vector<unsigned char>& errorMsg,
                                     const Peer& from) mutable -> bool {
-    return OnNodeMissingTxns(errorMsg, from);
+    return OnNodeMissingTxns(errorMsg, 0, from);
   };
 
   auto commitFailureFunc =
@@ -750,7 +696,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
       << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] BGIN.");
+      << "] BGIN");
 
   cl->StartConsensus(announcementGeneratorFunc, BROADCAST_GOSSIP_MODE);
 
@@ -971,27 +917,10 @@ bool Node::CheckMicroBlockTimestamp() {
     return true;
   }
 
-  // Check timestamp (must be greater than timestamp of last Tx block header in
-  // the Tx blockchain)
-  if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {
-    const TxBlock& lastTxBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    uint64_t thisMicroblockTimestamp = m_microblock->GetTimestamp();
-    uint64_t lastTxBlockTimestamp = lastTxBlock.GetTimestamp();
-    if (thisMicroblockTimestamp <= lastTxBlockTimestamp) {
-      LOG_GENERAL(WARNING, "Timestamp check failed. Last Tx Block: "
-                               << lastTxBlockTimestamp
-                               << " Microblock: " << thisMicroblockTimestamp);
+  LOG_MARKER();
 
-      m_consensusObject->SetConsensusErrorCode(
-          ConsensusCommon::INVALID_TIMESTAMP);
-
-      return false;
-    }
-  }
-
-  LOG_GENERAL(INFO, "Timestamp check passed");
-
-  return true;
+  return VerifyTimestamp(m_microblock->GetTimestamp(),
+                         CONSENSUS_OBJECT_TIMEOUT);
 }
 
 unsigned char Node::CheckLegitimacyOfTxnHashes(
@@ -1011,35 +940,18 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
       return LEGITIMACYRESULT::WRONGORDER;
     }
 
-    m_numOfAbsentTxnHashes = 0;
-
-    int offset = 0;
-
-    for (auto const& hash : missingTxnHashes) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Missing txn: " << hash)
-      if (errorMsg.size() == 0) {
-        errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t) + TRAN_HASH_SIZE);
-        offset += (sizeof(uint32_t) + sizeof(uint64_t));
-      } else {
-        errorMsg.resize(offset + TRAN_HASH_SIZE);
+    if (missingTxnHashes.size() > 0) {
+      if (!Messenger::SetNodeMissingTxnsErrorMsg(
+              errorMsg, 0, missingTxnHashes, m_mediator.m_currentEpochNum,
+              m_mediator.m_selfPeer.m_listenPortHost)) {
+        LOG_GENERAL(WARNING, "Messenger::SetNodeMissingTxnsErrorMsg failed.");
+        return false;
       }
-      copy(hash.asArray().begin(), hash.asArray().end(),
-           errorMsg.begin() + offset);
-      offset += TRAN_HASH_SIZE;
-      m_numOfAbsentTxnHashes++;
-    }
 
-    if (m_numOfAbsentTxnHashes > 0) {
       {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         LOG_GENERAL(WARNING, m_createdTxns);
       }
-      Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
-                                        sizeof(uint32_t));
-      Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
-                                        m_mediator.m_currentEpochNum,
-                                        sizeof(uint64_t));
 
       m_txnsOrdering = m_microblock->GetTranHashes();
 
@@ -1314,9 +1226,6 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
 
   if (!CheckMicroBlockValidity(errorMsg)) {
     m_microblock = nullptr;
-    Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
     LOG_GENERAL(WARNING, "CheckMicroBlockValidity Failed");
     return false;
   }

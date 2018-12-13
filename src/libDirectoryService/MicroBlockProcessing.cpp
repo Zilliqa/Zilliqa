@@ -37,6 +37,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -200,12 +201,29 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return true;
   }
 
+  // Verify the Block Hash
+  BlockHash temp_blockHash = microBlock.GetHeader().GetMyHash();
+  if (temp_blockHash != microBlock.GetBlockHash()) {
+    LOG_GENERAL(WARNING,
+                "Block Hash in Newly received Micro Block doesn't match. "
+                "Calculated: "
+                    << temp_blockHash
+                    << " Received: " << microBlock.GetBlockHash().hex());
+    return false;
+  }
+
   if (!m_mediator.CheckWhetherBlockIsLatest(
           microBlock.GetHeader().GetDSBlockNum() + 1,
           microBlock.GetHeader().GetEpochNum())) {
     LOG_GENERAL(WARNING,
                 "ProcessMicroblockSubmissionFromShardCore "
                 "CheckWhetherBlockIsLatest failed");
+    return false;
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(microBlock.GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT + MICROBLOCK_TIMEOUT)) {
     return false;
   }
 
@@ -293,7 +311,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                 << " of " << m_shards.size() << " microblocks received");
 
   if (microBlocksAtEpoch.size() == m_shards.size()) {
-    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+    LOG_STATE("[MIBLK][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum
                          << "] LAST RECVD");
@@ -302,12 +320,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                              << "][" << m_mediator.m_currentEpochNum
                              << "] DONE");
 
-    for (auto& mb : microBlocksAtEpoch) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Timestamp: " << mb.GetTimestamp()
-                              << mb.GetHeader().GetStateDeltaHash());
-    }
-
     m_stopRecvNewMBSubmission = true;
     cv_scheduleDSMicroBlockConsensus.notify_all();
 
@@ -315,7 +327,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
     DetachedFunction(1, func);
   } else {
-    LOG_STATE("[MICRO][" << std::setw(15) << std::left
+    LOG_STATE("[MIBLK][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum
                          << "] FRST RECVD");
@@ -610,7 +622,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
 
   // TODO: Check if every microblock is obtained
   std::vector<unsigned char> errorMsg;
-  if (!CheckMicroBlocks(errorMsg)) {
+  if (!CheckMicroBlocks(errorMsg, false, false)) {
     LOG_GENERAL(WARNING,
                 "Still have missing microblocks after fetching, what to do???");
     return false;

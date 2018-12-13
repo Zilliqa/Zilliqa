@@ -489,74 +489,59 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   LOG_MARKER();
   m_mode = BACKUP_DS;
-  unsigned int dsSize = 0;
+  DequeOfDSNode dsComm;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-    dsSize = m_mediator.m_DSCommittee->size();
     LOG_GENERAL(INFO,
                 "m_DSCommittee size: " << m_mediator.m_DSCommittee->size());
-    if (dsSize == 0) {
+    if (m_mediator.m_DSCommittee->empty()) {
       LOG_GENERAL(WARNING, "DS committee unset, failed to rejoin");
       return false;
     }
+    dsComm = *m_mediator.m_DSCommittee;
   }
 
   m_consensusLeaderID = 0;
-  BlockLink bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-  const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(bl);
-  PubKey leaderPubKey;
-  if (blocktype == BlockType::DS) {
-    if (!GUARD_MODE) {
-      m_consensusLeaderID = DataConversion::charArrTo16Bits(
-                                m_mediator.m_dsBlockChain.GetLastBlock()
-                                    .GetHeader()
-                                    .GetHashForRandom()
-                                    .asBytes()) %
-                            dsSize;
-    } else {
-      m_consensusLeaderID = DataConversion::charArrTo16Bits(
-                                m_mediator.m_dsBlockChain.GetLastBlock()
-                                    .GetHeader()
-                                    .GetHashForRandom()
-                                    .asBytes()) %
-                            Guard::GetInstance().GetNumOfDSGuard();
-    }
 
-  } else if (blocktype == BlockType::VC) {
-    VCBlockSharedPtr VCBlockptr;
-    if (!BlockStorage::GetBlockStorage().GetVCBlock(
-            get<BlockLinkIndex::BLOCKHASH>(bl), VCBlockptr)) {
-      LOG_GENERAL(FATAL, "could not get vc block "
-                             << get<BlockLinkIndex::BLOCKHASH>(bl));
-      for (auto const& i : *m_mediator.m_DSCommittee) {
-        if (i.first == leaderPubKey) {
-          LOG_EPOCH(
-              INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Leader ID for this PoW consensus is " << m_consensusLeaderID);
-          break;
-        }
-        m_consensusLeaderID++;
-      }
+  const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
+  Peer dsLeaderPeer;
+  if (Node::GetDSLeaderPeer(bl, m_mediator.m_dsBlockChain.GetLastBlock(),
+                            dsComm, m_mediator.m_currentEpochNum,
+                            dsLeaderPeer)) {
+    auto iterDSLeader =
+        std::find_if(dsComm.begin(), dsComm.end(),
+                     [dsLeaderPeer](const std::pair<PubKey, Peer>& pubKeyPeer) {
+                       return pubKeyPeer.second == dsLeaderPeer;
+                     });
+    if (iterDSLeader != dsComm.end()) {
+      m_consensusLeaderID = iterDSLeader - dsComm.begin();
+    } else {
+      LOG_GENERAL(WARNING,
+                  "Failed to find DS leader index in DS committee, Invoke "
+                  "Rejoin as Normal");
+      m_mediator.m_node->RejoinAsNormal();
+      return false;
     }
-    leaderPubKey = VCBlockptr->GetHeader().GetCandidateLeaderPubKey();
   } else {
+    LOG_GENERAL(WARNING,
+                "Failed to get DS leader peer, Invoke Rejoin as Normal");
     m_mediator.m_node->RejoinAsNormal();
+    return false;
   }
 
   m_consensusMyID = 0;
   bool found = false;
-  {
-    std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-    for (auto const& i : *m_mediator.m_DSCommittee) {
-      if (i.first == m_mediator.m_selfKey.second) {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "My node ID for this PoW consensus is " << m_consensusMyID);
-        found = true;
-        break;
-      }
-      m_consensusMyID++;
+
+  for (auto const& i : dsComm) {
+    if (i.first == m_mediator.m_selfKey.second) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "My node ID for this PoW consensus is " << m_consensusMyID);
+      found = true;
+      break;
     }
+    m_consensusMyID++;
   }
+
   if (!found) {
     LOG_GENERAL(
         WARNING,
@@ -703,25 +688,15 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
 
   std::vector<InstructionHandler> ins_handlers;
 
-  if (!LOOKUP_NODE_MODE) {
-    ins_handlers.insert(ins_handlers.end(),
-                        {&DirectoryService::ProcessSetPrimary,
-                         &DirectoryService::ProcessPoWSubmission,
-                         &DirectoryService::ProcessDSBlockConsensus,
-                         &DirectoryService::ProcessMicroblockSubmission,
-                         &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessViewChangeConsensus,
-                         &DirectoryService::ProcessGetDSTxBlockMessage,
-                         &DirectoryService::ProcessPoWPacketSubmission});
-  } else {
-    ins_handlers.insert(ins_handlers.end(),
-                        {&DirectoryService::ProcessSetPrimary,
-                         &DirectoryService::ProcessPoWSubmission,
-                         &DirectoryService::ProcessDSBlockConsensus,
-                         &DirectoryService::ProcessMicroblockSubmission,
-                         &DirectoryService::ProcessFinalBlockConsensus,
-                         &DirectoryService::ProcessPoWPacketSubmission});
-  }
+  ins_handlers.insert(ins_handlers.end(),
+                      {&DirectoryService::ProcessSetPrimary,
+                       &DirectoryService::ProcessPoWSubmission,
+                       &DirectoryService::ProcessDSBlockConsensus,
+                       &DirectoryService::ProcessMicroblockSubmission,
+                       &DirectoryService::ProcessFinalBlockConsensus,
+                       &DirectoryService::ProcessViewChangeConsensus,
+                       &DirectoryService::ProcessGetDSTxBlockMessage,
+                       &DirectoryService::ProcessPoWPacketSubmission});
 
   const unsigned char ins_byte = message.at(offset);
 

@@ -93,11 +93,18 @@ class Lookup : public Executable, public Broadcastable {
   /// network
   bool FinishRejoinAsLookup();
 
+  /// Post processing after the new Lookup node successfully synchronized with
+  /// the network
+  bool FinishNewJoinAsLookup();
+
   // Reset certain variables to the initial state
   bool CleanVariables();
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
+
+  /// Initialize all blockchains and blocklinkchain
+  void InitAsNewJoiner();
 
   std::mutex m_mutexSetDSBlockFromSeed;
   std::mutex m_mutexSetTxBlockFromSeed;
@@ -112,8 +119,6 @@ class Lookup : public Executable, public Broadcastable {
 
   std::vector<unsigned char> ComposeGetDSInfoMessage(bool initialDS = false);
   std::vector<unsigned char> ComposeGetStateMessage();
-
-  std::unordered_map<uint64_t, std::vector<MicroBlock>> m_microBlocksBuffer;
 
   std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
                                                       uint64_t highBlockNum);
@@ -138,6 +143,9 @@ class Lookup : public Executable, public Broadcastable {
   /// Destructor.
   ~Lookup();
 
+  /// Sync new lookup node.
+  void InitSync();
+
   // Setting the lookup nodes
   // Hardcoded for now -- to be called by constructor
   void SetLookupNodes();
@@ -146,6 +154,10 @@ class Lookup : public Executable, public Broadcastable {
 
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
+
+  bool IsLookupNode(const PubKey& pubKey) const;
+
+  bool IsLookupNode(const Peer& peerInfo) const;
 
   // Gen n valid txns
   bool GenTxnToSend(size_t num_txn,
@@ -238,17 +250,12 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessGetNetworkId(const std::vector<unsigned char>& message,
                            unsigned int offset, const Peer& from);
 
-  bool ProcessSetMicroBlockFromSeed(const std::vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from);
-
   bool ProcessGetTxnsFromLookup(const std::vector<unsigned char>& message,
                                 unsigned int offset, const Peer& from);
   bool ProcessSetTxnsFromLookup(const std::vector<unsigned char>& message,
                                 unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
-
-  void CommitMicroBlockStorage();
 
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 

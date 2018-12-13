@@ -39,6 +39,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 
@@ -166,6 +167,13 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
                 "Calculated: "
                     << temp_blockHash
                     << " Received: " << fallbackblock.GetBlockHash().hex());
+    return false;
+  }
+
+  // Check timestamp
+  if (!VerifyTimestamp(fallbackblock.GetTimestamp(),
+                       CONSENSUS_OBJECT_TIMEOUT + FALLBACK_INTERVAL_WAITING +
+                           FALLBACK_CHECK_INTERVAL + FALLBACK_EXTRA_TIME)) {
     return false;
   }
 

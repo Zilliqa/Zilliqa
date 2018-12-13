@@ -24,7 +24,17 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-DSBlockHeader::DSBlockHeader() : m_blockNum(INIT_BLOCK_NUMBER) {}
+DSBlockHeader::DSBlockHeader()
+    : m_dsDifficulty(0),
+      m_difficulty(0),
+      m_prevHash(),
+      m_leaderPubKey(),
+      m_blockNum(INIT_BLOCK_NUMBER),
+      m_epochNum((uint64_t)-1),
+      m_gasPrice(0),
+      m_swInfo(),
+      m_PoWDSWinners(),
+      m_hashset() {}
 
 DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
                              unsigned int offset) {
@@ -112,10 +122,6 @@ const map<PubKey, Peer>& DSBlockHeader::GetDSPoWWinners() const {
 
 const ShardingHash& DSBlockHeader::GetShardingHash() const {
   return m_hashset.m_shardingHash;
-}
-
-const TxSharingHash& DSBlockHeader::GetTxSharingHash() const {
-  return m_hashset.m_txSharingHash;
 }
 
 const array<unsigned char, RESERVED_FIELD_SIZE>&
