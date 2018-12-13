@@ -550,6 +550,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexLookupStoreForGuardNodeUpdate;
   std::map<uint64_t, std::vector<DSGuardUpdateStruct>>
       m_lookupStoreForGuardNodeUpdate;
+  std::atomic_bool m_awaitingToSubmitNetworkInfoUpdate = {false};
 
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
