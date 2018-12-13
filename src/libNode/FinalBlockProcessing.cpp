@@ -341,7 +341,10 @@ void Node::UpdateStateForNextConsensusRound() {
 
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-  m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
+    m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+  }
 
   if (m_consensusMyID == m_consensusLeaderID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -429,6 +432,7 @@ void Node::CallActOnFinalblock() {
       [this](vector<unsigned char>& forwardtxn_message) -> bool {
     return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
   };
+  lock_guard<mutex> g(m_mutexShardMember);
   DataSender::GetInstance().SendDataToOthers(
       *m_microblock, *m_myShardMembers, {},
       m_mediator.m_lookup->GetLookupNodes(),
