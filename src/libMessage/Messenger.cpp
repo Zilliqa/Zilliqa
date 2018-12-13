@@ -458,7 +458,7 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
   // Deserialize the block hash
   BlockHash blockHash;
   if (!copyWithSizeCheck(protoBlockBase.blockhash(), blockHash.asArray())) {
-    LOG_GENERAL(WARNING, "Key hash size "
+    LOG_GENERAL(WARNING, "Block hash size "
                              << protoBlockBase.blockhash().size() << " is not "
                              << blockHash.asArray().max_size() << " bytes");
     return;
@@ -889,7 +889,7 @@ void ProtobufToDSBlockHeader(
   CommitteeHash committeeHash;
 
   if (!copyWithSizeCheck(protoDSBlockHeader.prevhash(), prevHash.asArray())) {
-    LOG_GENERAL(WARNING, "Key hash size "
+    LOG_GENERAL(WARNING, "Prev hash size "
                              << protoDSBlockHeader.prevhash().size()
                              << " is not " << prevHash.asArray().max_size()
                              << " bytes");
@@ -916,27 +916,41 @@ void ProtobufToDSBlockHeader(
   DSBlockHashSet hash;
   const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
       protoDSBlockHeader.hash();
-  copy(protoDSBlockHeaderHash.shardinghash().begin(),
-       protoDSBlockHeaderHash.shardinghash().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
-               (unsigned int)hash.m_shardingHash.size),
-       hash.m_shardingHash.asArray().begin());
-  copy(protoDSBlockHeaderHash.txsharinghash().begin(),
-       protoDSBlockHeaderHash.txsharinghash().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.txsharinghash().size(),
-               (unsigned int)hash.m_txSharingHash.size),
-       hash.m_txSharingHash.asArray().begin());
+
+  if (!copyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
+                         hash.m_shardingHash.asArray())) {
+    LOG_GENERAL(WARNING, "Sharding hash size "
+                             << protoDSBlockHeaderHash.shardinghash().size()
+                             << " is not "
+                             << hash.m_shardingHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
+  if (!copyWithSizeCheck(protoDSBlockHeaderHash.txsharinghash(),
+                         hash.m_txSharingHash.asArray())) {
+    LOG_GENERAL(WARNING, "Txsharing hash size "
+                             << protoDSBlockHeaderHash.txsharinghash().size()
+                             << " is not "
+                             << hash.m_txSharingHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
+  if (!copyWithSizeCheck(protoDSBlockHeader.committeehash(),
+                         committeeHash.asArray())) {
+    LOG_GENERAL(WARNING, "Committee hash size "
+                             << protoDSBlockHeader.committeehash().size()
+                             << " is not " << committeeHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
   copy(protoDSBlockHeaderHash.reservedfield().begin(),
        protoDSBlockHeaderHash.reservedfield().begin() +
            min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
                (unsigned int)hash.m_reservedField.size()),
        hash.m_reservedField.begin());
-
-  copy(protoDSBlockHeader.committeehash().begin(),
-       protoDSBlockHeader.committeehash().begin() +
-           min((unsigned int)protoDSBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
 
   // Generate the new DSBlock
 
@@ -1091,34 +1105,56 @@ void ProtobufToMicroBlockHeader(
   gasUsed = protoMicroBlockHeader.gasused();
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoMicroBlockHeader.rewards(), rewards);
-  copy(protoMicroBlockHeader.prevhash().begin(),
-       protoMicroBlockHeader.prevhash().begin() +
-           min((unsigned int)protoMicroBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
-  copy(protoMicroBlockHeader.txroothash().begin(),
-       protoMicroBlockHeader.txroothash().begin() +
-           min((unsigned int)protoMicroBlockHeader.txroothash().size(),
-               (unsigned int)txRootHash.size),
-       txRootHash.asArray().begin());
+
+  if (!copyWithSizeCheck(protoMicroBlockHeader.prevhash(),
+                         prevHash.asArray())) {
+    LOG_GENERAL(WARNING, "Prev hash size "
+                             << protoMicroBlockHeader.prevhash().size()
+                             << " is not " << prevHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
+  if (!copyWithSizeCheck(protoMicroBlockHeader.txroothash(),
+                         txRootHash.asArray())) {
+    LOG_GENERAL(WARNING, "Txroot hash size "
+                             << protoMicroBlockHeader.txroothash().size()
+                             << " is not " << txRootHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
   ProtobufByteArrayToSerializable(protoMicroBlockHeader.minerpubkey(),
                                   minerPubKey);
-  copy(protoMicroBlockHeader.statedeltahash().begin(),
-       protoMicroBlockHeader.statedeltahash().begin() +
-           min((unsigned int)protoMicroBlockHeader.statedeltahash().size(),
-               (unsigned int)stateDeltaHash.size),
-       stateDeltaHash.asArray().begin());
-  copy(protoMicroBlockHeader.tranreceipthash().begin(),
-       protoMicroBlockHeader.tranreceipthash().begin() +
-           min((unsigned int)protoMicroBlockHeader.tranreceipthash().size(),
-               (unsigned int)tranReceiptHash.size),
-       tranReceiptHash.asArray().begin());
 
-  copy(protoMicroBlockHeader.committeehash().begin(),
-       protoMicroBlockHeader.committeehash().begin() +
-           min((unsigned int)protoMicroBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
+  if (!copyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
+                         stateDeltaHash.asArray())) {
+    LOG_GENERAL(WARNING, "Statedelta hash size "
+                             << protoMicroBlockHeader.statedeltahash().size()
+                             << " is not "
+                             << stateDeltaHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
+  if (!copyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
+                         tranReceiptHash.asArray())) {
+    LOG_GENERAL(WARNING, "Tranreceipt hash size "
+                             << protoMicroBlockHeader.tranreceipthash().size()
+                             << " is not "
+                             << tranReceiptHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
+
+  if (!copyWithSizeCheck(protoMicroBlockHeader.committeehash(),
+                         committeeHash.asArray())) {
+    LOG_GENERAL(WARNING, "Committee hash size "
+                             << protoMicroBlockHeader.committeehash().size()
+                             << " is not " << committeeHash.asArray().max_size()
+                             << " bytes");
+    return;
+  }
 
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
