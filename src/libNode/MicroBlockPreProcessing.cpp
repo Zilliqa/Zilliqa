@@ -646,31 +646,36 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                              .GetHeader()
                              .GetMyHash()
                              .asBytes();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am shard leader. "
-                << "m_consensusID: " << m_mediator.m_consensusID
-                << " m_consensusMyID: " << m_consensusMyID
-                << " m_consensusLeaderID: " << m_consensusLeaderID
-                << " Shard Leader: "
-                << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-  auto nodeMissingTxnsFunc = [this](const vector<unsigned char>& errorMsg,
-                                    const Peer& from) mutable -> bool {
-    return OnNodeMissingTxns(errorMsg, 0, from);
-  };
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
 
-  auto commitFailureFunc =
-      [this](
-          const map<unsigned int, vector<unsigned char>>& m) mutable -> bool {
-    return OnCommitFailure(m);
-  };
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am shard leader. "
+                  << "m_consensusID: " << m_mediator.m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-  m_consensusObject.reset(new ConsensusLeader(
-      m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
-      m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
-      *m_myShardMembers, static_cast<unsigned char>(NODE),
-      static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
-      commitFailureFunc));
+    auto nodeMissingTxnsFunc = [this](const vector<unsigned char>& errorMsg,
+                                      const Peer& from) mutable -> bool {
+      return OnNodeMissingTxns(errorMsg, 0, from);
+    };
+
+    auto commitFailureFunc =
+        [this](
+            const map<unsigned int, vector<unsigned char>>& m) mutable -> bool {
+      return OnCommitFailure(m);
+    };
+
+    m_consensusObject.reset(new ConsensusLeader(
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
+        *m_myShardMembers, static_cast<unsigned char>(NODE),
+        static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
+        commitFailureFunc));
+  }
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -733,18 +738,21 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                                messageToCosign);
   };
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am shard backup. "
-                << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
-                << " m_consensusMyID: " << m_consensusMyID
-                << " m_consensusLeaderID: " << m_consensusLeaderID
-                << " Shard Leader: "
-                << (*m_myShardMembers)[m_consensusLeaderID].second);
-
   deque<pair<PubKey, Peer>> peerList;
 
-  for (const auto& it : *m_myShardMembers) {
-    peerList.emplace_back(it);
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am shard backup. "
+                  << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
+
+    for (const auto& it : *m_myShardMembers) {
+      peerList.emplace_back(it);
+    }
   }
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Leader is at index  " << m_consensusLeaderID << " "

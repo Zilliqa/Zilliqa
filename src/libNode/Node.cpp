@@ -629,6 +629,7 @@ void Node::WakeupForRecovery() {
     return;
   }
 
+  lock_guard<mutex> g(m_mutexShardMember);
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     m_myShardMembers = m_mediator.m_DSCommittee;
   }
@@ -1077,8 +1078,6 @@ bool Node::ProcessTxnPacketFromLookup(
     }
   }
 
-  //
-
   if (m_mediator.m_lookup->IsLookupNode(from)) {
     if (epochNumber < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
@@ -1160,8 +1159,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     }
   } else {
     vector<Peer> toSend;
-    for (auto& it : *m_myShardMembers) {
-      toSend.push_back(it.second);
+    {
+      lock_guard<mutex> g(m_mutexShardMember);
+      for (auto& it : *m_myShardMembers) {
+        toSend.push_back(it.second);
+      }
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
 
@@ -1401,7 +1403,10 @@ bool Node::CleanVariables() {
 
   FallbackStop();
   AccountStore::GetInstance().InitSoft();
-  m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
+    m_myShardMembers.reset(new deque<pair<PubKey, Peer>>);
+  }
   m_isPrimary = false;
   m_stillMiningPrimary = false;
   m_myshardId = 0;
@@ -1466,6 +1471,23 @@ void Node::CleanCreatedTransaction() {
     t_processedTransactions.clear();
   }
   m_TxnOrder.clear();
+}
+
+bool Node::IsShardNode(const PubKey& pubKey) {
+  lock_guard<mutex> lock(m_mutexShardMember);
+  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                      [&pubKey](const std::pair<PubKey, Peer>& node) {
+                        return node.first == pubKey;
+                      }) != m_myShardMembers->end();
+}
+
+bool Node::IsShardNode(const Peer& peerInfo) {
+  lock_guard<mutex> lock(m_mutexShardMember);
+  return std::find_if(m_myShardMembers->begin(), m_myShardMembers->end(),
+                      [&peerInfo](const std::pair<PubKey, Peer>& node) {
+                        return node.second.GetIpAddress() ==
+                               peerInfo.GetIpAddress();
+                      }) != m_myShardMembers->end();
 }
 
 bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
@@ -1583,9 +1605,12 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
   sha256.Update(message);  // raw_message hash
   std::vector<unsigned char> this_msg_hash = sha256.Finalize();
 
+  lock_guard<mutex> g(m_mutexShardMember);
+
   GetNodesToBroadCastUsingTreeBasedClustering(
       cluster_size, num_of_child_clusters, nodes_lo, nodes_hi);
 
+  std::vector<Peer> shardBlockReceivers;
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
     LOG_GENERAL(
@@ -1606,7 +1631,7 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
                 << "] further to following " << nodes_hi - nodes_lo + 1
                 << " peers."
                 << "(" << nodes_lo << "~" << nodes_hi << ")");
-  std::vector<Peer> shardBlockReceivers;
+
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);
     shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));

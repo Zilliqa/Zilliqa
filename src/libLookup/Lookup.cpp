@@ -118,6 +118,8 @@ void Lookup::InitSync() {
 void Lookup::SetLookupNodes() {
   LOG_MARKER();
 
+  std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+
   m_lookupNodes.clear();
   m_lookupNodesOffline.clear();
   // Populate tree structure pt
@@ -273,7 +275,8 @@ bool Lookup::IsLookupNode(const Peer& peerInfo) const {
   VectorOfLookupNode lookups = GetLookupNodes();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&peerInfo](const std::pair<PubKey, Peer>& node) {
-                        return node.second == peerInfo;
+                        return node.second.GetIpAddress() ==
+                               peerInfo.GetIpAddress();
                       }) != lookups.end();
 }
 
@@ -288,13 +291,16 @@ void Lookup::SendMessageToLookupNodes(
   // vector of Peer
   vector<Peer> allLookupNodes;
 
-  for (const auto& node : m_lookupNodes) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Sending msg to lookup node "
-                  << node.second.GetPrintableIPAddress() << ":"
-                  << node.second.m_listenPortHost);
+  {
+    lock_guard<mutex> lock(m_mutexLookupNodes);
+    for (const auto& node : m_lookupNodes) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Sending msg to lookup node "
+                    << node.second.GetPrintableIPAddress() << ":"
+                    << node.second.m_listenPortHost);
 
-    allLookupNodes.emplace_back(node.second);
+      allLookupNodes.emplace_back(node.second);
+    }
   }
 
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
@@ -308,13 +314,16 @@ void Lookup::SendMessageToLookupNodesSerial(
   // to_string(m_mediator.m_currentEpochNum).c_str())
   vector<Peer> allLookupNodes;
 
-  for (const auto& node : m_lookupNodes) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Sending msg to lookup node "
-                  << node.second.GetPrintableIPAddress() << ":"
-                  << node.second.m_listenPortHost);
+  {
+    lock_guard<mutex> lock(m_mutexLookupNodes);
+    for (const auto& node : m_lookupNodes) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Sending msg to lookup node "
+                    << node.second.GetPrintableIPAddress() << ":"
+                    << node.second.m_listenPortHost);
 
-    allLookupNodes.emplace_back(node.second);
+      allLookupNodes.emplace_back(node.second);
+    }
   }
 
   P2PComm::GetInstance().SendMessage(allLookupNodes, message);
@@ -326,6 +335,7 @@ void Lookup::SendMessageToRandomLookupNode(
 
   // int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
   // - NUM_LOOKUP_USE_FOR_SYNC;
+  lock_guard<mutex> lock(m_mutexLookupNodes);
   if (0 == m_lookupNodes.size()) {
     LOG_GENERAL(WARNING, "There is no lookup node existed yet!");
     return;
@@ -2581,9 +2591,12 @@ Peer Lookup::GetLookupPeerToRsync() {
   LOG_MARKER();
 
   std::vector<Peer> t_Peers;
-  for (const auto& p : m_lookupNodes) {
-    if (p.second != m_mediator.m_selfPeer) {
-      t_Peers.emplace_back(p.second);
+  {
+    lock_guard<mutex> lock(m_mutexLookupNodes);
+    for (const auto& p : m_lookupNodes) {
+      if (p.second != m_mediator.m_selfPeer) {
+        t_Peers.emplace_back(p.second);
+      }
     }
   }
 
@@ -2651,19 +2664,21 @@ bool Lookup::GetMyLookupOffline() {
 
   LOG_MARKER();
 
-  std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
-  // Remove selfPeerInfo from m_lookupNodes
-  auto selfPeer(m_mediator.m_selfPeer);
-  auto iter = std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                           [&selfPeer](const std::pair<PubKey, Peer>& node) {
-                             return node.second == selfPeer;
-                           });
-  if (iter != m_lookupNodes.end()) {
-    m_lookupNodesOffline.emplace_back(*iter);
-    m_lookupNodes.erase(iter);
-  } else {
-    LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodes");
-    return false;
+  {
+    std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+    // Remove selfPeerInfo from m_lookupNodes
+    auto selfPeer(m_mediator.m_selfPeer);
+    auto iter = std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                             [&selfPeer](const std::pair<PubKey, Peer>& node) {
+                               return node.second == selfPeer;
+                             });
+    if (iter != m_lookupNodes.end()) {
+      m_lookupNodesOffline.emplace_back(*iter);
+      m_lookupNodes.erase(iter);
+    } else {
+      LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodes");
+      return false;
+    }
   }
 
   SendMessageToLookupNodesSerial(ComposeGetLookupOfflineMessage());
@@ -3240,25 +3255,29 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
     if (i < numShards) {
       {
         lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-        auto it = m_mediator.m_ds->m_shards.at(i).begin();
-        // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
-        for (unsigned int j = 0; j < NUM_NODES_TO_SEND_LOOKUP &&
-                                 it != m_mediator.m_ds->m_shards.at(i).end();
-             j++, it++) {
-          toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
-
-          LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
-        }
-        if (m_mediator.m_ds->m_shards.at(i).empty()) {
-          continue;
-        }
         uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
             m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
         uint32_t leader_id =
             lastBlockHash % m_mediator.m_ds->m_shards.at(i).size();
-        toSend.push_back(get<SHARD_NODE_PEER>(
-            m_mediator.m_ds->m_shards.at(i).at(leader_id)));
         LOG_GENERAL(INFO, "Shard leader id " << leader_id);
+
+        auto it = m_mediator.m_ds->m_shards.at(i).begin();
+        // Lookup sends to NUM_NODES_TO_SEND_LOOKUP + Leader
+        unsigned int num_node_to_send = NUM_NODES_TO_SEND_LOOKUP;
+        for (unsigned int j = 0; j < num_node_to_send &&
+                                 it != m_mediator.m_ds->m_shards.at(i).end();
+             j++, it++) {
+          if (distance(m_mediator.m_ds->m_shards.at(i).begin(), it) ==
+              leader_id) {
+            num_node_to_send++;
+          } else {
+            toSend.push_back(std::get<SHARD_NODE_PEER>(*it));
+            LOG_GENERAL(INFO, "Sent to node " << get<SHARD_NODE_PEER>(*it));
+          }
+        }
+        if (m_mediator.m_ds->m_shards.at(i).empty()) {
+          continue;
+        }
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);

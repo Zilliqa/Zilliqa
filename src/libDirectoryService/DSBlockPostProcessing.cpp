@@ -370,6 +370,7 @@ void DirectoryService::StartFirstTxEpoch() {
   }
 
   if (m_mode != IDLE) {
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
