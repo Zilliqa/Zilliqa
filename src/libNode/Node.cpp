@@ -1749,6 +1749,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
 #ifdef HEARTBEAT_TEST
       &Node::ProcessKillPulse,
 #endif  // HEARTBEAT_TEST
+      &Node::ProcessDSGuardNetworkInfoUpdate,
   };
 
   const unsigned char ins_byte = message.at(offset);
