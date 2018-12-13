@@ -1492,7 +1492,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     unsigned int i = 0;
     for (auto& ds : *m_mediator.m_DSCommittee) {
-      if (GetSyncType() == SyncType::DS_SYNC &&
+      if ((GetSyncType() == SyncType::DS_SYNC ||
+           GetSyncType() == SyncType::GUARD_DS_SYNC) &&
           ds.second == m_mediator.m_selfPeer) {
         ds.second = Peer();
       }
@@ -1906,7 +1907,8 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
       m_mediator.m_lookup->SendMessageToRandomLookupNode(
           getpowsubmission_message);
-    } else if (m_syncType == SyncType::DS_SYNC) {
+    } else if (m_syncType == SyncType::DS_SYNC ||
+               m_syncType == SyncType::GUARD_DS_SYNC) {
       if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
                                   m_mediator.m_dsBlockChain.GetLastBlock()
                                       .GetHeader()
@@ -2506,7 +2508,8 @@ bool Lookup::ProcessSetStartPoWFromSeed(
 
   InitMining(index);
 
-  if (m_syncType == SyncType::DS_SYNC) {
+  if (m_syncType == SyncType::DS_SYNC ||
+      m_syncType == SyncType::GUARD_DS_SYNC) {
     if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
                                 m_mediator.m_dsBlockChain.GetLastBlock()
                                     .GetHeader()
@@ -3009,7 +3012,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
     if (m_syncType == SyncType::DS_SYNC ||
         m_syncType == SyncType::LOOKUP_SYNC ||
-        m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+        m_syncType == SyncType::NEW_LOOKUP_SYNC ||
+        m_syncType == SyncType::GUARD_DS_SYNC) {
       if (!m_isFirstLoop) {
         m_currDSExpired = true;
       } else {
