@@ -56,7 +56,8 @@ int main(int argc, const char* argv[]) {
             "<listen_ip_address or \"NAT\"> <listen_port> <1 if "
             "loadConfig, 0 "
             "otherwise> <SyncType, 0 for no, 1 for new,"
-            " 2 for normal, 3 for ds, 4 for lookup> "
+            " 2 for normal, 3 for ds, 4 for lookup, 5 for node recovery, 6 for "
+            "lookup and 7 for ds guard node sync> "
             "<1 if recovery, 0 otherwise>"
          << endl;
     return 0;
