@@ -307,14 +307,14 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "[No PoW needed] Waiting for Microblock.");
 
-      LOG_STATE("[MIBLKSWAIT[" << setw(15) << left
-                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "]["
-                               << m_mediator.m_txBlockChain.GetLastBlock()
-                                          .GetHeader()
-                                          .GetBlockNum() +
-                                      1
-                               << "] BEGIN");
+      LOG_STATE("[MIBLKSWAIT][" << setw(15) << left
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << "]["
+                                << m_mediator.m_txBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetBlockNum() +
+                                       1
+                                << "] BEGIN");
 
       auto func1 = [this]() mutable -> void {
         m_mediator.m_node->CommitTxnPacketBuffer();
@@ -331,7 +331,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                     "Timeout: Didn't receive all Microblock. Proceeds "
                     "without it");
 
-        LOG_STATE("[MIBLKSWAIT["
+        LOG_STATE("[MIBLKSWAIT]["
                   << setw(15) << left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetLastBlock()
