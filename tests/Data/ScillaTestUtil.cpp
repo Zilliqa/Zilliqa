@@ -116,3 +116,22 @@ uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, std::vector<un
 
   return amount;
 }
+
+// Remove _creation_block field from init JSON.
+bool ScillaTestUtil::RemoveCreationBlockFromInit(Json::Value &init)
+{
+    int creation_block_index = -1;
+  for (auto it = init.begin(); it != init.end(); it++) {
+    if ((*it)["vname"] == "_creation_block")
+      creation_block_index = it - init.begin();
+  }
+  // Remove _creation_block from init.json as it will be inserted
+  // automatically.
+  if (creation_block_index >= 0) {
+    Json::Value dummy;
+    init.removeIndex(Json::ArrayIndex(creation_block_index), &dummy);
+    return true;
+  }
+
+  return false;
+}
