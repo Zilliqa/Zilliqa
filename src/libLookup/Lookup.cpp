@@ -120,6 +120,7 @@ void Lookup::SetLookupNodes() {
 
   std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
 
+  m_startedTxnBatchThread = false;
   m_lookupNodes.clear();
   m_lookupNodesOffline.clear();
   // Populate tree structure pt
@@ -2803,6 +2804,7 @@ bool Lookup::CleanVariables() {
 
   m_seedNodes.clear();
   m_currDSExpired = false;
+  m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
   {
     std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);

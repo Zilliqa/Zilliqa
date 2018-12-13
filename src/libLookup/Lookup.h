@@ -73,7 +73,7 @@ class Lookup : public Executable, public Broadcastable {
   std::unordered_set<Peer> l_nodesInNetwork;
   std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
   std::mutex m_txnShardMapMutex;
-  bool m_startedTxnBatchThread = false;
+  std::atomic<bool> m_startedTxnBatchThread;
 
   // Start PoW variables
   bool m_receivedRaiseStartPoW = false;
