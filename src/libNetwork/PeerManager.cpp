@@ -27,6 +27,7 @@
 #include "PeerManager.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -35,37 +36,26 @@ using namespace boost::multiprecision;
 
 bool PeerManager::ProcessHello(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from) {
-  // Message = [32-byte peer key] [4-byte peer listen port]
-
   LOG_MARKER();
 
-  unsigned int message_size = message.size() - offset;
+  PubKey key;
+  uint32_t listenPort = 0;
 
-  if (message_size >= (PUB_KEY_SIZE + sizeof(uint32_t))) {
-    // Get and store peer information
-
-    PubKey key;
-    // key.Deserialize(message, offset);
-    if (key.Deserialize(message, offset) != 0) {
-      LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
-      return false;
-    }
-
-    Peer peer(from.m_ipAddress,
-              Serializable::GetNumber<uint32_t>(message, offset + PUB_KEY_SIZE,
-                                                sizeof(uint32_t)));
-
-    PeerStore& ps = PeerStore::GetStore();
-    ps.AddPeerPair(key, peer);
-
-    LOG_GENERAL(INFO, "Added peer with port " << peer.m_listenPortHost
-                                              << " at address "
-                                              << from.GetPrintableIPAddress());
-
-    return true;
+  if (!Messenger::GetPMHello(message, offset, key, listenPort)) {
+    LOG_GENERAL(WARNING, "Messenger::GetPMHello failed.");
+    return false;
   }
 
-  return false;
+  Peer peer(from.m_ipAddress, listenPort);
+
+  PeerStore& ps = PeerStore::GetStore();
+  ps.AddPeerPair(key, peer);
+
+  LOG_GENERAL(INFO, "Added peer with port " << peer.m_listenPortHost
+                                            << " at address "
+                                            << from.GetPrintableIPAddress());
+
+  return true;
 }
 
 bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
@@ -105,10 +95,12 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
 
     vector<unsigned char> hello_message = {MessageType::PEER,
                                            PeerManager::InstructionType::HELLO};
-    m_selfKey.second.Serialize(hello_message, MessageOffset::BODY);
-    Serializable::SetNumber<uint32_t>(
-        hello_message, MessageOffset::BODY + PUB_KEY_SIZE,
-        m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+
+    if (!Messenger::SetPMHello(hello_message, MessageOffset::BODY, m_selfKey,
+                               m_selfPeer.m_listenPortHost)) {
+      LOG_GENERAL(WARNING, "Messenger::SetPMHello failed.");
+      return false;
+    }
 
     P2PComm::GetInstance().SendMessage(peer, hello_message);
 

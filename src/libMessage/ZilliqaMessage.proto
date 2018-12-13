@@ -300,6 +300,21 @@ message ProtoFallbackBlock
 }
 
 // ============================================================================
+// Peer Manager messages
+// ============================================================================
+
+message PMHello
+{
+    message Data
+    {
+        required ByteArray pubkey  = 1;
+        required uint32 listenport = 2;
+    }
+    required Data data             = 1;
+    required ByteArray signature   = 2;
+}
+
+// ============================================================================
 // Directory Service messages
 // ============================================================================
 
