@@ -1079,10 +1079,6 @@ bool Node::ProcessTxnPacketFromLookup(
   }
 
   if (m_mediator.m_lookup->IsLookupNode(from)) {
-    if (epochNumber < m_mediator.m_currentEpochNum) {
-      LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
-      return false;
-    }
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
     LOG_STATE("[TXNPKTPROC]["
