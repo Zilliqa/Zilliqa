@@ -873,16 +873,6 @@ void ProtobufToDSBlockHeader(
     return;
   }
 
-  if (!copyWithSizeCheck(protoDSBlockHeaderHash.txsharinghash(),
-                         hash.m_txSharingHash.asArray())) {
-    LOG_GENERAL(WARNING, "Txsharing hash size "
-                             << protoDSBlockHeaderHash.txsharinghash().size()
-                             << " is not "
-                             << hash.m_txSharingHash.asArray().max_size()
-                             << " bytes");
-    return;
-  }
-
   if (!copyWithSizeCheck(protoDSBlockHeader.committeehash(),
                          committeeHash.asArray())) {
     LOG_GENERAL(WARNING, "Committee hash size "
