@@ -27,15 +27,8 @@
 using namespace std;
 using namespace g3;
 
-string MyCustomFormatting(const LogMessage& msg) {
-  string res = string("[") + msg.level();
-
-  for (unsigned int i = msg.level().size(); i < WARNING.text.size(); ++i) {
-    res += " ";
-  }
-
-  res += "]";
-  return res;
+inline string MyCustomFormatting(const LogMessage& msg) {
+  return string("[") + msg.level().substr(0, 4) + "]";
 }
 
 namespace {
