@@ -3221,15 +3221,15 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
 
   // allow receving nodes to be ready with latest DS block ( Only** for first
   // txn epoch of every ds epoch )
-  if ((m_mediator.m_currentEpochNum == 1) ||
-      (m_mediator.m_currentEpochNum > 1 &&
-       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Waiting for " << LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
-                             << " ms before sending txn packets to shards");
-    this_thread::sleep_for(
-        chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
-  }
+  // if ((m_mediator.m_currentEpochNum == 1) ||
+  //     (m_mediator.m_currentEpochNum > 1 &&
+  //      m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
+  //   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  //             "Waiting for " << LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
+  //                            << " ms before sending txn packets to shards");
+  //   this_thread::sleep_for(
+  //       chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+  // }
 
   for (unsigned int i = 0; i < numShards + 1; i++) {
     vector<unsigned char> msg = {MessageType::NODE,
