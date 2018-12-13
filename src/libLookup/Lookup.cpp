@@ -1760,9 +1760,6 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   m_mediator.m_currentEpochNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
-  m_mediator.m_consensusID =
-      m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW;
-
   m_mediator.UpdateTxBlockRand();
 
   if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
