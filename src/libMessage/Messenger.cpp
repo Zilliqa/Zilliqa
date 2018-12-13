@@ -2646,6 +2646,77 @@ bool Messenger::GetPeer(const std::vector<unsigned char>& src,
 }
 
 // ============================================================================
+// Peer Manager messages
+// ============================================================================
+
+bool Messenger::SetPMHello(vector<unsigned char>& dst,
+                           const unsigned int offset,
+                           const pair<PrivKey, PubKey>& key,
+                           const uint32_t listenPort) {
+  LOG_MARKER();
+
+  PMHello result;
+
+  SerializableToProtobufByteArray(key.second,
+                                  *result.mutable_data()->mutable_pubkey());
+  result.mutable_data()->set_listenport(listenPort);
+
+  if (result.data().IsInitialized()) {
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, key.first, key.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign PMHello.data.");
+      return false;
+    }
+
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "PMHello.Data initialization failed.");
+    return false;
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "PMHello initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetPMHello(const vector<unsigned char>& src,
+                           const unsigned int offset, PubKey& pubKey,
+                           uint32_t& listenPort) {
+  LOG_MARKER();
+
+  PMHello result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "PMHello initialization failed.");
+    return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.data().pubkey(), pubKey);
+  listenPort = result.data().listenport();
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature, pubKey)) {
+    LOG_GENERAL(WARNING, "PMHello signature wrong.");
+    return false;
+  }
+
+  return true;
+}
+
+// ============================================================================
 // Directory Service messages
 // ============================================================================
 
