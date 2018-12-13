@@ -99,10 +99,9 @@ bool DirectoryService::ComposeDSBlockMessageForSender(
 
   dsblock_message.clear();
   dsblock_message = {MessageType::NODE, NodeInstructionType::DSBLOCK};
-  if (!Messenger::SetNodeVCDSBlocksMessage(
-          dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
-          m_VCBlockVector, m_shards, m_DSReceivers, m_shardReceivers,
-          m_shardSenders)) {
+  if (!Messenger::SetNodeVCDSBlocksMessage(dsblock_message, MessageOffset::BODY,
+                                           0, *m_pendingDSBlock,
+                                           m_VCBlockVector, m_shards)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetNodeVCDSBlocksMessage failed.");
     return false;
@@ -162,8 +161,7 @@ void DirectoryService::SendDSBlockToShardNodes(
         MessageType::NODE, NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeVCDSBlocksMessage(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
-            *m_pendingDSBlock, m_VCBlockVector, m_shards, m_DSReceivers,
-            m_shardReceivers, m_shardSenders)) {
+            *m_pendingDSBlock, m_VCBlockVector, m_shards)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetNodeVCDSBlocksMessage failed.");
       continue;
@@ -265,7 +263,6 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
       m_consensusLeaderID = lastBlockHash % (m_mediator.m_DSCommittee->size());
       LOG_GENERAL(INFO, "No DS Guard enabled. m_consensusLeaderID "
                             << m_consensusLeaderID);
-
     } else {
       // DS guards index do not change
       if (m_consensusMyID >= Guard::GetInstance().GetNumOfDSGuard()) {
@@ -285,13 +282,13 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
         m_mediator.m_selfKey.second) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am now Leader DS");
+                "I am now DS leader for the next round");
       LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                     DS_LEADER_MSG);
       m_mode = PRIMARY_DS;
     } else {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "I am now backup DS");
+                "I am now DS backup for the next round");
       LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                     DS_BACKUP_MSG);
       m_mode = BACKUP_DS;
@@ -373,6 +370,7 @@ void DirectoryService::StartFirstTxEpoch() {
   }
 
   if (m_mode != IDLE) {
+    lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -493,9 +491,6 @@ void DirectoryService::StartFirstTxEpoch() {
       return;
     }
 
-    // Process txn sharing assignments as a shard node
-    m_mediator.m_node->LoadTxnSharingInfo();
-
     // Finally, start as a shard node
     m_mediator.m_node->StartFirstTxEpoch();
   }
@@ -557,13 +552,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
   // Now we can update the sharding structure and transaction sharing
   // assignments
   if (m_mode == BACKUP_DS) {
-    m_DSReceivers = std::move(m_tempDSReceivers);
-    m_shardReceivers = std::move(m_tempShardReceivers);
-    m_shardSenders = std::move(m_tempShardSenders);
     m_shards = std::move(m_tempShards);
     m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
     m_mapNodeReputation = std::move(m_tempMapNodeReputation);
-    ProcessTxnBodySharingAssignment();
   }
 
   BlockStorage::GetBlockStorage().PutShardStructure(

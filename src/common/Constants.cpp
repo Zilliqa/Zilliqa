@@ -272,6 +272,8 @@ const unsigned int MAX_SHARD_NODE_NUM{
     ReadConstantNumeric("MAX_SHARD_NODE_NUM", "node.pow.")};
 const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("MISORDER_TOLERANCE_IN_PERCENT", "node.pow.")};
+const unsigned int DSBLOCK_EXTRA_WAIT_TIME{
+    ReadConstantNumeric("DSBLOCK_EXTRA_WAIT_TIME", "node.pow.")};
 
 // Recovery and upgrading constants
 const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{

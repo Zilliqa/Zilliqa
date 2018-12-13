@@ -341,7 +341,10 @@ void Node::UpdateStateForNextConsensusRound() {
 
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
-  m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
+    m_consensusLeaderID = lastBlockHash % m_myShardMembers->size();
+  }
 
   if (m_consensusMyID == m_consensusLeaderID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -429,6 +432,7 @@ void Node::CallActOnFinalblock() {
       [this](vector<unsigned char>& forwardtxn_message) -> bool {
     return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
   };
+  lock_guard<mutex> g(m_mutexShardMember);
   DataSender::GetInstance().SendDataToOthers(
       *m_microblock, *m_myShardMembers, {},
       m_mediator.m_lookup->GetLookupNodes(),
@@ -621,13 +625,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
-  // Check block number
-  if (!m_mediator.CheckWhetherBlockIsLatest(
-          dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
-    LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
-    return false;
-  }
-
   if (consensusID != m_mediator.m_consensusID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Consensus ID is not correct. Expected ID: "
@@ -666,6 +663,21 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   if (!VerifyFinalBlockCoSignature(txBlock)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "TxBlock co-sig verification failed");
+    return false;
+  }
+
+  // Check block number. Now put after verify co-sig to prevent malicious Tx
+  // block message to make the node rejoin.
+  if (!m_mediator.CheckWhetherBlockIsLatest(
+          dsBlockNumber + 1, txBlock.GetHeader().GetBlockNum())) {
+    LOG_GENERAL(WARNING, "ProcessFinalBlock CheckWhetherBlockIsLatest failed");
+    // Missed some final block, rejoin to get from lookup.
+    if (txBlock.GetHeader().GetBlockNum() > m_mediator.m_currentEpochNum) {
+      if (!LOOKUP_NODE_MODE) {
+        RejoinAsNormal();
+        return false;
+      }
+    }
     return false;
   }
 
@@ -713,6 +725,23 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
+
+  if (isVacuousEpoch) {
+    unordered_map<Address, int256_t> addressMap;
+    if (!Messenger::StateDeltaToAddressMap(stateDelta, 0, addressMap)) {
+      LOG_GENERAL(WARNING, "Messenger::StateDeltaToAccountMap failed");
+    } else {
+      auto it = addressMap.find(
+          Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second));
+      if (it != addressMap.end()) {
+        LOG_GENERAL(INFO, "[REWARD]"
+                              << " Got " << it->second << " as reward");
+      } else {
+        LOG_GENERAL(INFO, "[REWARD]"
+                              << "Got no reward thist ds epoch");
+      }
+    }
+  }
 
   ProcessStateDeltaFromFinalBlock(stateDelta,
                                   txBlock.GetHeader().GetStateDeltaHash());
