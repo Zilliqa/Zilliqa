@@ -12,10 +12,3 @@ add_test(NAME Test_Schnorr COMMAND Test_Schnorr)
 add_executable(Test_MultiSig Test_MultiSig.cpp)
 target_link_libraries(Test_MultiSig PUBLIC Crypto)
 add_test(NAME Test_MultiSig COMMAND Test_MultiSig)
-
-#TODO: GetAddressFromPubKey and GetPubKeyFromPrivKey are utils instead of test cases
-add_executable(GetAddressFromPubKey GetAddressFromPubKey.cpp)
-target_link_libraries(GetAddressFromPubKey PUBLIC Crypto)
-
-add_executable(GetPubKeyFromPrivKey GetPubKeyFromPrivKey.cpp)
-target_link_libraries(GetPubKeyFromPrivKey PUBLIC Crypto)
