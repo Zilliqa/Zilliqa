@@ -59,7 +59,6 @@ PrivKey priv1(
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testCrowdfunding) {
-
   KeyPair owner(priv1, {priv1}), donor1(priv2, {priv2}), donor2(priv3, {priv3});
   Address ownerAddr, donor1Addr, donor2Addr, contrAddr;
   uint64_t nonce = 0;
@@ -133,15 +132,14 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   LOG_GENERAL(INFO, "[Call1] Owner balance: "
                         << AccountStore::GetInstance().GetBalance(ownerAddr));
-  LOG_GENERAL(INFO,
-              "[Call1] Donor1 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor1Addr));
-  LOG_GENERAL(INFO,
-              "[Call1] Donor2 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call1] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call1] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
   LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
   LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal);
-  BOOST_CHECK_MESSAGE(contrBal == oBal && contrBal == amount, "Balance mis-match after Donate");
+  BOOST_CHECK_MESSAGE(contrBal == oBal && contrBal == amount,
+                      "Balance mis-match after Donate");
 
   /* ------------------------------------------------------------------- */
 
@@ -155,7 +153,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   uint64_t bnum2 = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
   // Execute message_2, the Donate transaction.
   std::vector<unsigned char> dataDonate2;
-  uint64_t amount2= ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
+  uint64_t amount2 =
+      ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
 
   Transaction tx2(1, nonce, contrAddr, donor2, amount2, PRECISION_MIN_VALUE,
                   5000, {}, dataDonate2);
@@ -169,15 +168,14 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   LOG_GENERAL(INFO, "[Call2] Owner balance: "
                         << AccountStore::GetInstance().GetBalance(ownerAddr));
-  LOG_GENERAL(INFO,
-              "[Call2] Donor1 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor1Addr));
-  LOG_GENERAL(INFO,
-              "[Call2] Donor2 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call2] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call2] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
   LOG_GENERAL(INFO, "[Call2] Contract balance (scilla): " << contrBal2);
   LOG_GENERAL(INFO, "[Call2] Contract balance (blockchain): " << oBal2);
-  BOOST_CHECK_MESSAGE(contrBal2 == oBal2 && contrBal2 == amount + amount2, "Balance mis-match after Donate2");
+  BOOST_CHECK_MESSAGE(contrBal2 == oBal2 && contrBal2 == amount + amount2,
+                      "Balance mis-match after Donate2");
 
   /* ------------------------------------------------------------------- */
 
@@ -194,15 +192,14 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   LOG_GENERAL(INFO, "[Call3] Owner balance: "
                         << AccountStore::GetInstance().GetBalance(ownerAddr));
-  LOG_GENERAL(INFO,
-              "[Call3] Donor1 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor1Addr));
-  LOG_GENERAL(INFO,
-              "[Call3] Donor2 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call3] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call3] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
   LOG_GENERAL(INFO, "[Call3] Contract balance (scilla): " << contrBal3);
   LOG_GENERAL(INFO, "[Call3] Contract balance (blockchain): " << oBal3);
-  BOOST_CHECK_MESSAGE(contrBal3 == contrBal2, "Balance mis-match after Donate3");
+  BOOST_CHECK_MESSAGE(contrBal3 == contrBal2,
+                      "Balance mis-match after Donate3");
 
   /* ------------------------------------------------------------------- */
 
@@ -230,18 +227,17 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   LOG_GENERAL(INFO, "[Call4] Owner balance: "
                         << AccountStore::GetInstance().GetBalance(ownerAddr));
-  LOG_GENERAL(INFO,
-              "[Call4] Donor1 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor1Addr));
-  LOG_GENERAL(INFO,
-              "[Call4] Donor2 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call4] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call4] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
   LOG_GENERAL(INFO, "[Call4] Contract balance (scilla): " << contrBal4);
   LOG_GENERAL(INFO, "[Call4] Contract balance (blockchain): " << oBal4);
-  BOOST_CHECK_MESSAGE(contrBal4 == contrBal3 && contrBal4 == oBal4, "Balance mis-match after GetFunds");
+  BOOST_CHECK_MESSAGE(contrBal4 == contrBal3 && contrBal4 == oBal4,
+                      "Balance mis-match after GetFunds");
 
   /* ------------------------------------------------------------------- */
-  
+
   // Donor1 ClaimsBack his funds. Succeeds.
   ScillaTestUtil::ScillaTest t5;
   if (!ScillaTestUtil::GetScillaTest(t5, "crowdfunding", 5)) {
@@ -266,22 +262,19 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   LOG_GENERAL(INFO, "[Call5] Owner balance: "
                         << AccountStore::GetInstance().GetBalance(ownerAddr));
-  LOG_GENERAL(INFO,
-              "[Call5] Donor1 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor1Addr));
-  LOG_GENERAL(INFO,
-              "[Call5] Donor2 balance: "
-                  << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call5] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call5] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
   LOG_GENERAL(INFO, "[Call5] Contract balance (scilla): " << contrBal4);
   LOG_GENERAL(INFO, "[Call5] Contract balance (blockchain): " << oBal4);
-  BOOST_CHECK_MESSAGE(contrBal5 == oBal5 &&  contrBal5 == contrBal4 - amount, "Balance mis-match after GetFunds");
+  BOOST_CHECK_MESSAGE(contrBal5 == oBal5 && contrBal5 == contrBal4 - amount,
+                      "Balance mis-match after GetFunds");
 
   /* ------------------------------------------------------------------- */
-
 }
 
 BOOST_AUTO_TEST_CASE(testPingPong) {
-
   KeyPair owner(priv1, {priv1}), ping(priv2, {priv2}), pong(priv3, {priv3});
   Address ownerAddr, pingAddr, pongAddr;
   uint64_t nonce = 0;
@@ -301,9 +294,10 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
 
   pingAddr = Account::GetAddressForContract(ownerAddr, nonce);
-  pongAddr = Account::GetAddressForContract(ownerAddr, nonce+1);
+  pongAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
 
-  LOG_GENERAL(INFO, "Ping Address: " << pingAddr << " ; PongAddress: " << pongAddr);
+  LOG_GENERAL(INFO,
+              "Ping Address: " << pingAddr << " ; PongAddress: " << pongAddr);
 
   /* ------------------------------------------------------------------- */
 
@@ -360,26 +354,26 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Set addresses of ping and pong in pong and ping respectively.
   std::vector<unsigned char> data;
   // Replace pong address in parameter of message.
-  for (auto it = t0ping.message["params"].begin(); it != t0ping.message["params"].end(); it++) {
-    if ((*it)["vname"] == "pongAddr")
-      (*it)["value"] = "0x" + pongAddr.hex();
+  for (auto it = t0ping.message["params"].begin();
+       it != t0ping.message["params"].end(); it++) {
+    if ((*it)["vname"] == "pongAddr") (*it)["value"] = "0x" + pongAddr.hex();
   }
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t0ping.message, data);
-  Transaction tx2(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE,
-                  5000, {}, data);
+  Transaction tx2(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
+                  {}, data);
   TransactionReceipt tr2;
   if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx2, tr2)) {
     nonce++;
   }
 
   // Replace ping address in paramter of message.
-  for (auto it = t0pong.message["params"].begin(); it != t0pong.message["params"].end(); it++) {
-    if ((*it)["vname"] == "pingAddr")
-      (*it)["value"] = "0x" + pingAddr.hex();
+  for (auto it = t0pong.message["params"].begin();
+       it != t0pong.message["params"].end(); it++) {
+    if ((*it)["vname"] == "pingAddr") (*it)["value"] = "0x" + pingAddr.hex();
   }
   amount = ScillaTestUtil::PrepareMessageData(t0pong.message, data);
-  Transaction tx3(1, nonce, pongAddr, owner, amount, PRECISION_MIN_VALUE,
-                  5000, {}, data);
+  Transaction tx3(1, nonce, pongAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
+                  {}, data);
   TransactionReceipt tr3;
   if (AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx3, tr3)) {
     nonce++;
@@ -397,8 +391,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   }
 
   ScillaTestUtil::PrepareMessageData(t1ping.message, data);
-  Transaction tx4(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE,
-                  5000, {}, data);
+  Transaction tx4(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
+                  {}, data);
   TransactionReceipt tr4;
   if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx4, tr4)) {
     nonce++;
@@ -408,14 +402,12 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Json::Value pingState = accountPing->GetStorageJson();
   int pingCount = -1;
   for (auto it = pingState.begin(); it != pingState.end(); it++) {
-    if ((*it)["vname"] == "count")
-      pingCount = atoi ((*it)["value"].asCString());
+    if ((*it)["vname"] == "count") pingCount = atoi((*it)["value"].asCString());
   }
   Json::Value pongState = accountPing->GetStorageJson();
   int pongCount = -1;
   for (auto it = pongState.begin(); it != pongState.end(); it++) {
-    if ((*it)["vname"] == "count")
-      pongCount = atoi ((*it)["value"].asCString());
+    if ((*it)["vname"] == "count") pongCount = atoi((*it)["value"].asCString());
   }
   BOOST_CHECK_MESSAGE(pingCount == 0 && pongCount == 0,
                       "Ping / Pong did not reach count 0.");
@@ -423,7 +415,6 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   LOG_GENERAL(INFO, "Ping and pong bounced back to reach 0. Successful.");
 
   /* ------------------------------------------------------------------- */
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()

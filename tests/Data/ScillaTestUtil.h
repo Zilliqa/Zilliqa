@@ -20,9 +20,9 @@
 #ifndef __SCILLATESTUTIL_H__
 #define __SCILLATESTUTIL_H__
 
-#include "libUtils/Logger.h"
-#include "libUtils/JsonUtils.h"
 #include "boost/multiprecision/cpp_int.hpp"
+#include "libUtils/JsonUtils.h"
+#include "libUtils/Logger.h"
 
 namespace ScillaTestUtil {
 
@@ -44,7 +44,8 @@ boost::multiprecision::uint128_t GetBalanceFromOutput(void);
 // Return BLOCKNUMBER in Json. Return 0 if not found.
 uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
 // Return the _amount in message.json. Remove that and _sender.
-uint64_t PrepareMessageData(Json::Value &message, std::vector<unsigned char> &data);
+uint64_t PrepareMessageData(Json::Value &message,
+                            std::vector<unsigned char> &data);
 // Remove _creation_block field from init JSON.
 bool RemoveCreationBlockFromInit(Json::Value &init);
 
