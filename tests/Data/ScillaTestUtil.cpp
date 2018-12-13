@@ -73,39 +73,37 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
 
 // Get _balance from output state of interpreter, from OUTPUT_JSON.
 // Return 0 on failure.
-uint128_t ScillaTestUtil::GetBalanceFromOutput(void)
-{
-    Json::Value iOutput;
-    if (!ScillaTestUtil::ParseJsonFile(iOutput, OUTPUT_JSON)) {
-      LOG_GENERAL(WARNING, "Unable to parse output of interpreter.");
-      return 0;
-    }
+uint128_t ScillaTestUtil::GetBalanceFromOutput(void) {
+  Json::Value iOutput;
+  if (!ScillaTestUtil::ParseJsonFile(iOutput, OUTPUT_JSON)) {
+    LOG_GENERAL(WARNING, "Unable to parse output of interpreter.");
+    return 0;
+  }
 
-    // Get balance as given by the interpreter.
-    uint128_t oBal = 0;
-    Json::Value states = iOutput["states"];
-    for (auto it = states.begin(); it != states.end(); it++) {
-      if ((*it)["vname"] == "_balance") oBal = atoi((*it)["value"].asCString());
-    }
+  // Get balance as given by the interpreter.
+  uint128_t oBal = 0;
+  Json::Value states = iOutput["states"];
+  for (auto it = states.begin(); it != states.end(); it++) {
+    if ((*it)["vname"] == "_balance") oBal = atoi((*it)["value"].asCString());
+  }
 
-    return oBal;
+  return oBal;
 }
 
 // Return BLOCKNUMBER in Json. Return 0 if not found.
-uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain)
-{
-    // Get blocknumber from blockchain.json
-    uint64_t bnum = 0;
-    for (auto it = blockchain.begin(); it != blockchain.end(); it++)
-      if ((*it)["vname"] == "BLOCKNUMBER")
-        bnum = atoi((*it)["value"].asCString());
+uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
+  // Get blocknumber from blockchain.json
+  uint64_t bnum = 0;
+  for (auto it = blockchain.begin(); it != blockchain.end(); it++)
+    if ((*it)["vname"] == "BLOCKNUMBER")
+      bnum = atoi((*it)["value"].asCString());
 
-    return bnum;
+  return bnum;
 }
 
 // Return the _amount in message.json. Remove that and _sender.
-uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, std::vector<unsigned char> &data)
-{
+uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message,
+                                            std::vector<unsigned char> &data) {
   uint64_t amount = atoi(message["_amount"].asCString());
   // Remove _amount and _sender as they will be automatically inserted.
   message.removeMember("_amount");
@@ -118,9 +116,8 @@ uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, std::vector<un
 }
 
 // Remove _creation_block field from init JSON.
-bool ScillaTestUtil::RemoveCreationBlockFromInit(Json::Value &init)
-{
-    int creation_block_index = -1;
+bool ScillaTestUtil::RemoveCreationBlockFromInit(Json::Value &init) {
+  int creation_block_index = -1;
   for (auto it = init.begin(); it != init.end(); it++) {
     if ((*it)["vname"] == "_creation_block")
       creation_block_index = it - init.begin();
