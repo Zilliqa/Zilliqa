@@ -833,7 +833,8 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
                        &DirectoryService::ProcessFinalBlockConsensus,
                        &DirectoryService::ProcessViewChangeConsensus,
                        &DirectoryService::ProcessGetDSTxBlockMessage,
-                       &DirectoryService::ProcessPoWPacketSubmission});
+                       &DirectoryService::ProcessPoWPacketSubmission,
+                       &DirectoryService::ProcessNewDSGuardNetworkInfo});
 
   const unsigned char ins_byte = message.at(offset);
 

@@ -246,7 +246,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool ProcessGetDSTxBlockMessage(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
   bool ProcessNewDSGuardNetworkInfo(const std::vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
+                                    unsigned int offset, const Peer& from);
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
