@@ -827,7 +827,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     // Now only forwarded txn are left, so only call in lookup
     CommitMBnForwardedTransactionBuffer();
     if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch &&
-        !m_mediator.GetIsVacuousEpoch()) {
+        !m_mediator.GetIsVacuousEpoch() &&
+        (((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
+          NUM_FINAL_BLOCK_PER_POW) == 0)) {
       auto func = [this]() mutable -> void {
         std::this_thread::sleep_for(
             chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
