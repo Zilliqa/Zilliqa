@@ -80,95 +80,109 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   donor2Addr = Account::GetAddressFromPublicKey(donor2.second);
 
   AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccount(donor1Addr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccount(donor2Addr, {2000000, nonce});
 
   contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
   LOG_GENERAL(INFO, "CrowdFunding Address: " << contrAddr);
 
-  {
-    // Deploying the contract can use data from the 1st Scilla test.
-    ScillaTestUtil::ScillaTest t1;
-    if (!ScillaTestUtil::GetScillaTest(t1, "crowdfunding", 1)) {
-      LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_1.");
-      return;
-    }
-
-    // Replace owner address in init.json.
-    // At the same time, find the index of _creation_block
-    int creation_block_index = -1;
-    for (auto it = t1.init.begin(); it != t1.init.end(); it++) {
-      if ((*it)["vname"] == "owner") (*it)["value"] = "0x" + ownerAddr.hex();
-      if ((*it)["vname"] == "_creation_block")
-        creation_block_index = it - t1.init.begin();
-    }
-    // Remove _creation_block from init.json as it will be inserted
-    // automatically.
-    if (creation_block_index >= 0) {
-      Json::Value dummy;
-      t1.init.removeIndex(Json::ArrayIndex(creation_block_index), &dummy);
-    }
-
-    // Get blocknumber from blockchain.json
-    uint64_t bnum = 0;
-    for (auto it = t1.blockchain.begin(); it != t1.blockchain.end(); it++)
-      if ((*it)["vname"] == "BLOCKNUMBER")
-        bnum = atoi((*it)["value"].asCString());
-
-    // Transaction to deploy contract.
-    std::string initStr = JSONUtils::convertJsontoStr(t1.init);
-    std::vector<unsigned char> data(initStr.begin(), initStr.end());
-    Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
-                    t1.code, data);
-    TransactionReceipt tr0;
-    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
-    Account* account = AccountStore::GetInstance().GetAccount(toAddress);
-    // We should now have a new account.
-    BOOST_CHECK_MESSAGE(account == nullptr,
-                        "Error with creation of contract account");
-    nonce++;
-
-    // Execute message_1, the Donate transaction.
-    uint64_t amount = atoi(t1.message["_amount"].asCString());
-    // Remove _amount and _sender as they will be automatically inserted.
-    t1.message.removeMember("_amount");
-    t1.message.removeMember("_sender");
-    std::string msgStr = JSONUtils::convertJsontoStr(t1.message);
-    std::vector<unsigned char> dataDonate(msgStr.begin(), msgStr.end());
-
-    Transaction tx1(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE,
-                    5000, {}, dataDonate);
-    TransactionReceipt tr1;
-    if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1)) {
-      nonce++;
-    }
-
-    Json::Value iOutput;
-    if (!ScillaTestUtil::ParseJsonFile(iOutput, OUTPUT_JSON)) {
-      LOG_GENERAL(WARNING, "Unable to parse output of interpreter.");
-      return;
-    }
-
-    uint128_t contrBal = AccountStore::GetInstance().GetBalance(contrAddr);
-    // Get balance as given by the interpreter.
-    uint128_t oBal = 0;
-    Json::Value states = iOutput["states"];
-    for (auto it = states.begin(); it != states.end(); it++) {
-      if ((*it)["vname"] == "_balance") oBal = atoi((*it)["value"].asCString());
-    }
-
-    LOG_GENERAL(INFO, "[Call1] Owner balance: "
-                          << AccountStore::GetInstance().GetBalance(ownerAddr));
-    LOG_GENERAL(INFO,
-                "[Call1] Donor1 balance: "
-                    << AccountStore::GetInstance().GetBalance(donor1Addr));
-    LOG_GENERAL(INFO,
-                "[Call1] Donor2 balance: "
-                    << AccountStore::GetInstance().GetBalance(donor2Addr));
-    LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
-    LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal);
-    BOOST_CHECK_MESSAGE(contrBal == oBal, "Balance mis-match after Donate");
-
-    // TODO: Do the other tests.
+  // Deploying the contract can use data from the 1st Scilla test.
+  ScillaTestUtil::ScillaTest t1;
+  if (!ScillaTestUtil::GetScillaTest(t1, "crowdfunding", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_1.");
+    return;
   }
+
+  // Replace owner address in init.json.
+  // At the same time, find the index of _creation_block
+  int creation_block_index = -1;
+  for (auto it = t1.init.begin(); it != t1.init.end(); it++) {
+    if ((*it)["vname"] == "owner") (*it)["value"] = "0x" + ownerAddr.hex();
+    if ((*it)["vname"] == "_creation_block")
+      creation_block_index = it - t1.init.begin();
+  }
+  // Remove _creation_block from init.json as it will be inserted
+  // automatically.
+  if (creation_block_index >= 0) {
+    Json::Value dummy;
+    t1.init.removeIndex(Json::ArrayIndex(creation_block_index), &dummy);
+  }
+
+  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
+
+  // Transaction to deploy contract.
+  std::string initStr = JSONUtils::convertJsontoStr(t1.init);
+  std::vector<unsigned char> data(initStr.begin(), initStr.end());
+  Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
+                  t1.code, data);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+  Account* account = AccountStore::GetInstance().GetAccount(toAddress);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(account == nullptr,
+                      "Error with creation of contract account");
+  nonce++;
+
+  // Execute message_1, the Donate transaction.
+  std::vector<unsigned char> dataDonate;
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataDonate);
+
+  Transaction tx1(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE,
+                  5000, {}, dataDonate);
+  TransactionReceipt tr1;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1)) {
+    nonce++;
+  }
+
+  uint128_t contrBal = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t oBal = ScillaTestUtil::GetBalanceFromOutput();
+
+  LOG_GENERAL(INFO, "[Call1] Owner balance: "
+                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+  LOG_GENERAL(INFO,
+              "[Call1] Donor1 balance: "
+                  << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO,
+              "[Call1] Donor2 balance: "
+                  << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
+  LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal);
+  BOOST_CHECK_MESSAGE(contrBal == oBal && contrBal == amount, "Balance mis-match after Donate");
+
+  // Do another donation from donor2
+  ScillaTestUtil::ScillaTest t2;
+  if (!ScillaTestUtil::GetScillaTest(t2, "crowdfunding", 2)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_2.");
+    return;
+  }
+
+  uint64_t bnum2 = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
+  // Execute message_2, the Donate transaction.
+  std::vector<unsigned char> dataDonate2;
+  uint64_t amount2= ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
+
+  Transaction tx2(1, nonce, contrAddr, donor2, amount2, PRECISION_MIN_VALUE,
+                  5000, {}, dataDonate2);
+  TransactionReceipt tr2;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum2, 1, true, tx2, tr2)) {
+    nonce++;
+  }
+
+  uint128_t contrBal2 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t oBal2 = ScillaTestUtil::GetBalanceFromOutput();
+
+  LOG_GENERAL(INFO, "[Call1] Owner balance: "
+                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+  LOG_GENERAL(INFO,
+              "[Call1] Donor1 balance: "
+                  << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO,
+              "[Call1] Donor2 balance: "
+                  << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal2);
+  LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal2);
+  BOOST_CHECK_MESSAGE(contrBal2 == oBal2 && contrBal2 == amount + amount2, "Balance mis-match after Donate2");
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
