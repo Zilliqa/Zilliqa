@@ -193,22 +193,22 @@
         </peer>
     </lookups>
     <upper_seed>
-    <!--
+        <!--
         <peer>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
-    -->
+        -->
     </upper_seed>
     <lower_seed>
-    <!--
-            <peer>
+        <!--
+        <peer>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
-    -->
+        -->
     </lower_seed>
     <ds_guard>
         <DSPUBKEY>02028CC4DEC0A756B42BD54905237B4E22FCC69D88CFEAA3797AEECF01D6A69E85</DSPUBKEY>
