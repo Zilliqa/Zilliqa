@@ -58,7 +58,6 @@ class ThreadPool {
         _bailout(false),
         _poolName(poolName),
         _jobAvailableVar(),
-        _waitVar(),
         _jobsLeftMutex(),
         _queueMutex() {
     _threads.reserve(threadCount);
@@ -92,7 +91,7 @@ class ThreadPool {
     ++_jobsLeft;
     _jobAvailableVar.notify_one();
 
-    if (0 == _jobsLeft % 10) {
+    if (0 == _jobsLeft % 100) {
       LOG_GENERAL(INFO, "PoolName: " << _poolName << " JobLeft: " << _jobsLeft);
     }
   }
@@ -124,15 +123,6 @@ class ThreadPool {
                                  << e.code() << " meaning " << e.what()
                                  << '\n');
       }
-    }
-  }
-
-  /// Waits for the pool to empty before continuing. This does not call
-  /// `std::thread::join`, it only waits until all jobs have finished executing.
-  void WaitAll() {
-    std::unique_lock<std::mutex> lock(_jobsLeftMutex);
-    if (_jobsLeft > 0) {
-      _waitVar.wait(lock, [this] { return _jobsLeft == 0; });
     }
   }
 
@@ -182,8 +172,6 @@ class ThreadPool {
         std::lock_guard<std::mutex> lock(_jobsLeftMutex);
         --_jobsLeft;
       }
-
-      _waitVar.notify_one();
     }
   }
 
@@ -198,7 +186,6 @@ class ThreadPool {
   bool _bailout;
   std::string _poolName;
   std::condition_variable _jobAvailableVar;
-  std::condition_variable _waitVar;
   std::mutex _jobsLeftMutex;
   std::mutex _queueMutex;
 };

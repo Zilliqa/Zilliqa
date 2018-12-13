@@ -109,7 +109,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
 
-    LOG_GENERAL(INFO, "Create Contract");
+    LOG_GENERAL(INFO, "Create contract");
 
     if (transaction.GetGasLimit() < CONTRACT_CREATE_GAS) {
       LOG_GENERAL(WARNING,
@@ -177,7 +177,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                           runnerPrint)) {
       ret = false;
     }
-    if (ret && !ParseCreateContractOutput(gasRemained, runnerPrint)) {
+    if (ret && !ParseCreateContract(gasRemained, runnerPrint)) {
       ret = false;
     }
     if (!ret) {
@@ -199,6 +199,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       receipt.update();
 
       this->IncreaseNonce(fromAddr);
+
+      LOG_GENERAL(
+          INFO,
+          "Create contract failed, but return true in order to change state");
 
       return true;  // Return true because the states already changed
     }
@@ -226,7 +230,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
   } else {
-    LOG_GENERAL(INFO, "Call Contract");
+    LOG_GENERAL(INFO, "Call contract");
 
     if (transaction.GetGasLimit() < CONTRACT_INVOKE_GAS) {
       LOG_GENERAL(WARNING,
@@ -289,7 +293,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       ret = false;
     }
 
-    if (ret && !ParseCallContractOutput(gasRemained, runnerPrint)) {
+    if (ret && !ParseCallContract(gasRemained, runnerPrint)) {
       ret = false;
     }
     if (!ret) {
@@ -322,6 +326,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       this->IncreaseNonce(fromAddr);
 
+      LOG_GENERAL(
+          INFO,
+          "Call contract failed, but return true in order to change state");
+
       return true;  // Return true because the states already changed
     }
   }
@@ -330,6 +338,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   receipt.SetResult(true);
   receipt.update();
+
+  if (transaction.GetCode().size() > 0 || callContract) {
+    LOG_GENERAL(INFO, "Executing contract transaction finished");
+  }
 
   return true;
 }
@@ -487,8 +499,18 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
 }
 
 template <class MAP>
+bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
+                                              const std::string& runnerPrint) {
+  Json::Value jsonOutput;
+  if (!ParseCreateContractOutput(jsonOutput, runnerPrint)) {
+    return false;
+  }
+  return ParseCreateContractJsonOutput(jsonOutput, gasRemained);
+}
+
+template <class MAP>
 bool AccountStoreSC<MAP>::ParseCreateContractOutput(
-    uint64_t& gasRemained, const std::string& runnerPrint) {
+    Json::Value& jsonOutput, const std::string& runnerPrint) {
   // LOG_MARKER();
 
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
@@ -512,12 +534,11 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
 
   Json::CharReaderBuilder builder;
   std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  Json::Value root;
   std::string errors;
 
-  if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
+  if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &jsonOutput,
                     &errors)) {
-    return ParseCreateContractJsonOutput(root, gasRemained);
+    return true;
   }
   LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
   return false;
@@ -564,8 +585,18 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
 }
 
 template <class MAP>
+bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
+                                            const std::string& runnerPrint) {
+  Json::Value jsonOutput;
+  if (!ParseCallContractOutput(jsonOutput, runnerPrint)) {
+    return false;
+  }
+  return ParseCallContractJsonOutput(jsonOutput, gasRemained);
+}
+
+template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractOutput(
-    uint64_t& gasRemained, const std::string& runnerPrint) {
+    Json::Value& jsonOutput, const std::string& runnerPrint) {
   // LOG_MARKER();
 
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
@@ -589,12 +620,11 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 
   Json::CharReaderBuilder builder;
   std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  Json::Value root;
   std::string errors;
 
-  if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &root,
+  if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &jsonOutput,
                     &errors)) {
-    return ParseCallContractJsonOutput(root, gasRemained);
+    return true;
   }
   LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
   return false;
@@ -762,9 +792,9 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
   Address t_address = m_curContractAddr;
   m_curContractAddr = recipient;
-  if (!ParseCallContractOutput(gasRemained, runnerPrint)) {
-    LOG_GENERAL(WARNING, "ParseCallContractOutput failed of calling contract: "
-                             << recipient);
+  if (!ParseCallContract(gasRemained, runnerPrint)) {
+    LOG_GENERAL(WARNING,
+                "ParseCallContract failed of calling contract: " << recipient);
     return false;
   }
   this->IncreaseNonce(t_address);

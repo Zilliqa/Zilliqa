@@ -87,6 +87,7 @@ enum SyncType : unsigned int {
   DS_SYNC,
   LOOKUP_SYNC,
   RECOVERY_ALL_SYNC,
+  NEW_LOOKUP_SYNC
 };
 
 const std::string RAND1_GENESIS =
@@ -226,6 +227,7 @@ extern const unsigned int POW_CHANGE_PERCENT_TO_ADJ_DIFF;
 extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
+extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
 
 // Recovery and upgrading constants
 extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;

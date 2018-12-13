@@ -443,7 +443,8 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 
 // Check microblock hashes
 bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
-                                        bool fromShards) {
+                                        bool fromShards,
+                                        bool generateErrorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckMicroBlocks not expected to "
@@ -483,39 +484,24 @@ bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
     }
   }
 
-  m_numOfAbsentMicroBlocks = 0;
-  int offset = 0;
-
   if (!m_missingMicroBlocks[m_mediator.m_currentEpochNum].empty()) {
     if (fromShards) {
       LOG_GENERAL(INFO, "Only check for microblocks from shards, failed");
       return false;
     }
 
-    for (auto const& hash :
-         m_missingMicroBlocks[m_mediator.m_currentEpochNum]) {
-      if (errorMsg.empty()) {
-        errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t) + BLOCK_HASH_SIZE);
-        offset += (sizeof(uint32_t) + sizeof(uint64_t));
-      } else {
-        errorMsg.resize(offset + BLOCK_HASH_SIZE);
+    if (generateErrorMsg) {
+      if (!Messenger::SetDSMissingMicroBlocksErrorMsg(
+              errorMsg, 0, m_missingMicroBlocks[m_mediator.m_currentEpochNum],
+              m_mediator.m_currentEpochNum,
+              m_mediator.m_selfPeer.m_listenPortHost)) {
+        LOG_GENERAL(WARNING,
+                    "Messenger::SetDSMissingMicroBlocksErrorMsg failed.");
+        return false;
       }
-      copy(hash.asArray().begin(), hash.asArray().end(),
-           errorMsg.begin() + offset);
-      offset += BLOCK_HASH_SIZE;
 
-      m_numOfAbsentMicroBlocks++;
+      LOG_PAYLOAD(INFO, "ErrorMsg generated:", errorMsg, 200);
     }
-
-    if (m_numOfAbsentMicroBlocks > 0) {
-      Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentMicroBlocks,
-                                        sizeof(uint32_t));
-      Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
-                                        m_mediator.m_currentEpochNum,
-                                        sizeof(uint64_t));
-    }
-
-    LOG_PAYLOAD(INFO, "ErrorMsg generated:", errorMsg, 200);
 
     // AccountStore::GetInstance().InitTemp();
     // LOG_GENERAL(WARNING, "Got missing microblocks, revert state delta");
@@ -653,22 +639,14 @@ bool DirectoryService::OnNodeFinalConsensusError(
 
   LOG_MARKER();
 
-  unsigned int offset = 0;
-
   if (errorMsg.size() < sizeof(unsigned char)) {
     LOG_GENERAL(WARNING, "Malformed Message");
     LOG_PAYLOAD(INFO, "errorMsg from " << from, errorMsg, 200);
-    LOG_GENERAL(INFO, "MsgSize: " << errorMsg.size() << " expected size: "
-                                  << sizeof(unsigned char) + offset);
     return false;
   }
 
-  unsigned char type = errorMsg[0];
-  offset += sizeof(unsigned char);
-
-  vector<unsigned char> t_errorMsg;
-  std::copy(errorMsg.begin() + offset, errorMsg.end(),
-            back_inserter(t_errorMsg));
+  const unsigned char type = errorMsg[0];
+  const unsigned int offset = sizeof(unsigned char);
 
   switch (type) {
     case FINALCONSENSUSERRORTYPE::CHECKMICROBLOCK: {
@@ -677,7 +655,7 @@ bool DirectoryService::OnNodeFinalConsensusError(
     }
     case FINALCONSENSUSERRORTYPE::DSMBMISSINGTXN: {
       LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
-      return m_mediator.m_node->OnNodeMissingTxns(t_errorMsg, from);
+      return m_mediator.m_node->OnNodeMissingTxns(errorMsg, offset, from);
     }
     case FINALCONSENSUSERRORTYPE::CHECKFINALBLOCK: {
       LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
@@ -685,7 +663,7 @@ bool DirectoryService::OnNodeFinalConsensusError(
     }
     case FINALCONSENSUSERRORTYPE::DSFBMISSINGMB: {
       LOG_GENERAL(INFO, "ErrorType: " << CHECKMICROBLOCK);
-      return OnNodeMissingMicroBlocks(t_errorMsg, from);
+      return OnNodeMissingMicroBlocks(errorMsg, offset, from);
     }
     default:
       LOG_GENERAL(WARNING, "Wrong Consensus Error Type: " << type);
@@ -694,7 +672,8 @@ bool DirectoryService::OnNodeFinalConsensusError(
 }
 
 bool DirectoryService::OnNodeMissingMicroBlocks(
-    const std::vector<unsigned char>& errorMsg, const Peer& from) {
+    const std::vector<unsigned char>& errorMsg, const unsigned int offset,
+    const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::OnNodeMissingMicroBlocks not expected "
@@ -704,42 +683,17 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
 
   LOG_MARKER();
 
-  unsigned int offset = 0;
+  vector<BlockHash> missingMicroBlocks;
+  uint64_t epochNum = 0;
+  uint32_t portNo = 0;
 
-  if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset) {
-    LOG_GENERAL(WARNING, "Malformed Message");
-    LOG_PAYLOAD(INFO, "errorMsg from " << from, errorMsg, 200);
-    LOG_GENERAL(INFO,
-                "MsgSize: " << errorMsg.size() << " expected size: "
-                            << sizeof(uint32_t) + sizeof(uint64_t) + offset);
-
+  if (!Messenger::GetDSMissingMicroBlocksErrorMsg(
+          errorMsg, offset, missingMicroBlocks, epochNum, portNo)) {
+    LOG_GENERAL(WARNING, "Messenger::GetDSMissingMicroBlocksErrorMsg failed.");
     return false;
   }
 
-  uint32_t numOfAbsentHashes =
-      Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
-  offset += sizeof(uint32_t);
-
-  uint64_t epochNum =
-      Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
-  offset += sizeof(uint64_t);
-
-  vector<BlockHash> missingMicroBlocks;
-
-  for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
-    BlockHash hash;
-    copy(errorMsg.begin() + offset, errorMsg.begin() + offset + BLOCK_HASH_SIZE,
-         hash.asArray().begin());
-    offset += BLOCK_HASH_SIZE;
-
-    missingMicroBlocks.emplace_back(hash);
-  }
-
-  uint32_t portNo =
-      Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
-
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer peer(ipAddr, portNo);
+  Peer peer(from.m_ipAddress, portNo);
 
   lock_guard<mutex> g(m_mutexMicroBlocks);
 
@@ -748,14 +702,14 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
   vector<MicroBlock> microBlocksSent;
   vector<vector<unsigned char>> stateDeltasSent;
 
-  for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
+  for (const auto& hash : missingMicroBlocks) {
     bool found = false;
     // O(n^2) might be fine since number of shards is low
     // If its slow on benchmarking, may be first populate an unordered_set and
     // then std::find
     auto microBlockIter = microBlocks.begin();
     for (; microBlockIter != microBlocks.end(); microBlockIter++) {
-      if (microBlockIter->GetBlockHash() == missingMicroBlocks[i]) {
+      if (microBlockIter->GetBlockHash() == hash) {
         found = true;
         break;
       }
@@ -767,8 +721,8 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
     }
 
     if (!found) {
-      LOG_GENERAL(WARNING, "cannot find missing microblock: (hash)"
-                               << missingMicroBlocks[i].hex());
+      LOG_GENERAL(WARNING,
+                  "cannot find missing microblock: (hash)" << hash.hex());
       continue;
     }
 
@@ -994,13 +948,12 @@ bool DirectoryService::CheckFinalBlockValidity(
     return true;
   }
 
-  if (CheckBlockHash() && CheckBlockTypeIsFinal() && CheckFinalBlockVersion() &&
-      CheckFinalBlockNumber() && CheckPreviousFinalBlockHash() &&
-      CheckFinalBlockTimestamp() && CheckMicroBlocks(errorMsg) &&
-      CheckLegitimacyOfMicroBlocks() && CheckMicroBlockInfo() &&
-      CheckStateRoot() && CheckStateDeltaHash()) {
-    return true;
-  }
+  return CheckBlockHash() && CheckBlockTypeIsFinal() &&
+         CheckFinalBlockVersion() && CheckFinalBlockNumber() &&
+         CheckPreviousFinalBlockHash() && CheckFinalBlockTimestamp() &&
+         CheckMicroBlocks(errorMsg, false, true) &&
+         CheckLegitimacyOfMicroBlocks() && CheckMicroBlockInfo() &&
+         CheckStateRoot() && CheckStateDeltaHash();
 
   // TODO: Check gas limit (must satisfy some equations)
   // TODO: Check gas used (must be <= gas limit)
@@ -1009,11 +962,6 @@ bool DirectoryService::CheckFinalBlockValidity(
   // DS blockchain)
   // TODO: Check parent DS block number (must be = block number of last DS block
   // header in the DS blockchain)
-
-  Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
-                                    m_mediator.m_selfPeer.m_listenPortHost,
-                                    sizeof(uint32_t));
-  return false;
 }
 
 bool DirectoryService::CheckMicroBlockValidity(
@@ -1049,9 +997,6 @@ bool DirectoryService::CheckMicroBlockValidity(
 
   if (!ret) {
     m_mediator.m_node->m_microblock = nullptr;
-    Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
   } else {
     m_microBlocks[m_mediator.m_currentEpochNum].emplace(
         *(m_mediator.m_node->m_microblock));
@@ -1090,8 +1035,9 @@ bool DirectoryService::FinalBlockValidator(
   }
 
   vector<unsigned char> t_errorMsg;
-  if (CheckMicroBlocks(t_errorMsg, true)) {  // Firstly check whether the leader
-                                             // has any mb that I don't have
+  if (CheckMicroBlocks(t_errorMsg, true,
+                       false)) {  // Firstly check whether the leader
+                                  // has any mb that I don't have
     if (m_mediator.m_node->m_microblock != nullptr && m_needCheckMicroBlock) {
       if (!CheckMicroBlockValidity(errorMsg)) {
         LOG_GENERAL(WARNING,

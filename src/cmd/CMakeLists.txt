@@ -44,5 +44,20 @@ add_custom_command(TARGET zilliqa
 target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto ${G3LOG_INCLUDE_DIRS})
 target_link_libraries(gensigninitialds PUBLIC Utils Persistence g3logger)
 
+
 add_executable(grepperf grepperf.cpp)
 target_include_directories(grepperf PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
+add_executable(getaddr GetAddressFromPubKey.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getaddr> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(getaddr PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto ${G3LOG_INCLUDE_DIRS})
+target_link_libraries(getaddr PUBLIC Crypto)
+
+add_executable(getpub GetPubKeyFromPrivKey.cpp)
+add_custom_command(TARGET zilliqa
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
+target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto ${G3LOG_INCLUDE_DIRS})
+target_link_libraries(getpub PUBLIC Crypto)

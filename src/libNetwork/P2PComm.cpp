@@ -41,6 +41,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -549,17 +550,26 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   const uint32_t messageLength =
       (message[2] << 24) + (message[3] << 16) + (message[4] << 8) + message[5];
 
-  // Check for length consistency
-  if (messageLength != message.size() - HDR_LEN) {
-    LOG_GENERAL(WARNING, "Incorrect message length.");
-    return;
+  {
+    // Check for length consistency
+    uint32_t res;
+
+    if (!SafeMath<uint32_t>::sub(message.size(), HDR_LEN, res)) {
+      LOG_GENERAL(WARNING, "Unexpected subtraction operation!");
+      return;
+    }
+
+    if (messageLength != res) {
+      LOG_GENERAL(WARNING, "Incorrect message length.");
+      return;
+    }
   }
 
   if (startByte == START_BYTE_BROADCAST) {
     LOG_PAYLOAD(INFO, "Incoming broadcast message from " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
-    if ((messageLength - HDR_LEN) <= HASH_LEN) {
+    if (messageLength <= HASH_LEN) {
       LOG_GENERAL(WARNING,
                   "Hash missing or empty broadcast message (messageLength = "
                       << messageLength << ")");
@@ -660,21 +670,6 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
   };
   DetachedFunction(1, funcCheckSendQueue);
 
-  int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (serv_sock < 0) {
-    LOG_GENERAL(WARNING, "Socket creation failed. Code = "
-                             << errno << " Desc: " << std::strerror(errno));
-    return;
-  }
-
-  int enable = 1;
-  if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) <
-      0) {
-    LOG_GENERAL(WARNING, "Socket set option SO_REUSEADDR failed. Code = "
-                             << errno << " Desc: " << std::strerror(errno));
-    return;
-  }
-
   m_dispatcher = dispatcher;
   m_broadcast_list_retriever = broadcast_list_retriever;
 
@@ -686,10 +681,24 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
 
   // Create the listener
   struct event_base* base = event_base_new();
+  if (base == NULL) {
+    LOG_GENERAL(WARNING, "event_base_new failure.");
+    // fixme: should we exit here?
+    return;
+  }
+
   struct evconnlistener* listener = evconnlistener_new_bind(
       base, AcceptConnectionCallback, nullptr,
       LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
       (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
+
+  if (listener == NULL) {
+    LOG_GENERAL(WARNING, "evconnlistener_new_bind failure.");
+    event_base_free(base);
+    // fixme: should we exit here?
+    return;
+  }
+
   event_base_dispatch(base);
   evconnlistener_free(listener);
   event_base_free(base);
