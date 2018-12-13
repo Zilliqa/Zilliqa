@@ -3444,6 +3444,13 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
     return true;
   }
 
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to process request to update ds "
+                "guard network info.");
+    return false;
+  }
+
   LOG_MARKER();
 
   uint32_t portNo = 0;

@@ -762,7 +762,7 @@ class Messenger {
       PubKey& lookupPubKey);
 
   // ============================================================================
-  // DS Guard network identity update
+  // DS Guard network information update
   // ============================================================================
 
   static bool SetDSLookupNewDSGuardNetworkInfo(
