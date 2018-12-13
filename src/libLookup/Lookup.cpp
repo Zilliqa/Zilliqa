@@ -3174,7 +3174,14 @@ void Lookup::SenderTxnBatchThread() {
   }
   LOG_MARKER();
 
+  if (m_startedTxnBatchThread) {
+    LOG_GENERAL(WARNING,
+                "The last TxnBatchThread hasn't finished, discard this time");
+    return;
+  }
+
   auto main_func = [this]() mutable -> void {
+    m_startedTxnBatchThread = true;
     uint32_t numShards = 0;
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
@@ -3190,6 +3197,7 @@ void Lookup::SenderTxnBatchThread() {
       }
       break;
     }
+    m_startedTxnBatchThread = false;
   };
   DetachedFunction(1, main_func);
 }
