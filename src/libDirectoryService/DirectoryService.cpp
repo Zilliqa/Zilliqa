@@ -40,6 +40,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -763,11 +764,23 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   if (!(epochNumber <= hiCurrentDSEpochNumber + 1 &&
         epochNumber >= loCurrentDSEpochNumber - 1)) {
     LOG_GENERAL(WARNING,
-                "Update of network failure due to not within range of expected "
+                "Update of ds guard network info failure due to not within "
+                "range of expected "
                 "ds epoch loCurrentDSEpochNumber: "
                     << loCurrentDSEpochNumber
                     << " hiCurrentDSEpochNumber: " << hiCurrentDSEpochNumber
                     << " epochNumber: " << epochNumber);
+    return false;
+  }
+
+  // Check timestamp
+  // Allowed only 5 mins. Else consider it obselete.
+  uint64_t allowableTimeForDSNodeNetworkInfoUpdate = 300;
+  if (!VerifyTimestamp(timestamp, allowableTimeForDSNodeNetworkInfoUpdate)) {
+    LOG_GENERAL(WARNING, timestamp << "exceeded "
+                                   << allowableTimeForDSNodeNetworkInfoUpdate
+                                   << " seconds. Current time is "
+                                   << get_time_as_int());
     return false;
   }
 
