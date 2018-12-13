@@ -259,7 +259,7 @@ extern const unsigned int FALLBACK_TEST_EPOCH;
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 
 // Transaction constants
-extern const unsigned int COINBASE_REWARD;
+extern const boost::multiprecision::uint128_t COINBASE_REWARD;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
 extern const unsigned int MAX_CONTRACT_DEPTH;
