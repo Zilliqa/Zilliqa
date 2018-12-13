@@ -1787,8 +1787,10 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       // To-do: Error recovery
     }
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Unknown instruction byte " << hex << (unsigned int)ins_byte
+                                          << " from " << from);
+    LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
   }
 
   return result;

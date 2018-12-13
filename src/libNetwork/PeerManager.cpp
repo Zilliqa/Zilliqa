@@ -234,8 +234,10 @@ bool PeerManager::Execute(const vector<unsigned char>& message,
       // To-do: Error recovery
     }
   } else {
-    LOG_GENERAL(INFO, "Unknown instruction byte " << std::hex
-                                                  << (unsigned int)ins_byte);
+    LOG_GENERAL(WARNING, "Unknown instruction byte "
+                             << std::hex << (unsigned int)ins_byte << " from "
+                             << from);
+    LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
   }
 
   return result;
