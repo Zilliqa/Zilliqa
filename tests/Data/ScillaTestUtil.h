@@ -20,7 +20,9 @@
 #ifndef __SCILLATESTUTIL_H__
 #define __SCILLATESTUTIL_H__
 
+#include "libUtils/Logger.h"
 #include "libUtils/JsonUtils.h"
+#include "boost/multiprecision/cpp_int.hpp"
 
 namespace ScillaTestUtil {
 
@@ -36,6 +38,14 @@ struct ScillaTest {
 bool ParseJsonFile(Json::Value &j, std::string filename);
 // Get ScillaTest for contract "name" and test numbered "i".
 bool GetScillaTest(ScillaTest &t, std::string contrName, unsigned int i);
+// Get _balance from output state of interpreter, from OUTPUT_JSON.
+// Return 0 on failure.
+boost::multiprecision::uint128_t GetBalanceFromOutput(void);
+// Return BLOCKNUMBER in Json. Return 0 if not found.
+uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
+// Return the _amount in message.json. Remove that and _sender.
+uint64_t PrepareMessageData(Json::Value &message, std::vector<unsigned char> &data);
+
 
 }  // end namespace ScillaTestUtil
 
