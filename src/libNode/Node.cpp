@@ -1538,6 +1538,13 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
 }
 
 void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to query from lookup for ds guard "
+                "network information update.");
+    return;
+  }
+
   LOG_MARKER();
   vector<unsigned char> queryLookupForDSGuardNetworkInfoUpdate = {
       MessageType::LOOKUP,
@@ -1566,6 +1573,13 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
         "Node::ProcessDSGuardNetworkInfoUpdate not expected to be called from "
         "LookUp node.");
     return true;
+  }
+
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to process from lookup for ds guard "
+                "network information update.");
+    return false;
   }
 
   if (!m_requestedForDSGuardNetworkInfoUpdate) {
