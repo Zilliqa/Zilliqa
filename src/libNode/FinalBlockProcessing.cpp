@@ -384,7 +384,9 @@ void Node::BeginNextConsensusRound() {
 
   ScheduleMicroBlockConsensus();
 
-  CommitTxnPacketBuffer();
+  if (!m_mediator.GetIsVacuousEpoch()) {
+    CommitTxnPacketBuffer();
+  }
 }
 
 bool Node::FindTxnInProcessedTxnsList(
@@ -824,8 +826,14 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 
     // Now only forwarded txn are left, so only call in lookup
     CommitMBnForwardedTransactionBuffer();
-    if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch) {
-      m_mediator.m_lookup->SenderTxnBatchThread();
+    if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch &&
+        !m_mediator.GetIsVacuousEpoch()) {
+      auto func = [this]() mutable -> void {
+        std::this_thread::sleep_for(
+            chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
+        m_mediator.m_lookup->SenderTxnBatchThread();
+      };
+      DetachedFunction(1, func);
     }
   }
 

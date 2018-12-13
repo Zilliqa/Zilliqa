@@ -623,7 +623,12 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     ResetConsensusId();
 
     if (m_mediator.m_lookup->GetIsServer()) {
-      m_mediator.m_lookup->SenderTxnBatchThread();
+      auto func = [this]() mutable -> void {
+        std::this_thread::sleep_for(
+            chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+        m_mediator.m_lookup->SenderTxnBatchThread();
+      };
+      DetachedFunction(1, func);
     }
 
     FallbackTimerLaunch();
