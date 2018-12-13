@@ -132,7 +132,7 @@ def run_prestart(numdsnodes, guard_mode=False):
 		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
-		keypairs.append(output)
+		keypairs.append(output.strip())
 	keypairs.sort()
 
 	# Use pre generated key for guard mode in local testing

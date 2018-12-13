@@ -189,6 +189,18 @@ class Messenger {
       std::unordered_map<Address, boost::multiprecision::int256_t>& accountMap);
 
   // ============================================================================
+  // Peer Manager messages
+  // ============================================================================
+
+  static bool SetPMHello(std::vector<unsigned char>& dst,
+                         const unsigned int offset,
+                         const std::pair<PrivKey, PubKey>& key,
+                         const uint32_t listenPort);
+  static bool GetPMHello(const std::vector<unsigned char>& src,
+                         const unsigned int offset, PubKey& pubKey,
+                         uint32_t& listenPort);
+
+  // ============================================================================
   // Directory Service messages
   // ============================================================================
 
