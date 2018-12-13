@@ -147,7 +147,7 @@ extern const unsigned int POW_SUBMISSION_TIMEOUT;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
 extern const unsigned int RECOVERY_SYNC_TIMEOUT;
 extern const unsigned int TX_DISTRIBUTE_TIME_IN_MS;
-extern const unsigned int NEW_LOOKUP_SYNC_DELAY;
+extern const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS;
 
 // Fallback constants
 extern const bool ENABLE_FALLBACK;
