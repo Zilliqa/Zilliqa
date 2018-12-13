@@ -45,7 +45,8 @@ boost::multiprecision::uint128_t GetBalanceFromOutput(void);
 uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
 // Return the _amount in message.json. Remove that and _sender.
 uint64_t PrepareMessageData(Json::Value &message, std::vector<unsigned char> &data);
-
+// Remove _creation_block field from init JSON.
+bool RemoveCreationBlockFromInit(Json::Value &init);
 
 }  // end namespace ScillaTestUtil
 

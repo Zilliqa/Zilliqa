@@ -94,19 +94,11 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   }
 
   // Replace owner address in init.json.
-  // At the same time, find the index of _creation_block
-  int creation_block_index = -1;
   for (auto it = t1.init.begin(); it != t1.init.end(); it++) {
     if ((*it)["vname"] == "owner") (*it)["value"] = "0x" + ownerAddr.hex();
-    if ((*it)["vname"] == "_creation_block")
-      creation_block_index = it - t1.init.begin();
   }
-  // Remove _creation_block from init.json as it will be inserted
-  // automatically.
-  if (creation_block_index >= 0) {
-    Json::Value dummy;
-    t1.init.removeIndex(Json::ArrayIndex(creation_block_index), &dummy);
-  }
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
 
   uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
 
@@ -289,6 +281,148 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 }
 
 BOOST_AUTO_TEST_CASE(testPingPong) {
+
+  KeyPair owner(priv1, {priv1}), ping(priv2, {priv2}), pong(priv3, {priv3});
+  Address ownerAddr, pingAddr, pongAddr;
+  uint64_t nonce = 0;
+
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+
+  pingAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  pongAddr = Account::GetAddressForContract(ownerAddr, nonce+1);
+
+  LOG_GENERAL(INFO, "Ping Address: " << pingAddr << " ; PongAddress: " << pongAddr);
+
+  /* ------------------------------------------------------------------- */
+
+  // Deploying the contract can use data from the 0th Scilla test.
+  ScillaTestUtil::ScillaTest t0ping;
+  if (!ScillaTestUtil::GetScillaTest(t0ping, "ping", 0)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test ping_0.");
+    return;
+  }
+
+  uint64_t bnumPing = ScillaTestUtil::GetBlockNumberFromJson(t0ping.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(t0ping.init);
+
+  // Transaction to deploy ping.
+  std::string initStrPing = JSONUtils::convertJsontoStr(t0ping.init);
+  std::vector<unsigned char> dataPing(initStrPing.begin(), initStrPing.end());
+  Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
+                  t0ping.code, dataPing);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx0, tr0);
+  Account* accountPing = AccountStore::GetInstance().GetAccount(pingAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountPing != nullptr,
+                      "Error with creation of ping account");
+  nonce++;
+
+  // Deploying the contract can use data from the 0th Scilla test.
+  ScillaTestUtil::ScillaTest t0pong;
+  if (!ScillaTestUtil::GetScillaTest(t0pong, "pong", 0)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test pong_0.");
+    return;
+  }
+
+  uint64_t bnumPong = ScillaTestUtil::GetBlockNumberFromJson(t0pong.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(t0pong.init);
+
+  // Transaction to deploy pong.
+  std::string initStrPong = JSONUtils::convertJsontoStr(t0pong.init);
+  std::vector<unsigned char> dataPong(initStrPong.begin(), initStrPong.end());
+  Transaction tx1(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
+                  t0pong.code, dataPong);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx1, tr1);
+  Account* accountPong = AccountStore::GetInstance().GetAccount(pongAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountPong != nullptr,
+                      "Error with creation of pong account");
+  nonce++;
+
+  LOG_GENERAL(INFO, "Deployed ping and pong contracts.");
+
+  /* ------------------------------------------------------------------- */
+
+  // Set addresses of ping and pong in pong and ping respectively.
+  std::vector<unsigned char> data;
+  // Replace pong address in parameter of message.
+  for (auto it = t0ping.message["params"].begin(); it != t0ping.message["params"].end(); it++) {
+    if ((*it)["vname"] == "pongAddr")
+      (*it)["value"] = "0x" + pongAddr.hex();
+  }
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(t0ping.message, data);
+  Transaction tx2(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE,
+                  5000, {}, data);
+  TransactionReceipt tr2;
+  if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx2, tr2)) {
+    nonce++;
+  }
+
+  // Replace ping address in paramter of message.
+  for (auto it = t0pong.message["params"].begin(); it != t0pong.message["params"].end(); it++) {
+    if ((*it)["vname"] == "pingAddr")
+      (*it)["value"] = "0x" + pingAddr.hex();
+  }
+  amount = ScillaTestUtil::PrepareMessageData(t0pong.message, data);
+  Transaction tx3(1, nonce, pongAddr, owner, amount, PRECISION_MIN_VALUE,
+                  5000, {}, data);
+  TransactionReceipt tr3;
+  if (AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx3, tr3)) {
+    nonce++;
+  }
+
+  LOG_GENERAL(INFO, "Finished setting ping-pong addresses in both contracts.");
+
+  /* ------------------------------------------------------------------- */
+
+  // Let's just ping now and see the ping-pong bounces.
+  ScillaTestUtil::ScillaTest t1ping;
+  if (!ScillaTestUtil::GetScillaTest(t1ping, "ping", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test ping_1.");
+    return;
+  }
+
+  ScillaTestUtil::PrepareMessageData(t1ping.message, data);
+  Transaction tx4(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE,
+                  5000, {}, data);
+  TransactionReceipt tr4;
+  if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx4, tr4)) {
+    nonce++;
+  }
+
+  // Fetch the states of both ping and pong and verify "count" is 0.
+  Json::Value pingState = accountPing->GetStorageJson();
+  int pingCount = -1;
+  for (auto it = pingState.begin(); it != pingState.end(); it++) {
+    if ((*it)["vname"] == "count")
+      pingCount = atoi ((*it)["value"].asCString());
+  }
+  Json::Value pongState = accountPing->GetStorageJson();
+  int pongCount = -1;
+  for (auto it = pongState.begin(); it != pongState.end(); it++) {
+    if ((*it)["vname"] == "count")
+      pongCount = atoi ((*it)["value"].asCString());
+  }
+  BOOST_CHECK_MESSAGE(pingCount == 0 && pongCount == 0,
+                      "Ping / Pong did not reach count 0.");
+
+  LOG_GENERAL(INFO, "Ping and pong bounced back to reach 0. Successful.");
+
+  /* ------------------------------------------------------------------- */
 
 }
 
