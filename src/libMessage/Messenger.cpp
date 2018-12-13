@@ -114,9 +114,12 @@ void NumberToArray(const T& number, vector<unsigned char>& dst,
 }
 
 template <class K, class V>
-bool copyWithSizeCheck(const K& arr, V& result) {
+bool CopyWithSizeCheck(const K& arr, V& result) {
+  LOG_MARKER();
+
   // Fixed length copying.
   if (arr.size() != result.max_size()) {
+    LOG_GENERAL(WARNING, "Size check while copying failed");
     return false;
   }
 
@@ -170,10 +173,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     account.SetCode(tmpVec);
 
     dev::h256 tmpHash;
-    if (!copyWithSizeCheck(protoAccount.codehash(), tmpHash.asArray())) {
-      LOG_GENERAL(WARNING, "Code hash size "
-                               << protoAccount.codehash().size() << " is not "
-                               << tmpHash.asArray().max_size() << " bytes");
+    if (!CopyWithSizeCheck(protoAccount.codehash(), tmpHash.asArray())) {
       return false;
     }
 
@@ -197,10 +197,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     }
 
     for (const auto& entry : protoAccount.storage()) {
-      if (!copyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
-        LOG_GENERAL(WARNING, "Key hash size "
-                                 << entry.keyhash().size() << " is not "
-                                 << tmpHash.asArray().max_size() << " bytes");
+      if (!CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
         return false;
       }
 
@@ -331,10 +328,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       dev::h256 tmpHash;
 
       for (const auto& entry : protoAccount.storage()) {
-        if (!copyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
-          LOG_GENERAL(WARNING, "Key hash size "
-                                   << entry.keyhash().size() << " is not "
-                                   << tmpHash.asArray().max_size() << " bytes");
+        if (!CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
           return false;
         }
 
@@ -456,10 +450,7 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
 
   // Deserialize the block hash
   BlockHash blockHash;
-  if (!copyWithSizeCheck(protoBlockBase.blockhash(), blockHash.asArray())) {
-    LOG_GENERAL(WARNING, "Block hash size "
-                             << protoBlockBase.blockhash().size() << " is not "
-                             << blockHash.asArray().max_size() << " bytes");
+  if (!CopyWithSizeCheck(protoBlockBase.blockhash(), blockHash.asArray())) {
     return;
   }
   base.SetBlockHash(blockHash);
@@ -834,11 +825,7 @@ void ProtobufToDSBlockHeader(
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
-  if (!copyWithSizeCheck(protoDSBlockHeader.prevhash(), prevHash.asArray())) {
-    LOG_GENERAL(WARNING, "Prev hash size "
-                             << protoDSBlockHeader.prevhash().size()
-                             << " is not " << prevHash.asArray().max_size()
-                             << " bytes");
+  if (!CopyWithSizeCheck(protoDSBlockHeader.prevhash(), prevHash.asArray())) {
     return;
   }
 
@@ -863,22 +850,13 @@ void ProtobufToDSBlockHeader(
   const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
       protoDSBlockHeader.hash();
 
-  if (!copyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
+  if (!CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
                          hash.m_shardingHash.asArray())) {
-    LOG_GENERAL(WARNING, "Sharding hash size "
-                             << protoDSBlockHeaderHash.shardinghash().size()
-                             << " is not "
-                             << hash.m_shardingHash.asArray().max_size()
-                             << " bytes");
     return;
   }
 
-  if (!copyWithSizeCheck(protoDSBlockHeader.committeehash(),
+  if (!CopyWithSizeCheck(protoDSBlockHeader.committeehash(),
                          committeeHash.asArray())) {
-    LOG_GENERAL(WARNING, "Committee hash size "
-                             << protoDSBlockHeader.committeehash().size()
-                             << " is not " << committeeHash.asArray().max_size()
-                             << " bytes");
     return;
   }
 
@@ -1042,53 +1020,31 @@ void ProtobufToMicroBlockHeader(
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoMicroBlockHeader.rewards(), rewards);
 
-  if (!copyWithSizeCheck(protoMicroBlockHeader.prevhash(),
+  if (!CopyWithSizeCheck(protoMicroBlockHeader.prevhash(),
                          prevHash.asArray())) {
-    LOG_GENERAL(WARNING, "Prev hash size "
-                             << protoMicroBlockHeader.prevhash().size()
-                             << " is not " << prevHash.asArray().max_size()
-                             << " bytes");
     return;
   }
 
-  if (!copyWithSizeCheck(protoMicroBlockHeader.txroothash(),
+  if (!CopyWithSizeCheck(protoMicroBlockHeader.txroothash(),
                          txRootHash.asArray())) {
-    LOG_GENERAL(WARNING, "Txroot hash size "
-                             << protoMicroBlockHeader.txroothash().size()
-                             << " is not " << txRootHash.asArray().max_size()
-                             << " bytes");
     return;
   }
 
   ProtobufByteArrayToSerializable(protoMicroBlockHeader.minerpubkey(),
                                   minerPubKey);
 
-  if (!copyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
+  if (!CopyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
                          stateDeltaHash.asArray())) {
-    LOG_GENERAL(WARNING, "Statedelta hash size "
-                             << protoMicroBlockHeader.statedeltahash().size()
-                             << " is not "
-                             << stateDeltaHash.asArray().max_size()
-                             << " bytes");
     return;
   }
 
-  if (!copyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
+  if (!CopyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
                          tranReceiptHash.asArray())) {
-    LOG_GENERAL(WARNING, "Tranreceipt hash size "
-                             << protoMicroBlockHeader.tranreceipthash().size()
-                             << " is not "
-                             << tranReceiptHash.asArray().max_size()
-                             << " bytes");
     return;
   }
 
-  if (!copyWithSizeCheck(protoMicroBlockHeader.committeehash(),
+  if (!CopyWithSizeCheck(protoMicroBlockHeader.committeehash(),
                          committeeHash.asArray())) {
-    LOG_GENERAL(WARNING, "Committee hash size "
-                             << protoMicroBlockHeader.committeehash().size()
-                             << " is not " << committeeHash.asArray().max_size()
-                             << " bytes");
     return;
   }
 
@@ -4550,10 +4506,7 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (!copyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size() << " is not "
-                                         << txHash.asArray().max_size()
-                                         << " bytes");
+  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
     return false;
   }
 
@@ -4595,10 +4548,7 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  if (!copyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    LOG_GENERAL(WARNING, "Tx hash size " << result.txhash().size() << " is not "
-                                         << txHash.asArray().max_size()
-                                         << " bytes");
+  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
     return false;
   }
 
@@ -6044,10 +5994,7 @@ bool Messenger::GetBlockLink(
   get<BlockLinkIndex::INDEX>(blocklink) = result.index();
   get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
 
-  if (!copyWithSizeCheck(result.blockhash(), blkhash.asArray())) {
-    LOG_GENERAL(WARNING, "Block hash size "
-                             << result.blockhash().size() << " is not "
-                             << blkhash.asArray().max_size() << " bytes");
+  if (!CopyWithSizeCheck(result.blockhash(), blkhash.asArray())) {
     return false;
   }
 
