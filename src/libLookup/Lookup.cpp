@@ -1528,7 +1528,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     if (m_mediator.m_ds->m_awaitingToSubmitNetworkInfoUpdate && GUARD_MODE) {
       m_mediator.m_ds->UpdateDSGuardIdentity();
-      m_mediator.m_ds->m_awaitingToSubmitNetworkInfoUpdate = true;
       LOG_GENERAL(
           INFO,
           "Sent ds guard network information update to lookup and ds committee")
