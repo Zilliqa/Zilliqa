@@ -335,8 +335,8 @@ const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
 
 // Transaction constants
-const unsigned int COINBASE_REWARD{
-    ReadConstantNumeric("COINBASE_REWARD", "node.transactions.")};
+const boost::multiprecision::uint128_t COINBASE_REWARD{
+    ReadConstantString("COINBASE_REWARD", "node.transactions.")};
 const unsigned int LOOKUP_REWARD_IN_PERCENT{
     ReadConstantNumeric("LOOKUP_REWARD_IN_PERCENT", "node.transactions.")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{
