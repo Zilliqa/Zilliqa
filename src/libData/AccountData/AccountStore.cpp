@@ -235,6 +235,10 @@ bool AccountStore::RetrieveFromDisk() {
     return false;
   }
 
+#if 1  // clark
+  LOG_GENERAL(INFO, "rootBytes = " << h256(rootBytes));
+#endif
+
   try {
     h256 root(rootBytes);
     m_state.setRoot(root);
