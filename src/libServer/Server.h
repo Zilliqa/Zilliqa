@@ -134,11 +134,6 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                            jsonrpc::JSON_OBJECT, NULL),
         &AbstractZServer::GetGasEstimateI);
     this->bindAndAddMethod(
-        jsonrpc::Procedure("GetTransactionReceipt", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_OBJECT, "param01",
-                           jsonrpc::JSON_STRING, NULL),
-        &AbstractZServer::GetTransactionReceiptI);
-    this->bindAndAddMethod(
         jsonrpc::Procedure("GetNumPeers", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_INTEGER, NULL),
         &AbstractZServer::GetNumPeersI);
@@ -288,10 +283,6 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
                                       Json::Value& response) {
     response = this->GetGasEstimate(request[0u]);
   }
-  inline virtual void GetTransactionReceiptI(const Json::Value& request,
-                                             Json::Value& response) {
-    response = this->GetTransactionReceipt(request[0u].asString());
-  }
   inline virtual void GetNumPeersI(const Json::Value& request,
                                    Json::Value& response) {
     (void)request;
@@ -398,7 +389,6 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
       const std::string& param01) = 0;
   virtual std::string CreateMessage(const Json::Value& param01) = 0;
   virtual std::string GetGasEstimate(const Json::Value& param01) = 0;
-  virtual Json::Value GetTransactionReceipt(const std::string& param01) = 0;
   virtual unsigned int GetNumPeers() = 0;
   virtual std::string GetNumTxBlocks() = 0;
   virtual std::string GetNumDSBlocks() = 0;
@@ -451,7 +441,6 @@ class Server : public AbstractZServer {
       const std::string& tranID);
   virtual std::string CreateMessage(const Json::Value& _json);
   virtual std::string GetGasEstimate(const Json::Value& _json);
-  virtual Json::Value GetTransactionReceipt(const std::string& transactionHash);
   virtual unsigned int GetNumPeers();
   virtual std::string GetNumTxBlocks();
   virtual std::string GetNumDSBlocks();
