@@ -90,7 +90,11 @@ void Lookup::InitSync() {
 
     // Hack to allow seed server to be restarted so as to get my newlookup ip
     // and register me with multiplier.
+<<<<<<< HEAD
     this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY));
+=======
+    this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY_IN_SECONDS));
+>>>>>>> abb0f9fb04380e991f0ebe101bebf2186a6c75ad
 
     // Initialize all blockchains and blocklinkchain
     InitAsNewJoiner();
@@ -122,6 +126,7 @@ void Lookup::SetLookupNodes() {
 
   std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
 
+  m_startedTxnBatchThread = false;
   m_lookupNodes.clear();
   m_lookupNodesOffline.clear();
   // Populate tree structure pt
@@ -2699,21 +2704,27 @@ bool Lookup::GetMyLookupOnline() {
   }
 
   LOG_MARKER();
+  bool found = false;
+  {
+    std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
+    auto selfPeer(m_mediator.m_selfPeer);
+    auto iter =
+        std::find_if(m_lookupNodesOffline.begin(), m_lookupNodesOffline.end(),
+                     [&selfPeer](const std::pair<PubKey, Peer>& node) {
+                       return node.second == selfPeer;
+                     });
+    if (iter != m_lookupNodesOffline.end()) {
+      found = true;
+      m_lookupNodes.emplace_back(*iter);
+      m_lookupNodesOffline.erase(iter);
+    } else {
+      LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodesOffline");
+      return false;
+    }
+  }
 
-  std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
-  auto selfPeer(m_mediator.m_selfPeer);
-  auto iter =
-      std::find_if(m_lookupNodesOffline.begin(), m_lookupNodesOffline.end(),
-                   [&selfPeer](const std::pair<PubKey, Peer>& node) {
-                     return node.second == selfPeer;
-                   });
-  if (iter != m_lookupNodesOffline.end()) {
+  if (found) {
     SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
-    m_lookupNodes.emplace_back(*iter);
-    m_lookupNodesOffline.erase(iter);
-  } else {
-    LOG_GENERAL(WARNING, "My Peer Info is not in m_lookupNodesOffline");
-    return false;
   }
   return true;
 }
@@ -2808,6 +2819,7 @@ bool Lookup::CleanVariables() {
 
   m_seedNodes.clear();
   m_currDSExpired = false;
+  m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
   {
     std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);
@@ -3179,7 +3191,14 @@ void Lookup::SenderTxnBatchThread() {
   }
   LOG_MARKER();
 
+  if (m_startedTxnBatchThread) {
+    LOG_GENERAL(WARNING,
+                "The last TxnBatchThread hasn't finished, discard this time");
+    return;
+  }
+
   auto main_func = [this]() mutable -> void {
+    m_startedTxnBatchThread = true;
     uint32_t numShards = 0;
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
@@ -3195,6 +3214,7 @@ void Lookup::SenderTxnBatchThread() {
       }
       break;
     }
+    m_startedTxnBatchThread = false;
   };
   DetachedFunction(1, main_func);
 }
@@ -3216,17 +3236,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
     // return;
   }
 
-  // allow receving nodes to be ready with latest DS block ( Only** for first
-  // txn epoch of every ds epoch )
-  if ((m_mediator.m_currentEpochNum == 1) ||
-      (m_mediator.m_currentEpochNum > 1 &&
-       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Waiting for " << LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
-                             << " ms before sending txn packets to shards");
-    this_thread::sleep_for(
-        chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
-  }
+  this_thread::sleep_for(
+      chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
 
   for (unsigned int i = 0; i < numShards + 1; i++) {
     vector<unsigned char> msg = {MessageType::NODE,

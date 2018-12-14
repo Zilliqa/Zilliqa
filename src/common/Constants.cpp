@@ -130,8 +130,13 @@ const unsigned int RECOVERY_SYNC_TIMEOUT{
     ReadConstantNumeric("RECOVERY_SYNC_TIMEOUT", "node.epoch_timing.")};
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
+<<<<<<< HEAD
 const unsigned int NEW_LOOKUP_SYNC_DELAY{
     ReadConstantNumeric("NEW_LOOKUP_SYNC_DELAY", "node.epoch_timing.")};
+=======
+const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
+    "NEW_LOOKUP_SYNC_DELAY_IN_SECONDS", "node.epoch_timing.")};
+>>>>>>> abb0f9fb04380e991f0ebe101bebf2186a6c75ad
 
 // Fallback constants
 const bool ENABLE_FALLBACK{
