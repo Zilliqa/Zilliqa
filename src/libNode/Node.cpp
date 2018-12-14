@@ -1534,13 +1534,17 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
   }
 
   LOG_MARKER();
-  LOG_GENERAL(INFO,
-              "Querying the lookup for any ds guard node network info change");
+
   vector<unsigned char> queryLookupForDSGuardNetworkInfoUpdate = {
       MessageType::LOOKUP,
       LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
   uint64_t dsEpochNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
+  LOG_GENERAL(INFO,
+              "Querying the lookup for any ds guard node network info change "
+              "for ds epoch "
+                  << dsEpochNum);
 
   if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
           queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
