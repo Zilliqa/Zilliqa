@@ -706,10 +706,12 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   vector<unsigned char> updatedsguardidentitymessage = {
       MessageType::DIRECTORY, DSInstructionType::NEWDSGUARDIDENTITY};
 
+  uint64_t curDSEpochNo =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
   if (!Messenger::SetDSLookupNewDSGuardNetworkInfo(
-          updatedsguardidentitymessage, MessageOffset::BODY,
-          m_mediator.m_currentEpochNum, m_mediator.m_selfPeer,
-          get_time_as_int(), m_mediator.m_selfKey)) {
+          updatedsguardidentitymessage, MessageOffset::BODY, curDSEpochNo,
+          m_mediator.m_selfPeer, get_time_as_int(), m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSLookupNewDSGuardNetworkInfo failed.");
     return false;
