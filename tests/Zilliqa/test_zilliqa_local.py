@@ -136,7 +136,7 @@ def run_prestart(numdsnodes, guard_mode=False):
 	keypairs.sort()
 
 	# Use pre generated key for guard mode in local testing
-	# This keys are non critical and are only used for testing purposes
+	# These keys are non critical and are only used for testing purposes
 	if guard_mode == True:
 		keypairs = ["02028CC4DEC0A756B42BD54905237B4E22FCC69D88CFEAA3797AEECF01D6A69E85 55009317F8B1FC7889EDF83742F684FB700EE8F970F7EDB8BDD6286A0F0A4CF1",
 					"021D99F2E5ACBA39ED5ACC5DCA5EE2ADDE780FFD998E1DBF440FE364C3BE360A7B 50C26000FCC08867FC3B9C03385015179E4B63282CB356014233BB1877FCDBDD",
