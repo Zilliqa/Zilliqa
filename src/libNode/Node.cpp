@@ -141,8 +141,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
                                 << m_mediator.m_selfPeer.m_listenPortHost);
           LOG_STATE("[IDENT][" << std::setw(15) << std::left
                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "][" << std::setw(6) << std::left
-                               << m_mediator.m_ds->m_consensusMyID << "] DSLD");
+                               << "][" << m_mediator.m_currentEpochNum
+                               << "] DSLD");
         } else {
           m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
           LOG_GENERAL(INFO, "Set as DS backup: "
@@ -1086,10 +1086,11 @@ bool Node::ProcessTxnPacketFromLookup(
     lock_guard<mutex> g(m_mutexTxnPacketBuffer);
     LOG_GENERAL(INFO, "Received txn from lookup, stored to buffer");
     LOG_STATE("[TXNPKTPROC]["
-              << message.size() << "]" << std::setw(15) << std::left
+              << std::setw(15) << std::left
               << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
               << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-              << string(lookupPubKey).substr(0, 6) << "] RECVFROMLOOKUP");
+              << string(lookupPubKey).substr(0, 6) << "][" << message.size()
+              << "] RECVFROMLOOKUP");
     m_txnPacketBuffer.emplace_back(message);
   } else {
     LOG_GENERAL(INFO,
@@ -1140,22 +1141,25 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
 
   if (BROADCAST_GOSSIP_MODE) {
     LOG_STATE("[TXNPKTPROC-CORE]["
-              << message.size() << "]" << std::setw(15) << std::left
+              << std::setw(15) << std::left
               << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
               << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-              << string(lookupPubKey).substr(0, 6) << " BEGN");
+              << string(lookupPubKey).substr(0, 6) << "][" << message.size()
+              << "] BEGN");
     if (P2PComm::GetInstance().SpreadRumor(message)) {
       LOG_STATE("[TXNPKTPROC-INITIATE]["
-                << message.size() << "]" << std::setw(15) << std::left
+                << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                 << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-                << string(lookupPubKey).substr(0, 6) << " BEGN");
+                << string(lookupPubKey).substr(0, 6) << "][" << message.size()
+                << "] BEGN");
     } else {
       LOG_STATE("[TXNPKTPROC]["
-                << message.size() << "]" << std::setw(15) << std::left
+                << std::setw(15) << std::left
                 << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                 << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-                << string(lookupPubKey).substr(0, 6) << " BEGN");
+                << string(lookupPubKey).substr(0, 6) << "][" << message.size()
+                << "] BEGN");
     }
   } else {
     vector<Peer> toSend;
@@ -1230,12 +1234,12 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
                                         << m_createdTxns.size());
   }
 
-  LOG_STATE("[TXNPKTPROC]["
-            << std::setw(15) << std::left
-            << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
-            << m_mediator.m_currentEpochNum << "][" << shardId << "]["
-            << string(lookupPubKey).substr(0, 6) << " DONE [" << processed_count
-            << "]");
+  LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << m_mediator.m_currentEpochNum << "]["
+                            << shardId << "]["
+                            << string(lookupPubKey).substr(0, 6) << "] DONE ["
+                            << processed_count << "]");
   return true;
 }
 
