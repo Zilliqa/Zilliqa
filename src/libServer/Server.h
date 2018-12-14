@@ -446,6 +446,8 @@ class Server : public AbstractZServer {
   // block
   size_t GetNumTransactions(uint64_t blockNum);
 
+  bool StartCollectorThread();
+
   Json::Value GetSmartContractState(const std::string& address);
   Json::Value GetSmartContractInit(const std::string& address);
   Json::Value GetSmartContractCode(const std::string& address);
