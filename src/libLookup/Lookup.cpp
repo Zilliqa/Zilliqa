@@ -3116,7 +3116,8 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Lookup::ProcessSetDirectoryBlocksFromSeed,
       &Lookup::ProcessGetStateDeltaFromSeed,
       &Lookup::ProcessSetStateDeltaFromSeed,
-      &Lookup::ProcessVCGetLatestDSTxBlockFromSeed};
+      &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
+      &Lookup::ProcessGetDSGuardNetworkInfo};
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
       sizeof(ins_handlers) / sizeof(InstructionHandler);
