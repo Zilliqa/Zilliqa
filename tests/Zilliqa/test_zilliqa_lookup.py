@@ -100,7 +100,7 @@ def run_setup(numnodes, printnodes):
 		process = Popen(["./tests/Zilliqa/genkeypair"], stdout=PIPE)
 		(output, err) = process.communicate()
 		exit_code = process.wait()
-		keypairs.append(output)
+		keypairs.append(output.strip())
 	keypairs.sort()
 
 	patch_lookup_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)

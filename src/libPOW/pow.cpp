@@ -406,9 +406,11 @@ void POW::InitOpenCL() {
     LOG_GENERAL(FATAL, "Failed to configure OpenCL GPU, please check hardware");
   }
 
-  CLMiner::setNumInstances(UINT_MAX);
   auto gpuToUse = GetGpuToUse();
   auto totalGpuDevice = CLMiner::getNumDevices();
+
+  CLMiner::setNumInstances(gpuToUse.size());
+
   for (const auto gpuIndex : gpuToUse) {
     if (gpuIndex >= totalGpuDevice) {
       LOG_GENERAL(FATAL, "Selected GPU "
@@ -433,19 +435,24 @@ void POW::InitCUDA() {
 #ifdef CUDA_MINE
   using namespace dev::eth;
 
+  auto gpuToUse = GetGpuToUse();
+  auto deviceGenerateDag = *gpuToUse.begin();
+  LOG_GENERAL(INFO, "Generate dag Nvidia GPU #" << deviceGenerateDag);
+
   if (!CUDAMiner::configureGPU(CUDA_BLOCK_SIZE, CUDA_GRID_SIZE, CUDA_STREAM_NUM,
-                               CUDA_SCHEDULE_FLAG, 0, 0, false, false)) {
+                               CUDA_SCHEDULE_FLAG, 0, deviceGenerateDag, false,
+                               false)) {
     LOG_GENERAL(FATAL, "Failed to configure CUDA GPU, please check hardware");
   }
 
-  CUDAMiner::setNumInstances(UINT_MAX);
-  auto gpuToUse = GetGpuToUse();
+  CUDAMiner::setNumInstances(gpuToUse.size());
+
   auto totalGpuDevice = CUDAMiner::getNumDevices();
   for (const auto gpuIndex : gpuToUse) {
     if (gpuIndex >= totalGpuDevice) {
       LOG_GENERAL(FATAL, "Selected GPU "
                              << gpuIndex
-                             << " exceed the physical OpenCL GPU number "
+                             << " exceed the physical Nvidia GPU number "
                              << totalGpuDevice);
     }
 
@@ -469,5 +476,10 @@ std::set<unsigned int> POW::GetGpuToUse() {
     unsigned int index = strtol(item.c_str(), NULL, 10);
     gpuToUse.insert(index);
   }
+
+  if (gpuToUse.empty()) {
+    LOG_GENERAL(FATAL, "Please select at least one GPU to use.");
+  }
+
   return gpuToUse;
 }

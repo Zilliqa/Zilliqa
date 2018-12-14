@@ -47,6 +47,7 @@
         <POW_WINDOW_IN_SECONDS>150</POW_WINDOW_IN_SECONDS>
         <RECOVERY_SYNC_TIMEOUT>5</RECOVERY_SYNC_TIMEOUT>
         <TX_DISTRIBUTE_TIME_IN_MS>30000</TX_DISTRIBUTE_TIME_IN_MS>
+        <NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>180</NEW_LOOKUP_SYNC_DELAY_IN_SECONDS>
     </epoch_timing>
     <fallback>
         <ENABLE_FALLBACK>false</ENABLE_FALLBACK>
@@ -136,6 +137,8 @@
         <!-- If PoW submissions over this number, will select nodes by reputation -->
         <MAX_SHARD_NODE_NUM>1900</MAX_SHARD_NODE_NUM>
         <MISORDER_TOLERANCE_IN_PERCENT>5</MISORDER_TOLERANCE_IN_PERCENT>
+        <!-- To avoid premature rejoining, set this to a value such as several Tx epochs after DS epoch -->
+        <DSBLOCK_EXTRA_WAIT_TIME>120</DSBLOCK_EXTRA_WAIT_TIME>
     </pow>
     <recovery>
         <DS_DELAY_WAKEUP_IN_SECONDS>20</DS_DELAY_WAKEUP_IN_SECONDS>
