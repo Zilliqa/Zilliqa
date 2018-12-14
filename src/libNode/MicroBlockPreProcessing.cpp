@@ -162,10 +162,8 @@ bool Node::ComposeMicroBlock() {
 }
 
 bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
-                             const Peer& from) {
+                             const unsigned int offset, const Peer& from) {
   LOG_MARKER();
-
-  unsigned int offset = 0;
 
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -174,35 +172,17 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
     return true;
   }
 
-  if (errorMsg.size() < sizeof(uint32_t) + sizeof(uint64_t) + offset) {
-    LOG_GENERAL(WARNING, "Malformed Message");
+  vector<TxnHash> missingTransactions;
+  uint64_t epochNum = 0;
+  uint32_t portNo = 0;
+
+  if (!Messenger::GetNodeMissingTxnsErrorMsg(
+          errorMsg, offset, missingTransactions, epochNum, portNo)) {
+    LOG_GENERAL(WARNING, "Messenger::GetNodeMissingTxnsErrorMsg failed.");
     return false;
   }
 
-  uint32_t numOfAbsentHashes =
-      Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
-  offset += sizeof(uint32_t);
-
-  uint64_t epochNum =
-      Serializable::GetNumber<uint64_t>(errorMsg, offset, sizeof(uint64_t));
-  offset += sizeof(uint64_t);
-
-  vector<TxnHash> missingTransactions;
-
-  for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
-    TxnHash txnHash;
-    copy(errorMsg.begin() + offset, errorMsg.begin() + offset + TRAN_HASH_SIZE,
-         txnHash.asArray().begin());
-    offset += TRAN_HASH_SIZE;
-
-    missingTransactions.emplace_back(txnHash);
-  }
-
-  uint32_t portNo =
-      Serializable::GetNumber<uint32_t>(errorMsg, offset, sizeof(uint32_t));
-
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer peer(ipAddr, portNo);
+  Peer peer(from.m_ipAddress, portNo);
 
   lock_guard<mutex> g(m_mutexProcessedTransactions);
 
@@ -223,15 +203,15 @@ bool Node::OnNodeMissingTxns(const std::vector<unsigned char>& errorMsg,
                                   ? t_processedTransactions
                                   : m_processedTransactions[epochNum];
 
-  for (uint32_t i = 0; i < numOfAbsentHashes; i++) {
+  for (const auto& hash : missingTransactions) {
     // LOG_GENERAL(INFO, "Peer " << from << " : " << portNo << " missing txn "
     // << missingTransactions[i])
-    auto found = processedTransactions.find(missingTransactions[i]);
+    auto found = processedTransactions.find(hash);
     if (found != processedTransactions.end()) {
-      txns.push_back(found->second.GetTransaction());
+      txns.emplace_back(found->second.GetTransaction());
     } else {
-      LOG_GENERAL(INFO, "Leader unable to find txn proposed in microblock "
-                            << missingTransactions[i]);
+      LOG_GENERAL(INFO,
+                  "Leader unable to find txn proposed in microblock " << hash);
       continue;
     }
   }
@@ -638,16 +618,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE &&
       !m_mediator.GetIsVacuousEpoch()) {
-    unsigned int sleep_time =
-        TX_DISTRIBUTE_TIME_IN_MS +
-        ((m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() ==
-          m_mediator.m_currentEpochNum)
-             ? LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
-             : 0);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Non-vacuous epoch, going to sleep for " << sleep_time
-                                                       << " milliseconds");
-    std::this_thread::sleep_for(chrono::milliseconds(sleep_time));
+    std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
   }
 
   if (!m_mediator.GetIsVacuousEpoch()) {
@@ -666,31 +637,36 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                              .GetHeader()
                              .GetMyHash()
                              .asBytes();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am shard leader. "
-                << "m_consensusID: " << m_mediator.m_consensusID
-                << " m_consensusMyID: " << m_consensusMyID
-                << " m_consensusLeaderID: " << m_consensusLeaderID
-                << " Shard Leader: "
-                << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-  auto nodeMissingTxnsFunc = [this](const vector<unsigned char>& errorMsg,
-                                    const Peer& from) mutable -> bool {
-    return OnNodeMissingTxns(errorMsg, from);
-  };
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
 
-  auto commitFailureFunc =
-      [this](
-          const map<unsigned int, vector<unsigned char>>& m) mutable -> bool {
-    return OnCommitFailure(m);
-  };
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am shard leader. "
+                  << "m_consensusID: " << m_mediator.m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-  m_consensusObject.reset(new ConsensusLeader(
-      m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
-      m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
-      *m_myShardMembers, static_cast<unsigned char>(NODE),
-      static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
-      commitFailureFunc));
+    auto nodeMissingTxnsFunc = [this](const vector<unsigned char>& errorMsg,
+                                      const Peer& from) mutable -> bool {
+      return OnNodeMissingTxns(errorMsg, 0, from);
+    };
+
+    auto commitFailureFunc =
+        [this](
+            const map<unsigned int, vector<unsigned char>>& m) mutable -> bool {
+      return OnCommitFailure(m);
+    };
+
+    m_consensusObject.reset(new ConsensusLeader(
+        m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
+        m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
+        *m_myShardMembers, static_cast<unsigned char>(NODE),
+        static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
+        commitFailureFunc));
+  }
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -753,18 +729,21 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                                messageToCosign);
   };
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "I am shard backup. "
-                << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
-                << " m_consensusMyID: " << m_consensusMyID
-                << " m_consensusLeaderID: " << m_consensusLeaderID
-                << " Shard Leader: "
-                << (*m_myShardMembers)[m_consensusLeaderID].second);
-
   deque<pair<PubKey, Peer>> peerList;
 
-  for (const auto& it : *m_myShardMembers) {
-    peerList.emplace_back(it);
+  {
+    lock_guard<mutex> g(m_mutexShardMember);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I am shard backup. "
+                  << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
+                  << " m_consensusMyID: " << m_consensusMyID
+                  << " m_consensusLeaderID: " << m_consensusLeaderID
+                  << " Shard Leader: "
+                  << (*m_myShardMembers)[m_consensusLeaderID].second);
+
+    for (const auto& it : *m_myShardMembers) {
+      peerList.emplace_back(it);
+    }
   }
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Leader is at index  " << m_consensusLeaderID << " "
@@ -960,35 +939,18 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
       return LEGITIMACYRESULT::WRONGORDER;
     }
 
-    m_numOfAbsentTxnHashes = 0;
-
-    int offset = 0;
-
-    for (auto const& hash : missingTxnHashes) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Missing txn: " << hash)
-      if (errorMsg.size() == 0) {
-        errorMsg.resize(sizeof(uint32_t) + sizeof(uint64_t) + TRAN_HASH_SIZE);
-        offset += (sizeof(uint32_t) + sizeof(uint64_t));
-      } else {
-        errorMsg.resize(offset + TRAN_HASH_SIZE);
+    if (missingTxnHashes.size() > 0) {
+      if (!Messenger::SetNodeMissingTxnsErrorMsg(
+              errorMsg, 0, missingTxnHashes, m_mediator.m_currentEpochNum,
+              m_mediator.m_selfPeer.m_listenPortHost)) {
+        LOG_GENERAL(WARNING, "Messenger::SetNodeMissingTxnsErrorMsg failed.");
+        return false;
       }
-      copy(hash.asArray().begin(), hash.asArray().end(),
-           errorMsg.begin() + offset);
-      offset += TRAN_HASH_SIZE;
-      m_numOfAbsentTxnHashes++;
-    }
 
-    if (m_numOfAbsentTxnHashes > 0) {
       {
         lock_guard<mutex> g(m_mutexCreatedTransactions);
         LOG_GENERAL(WARNING, m_createdTxns);
       }
-      Serializable::SetNumber<uint32_t>(errorMsg, 0, m_numOfAbsentTxnHashes,
-                                        sizeof(uint32_t));
-      Serializable::SetNumber<uint64_t>(errorMsg, sizeof(uint32_t),
-                                        m_mediator.m_currentEpochNum,
-                                        sizeof(uint64_t));
 
       m_txnsOrdering = m_microblock->GetTranHashes();
 
@@ -1263,9 +1225,6 @@ bool Node::MicroBlockValidator(const vector<unsigned char>& message,
 
   if (!CheckMicroBlockValidity(errorMsg)) {
     m_microblock = nullptr;
-    Serializable::SetNumber<uint32_t>(errorMsg, errorMsg.size(),
-                                      m_mediator.m_selfPeer.m_listenPortHost,
-                                      sizeof(uint32_t));
     LOG_GENERAL(WARNING, "CheckMicroBlockValidity Failed");
     return false;
   }

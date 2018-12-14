@@ -266,8 +266,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
                                                      tmpNumber);
 
-  int balanceDelta =
-      protoAccount.numbersign() ? (int)tmpNumber : 0 - (int)tmpNumber;
+  int256_t balanceDelta = protoAccount.numbersign() ? tmpNumber : 0 - tmpNumber;
   account.ChangeBalance(balanceDelta);
 
   account.IncreaseNonceBy(protoAccount.nonce());
@@ -562,57 +561,6 @@ void ProtobufToShardingStructureAnnouncement(
   }
 }
 
-void TxSharingAssignmentsToProtobuf(
-    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
-    const vector<vector<Peer>>& shardSenders,
-    ProtoTxSharingAssignments& protoTxSharingAssignments) {
-  for (const auto& dsnode : dsReceivers) {
-    SerializableToProtobufByteArray(dsnode,
-                                    *protoTxSharingAssignments.add_dsnodes());
-  }
-
-  for (unsigned int i = 0; i < shardReceivers.size(); i++) {
-    ProtoTxSharingAssignments::AssignedNodes* proto_shard =
-        protoTxSharingAssignments.add_shardnodes();
-
-    for (const auto& receiver : shardReceivers.at(i)) {
-      SerializableToProtobufByteArray(receiver, *proto_shard->add_receivers());
-    }
-    for (const auto& sender : shardSenders.at(i)) {
-      SerializableToProtobufByteArray(sender, *proto_shard->add_senders());
-    }
-  }
-}
-
-void ProtobufToTxSharingAssignments(
-    const ProtoTxSharingAssignments& protoTxSharingAssignments,
-    vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
-    vector<vector<Peer>>& shardSenders) {
-  for (const auto& dsnode : protoTxSharingAssignments.dsnodes()) {
-    Peer peer;
-    ProtobufByteArrayToSerializable(dsnode, peer);
-    dsReceivers.emplace_back(peer);
-  }
-
-  for (const auto& proto_shard : protoTxSharingAssignments.shardnodes()) {
-    shardReceivers.emplace_back();
-
-    for (const auto& receiver : proto_shard.receivers()) {
-      Peer peer;
-      ProtobufByteArrayToSerializable(receiver, peer);
-      shardReceivers.back().emplace_back(peer);
-    }
-
-    shardSenders.emplace_back();
-
-    for (const auto& sender : proto_shard.senders()) {
-      Peer peer;
-      ProtobufByteArrayToSerializable(sender, peer);
-      shardSenders.back().emplace_back(peer);
-    }
-  }
-}
-
 void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
                                    ProtoTransactionCoreInfo& protoTxnCoreInfo) {
   protoTxnCoreInfo.set_version(txnCoreInfo.version);
@@ -836,8 +784,6 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
       protoDSBlockHeader.mutable_hash();
   protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
                                     dsBlockHeader.GetShardingHash().size);
-  protoHeaderHash->set_txsharinghash(dsBlockHeader.GetTxSharingHash().data(),
-                                     dsBlockHeader.GetTxSharingHash().size);
   protoHeaderHash->set_reservedfield(
       dsBlockHeader.GetHashSetReservedField().data(),
       dsBlockHeader.GetHashSetReservedField().size());
@@ -901,11 +847,6 @@ void ProtobufToDSBlockHeader(
            min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
                (unsigned int)hash.m_shardingHash.size),
        hash.m_shardingHash.asArray().begin());
-  copy(protoDSBlockHeaderHash.txsharinghash().begin(),
-       protoDSBlockHeaderHash.txsharinghash().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.txsharinghash().size(),
-               (unsigned int)hash.m_txSharingHash.size),
-       hash.m_txSharingHash.asArray().begin());
   copy(protoDSBlockHeaderHash.reservedfield().begin(),
        protoDSBlockHeaderHash.reservedfield().begin() +
            min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
@@ -1799,35 +1740,6 @@ bool Messenger::GetShardingStructureHash(const DequeOfShard& shards,
   return true;
 }
 
-bool Messenger::GetTxSharingAssignmentsHash(
-    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
-    const vector<vector<Peer>>& shardSenders, TxSharingHash& dst) {
-  ProtoTxSharingAssignments protoTxSharingAssignments;
-
-  TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
-                                 protoTxSharingAssignments);
-
-  if (!protoTxSharingAssignments.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxSharingAssignments initialization failed.");
-    return false;
-  }
-
-  vector<unsigned char> tmp;
-
-  if (!SerializeToArray(protoTxSharingAssignments, tmp, 0)) {
-    LOG_GENERAL(WARNING, "ProtoTxSharingAssignments serialization failed.");
-    return false;
-  }
-
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(tmp);
-  tmp = sha2.Finalize();
-
-  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
-
-  return true;
-}
-
 bool Messenger::SetAccount(vector<unsigned char>& dst,
                            const unsigned int offset, const Account& account) {
   ProtoAccount result;
@@ -2023,6 +1935,41 @@ bool Messenger::SetAccountStoreDelta(vector<unsigned char>& dst,
   }
 
   return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::StateDeltaToAddressMap(
+    const vector<unsigned char>& src, const unsigned int offset,
+    unordered_map<Address, int256_t>& accountMap) {
+  ProtoAccountStore result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoAccountStore initialization failed");
+    return false;
+  }
+
+  for (const auto& entry : result.entries()) {
+    Address address;
+    Account account;
+
+    copy(entry.address().begin(),
+         entry.address().begin() + min((unsigned int)entry.address().size(),
+                                       (unsigned int)address.size),
+         address.asArray().begin());
+
+    uint128_t tmpNumber;
+
+    ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+        entry.account().balance(), tmpNumber);
+
+    int256_t balanceDelta =
+        entry.account().numbersign() ? tmpNumber : 0 - tmpNumber;
+
+    accountMap.insert(make_pair(address, balanceDelta));
+  }
+
+  return true;
 }
 
 bool Messenger::GetAccountStoreDelta(const vector<unsigned char>& src,
@@ -2699,6 +2646,77 @@ bool Messenger::GetPeer(const std::vector<unsigned char>& src,
 }
 
 // ============================================================================
+// Peer Manager messages
+// ============================================================================
+
+bool Messenger::SetPMHello(vector<unsigned char>& dst,
+                           const unsigned int offset,
+                           const pair<PrivKey, PubKey>& key,
+                           const uint32_t listenPort) {
+  LOG_MARKER();
+
+  PMHello result;
+
+  SerializableToProtobufByteArray(key.second,
+                                  *result.mutable_data()->mutable_pubkey());
+  result.mutable_data()->set_listenport(listenPort);
+
+  if (result.data().IsInitialized()) {
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, key.first, key.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign PMHello.data.");
+      return false;
+    }
+
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "PMHello.Data initialization failed.");
+    return false;
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "PMHello initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetPMHello(const vector<unsigned char>& src,
+                           const unsigned int offset, PubKey& pubKey,
+                           uint32_t& listenPort) {
+  LOG_MARKER();
+
+  PMHello result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "PMHello initialization failed.");
+    return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.data().pubkey(), pubKey);
+  listenPort = result.data().listenport();
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature, pubKey)) {
+    LOG_GENERAL(WARNING, "PMHello signature wrong.");
+    return false;
+  }
+
+  return true;
+}
+
+// ============================================================================
 // Directory Service messages
 // ============================================================================
 
@@ -2903,9 +2921,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const pair<PrivKey, PubKey>& leaderKey, const DSBlock& dsBlock,
-    const DequeOfShard& shards, const vector<Peer>& dsReceivers,
-    const vector<vector<Peer>>& shardReceivers,
-    const vector<vector<Peer>>& shardSenders, const MapOfPubKeyPoW& allPoWs,
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
     const MapOfPubKeyPoW& dsWinnerPoWs,
     vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
@@ -2920,9 +2936,6 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
   AnnouncementShardingStructureToProtobuf(shards, allPoWs,
                                           *dsblock->mutable_sharding());
-
-  TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
-                                 *dsblock->mutable_assignments());
 
   for (const auto& kv : dsWinnerPoWs) {
     auto protoDSWinnerPoW = dsblock->add_dswinnerpows();
@@ -2972,9 +2985,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
     const uint32_t consensusID, const uint64_t blockNumber,
     const vector<unsigned char>& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
-    vector<Peer>& dsReceivers, vector<vector<Peer>>& shardReceivers,
-    vector<vector<Peer>>& shardSenders, MapOfPubKeyPoW& allPoWs,
-    MapOfPubKeyPoW& dsWinnerPoWs, vector<unsigned char>& messageToCosign) {
+    MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
+    vector<unsigned char>& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -3010,9 +3022,6 @@ bool Messenger::GetDSDSBlockAnnouncement(
   ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
 
   ProtobufToShardingStructureAnnouncement(dsblock.sharding(), shards, allPoWs);
-
-  ProtobufToTxSharingAssignments(dsblock.assignments(), dsReceivers,
-                                 shardReceivers, shardSenders);
 
   dsWinnerPoWs.clear();
   for (const auto& protoDSWinnerPoW : dsblock.dswinnerpows()) {
@@ -3244,16 +3253,68 @@ bool Messenger::GetDSVCBlockAnnouncement(
   return true;
 }
 
+bool Messenger::SetDSMissingMicroBlocksErrorMsg(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<BlockHash>& missingMicroBlockHashes, const uint64_t epochNum,
+    const uint32_t listenPort) {
+  LOG_MARKER();
+
+  DSMissingMicroBlocksErrorMsg result;
+
+  for (const auto& hash : missingMicroBlockHashes) {
+    result.add_mbhashes(hash.data(), hash.size);
+  }
+
+  result.set_epochnum(epochNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSMissingMicroBlocksErrorMsg initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDSMissingMicroBlocksErrorMsg(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<BlockHash>& missingMicroBlockHashes, uint64_t& epochNum,
+    uint32_t& listenPort) {
+  LOG_MARKER();
+
+  DSMissingMicroBlocksErrorMsg result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSMissingMicroBlocksErrorMsg initialization failed.");
+    return false;
+  }
+
+  for (const auto& hash : result.mbhashes()) {
+    missingMicroBlockHashes.emplace_back();
+    unsigned int size = min((unsigned int)hash.size(),
+                            (unsigned int)missingMicroBlockHashes.back().size);
+    copy(hash.begin(), hash.begin() + size,
+         missingMicroBlockHashes.back().asArray().begin());
+  }
+
+  epochNum = result.epochnum();
+  listenPort = result.listenport();
+
+  return true;
+}
+
 // ============================================================================
 // Node messages
 // ============================================================================
 
-bool Messenger::SetNodeVCDSBlocksMessage(
-    vector<unsigned char>& dst, const unsigned int offset,
-    const uint32_t shardId, const DSBlock& dsBlock,
-    const std::vector<VCBlock>& vcBlocks, const DequeOfShard& shards,
-    const vector<Peer>& dsReceivers, const vector<vector<Peer>>& shardReceivers,
-    const vector<vector<Peer>>& shardSenders) {
+bool Messenger::SetNodeVCDSBlocksMessage(vector<unsigned char>& dst,
+                                         const unsigned int offset,
+                                         const uint32_t shardId,
+                                         const DSBlock& dsBlock,
+                                         const std::vector<VCBlock>& vcBlocks,
+                                         const DequeOfShard& shards) {
   LOG_MARKER();
 
   NodeDSBlock result;
@@ -3266,9 +3327,6 @@ bool Messenger::SetNodeVCDSBlocksMessage(
   }
   ShardingStructureToProtobuf(shards, *result.mutable_sharding());
 
-  TxSharingAssignmentsToProtobuf(dsReceivers, shardReceivers, shardSenders,
-                                 *result.mutable_assignments());
-
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeDSBlock initialization failed.");
     return false;
@@ -3277,11 +3335,11 @@ bool Messenger::SetNodeVCDSBlocksMessage(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCDSBlocksMessage(
-    const vector<unsigned char>& src, const unsigned int offset,
-    uint32_t& shardId, DSBlock& dsBlock, std::vector<VCBlock>& vcBlocks,
-    DequeOfShard& shards, vector<Peer>& dsReceivers,
-    vector<vector<Peer>>& shardReceivers, vector<vector<Peer>>& shardSenders) {
+bool Messenger::GetNodeVCDSBlocksMessage(const vector<unsigned char>& src,
+                                         const unsigned int offset,
+                                         uint32_t& shardId, DSBlock& dsBlock,
+                                         std::vector<VCBlock>& vcBlocks,
+                                         DequeOfShard& shards) {
   LOG_MARKER();
 
   NodeDSBlock result;
@@ -3303,9 +3361,6 @@ bool Messenger::GetNodeVCDSBlocksMessage(
   }
 
   ProtobufToShardingStructure(result.sharding(), shards);
-
-  ProtobufToTxSharingAssignments(result.assignments(), dsReceivers,
-                                 shardReceivers, shardSenders);
 
   return true;
 }
@@ -3805,6 +3860,60 @@ bool Messenger::ArrayToShardStructure(const std::vector<unsigned char>& src,
   protoShardingStructure.ParseFromArray(src.data() + offset,
                                         src.size() - offset);
   ProtobufToShardingStructure(protoShardingStructure, shards);
+  return true;
+}
+
+bool Messenger::SetNodeMissingTxnsErrorMsg(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<TxnHash>& missingTxnHashes, const uint64_t epochNum,
+    const uint32_t listenPort) {
+  LOG_MARKER();
+
+  NodeMissingTxnsErrorMsg result;
+
+  for (const auto& hash : missingTxnHashes) {
+    LOG_EPOCH(INFO, to_string(epochNum).c_str(), "Missing txn: " << hash);
+    result.add_txnhashes(hash.data(), hash.size);
+  }
+
+  result.set_epochnum(epochNum);
+  result.set_listenport(listenPort);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeMissingTxnsErrorMsg initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetNodeMissingTxnsErrorMsg(const vector<unsigned char>& src,
+                                           const unsigned int offset,
+                                           vector<TxnHash>& missingTxnHashes,
+                                           uint64_t& epochNum,
+                                           uint32_t& listenPort) {
+  LOG_MARKER();
+
+  NodeMissingTxnsErrorMsg result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "NodeMissingTxnsErrorMsg initialization failed.");
+    return false;
+  }
+
+  for (const auto& hash : result.txnhashes()) {
+    missingTxnHashes.emplace_back();
+    unsigned int size = min((unsigned int)hash.size(),
+                            (unsigned int)missingTxnHashes.back().size);
+    copy(hash.begin(), hash.begin() + size,
+         missingTxnHashes.back().asArray().begin());
+  }
+
+  epochNum = result.epochnum();
+  listenPort = result.listenport();
+
   return true;
 }
 

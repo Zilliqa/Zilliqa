@@ -136,6 +136,8 @@ const unsigned int RECOVERY_SYNC_TIMEOUT{
     ReadConstantNumeric("RECOVERY_SYNC_TIMEOUT", "node.epoch_timing.")};
 const unsigned int TX_DISTRIBUTE_TIME_IN_MS{
     ReadConstantNumeric("TX_DISTRIBUTE_TIME_IN_MS", "node.epoch_timing.")};
+const unsigned int NEW_LOOKUP_SYNC_DELAY_IN_SECONDS{ReadConstantNumeric(
+    "NEW_LOOKUP_SYNC_DELAY_IN_SECONDS", "node.epoch_timing.")};
 
 // Fallback constants
 const bool ENABLE_FALLBACK{
@@ -278,6 +280,8 @@ const unsigned int MAX_SHARD_NODE_NUM{
     ReadConstantNumeric("MAX_SHARD_NODE_NUM", "node.pow.")};
 const unsigned int MISORDER_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("MISORDER_TOLERANCE_IN_PERCENT", "node.pow.")};
+const unsigned int DSBLOCK_EXTRA_WAIT_TIME{
+    ReadConstantNumeric("DSBLOCK_EXTRA_WAIT_TIME", "node.pow.")};
 
 // Recovery and upgrading constants
 const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{

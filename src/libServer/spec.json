@@ -60,17 +60,7 @@
 		"returns" : ""
 	},
 	{
-		"name" : "getTransactionHistory",
-		"params": [""],
-		"returns" : []
-	},
-	{
 		"name" : "getBlockTransactionCount",
-		"params": [""],
-		"returns" : ""
-	},
-	{
-		"name" : "getCode",
 		"params": [""],
 		"returns" : ""
 	},

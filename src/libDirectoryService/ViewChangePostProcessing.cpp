@@ -227,7 +227,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
 
     // Consensus update for DS shard
-    m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+    {
+      lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
+      m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
+    }
     m_mediator.m_node->m_consensusMyID = m_consensusMyID;
     m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
     if (m_mediator.m_node->m_consensusMyID ==
