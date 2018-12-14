@@ -489,14 +489,19 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   LOG_MARKER();
-
-  for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++) {
-    if (m_mediator.m_DSCommittee->at(i).first == m_mediator.m_selfKey.second) {
-      m_mediator.m_DSCommittee->at(i).second == Peer();
-      LOG_GENERAL(INFO,
-                  "Found current inside ds committee. Setting it to Peer()");
+  for (auto& i : *m_mediator.m_DSCommittee) {
+    if (i.first == m_mediator.m_selfKey.second) {
+      i.second = Peer();
+      LOG_GENERAL(
+          INFO,
+          "Found current node to be inside ds committee. Setting it to Peer()");
       break;
     }
+  }
+
+  LOG_GENERAL(INFO, "DS committee is ");
+  for (const auto& i : *m_mediator.m_DSCommittee) {
+    LOG_GENERAL(INFO, i.second);
   }
 
   if (BROADCAST_GOSSIP_MODE) {
