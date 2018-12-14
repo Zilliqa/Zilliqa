@@ -222,6 +222,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   // Update the final block with the co-signatures from the consensus
   m_finalBlock->SetCoSignatures(*m_consensusObject);
 
+  // Update the DS microblock with the same co-signatures from the consensus
+  // If we don't do this, DataSender won't be able to process it
+  m_mediator.m_node->m_microblock->SetCoSignatures(*m_consensusObject);
+
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
 
   // StoreMicroBlocksToDisk();
