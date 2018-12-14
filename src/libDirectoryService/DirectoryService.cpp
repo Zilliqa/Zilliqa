@@ -756,6 +756,11 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     return false;
   }
 
+  if (m_mediator.m_selfKey.second == dsGuardPubkey) {
+    LOG_GENERAL(INFO, "Node to be update is current node. No update needed.");
+    return false;
+  }
+
   uint64_t currentDSEpochNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
   uint64_t loCurrentDSEpochNumber = currentDSEpochNumber - 1;
@@ -795,6 +800,13 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
          indexOfDSGuard++) {
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
+        LOG_GENERAL(INFO,
+                    "DS guard to be updated is at index "
+                        << indexOfDSGuard << " "
+                        << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
+                        << " -> " << dsGuardNewNetworkInfo);
+        m_mediator.m_DSCommittee->at(indexOfDSGuard).second =
+            dsGuardNewNetworkInfo;
         break;
       }
     }
