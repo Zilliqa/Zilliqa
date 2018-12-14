@@ -909,6 +909,9 @@ bool DirectoryService::DSBlockValidator(
                 "Calculated: "
                     << committeeHash << " Received: "
                     << m_pendingDSBlock->GetHeader().GetCommitteeHash());
+    for (const auto& i : *m_mediator.m_DSCommittee) {
+      LOG_GENERAL(WARNING, i.second);
+    }
     return false;
   }
 
