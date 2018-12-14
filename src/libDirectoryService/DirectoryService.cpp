@@ -724,13 +724,16 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   {
     // Gossip to all DS committee
     lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-    deque<Peer> peerInfo;
+    vector<Peer> peerInfo;
 
     for (auto const& i : *m_mediator.m_DSCommittee) {
-      peerInfo.push_back(i.second);
+      if (i.second.m_listenPortHost != 0) {
+        peerInfo.push_back(i.second);
+      }
     }
 
     if (BROADCAST_GOSSIP_MODE) {
+      P2PComm::GetInstance().InitializeRumorManager(peerInfo);
       P2PComm::GetInstance().SpreadRumor(updatedsguardidentitymessage);
     } else {
       P2PComm::GetInstance().SendMessage(peerInfo,
