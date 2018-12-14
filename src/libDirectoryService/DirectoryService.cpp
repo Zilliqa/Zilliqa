@@ -490,6 +490,25 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   LOG_MARKER();
 
+  for (unsigned int i = 0; i < m_mediator.m_DSCommittee->size(); i++) {
+    if (m_mediator.m_DSCommittee->at(i).first == m_mediator.m_selfKey.second) {
+      m_mediator.m_DSCommittee->at(i).second == Peer();
+      LOG_GENERAL(INFO,
+                  "Found current inside ds committee. Setting it to Peer()");
+      break;
+    }
+  }
+
+  if (BROADCAST_GOSSIP_MODE) {
+    std::vector<Peer> peers;
+    for (const auto& i : *m_mediator.m_DSCommittee) {
+      if (i.second.m_listenPortHost != 0) {
+        peers.emplace_back(i.second);
+      }
+    }
+    P2PComm::GetInstance().InitializeRumorManager(peers);
+  }
+
   if (m_awaitingToSubmitNetworkInfoUpdate && GUARD_MODE) {
     UpdateDSGuardIdentity();
     LOG_GENERAL(
@@ -733,7 +752,6 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     }
 
     if (BROADCAST_GOSSIP_MODE) {
-      P2PComm::GetInstance().InitializeRumorManager(peerInfo);
       P2PComm::GetInstance().SpreadRumor(updatedsguardidentitymessage);
     } else {
       P2PComm::GetInstance().SendMessage(peerInfo,
