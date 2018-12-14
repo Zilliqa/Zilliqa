@@ -489,6 +489,14 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   LOG_MARKER();
+
+  if (m_awaitingToSubmitNetworkInfoUpdate && GUARD_MODE) {
+    UpdateDSGuardIdentity();
+    LOG_GENERAL(
+        INFO,
+        "Sent ds guard network information update to lookup and ds committee")
+  }
+
   m_mode = BACKUP_DS;
   DequeOfDSNode dsComm;
   {

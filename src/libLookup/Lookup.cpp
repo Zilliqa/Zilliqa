@@ -1525,13 +1525,6 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
       LOG_GENERAL(INFO, "[DSINFOVERIF]"
                             << " Sucess ");
     }
-
-    if (m_mediator.m_ds->m_awaitingToSubmitNetworkInfoUpdate && GUARD_MODE) {
-      m_mediator.m_ds->UpdateDSGuardIdentity();
-      LOG_GENERAL(
-          INFO,
-          "Sent ds guard network information update to lookup and ds committee")
-    }
   }
 
   //    Data::GetInstance().SetDSPeers(dsPeers);
