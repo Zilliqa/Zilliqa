@@ -696,7 +696,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 
   // To provide current pubkey, new IP, new Port and current timestamp
   vector<unsigned char> updatedsguardidentitymessage = {
-      MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
+      MessageType::DIRECTORY, DSInstructionType::NEWDSGUARDIDENTITY};
 
   if (!Messenger::SetDSLookupNewDSGuardNetworkInfo(
           updatedsguardidentitymessage, MessageOffset::BODY,
