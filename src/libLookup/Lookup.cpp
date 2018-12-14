@@ -173,36 +173,16 @@ void Lookup::SetAboveLayer() {
   using boost::property_tree::ptree;
   ptree pt;
   read_xml("constants.xml", pt);
-  if (m_level == 0) {
-    LOG_GENERAL(INFO, "I am lookup node");
-    m_seedNodes.clear();
-  } else if (m_level > 1) {
-    LOG_GENERAL(INFO, "I am a layer " << m_level << " node");
-    for (const ptree::value_type& v : pt.get_child("node.upper_seed")) {
-      if (v.first == "peer") {
-        struct in_addr ip_addr;
-        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
-        Peer lookup_node((uint128_t)ip_addr.s_addr,
-                         v.second.get<uint32_t>("port"));
-        PubKey pubKey(DataConversion::HexStrToUint8Vec(
-                          v.second.get<std::string>("pubkey")),
-                      0);
-        m_seedNodes.emplace_back(lookup_node);
-      }
-    }
-  } else {
-    LOG_GENERAL(INFO, "I am an upper layer seed node");
-    for (const ptree::value_type& v : pt.get_child("node.lookups")) {
-      if (v.first == "peer") {
-        struct in_addr ip_addr;
-        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
-        Peer lookup_node((uint128_t)ip_addr.s_addr,
-                         v.second.get<uint32_t>("port"));
-        PubKey pubKey(DataConversion::HexStrToUint8Vec(
-                          v.second.get<std::string>("pubkey")),
-                      0);
-        m_seedNodes.emplace_back(lookup_node);
-      }
+  for (const ptree::value_type& v : pt.get_child("node.upper_seed")) {
+    if (v.first == "peer") {
+      struct in_addr ip_addr;
+      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+      Peer lookup_node((uint128_t)ip_addr.s_addr,
+                       v.second.get<uint32_t>("port"));
+      PubKey pubKey(
+          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
+          0);
+      m_seedNodes.emplace_back(lookup_node);
     }
   }
 }
