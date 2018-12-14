@@ -93,8 +93,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   }
 
   // Replace owner address in init.json.
-  for (auto it = t1.init.begin(); it != t1.init.end(); it++) {
-    if ((*it)["vname"] == "owner") (*it)["value"] = "0x" + ownerAddr.hex();
+  for (auto& it : t1.init) {
+    if (it["vname"] == "owner") it["value"] = "0x" + ownerAddr.hex();
   }
   // and remove _creation_block (automatic insertion later).
   ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
@@ -401,13 +401,13 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Fetch the states of both ping and pong and verify "count" is 0.
   Json::Value pingState = accountPing->GetStorageJson();
   int pingCount = -1;
-  for (auto it = pingState.begin(); it != pingState.end(); it++) {
-    if ((*it)["vname"] == "count") pingCount = atoi((*it)["value"].asCString());
+  for (auto& it : pingState) {
+    if (it["vname"] == "count") pingCount = atoi(it["value"].asCString());
   }
   Json::Value pongState = accountPing->GetStorageJson();
   int pongCount = -1;
-  for (auto it = pongState.begin(); it != pongState.end(); it++) {
-    if ((*it)["vname"] == "count") pongCount = atoi((*it)["value"].asCString());
+  for (auto& it : pongState) {
+    if (it["vname"] == "count") pongCount = atoi(it["value"].asCString());
   }
   BOOST_CHECK_MESSAGE(pingCount == 0 && pongCount == 0,
                       "Ping / Pong did not reach count 0.");
