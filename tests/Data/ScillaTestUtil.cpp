@@ -106,7 +106,7 @@ uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message,
   message.removeMember("_sender");
 
   std::string msgStr = JSONUtils::convertJsontoStr(message);
-  data = std::move(std::vector<unsigned char>(msgStr.begin(), msgStr.end()));
+  data = std::vector<unsigned char>(msgStr.begin(), msgStr.end());
 
   return amount;
 }
