@@ -271,10 +271,6 @@ bool SafeMath<T>::div_signint(const T& a, const T& b, T& result) {
 
   T c = a / b;
 
-  if (a != b * c + a % b) {
-    return false;
-  }
-
   result = c;
   return true;
 }
