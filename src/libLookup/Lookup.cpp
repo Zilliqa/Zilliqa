@@ -122,6 +122,7 @@ void Lookup::SetLookupNodes() {
 
   std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
 
+  m_startedTxnBatchThread = false;
   m_lookupNodes.clear();
   m_lookupNodesOffline.clear();
   // Populate tree structure pt
@@ -2811,6 +2812,7 @@ bool Lookup::CleanVariables() {
 
   m_seedNodes.clear();
   m_currDSExpired = false;
+  m_startedTxnBatchThread = false;
   m_isFirstLoop = true;
   {
     std::lock_guard<mutex> lock(m_mediator.m_ds->m_mutexShards);
@@ -3182,7 +3184,14 @@ void Lookup::SenderTxnBatchThread() {
   }
   LOG_MARKER();
 
+  if (m_startedTxnBatchThread) {
+    LOG_GENERAL(WARNING,
+                "The last TxnBatchThread hasn't finished, discard this time");
+    return;
+  }
+
   auto main_func = [this]() mutable -> void {
+    m_startedTxnBatchThread = true;
     uint32_t numShards = 0;
     while (true) {
       if (!m_mediator.GetIsVacuousEpoch()) {
@@ -3198,6 +3207,7 @@ void Lookup::SenderTxnBatchThread() {
       }
       break;
     }
+    m_startedTxnBatchThread = false;
   };
   DetachedFunction(1, main_func);
 }
@@ -3219,17 +3229,8 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
     // return;
   }
 
-  // allow receving nodes to be ready with latest DS block ( Only** for first
-  // txn epoch of every ds epoch )
-  if ((m_mediator.m_currentEpochNum == 1) ||
-      (m_mediator.m_currentEpochNum > 1 &&
-       m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Waiting for " << LOOKUP_DELAY_SEND_TXNPACKET_IN_MS
-                             << " ms before sending txn packets to shards");
-    this_thread::sleep_for(
-        chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
-  }
+  this_thread::sleep_for(
+      chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
 
   for (unsigned int i = 0; i < numShards + 1; i++) {
     vector<unsigned char> msg = {MessageType::NODE,
