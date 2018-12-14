@@ -1546,6 +1546,8 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
   }
 
   LOG_MARKER();
+  LOG_GENERAL(INFO,
+              "Querying the lookup for any ds guard node network info change");
   vector<unsigned char> queryLookupForDSGuardNetworkInfoUpdate = {
       MessageType::LOOKUP,
       LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
@@ -1621,6 +1623,9 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
                  },
                  make_pair(dsguardupdate.dsGuardPubkey,
                            dsguardupdate.dsGuardNewNetworkInfo));
+      LOG_GENERAL(INFO, dsguardupdate.dsGuardPubkey
+                            << " new network info is "
+                            << dsguardupdate.dsGuardNewNetworkInfo)
     }
   }
 
