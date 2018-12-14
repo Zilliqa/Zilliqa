@@ -617,6 +617,8 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     return false;
   }
 
+  LogReceivedFinalBlockDetails(txBlock);
+
   // Check timestamp
   if (!VerifyTimestamp(
           txBlock.GetTimestamp(),
@@ -653,7 +655,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "DEBUG shard id is " << (unsigned int)shardId)
 
-  LogReceivedFinalBlockDetails(txBlock);
+  // LogReceivedFinalBlockDetails(txBlock);
 
   LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
@@ -818,8 +820,13 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   } else {
     if (!isVacuousEpoch) {
       m_mediator.m_consensusID++;
+      LOG_GENERAL(INFO, "Nonvacuous epoch - m_consensusID is now :"
+                            << m_mediator.m_consensusID);
       m_consensusLeaderID++;
       m_consensusLeaderID = m_consensusLeaderID % m_mediator.GetShardSize(true);
+    } else {
+      LOG_GENERAL(INFO, "vacuous epoch - m_consensusID is now :"
+                            << m_mediator.m_consensusID);
     }
 
     // Now only forwarded txn are left, so only call in lookup
