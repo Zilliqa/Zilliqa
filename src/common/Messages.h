@@ -95,7 +95,7 @@ enum LookupInstructionType : unsigned char {
   SETSTATEDELTAFROMSEED = 0x1E,
   VCGETLATESTDSTXBLOCK = 0x1F,
   FORWARDTXN = 0x20,
-  GETGUARDNODENETWORKINFOUPDATE = 0x12
+  GETGUARDNODENETWORKINFOUPDATE = 0x21
 };
 
 enum TxSharingMode : unsigned char {
