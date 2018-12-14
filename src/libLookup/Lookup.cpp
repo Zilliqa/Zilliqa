@@ -90,11 +90,7 @@ void Lookup::InitSync() {
 
     // Hack to allow seed server to be restarted so as to get my newlookup ip
     // and register me with multiplier.
-<<<<<<< HEAD
-    this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY));
-=======
     this_thread::sleep_for(chrono::seconds(NEW_LOOKUP_SYNC_DELAY_IN_SECONDS));
->>>>>>> abb0f9fb04380e991f0ebe101bebf2186a6c75ad
 
     // Initialize all blockchains and blocklinkchain
     InitAsNewJoiner();
