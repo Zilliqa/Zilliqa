@@ -60,15 +60,12 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
   std::string is(std::to_string(i));
 
   // Get all JSONs
-  if (!ParseJsonFile(t.init, testDir + "/init.json") ||
+  return !(
+      !ParseJsonFile(t.init, testDir + "/init.json") ||
       !ParseJsonFile(t.state, testDir + "/state_" + is + ".json") ||
       !ParseJsonFile(t.blockchain, testDir + "/blockchain_" + is + ".json") ||
       !ParseJsonFile(t.expOutput, testDir + "/output_" + is + ".json") ||
-      !ParseJsonFile(t.message, testDir + "/message_" + is + ".json")) {
-    return false;
-  }
-
-  return true;
+      !ParseJsonFile(t.message, testDir + "/message_" + is + ".json"));
 }
 
 // Get _balance from output state of interpreter, from OUTPUT_JSON.
@@ -83,8 +80,8 @@ uint128_t ScillaTestUtil::GetBalanceFromOutput(void) {
   // Get balance as given by the interpreter.
   uint128_t oBal = 0;
   Json::Value states = iOutput["states"];
-  for (auto it = states.begin(); it != states.end(); it++) {
-    if ((*it)["vname"] == "_balance") oBal = atoi((*it)["value"].asCString());
+  for (auto &state : states) {
+    if (state["vname"] == "_balance") oBal = atoi(state["value"].asCString());
   }
 
   return oBal;
@@ -94,9 +91,8 @@ uint128_t ScillaTestUtil::GetBalanceFromOutput(void) {
 uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
   // Get blocknumber from blockchain.json
   uint64_t bnum = 0;
-  for (auto it = blockchain.begin(); it != blockchain.end(); it++)
-    if ((*it)["vname"] == "BLOCKNUMBER")
-      bnum = atoi((*it)["value"].asCString());
+  for (auto &it : blockchain)
+    if (it["vname"] == "BLOCKNUMBER") bnum = atoi(it["value"].asCString());
 
   return bnum;
 }
