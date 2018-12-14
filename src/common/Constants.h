@@ -115,6 +115,10 @@ extern const bool LOOKUP_NODE_MODE;
 extern const bool ARCHIVAL_NODE;
 extern const std::string DB_HOST;
 
+// Seed Node
+extern const bool ARCHIVAL_LOOKUP;
+extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
+
 // Consensus constants
 extern const unsigned int COMMIT_WINDOW_IN_SECONDS;
 extern const unsigned int CONSENSUS_MSG_ORDER_BLOCK_WINDOW;
@@ -137,6 +141,7 @@ extern const std::string TXN_PATH;
 
 // Epoch timing constants
 extern const unsigned int DELAY_FIRSTXNEPOCH_IN_MS;
+
 extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
 extern const unsigned int FINALBLOCK_DELAY_IN_MS;
 extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
@@ -260,7 +265,7 @@ extern const unsigned int FALLBACK_TEST_EPOCH;
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 
 // Transaction constants
-extern const unsigned int COINBASE_REWARD;
+extern const boost::multiprecision::uint128_t COINBASE_REWARD;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
 extern const unsigned int MAX_CONTRACT_DEPTH;
