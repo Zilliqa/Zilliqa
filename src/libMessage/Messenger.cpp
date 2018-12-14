@@ -6393,12 +6393,12 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
 
 bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
     vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t epochNumber, const Peer& dsGuardNewNetworkInfo,
+    const uint64_t dsEpochNumber, const Peer& dsGuardNewNetworkInfo,
     const uint64_t timestamp, const pair<PrivKey, PubKey>& dsguardkey) {
   LOG_MARKER();
   DSLookupSetDSGuardNetworkInfoUpdate result;
 
-  result.mutable_data()->set_epochnumber(epochNumber);
+  result.mutable_data()->set_dsepochnumber(dsEpochNumber);
   SerializableToProtobufByteArray(
       dsguardkey.second, *result.mutable_data()->mutable_dsguardpubkey());
   PeerToProtobuf(dsGuardNewNetworkInfo,
@@ -6434,7 +6434,7 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
 
 bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
     const vector<unsigned char>& src, const unsigned int offset,
-    uint64_t& epochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
+    uint64_t& dsEpochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
     PubKey& dsGuardPubkey) {
   LOG_MARKER();
 
@@ -6461,7 +6461,7 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
   }
 
   // Deserialize the remaining fields
-  epochNumber = result.data().epochnumber();
+  dsEpochNumber = result.data().dsepochnumber();
   ProtobufToPeer(result.data().dsguardnewnetworkinfo(), dsGuardNewNetworkInfo);
   timestamp = result.data().timestamp();
 
