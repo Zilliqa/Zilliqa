@@ -622,7 +622,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
     ResetConsensusId();
 
-    if (m_mediator.m_lookup->GetIsServer()) {
+    if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread();
     }
 
