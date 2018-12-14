@@ -1515,7 +1515,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
       if (!(m_mediator.m_DSCommittee->at(i).first ==
             m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
-        LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
+        LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
         isVerif = false;
         break;
       }
