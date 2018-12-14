@@ -767,12 +767,12 @@ class Messenger {
 
   static bool SetDSLookupNewDSGuardNetworkInfo(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint64_t epochNumber, const Peer& dsGuardNewNetworkInfo,
+      const uint64_t dsEpochNumber, const Peer& dsGuardNewNetworkInfo,
       const uint64_t timestamp, const std::pair<PrivKey, PubKey>& dsguardkey);
 
   static bool GetDSLookupNewDSGuardNetworkInfo(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      uint64_t& epochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
+      uint64_t& dsEpochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
       PubKey& dsGuardPubkey);
 
   static bool SetLookupGetNewDSGuardNetworkInfoFromLookup(

@@ -805,7 +805,7 @@ message DSLookupSetDSGuardNetworkInfoUpdate
 {
     message Data
     {
-        required uint64 epochnumber                 = 1;
+        required uint64 dsepochnumber               = 1;
         required ByteArray dsguardpubkey            = 2;
         required ProtoPeer dsguardnewnetworkinfo    = 3;
         required uint64 timestamp                   = 4;
