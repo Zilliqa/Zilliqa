@@ -58,11 +58,7 @@ enum NodeInstructionType : unsigned char {
   FALLBACKCONSENSUS = 0x09,
   FALLBACKBLOCK = 0x0A,
   PROPOSEGASPRICE = 0x0B,
-#ifdef HEARTBEAT_TEST
-  HEARTBEATKILLPULSE = 0x0C,
-#endif  // HEARTBEAT_TEST
-  DSGUARDNODENETWORKINFOUPDATE = 0x0D,
-
+  DSGUARDNODENETWORKINFOUPDATE = 0x0C,
 };
 
 enum LookupInstructionType : unsigned char {
