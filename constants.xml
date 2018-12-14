@@ -11,6 +11,10 @@
         <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
         <DB_HOST/>
     </archival>
+    <seed>
+        <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
+        <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
+    </seed>
     <consensus>
         <COMMIT_WINDOW_IN_SECONDS>5</COMMIT_WINDOW_IN_SECONDS>
         <CONSENSUS_MSG_ORDER_BLOCK_WINDOW>10</CONSENSUS_MSG_ORDER_BLOCK_WINDOW>
@@ -213,6 +217,24 @@
         </peer>
     -->
     </lookups>
+    <upper_seed>
+        <!--
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+            <pubkey></pubkey>
+        </peer>
+        -->
+    </upper_seed>
+    <lower_seed>
+        <!--
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+            <pubkey></pubkey>
+        </peer>
+        -->
+    </lower_seed>
     <ds_guard>
         <!--Pubkey to be provided in testnet/mainnet.
         <DSPUBKEY></DSPUBKEY>

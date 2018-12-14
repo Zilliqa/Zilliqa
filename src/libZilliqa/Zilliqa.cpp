@@ -183,6 +183,12 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     }
   }
 
+  if (ARCHIVAL_LOOKUP && !LOOKUP_NODE_MODE) {
+    LOG_GENERAL(FATAL, "Archvial lookup is true but not lookup ");
+  } else if (ARCHIVAL_LOOKUP && LOOKUP_NODE_MODE) {
+    m_server.StartCollectorThread();
+  }
+
   P2PComm::GetInstance().SetSelfPeer(peer);
 
   if (GUARD_MODE) {

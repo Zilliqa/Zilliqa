@@ -315,10 +315,10 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
                          << "][" << m_mediator.m_currentEpochNum
                          << "] LAST RECVD");
-    LOG_STATE("[MIBLKSWAIT[" << setw(15) << left
-                             << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                             << "][" << m_mediator.m_currentEpochNum
-                             << "] DONE");
+    LOG_STATE("[MIBLKSWAIT][" << setw(15) << left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum
+                              << "] DONE");
 
     m_stopRecvNewMBSubmission = true;
     cv_scheduleDSMicroBlockConsensus.notify_all();

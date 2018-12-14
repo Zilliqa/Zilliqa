@@ -348,7 +348,11 @@ void Node::UpdateStateForNextConsensusRound() {
 
   if (m_consensusMyID == m_consensusLeaderID) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am the new shard leader ");
+              "I am the new shard leader of shard " << m_myshardId);
+    LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                         << "][" << m_mediator.m_currentEpochNum << "]["
+                         << m_myshardId << "][  0] SCLD");
     m_isPrimary = true;
   } else {
     LOG_EPOCH(
@@ -714,12 +718,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
   }
 
-  LOG_STATE(
-      "[FLBLK]["
-      << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
-      << "]["
-      << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
-      << "] RECVD FLBLK");
+  LOG_STATE("[FLBLK][" << setw(15) << left
+                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                       << m_mediator.m_currentEpochNum << "] RECVD FLBLK");
 
   bool toSendTxnToLookup = false;
 
@@ -734,11 +735,18 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
       auto it = addressMap.find(
           Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second));
       if (it != addressMap.end()) {
-        LOG_GENERAL(INFO, "[REWARD]"
-                              << " Got " << it->second << " as reward");
+        auto reward = it->second;
+        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "[REWARD]"
+                      << " Got " << reward << " as reward");
+        LOG_STATE("[REWARD][" << setw(15) << left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum << "]["
+                              << reward << "]");
       } else {
-        LOG_GENERAL(INFO, "[REWARD]"
-                              << "Got no reward thist ds epoch");
+        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "[REWARD]"
+                      << "Got no reward thist ds epoch");
       }
     }
   }
@@ -829,9 +837,10 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
 
     // Now only forwarded txn are left, so only call in lookup
+
     CommitMBnForwardedTransactionBuffer();
-    if (m_mediator.m_lookup->GetIsServer() && !isVacuousEpoch &&
-        !m_mediator.GetIsVacuousEpoch() &&
+    if (!ARCHIVAL_LOOKUP && m_mediator.m_lookup->GetIsServer() &&
+        !isVacuousEpoch && !m_mediator.GetIsVacuousEpoch() &&
         ((m_mediator.m_currentEpochNum + NUM_VACUOUS_EPOCHS + 1) %
          NUM_FINAL_BLOCK_PER_POW) != 0) {
       m_mediator.m_lookup->SenderTxnBatchThread();
