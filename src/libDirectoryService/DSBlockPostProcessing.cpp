@@ -285,19 +285,21 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
                 "I am now DS leader for the next round");
       LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                     DS_LEADER_MSG);
+      LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "][" << m_mediator.m_currentEpochNum << "] DSLD");
       m_mode = PRIMARY_DS;
     } else {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "I am now DS backup for the next round");
       LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
                     DS_BACKUP_MSG);
+
+      LOG_STATE("[IDENT][" << std::setw(15) << std::left
+                           << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                           << "][" << m_mediator.m_currentEpochNum << "] DSBK");
       m_mode = BACKUP_DS;
     }
-
-    LOG_STATE("[IDENT][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << setw(6) << left << m_consensusMyID
-                         << "] DSBK");
   }
 }
 
@@ -418,7 +420,7 @@ void DirectoryService::StartFirstTxEpoch() {
     SetState(MICROBLOCK_SUBMISSION);
 
     LOG_STATE(
-        "[MIBLKSWAIT["
+        "[MIBLKSWAIT]["
         << setw(15) << left << m_mediator.m_selfPeer.GetPrintableIPAddress()
         << "]["
         << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
@@ -449,7 +451,7 @@ void DirectoryService::StartFirstTxEpoch() {
                     "Timeout: Didn't receive all Microblock. Proceeds "
                     "without it");
 
-        LOG_STATE("[MIBLKSWAIT["
+        LOG_STATE("[MIBLKSWAIT]["
                   << setw(15) << left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetLastBlock()
