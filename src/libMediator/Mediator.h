@@ -74,10 +74,6 @@ class Mediator {
   /// The current epoch.
   uint64_t m_currentEpochNum = 0;
 
-#ifdef HEARTBEAT_TEST
-  bool m_killPulse = false;
-#endif  // HEARTBEAT_TEST
-
   /// The consensus ID
   uint32_t m_consensusID;
 
@@ -128,12 +124,6 @@ class Mediator {
   void UpdateTxBlockRand(bool isGenesis = false);
 
   std::string GetNodeMode(const Peer& peer);
-
-  /// Launches the heartbeat monitoring thread
-  void HeartBeatLaunch();
-
-  /// Resets the heartbeat counter (to indicate liveness)
-  void HeartBeatPulse();
 
   void IncreaseEpochNum();
 

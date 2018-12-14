@@ -243,11 +243,6 @@ class Node : public Executable, public Broadcastable {
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
 
-#ifdef HEARTBEAT_TEST
-  bool ProcessKillPulse(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
-#endif  // HEARTBEAT_TEST
-
   // bool ProcessCreateAccounts(const std::vector<unsigned char> & message,
   // unsigned int offset, const Peer & from);
   bool ProcessVCDSBlocksMessage(const std::vector<unsigned char>& message,

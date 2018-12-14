@@ -1278,18 +1278,6 @@ bool Node::ProcessProposeGasPrice(
   return true;
 }
 
-#ifdef HEARTBEAT_TEST
-bool Node::ProcessKillPulse(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
-  LOG_MARKER();
-
-  m_mediator.m_killPulse = true;
-
-  return true;
-}
-#endif  // HEARTBEAT_TEST
-
 void Node::CommitTxnPacketBuffer() {
   LOG_MARKER();
 
@@ -1769,9 +1757,6 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Node::ProcessFallbackConsensus,
       &Node::ProcessFallbackBlock,
       &Node::ProcessProposeGasPrice,
-#ifdef HEARTBEAT_TEST
-      &Node::ProcessKillPulse,
-#endif  // HEARTBEAT_TEST
       &Node::ProcessDSGuardNetworkInfoUpdate,
   };
 
