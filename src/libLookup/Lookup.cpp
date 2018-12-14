@@ -56,8 +56,10 @@ using namespace boost::multiprecision;
 
 Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
   SetLookupNodes();
+
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
+    SetAboveLayer();
   }
 }
 
@@ -130,17 +132,28 @@ void Lookup::SetLookupNodes() {
   ptree pt;
   read_xml("constants.xml", pt);
 
-  for (const ptree::value_type& v : pt.get_child("node.lookups")) {
-    if (v.first == "peer") {
-      struct in_addr ip_addr;
-      inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
-      Peer lookup_node((uint128_t)ip_addr.s_addr,
-                       v.second.get<uint32_t>("port"));
-      PubKey pubKey(
-          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
-          0);
-      m_lookupNodes.emplace_back(pubKey, lookup_node);
+  const vector<string> lookupTypes = {"node.lookups", "node.upper_seed",
+                                      "node.lower_seed"};
+
+  uint8_t level = 0;
+  vector<Peer> levelAbove;
+  for (const auto& lookupType : lookupTypes) {
+    for (const ptree::value_type& v : pt.get_child(lookupType)) {
+      if (v.first == "peer") {
+        struct in_addr ip_addr;
+        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+        Peer lookup_node((uint128_t)ip_addr.s_addr,
+                         v.second.get<uint32_t>("port"));
+        PubKey pubKey(DataConversion::HexStrToUint8Vec(
+                          v.second.get<std::string>("pubkey")),
+                      0);
+        if (pubKey == m_mediator.m_selfKey.second) {
+          m_level = level;
+        }
+        m_lookupNodes.emplace_back(pubKey, lookup_node);
+      }
     }
+    level++;
   }
 
   // Add myself to lookupnodes
@@ -155,6 +168,46 @@ void Lookup::SetLookupNodes() {
     }
   }
 }
+
+void Lookup::SetAboveLayer() {
+  using boost::property_tree::ptree;
+  ptree pt;
+  read_xml("constants.xml", pt);
+  if (m_level == 0) {
+    LOG_GENERAL(INFO, "I am lookup node");
+    m_seedNodes.clear();
+  } else if (m_level > 1) {
+    LOG_GENERAL(INFO, "I am a layer " << m_level << " node");
+    for (const ptree::value_type& v : pt.get_child("node.upper_seed")) {
+      if (v.first == "peer") {
+        struct in_addr ip_addr;
+        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+        Peer lookup_node((uint128_t)ip_addr.s_addr,
+                         v.second.get<uint32_t>("port"));
+        PubKey pubKey(DataConversion::HexStrToUint8Vec(
+                          v.second.get<std::string>("pubkey")),
+                      0);
+        m_seedNodes.emplace_back(lookup_node);
+      }
+    }
+  } else {
+    LOG_GENERAL(INFO, "I am an upper layer seed node");
+    for (const ptree::value_type& v : pt.get_child("node.lookups")) {
+      if (v.first == "peer") {
+        struct in_addr ip_addr;
+        inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
+        Peer lookup_node((uint128_t)ip_addr.s_addr,
+                         v.second.get<uint32_t>("port"));
+        PubKey pubKey(DataConversion::HexStrToUint8Vec(
+                          v.second.get<std::string>("pubkey")),
+                      0);
+        m_seedNodes.emplace_back(lookup_node);
+      }
+    }
+  }
+}
+
+vector<Peer> Lookup::GetAboveLayer() { return m_seedNodes; }
 
 std::once_flag generateReceiverOnce;
 
@@ -195,6 +248,41 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
   return txn;
 }
 
+bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
+  vector<Transaction> txns;
+  unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
+
+  for (auto& addrStr : GENESIS_WALLETS) {
+    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
+
+    txns.clear();
+
+    uint64_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+
+    if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
+                                     num_txn, txns)) {
+      LOG_GENERAL(WARNING, "Failed to get txns from file");
+      continue;
+    }
+
+    copy(txns.begin(), txns.end(), back_inserter(txn));
+
+    LOG_GENERAL(INFO, "[Batching] Last Nonce sent "
+                          << nonce + num_txn << " of Addr " << addr.hex());
+    txns.clear();
+
+    if (!GetTxnFromFile::GetFromFile(addr,
+                                     static_cast<uint32_t>(nonce) + num_txn + 1,
+                                     NUM_TXN_TO_DS, txns)) {
+      LOG_GENERAL(WARNING, "Failed to get txns for DS");
+      continue;
+    }
+
+    copy(txns.begin(), txns.end(), back_inserter(txn));
+  }
+  return !txn.empty();
+}
+
 bool Lookup::GenTxnToSend(size_t num_txn,
                           map<uint32_t, vector<Transaction>>& mp,
                           uint32_t numShards) {
@@ -212,12 +300,13 @@ bool Lookup::GenTxnToSend(size_t num_txn,
 
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
+  if (numShards == 0) {
+    return false;
+  }
+
   for (auto& addrStr : GENESIS_WALLETS) {
     Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
 
-    if (numShards == 0) {
-      return false;
-    }
     auto txnShard = Transaction::GetShardIndex(addr, numShards);
     txns.clear();
 
@@ -229,19 +318,6 @@ bool Lookup::GenTxnToSend(size_t num_txn,
       return false;
     }
 
-    /*Address receiverAddr = GenOneReceiver();
-    unsigned int curr_offset = 0;
-    txns.reserve(n);
-    for (auto i = 0u; i != n; i++)
-    {
-
-        Transaction txn(0, nonce + i + 1, receiverAddr,
-                        make_pair(privKey, pubKey), 10 * i + 2, 1, 1, {},
-                        {});
-
-        curr_offset = txn.Serialize(txns, curr_offset);
-    }*/
-    //[Change back here]
     copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
 
     LOG_GENERAL(INFO, "[Batching] Last Nonce sent "
@@ -3112,7 +3188,8 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Lookup::ProcessSetDirectoryBlocksFromSeed,
       &Lookup::ProcessGetStateDeltaFromSeed,
       &Lookup::ProcessSetStateDeltaFromSeed,
-      &Lookup::ProcessVCGetLatestDSTxBlockFromSeed};
+      &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
+      &Lookup::ProcessForwardTxn};
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
       sizeof(ins_handlers) / sizeof(InstructionHandler);
@@ -3363,6 +3440,50 @@ bool Lookup::VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
                      return node.first == pubKeyToVerify;
                    });
   return vecLookupNodes.cend() != iter;
+}
+
+bool Lookup::ProcessForwardTxn(const vector<unsigned char>& message,
+                               unsigned int offset, const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessForwardTxn not expected to be called from "
+                "non-lookup node");
+  }
+
+  vector<Transaction> txns;
+
+  if (!Messenger::GetTransactionArray(message, offset, txns)) {
+    LOG_GENERAL(WARNING, "Failed to Messenger::GetTransactionArray");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Recvd from " << from);
+
+  if (!ARCHIVAL_LOOKUP) {
+    uint32_t shard_size = 0;
+    {
+      lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
+      shard_size = m_mediator.m_ds->m_shards.size();
+    }
+
+    if (shard_size == 0) {
+      LOG_GENERAL(WARNING, "Shard size 0");
+      return false;
+    }
+
+    for (const auto& txn : txns) {
+      const PubKey& senderPubKey = txn.GetSenderPubKey();
+      const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+      unsigned int shard = Transaction::GetShardIndex(fromAddr, shard_size);
+      AddToTxnShardMap(txn, shard);
+    }
+  } else {
+    for (const auto& txn : txns) {
+      AddToTxnShardMap(txn, 0);
+    }
+  }
+
+  return true;
 }
 
 bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(

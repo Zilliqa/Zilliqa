@@ -73,6 +73,12 @@ const bool ARCHIVAL_NODE{
     ReadConstantString("ARCHIVAL_NODE", "node.archival.") == "true"};
 const string DB_HOST{ReadConstantString("DB_HOST", "node.archival.")};
 
+// Seed constans
+const bool ARCHIVAL_LOOKUP{
+    ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
+const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
+    ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
+
 // Consensus constants
 const unsigned int COMMIT_WINDOW_IN_SECONDS{
     ReadConstantNumeric("COMMIT_WINDOW_IN_SECONDS", "node.consensus.")};
