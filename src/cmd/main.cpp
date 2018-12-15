@@ -27,6 +27,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/InputDataProcessing.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
 
@@ -78,11 +79,14 @@ int main(int argc, const char* argv[]) {
                                              << " and my mapped port is "
                                              << mappedPort);
     }
-
-    inet_pton(AF_INET, nt->externalIP().c_str(), &ip_addr);
+    if (!getIPv4(nt->externalIP().c_str(), ip_addr)) {
+      return -1;
+    }
     my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
   } else {
-    inet_pton(AF_INET, argv[3], &ip_addr);
+    if (!getIPv4(argv[3], ip_addr)) {
+      return -1;
+    }
     my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
   }
 
