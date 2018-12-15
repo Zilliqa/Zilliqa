@@ -179,7 +179,10 @@ bool DataSender::SendDataToOthers(
   LOG_MARKER();
 
   if (blockwcosig.GetB2().size() != sendercommittee.size()) {
-    LOG_GENERAL(WARNING, "B2 size and committee size is not identical!");
+    LOG_GENERAL(WARNING, "B2 size " << blockwcosig.GetB2().size()
+                                    << " and committee size "
+                                    << sendercommittee.size()
+                                    << " is not identical!");
     return false;
   }
 
