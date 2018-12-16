@@ -848,11 +848,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     }
 
     // Lookup to store the info
-    if (foundDSGuardNode &&
-        m_mediator.m_DSCommittee->at(indexOfDSGuard).second !=
-            dsGuardNewNetworkInfo) {
-      m_mediator.m_DSCommittee->at(indexOfDSGuard).second =
-          dsGuardNewNetworkInfo;
+    if (foundDSGuardNode && LOOKUP_NODE_MODE) {
       {
         std::mutex m_mutexLookupStoreForGuardNodeUpdate;
         DSGuardUpdateStruct dsGuardNodeIden(dsGuardPubkey,
@@ -876,8 +872,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
                         << dsEpochNumber);
         }
       }
-      return true;
     }
+    return foundDSGuardNode;
   }
   return false;
 }
