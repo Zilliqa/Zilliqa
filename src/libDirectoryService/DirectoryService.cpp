@@ -860,7 +860,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
           LOG_EPOCH(
               WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "[update of ds guard] No existing record found for dsEpochNumber "
-                  << dsEpochNumber);
+                  << dsEpochNumber << ". Adding a new record");
 
         } else {
           vector<DSGuardUpdateStruct> temp =
