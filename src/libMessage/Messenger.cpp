@@ -159,11 +159,10 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     account.SetCode(tmpVec);
 
     dev::h256 tmpHash;
-    copy(protoAccount.codehash().begin(),
-         protoAccount.codehash().begin() +
-             min((unsigned int)protoAccount.codehash().size(),
-                 (unsigned int)tmpHash.size),
-         tmpHash.asArray().begin());
+    if (!Messenger::CopyWithSizeCheck(protoAccount.codehash(),
+                                      tmpHash.asArray())) {
+      return false;
+    }
 
     if (account.GetCodeHash() != tmpHash) {
       LOG_GENERAL(WARNING,
@@ -185,10 +184,10 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     }
 
     for (const auto& entry : protoAccount.storage()) {
-      copy(entry.keyhash().begin(),
-           entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
-                                         (unsigned int)tmpHash.size),
-           tmpHash.asArray().begin());
+      if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
+        return false;
+      }
+
       account.SetStorage(tmpHash, entry.data());
     }
 
@@ -316,10 +315,10 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       dev::h256 tmpHash;
 
       for (const auto& entry : protoAccount.storage()) {
-        copy(entry.keyhash().begin(),
-             entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
-                                           (unsigned int)tmpHash.size),
-             tmpHash.asArray().begin());
+        if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
+          return false;
+        }
+
         account.SetStorage(tmpHash, entry.data());
       }
 
@@ -438,13 +437,10 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
 
   // Deserialize the block hash
   BlockHash blockHash;
-
-  copy(protoBlockBase.blockhash().begin(),
-       protoBlockBase.blockhash().begin() +
-           min((unsigned int)protoBlockBase.blockhash().size(),
-               (unsigned int)blockHash.size),
-       blockHash.asArray().begin());
-
+  if (!Messenger::CopyWithSizeCheck(protoBlockBase.blockhash(),
+                                    blockHash.asArray())) {
+    return;
+  }
   base.SetBlockHash(blockHash);
 
   // Deserialize timestamp
@@ -817,11 +813,11 @@ void ProtobufToDSBlockHeader(
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
-  copy(protoDSBlockHeader.prevhash().begin(),
-       protoDSBlockHeader.prevhash().begin() +
-           min((unsigned int)protoDSBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
+  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.prevhash(),
+                                    prevHash.asArray())) {
+    return;
+  }
+
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
@@ -842,22 +838,22 @@ void ProtobufToDSBlockHeader(
   DSBlockHashSet hash;
   const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
       protoDSBlockHeader.hash();
-  copy(protoDSBlockHeaderHash.shardinghash().begin(),
-       protoDSBlockHeaderHash.shardinghash().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
-               (unsigned int)hash.m_shardingHash.size),
-       hash.m_shardingHash.asArray().begin());
+
+  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
+                                    hash.m_shardingHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.committeehash(),
+                                    committeeHash.asArray())) {
+    return;
+  }
+
   copy(protoDSBlockHeaderHash.reservedfield().begin(),
        protoDSBlockHeaderHash.reservedfield().begin() +
            min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
                (unsigned int)hash.m_reservedField.size()),
        hash.m_reservedField.begin());
-
-  copy(protoDSBlockHeader.committeehash().begin(),
-       protoDSBlockHeader.committeehash().begin() +
-           min((unsigned int)protoDSBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
 
   // Generate the new DSBlock
 
@@ -1012,34 +1008,34 @@ void ProtobufToMicroBlockHeader(
   gasUsed = protoMicroBlockHeader.gasused();
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoMicroBlockHeader.rewards(), rewards);
-  copy(protoMicroBlockHeader.prevhash().begin(),
-       protoMicroBlockHeader.prevhash().begin() +
-           min((unsigned int)protoMicroBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
-  copy(protoMicroBlockHeader.txroothash().begin(),
-       protoMicroBlockHeader.txroothash().begin() +
-           min((unsigned int)protoMicroBlockHeader.txroothash().size(),
-               (unsigned int)txRootHash.size),
-       txRootHash.asArray().begin());
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.prevhash(),
+                                    prevHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.txroothash(),
+                                    txRootHash.asArray())) {
+    return;
+  }
+
   ProtobufByteArrayToSerializable(protoMicroBlockHeader.minerpubkey(),
                                   minerPubKey);
-  copy(protoMicroBlockHeader.statedeltahash().begin(),
-       protoMicroBlockHeader.statedeltahash().begin() +
-           min((unsigned int)protoMicroBlockHeader.statedeltahash().size(),
-               (unsigned int)stateDeltaHash.size),
-       stateDeltaHash.asArray().begin());
-  copy(protoMicroBlockHeader.tranreceipthash().begin(),
-       protoMicroBlockHeader.tranreceipthash().begin() +
-           min((unsigned int)protoMicroBlockHeader.tranreceipthash().size(),
-               (unsigned int)tranReceiptHash.size),
-       tranReceiptHash.asArray().begin());
 
-  copy(protoMicroBlockHeader.committeehash().begin(),
-       protoMicroBlockHeader.committeehash().begin() +
-           min((unsigned int)protoMicroBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
+                                    stateDeltaHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
+                                    tranReceiptHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.committeehash(),
+                                    committeeHash.asArray())) {
+    return;
+  }
 
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
@@ -4570,8 +4566,10 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  copy(result.txhash().begin(), result.txhash().end(),
-       txHash.asArray().begin());
+  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
+    return false;
+  }
+
   listenPort = result.listenport();
 
   return true;
@@ -4610,8 +4608,10 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  copy(result.txhash().begin(), result.txhash().end(),
-       txHash.asArray().begin());
+  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
+    return false;
+  }
+
   ProtobufByteArrayToSerializable(result.txbody(), txBody);
 
   return true;
@@ -6053,10 +6053,11 @@ bool Messenger::GetBlockLink(
 
   get<BlockLinkIndex::INDEX>(blocklink) = result.index();
   get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
-  copy(result.blockhash().begin(),
-       result.blockhash().begin() + min((unsigned int)result.blockhash().size(),
-                                        (unsigned int)blkhash.size),
-       blkhash.asArray().begin());
+
+  if (!CopyWithSizeCheck(result.blockhash(), blkhash.asArray())) {
+    return false;
+  }
+
   get<BlockLinkIndex::BLOCKTYPE>(blocklink) = (BlockType)result.blocktype();
   get<BlockLinkIndex::BLOCKHASH>(blocklink) = blkhash;
 
