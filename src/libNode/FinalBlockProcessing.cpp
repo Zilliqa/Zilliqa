@@ -822,7 +822,6 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     }
 
     if (isVacuousEpoch) {
-      m_requestedForDSGuardNetworkInfoUpdate = false;
       InitiatePoW();
     } else {
       auto main_func = [this]() mutable -> void { BeginNextConsensusRound(); };
