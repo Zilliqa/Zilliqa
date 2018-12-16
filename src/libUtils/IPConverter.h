@@ -28,13 +28,60 @@
 
 /// Utility class for converter from ip address string to numerical
 /// represetation.
+
+namespace IPConverterr {
+
+using namespace std;
+
+enum IPv {IPv4, IPv6};
+
+const std::string ToStrFromNumericalIP(
+    const boost::multiprecision::uint128_t&);
+
+void LogBrand();
+
+void LogBugReport();
+
+void LogUnsupported();
+
+void LogInvalidIP();
+
+void LogInternalErr();
+
+template <typename ip_s>
+bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
+  int res;
+  if (v == IPv4) {
+    res = inet_pton(AF_INET, in, &ip_addr);
+  }
+  else {
+    res = inet_pton(AF_INET6, in, &ip_addr);
+  }
+
+  if (res == 1) {
+    return true;
+  } else if (res == 0) {
+    LogInvalidIP();
+    return false;
+  } else {
+    LogBrand();
+    LogBugReport();
+    LogInternalErr();
+    return false;
+  }
+}
+
+int ToNumericalIPFromStr(
+    const std::string&, boost::multiprecision::uint128_t&);
+}
+
 class IPConverter {
 private:
-  static void LogInvalidIP();
-  void LogBrand();
-  void LogBugReport();
-  void LogUnsupported();
-  void LogInternalErr();
+//  void LogInvalidIP();
+//  void LogBrand();
+//  void LogBugReport();
+//  void LogUnsupported();
+//  void LogInternalErr();
  public:
   enum IPv {IPv4, IPv6};
   static const std::string ToStrFromNumericalIP(
@@ -53,12 +100,8 @@ private:
     if (res == 1) {
       return true;
     } else if (res == 0) {
-      LogInvalidIP();
       return false;
     } else {
-      LogBrand();
-      LogBugReport();
-      LogInternalErr();
       return false;
     }
   }

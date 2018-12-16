@@ -65,6 +65,7 @@ int main(int argc, const char* argv[]) {
 
   unsigned int localPort = static_cast<unsigned int>(atoi(argv[4]));
   unique_ptr<NAT> nt;
+  uint128_t ip;
 
   if (string(argv[3]) == "NAT") {
     nt = make_unique<NAT>();
@@ -85,10 +86,9 @@ int main(int argc, const char* argv[]) {
     }
     my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
   } else {
-    if (!getIP(argv[3], ip_addr)) {
+    if (IPConverterr::ToNumericalIPFromStr(string(argv[3]), ip) != 0) {
       return -1;
     }
-    uint128_t ip = IPConverter::ToNumericalIPFromStr(string(argv[3]));
 
     my_network_info = Peer(ip, localPort);
   }
