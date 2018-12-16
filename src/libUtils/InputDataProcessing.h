@@ -25,7 +25,7 @@
 
 using namespace std;
 
-bool getIPv4(const char* in, struct in_addr& ip_addr) {
+bool getIP(const char* in, struct in_addr& ip_addr) {
   int res = inet_pton(AF_INET, in, &ip_addr);
   if (!res) {
     res = inet_pton(AF_INET6, in, &ip_addr);

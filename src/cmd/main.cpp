@@ -79,12 +79,12 @@ int main(int argc, const char* argv[]) {
                                              << " and my mapped port is "
                                              << mappedPort);
     }
-    if (!getIPv4(nt->externalIP().c_str(), ip_addr)) {
+    if (!getIP(nt->externalIP().c_str(), ip_addr)) {
       return -1;
     }
     my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
   } else {
-    if (!getIPv4(argv[3], ip_addr)) {
+    if (!getIP(argv[3], ip_addr)) {
       return -1;
     }
     my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
