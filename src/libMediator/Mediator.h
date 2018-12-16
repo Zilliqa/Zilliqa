@@ -35,9 +35,6 @@
 
 /// A mediator class for providing access to global members.
 class Mediator {
-  std::mutex m_mutexHeartBeat;
-  unsigned int m_heartBeatTime;
-
  public:
   /// The Zilliqa instance's key pair.
   std::pair<PrivKey, PubKey> m_selfKey;

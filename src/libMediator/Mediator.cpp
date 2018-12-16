@@ -30,8 +30,7 @@
 using namespace std;
 
 Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
-    : m_heartBeatTime(0),
-      m_selfKey(key),
+    : m_selfKey(key),
       m_selfPeer(peer),
       m_ds(nullptr),
       m_node(nullptr),
