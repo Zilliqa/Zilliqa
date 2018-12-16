@@ -23,7 +23,8 @@
 #include <arpa/inet.h>
 #include <iostream>
 
-using namespace std;
+using std::cout;
+using std::endl;
 
 bool getIP(const char* in, struct in_addr& ip_addr) {
   int res = inet_pton(AF_INET, in, &ip_addr);
