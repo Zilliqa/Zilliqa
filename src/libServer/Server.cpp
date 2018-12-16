@@ -100,7 +100,6 @@ bool Server::StartCollectorThread() {
       if (USE_REMOTE_TXN_CREATOR && !m_mediator.m_lookup->GenTxnToSend(
                                         NUM_TXN_TO_SEND_PER_ACCOUNT, txns)) {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
-        continue;
       }
 
       if (!txns.empty()) {
