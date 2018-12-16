@@ -779,14 +779,14 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     return false;
   }
 
-  uint64_t epochNumber;
+  uint64_t dsEpochNumber;
   Peer dsGuardNewNetworkInfo;
   uint64_t timestamp;
   PubKey dsGuardPubkey;
 
-  if (!Messenger::GetDSLookupNewDSGuardNetworkInfo(message, offset, epochNumber,
-                                                   dsGuardNewNetworkInfo,
-                                                   timestamp, dsGuardPubkey)) {
+  if (!Messenger::GetDSLookupNewDSGuardNetworkInfo(
+          message, offset, dsEpochNumber, dsGuardNewNetworkInfo, timestamp,
+          dsGuardPubkey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSLookupNewDSGuardNetworkInfo failed.");
     return false;
@@ -802,15 +802,15 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   uint64_t loCurrentDSEpochNumber = currentDSEpochNumber - 1;
   uint64_t hiCurrentDSEpochNumber = currentDSEpochNumber + 1;
 
-  if (!(epochNumber <= hiCurrentDSEpochNumber + 1 &&
-        epochNumber >= loCurrentDSEpochNumber - 1)) {
+  if (!(dsEpochNumber <= hiCurrentDSEpochNumber + 1 &&
+        dsEpochNumber >= loCurrentDSEpochNumber - 1)) {
     LOG_GENERAL(WARNING,
                 "Update of ds guard network info failure due to not within "
                 "range of expected "
                 "ds epoch loCurrentDSEpochNumber: "
                     << loCurrentDSEpochNumber
                     << " hiCurrentDSEpochNumber: " << hiCurrentDSEpochNumber
-                    << " epochNumber: " << epochNumber);
+                    << " dsEpochNumber: " << dsEpochNumber);
     return false;
   }
 
@@ -857,15 +857,23 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
         std::mutex m_mutexLookupStoreForGuardNodeUpdate;
         DSGuardUpdateStruct dsGuardNodeIden(dsGuardPubkey,
                                             dsGuardNewNetworkInfo, timestamp);
-        if (m_lookupStoreForGuardNodeUpdate.find(epochNumber) ==
+        if (m_lookupStoreForGuardNodeUpdate.find(dsEpochNumber) ==
             m_lookupStoreForGuardNodeUpdate.end()) {
           vector<DSGuardUpdateStruct> temp = {dsGuardNodeIden};
-          m_lookupStoreForGuardNodeUpdate.emplace(epochNumber, temp);
+          m_lookupStoreForGuardNodeUpdate.emplace(dsEpochNumber, temp);
+          LOG_EPOCH(
+              WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "[update of guard ds] No existing record found for dsEpochNumber "
+                  << dsEpochNumber);
+
         } else {
           vector<DSGuardUpdateStruct> temp =
-              m_lookupStoreForGuardNodeUpdate.at(epochNumber);
+              m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber);
           temp.emplace_back(dsGuardNodeIden);
-          m_lookupStoreForGuardNodeUpdate.at(epochNumber) = temp;
+          m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber) = temp;
+          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                    "[update of guard ds] Adding new record for dsEpochNumber "
+                        << dsEpochNumber);
         }
       }
       return true;
