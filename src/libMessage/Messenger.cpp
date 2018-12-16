@@ -6536,6 +6536,8 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
       LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
       return false;
     }
+    SerializableToProtobufByteArray(lookupKey.second,
+                                    *result.mutable_lookuppubkey());
     SerializableToProtobufByteArray(signature, *result.mutable_signature());
   } else {
     LOG_GENERAL(
