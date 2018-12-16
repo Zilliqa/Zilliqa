@@ -3594,7 +3594,10 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
 
   if (m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.find(dsEpochNo) ==
       m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.end()) {
-    LOG_GENERAL(INFO, "No record found. No update needed.");
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "No record found for guard ds update. No update needed. dsEpochNo: "
+            << dsEpochNo);
     return false;
   }
 
@@ -3611,6 +3614,7 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
     return false;
   }
 
+  LOG_GENERAL(INFO, "Sending guard node update info to " << requestingNode);
   P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
   return true;
 }
