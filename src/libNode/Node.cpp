@@ -1543,7 +1543,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
       MessageType::LOOKUP,
       LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
   uint64_t dsEpochNum =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
   LOG_GENERAL(INFO,
               "Querying the lookup for any ds guard node network info change "
