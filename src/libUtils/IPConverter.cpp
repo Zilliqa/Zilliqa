@@ -16,7 +16,9 @@
  */
 
 #include "IPConverter.h"
-#include <arpa/inet.h>
+
+
+using namespace std;
 
 const std::string IPConverter::ToStrFromNumericalIP(
     const boost::multiprecision::uint128_t& ip) {
@@ -27,9 +29,76 @@ const std::string IPConverter::ToStrFromNumericalIP(
   return std::string(str);
 }
 
-const boost::multiprecision::uint128_t IPConverter::ToNumericalIPFromStr(
-    const std::string& ipStr) {
-  struct in_addr ip_addr;
-  inet_pton(AF_INET, ipStr.c_str(), &ip_addr);
-  return (boost::multiprecision::uint128_t)ip_addr.s_addr;
+void IPConverter::LogBrand() {
+  cout << "Copyright (C) Zilliqa. Version 1.0 (Durian). "
+          "<https://www.zilliqa.com/> "
+       << endl;
+}
+
+void IPConverter::LogBugReport() {
+  cout << "For bug reporting, please create an issue at "
+          "<https://github.com/Zilliqa/Zilliqa> \n"
+       << endl;
+}
+
+void IPConverter::LogUnsupported() {
+  LogBrand();
+  LogBugReport();
+  cout << "Error: Unknown address type - unsupported protocol\n"
+       << endl;
+}
+
+void IPConverter::LogInvalidIP() {
+  LogBrand();
+  LogBugReport();
+  cout << "Error: listen_ip_address does not contain a character string "
+          "representing a valid network addres\n"
+       << endl;
+}
+
+void IPConverter::LogInternalErr() {
+  LogBrand();
+  LogBugReport();
+  std::cout << "Internal Error: cannot process the input IP address.\n" << std::endl;
+}
+
+int IPConverter::ToNumericalIPFromStr(
+    const std::string& ipStr, boost::multiprecision::uint128_t& ipInt) {
+        boost::asio::ip::address Addr;
+        try{
+          Addr = boost::asio::ip::address::from_string(ipStr);
+        }
+        catch(const std::exception& e){
+          LogInvalidIP();
+          return -1;
+        }
+//        struct in6_addr ipv6;
+//        struct in_addr ipv4;
+
+        if(Addr.is_v4()) {
+          ipInt = (boost::multiprecision::uint128_t)Addr.to_v4().to_ulong();
+          return 0;
+//          if (convertIP(ipStr.c_str(), ipv4, IPv4)) {
+//            ipInt = (boost::multiprecision::uint128_t) ipv4.s_addr;
+//            return 0;
+//          }
+//          return -1;
+        }
+        else if(Addr.is_v6()) {
+          boost::multiprecision::uint128_t addr = 0;
+          uint8_t i = 0;
+          for (const unsigned char b : Addr.to_v6().to_bytes()) {
+            addr = (boost::multiprecision::uint128_t) b << i *8;
+            i++;
+          }
+          return 0;
+//          if (convertIP(ipStr.c_str(), ipv6, IPv6)) {
+//            ipInt = (boost::multiprecision::uint128_t) ipv6.in6_addr;
+//            return 0;
+//          }
+//          return -1;
+        }
+
+        LogUnsupported();
+        return -1;
 }

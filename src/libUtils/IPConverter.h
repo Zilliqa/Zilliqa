@@ -23,16 +23,48 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
 #include <string>
+#include <boost/asio.hpp>
+#include <arpa/inet.h>
 
 /// Utility class for converter from ip address string to numerical
 /// represetation.
 class IPConverter {
+private:
+  static void LogInvalidIP();
+  void LogBrand();
+  void LogBugReport();
+  void LogUnsupported();
+  void LogInternalErr();
  public:
+  enum IPv {IPv4, IPv6};
   static const std::string ToStrFromNumericalIP(
       const boost::multiprecision::uint128_t& ip);
 
-  static const boost::multiprecision::uint128_t ToNumericalIPFromStr(
-      const std::string& ipStr);
+  template <typename ip_s>
+  bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
+    int res;
+    if (v == IPv4) {
+      res = inet_pton(AF_INET, in, &ip_addr);
+    }
+    else {
+      res = inet_pton(AF_INET6, in, &ip_addr);
+    }
+
+    if (res == 1) {
+      return true;
+    } else if (res == 0) {
+      LogInvalidIP();
+      return false;
+    } else {
+      LogBrand();
+      LogBugReport();
+      LogInternalErr();
+      return false;
+    }
+  }
+
+  static int ToNumericalIPFromStr(
+      const std::string& , boost::multiprecision::uint128_t& );
 };
 
 #endif  // __IP_CONVERTER_H__

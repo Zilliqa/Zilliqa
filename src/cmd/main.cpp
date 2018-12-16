@@ -28,6 +28,7 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/InputDataProcessing.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
 
@@ -87,7 +88,9 @@ int main(int argc, const char* argv[]) {
     if (!getIP(argv[3], ip_addr)) {
       return -1;
     }
-    my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
+    uint128_t ip = IPConverter::ToNumericalIPFromStr(string(argv[3]));
+
+    my_network_info = Peer(ip, localPort);
   }
 
   bytes tmPrivkey = DataConversion::HexStrToUint8Vec(argv[1]);
