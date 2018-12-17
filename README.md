@@ -73,16 +73,6 @@ To run Zilliqa, we recommend the following minimum system requirements:
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
         libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
         libprotobuf-dev protobuf-compiler libcurl4-openssl-dev
-    
-    # Install openssl-1.1.1 on 16.04
-    curl -OL https://www.openssl.org/source/openssl-1.1.1.tar.gz
-    tar -xzf openssl-1.1.1.tar.gz
-    cd openssl-1.1.1
-    ./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' > /dev/null
-    make > /dev/null
-    make install > /dev/null
-    cd ..
-    rm -rf openssl-1.1.1 openssl-1.1.1.tar.gz
     ```
 
 * macOS (experimental):
