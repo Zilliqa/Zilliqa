@@ -70,7 +70,6 @@ void Lookup::InitAsNewJoiner() {
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
-  m_isNewLookupNode = true;
   SetLookupNodes();
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
@@ -119,24 +118,6 @@ void Lookup::InitSync() {
     }
   };
   DetachedFunction(1, func);
-}
-
-void Lookup::RejoinAsNewLookup() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::RejoinAsNewLookup not expected to be called from "
-                "other than the LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-  if (m_syncType == SyncType::NO_SYNC) {
-    auto func = [this]() mutable -> void {
-      SetSyncType(SyncType::NEW_LOOKUP_SYNC);
-      InitSync();
-    };
-    DetachedFunction(1, func);
-  }
 }
 
 void Lookup::SetLookupNodes() {
@@ -1933,9 +1914,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  LOG_GENERAL(INFO, "AccountStore::GetInstance().GetStateRootHash()"
-                        << AccountStore::GetInstance().GetStateRootHash());
-
   if (ARCHIVAL_NODE) {
     LOG_GENERAL(INFO, "Succesfull state change");
     return true;
@@ -2031,37 +2009,6 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
         m_dsInfoWaitingNotifying = false;
       }
       m_fetchedDSInfo = false;
-    }
-
-    /// Retrieve lacked final-block state-delta from lookup nodes
-    std::list<TxBlockSharedPtr> blocks;
-    if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
-      LOG_GENERAL(WARNING, "RetrieveTxBlocks skipped or incompleted");
-      return false;
-    }
-
-    blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-      return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-    });
-
-    unsigned int totalSize = blocks.size();
-    unsigned int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
-
-    for (const auto& block : blocks) {
-      if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
-        unique_lock<mutex> lock(
-            m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
-        do {
-          m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
-              block->GetHeader().GetBlockNum());
-          LOG_GENERAL(
-              INFO,
-              "Retrieve final block state delta from lookup node, please "
-              "wait...");
-        } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
-                     lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
-                 cv_status::timeout);
-      }
     }
 
     if (!m_currDSExpired) {
