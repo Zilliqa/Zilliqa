@@ -5478,12 +5478,12 @@ bool Messenger::GetLookupSetTxnsFromLookup(
 
 bool Messenger::SetLookupGetDirectoryBlocksFromSeed(vector<unsigned char>& dst,
                                                     const unsigned int offset,
-                                                    const uint32_t portno,
-                                                    const uint64_t& index_num) {
+                                                    const uint32_t portNo,
+                                                    const uint64_t& indexNum) {
   LookupGetDirectoryBlocksFromSeed result;
 
-  result.set_portno(portno);
-  result.set_indexnum(index_num);
+  result.set_portno(portNo);
+  result.set_indexnum(indexNum);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
@@ -5496,7 +5496,7 @@ bool Messenger::SetLookupGetDirectoryBlocksFromSeed(vector<unsigned char>& dst,
 
 bool Messenger::GetLookupGetDirectoryBlocksFromSeed(
     const vector<unsigned char>& src, const unsigned int offset,
-    uint32_t& portno, uint64_t& index_num) {
+    uint32_t& portNo, uint64_t& indexNum) {
   LookupGetDirectoryBlocksFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -5507,9 +5507,9 @@ bool Messenger::GetLookupGetDirectoryBlocksFromSeed(
     return false;
   }
 
-  portno = result.portno();
+  portNo = result.portno();
 
-  index_num = result.indexnum();
+  indexNum = result.indexnum();
 
   return true;
 }
@@ -5519,10 +5519,10 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     const vector<
         boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
         directoryBlocks,
-    const uint64_t& index_num) {
+    const uint64_t& indexNum) {
   LookupSetDirectoryBlocksFromSeed result;
 
-  result.set_indexnum(index_num);
+  result.set_indexnum(indexNum);
 
   for (const auto& dirblock : directoryBlocks) {
     ProtoSingleDirectoryBlock* proto_dir_blocks = result.add_dirblocks();
@@ -5555,7 +5555,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     const vector<unsigned char>& src, const unsigned int offset,
     vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
         directoryBlocks,
-    uint64_t& index_num) {
+    uint64_t& indexNum) {
   LookupSetDirectoryBlocksFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -5566,7 +5566,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  index_num = result.indexnum();
+  indexNum = result.indexnum();
 
   for (const auto& dirblock : result.dirblocks()) {
     DSBlock dsblock;
@@ -6078,13 +6078,6 @@ bool Messenger::GetConsensusCollectiveSig(
     return false;
   }
 
-  if (result.consensusinfo().blocknumber() != blockNumber) {
-    LOG_GENERAL(WARNING, "Block number mismatch. Expected: "
-                             << blockNumber << " Actual: "
-                             << result.consensusinfo().blocknumber());
-    return false;
-  }
-
   if (result.consensusinfo().leaderid() != leaderID) {
     LOG_GENERAL(WARNING, "Leader ID mismatch. Expected: "
                              << leaderID << " Actual: "
@@ -6321,13 +6314,6 @@ bool Messenger::GetConsensusConsensusFailure(
                     << DataConversion::Uint8VecToHexStr(blockHash)
                     << " Actual: "
                     << DataConversion::Uint8VecToHexStr(remoteBlockHash));
-    return false;
-  }
-
-  if (result.consensusinfo().blocknumber() != blockNumber) {
-    LOG_GENERAL(WARNING, "Block number mismatch. Expected: "
-                             << blockNumber << " Actual: "
-                             << result.consensusinfo().blocknumber());
     return false;
   }
 

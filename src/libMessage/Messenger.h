@@ -650,23 +650,23 @@ class Messenger {
 
   static bool SetLookupGetDirectoryBlocksFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint32_t portno, const uint64_t& index_num);
+      const uint32_t portNo, const uint64_t& indexNum);
   static bool GetLookupGetDirectoryBlocksFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      uint32_t& portno, uint64_t& index_num);
+      uint32_t& portNo, uint64_t& indexNum);
 
   static bool SetLookupSetDirectoryBlocksFromSeed(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const std::vector<
           boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
           directoryBlocks,
-      const uint64_t& index_num);
+      const uint64_t& indexNum);
   static bool GetLookupSetDirectoryBlocksFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
       std::vector<
           boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
           directoryBlocks,
-      uint64_t& index_num);
+      uint64_t& indexNum);
 
   // ============================================================================
   // Consensus messages
