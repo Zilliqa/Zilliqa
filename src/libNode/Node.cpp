@@ -1619,7 +1619,8 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
                  },
                  make_pair(dsguardupdate.dsGuardPubkey,
                            dsguardupdate.dsGuardNewNetworkInfo));
-      LOG_GENERAL(INFO, dsguardupdate.dsGuardPubkey
+      LOG_GENERAL(INFO, "[update ds guard] "
+                            << dsguardupdate.dsGuardPubkey
                             << " new network info is "
                             << dsguardupdate.dsGuardNewNetworkInfo)
     }
