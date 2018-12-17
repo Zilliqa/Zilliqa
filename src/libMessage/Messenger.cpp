@@ -265,7 +265,9 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
                                                      tmpNumber);
 
-  int256_t balanceDelta = protoAccount.numbersign() ? tmpNumber : 0 - tmpNumber;
+  int256_t balanceDelta = protoAccount.numbersign()
+                              ? tmpNumber
+                              : 0 - tmpNumber.convert_to<int256_t>();
   account.ChangeBalance(balanceDelta);
 
   account.IncreaseNonceBy(protoAccount.nonce());
@@ -1959,8 +1961,9 @@ bool Messenger::StateDeltaToAddressMap(
     ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
         entry.account().balance(), tmpNumber);
 
-    int256_t balanceDelta =
-        entry.account().numbersign() ? tmpNumber : 0 - tmpNumber;
+    int256_t balanceDelta = entry.account().numbersign()
+                                ? tmpNumber
+                                : 0 - tmpNumber.convert_to<int256_t>();
 
     accountMap.insert(make_pair(address, balanceDelta));
   }
