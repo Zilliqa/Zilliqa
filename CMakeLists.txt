@@ -35,6 +35,8 @@ else()
     set(JSONRPCCPP_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-server")
 endif()
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
@@ -59,7 +61,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
     )
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     #TODO: use static version
-    #set(OPENSSL_USE_STATIC_LIBS TRUE)
+    set(OPENSSL_USE_STATIC_LIBS TRUE)
     set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
 endif()
 
@@ -170,9 +172,6 @@ find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
