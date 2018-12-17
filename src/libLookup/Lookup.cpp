@@ -2033,6 +2033,37 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
       m_fetchedDSInfo = false;
     }
 
+    /// Retrieve lacked final-block state-delta from lookup nodes
+    std::list<TxBlockSharedPtr> blocks;
+    if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
+      LOG_GENERAL(WARNING, "RetrieveTxBlocks skipped or incompleted");
+      return false;
+    }
+
+    blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+      return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+    });
+
+    unsigned int totalSize = blocks.size();
+    unsigned int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
+
+    for (const auto& block : blocks) {
+      if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
+        unique_lock<mutex> lock(
+            m_mediator.m_lookup->m_MutexCVSetStateDeltaFromSeed);
+        do {
+          m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
+              block->GetHeader().GetBlockNum());
+          LOG_GENERAL(
+              INFO,
+              "Retrieve final block state delta from lookup node, please "
+              "wait...");
+        } while (m_mediator.m_lookup->cv_setStateDeltaFromSeed.wait_for(
+                     lock, chrono::seconds(RECOVERY_SYNC_TIMEOUT)) ==
+                 cv_status::timeout);
+      }
+    }
+
     if (!m_currDSExpired) {
       if (FinishNewJoinAsLookup()) {
         SetSyncType(SyncType::NO_SYNC);
