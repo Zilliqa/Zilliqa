@@ -630,7 +630,7 @@ class DirectoryService : public Executable, public Broadcastable {
   // Reset certain variables to the initial state
   bool CleanVariables();
 
-  // For DS guard to under ds guard network information while in GUARD_MODE
+  // For DS guard to update it's network information while in GUARD_MODE
   bool UpdateDSGuardIdentity();
 
  private:
