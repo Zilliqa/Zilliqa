@@ -110,7 +110,6 @@ int main(int argc, const char* argv[]) {
     catch(boost::program_options::error& e)
     {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-      //printHelp(desc, cerr);
       return ERROR_IN_COMMAND_LINE;
     }
 
