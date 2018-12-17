@@ -3614,7 +3614,8 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Sending guard node update info to " << requestingNode);
+  LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
+                        << requestingNode);
   P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
   return true;
 }
