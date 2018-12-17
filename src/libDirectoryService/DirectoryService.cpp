@@ -837,7 +837,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
         foundDSGuardNode = true;
         LOG_GENERAL(INFO,
-                    "DS guard to be updated is at index "
+                    "[update ds guard] DS guard to be updated is at index "
                         << indexOfDSGuard << " "
                         << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
                         << " -> " << dsGuardNewNetworkInfo);
@@ -859,7 +859,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
           m_lookupStoreForGuardNodeUpdate.emplace(dsEpochNumber, temp);
           LOG_EPOCH(
               WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "[update of ds guard] No existing record found for dsEpochNumber "
+              "[update ds guard] No existing record found for dsEpochNumber "
                   << dsEpochNumber << ". Adding a new record");
 
         } else {
@@ -868,7 +868,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
           temp.emplace_back(dsGuardNodeIden);
           m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber) = temp;
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "[update of ds guard] Adding new record for dsEpochNumber "
+                    "[update ds guard] Adding new record for dsEpochNumber "
                         << dsEpochNumber);
         }
       }
