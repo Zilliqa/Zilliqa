@@ -21,6 +21,9 @@
 
 set -e
 
+# depends directory, assume script executed from root
+DEPENDS_DIR=./src/depends
+
 function install_libmongoc() {
 # install libmongoc-1.13.0
 # see http://mongoc.org/libmongoc/current/installing.html
@@ -46,6 +49,20 @@ make -j -l4
 make install
 }
 
+function install_openssl() {
+# install openssl-1.1.1 into src/depends
+# only 1.1.x has the necessary BN_generate_dsa_nonce function in bn.h
+cd ${DEPENDS_DIR}
+curl -OL https://www.openssl.org/source/openssl-1.1.1.tar.gz
+tar -xzf openssl-1.1.1.tar.gz
+cd openssl-1.1.1
+./config -Wl,--enable-new-dtags,-rpath,'$(LIBRPATH)' > /dev/null
+make > /dev/null
+make install > /dev/null
+cd ..
+rm -rf openssl-1.1.1 openssl-1.1.1.tar.gz
+}
+
 # presently a docker version ubuntu 16.04 is used
 function on_sudoless_ubuntu() {
 
@@ -56,7 +73,6 @@ apt-get install -y \
     cmake \
     build-essential \
     pkg-config \
-    libssl-dev \
     libboost-system-dev \
     libboost-filesystem-dev \
     libboost-test-dev \
