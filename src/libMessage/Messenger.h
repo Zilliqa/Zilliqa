@@ -188,12 +188,14 @@ class Messenger {
   static bool GetTransactionReceipt(const std::vector<unsigned char>& src,
                                     const unsigned int offset,
                                     TransactionReceipt& transactionReceipt);
+
   static bool SetTransactionWithReceipt(
       std::vector<unsigned char>& dst, const unsigned int offset,
       const TransactionWithReceipt& transactionWithReceipt);
   static bool GetTransactionWithReceipt(
       const std::vector<unsigned char>& src, const unsigned int offset,
       TransactionWithReceipt& transactionWithReceipt);
+
   static bool SetPeer(std::vector<unsigned char>& dst,
                       const unsigned int offset, const Peer& peer);
   static bool GetPeer(const std::vector<unsigned char>& src,
@@ -202,6 +204,20 @@ class Messenger {
   static bool StateDeltaToAddressMap(
       const std::vector<unsigned char>& src, const unsigned int offset,
       std::unordered_map<Address, boost::multiprecision::int256_t>& accountMap);
+
+  static bool SetBlockLink(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
+  static bool GetBlockLink(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
+
+  static bool SetFallbackBlockWShardingStructure(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const FallbackBlock& fallbackblock, const DequeOfShard& shards);
+  static bool GetFallbackBlockWShardingStructure(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      FallbackBlock& fallbackblock, DequeOfShard& shards);
 
   // ============================================================================
   // Peer Manager messages
@@ -632,6 +648,26 @@ class Messenger {
       const std::vector<unsigned char>& src, const unsigned int offset,
       PubKey& lookupPubKey, std::vector<TransactionWithReceipt>& txns);
 
+  static bool SetLookupGetDirectoryBlocksFromSeed(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint32_t portno, const uint64_t& index_num);
+  static bool GetLookupGetDirectoryBlocksFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint32_t& portno, uint64_t& index_num);
+
+  static bool SetLookupSetDirectoryBlocksFromSeed(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::vector<
+          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+          directoryBlocks,
+      const uint64_t& index_num);
+  static bool GetLookupSetDirectoryBlocksFromSeed(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::vector<
+          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+          directoryBlocks,
+      uint64_t& index_num);
+
   // ============================================================================
   // Consensus messages
   // ============================================================================
@@ -719,36 +755,17 @@ class Messenger {
       const std::vector<unsigned char>& blockHash, uint16_t& backupID,
       std::vector<unsigned char>& errorMsg,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
-  static bool SetBlockLink(
+
+  static bool SetConsensusConsensusFailure(
       std::vector<unsigned char>& dst, const unsigned int offset,
-      const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
-  static bool GetBlockLink(
+      const uint32_t consensusID, const uint64_t blockNumber,
+      const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
+      const std::pair<PrivKey, PubKey>& leaderKey);
+  static bool GetConsensusConsensusFailure(
       const std::vector<unsigned char>& src, const unsigned int offset,
-      std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
-  static bool SetFallbackBlockWShardingStructure(
-      std::vector<unsigned char>& dst, const unsigned int offset,
-      const FallbackBlock& fallbackblock, const DequeOfShard& shards);
-  static bool GetFallbackBlockWShardingStructure(
-      const std::vector<unsigned char>& src, const unsigned int offset,
-      FallbackBlock& fallbackblock, DequeOfShard& shards);
-  static bool GetLookupGetDirectoryBlocksFromSeed(
-      const std::vector<unsigned char>& src, const unsigned int offset,
-      uint32_t& portno, uint64_t& index_num);
-  static bool SetLookupGetDirectoryBlocksFromSeed(
-      std::vector<unsigned char>& dst, const unsigned int offset,
-      const uint32_t portno, const uint64_t& index_num);
-  static bool SetLookupSetDirectoryBlocksFromSeed(
-      std::vector<unsigned char>& dst, const unsigned int offset,
-      const std::vector<
-          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-          directoryBlocks,
-      const uint64_t& index_num);
-  static bool GetLookupSetDirectoryBlocksFromSeed(
-      const std::vector<unsigned char>& src, const unsigned int offset,
-      std::vector<
-          boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-          directoryBlocks,
-      uint64_t& index_num);
+      const uint32_t consensusID, const uint64_t blockNumber,
+      const std::vector<unsigned char>& blockHash, uint16_t& leaderID,
+      const PubKey& leaderKey);
 
   // ============================================================================
   // View change pre check messages

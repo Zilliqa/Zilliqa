@@ -299,6 +299,30 @@ message ProtoFallbackBlock
     required ProtoBlockBase blockbase        = 2;
 }
 
+message ProtoBlockLink
+{
+    required uint64 index       = 1;
+    required uint64 dsindex     = 2;
+    required uint32 blocktype   = 3;
+    required bytes blockhash    = 4;
+}
+
+message ProtoFallbackBlockWShardingStructure
+{
+    required ProtoFallbackBlock fallbackblock   = 1;
+    required ProtoShardingStructure sharding    = 2;
+}
+
+message ProtoSingleDirectoryBlock
+{
+    oneof directoryblock
+    {
+        ProtoDSBlock dsblock                                     = 1;
+        ProtoVCBlock vcblock                                     = 2;
+        ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
+    }
+}
+
 // ============================================================================
 // Peer Manager messages
 // ============================================================================
@@ -635,6 +659,17 @@ message LookupSetTxnsFromLookup
     required ByteArray signature    = 3;
 }
 
+message LookupGetDirectoryBlocksFromSeed
+{
+    required uint32 portno      = 1;
+    required uint64 indexnum    = 2;
+}
+
+message LookupSetDirectoryBlocksFromSeed
+{
+    required uint64 indexnum                     = 1;
+    repeated ProtoSingleDirectoryBlock dirblocks = 2;
+}
 
 // ============================================================================
 // Consensus messages
@@ -736,41 +771,17 @@ message ConsensusCommitFailure
     required ByteArray signature         = 2;
 }
 
-message ProtoBlockLink
+message ConsensusConsensusFailure
 {
-    required uint64 index       = 1;
-    required uint64 dsindex     = 2;
-    required uint32 blocktype   = 3;
-    required bytes blockhash    = 4;
-}
-
-message ProtoFallbackBlockWShardingStructure
-{
-    required ProtoFallbackBlock fallbackblock   = 1;
-    required ProtoShardingStructure sharding    = 2;
-}
-
-
-message ProtoSingleDirectoryBlock
-{
-    oneof directoryblock
+    message ConsensusInfo
     {
-        ProtoDSBlock dsblock                                     = 1;
-        ProtoVCBlock vcblock                                     = 2;
-        ProtoFallbackBlockWShardingStructure fallbackblockwshard = 3;
+        required uint32 consensusid      = 1;
+        required uint64 blocknumber      = 2;
+        required bytes blockhash         = 3; // 32 bytes
+        required uint32 leaderid         = 4; // only lower 2 bytes used
     }
-}
-    
-message LookupGetDirectoryBlocksFromSeed
-{
-    required uint32 portno      = 1;
-    required uint64 indexnum    = 2;
-}
-
-message LookupSetDirectoryBlocksFromSeed
-{
-    required uint64 indexnum                     = 1;
-    repeated ProtoSingleDirectoryBlock dirblocks = 2;
+    required ConsensusInfo consensusinfo = 1;
+    required ByteArray signature         = 2;
 }
 
 // ============================================================================
