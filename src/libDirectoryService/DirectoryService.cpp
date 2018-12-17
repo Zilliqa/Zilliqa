@@ -748,24 +748,23 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   m_mediator.m_lookup->SendMessageToLookupNodesSerial(
       updatedsguardidentitymessage);
 
+  vector<Peer> peerInfo;
   {
     // Gossip to all DS committee
     lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
-    vector<Peer> peerInfo;
-
     for (auto const& i : *m_mediator.m_DSCommittee) {
       if (i.second.m_listenPortHost != 0) {
         peerInfo.push_back(i.second);
       }
     }
-
-    if (BROADCAST_GOSSIP_MODE) {
-      P2PComm::GetInstance().SpreadRumor(updatedsguardidentitymessage);
-    } else {
-      P2PComm::GetInstance().SendMessage(peerInfo,
-                                         updatedsguardidentitymessage);
-    }
   }
+
+  if (BROADCAST_GOSSIP_MODE) {
+    P2PComm::GetInstance().SpreadRumor(updatedsguardidentitymessage);
+  } else {
+    P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
+  }
+
   m_awaitingToSubmitNetworkInfoUpdate = false;
 
   return true;
