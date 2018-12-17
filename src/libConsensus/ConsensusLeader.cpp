@@ -387,6 +387,15 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
 
     vector<unsigned char> consensusFailureMsg = {m_classByte, m_insByte,
                                                  CONSENSUSFAILURE};
+
+    if (!Messenger::SetConsensusConsensusFailure(
+            consensusFailureMsg, MessageOffset::BODY + sizeof(unsigned char),
+            m_consensusID, m_blockNumber, m_blockHash, m_myID,
+            make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
+      LOG_GENERAL(WARNING, "Messenger::SetConsensusConsensusFailure failed.");
+      return false;
+    }
+
     deque<Peer> peerInfo;
 
     for (auto const& i : m_committee) {

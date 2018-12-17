@@ -104,4 +104,24 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
   BOOST_CHECK(challenge == challengeDeserialized);
 }
 
+BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusConsensusFailure) {
+  vector<unsigned char> dst;
+  unsigned int offset = 0;
+  uint32_t consensusID = TestUtils::DistUint32();
+  uint64_t blockNumber = TestUtils::DistUint32();
+  vector<unsigned char> blockHash(TestUtils::Dist1to99(),
+                                  TestUtils::DistUint8());
+  uint16_t leaderID = TestUtils::DistUint8();
+  pair<PrivKey, PubKey> leaderKey;
+  leaderKey.first = PrivKey();
+  leaderKey.second = PubKey(leaderKey.first);
+
+  BOOST_CHECK(Messenger::SetConsensusConsensusFailure(
+      dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey));
+
+  BOOST_CHECK(Messenger::GetConsensusConsensusFailure(
+      dst, offset, consensusID, blockNumber, blockHash, leaderID,
+      leaderKey.second));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
