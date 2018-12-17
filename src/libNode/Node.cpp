@@ -106,13 +106,118 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     m_mediator.m_currentEpochNum =
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
-    if (wakeupForUpgrade) {
+    if (wakeupForUpgrade || RECOVERY_TRIM_INCOMPLETED_BLOCK) {
       m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
     }
 
     m_consensusLeaderID = 0;
     runInitializeGenesisBlocks = false;
+#if 1  // clark
+    LOG_GENERAL(INFO,
+                "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader()."
+                "GetDSDifficulty() = "
+                    << to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDSDifficulty()));
+    LOG_GENERAL(
+        INFO,
+        "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty() "
+        "= " << to_string(m_mediator.m_dsBlockChain.GetLastBlock()
+                              .GetHeader()
+                              .GetDifficulty()));
+    LOG_GENERAL(
+        INFO,
+        "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetPrevHash() = "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetPrevHash());
+    LOG_GENERAL(INFO,
+                "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader()."
+                "GetLeaderPubKey() = "
+                    << m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetLeaderPubKey());
+    LOG_GENERAL(
+        INFO,
+        "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() = "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetBlockNum());
+    LOG_GENERAL(
+        INFO,
+        "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() = "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetEpochNum());
+    LOG_GENERAL(
+        INFO,
+        "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() = "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetGasPrice());
+    LOG_GENERAL(
+        INFO,
+        "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetSWInfo() = "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetSWInfo()
+                   .GetMajorVersion()
+            << ", "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetSWInfo()
+                   .GetMinorVersion()
+            << ", "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetSWInfo()
+                   .GetFixVersion()
+            << ", "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetSWInfo()
+                   .GetUpgradeDS()
+            << ", "
+            << m_mediator.m_dsBlockChain.GetLastBlock()
+                   .GetHeader()
+                   .GetSWInfo()
+                   .GetCommit());
+
+    for (const auto& winner : m_mediator.m_dsBlockChain.GetLastBlock()
+                                  .GetHeader()
+                                  .GetDSPoWWinners()) {
+      LOG_GENERAL(INFO,
+                  "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader()."
+                  "GetDSPoWWinners() = "
+                      << winner.first << ", " << winner.second);
+    }
+
+    LOG_GENERAL(INFO,
+                "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader()."
+                "GetShardingHash() = "
+                    << m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetShardingHash());
+    LOG_GENERAL(INFO,
+                "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader()."
+                "GetHashSetReservedField() = "
+                    << DataConversion::charArrToHexStr(
+                           m_mediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetHashSetReservedField()));
+    LOG_GENERAL(INFO,
+                "m_mediator.m_dsBlockChain.GetLastBlock().GetHeader()."
+                "GetCommitteeHash() = "
+                    << m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetCommitteeHash());
+#endif
     m_mediator.UpdateDSBlockRand();
+#if 1  // clark
+    LOG_GENERAL(
+        INFO, "m_mediator.m_dsBlockRand = "
+                  << DataConversion::charArrToHexStr(m_mediator.m_dsBlockRand));
+#endif
     m_mediator.UpdateTxBlockRand();
     m_mediator.m_ds->m_mode = DirectoryService::IDLE;
 
@@ -164,9 +269,14 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
       if (wakeupForUpgrade) {
-        WakeupForUpgrade();
+        WakeupAtDSEpoch();
       } else {
-        WakeupForRecovery();
+        if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
+          WakeupAtDSEpoch();
+        } else {
+          WakeupAtTxEpoch();
+        }
+
         return true;
       }
     }
@@ -320,11 +430,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   m_retriever = std::make_shared<Retriever>(m_mediator);
 
   /// Retrieve block link
-  bool ds_result = m_retriever->RetrieveBlockLink(wakeupForUpgrade);
+  bool ds_result = m_retriever->RetrieveBlockLink(
+      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                           SyncType::RECOVERY_ALL_SYNC == syncType));
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
-  bool tx_result = m_retriever->RetrieveTxBlocks(wakeupForUpgrade);
+  bool tx_result = m_retriever->RetrieveTxBlocks(
+      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                           SyncType::RECOVERY_ALL_SYNC == syncType));
 
   if (!tx_result) {
     return false;
@@ -392,10 +506,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  /// If node recovery with vacuous epoch or in first DS epoch, apply re-join
-  /// process instead of node recovery
-  if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
+  /// Rejoin will be applied following below rules:
+  /// 1. Non-lookup node &&
+  /// 2. Not from upgrading mode &&
+  /// 3. Not from re-join mode &&
+  /// 4. Not from recovery-all mode &&
+  /// 5. Still in first DS epoch, or in vacuous epoch
+  if (!LOOKUP_NODE_MODE && !wakeupForUpgrade &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
+      SyncType::RECOVERY_ALL_SYNC != syncType &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
            NUM_FINAL_BLOCK_PER_POW ||
        m_mediator.GetIsVacuousEpoch(
@@ -408,9 +527,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (bDS) {
-    for (uint64_t blockNum =
-             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+               SyncType::RECOVERY_ALL_SYNC == syncType)) {
+    for (uint64_t blockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                                 .GetHeader()
+                                 .GetEpochNum() +
+                             1;
          blockNum <=
          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
          ++blockNum) {
@@ -486,10 +608,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (bDS) {
+  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+               SyncType::RECOVERY_ALL_SYNC == syncType)) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() +
+                1,
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
@@ -544,7 +668,7 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
   }
 }
 
-void Node::WakeupForUpgrade() {
+void Node::WakeupAtDSEpoch() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -634,7 +758,7 @@ void Node::WakeupForUpgrade() {
   DetachedFunction(1, func);
 }
 
-void Node::WakeupForRecovery() {
+void Node::WakeupAtTxEpoch() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {

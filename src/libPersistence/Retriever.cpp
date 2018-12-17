@@ -36,70 +36,7 @@ namespace filesys = boost::filesystem;
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 
-bool Retriever::RetrieveDSBlocks(bool wakeupForUpgrade) {
-  LOG_MARKER();
-
-  std::list<DSBlockSharedPtr> blocks;
-  if (!BlockStorage::GetBlockStorage().GetAllDSBlocks(blocks)) {
-    LOG_GENERAL(WARNING, "RetrieveDSBlocks skipped or incompleted");
-    return false;
-  }
-
-  blocks.sort([](const DSBlockSharedPtr& a, const DSBlockSharedPtr& b) {
-    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-  });
-
-  if (!blocks.empty()) {
-    if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0) {
-      std::vector<unsigned char> latestActiveDSBlockNumVec;
-      if (!BlockStorage::GetBlockStorage().GetMetadata(
-              MetaType::LATESTACTIVEDSBLOCKNUM, latestActiveDSBlockNumVec)) {
-        LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
-        return false;
-      }
-      m_mediator.m_ds->m_latestActiveDSBlockNum = std::stoull(
-          DataConversion::CharArrayToString(latestActiveDSBlockNumVec));
-    }
-  }
-
-  /// Check whether the termination of last running happens before the last
-  /// DSEpoch properly ended.
-  std::vector<unsigned char> isDSIncompleted;
-  if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
-                                                   isDSIncompleted)) {
-    LOG_GENERAL(WARNING, "No GetMetadata or failed");
-    return false;
-  }
-
-  if (isDSIncompleted[0] == '1') {
-    /// Removing incompleted DS for upgrading protocol
-    /// Keeping incompleted DS for node recovery
-    if (wakeupForUpgrade) {
-      LOG_GENERAL(INFO, "Has incompleted DS Block, remove it");
-      if (BlockStorage::GetBlockStorage().DeleteDSBlock(blocks.size() - 1)) {
-        BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
-                                                    {'0'});
-      }
-      blocks.pop_back();
-    } else {
-      LOG_GENERAL(INFO, "Has incompleted DS Block, keep it");
-    }
-  }
-
-  m_mediator.m_blocklinkchain.Reset();
-  uint64_t index = 0;
-
-  for (const auto& block : blocks) {
-    m_mediator.m_dsBlockChain.AddBlock(*block);
-    m_mediator.m_blocklinkchain.AddBlockLink(
-        index++, block->GetHeader().GetBlockNum(), BlockType::DS,
-        block->GetBlockHash());
-  }
-
-  return true;
-}
-
-bool Retriever::RetrieveTxBlocks(bool wakeupForUpgrade) {
+bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   LOG_MARKER();
   std::list<TxBlockSharedPtr> blocks;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
@@ -112,10 +49,10 @@ bool Retriever::RetrieveTxBlocks(bool wakeupForUpgrade) {
   });
 
   unsigned int totalSize = blocks.size();
+
   unsigned int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
 
-  if (wakeupForUpgrade || m_mediator.GetIsVacuousEpoch(
-                              (blocks.back()->GetHeader().GetBlockNum()))) {
+  if (trimIncompletedBlocks) {
     // truncate the extra final blocks at last
     for (unsigned int i = 0; i < extra_txblocks; ++i) {
       BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
@@ -148,7 +85,7 @@ bool Retriever::RetrieveTxBlocks(bool wakeupForUpgrade) {
   return true;
 }
 
-bool Retriever::RetrieveBlockLink(bool wakeupForUpgrade) {
+bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
   std::list<BlockLink> blocklinks;
 
   auto dsComm = m_mediator.m_blocklinkchain.GetBuiltDSComm();
@@ -193,7 +130,7 @@ bool Retriever::RetrieveBlockLink(bool wakeupForUpgrade) {
   if (isDSIncompleted[0] == '1') {
     /// Removing incompleted DS for upgrading protocol
     /// Keeping incompleted DS for node recovery
-    if (wakeupForUpgrade) {
+    if (trimIncompletedBlocks) {
       LOG_GENERAL(INFO, "Has incompleted DS Block, remove it");
       toDelete = true;
     }

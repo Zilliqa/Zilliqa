@@ -296,6 +296,9 @@ const string UPGRADE_HOST_ACCOUNT{
     ReadConstantString("UPGRADE_HOST_ACCOUNT", "node.recovery.")};
 const string UPGRADE_HOST_REPO{
     ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
+const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
+    ReadConstantString("RECOVERY_TRIM_INCOMPLETED_BLOCK", "node.recovery.") ==
+    "true"};
 
 // Smart contract constants
 const string SCILLA_ROOT{
