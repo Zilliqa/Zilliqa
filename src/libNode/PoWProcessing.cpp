@@ -233,7 +233,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
       if (ds_pow_winning_result.success) {
         LOG_GENERAL(INFO,
-                    "Found PoW solution that meet ds commitee "
+                    "Found PoW solution that meets ds commitee "
                     "requirement. 0x"
                         << hex << ds_pow_winning_result.result);
 

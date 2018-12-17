@@ -489,29 +489,32 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   LOG_MARKER();
-  for (auto& i : *m_mediator.m_DSCommittee) {
-    if (i.first == m_mediator.m_selfKey.second) {
-      i.second = Peer();
-      LOG_GENERAL(
-          INFO,
-          "Found current node to be inside ds committee. Setting it to Peer()");
-      break;
-    }
-  }
-
-  LOG_GENERAL(INFO, "DS committee is ");
-  for (const auto& i : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(INFO, i.second);
-  }
-
-  if (BROADCAST_GOSSIP_MODE) {
-    std::vector<Peer> peers;
-    for (const auto& i : *m_mediator.m_DSCommittee) {
-      if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i.second);
+  {
+    lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    for (auto& i : *m_mediator.m_DSCommittee) {
+      if (i.first == m_mediator.m_selfKey.second) {
+        i.second = Peer();
+        LOG_GENERAL(INFO,
+                    "Found current node to be inside ds committee. Setting it "
+                    "to Peer()");
+        break;
       }
     }
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+
+    LOG_GENERAL(INFO, "DS committee is ");
+    for (const auto& i : *m_mediator.m_DSCommittee) {
+      LOG_GENERAL(INFO, i.second);
+    }
+
+    if (BROADCAST_GOSSIP_MODE) {
+      std::vector<Peer> peers;
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        if (i.second.m_listenPortHost != 0) {
+          peers.emplace_back(i.second);
+        }
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
   }
 
   if (m_awaitingToSubmitNetworkInfoUpdate && GUARD_MODE) {
@@ -793,7 +796,9 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   }
 
   if (m_mediator.m_selfKey.second == dsGuardPubkey) {
-    LOG_GENERAL(INFO, "Node to be update is current node. No update needed.");
+    LOG_GENERAL(INFO,
+                "[update ds guard] Node to be updated is current node. No "
+                "update needed.");
     return false;
   }
 
@@ -815,13 +820,9 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   }
 
   // Check timestamp
-  // Allowed only 5 mins. Else consider it obselete.
+  // Allowed only 5 mins. Else consider it obsolete.
   uint64_t allowableTimeForDSNodeNetworkInfoUpdate = 300;
   if (!VerifyTimestamp(timestamp, allowableTimeForDSNodeNetworkInfoUpdate)) {
-    LOG_GENERAL(WARNING, timestamp << "exceeded "
-                                   << allowableTimeForDSNodeNetworkInfoUpdate
-                                   << " seconds. Current time is "
-                                   << get_time_as_int());
     return false;
   }
 
@@ -849,28 +850,26 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 
     // Lookup to store the info
     if (foundDSGuardNode && LOOKUP_NODE_MODE) {
-      {
-        std::mutex m_mutexLookupStoreForGuardNodeUpdate;
-        DSGuardUpdateStruct dsGuardNodeIden(dsGuardPubkey,
-                                            dsGuardNewNetworkInfo, timestamp);
-        if (m_lookupStoreForGuardNodeUpdate.find(dsEpochNumber) ==
-            m_lookupStoreForGuardNodeUpdate.end()) {
-          vector<DSGuardUpdateStruct> temp = {dsGuardNodeIden};
-          m_lookupStoreForGuardNodeUpdate.emplace(dsEpochNumber, temp);
-          LOG_EPOCH(
-              WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "[update ds guard] No existing record found for dsEpochNumber "
-                  << dsEpochNumber << ". Adding a new record");
+      lock_guard<mutex> g(m_mutexLookupStoreForGuardNodeUpdate);
+      DSGuardUpdateStruct dsGuardNodeIden(dsGuardPubkey, dsGuardNewNetworkInfo,
+                                          timestamp);
+      if (m_lookupStoreForGuardNodeUpdate.find(dsEpochNumber) ==
+          m_lookupStoreForGuardNodeUpdate.end()) {
+        vector<DSGuardUpdateStruct> temp = {dsGuardNodeIden};
+        m_lookupStoreForGuardNodeUpdate.emplace(dsEpochNumber, temp);
+        LOG_EPOCH(
+            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "[update ds guard] No existing record found for dsEpochNumber "
+                << dsEpochNumber << ". Adding a new record");
 
-        } else {
-          vector<DSGuardUpdateStruct> temp =
-              m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber);
-          temp.emplace_back(dsGuardNodeIden);
-          m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber) = temp;
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "[update ds guard] Adding new record for dsEpochNumber "
-                        << dsEpochNumber);
-        }
+      } else {
+        vector<DSGuardUpdateStruct> temp =
+            m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber);
+        temp.emplace_back(dsGuardNodeIden);
+        m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber) = temp;
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "[update ds guard] Adding new record for dsEpochNumber "
+                      << dsEpochNumber);
       }
     }
     return foundDSGuardNode;
