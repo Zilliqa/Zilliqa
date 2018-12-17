@@ -83,6 +83,7 @@ int main(int argc, const char* argv[]) {
         cout << desc << endl;
         return SUCCESS;
       }
+      po::notify(vm);
 
       if ((port < 0) || (port > 65535))   {
         LogInfo::LogBrandBugReport();
@@ -101,7 +102,6 @@ int main(int argc, const char* argv[]) {
         std::cerr << "Invalid length of public key." << endl;
         return ERROR_IN_COMMAND_LINE;
       }
-      po::notify(vm);
     }
     catch(boost::program_options::required_option& e)
     {
