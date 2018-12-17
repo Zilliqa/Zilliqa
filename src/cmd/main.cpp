@@ -79,7 +79,8 @@ int main(int argc, const char* argv[]) {
                                              << " and my mapped port is "
                                              << mappedPort);
     }
-    if (IPConverter::ToNumericalIPFromStr(string(argv[3]), ip) != 0) {
+
+    if (IPConverter::ToNumericalIPFromStr(nt->externalIP().c_str(), ip) != 0) {
       return -1;
     }
     my_network_info = Peer(ip, mappedPort);
