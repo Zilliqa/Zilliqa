@@ -25,7 +25,9 @@
 using namespace boost::multiprecision;
 
 bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
-  if (!boost::filesystem::is_regular_file(filename)) return false;
+  if (!boost::filesystem::is_regular_file(filename)) {
+    return false;
+  }
 
   std::ifstream in(filename, std::ios::binary);
   std::string fstr;
@@ -48,10 +50,13 @@ bool ScillaTestUtil::GetScillaTest(ScillaTest &t, std::string contrName,
 
   // TODO: Does this require a separate entry in constants.xml?
   std::string testDir = SCILLA_ROOT + "/tests/contracts/" + contrName;
-  if (!boost::filesystem::is_directory(testDir)) return false;
-
-  if (!boost::filesystem::is_regular_file(testDir + "/contract.scilla"))
+  if (!boost::filesystem::is_directory(testDir)) {
     return false;
+  }
+
+  if (!boost::filesystem::is_regular_file(testDir + "/contract.scilla")) {
+    return false;
+  }
 
   std::ifstream in(testDir + "/contract.scilla", std::ios::binary);
   t.code = {std::istreambuf_iterator<char>(in),
@@ -81,7 +86,9 @@ uint128_t ScillaTestUtil::GetBalanceFromOutput(void) {
   uint128_t oBal = 0;
   Json::Value states = iOutput["states"];
   for (auto &state : states) {
-    if (state["vname"] == "_balance") oBal = atoi(state["value"].asCString());
+    if (state["vname"] == "_balance") {
+      oBal = atoi(state["value"].asCString());
+    }
   }
 
   return oBal;
@@ -92,7 +99,9 @@ uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
   // Get blocknumber from blockchain.json
   uint64_t bnum = 0;
   for (auto &it : blockchain)
-    if (it["vname"] == "BLOCKNUMBER") bnum = atoi(it["value"].asCString());
+    if (it["vname"] == "BLOCKNUMBER") {
+      bnum = atoi(it["value"].asCString());
+    }
 
   return bnum;
 }
@@ -115,8 +124,9 @@ uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message,
 bool ScillaTestUtil::RemoveCreationBlockFromInit(Json::Value &init) {
   int creation_block_index = -1;
   for (auto it = init.begin(); it != init.end(); it++) {
-    if ((*it)["vname"] == "_creation_block")
+    if ((*it)["vname"] == "_creation_block") {
       creation_block_index = it - init.begin();
+    }
   }
   // Remove _creation_block from init.json as it will be inserted
   // automatically.
