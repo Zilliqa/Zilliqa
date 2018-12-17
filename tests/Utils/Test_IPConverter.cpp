@@ -43,8 +43,8 @@ BOOST_AUTO_TEST_CASE(test_IPNumericaltoString) {
 BOOST_AUTO_TEST_CASE(test_IPStringToNumerical) {
   INIT_STDOUT_LOGGER();
 
-  boost::multiprecision::uint128_t result =
-      IPConverter::ToNumericalIPFromStr("127.0.0.1");
+  boost::multiprecision::uint128_t result;
+      IPConverter::ToNumericalIPFromStr("127.0.0.1", result);
   BOOST_CHECK_MESSAGE(result == 16777343, "Expected: 16777343. Result: " +
                                               result.convert_to<std::string>());
 }

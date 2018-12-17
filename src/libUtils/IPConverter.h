@@ -29,7 +29,7 @@
 /// Utility class for converter from ip address string to numerical
 /// represetation.
 
-namespace IPConverterr {
+namespace IPConverter {
 
 using namespace std;
 
@@ -47,6 +47,17 @@ void LogUnsupported();
 void LogInvalidIP();
 
 void LogInternalErr();
+
+template <class ip_t>
+boost::multiprecision::uint128_t convertBytesToInt(ip_t ip_v) {
+  uint8_t i = 0;
+  boost::multiprecision::uint128_t ipInt = 0;
+  for (const unsigned char b : ip_v.to_bytes()) {
+    ipInt = ipInt | (boost::multiprecision::uint128_t) b << i *8;
+    i++;
+  }
+  return ipInt;
+}
 
 template <typename ip_s>
 bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
@@ -74,40 +85,5 @@ bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
 int ToNumericalIPFromStr(
     const std::string&, boost::multiprecision::uint128_t&);
 }
-
-class IPConverter {
-private:
-//  void LogInvalidIP();
-//  void LogBrand();
-//  void LogBugReport();
-//  void LogUnsupported();
-//  void LogInternalErr();
- public:
-  enum IPv {IPv4, IPv6};
-  static const std::string ToStrFromNumericalIP(
-      const boost::multiprecision::uint128_t& ip);
-
-  template <typename ip_s>
-  bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
-    int res;
-    if (v == IPv4) {
-      res = inet_pton(AF_INET, in, &ip_addr);
-    }
-    else {
-      res = inet_pton(AF_INET6, in, &ip_addr);
-    }
-
-    if (res == 1) {
-      return true;
-    } else if (res == 0) {
-      return false;
-    } else {
-      return false;
-    }
-  }
-
-  static int ToNumericalIPFromStr(
-      const std::string& , boost::multiprecision::uint128_t& );
-};
 
 #endif  // __IP_CONVERTER_H__

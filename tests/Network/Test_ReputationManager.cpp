@@ -42,8 +42,8 @@ void setup() {
   ReputationManager& rm = ReputationManager::GetInstance();
   rm.Clear();
 
-  node1 = IPConverter::ToNumericalIPFromStr("127.0.0.1");
-  node2 = IPConverter::ToNumericalIPFromStr("192.168.1.1");
+  IPConverter::ToNumericalIPFromStr("127.0.0.1", node1);
+  IPConverter::ToNumericalIPFromStr("192.168.1.1", node2);
   // Setup
   rm.AddNodeIfNotKnown(node1);
   rm.AddNodeIfNotKnown(node2);

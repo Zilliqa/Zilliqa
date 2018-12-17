@@ -27,7 +27,6 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/InputDataProcessing.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
@@ -37,7 +36,6 @@ using namespace boost::multiprecision;
 
 int main(int argc, const char* argv[]) {
   const int num_args_required = 1 + 7;  // first 1 = program name
-  struct in_addr ip_addr;
   Peer my_network_info;
 
   INIT_FILE_LOGGER("zilliqa");
@@ -81,15 +79,15 @@ int main(int argc, const char* argv[]) {
                                              << " and my mapped port is "
                                              << mappedPort);
     }
-    if (!getIP(nt->externalIP().c_str(), ip_addr)) {
+    if (IPConverter::ToNumericalIPFromStr(string(argv[3]), ip) != 0) {
       return -1;
     }
-    my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
+    my_network_info = Peer(ip, mappedPort);
   } else {
-    if (IPConverterr::ToNumericalIPFromStr(string(argv[3]), ip) != 0) {
+    if (IPConverter::ToNumericalIPFromStr(string(argv[3]), ip) != 0) {
       return -1;
     }
-
+    cout << ip << endl;
     my_network_info = Peer(ip, localPort);
   }
 
