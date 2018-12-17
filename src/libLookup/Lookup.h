@@ -148,9 +148,6 @@ class Lookup : public Executable, public Broadcastable {
   /// Sync new lookup node.
   void InitSync();
 
-  /// Try rejoining as new lookup
-  void RejoinAsNewLookup();
-
   // Setting the lookup nodes
   // Hardcoded for now -- to be called by constructor
   void SetLookupNodes();
@@ -356,8 +353,6 @@ class Lookup : public Executable, public Broadcastable {
 
   std::mutex m_mutexDSInfoUpdation;
   std::condition_variable cv_dsInfoUpdate;
-
-  bool m_isNewLookupNode = false;
 };
 
 #endif  // __LOOKUP_H__
