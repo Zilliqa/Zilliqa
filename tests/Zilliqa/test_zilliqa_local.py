@@ -29,6 +29,7 @@ import xml.etree.cElementTree as ET
 
 NODE_LISTEN_PORT = 5001
 LOCAL_RUN_FOLDER = './local_run/'
+REJOIN_DS_GUARD_RUN_FOLDER = './dsguard_rejoin_local_run/'
 
 def print_usage():
 	print ("Testing multiple Zilliqa nodes in local machine\n"
@@ -36,14 +37,16 @@ def print_usage():
 		"Usage:\n\tpython " + sys.argv[0] + " [command] [command parameters]\n"
 		"Available commands:\n"
 		"\tTest Execution:\n"
-		"\t\tsetup [num-nodes]           - Set up the nodes\n"
-		"\t\tstart [num-nodes]           - Start node processes\n"
-		"\t\tconnect                     - Connect everyone\n"
-		"\t\tconnect [num-nodes]         - Connect first num-nodes nodes\n"
-		"\t\tstop                        - Stop node processes\n"
-		"\t\tclean                       - Remove test output files (e.g., logs)\n"
-		"\t\tsendcmd [nodenum] [hex msg] - Send hex msg to port\n"
-		"\t\tsendcmdrandom [nodenum] [msgsize] - Send msg to port\n"
+		"\t\tsetup [num-nodes]           		- Set up the nodes\n"
+		"\t\setupdsguard2 [num-nodes] 			- Start ds guard 2 executable and folder\n"
+		"\t\tstart [num-nodes]           		- Start node processes\n"
+		"\t\rejoindsguard2 	             		- Start ds guard 2 and rejoin the network\n"
+		"\t\tconnect                     		- Connect everyone\n"
+		"\t\tconnect [num-nodes]         		- Connect first num-nodes nodes\n"
+		"\t\tstop                        		- Stop node processes\n"
+		"\t\tclean                       		- Remove test output files (e.g., logs)\n"
+		"\t\tsendcmd [nodenum] [hex msg] 		- Send hex msg to port\n"
+		"\t\tsendcmdrandom [nodenum] [msgsize] 	- Send msg to port\n"
 		"\t\tstartpow [nodenum] [ds count] [blocknum] [diff] [rand1] [rand2] - Send STARTPOW to node\n"
 		"\t\tcreatetx [nodenum] [from] [to] [amount] - Send CREATETRANSACTION to node\n"
 		"\t\tdelete                      - Delete the set-up nodes\n")
@@ -56,12 +59,16 @@ def main():
 		command = sys.argv[1]
 		if (command == 'setup'):
 			print_usage() if (numargs != 3) else run_setup(numnodes=int(sys.argv[2]), printnodes=True)
+		elif (command == 'setupdsguard2'):
+			print_usage() if (numargs != 3) else run_setup_dsguard(numnodes=int(sys.argv[2]), printnodes=True)
 		elif(command == 'prestart'):
 			print_usage() if (numargs != 3) else run_prestart(numdsnodes=int(sys.argv[2]))
 		elif(command == 'prestartguard'):
 			print_usage() if (numargs != 3) else run_prestart(numdsnodes=int(sys.argv[2]), guard_mode=True)
 		elif (command == 'start'):
 			print_usage() if (numargs != 3) else run_start(numdsnodes=int(sys.argv[2]))
+		elif (command == 'rejoindsguard2'):
+			print_usage() if (numargs != 2) else run_start_dsguard2()
 		elif (command == 'connect'):
 			if (numargs == 2):
 				run_connect(numnodes=0)
@@ -121,6 +128,23 @@ def run_setup(numnodes, printnodes):
 		for x in range(0, count):
 			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(NODE_LISTEN_PORT + x) + '] ' + LOCAL_RUN_FOLDER + testfolders_list[x]
 
+def run_setup_dsguard(numnodes, printnodes):
+	if (os.path.exists(REJOIN_DS_GUARD_RUN_FOLDER)):
+		shutil.rmtree(REJOIN_DS_GUARD_RUN_FOLDER)
+	os.makedirs(REJOIN_DS_GUARD_RUN_FOLDER)
+	for x in range(0, numnodes):
+		testsubdir = REJOIN_DS_GUARD_RUN_FOLDER + 'node_' + str(x+1).zfill(4)
+		os.makedirs(testsubdir)
+		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/zilliqa_ds_guard_rejoin')
+
+		st = os.stat(testsubdir + '/zilliqa_ds_guard_rejoin')
+		os.chmod(testsubdir + '/zilliqa_ds_guard_rejoin', st.st_mode | stat.S_IEXEC)
+
+	if printnodes:
+		testfolders_list = get_immediate_subdirectories(REJOIN_DS_GUARD_RUN_FOLDER)
+		count = len(testfolders_list)
+		for x in range(0, count):
+			print '[Node ' + str(x + 1).ljust(3) + '] [Port ' + str(7001) + '] ' + REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x]
 
 def run_prestart(numdsnodes, guard_mode=False):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -243,6 +267,23 @@ def run_start(numdsnodes):
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 0 0 > ./error_log_zilliqa 2>&1 &')
 		else:
 			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 0 > ./error_log_zilliqa 2>&1 &')
+
+# To rejoin ds guard index 2
+def run_start_dsguard2():
+	testfolders_list = get_immediate_subdirectories(REJOIN_DS_GUARD_RUN_FOLDER)
+	count = len(testfolders_list)
+
+	for x in range(0, count):
+		shutil.copyfile('dsnodes.xml', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/dsnodes.xml')
+		shutil.copyfile('constants_local.xml', REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '/constants.xml')
+
+	# These keys are non critical and are only used for testing purposes
+	keypairs = "021D99F2E5ACBA39ED5ACC5DCA5EE2ADDE780FFD998E1DBF440FE364C3BE360A7B 50C26000FCC08867FC3B9C03385015179E4B63282CB356014233BB1877FCDBDD"
+
+	# Launch node zilliqa process
+	keypair = keypairs.split(" ")
+	os.system('cd ' + REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa_ds_guard_rejoin ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' + ' '  + str(7001) + ' 0 7 0 > ./error_log_zilliqa 2>&1 &')
+	print("Running and rejoining ds guard at port "+ str(7001))
 
 def run_connect(numnodes):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)

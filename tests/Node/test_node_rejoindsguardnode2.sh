@@ -23,6 +23,6 @@ sudo sysctl -w net.ipv4.tcp_rmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_wmem='65536 873800 1534217728';
 sudo sysctl -w net.ipv4.tcp_mem='65536 873800 1534217728';
 
-python tests/Zilliqa/test_zilliqa_rejoindsguardnode2.py setup 1
-python tests/Zilliqa/test_zilliqa_rejoindsguardnode2.py start 
+python tests/Zilliqa/test_zilliqa_local.py setupdsguard2 1
+python tests/Zilliqa/test_zilliqa_local.py rejoindsguard2
 
