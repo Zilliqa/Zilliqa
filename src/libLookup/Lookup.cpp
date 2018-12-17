@@ -69,7 +69,7 @@ void Lookup::InitAsNewJoiner() {
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
-
+  m_isNewLookupNode = true;
   SetLookupNodes();
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
@@ -117,6 +117,24 @@ void Lookup::InitSync() {
     }
   };
   DetachedFunction(1, func);
+}
+
+void Lookup::RejoinAsNewLookup() {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::RejoinAsNewLookup not expected to be called from "
+                "other than the LookUp node.");
+    return;
+  }
+
+  LOG_MARKER();
+  if (m_syncType == SyncType::NO_SYNC) {
+    auto func = [this]() mutable -> void {
+      SetSyncType(SyncType::NEW_LOOKUP_SYNC);
+      InitSync();
+    };
+    DetachedFunction(1, func);
+  }
 }
 
 void Lookup::SetLookupNodes() {
