@@ -66,6 +66,7 @@ Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
 Lookup::~Lookup() {}
 
 void Lookup::InitAsNewJoiner() {
+  LOG_MARKER();
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_txBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
@@ -86,6 +87,7 @@ void Lookup::InitAsNewJoiner() {
 }
 
 void Lookup::InitSync() {
+  LOG_MARKER();
   auto func = [this]() -> void {
     uint64_t dsBlockNum = 0;
     uint64_t txBlockNum = 0;
@@ -1930,6 +1932,9 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
     LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
     return false;
   }
+
+  LOG_GENERAL(INFO, "AccountStore::GetInstance().GetStateRootHash()"
+                        << AccountStore::GetInstance().GetStateRootHash());
 
   if (ARCHIVAL_NODE) {
     LOG_GENERAL(INFO, "Succesfull state change");
