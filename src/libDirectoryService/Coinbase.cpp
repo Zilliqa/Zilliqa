@@ -303,8 +303,15 @@ void DirectoryService::InitCoinbase() {
           } else {
             if (addr ==
                 Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second)) {
-              LOG_GENERAL(INFO, "[REWARD]"
-                                    << "Rewarded " << reward_each);
+              LOG_EPOCH(INFO,
+                        std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                        "[REWARD]"
+                            << "Rewarded " << reward_each);
+              LOG_STATE("[REWARD]["
+                        << setw(15) << left
+                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                        << m_mediator.m_currentEpochNum << "][" << reward_each
+                        << "]");
             }
             suc_counter++;
           }
@@ -332,6 +339,10 @@ void DirectoryService::InitCoinbase() {
               winnerAddr, genesisAccount, balance_left)) {
         LOG_GENERAL(WARNING, "Could not reward lucky draw!");
       }
+      LOG_STATE("[REWARD][" << setw(15) << left
+                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                            << "][" << m_mediator.m_currentEpochNum << "]["
+                            << balance_left << "]");
       return;
     } else {
       ++count;

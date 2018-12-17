@@ -222,6 +222,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   // Update the final block with the co-signatures from the consensus
   m_finalBlock->SetCoSignatures(*m_consensusObject);
 
+  // Update the DS microblock with the same co-signatures from the consensus
+  // If we don't do this, DataSender won't be able to process it
+  m_mediator.m_node->m_microblock->SetCoSignatures(*m_consensusObject);
+
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
 
   // StoreMicroBlocksToDisk();
@@ -307,14 +311,14 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "[No PoW needed] Waiting for Microblock.");
 
-      LOG_STATE("[MIBLKSWAIT[" << setw(15) << left
-                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "]["
-                               << m_mediator.m_txBlockChain.GetLastBlock()
-                                          .GetHeader()
-                                          .GetBlockNum() +
-                                      1
-                               << "] BEGIN");
+      LOG_STATE("[MIBLKSWAIT][" << setw(15) << left
+                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                                << "]["
+                                << m_mediator.m_txBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetBlockNum() +
+                                       1
+                                << "] BEGIN");
 
       auto func1 = [this]() mutable -> void {
         m_mediator.m_node->CommitTxnPacketBuffer();
@@ -331,7 +335,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
                     "Timeout: Didn't receive all Microblock. Proceeds "
                     "without it");
 
-        LOG_STATE("[MIBLKSWAIT["
+        LOG_STATE("[MIBLKSWAIT]["
                   << setw(15) << left
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                   << m_mediator.m_txBlockChain.GetLastBlock()
