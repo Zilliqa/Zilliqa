@@ -754,6 +754,9 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
     RejoinAsNormal();
     return false;
   } else if (LOOKUP_NODE_MODE && !CheckStateRoot(txBlock)) {
+    if (m_mediator.m_lookup->m_isNewLookupNode) {
+      m_mediator.m_lookup->RejoinAsNewLookup();
+    }
     return false;
   }
 
