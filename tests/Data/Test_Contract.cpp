@@ -94,7 +94,9 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   // Replace owner address in init.json.
   for (auto& it : t1.init) {
-    if (it["vname"] == "owner") it["value"] = "0x" + ownerAddr.hex();
+    if (it["vname"] == "owner") {
+      it["value"] = "0x" + ownerAddr.hex();
+    }
   }
   // and remove _creation_block (automatic insertion later).
   ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
@@ -356,7 +358,9 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Replace pong address in parameter of message.
   for (auto it = t0ping.message["params"].begin();
        it != t0ping.message["params"].end(); it++) {
-    if ((*it)["vname"] == "pongAddr") (*it)["value"] = "0x" + pongAddr.hex();
+    if ((*it)["vname"] == "pongAddr") {
+      (*it)["value"] = "0x" + pongAddr.hex();
+    }
   }
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t0ping.message, data);
   Transaction tx2(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
@@ -369,7 +373,9 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Replace ping address in paramter of message.
   for (auto it = t0pong.message["params"].begin();
        it != t0pong.message["params"].end(); it++) {
-    if ((*it)["vname"] == "pingAddr") (*it)["value"] = "0x" + pingAddr.hex();
+    if ((*it)["vname"] == "pingAddr") {
+      (*it)["value"] = "0x" + pingAddr.hex();
+    }
   }
   amount = ScillaTestUtil::PrepareMessageData(t0pong.message, data);
   Transaction tx3(1, nonce, pongAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
@@ -402,12 +408,16 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Json::Value pingState = accountPing->GetStorageJson();
   int pingCount = -1;
   for (auto& it : pingState) {
-    if (it["vname"] == "count") pingCount = atoi(it["value"].asCString());
+    if (it["vname"] == "count") {
+      pingCount = atoi(it["value"].asCString());
+    }
   }
   Json::Value pongState = accountPing->GetStorageJson();
   int pongCount = -1;
   for (auto& it : pongState) {
-    if (it["vname"] == "count") pongCount = atoi(it["value"].asCString());
+    if (it["vname"] == "count") {
+      pongCount = atoi(it["value"].asCString());
+    }
   }
   BOOST_CHECK_MESSAGE(pingCount == 0 && pongCount == 0,
                       "Ping / Pong did not reach count 0.");
