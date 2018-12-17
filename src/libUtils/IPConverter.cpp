@@ -19,7 +19,26 @@
 
 using namespace std;
 
+namespace LogInfo {
+void LogBrand() {
+  cout << "Copyright (C) Zilliqa. Version 3.0 (Durian - Mao Shan Wang). "
+          "<https://www.zilliqa.com/> "
+       << endl;
+}
+
+void LogBugReport() {
+  cout << "For bug reporting, please create an issue at "
+          "<https://github.com/Zilliqa/Zilliqa> \n"
+       << endl;
+}
+void LogBrandBugReport(){
+  LogBrand();
+  LogBugReport();
+}
+}
+
 namespace IPConverter {
+using namespace LogInfo;
 
 const std::string ToStrFromNumericalIP(
     const boost::multiprecision::uint128_t& ip) {
@@ -30,36 +49,21 @@ const std::string ToStrFromNumericalIP(
   return std::string(str);
 }
 
-void LogBrand() {
-  cout << "Copyright (C) Zilliqa. Version 1.0 (Durian). "
-          "<https://www.zilliqa.com/> "
-       << endl;
+void LogUnsupported(const string& ip) {
+  LogBrandBugReport();
+  cerr << "Error: Unknown address type " << ip << ", unsupported protocol\n" << endl;
 }
 
-void LogBugReport() {
-  cout << "For bug reporting, please create an issue at "
-          "<https://github.com/Zilliqa/Zilliqa> \n"
-       << endl;
-}
-
-void LogUnsupported() {
-  LogBrand();
-  LogBugReport();
-  cout << "Error: Unknown address type - unsupported protocol\n" << endl;
-}
-
-void LogInvalidIP() {
-  LogBrand();
-  LogBugReport();
-  cout << "Error: listen_ip_address does not contain a character string "
+void LogInvalidIP(const string& ip) {
+  LogBrandBugReport();
+  cerr << "Error: address " << ip << " does not contain a character string "
           "representing a valid network address\n"
        << endl;
 }
 
-void LogInternalErr() {
-  LogBrand();
-  LogBugReport();
-  std::cout << "Internal Error: cannot process the input IP address.\n"
+void LogInternalErr(const string& ip) {
+  LogBrandBugReport();
+  cerr << "Internal Error: cannot process the input IP address "<< ip <<".\n"
             << std::endl;
 }
 
@@ -69,7 +73,7 @@ int ToNumericalIPFromStr(const std::string& ipStr,
   try {
     Addr = boost::asio::ip::address::from_string(ipStr);
   } catch (const std::exception& e) {
-    LogInvalidIP();
+    LogInvalidIP(ipStr);
     return -1;
   }
   ipInt = 0;
@@ -81,7 +85,7 @@ int ToNumericalIPFromStr(const std::string& ipStr,
     return 0;
   }
 
-  LogUnsupported();
+  LogUnsupported(ipStr);
   return -1;
 }
 }  // namespace IPConverter

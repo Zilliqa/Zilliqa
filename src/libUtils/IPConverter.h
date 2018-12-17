@@ -29,23 +29,24 @@
 /// Utility class for converter from ip address string to numerical
 /// represetation.
 
-namespace IPConverter {
+namespace LogInfo {
+void LogBrand();
+void LogBugReport();
+void LogBrandBugReport();
+}
 
-using namespace std;
+
+namespace IPConverter {
 
 enum IPv { IPv4, IPv6 };
 
 const std::string ToStrFromNumericalIP(const boost::multiprecision::uint128_t&);
 
-void LogBrand();
+void LogUnsupported(const std::string&);
 
-void LogBugReport();
+void LogInvalidIP(const std::string&);
 
-void LogUnsupported();
-
-void LogInvalidIP();
-
-void LogInternalErr();
+void LogInternalErr(const std::string&);
 
 template <class ip_t>
 boost::multiprecision::uint128_t convertBytesToInt(ip_t ip_v) {
@@ -70,12 +71,11 @@ bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
   if (res == 1) {
     return true;
   } else if (res == 0) {
-    LogInvalidIP();
+    LogInvalidIP(std::string(in));
     return false;
   } else {
-    LogBrand();
-    LogBugReport();
-    LogInternalErr();
+    LogInfo::LogBrandBugReport();
+    LogInternalErr(std::string(in));
     return false;
   }
 }
