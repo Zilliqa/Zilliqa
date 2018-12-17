@@ -87,9 +87,6 @@ apt-get install -y \
     libcurl4-openssl-dev \
     protobuf-compiler
 
-# install openssl-1.1.1
-install_openssl
-
 # install development dependencies
 apt-get install -y \
     ccache \
