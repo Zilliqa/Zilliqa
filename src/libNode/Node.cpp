@@ -312,9 +312,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE &&
       (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
-                          << DS_DELAY_WAKEUP_IN_SECONDS
+                          << WAIT_LOOKUP_WAKEUP_IN_SECONDS
                           << " seconds for lookup wakeup...");
-    this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
+    this_thread::sleep_for(chrono::seconds(WAIT_LOOKUP_WAKEUP_IN_SECONDS));
   }
 
   m_retriever = std::make_shared<Retriever>(m_mediator);
@@ -622,12 +622,12 @@ void Node::WakeupForUpgrade() {
   SetState(POW_SUBMISSION);
 
   auto func = [this, block_num, dsDifficulty, difficulty]() mutable -> void {
-    LOG_GENERAL(
-        INFO, "Shard node, wait "
-                  << SHARD_DELAY_WAKEUP_IN_SECONDS - DS_DELAY_WAKEUP_IN_SECONDS
-                  << " more seconds for lookup and DS nodes wakeup...");
+    LOG_GENERAL(INFO, "Shard node, wait "
+                          << SHARD_DELAY_WAKEUP_IN_SECONDS -
+                                 WAIT_LOOKUP_WAKEUP_IN_SECONDS
+                          << " more seconds for lookup and DS nodes wakeup...");
     this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS -
-                                           DS_DELAY_WAKEUP_IN_SECONDS));
+                                           WAIT_LOOKUP_WAKEUP_IN_SECONDS));
     StartPoW(block_num, dsDifficulty, difficulty, m_mediator.m_dsBlockRand,
              m_mediator.m_txBlockRand);
   };
