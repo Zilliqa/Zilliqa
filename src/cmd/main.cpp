@@ -93,11 +93,13 @@ int main(int argc, const char* argv[]) {
       if (privK.length() != 32) {
         LogInfo::LogBrandBugReport();
         std::cerr << "Invalid length of private key." << endl;
+        return ERROR_IN_COMMAND_LINE;
       }
 
       if (pubK.length() != 32) {
         LogInfo::LogBrandBugReport();
         std::cerr << "Invalid length of public key." << endl;
+        return ERROR_IN_COMMAND_LINE;
       }
       po::notify(vm);
     }
