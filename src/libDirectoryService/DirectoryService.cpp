@@ -710,9 +710,9 @@ bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 
-// This feature is only available to ds guard nodes. This only guard nodes to
-// change its network information. Pre-condition: Must still have access to
-// existing public and private key pair
+// This feature is only available to ds guard node. This allows guard node to
+// change it's network information (IP and/or port).
+// Pre-condition: Must still have access to existing public and private key pair
 bool DirectoryService::UpdateDSGuardIdentity() {
   if (!GUARD_MODE) {
     LOG_GENERAL(WARNING,
