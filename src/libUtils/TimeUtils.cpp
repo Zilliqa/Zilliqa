@@ -19,6 +19,7 @@
 
 #include "TimeUtils.h"
 #include <mutex>
+#include "depends/common/CommonIO.h"
 
 using namespace std::chrono;
 using namespace boost::multiprecision;
@@ -49,14 +50,9 @@ long int get_ms(const time_point<system_clock> time) {
 }
 
 std::string microsec_timestamp_to_readable(const uint64_t& timestamp) {
-  const time_t rawtime = (const time_t)timestamp;
-
-  struct tm* dt;
-  char buffer[30];
-  dt = localtime(&rawtime);
-  strftime(buffer, sizeof(buffer), "%m%d%H%M%y", dt);
-  delete dt;
-  return std::string(buffer);
+  std::chrono::milliseconds dur(timestamp / 1000);
+  std::chrono::time_point<std::chrono::system_clock> dt(dur);
+  return g3::localtime_formatted(dt, "%a %b %d %H:%M:%S %Y");
 }
 
 bool is_timestamp_in_range(const uint64_t& timestamp, const uint64_t& loBound,
