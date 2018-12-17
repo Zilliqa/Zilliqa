@@ -64,8 +64,6 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
 endif()
 
-message(STATUS "OPENSSL_ROOT_DIR is ${OPENSSL_ROOT_DIR}")
-
 find_package(OpenSSL 1.1 REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
