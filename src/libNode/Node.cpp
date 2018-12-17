@@ -275,7 +275,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   BlockStorage::GetBlockStorage().GetDSCommittee(
       m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
 
-  /// TBD
   unordered_map<string, Peer> ipMapping;
   GetIpMapping(ipMapping);
 
@@ -325,28 +324,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
-#if 1  // clark
-  LOG_GENERAL(INFO, "AccountStore::GetInstance().GetStateRootHash() = "
-                        << AccountStore::GetInstance().GetStateRootHash());
-#endif
   bool tx_result = m_retriever->RetrieveTxBlocks(wakeupForUpgrade);
-
-#if 1  // clark
-  auto block = m_mediator.m_txBlockChain.GetLastBlock();
-  LOG_GENERAL(INFO, "State root of block["
-                        << block.GetHeader().GetBlockNum()
-                        << "]: " << block.GetHeader().GetStateRootHash());
-  block = m_mediator.m_txBlockChain.GetBlock(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum());
-  LOG_GENERAL(INFO, "State root of block["
-                        << block.GetHeader().GetBlockNum()
-                        << "]: " << block.GetHeader().GetStateRootHash());
-  block = m_mediator.m_txBlockChain.GetBlock(
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() - 1);
-  LOG_GENERAL(INFO, "State root of block["
-                        << block.GetHeader().GetBlockNum()
-                        << "]: " << block.GetHeader().GetStateRootHash());
-#endif
 
   if (!tx_result) {
     return false;
