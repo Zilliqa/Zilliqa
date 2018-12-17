@@ -101,7 +101,7 @@
         </cuda>
     </gpu>
     <guard_mode>
-        <GUARD_MODE>true</GUARD_MODE>
+        <GUARD_MODE>false</GUARD_MODE>
         <EXCLUDE_PRIV_IP>false</EXCLUDE_PRIV_IP>
     </guard_mode>
     <heartbeat>
@@ -110,7 +110,7 @@
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>5</COMM_SIZE>
-        <NUM_DS_ELECTION>1</NUM_DS_ELECTION>
+        <NUM_DS_ELECTION>2</NUM_DS_ELECTION>
     </network_composition>
     <p2pcomm>
         <BROADCAST_INTERVAL>60</BROADCAST_INTERVAL>

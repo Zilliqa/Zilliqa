@@ -112,17 +112,8 @@ bool Retriever::RetrieveTxBlocks(bool wakeupForUpgrade) {
   });
 
   unsigned int totalSize = blocks.size();
-#if 1  // clark
-  unsigned int extra_txblocks =
-      totalSize -
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
-#else
   unsigned int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
-#endif
 
-#if 1  // clark, just for testing and need to be added back
-  wakeupForUpgrade = wakeupForUpgrade;
-#else
   if (wakeupForUpgrade || m_mediator.GetIsVacuousEpoch(
                               (blocks.back()->GetHeader().GetBlockNum()))) {
     // truncate the extra final blocks at last
@@ -131,61 +122,25 @@ bool Retriever::RetrieveTxBlocks(bool wakeupForUpgrade) {
       blocks.pop_back();
     }
   }
-#endif
 
   for (const auto& block : blocks) {
     m_mediator.m_node->AddBlock(*block);
   }
 
-#if 1  // clark
-  LOG_GENERAL(INFO, "AccountStore::GetInstance().GetStateDeltaHash(): "
-                        << AccountStore::GetInstance().GetStateDeltaHash());
-#endif
   /// Retrieve final block state delta from last DS epoch to
   /// current TX epoch
   if (!ARCHIVAL_NODE) {
     for (const auto& block : blocks) {
-#if 1  // clark
-      LOG_GENERAL(INFO, "block->GetHeader().GetBlockNum() = "
-                            << block->GetHeader().GetBlockNum()
-                            << ", totalSize = " << totalSize
-                            << ", extra_txblocks = " << extra_txblocks);
-#endif
-
       if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
         std::vector<unsigned char> stateDelta;
         BlockStorage::GetBlockStorage().GetStateDelta(
             block->GetHeader().GetBlockNum(), stateDelta);
 
-#if 1  // clark
-          bool isEmpty = true;
-          for (unsigned char i : stateDelta) {
-              if (i != 0) {
-                  isEmpty = false;
-                  break;
-              }
-          }
-          if (isEmpty) {
-              LOG_GENERAL(INFO, "stateDeltaHash: " << dev::h256());
-          } else{
-              SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-              sha2.Update(stateDelta);
-              dev::h256 stateDeltaHash = dev::h256(sha2.Finalize());
-              LOG_GENERAL(INFO, "stateDeltaHash: " << stateDeltaHash);
-          }
-#endif
         if (!AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
           LOG_GENERAL(WARNING,
                       "AccountStore::GetInstance().DeserializeDelta failed");
           return false;
         }
-
-#if 1  // clark
-        LOG_GENERAL(INFO, "AccountStore::GetInstance().GetStateRootHash() = "
-                              << AccountStore::GetInstance().GetStateRootHash()
-                              << ", block->GetHeader().GetStateRootHash() = "
-                              << block->GetHeader().GetStateRootHash());
-#endif
       }
     }
   }
