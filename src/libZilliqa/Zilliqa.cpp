@@ -168,9 +168,9 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   if (ARCHIVAL_NODE) {
     if (SyncType::RECOVERY_ALL_SYNC == syncType) {
       LOG_GENERAL(INFO, "Archival node, wait "
-                            << DS_DELAY_WAKEUP_IN_SECONDS
+                            << WAIT_LOOKUP_WAKEUP_IN_SECONDS
                             << " seconds for lookup wakeup...");
-      this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
+      this_thread::sleep_for(chrono::seconds(WAIT_LOOKUP_WAKEUP_IN_SECONDS));
     }
 
     m_db.Init();

@@ -238,7 +238,7 @@ extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
 extern const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT;
 
 // Recovery and upgrading constants
-extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
+extern const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS;
 extern const bool GET_INITIAL_DS_FROM_REPO;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;

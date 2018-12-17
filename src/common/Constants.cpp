@@ -284,8 +284,8 @@ const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("DIFF_IP_TOLERANCE_IN_PERCENT", "node.pow.")};
 
 // Recovery and upgrading constants
-const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
-    ReadConstantNumeric("DS_DELAY_WAKEUP_IN_SECONDS", "node.recovery.")};
+const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
+    ReadConstantNumeric("WAIT_LOOKUP_WAKEUP_IN_SECONDS", "node.recovery.")};
 const bool GET_INITIAL_DS_FROM_REPO{
     ReadConstantString("GET_INITIAL_DS_FROM_REPO", "node.recovery.") == "true"};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
