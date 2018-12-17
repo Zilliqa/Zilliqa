@@ -50,7 +50,6 @@ include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
 
-include(InstallOpenSSL)
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
@@ -60,7 +59,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    #TODO: use static version
+    include(InstallOpenSSL)
     set(OPENSSL_USE_STATIC_LIBS TRUE)
     set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
 endif()
