@@ -244,6 +244,7 @@ extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
 extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
+extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 
 // Smart contract constants
 extern const std::string SCILLA_ROOT;

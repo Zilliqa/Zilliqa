@@ -32,9 +32,8 @@ class Retriever {
  public:
   Retriever(Mediator& mediator);
 
-  bool RetrieveDSBlocks(bool wakeupForUpgrade);
-  bool RetrieveTxBlocks(bool wakeupForUpgrade);
-  bool RetrieveBlockLink(bool wakeupForUpgrade);
+  bool RetrieveTxBlocks(bool trimIncompletedBlocks);
+  bool RetrieveBlockLink(bool trimIncompletedBlocks);
   bool RetrieveStates();
   bool ValidateStates();
   bool CleanExtraTxBodies();

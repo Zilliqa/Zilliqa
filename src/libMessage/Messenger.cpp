@@ -754,9 +754,30 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
                              bool concreteVarsOnly = false) {
   if (!concreteVarsOnly) {
     protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
+#if 0  // clark
+{
+vector<unsigned char> tmp;
+SerializeToArray(protoDSBlockHeader, tmp, 0);
+LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+}
+#endif
     protoDSBlockHeader.set_difficulty(dsBlockHeader.GetDifficulty());
+#if 0  // clark
+      {
+          vector<unsigned char> tmp;
+          SerializeToArray(protoDSBlockHeader, tmp, 0);
+          LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+      }
+#endif
     NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
         dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
+#if 0  // clark
+      {
+          vector<unsigned char> tmp;
+          SerializeToArray(protoDSBlockHeader, tmp, 0);
+          LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+      }
+#endif
     ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
 
     for (const auto& winner : dsBlockHeader.GetDSPoWWinners()) {
@@ -766,28 +787,98 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
       SerializableToProtobufByteArray(winner.second,
                                       *powdswinner->mutable_val());
     }
+#if 0  // clark
+      {
+          vector<unsigned char> tmp;
+          SerializeToArray(protoDSBlockHeader, tmp, 0);
+          LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+      }
+#endif
   }
 
   protoDSBlockHeader.set_prevhash(dsBlockHeader.GetPrevHash().data(),
                                   dsBlockHeader.GetPrevHash().size);
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
   SerializableToProtobufByteArray(dsBlockHeader.GetLeaderPubKey(),
                                   *protoDSBlockHeader.mutable_leaderpubkey());
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
 
   protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
   protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
   SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
                                   *protoDSBlockHeader.mutable_swinfo());
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
 
   ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
       protoDSBlockHeader.mutable_hash();
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
   protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
                                     dsBlockHeader.GetShardingHash().size);
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
   protoHeaderHash->set_reservedfield(
       dsBlockHeader.GetHashSetReservedField().data(),
       dsBlockHeader.GetHashSetReservedField().size());
 
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
   protoDSBlockHeader.set_committeehash(dsBlockHeader.GetCommitteeHash().data(),
                                        dsBlockHeader.GetCommitteeHash().size);
+#if 0  // clark
+    {
+        vector<unsigned char> tmp;
+        SerializeToArray(protoDSBlockHeader, tmp, 0);
+        LOG_GENERAL(INFO, "tmp = " << string(tmp.begin(), tmp.end()));
+    }
+#endif
 }
 
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
