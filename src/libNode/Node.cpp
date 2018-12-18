@@ -70,7 +70,7 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
-  const uint128_t bal{std::numeric_limits<uint64_t>::max()};
+  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
   const uint64_t nonce{0};
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
