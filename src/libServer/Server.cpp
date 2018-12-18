@@ -91,10 +91,15 @@ bool Server::StartCollectorThread() {
     while (true) {
       this_thread::sleep_for(chrono::seconds(SEED_TXN_COLLECTION_TIME_IN_SEC));
       txns.clear();
+
+      if (m_mediator.m_lookup->GetSyncType() == SyncType::NEW_LOOKUP_SYNC) {
+        LOG_GENERAL(INFO, "This new lookup (Seed) is not yet synced..");
+        continue;
+      }
+
       if (USE_REMOTE_TXN_CREATOR && !m_mediator.m_lookup->GenTxnToSend(
                                         NUM_TXN_TO_SEND_PER_ACCOUNT, txns)) {
         LOG_GENERAL(WARNING, "GenTxnToSend failed");
-        // return;
       }
 
       if (!txns.empty()) {
