@@ -715,7 +715,7 @@ bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
 
 // This feature is only available to ds guard node. This allows guard node to
 // change it's network information (IP and/or port).
-// Pre-condition: Must still have access to existing public and private key pair
+// Pre-condition: Must still have access to existing public and private keypair
 bool DirectoryService::UpdateDSGuardIdentity() {
   if (!GUARD_MODE) {
     LOG_GENERAL(WARNING,
@@ -873,7 +873,6 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     }
     return foundDSGuardNode;
   }
-  return false;
 }
 
 bool DirectoryService::Execute(const vector<unsigned char>& message,
