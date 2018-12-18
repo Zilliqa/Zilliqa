@@ -73,7 +73,7 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   for (auto nonce = begin; nonce < end; nonce++) {
     Transaction txn{0,      nonce,
                     toAddr, std::make_pair(privKey, pubKey),
-                    nonce,  PRECISION_MIN_VALUE,
+                    nonce,  GAS_PRICE_MIN_VALUE,
                     1,      {},
                     {}};
     txnOffsets.push_back(txnBuff.size());
