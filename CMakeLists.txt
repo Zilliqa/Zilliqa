@@ -35,6 +35,8 @@ else()
     set(JSONRPCCPP_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-server")
 endif()
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
@@ -52,13 +54,17 @@ find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
     execute_process(
-        COMMAND ${HOMEBREW} --prefix openssl
+        COMMAND ${HOMEBREW} --prefix openssl@1.1
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    include(InstallOpenSSL)
+    set(OPENSSL_USE_STATIC_LIBS TRUE)
+    set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
 endif()
 
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL 1.1 REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)
@@ -163,9 +169,6 @@ find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/libethash/include/)
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
