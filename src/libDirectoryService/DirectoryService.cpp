@@ -764,17 +764,13 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     // TODO: changge to N ds nodes who co-sign on the ds block
     std::vector<Peer> networkInfoUpdateReceivers;
     unsigned int numOfNetworkInfoReceivers =
-        std::min(NUM_GOSSIP_RECEIVERS,
-                 (const unsigned int)m_mediator.m_DSCommittee->size());
+        std::min(NUM_GOSSIP_RECEIVERS, (const unsigned int)peerInfo.size());
 
     for (unsigned int i = 0; i < numOfNetworkInfoReceivers; i++) {
-      networkInfoUpdateReceivers.emplace_back(
-          m_mediator.m_DSCommittee->at(i).second);
+      networkInfoUpdateReceivers.emplace_back(peerInfo.at(i));
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                " PubKey: " << m_mediator.m_DSCommittee->at(i).first
-                            << " Network info: "
-                            << m_mediator.m_DSCommittee->at(i).second);
+                "networkInfoUpdateReceivers: " << peerInfo.at(i));
     }
 
     P2PComm::GetInstance().SendRumorToForeignPeers(
