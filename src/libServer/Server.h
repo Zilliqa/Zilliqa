@@ -193,7 +193,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
         &AbstractZServer::GetShardingStructureI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetNumTxnsTxEpoch", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_INTEGER, NULL),
+                           jsonrpc::JSON_STRING, NULL),
         &AbstractZServer::GetNumTxnsTxEpochI);
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetNumTxnsDSEpoch", jsonrpc::PARAMS_BY_POSITION,
@@ -406,7 +406,7 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
   virtual Json::Value GetRecentTransactions() = 0;
   virtual Json::Value GetShardingStructure() = 0;
   virtual std::string GetNumTxnsDSEpoch() = 0;
-  virtual uint32_t GetNumTxnsTxEpoch() = 0;
+  virtual std::string GetNumTxnsTxEpoch() = 0;
   virtual Json::Value GetSmartContractState(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractInit(const std::string& param01) = 0;
   virtual Json::Value GetSmartContractCode(const std::string& param01) = 0;
@@ -458,7 +458,7 @@ class Server : public AbstractZServer {
   virtual Json::Value GetRecentTransactions();
   virtual Json::Value GetShardingStructure();
   virtual std::string GetNumTxnsDSEpoch();
-  virtual uint32_t GetNumTxnsTxEpoch();
+  virtual std::string GetNumTxnsTxEpoch();
   static void AddToRecentTransactions(const dev::h256& txhash);
 
   // gets the number of transaction starting from block blockNum to most recent

@@ -1031,14 +1031,15 @@ Json::Value Server::GetShardingStructure() {
   }
 }
 
-uint32_t Server::GetNumTxnsTxEpoch() {
+string Server::GetNumTxnsTxEpoch() {
   LOG_MARKER();
 
   try {
-    return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs();
+    return to_string(
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs());
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
-    return 0;
+    return "0";
   }
 }
 
