@@ -115,7 +115,7 @@ bool AccountStore::SerializeDelta() {
 
   lock(m_mutexDelta, m_mutexPrimary);
   lock_guard<mutex> g(m_mutexDelta, adopt_lock);
-  unique_lock<shared_timed_mutex> g2(m_mutexPrimary, adopt_lock);
+  shared_lock<shared_timed_mutex> g2(m_mutexPrimary, adopt_lock);
 
   m_stateDeltaSerialized.clear();
 
