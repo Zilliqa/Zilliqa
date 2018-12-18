@@ -6521,11 +6521,11 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
     ProtoDSGuardUpdateStruct* proto_DSGuardUpdateStruct =
         result.mutable_data()->add_dsguardupdatestruct();
     SerializableToProtobufByteArray(
-        dsguardupdate.dsGuardPubkey,
+        dsguardupdate.m_dsGuardPubkey,
         *proto_DSGuardUpdateStruct->mutable_dsguardpubkey());
-    PeerToProtobuf(dsguardupdate.dsGuardNewNetworkInfo,
+    PeerToProtobuf(dsguardupdate.m_dsGuardNewNetworkInfo,
                    *proto_DSGuardUpdateStruct->mutable_dsguardnewnetworkinfo());
-    proto_DSGuardUpdateStruct->set_timestamp(dsguardupdate.timestamp);
+    proto_DSGuardUpdateStruct->set_timestamp(dsguardupdate.m_timestamp);
   }
 
   if (result.data().IsInitialized()) {

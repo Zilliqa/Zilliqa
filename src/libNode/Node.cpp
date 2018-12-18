@@ -1615,14 +1615,14 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
                  m_mediator.m_DSCommittee->begin() +
                      Guard::GetInstance().GetNumOfDSGuard(),
                  [&dsguardupdate](const pair<PubKey, Peer>& element) {
-                   return element.first == dsguardupdate.dsGuardPubkey;
+                   return element.first == dsguardupdate.m_dsGuardPubkey;
                  },
-                 make_pair(dsguardupdate.dsGuardPubkey,
-                           dsguardupdate.dsGuardNewNetworkInfo));
+                 make_pair(dsguardupdate.m_dsGuardPubkey,
+                           dsguardupdate.m_dsGuardNewNetworkInfo));
       LOG_GENERAL(INFO, "[update ds guard] "
-                            << dsguardupdate.dsGuardPubkey
+                            << dsguardupdate.m_dsGuardPubkey
                             << " new network info is "
-                            << dsguardupdate.dsGuardNewNetworkInfo)
+                            << dsguardupdate.m_dsGuardNewNetworkInfo)
     }
   }
 

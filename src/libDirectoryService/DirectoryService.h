@@ -77,24 +77,26 @@ struct PoWSolution {
 };
 
 struct DSGuardUpdateStruct {
-  PubKey dsGuardPubkey;
-  Peer dsGuardNewNetworkInfo;
-  uint64_t timestamp;
+  PubKey m_dsGuardPubkey;
+  Peer m_dsGuardNewNetworkInfo;
+  uint64_t m_timestamp;
 
   DSGuardUpdateStruct()
-      : dsGuardPubkey(PubKey()), dsGuardNewNetworkInfo(Peer()), timestamp(9) {}
+      : m_dsGuardPubkey(PubKey()),
+        m_dsGuardNewNetworkInfo(Peer()),
+        m_timestamp(0) {}
 
   DSGuardUpdateStruct(const PubKey& curDSGuardPubkey,
                       const Peer& newDSGuardNetworkInfo,
                       const uint64_t timestampOfChangeRequest)
-      : dsGuardPubkey(curDSGuardPubkey),
-        dsGuardNewNetworkInfo(newDSGuardNetworkInfo),
-        timestamp(timestampOfChangeRequest) {}
+      : m_dsGuardPubkey(curDSGuardPubkey),
+        m_dsGuardNewNetworkInfo(newDSGuardNetworkInfo),
+        m_timestamp(timestampOfChangeRequest) {}
 
   bool operator==(const DSGuardUpdateStruct& rhs) const {
-    return std::tie(dsGuardPubkey, dsGuardNewNetworkInfo, timestamp) ==
-           std::tie(rhs.dsGuardPubkey, rhs.dsGuardNewNetworkInfo,
-                    rhs.timestamp);
+    return std::tie(m_dsGuardPubkey, m_dsGuardNewNetworkInfo, m_timestamp) ==
+           std::tie(rhs.m_dsGuardPubkey, rhs.m_dsGuardNewNetworkInfo,
+                    rhs.m_timestamp);
   }
 };
 
