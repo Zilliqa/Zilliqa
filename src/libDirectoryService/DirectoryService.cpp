@@ -818,10 +818,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     return false;
   }
 
-  // Check timestamp
-  // Allowed only 5 mins. Else consider it obsolete.
-  uint64_t allowableTimeForDSNodeNetworkInfoUpdate = 300;
-  if (!VerifyTimestamp(timestamp, allowableTimeForDSNodeNetworkInfoUpdate)) {
+  if (!VerifyTimestamp(timestamp, WINDOW_FOR_DS_NETWORK_INFO_UPDATE)) {
     return false;
   }
 
