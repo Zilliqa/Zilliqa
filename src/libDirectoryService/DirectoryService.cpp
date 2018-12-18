@@ -862,10 +862,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
                 << dsEpochNumber << ". Adding a new record");
 
       } else {
-        vector<DSGuardUpdateStruct> temp =
-            m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber);
-        temp.emplace_back(dsGuardNodeIden);
-        m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber) = temp;
+        m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber)
+            .emplace_back(dsGuardNodeIden);
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "[update ds guard] Adding new record for dsEpochNumber "
                       << dsEpochNumber);
