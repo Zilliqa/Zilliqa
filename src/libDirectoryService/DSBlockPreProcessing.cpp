@@ -1047,8 +1047,8 @@ bool DirectoryService::ProcessShardingStructure(
     totalShardNodes += shard.size();
   }
 
-  const float DIFF_IP_TOLERANCE = 0.1f;
-  const size_t MAX_DIFF_IP_NODES = totalShardNodes * DIFF_IP_TOLERANCE;
+  const size_t MAX_DIFF_IP_NODES = std::ceil(
+      totalShardNodes * DIFF_IP_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT);
   size_t diffIpNodes = 0;
 
   for (unsigned int i = 0; i < shards.size(); i++) {
@@ -1072,8 +1072,8 @@ bool DirectoryService::ProcessShardingStructure(
 
           if (diffIpNodes > MAX_DIFF_IP_NODES) {
             LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                      "Number of nodes using different Ip address "
-                          << diffIpNodes << "exceed tolerance "
+                      "Number of nodes using different IP address "
+                          << diffIpNodes << " exceeds tolerance "
                           << MAX_DIFF_IP_NODES);
             return false;
           }
