@@ -65,14 +65,14 @@ class Lookup : public Executable, public Broadcastable {
   bool m_isFirstLoop = true;
   // tells if server is running or not
   bool m_isServer = false;
+  uint8_t m_level = (uint8_t)-1;
 
   // Sharding committee members
 
   std::mutex m_mutexNodesInNetwork;
   std::vector<Peer> m_nodesInNetwork;
   std::unordered_set<Peer> l_nodesInNetwork;
-  std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
-  std::mutex m_txnShardMapMutex;
+
   std::atomic<bool> m_startedTxnBatchThread;
 
   // Start PoW variables
@@ -87,6 +87,7 @@ class Lookup : public Executable, public Broadcastable {
   // its recovery
   Peer GetLookupPeerToRsync();
 
+  void SetAboveLayer();
   // Doing Rsync commands
   bool RsyncTxBodies();
 
@@ -156,6 +157,9 @@ class Lookup : public Executable, public Broadcastable {
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
 
+  std::mutex m_txnShardMapMutex;
+  std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
+
   bool IsLookupNode(const PubKey& pubKey) const;
 
   bool IsLookupNode(const Peer& peerInfo) const;
@@ -164,6 +168,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GenTxnToSend(size_t num_txn,
                     std::map<uint32_t, std::vector<Transaction>>& mp,
                     uint32_t numShards);
+  bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
   void SendMessageToLookupNodes(
@@ -181,6 +186,7 @@ class Lookup : public Executable, public Broadcastable {
   void SendMessageToSeedNodes(const std::vector<unsigned char>& message) const;
 
   // TODO: move the Get and ProcessSet functions to Synchronizer
+  std::vector<Peer> GetAboveLayer();
   bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
@@ -311,6 +317,8 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessVCGetLatestDSTxBlockFromSeed(
       const std::vector<unsigned char>& message, unsigned int offset,
       const Peer& from);
+  bool ProcessForwardTxn(const std::vector<unsigned char>& message,
+                         unsigned int offset, const Peer& from);
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
 
