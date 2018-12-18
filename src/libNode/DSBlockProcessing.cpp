@@ -284,7 +284,8 @@ void Node::StartFirstTxEpoch() {
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_myshardId << "][0  ] SCLD");
+                         << "][" << m_mediator.m_currentEpochNum << "]["
+                         << m_myshardId << "][  0] SCLD");
   } else {
     m_isPrimary = false;
 
@@ -301,8 +302,9 @@ void Node::StartFirstTxEpoch() {
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_myshardId << "][" << std::setw(3)
-                         << std::left << m_consensusMyID << "] SCBK");
+                         << "][" << m_mediator.m_currentEpochNum << "]["
+                         << m_myshardId << "][" << std::setw(3) << std::left
+                         << m_consensusMyID << "] SCBK");
   }
 
   m_justDidFallback = false;
@@ -588,7 +590,8 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
                     "I am now DS leader for the next round");
           LOG_STATE("[IDENT][" << std::setw(15) << std::left
                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                               << "][0     ] DSLD");
+                               << "][" << m_mediator.m_currentEpochNum
+                               << "] DSLD");
         } else {
           m_mediator.m_ds->m_mode = DirectoryService::Mode::BACKUP_DS;
           LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -622,7 +625,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
 
     ResetConsensusId();
 
-    if (m_mediator.m_lookup->GetIsServer()) {
+    if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread();
     }
 

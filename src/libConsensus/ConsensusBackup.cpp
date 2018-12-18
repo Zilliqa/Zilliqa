@@ -143,9 +143,15 @@ bool ConsensusBackup::ProcessMessageAnnounce(
 }
 
 bool ConsensusBackup::ProcessMessageConsensusFailure(
-    [[gnu::unused]] const vector<unsigned char>& announcement,
-    [[gnu::unused]] unsigned int offset) {
+    const vector<unsigned char>& announcement, unsigned int offset) {
   LOG_MARKER();
+
+  if (!Messenger::GetConsensusConsensusFailure(
+          announcement, offset, m_consensusID, m_blockNumber, m_blockHash,
+          m_leaderID, GetCommitteeMember(m_leaderID).first)) {
+    LOG_GENERAL(WARNING, "Messenger::GetConsensusConsensusFailure failed.");
+    return false;
+  }
 
   m_state = INITIAL;
 

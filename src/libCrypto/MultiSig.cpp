@@ -25,9 +25,7 @@ using namespace std;
 
 CommitSecret::CommitSecret()
     : m_s(BN_new(), BN_clear_free), m_initialized(false) {
-  // commit->secret should be in [2,...,order-1]
-  // -1 means no constraint on the MSB of kpriv->d
-  // 0 means no constraint on the LSB of kpriv->d
+  // commit->secret should be in [1,...,order-1]
 
   if (m_s == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
@@ -38,19 +36,12 @@ CommitSecret::CommitSecret()
 
   do {
     const Curve& curve = Schnorr::GetInstance().GetCurve();
-
-    err = (BN_rand(m_s.get(), BN_num_bits(curve.m_order.get()), -1, 0) == 0);
+    err = (BN_rand_range(m_s.get(), curve.m_order.get()) == 0);
     if (err) {
       LOG_GENERAL(WARNING, "Value to commit rand failed");
       break;
     }
-
-    err = (BN_nnmod(m_s.get(), m_s.get(), curve.m_order.get(), NULL) == 0);
-    if (err) {
-      LOG_GENERAL(WARNING, "Value to commit gen failed");
-      break;
-    }
-  } while (BN_is_zero(m_s.get()) || BN_is_one(m_s.get()));
+  } while (BN_is_zero(m_s.get()));
 
   m_initialized = (!err);
 }

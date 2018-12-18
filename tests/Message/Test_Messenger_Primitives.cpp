@@ -247,4 +247,32 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlock) {
   BOOST_CHECK(fallbackBlock == fallbackBlockDeserialized);
 }
 
+BOOST_AUTO_TEST_CASE(test_CopyWithSizeCheck) {
+  vector<unsigned char> arr;
+  dev::h256 result;
+
+  generate(result.asArray().begin(), result.asArray().end(),
+           []() -> unsigned char { return TestUtils::DistUint8(); });
+
+  // Test source smaller by one byte
+  arr.resize(result.asArray().size() - 1);
+  generate(arr.begin(), arr.end(),
+           []() -> unsigned char { return TestUtils::DistUint8(); });
+  BOOST_CHECK(Messenger::CopyWithSizeCheck(arr, result.asArray()) == false);
+  BOOST_CHECK(equal(arr.begin(), arr.end(), result.begin(), result.end()) ==
+              false);
+
+  // Test source larger by one byte
+  arr.resize(result.asArray().size() + 1);
+  BOOST_CHECK(Messenger::CopyWithSizeCheck(arr, result.asArray()) == false);
+  BOOST_CHECK(equal(arr.begin(), arr.end(), result.begin(), result.end()) ==
+              false);
+
+  // Test equal sizes
+  arr.resize(result.asArray().size());
+  BOOST_CHECK(Messenger::CopyWithSizeCheck(arr, result.asArray()) == true);
+  BOOST_CHECK(equal(arr.begin(), arr.end(), result.begin(), result.end()) ==
+              true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

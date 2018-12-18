@@ -159,11 +159,10 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     account.SetCode(tmpVec);
 
     dev::h256 tmpHash;
-    copy(protoAccount.codehash().begin(),
-         protoAccount.codehash().begin() +
-             min((unsigned int)protoAccount.codehash().size(),
-                 (unsigned int)tmpHash.size),
-         tmpHash.asArray().begin());
+    if (!Messenger::CopyWithSizeCheck(protoAccount.codehash(),
+                                      tmpHash.asArray())) {
+      return false;
+    }
 
     if (account.GetCodeHash() != tmpHash) {
       LOG_GENERAL(WARNING,
@@ -185,10 +184,10 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     }
 
     for (const auto& entry : protoAccount.storage()) {
-      copy(entry.keyhash().begin(),
-           entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
-                                         (unsigned int)tmpHash.size),
-           tmpHash.asArray().begin());
+      if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
+        return false;
+      }
+
       account.SetStorage(tmpHash, entry.data());
     }
 
@@ -266,7 +265,9 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
                                                      tmpNumber);
 
-  int256_t balanceDelta = protoAccount.numbersign() ? tmpNumber : 0 - tmpNumber;
+  int256_t balanceDelta = protoAccount.numbersign()
+                              ? tmpNumber
+                              : 0 - tmpNumber.convert_to<int256_t>();
   account.ChangeBalance(balanceDelta);
 
   account.IncreaseNonceBy(protoAccount.nonce());
@@ -316,10 +317,10 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       dev::h256 tmpHash;
 
       for (const auto& entry : protoAccount.storage()) {
-        copy(entry.keyhash().begin(),
-             entry.keyhash().begin() + min((unsigned int)entry.keyhash().size(),
-                                           (unsigned int)tmpHash.size),
-             tmpHash.asArray().begin());
+        if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
+          return false;
+        }
+
         account.SetStorage(tmpHash, entry.data());
       }
 
@@ -438,13 +439,10 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
 
   // Deserialize the block hash
   BlockHash blockHash;
-
-  copy(protoBlockBase.blockhash().begin(),
-       protoBlockBase.blockhash().begin() +
-           min((unsigned int)protoBlockBase.blockhash().size(),
-               (unsigned int)blockHash.size),
-       blockHash.asArray().begin());
-
+  if (!Messenger::CopyWithSizeCheck(protoBlockBase.blockhash(),
+                                    blockHash.asArray())) {
+    return;
+  }
   base.SetBlockHash(blockHash);
 
   // Deserialize timestamp
@@ -817,11 +815,11 @@ void ProtobufToDSBlockHeader(
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
-  copy(protoDSBlockHeader.prevhash().begin(),
-       protoDSBlockHeader.prevhash().begin() +
-           min((unsigned int)protoDSBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
+  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.prevhash(),
+                                    prevHash.asArray())) {
+    return;
+  }
+
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
@@ -842,22 +840,22 @@ void ProtobufToDSBlockHeader(
   DSBlockHashSet hash;
   const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
       protoDSBlockHeader.hash();
-  copy(protoDSBlockHeaderHash.shardinghash().begin(),
-       protoDSBlockHeaderHash.shardinghash().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.shardinghash().size(),
-               (unsigned int)hash.m_shardingHash.size),
-       hash.m_shardingHash.asArray().begin());
+
+  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
+                                    hash.m_shardingHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.committeehash(),
+                                    committeeHash.asArray())) {
+    return;
+  }
+
   copy(protoDSBlockHeaderHash.reservedfield().begin(),
        protoDSBlockHeaderHash.reservedfield().begin() +
            min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
                (unsigned int)hash.m_reservedField.size()),
        hash.m_reservedField.begin());
-
-  copy(protoDSBlockHeader.committeehash().begin(),
-       protoDSBlockHeader.committeehash().begin() +
-           min((unsigned int)protoDSBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
 
   // Generate the new DSBlock
 
@@ -1012,34 +1010,34 @@ void ProtobufToMicroBlockHeader(
   gasUsed = protoMicroBlockHeader.gasused();
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoMicroBlockHeader.rewards(), rewards);
-  copy(protoMicroBlockHeader.prevhash().begin(),
-       protoMicroBlockHeader.prevhash().begin() +
-           min((unsigned int)protoMicroBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
-  copy(protoMicroBlockHeader.txroothash().begin(),
-       protoMicroBlockHeader.txroothash().begin() +
-           min((unsigned int)protoMicroBlockHeader.txroothash().size(),
-               (unsigned int)txRootHash.size),
-       txRootHash.asArray().begin());
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.prevhash(),
+                                    prevHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.txroothash(),
+                                    txRootHash.asArray())) {
+    return;
+  }
+
   ProtobufByteArrayToSerializable(protoMicroBlockHeader.minerpubkey(),
                                   minerPubKey);
-  copy(protoMicroBlockHeader.statedeltahash().begin(),
-       protoMicroBlockHeader.statedeltahash().begin() +
-           min((unsigned int)protoMicroBlockHeader.statedeltahash().size(),
-               (unsigned int)stateDeltaHash.size),
-       stateDeltaHash.asArray().begin());
-  copy(protoMicroBlockHeader.tranreceipthash().begin(),
-       protoMicroBlockHeader.tranreceipthash().begin() +
-           min((unsigned int)protoMicroBlockHeader.tranreceipthash().size(),
-               (unsigned int)tranReceiptHash.size),
-       tranReceiptHash.asArray().begin());
 
-  copy(protoMicroBlockHeader.committeehash().begin(),
-       protoMicroBlockHeader.committeehash().begin() +
-           min((unsigned int)protoMicroBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
+                                    stateDeltaHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
+                                    tranReceiptHash.asArray())) {
+    return;
+  }
+
+  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.committeehash(),
+                                    committeeHash.asArray())) {
+    return;
+  }
 
   microBlockHeader = MicroBlockHeader(
       protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
@@ -1963,8 +1961,9 @@ bool Messenger::StateDeltaToAddressMap(
     ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
         entry.account().balance(), tmpNumber);
 
-    int256_t balanceDelta =
-        entry.account().numbersign() ? tmpNumber : 0 - tmpNumber;
+    int256_t balanceDelta = entry.account().numbersign()
+                                ? tmpNumber
+                                : 0 - tmpNumber.convert_to<int256_t>();
 
     accountMap.insert(make_pair(address, balanceDelta));
   }
@@ -2641,6 +2640,86 @@ bool Messenger::GetPeer(const std::vector<unsigned char>& src,
   }
 
   ProtobufToPeer(result, peer);
+
+  return true;
+}
+
+bool Messenger::SetBlockLink(
+    std::vector<unsigned char>& dst, const unsigned int offset,
+    const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
+  ProtoBlockLink result;
+
+  result.set_index(get<BlockLinkIndex::INDEX>(blocklink));
+  result.set_dsindex(get<BlockLinkIndex::DSINDEX>(blocklink));
+  result.set_blocktype(get<BlockLinkIndex::BLOCKTYPE>(blocklink));
+  BlockHash blkhash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+  result.set_blockhash(blkhash.data(), blkhash.size);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "Failed to intialize ProtoBlockLink");
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetBlockLink(
+    const vector<unsigned char>& src, const unsigned int offset,
+    std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
+  ProtoBlockLink result;
+  BlockHash blkhash;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoBlockLink initialization failed");
+    return false;
+  }
+
+  get<BlockLinkIndex::INDEX>(blocklink) = result.index();
+  get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
+
+  if (!CopyWithSizeCheck(result.blockhash(), blkhash.asArray())) {
+    return false;
+  }
+
+  get<BlockLinkIndex::BLOCKTYPE>(blocklink) = (BlockType)result.blocktype();
+  get<BlockLinkIndex::BLOCKHASH>(blocklink) = blkhash;
+
+  return true;
+}
+
+bool Messenger::SetFallbackBlockWShardingStructure(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const FallbackBlock& fallbackblock, const DequeOfShard& shards) {
+  ProtoFallbackBlockWShardingStructure result;
+
+  FallbackBlockToProtobuf(fallbackblock, *result.mutable_fallbackblock());
+  ShardingStructureToProtobuf(shards, *result.mutable_sharding());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ProtoFallbackBlockWShardingStructure initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetFallbackBlockWShardingStructure(
+    const vector<unsigned char>& src, const unsigned int offset,
+    FallbackBlock& fallbackblock, DequeOfShard& shards) {
+  ProtoFallbackBlockWShardingStructure result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ProtoFallbackBlockWShardingStructure initialization failed");
+    return false;
+  }
+
+  ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
+
+  ProtobufToShardingStructure(result.sharding(), shards);
 
   return true;
 }
@@ -4570,8 +4649,10 @@ bool Messenger::GetLookupGetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  copy(result.txhash().begin(), result.txhash().end(),
-       txHash.asArray().begin());
+  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
+    return false;
+  }
+
   listenPort = result.listenport();
 
   return true;
@@ -4610,8 +4691,10 @@ bool Messenger::GetLookupSetTxBodyFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  copy(result.txhash().begin(), result.txhash().end(),
-       txHash.asArray().begin());
+  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
+    return false;
+  }
+
   ProtobufByteArrayToSerializable(result.txbody(), txBody);
 
   return true;
@@ -5396,6 +5479,140 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   return true;
 }
 
+bool Messenger::SetLookupGetDirectoryBlocksFromSeed(vector<unsigned char>& dst,
+                                                    const unsigned int offset,
+                                                    const uint32_t portNo,
+                                                    const uint64_t& indexNum) {
+  LookupGetDirectoryBlocksFromSeed result;
+
+  result.set_portno(portNo);
+  result.set_indexnum(indexNum);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetDirectoryBlocksFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint32_t& portNo, uint64_t& indexNum) {
+  LookupGetDirectoryBlocksFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupGetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
+
+  portNo = result.portno();
+
+  indexNum = result.indexnum();
+
+  return true;
+}
+
+bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const vector<
+        boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+        directoryBlocks,
+    const uint64_t& indexNum) {
+  LookupSetDirectoryBlocksFromSeed result;
+
+  result.set_indexnum(indexNum);
+
+  for (const auto& dirblock : directoryBlocks) {
+    ProtoSingleDirectoryBlock* proto_dir_blocks = result.add_dirblocks();
+    if (dirblock.type() == typeid(DSBlock)) {
+      DSBlockToProtobuf(get<DSBlock>(dirblock),
+                        *proto_dir_blocks->mutable_dsblock());
+    } else if (dirblock.type() == typeid(VCBlock)) {
+      VCBlockToProtobuf(get<VCBlock>(dirblock),
+                        *proto_dir_blocks->mutable_vcblock());
+    } else if (dirblock.type() == typeid(FallbackBlockWShardingStructure)) {
+      FallbackBlockToProtobuf(
+          get<FallbackBlockWShardingStructure>(dirblock).m_fallbackblock,
+          *proto_dir_blocks->mutable_fallbackblockwshard()
+               ->mutable_fallbackblock());
+      ShardingStructureToProtobuf(
+          get<FallbackBlockWShardingStructure>(dirblock).m_shards,
+          *proto_dir_blocks->mutable_fallbackblockwshard()->mutable_sharding());
+    }
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed initialization failed");
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
+        directoryBlocks,
+    uint64_t& indexNum) {
+  LookupSetDirectoryBlocksFromSeed result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed initialization failed");
+    return false;
+  }
+
+  indexNum = result.indexnum();
+
+  for (const auto& dirblock : result.dirblocks()) {
+    DSBlock dsblock;
+    VCBlock vcblock;
+    FallbackBlockWShardingStructure fallbackblockwshard;
+    switch (dirblock.directoryblock_case()) {
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kDsblock:
+        if (!dirblock.dsblock().IsInitialized()) {
+          LOG_GENERAL(WARNING, "DS block not initialized");
+          continue;
+        }
+        ProtobufToDSBlock(dirblock.dsblock(), dsblock);
+        directoryBlocks.emplace_back(dsblock);
+        break;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kVcblock:
+        if (!dirblock.vcblock().IsInitialized()) {
+          LOG_GENERAL(WARNING, "VC block not initialized");
+          continue;
+        }
+        ProtobufToVCBlock(dirblock.vcblock(), vcblock);
+        directoryBlocks.emplace_back(vcblock);
+        break;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::kFallbackblockwshard:
+        if (!dirblock.fallbackblockwshard().IsInitialized()) {
+          LOG_GENERAL(WARNING, "FallbackBlock not initialized");
+          continue;
+        }
+        ProtobufToFallbackBlock(dirblock.fallbackblockwshard().fallbackblock(),
+                                fallbackblockwshard.m_fallbackblock);
+        ProtobufToShardingStructure(dirblock.fallbackblockwshard().sharding(),
+                                    fallbackblockwshard.m_shards);
+        directoryBlocks.emplace_back(fallbackblockwshard);
+        break;
+      case ProtoSingleDirectoryBlock::DirectoryblockCase::
+          DIRECTORYBLOCK_NOT_SET:
+      default:
+        LOG_GENERAL(WARNING, "Error in the blocktype");
+        break;
+    }
+  }
+  return true;
+}
+
 // ============================================================================
 // Consensus messages
 // ============================================================================
@@ -5864,13 +6081,6 @@ bool Messenger::GetConsensusCollectiveSig(
     return false;
   }
 
-  if (result.consensusinfo().blocknumber() != blockNumber) {
-    LOG_GENERAL(WARNING, "Block number mismatch. Expected: "
-                             << blockNumber << " Actual: "
-                             << result.consensusinfo().blocknumber());
-    return false;
-  }
-
   if (result.consensusinfo().leaderid() != leaderID) {
     LOG_GENERAL(WARNING, "Leader ID mismatch. Expected: "
                              << leaderID << " Actual: "
@@ -6021,218 +6231,120 @@ bool Messenger::GetConsensusCommitFailure(
   return true;
 }
 
-bool Messenger::SetBlockLink(
-    std::vector<unsigned char>& dst, const unsigned int offset,
-    const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
-  ProtoBlockLink result;
-
-  result.set_index(get<BlockLinkIndex::INDEX>(blocklink));
-  result.set_dsindex(get<BlockLinkIndex::DSINDEX>(blocklink));
-  result.set_blocktype(get<BlockLinkIndex::BLOCKTYPE>(blocklink));
-  BlockHash blkhash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
-  result.set_blockhash(blkhash.data(), blkhash.size);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "Failed to intialize ProtoBlockLink");
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetBlockLink(
-    const vector<unsigned char>& src, const unsigned int offset,
-    std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
-  ProtoBlockLink result;
-  BlockHash blkhash;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoBlockLink initialization failed");
-    return false;
-  }
-
-  get<BlockLinkIndex::INDEX>(blocklink) = result.index();
-  get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
-  copy(result.blockhash().begin(),
-       result.blockhash().begin() + min((unsigned int)result.blockhash().size(),
-                                        (unsigned int)blkhash.size),
-       blkhash.asArray().begin());
-  get<BlockLinkIndex::BLOCKTYPE>(blocklink) = (BlockType)result.blocktype();
-  get<BlockLinkIndex::BLOCKHASH>(blocklink) = blkhash;
-
-  return true;
-}
-
-bool Messenger::SetFallbackBlockWShardingStructure(
+bool Messenger::SetConsensusConsensusFailure(
     vector<unsigned char>& dst, const unsigned int offset,
-    const FallbackBlock& fallbackblock, const DequeOfShard& shards) {
-  ProtoFallbackBlockWShardingStructure result;
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, const uint16_t leaderID,
+    const pair<PrivKey, PubKey>& leaderKey) {
+  LOG_MARKER();
 
-  FallbackBlockToProtobuf(fallbackblock, *result.mutable_fallbackblock());
-  ShardingStructureToProtobuf(shards, *result.mutable_sharding());
+  ConsensusConsensusFailure result;
+
+  result.mutable_consensusinfo()->set_consensusid(consensusID);
+  result.mutable_consensusinfo()->set_blocknumber(blockNumber);
+  result.mutable_consensusinfo()->set_blockhash(blockHash.data(),
+                                                blockHash.size());
+  result.mutable_consensusinfo()->set_leaderid(leaderID);
+
+  if (!result.consensusinfo().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "ConsensusConsensusFailure.Data initialization failed.");
+    return false;
+  }
+
+  vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+  result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+
+  if (!Schnorr::GetInstance().Sign(tmp, leaderKey.first, leaderKey.second,
+                                   signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign ConsensusConsensusFailure.Data.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoFallbackBlockWShardingStructure initialization failed");
+    LOG_GENERAL(WARNING, "ConsensusConsensusFailure initialization failed.");
     return false;
   }
 
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetFallbackBlockWShardingStructure(
+bool Messenger::GetConsensusConsensusFailure(
     const vector<unsigned char>& src, const unsigned int offset,
-    FallbackBlock& fallbackblock, DequeOfShard& shards) {
-  ProtoFallbackBlockWShardingStructure result;
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const vector<unsigned char>& blockHash, uint16_t& leaderID,
+    const PubKey& leaderKey) {
+  LOG_MARKER();
+
+  ConsensusConsensusFailure result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoFallbackBlockWShardingStructure initialization failed");
+    LOG_GENERAL(WARNING, "ConsensusConsensusFailure initialization failed.");
     return false;
   }
 
-  ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
+  if (result.consensusinfo().consensusid() != consensusID) {
+    LOG_GENERAL(WARNING, "Consensus ID mismatch. Expected: "
+                             << consensusID << " Actual: "
+                             << result.consensusinfo().consensusid());
+    return false;
+  }
 
-  ProtobufToShardingStructure(result.sharding(), shards);
+  if (result.consensusinfo().blocknumber() != blockNumber) {
+    LOG_GENERAL(WARNING, "Block number mismatch. Expected: "
+                             << blockNumber << " Actual: "
+                             << result.consensusinfo().blocknumber());
+    return false;
+  }
+
+  const auto& tmpBlockHash = result.consensusinfo().blockhash();
+  if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
+                  tmpBlockHash.end(),
+                  [](const unsigned char left, const char right) -> bool {
+                    return left == (unsigned char)right;
+                  })) {
+    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
+              remoteBlockHash.begin());
+    LOG_GENERAL(WARNING,
+                "Block hash mismatch. Expected: "
+                    << DataConversion::Uint8VecToHexStr(blockHash)
+                    << " Actual: "
+                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+    return false;
+  }
+
+  if (result.consensusinfo().leaderid() != leaderID) {
+    LOG_GENERAL(WARNING, "Leader ID mismatch. Expected: "
+                             << leaderID << " Actual: "
+                             << result.consensusinfo().leaderid());
+    return false;
+  }
+
+  vector<unsigned char> tmp(result.consensusinfo().ByteSize());
+  result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
+
+  Signature signature;
+
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, leaderKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in ConsensusConsensusFailure.");
+    return false;
+  }
 
   return true;
 }
 
-bool Messenger::GetLookupGetDirectoryBlocksFromSeed(
-    const vector<unsigned char>& src, const unsigned int offset,
-    uint32_t& portno, uint64_t& index_num) {
-  LookupGetDirectoryBlocksFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "LookupGetDirectoryBlocksFromSeed initialization failed");
-    return false;
-  }
-
-  portno = result.portno();
-
-  index_num = result.indexnum();
-
-  return true;
-}
-
-bool Messenger::SetLookupGetDirectoryBlocksFromSeed(vector<unsigned char>& dst,
-                                                    const unsigned int offset,
-                                                    const uint32_t portno,
-                                                    const uint64_t& index_num) {
-  LookupGetDirectoryBlocksFromSeed result;
-
-  result.set_portno(portno);
-  result.set_indexnum(index_num);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "LookupGetDirectoryBlocksFromSeed initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
-    vector<unsigned char>& dst, const unsigned int offset,
-    const vector<
-        boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-        directoryBlocks,
-    const uint64_t& index_num) {
-  LookupSetDirectoryBlocksFromSeed result;
-
-  result.set_indexnum(index_num);
-
-  for (const auto& dirblock : directoryBlocks) {
-    ProtoSingleDirectoryBlock* proto_dir_blocks = result.add_dirblocks();
-    if (dirblock.type() == typeid(DSBlock)) {
-      DSBlockToProtobuf(get<DSBlock>(dirblock),
-                        *proto_dir_blocks->mutable_dsblock());
-    } else if (dirblock.type() == typeid(VCBlock)) {
-      VCBlockToProtobuf(get<VCBlock>(dirblock),
-                        *proto_dir_blocks->mutable_vcblock());
-    } else if (dirblock.type() == typeid(FallbackBlockWShardingStructure)) {
-      FallbackBlockToProtobuf(
-          get<FallbackBlockWShardingStructure>(dirblock).m_fallbackblock,
-          *proto_dir_blocks->mutable_fallbackblockwshard()
-               ->mutable_fallbackblock());
-      ShardingStructureToProtobuf(
-          get<FallbackBlockWShardingStructure>(dirblock).m_shards,
-          *proto_dir_blocks->mutable_fallbackblockwshard()->mutable_sharding());
-    }
-  }
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "LookupSetDirectoryBlocksFromSeed initialization failed");
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
-    const vector<unsigned char>& src, const unsigned int offset,
-    vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
-        directoryBlocks,
-    uint64_t& index_num) {
-  LookupSetDirectoryBlocksFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "LookupSetDirectoryBlocksFromSeed initialization failed");
-    return false;
-  }
-
-  index_num = result.indexnum();
-
-  for (const auto& dirblock : result.dirblocks()) {
-    DSBlock dsblock;
-    VCBlock vcblock;
-    FallbackBlockWShardingStructure fallbackblockwshard;
-    switch (dirblock.directoryblock_case()) {
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::kDsblock:
-        if (!dirblock.dsblock().IsInitialized()) {
-          LOG_GENERAL(WARNING, "DS block not initialized");
-          continue;
-        }
-        ProtobufToDSBlock(dirblock.dsblock(), dsblock);
-        directoryBlocks.emplace_back(dsblock);
-        break;
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::kVcblock:
-        if (!dirblock.vcblock().IsInitialized()) {
-          LOG_GENERAL(WARNING, "VC block not initialized");
-          continue;
-        }
-        ProtobufToVCBlock(dirblock.vcblock(), vcblock);
-        directoryBlocks.emplace_back(vcblock);
-        break;
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::kFallbackblockwshard:
-        if (!dirblock.fallbackblockwshard().IsInitialized()) {
-          LOG_GENERAL(WARNING, "FallbackBlock not initialized");
-          continue;
-        }
-        ProtobufToFallbackBlock(dirblock.fallbackblockwshard().fallbackblock(),
-                                fallbackblockwshard.m_fallbackblock);
-        ProtobufToShardingStructure(dirblock.fallbackblockwshard().sharding(),
-                                    fallbackblockwshard.m_shards);
-        directoryBlocks.emplace_back(fallbackblockwshard);
-        break;
-      case ProtoSingleDirectoryBlock::DirectoryblockCase::
-          DIRECTORYBLOCK_NOT_SET:
-      default:
-        LOG_GENERAL(WARNING, "Error in the blocktype");
-        break;
-    }
-  }
-  return true;
-}
+// ============================================================================
+// View change pre check messages
+// ============================================================================
 
 bool Messenger::SetLookupGetDSTxBlockFromSeed(vector<unsigned char>& dst,
                                               const unsigned int offset,

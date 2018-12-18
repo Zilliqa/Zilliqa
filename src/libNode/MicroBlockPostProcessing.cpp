@@ -208,12 +208,8 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     if (m_isPrimary) {
       LOG_STATE("[MICON][" << setw(15) << left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                           << "]["
-                           << m_mediator.m_txBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetBlockNum() +
-                                  1
-                           << "] DONE");
+                           << "][" << m_mediator.m_currentEpochNum << "]["
+                           << m_myshardId << "] DONE");
     }
 
     // TODO: provide interface in DataSender instead of repopulating the DS into

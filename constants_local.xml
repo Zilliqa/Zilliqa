@@ -11,6 +11,10 @@
         <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
         <DB_HOST>localhost</DB_HOST>
     </archival>
+    <seed>
+        <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
+        <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
+    </seed>
     <consensus>
         <COMMIT_WINDOW_IN_SECONDS>5</COMMIT_WINDOW_IN_SECONDS>
         <CONSENSUS_MSG_ORDER_BLOCK_WINDOW>10</CONSENSUS_MSG_ORDER_BLOCK_WINDOW>
@@ -165,7 +169,7 @@
         <NUM_TXN_TO_SEND_PER_ACCOUNT>100</NUM_TXN_TO_SEND_PER_ACCOUNT>
     </tests>
     <transactions>
-        <COINBASE_REWARD>10000</COINBASE_REWARD>
+        <COINBASE_REWARD>191780820000000000</COINBASE_REWARD>
         <LOOKUP_REWARD_IN_PERCENT>5</LOOKUP_REWARD_IN_PERCENT>
         <MAX_CODE_SIZE_IN_BYTES>20480</MAX_CODE_SIZE_IN_BYTES>
         <MAX_CONTRACT_DEPTH>5</MAX_CONTRACT_DEPTH>
@@ -192,6 +196,24 @@
             <pubkey/>
         </peer>
     </lookups>
+    <upper_seed>
+        <!--
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+            <pubkey></pubkey>
+        </peer>
+        -->
+    </upper_seed>
+    <lower_seed>
+        <!--
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+            <pubkey></pubkey>
+        </peer>
+        -->
+    </lower_seed>
     <ds_guard>
         <DSPUBKEY>02028CC4DEC0A756B42BD54905237B4E22FCC69D88CFEAA3797AEECF01D6A69E85</DSPUBKEY>
         <DSPUBKEY>021D99F2E5ACBA39ED5ACC5DCA5EE2ADDE780FFD998E1DBF440FE364C3BE360A7B</DSPUBKEY>
