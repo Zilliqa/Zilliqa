@@ -169,6 +169,7 @@ extern const unsigned int NORMAL_TRAN_GAS;
 extern const unsigned int GAS_CONGESTION_PERCENT;
 extern const unsigned int UNFILLED_PERCENT_LOW;
 extern const unsigned int UNFILLED_PERCENT_HIGH;
+extern const boost::multiprecision::uint128_t GAS_PRICE_MIN_VALUE;
 extern const unsigned int GAS_PRICE_PRECISION;
 extern const boost::multiprecision::uint128_t PRECISION_MIN_VALUE;
 extern const unsigned int GAS_PRICE_DROP_RATIO;
