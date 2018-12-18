@@ -760,7 +760,26 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    P2PComm::GetInstance().SpreadRumor(updatedsguardidentitymessage);
+    // Choose N DS nodes to be recipient ds guard network info update message
+    // TODO: changge to N ds nodes who co-sign on the ds block
+    std::vector<Peer> networkInfoUpdateReceivers;
+    unsigned int numOfNetworkInfoReceivers =
+        std::min(NUM_GOSSIP_RECEIVERS,
+                 (const unsigned int)m_mediator.m_DSCommittee->size());
+
+    for (unsigned int i = 0; i < numOfNetworkInfoReceivers; i++) {
+      networkInfoUpdateReceivers.emplace_back(
+          m_mediator.m_DSCommittee->at(i).second);
+
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                " PubKey: " << m_mediator.m_DSCommittee->at(i).first
+                            << " Network info: "
+                            << m_mediator.m_DSCommittee->at(i).second);
+    }
+
+    P2PComm::GetInstance().SendRumorToForeignPeers(
+        networkInfoUpdateReceivers, updatedsguardidentitymessage);
+
   } else {
     P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
   }
