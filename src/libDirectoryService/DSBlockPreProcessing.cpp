@@ -385,7 +385,7 @@ bool DirectoryService::VerifyPoWOrdering(
   }
 
   const float MISORDER_TOLERANCE =
-      (float)MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
+      (float)MISORDER_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT;
   const uint32_t MAX_MISORDER_NODE =
       std::ceil(m_allPoWs.size() * MISORDER_TOLERANCE);
 
