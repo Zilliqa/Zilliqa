@@ -166,6 +166,8 @@ const unsigned int UNFILLED_PERCENT_LOW{
     ReadConstantNumeric("UNFILLED_PERCENT_LOW", "node.gas.")};
 const unsigned int UNFILLED_PERCENT_HIGH{
     ReadConstantNumeric("UNFILLED_PERCENT_HIGH", "node.gas.")};
+const boost::multiprecision::uint128_t GAS_PRICE_MIN_VALUE{
+    ReadConstantString("GAS_PRICE_MIN_VALUE", "node.gas.")};
 const unsigned int GAS_PRICE_PRECISION{
     ReadConstantNumeric("GAS_PRICE_PRECISION", "node.gas.")};
 const boost::multiprecision::uint128_t PRECISION_MIN_VALUE{
