@@ -844,6 +844,16 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       }
     }
 
+    if (foundDSGuardNode && BROADCAST_GOSSIP_MODE) {
+      std::vector<Peer> peers;
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        if (i.second.m_listenPortHost != 0) {
+          peers.emplace_back(i.second);
+        }
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
+
     // Lookup to store the info
     if (foundDSGuardNode && LOOKUP_NODE_MODE) {
       lock_guard<mutex> g(m_mutexLookupStoreForGuardNodeUpdate);
