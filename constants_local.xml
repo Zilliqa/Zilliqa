@@ -139,6 +139,7 @@
         <MISORDER_TOLERANCE_IN_PERCENT>5</MISORDER_TOLERANCE_IN_PERCENT>
         <!-- To avoid premature rejoining, set this to a value such as several Tx epochs after DS epoch -->
         <DSBLOCK_EXTRA_WAIT_TIME>15</DSBLOCK_EXTRA_WAIT_TIME>
+        <DIFF_IP_TOLERANCE_IN_PERCENT>10</DIFF_IP_TOLERANCE_IN_PERCENT>
     </pow>
     <recovery>
         <DS_DELAY_WAKEUP_IN_SECONDS>20</DS_DELAY_WAKEUP_IN_SECONDS>
