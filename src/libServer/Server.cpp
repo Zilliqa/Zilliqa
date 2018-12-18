@@ -73,27 +73,6 @@ Server::~Server() {
   // destructor
 }
 
-Json::Value JSONRPCResponse(Json::Value result,
-                            Json::Value error = Json::nullValue) {
-  Json::Value response;
-  if (!error.isNull()) {
-    response["result"] = Json::Value();
-  } else {
-    response["result"] = result;
-  }
-  response["error"] = error;
-
-  return response;
-}
-
-Json::Value JSONRPCError(int code, const std::string& message) {
-  Json::Value error;
-  error["code"] = code;
-  error["message"] = message;
-
-  return error;
-}
-
 string Server::GetNetworkId() { return "TestNet"; }
 
 bool Server::StartCollectorThread() {
@@ -160,17 +139,14 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_PARSE_ERROR, "Invalid Transaction JSON"));
+      throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
     }
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
     if (!m_mediator.m_validator->VerifyTransaction(tx)) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_VERIFY_REJECTED, "Unable to verify transaction"));
+      throw JsonRpcException(RPC_VERIFY_REJECTED,
+                             "Unable to verify transaction");
     }
 
     // LOG_GENERAL(INFO, "Nonce: "<<tx.GetNonce().str()<<" toAddr:
@@ -185,10 +161,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
     if (sender == nullptr) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                       "The sender of the txn has no balance"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "The sender of the txn has no balance");
     }
 
     Json::Value ret;
@@ -216,25 +190,20 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
               Account::GetAddressForContract(fromAddr, sender->GetNonce())
                   .hex();
         } else {
-          return JSONRPCResponse(
-              Json::nullValue,
-              JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                           "Code is empty and To addr is null"));
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                 "Code is empty and To addr is null");
         }
       } else {
         const Account* account =
             AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
         if (account == nullptr) {
-          return JSONRPCResponse(
-              Json::nullValue,
-              JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "To Addr is null"));
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
         }
 
         else if (!account->isContract()) {
-          return JSONRPCResponse(Json::nullValue,
-                                 JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                                              "Non - contract address called"));
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                 "Non - contract address called");
         }
 
         unsigned int to_shard =
@@ -261,16 +230,13 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
       }
     } else {
       LOG_GENERAL(INFO, "No shards yet");
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_IN_WARMUP, "Could not create Transaction"));
+      throw JsonRpcException(RPC_IN_WARMUP, "Could not create Transaction");
     }
-    return JSONRPCResponse(ret);
+    return ret;
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable to Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }
 
@@ -281,70 +247,57 @@ Json::Value Server::GetTransaction(const string& transactionHash) {
     TxBodySharedPtr tptr;
     TxnHash tranHash(transactionHash);
     if (transactionHash.size() != TRAN_HASH_SIZE * 2) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_PARAMS, "Size not appropriate"));
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Size not appropriate");
     }
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
     if (!isPresent) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_DATABASE_ERROR, "Txn Hash not Present"));
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not Present");
     }
-    return JSONRPCResponse(JSONConversion::convertTxtoJson(*tptr));
+    return JSONConversion::convertTxtoJson(*tptr);
   } catch (exception& e) {
     Json::Value _json;
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable to Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }
 
 Json::Value Server::GetDsBlock(const string& blockNum) {
   try {
     uint64_t BlockNum = stoull(blockNum);
-    return JSONRPCResponse(JSONConversion::convertDSblocktoJson(
-        m_mediator.m_dsBlockChain.GetBlock(BlockNum)));
+    return JSONConversion::convertDSblocktoJson(
+        m_mediator.m_dsBlockChain.GetBlock(BlockNum));
   } catch (runtime_error& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(Json::nullValue, JSONRPCError(RPC_INVALID_PARAMS,
-                                                         "String not numeric"));
+    throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
   } catch (invalid_argument& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(
-        Json::nullValue, JSONRPCError(RPC_INVALID_PARAMS, "Invalid arugment"));
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
   } catch (out_of_range& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_INVALID_PARAMS, "Out of range"));
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable To Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
 Json::Value Server::GetTxBlock(const string& blockNum) {
   try {
     uint64_t BlockNum = stoull(blockNum);
-    return JSONRPCResponse(JSONConversion::convertTxBlocktoJson(
-        m_mediator.m_txBlockChain.GetBlock(BlockNum)));
+    return JSONConversion::convertTxBlocktoJson(
+        m_mediator.m_txBlockChain.GetBlock(BlockNum));
   } catch (runtime_error& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(Json::nullValue, JSONRPCError(RPC_INVALID_PARAMS,
-                                                         "String not numeric"));
+    throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
   } catch (invalid_argument& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(
-        Json::nullValue, JSONRPCError(RPC_INVALID_PARAMS, "Invalid arugment"));
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
   } catch (out_of_range& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_INVALID_PARAMS, "Out of range"));
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable To Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
@@ -363,7 +316,7 @@ Json::Value Server::GetLatestDsBlock() {
             "BlockNum " << Latest.GetHeader().GetBlockNum()
                         << "  Timestamp:        " << Latest.GetTimestamp());
 
-  return JSONRPCResponse(JSONConversion::convertDSblocktoJson(Latest));
+  return JSONConversion::convertDSblocktoJson(Latest);
 }
 
 Json::Value Server::GetLatestTxBlock() {
@@ -374,7 +327,7 @@ Json::Value Server::GetLatestTxBlock() {
             "BlockNum " << Latest.GetHeader().GetBlockNum()
                         << "  Timestamp:        " << Latest.GetTimestamp());
 
-  return JSONRPCResponse(JSONConversion::convertTxBlocktoJson(Latest));
+  return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
 Json::Value Server::GetBalance(const string& address) {
@@ -382,9 +335,8 @@ Json::Value Server::GetBalance(const string& address) {
 
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_PARAMETER, "Address size not appropriate"));
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Address size not appropriate");
     }
     vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
@@ -400,16 +352,14 @@ Json::Value Server::GetBalance(const string& address) {
       ret["nonce"] = static_cast<unsigned int>(nonce);
       LOG_GENERAL(INFO, "balance " << balance.str() << " nonce: " << nonce);
     } else if (account == nullptr) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Account is not created"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Account is not created");
     }
 
-    return JSONRPCResponse(ret);
+    return ret;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable To Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
@@ -419,25 +369,22 @@ Json::Value Server::GetSmartContractState(const string& address) {
   try {
     Json::Value _json;
     if (address.size() != ACC_ADDR_SIZE * 2) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_PARAMETER, "Address size not appropriate"));
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Address size not appropriate");
     }
     vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address does not exist"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address does not exist");
     }
 
-    return JSONRPCResponse(account->GetStorageJson());
+    return account->GetStorageJson();
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable To Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
@@ -447,30 +394,26 @@ Json::Value Server::GetSmartContractInit(const string& address) {
   try {
     Json::Value _json;
     if (address.size() != ACC_ADDR_SIZE * 2) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_PARAMETER, "Address size not appropriate"));
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Address size not appropriate");
     }
     vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address does not exist"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address does not exist");
     }
     if (!account->isContract()) {
-      return JSONRPCResponse(Json::nullValue,
-                             JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                                          "Address not contract address"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address not contract address");
     }
 
-    return JSONRPCResponse(account->GetInitJson());
+    return account->GetInitJson();
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable To Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
@@ -479,33 +422,29 @@ Json::Value Server::GetSmartContractCode(const string& address) {
 
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_PARAMETER, "Address size not appropriate"));
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Address size not appropriate");
     }
     vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address does not exist"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address does not exist");
     }
 
     if (!account->isContract()) {
-      return JSONRPCResponse(Json::nullValue,
-                             JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                                          "Address not contract address"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address not contract address");
     }
 
     Json::Value _json;
     _json["code"] = DataConversion::CharArrayToString(account->GetCode());
-    return JSONRPCResponse(_json);
+    return _json;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable To Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
@@ -513,23 +452,20 @@ Json::Value Server::GetSmartContracts(const string& address) {
   LOG_MARKER();
   try {
     if (address.size() != ACC_ADDR_SIZE * 2) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_PARAMETER, "Address size not appropriate"));
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Address size not appropriate");
     }
     vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
-      return JSONRPCResponse(
-          Json::nullValue,
-          JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address does not exist"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address does not exist");
     }
     if (account->isContract()) {
-      return JSONRPCResponse(Json::nullValue,
-                             JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                                          "A contract account queried"));
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "A contract account queried");
     }
     uint64_t nonce = account->GetNonce();
     //[TODO] find out a more efficient way (using storage)
@@ -550,11 +486,10 @@ Json::Value Server::GetSmartContracts(const string& address) {
 
       _json.append(tmpJson);
     }
-    return JSONRPCResponse(_json);
+    return _json;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable To Process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
@@ -804,14 +739,12 @@ Json::Value Server::DSBlockListing(unsigned int page) {
           m_DSBlockCache.second.size(),
           DataConversion::Uint8VecToHexStr(resVec));
     } catch (const char* msg) {
-      return JSONRPCResponse(Json::nullValue,
-                             JSONRPCError(RPC_MISC_ERROR, string(msg)));
+      throw JsonRpcException(RPC_MISC_ERROR, string(msg));
     }
   }
 
   if (page > maxPages || page < 1) {
-    return JSONRPCResponse(Json::nullValue, JSONRPCError(RPC_INVALID_PARAMETER,
-                                                         "Pages out of limit"));
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Pages out of limit");
   }
 
   if (currBlockNum > m_DSBlockCache.first) {
@@ -868,7 +801,7 @@ Json::Value Server::DSBlockListing(unsigned int page) {
     }
   }
 
-  return JSONRPCResponse(_json);
+  return _json;
 }
 
 Json::Value Server::TxBlockListing(unsigned int page) {
@@ -895,14 +828,12 @@ Json::Value Server::TxBlockListing(unsigned int page) {
           m_TxBlockCache.second.size(),
           DataConversion::Uint8VecToHexStr(resVec));
     } catch (const char* msg) {
-      return JSONRPCResponse(Json::nullValue,
-                             JSONRPCError(RPC_MISC_ERROR, string(msg)));
+      throw JsonRpcException(RPC_MISC_ERROR, string(msg));
     }
   }
 
   if (page > maxPages || page < 1) {
-    return JSONRPCResponse(Json::nullValue, JSONRPCError(RPC_INVALID_PARAMETER,
-                                                         "Pages out of limit"));
+    throw JsonRpcException(RPC_INVALID_PARAMETER, "Pages out of limit");
   }
 
   if (currBlockNum > m_TxBlockCache.first) {
@@ -960,7 +891,7 @@ Json::Value Server::TxBlockListing(unsigned int page) {
     }
   }
 
-  return JSONRPCResponse(_json);
+  return _json;
 }
 
 Json::Value Server::GetBlockchainInfo() {
@@ -979,7 +910,7 @@ Json::Value Server::GetBlockchainInfo() {
   _json["NumTxnsTxEpoch"] = Server::GetNumTxnsTxEpoch();
   _json["ShardingStructure"] = Server::GetShardingStructure();
 
-  return JSONRPCResponse(_json);
+  return _json;
 }
 
 Json::Value Server::GetRecentTransactions() {
@@ -998,7 +929,7 @@ Json::Value Server::GetRecentTransactions() {
     _json["TxnHashes"].append(m_RecentTransactions[size - i - 1]);
   }
 
-  return JSONRPCResponse(_json);
+  return _json;
 }
 
 void Server::AddToRecentTransactions(const TxnHash& txhash) {
@@ -1016,18 +947,16 @@ Json::Value Server::GetShardingStructure() {
     unsigned int num_shards = shards.size();
 
     if (num_shards == 0) {
-      return JSONRPCResponse(Json::nullValue,
-                             JSONRPCError(RPC_IN_WARMUP, "No shards yet"));
+      throw JsonRpcException(RPC_IN_WARMUP, "No shards yet");
     } else {
       for (unsigned int i = 0; i < num_shards; i++) {
         _json["NumPeers"].append(static_cast<unsigned int>(shards[i].size()));
       }
     }
-    return JSONRPCResponse(_json);
+    return _json;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
-    return JSONRPCResponse(Json::nullValue,
-                           JSONRPCError(RPC_MISC_ERROR, "Unable to process"));
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
   }
 }
 
