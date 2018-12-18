@@ -45,17 +45,18 @@ int main(int argc, const char* argv[]) {
 
   try
   {
-    Peer my_network_info;
 
     INIT_FILE_LOGGER("zilliqa");
     INIT_STATE_LOGGER("state");
     INIT_EPOCHINFO_LOGGER("epochinfo");
 
+    Peer my_network_info;
     string privK;
     string pubK;
     string address;
     int port = 0;
     uint8_t synctype = 0;
+    const char* synctype_descr = "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup";
 
     po::options_description desc("Options");
 
@@ -66,7 +67,7 @@ int main(int argc, const char* argv[]) {
         ("address,a", po::value<string>(&address)->required(), "Listen IPv4/6 address in standard \"dotted decimal\" format, otherwise \"NAT\"")
         ("port,p", po::value<int>(&port)->required(), "Specifies port to bind to")
         ("loadconfig,l", "Loads configuration if set")
-        ("synctype,s", po::value<uint8_t>(&synctype), "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup")
+        ("synctype,s", po::value<uint8_t>(&synctype), synctype_descr)
         ("recovery,r", "Runs in recovery mode if set");
 
         po::variables_map vm;
@@ -87,7 +88,7 @@ int main(int argc, const char* argv[]) {
 
       if ((port < 0) || (port > 65535))   {
         LogInfo::LogBrandBugReport();
-        std::cerr << "Invalid port number" << endl;
+        std::cerr << "Invalid port number." << endl;
         return ERROR_IN_COMMAND_LINE;
       }
 
@@ -101,6 +102,11 @@ int main(int argc, const char* argv[]) {
         LogInfo::LogBrandBugReport();
         std::cerr << "Invalid length of public key." << endl;
         return ERROR_IN_COMMAND_LINE;
+      }
+
+      if (synctype > 4) {
+        LogInfo::LogBrandBugReport();
+        std::cerr << "Invalid synctype, please select: " << synctype_descr << "." << endl;
       }
     }
     catch(boost::program_options::required_option& e)
