@@ -238,6 +238,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
       throw JsonRpcException(RPC_IN_WARMUP, "Could not create Transaction");
     }
     return ret;
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
@@ -259,6 +261,8 @@ Json::Value Server::GetTransaction(const string& transactionHash) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not Present");
     }
     return JSONConversion::convertTxtoJson(*tptr);
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     Json::Value _json;
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
@@ -271,6 +275,8 @@ Json::Value Server::GetDsBlock(const string& blockNum) {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertDSblocktoJson(
         m_mediator.m_dsBlockChain.GetBlock(BlockNum));
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (runtime_error& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
@@ -291,6 +297,8 @@ Json::Value Server::GetTxBlock(const string& blockNum) {
     uint64_t BlockNum = stoull(blockNum);
     return JSONConversion::convertTxBlocktoJson(
         m_mediator.m_txBlockChain.GetBlock(BlockNum));
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (runtime_error& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
@@ -362,6 +370,8 @@ Json::Value Server::GetBalance(const string& address) {
     }
 
     return ret;
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
@@ -387,6 +397,8 @@ Json::Value Server::GetSmartContractState(const string& address) {
     }
 
     return account->GetStorageJson();
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
@@ -416,6 +428,8 @@ Json::Value Server::GetSmartContractInit(const string& address) {
     }
 
     return account->GetInitJson();
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
@@ -447,6 +461,8 @@ Json::Value Server::GetSmartContractCode(const string& address) {
     Json::Value _json;
     _json["code"] = DataConversion::CharArrayToString(account->GetCode());
     return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
@@ -492,6 +508,8 @@ Json::Value Server::GetSmartContracts(const string& address) {
       _json.append(tmpJson);
     }
     return _json;
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
@@ -516,6 +534,8 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
 
     return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
         .hex();
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
     return "Unable to process";
@@ -617,6 +637,8 @@ double Server::GetTransactionRate() {
   try {
     TxBlock tx = m_mediator.m_txBlockChain.GetBlock(refBlockNum);
     refTimeTx = tx.GetTimestamp();
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (const char* msg) {
     if (string(msg) == "Blocknumber Absent") {
       LOG_GENERAL(INFO, "Error in fetching ref block");
@@ -653,6 +675,8 @@ double Server::GetDSBlockRate() {
       // Refernce time chosen to be the first block's timestamp
       DSBlock dsb = m_mediator.m_dsBlockChain.GetBlock(1);
       m_StartTimeDs = dsb.GetTimestamp();
+    } catch (const JsonRpcException& je) {
+      throw je;
     } catch (const char* msg) {
       if (string(msg) == "Blocknumber Absent") {
         LOG_GENERAL(INFO, "No DSBlock has been mined yet");
@@ -959,6 +983,9 @@ Json::Value Server::GetShardingStructure() {
       }
     }
     return _json;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
@@ -970,6 +997,8 @@ uint32_t Server::GetNumTxnsTxEpoch() {
 
   try {
     return m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetNumTxs();
+  } catch (const JsonRpcException& je) {
+    throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
     return 0;
@@ -1013,6 +1042,8 @@ string Server::GetNumTxnsDSEpoch() {
     }
 
     return m_TxBlockCountSumPair.second.str();
+  } catch (const JsonRpcException& je) {
+    throw je;
   }
 
   catch (exception& e) {
