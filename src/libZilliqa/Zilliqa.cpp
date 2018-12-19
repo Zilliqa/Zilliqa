@@ -274,6 +274,12 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
       case SyncType::RECOVERY_ALL_SYNC:
         LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
         break;
+      case SyncType::GUARD_DS_SYNC:
+        LOG_GENERAL(INFO, "Sync as a ds guard node");
+        m_mediator.m_lookup->SetSyncType(SyncType::GUARD_DS_SYNC);
+        m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
+        m_ds.StartSynchronization();
+        break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
         break;

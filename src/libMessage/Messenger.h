@@ -616,7 +616,7 @@ class Messenger {
                                          DequeOfShard& shards);
 
   static bool SetLookupGetMicroBlockFromLookup(
-      std::vector<unsigned char>& dest, const unsigned int offset,
+      std::vector<unsigned char>& dst, const unsigned int offset,
       const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
   static bool GetLookupGetMicroBlockFromLookup(
@@ -791,6 +791,38 @@ class Messenger {
   static bool GetVCNodeSetDSTxBlockFromSeed(
       const std::vector<unsigned char>& src, const unsigned int offset,
       std::vector<DSBlock>& dsBlocks, std::vector<TxBlock>& txBlocks,
+      PubKey& lookupPubKey);
+
+  // ============================================================================
+  // DS Guard network information update
+  // ============================================================================
+
+  static bool SetDSLookupNewDSGuardNetworkInfo(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint64_t dsEpochNumber, const Peer& dsGuardNewNetworkInfo,
+      const uint64_t timestamp, const std::pair<PrivKey, PubKey>& dsguardkey);
+
+  static bool GetDSLookupNewDSGuardNetworkInfo(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint64_t& dsEpochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
+      PubKey& dsGuardPubkey);
+
+  static bool SetLookupGetNewDSGuardNetworkInfoFromLookup(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const uint32_t portNo, const uint64_t dsEpochNumber);
+
+  static bool GetLookupGetNewDSGuardNetworkInfoFromLookup(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      uint32_t& portNo, uint64_t& dsEpochNumber);
+
+  static bool SetNodeSetNewDSGuardNetworkInfo(
+      std::vector<unsigned char>& dst, unsigned int offset,
+      const std::vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
+      const std::pair<PrivKey, PubKey>& lookupKey);
+
+  static bool SetNodeGetNewDSGuardNetworkInfo(
+      const std::vector<unsigned char>& src, const unsigned int offset,
+      std::vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
       PubKey& lookupPubKey);
 };
 #endif  // __MESSENGER_H__

@@ -320,6 +320,9 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessForwardTxn(const std::vector<unsigned char>& message,
                          unsigned int offset, const Peer& from);
 
+  bool ProcessGetDSGuardNetworkInfo(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
+
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
 
   static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
