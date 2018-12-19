@@ -71,10 +71,6 @@ bool DSBlockHeader::Serialize(vector<unsigned char>& dst,
     return false;
   }
 
-#if 1  // clark
-  LOG_GENERAL(INFO, "dst = " << string(dst.begin(), dst.end()));
-#endif
-
   return true;
 }
 
