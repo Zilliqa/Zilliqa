@@ -105,6 +105,8 @@ const std::string DS_BACKUP_MSG = "DS BACKUP NOW";
 
 const std::string dsNodeFile = "dsnodes.xml";
 
+const float ONE_HUNDRED_PERCENT = 100.f;
+
 // General constants
 extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int MSG_VERSION;
@@ -146,7 +148,6 @@ extern const unsigned int FETCHING_MISSING_DATA_TIMEOUT;
 extern const unsigned int FINALBLOCK_DELAY_IN_MS;
 extern const unsigned int LOOKUP_DELAY_SEND_TXNPACKET_IN_MS;
 extern const unsigned int MICROBLOCK_TIMEOUT;
-extern const unsigned int NEW_NODE_POW_DELAY;
 extern const unsigned int NEW_NODE_SYNC_INTERVAL;
 extern const unsigned int POW_SUBMISSION_TIMEOUT;
 extern const unsigned int POW_WINDOW_IN_SECONDS;
@@ -235,6 +236,7 @@ extern const unsigned int EXPECTED_SHARD_NODE_NUM;
 extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
+extern const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT;
 
 // Recovery and upgrading constants
 extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
