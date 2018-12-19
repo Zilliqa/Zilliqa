@@ -79,6 +79,7 @@ void addBalanceToGenesisAccount() {
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);
   }
+  AccountStore::GetInstance().UpdateStateTrieAll();
 }
 
 Node::Node(Mediator& mediator, [[gnu::unused]] unsigned int syncType,

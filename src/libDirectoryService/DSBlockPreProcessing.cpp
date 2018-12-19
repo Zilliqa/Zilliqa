@@ -385,7 +385,7 @@ bool DirectoryService::VerifyPoWOrdering(
   }
 
   const float MISORDER_TOLERANCE =
-      (float)MISORDER_TOLERANCE_IN_PERCENT / 100.00f;
+      (float)MISORDER_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT;
   const uint32_t MAX_MISORDER_NODE =
       std::ceil(m_allPoWs.size() * MISORDER_TOLERANCE);
 
@@ -1045,6 +1045,15 @@ bool DirectoryService::ProcessShardingStructure(
   publicKeyToshardIdMap.clear();
   mapNodeReputation.clear();
 
+  size_t totalShardNodes = 0;
+  for (const auto& shard : shards) {
+    totalShardNodes += shard.size();
+  }
+
+  const size_t MAX_DIFF_IP_NODES = std::ceil(
+      totalShardNodes * DIFF_IP_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT);
+  size_t diffIpNodes = 0;
+
   for (unsigned int i = 0; i < shards.size(); i++) {
     for (const auto& shardNode : shards.at(i)) {
       const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(shardNode);
@@ -1062,7 +1071,21 @@ bool DirectoryService::ProcessShardingStructure(
           LOG_GENERAL(WARNING, "Stored  "
                                    << storedMember->second << " Received"
                                    << std::get<SHARD_NODE_PEER>(shardNode));
-          return false;
+          diffIpNodes++;
+
+          if (diffIpNodes > MAX_DIFF_IP_NODES) {
+            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                      "Number of nodes using different IP address "
+                          << diffIpNodes << " exceeds tolerance "
+                          << MAX_DIFF_IP_NODES);
+            return false;
+          }
+
+          // If the node ip i get is different from leader, erase my one, and
+          // accept the ip from leader if within tolerance
+          m_allPoWConns.erase(storedMember);
+          m_allPoWConns.emplace(std::get<SHARD_NODE_PUBKEY>(shardNode),
+                                std::get<SHARD_NODE_PEER>(shardNode));
         }
       }
       // I don't know the member -> store the IP given by the leader

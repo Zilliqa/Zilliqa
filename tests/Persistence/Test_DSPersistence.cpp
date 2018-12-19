@@ -163,21 +163,17 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
   LOG_PAYLOAD(WARNING, "serializedDSBlock", serializedDSBlock,
               serializedDSBlock.size());
 
-  /** Debug
   std::vector<unsigned char> serializedDSBlock2;
   (*block2).Serialize(serializedDSBlock2, 0);
   LOG_PAYLOAD(WARNING, "serializedDSBlock2", serializedDSBlock2,
               serializedDSBlock2.size());
-  **/
 
-  /** Disable temporary. Will need to re-enable.
   BOOST_CHECK_MESSAGE(
       block1.GetCS2() == (*block2).GetCS2(),
       "Signature shouldn't change after writing to/ reading from disk. Orig: "
       "0x" << DataConversion::SerializableToHexStr(block1.GetCS2())
            << " out: 0x"
            << DataConversion::SerializableToHexStr((*block2).GetCS2()));
-  **/
 }
 
 BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {

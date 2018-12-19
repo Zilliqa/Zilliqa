@@ -1021,7 +1021,6 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(
     int64_t expectedNodes, uint32_t maxAdjustThreshold, int64_t currentEpochNum,
     int64_t numBlockPerYear) {
   constexpr int8_t MAX_ADJUST_STEP = 2;
-  constexpr float ONE_HUNDRED_PERCENT = 100.f;
   constexpr uint8_t MAX_INCREASE_DIFFICULTY_YEARS = 10;
 
   int64_t adjustment = 0;
