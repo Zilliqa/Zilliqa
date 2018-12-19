@@ -175,7 +175,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     if (num_shards > 0) {
       unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
       if (tx.GetData().empty() || tx.GetToAddr() == NullAddress) {
-        if (tx.GetData().empty() && tx.GetCode().empty()) {
+        if (tx.GetData().empty() && tx.GetCode().empty() &&
+            tx.GetToAddr() != NullAddress) {
           if (!ARCHIVAL_LOOKUP) {
             m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
           } else {
