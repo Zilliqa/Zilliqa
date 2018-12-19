@@ -122,23 +122,24 @@ void NumberToArray(const T& number, vector<unsigned char>& dst,
 // storage. Remove fields from the checks once they are deprecated.
 // ============================================================================
 
-inline bool CheckFieldsInProtoBlockLink(const ProtoBlockLink& protoBlockLink) {
+inline bool CheckRequiredFieldsProtoBlockLink(
+    const ProtoBlockLink& protoBlockLink) {
   return protoBlockLink.has_index() && protoBlockLink.has_dsindex() &&
          protoBlockLink.has_blocktype() && protoBlockLink.has_blockhash();
 }
 
-inline bool CheckFieldsInProtoDSBlockPowDSWinner(
+inline bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
     const ProtoDSBlock::DSBlockHeader::PowDSWinners& powDSWinner) {
   return powDSWinner.has_key() && powDSWinner.has_val();
 }
 
-inline bool CheckFieldsInProtoDSBlockDSBlockHashSet(
+inline bool CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
     const ProtoDSBlock::DSBlockHashSet& dsBlockHashSet) {
   return dsBlockHashSet.has_shardinghash() &&
          dsBlockHashSet.has_reservedfield();
 }
 
-inline bool CheckFieldsInProtoDSBlockDSBlockHeader(
+inline bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
     const ProtoDSBlock::DSBlockHeader& protoDSBlockHeader) {
   // Don't need to enforce check on repeated member dswinners
   // Don't need to enforce check on optional members dsdifficulty, difficulty,
@@ -149,24 +150,25 @@ inline bool CheckFieldsInProtoDSBlockDSBlockHeader(
          protoDSBlockHeader.has_epochnum() && protoDSBlockHeader.has_swinfo() &&
          protoDSBlockHeader.has_hash() &&
          protoDSBlockHeader.has_committeehash() &&
-         CheckFieldsInProtoDSBlockDSBlockHashSet(protoDSBlockHeader.hash());
+         CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
+             protoDSBlockHeader.hash());
 }
 
-inline bool CheckFieldsInProtoDSBlock(const ProtoDSBlock& protoDSBlock) {
+inline bool CheckRequiredFieldsProtoDSBlock(const ProtoDSBlock& protoDSBlock) {
   return protoDSBlock.has_header() && protoDSBlock.has_blockbase();
 }
 
-inline bool CheckFieldsInProtoDSNode(const ProtoDSNode& protoDSNode) {
+inline bool CheckRequiredFieldsProtoDSNode(const ProtoDSNode& protoDSNode) {
   return protoDSNode.has_pubkey() && protoDSNode.has_peer();
 }
 
-inline bool CheckFieldsInProtoDSCommittee(
+inline bool CheckRequiredFieldsProtoDSCommittee(
     const ProtoDSCommittee& protoDSCommittee) {
   // Don't need to enforce check on repeated member dsnodes
   return true;
 }
 
-inline bool CheckFieldsInProtoMicroBlockMicroBlockHeader(
+inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
     const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
   return protoMicroBlockHeader.has_type() &&
          protoMicroBlockHeader.has_version() &&
@@ -185,43 +187,43 @@ inline bool CheckFieldsInProtoMicroBlockMicroBlockHeader(
          protoMicroBlockHeader.has_committeehash();
 }
 
-inline bool CheckFieldsInProtoMicroBlock(
+inline bool CheckRequiredFieldsProtoMicroBlock(
     const ProtoMicroBlock& protoMicroBlock) {
   // Don't need to enforce check on repeated member tranhashes
   return protoMicroBlock.has_header() && protoMicroBlock.has_blockbase();
 }
 
-inline bool CheckFieldsInProtoShardingStructureMember(
+inline bool CheckRequiredFieldsProtoShardingStructureMember(
     const ProtoShardingStructure::Member& protoMember) {
   return protoMember.has_pubkey() && protoMember.has_peerinfo() &&
          protoMember.has_reputation();
 }
 
-inline bool CheckFieldsInProtoShardingStructureShard(
+inline bool CheckRequiredFieldsProtoShardingStructureShard(
     const ProtoShardingStructure::Shard& protoShard) {
   // Don't need to enforce check on repeated member members
   return true;
 }
 
-inline bool CheckFieldsInProtoShardingStructure(
+inline bool CheckRequiredFieldsProtoShardingStructure(
     const ProtoShardingStructure& protoShardingStructure) {
   // Don't need to enforce check on repeated member shards
   return true;
 }
 
-inline bool CheckFieldsInProtoTxBlockTxBlockHashSet(
+inline bool CheckRequiredFieldsProtoTxBlockTxBlockHashSet(
     const ProtoTxBlock::TxBlockHashSet& protoTxBlockHashSet) {
   return protoTxBlockHashSet.has_stateroothash() &&
          protoTxBlockHashSet.has_statedeltahash() &&
          protoTxBlockHashSet.has_mbinfohash();
 }
 
-inline bool CheckFieldsInProtoMbInfo(const ProtoMbInfo& protoMbInfo) {
+inline bool CheckRequiredFieldsProtoMbInfo(const ProtoMbInfo& protoMbInfo) {
   return protoMbInfo.has_mbhash() && protoMbInfo.has_txroot() &&
          protoMbInfo.has_shardid();
 }
 
-inline bool CheckFieldsInProtoTxBlockTxBlockHeader(
+inline bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
     const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
   return protoTxBlockHeader.has_type() && protoTxBlockHeader.has_version() &&
          protoTxBlockHeader.has_gaslimit() &&
@@ -232,15 +234,16 @@ inline bool CheckFieldsInProtoTxBlockTxBlockHeader(
          protoTxBlockHeader.has_minerpubkey() &&
          protoTxBlockHeader.has_dsblocknum() &&
          protoTxBlockHeader.has_committeehash() &&
-         CheckFieldsInProtoTxBlockTxBlockHashSet(protoTxBlockHeader.hash());
+         CheckRequiredFieldsProtoTxBlockTxBlockHashSet(
+             protoTxBlockHeader.hash());
 }
 
-inline bool CheckFieldsInProtoTxBlock(const ProtoTxBlock& protoTxBlock) {
+inline bool CheckRequiredFieldsProtoTxBlock(const ProtoTxBlock& protoTxBlock) {
   // Don't need to enforce check on repeated member mbinfos
   return protoTxBlock.has_header() && protoTxBlock.has_blockbase();
 }
 
-inline bool CheckFieldsInProtoVCBlockVCBlockHeader(
+inline bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
     const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
   // Don't need to enforce check on repeated member faultyleaders
   return protoVCBlockHeader.has_viewchangedsepochno() &&
@@ -253,20 +256,21 @@ inline bool CheckFieldsInProtoVCBlockVCBlockHeader(
          protoVCBlockHeader.has_prevhash();
 }
 
-inline bool CheckFieldsInProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
+inline bool CheckRequiredFieldsProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
   return protoVCBlock.has_header() && protoVCBlock.has_blockbase();
 }
 
-inline bool CheckFieldsInProtoBlockBaseCoSignatures(
+inline bool CheckRequiredFieldsProtoBlockBaseCoSignatures(
     const ProtoBlockBase::CoSignatures& protoCoSignatures) {
   // Don't need to enforce check on repeated members b1 and b2
   return protoCoSignatures.has_cs1() && protoCoSignatures.has_cs2();
 }
 
-inline bool CheckFieldsInProtoBlockBase(const ProtoBlockBase& protoBlockBase) {
+inline bool CheckRequiredFieldsProtoBlockBase(
+    const ProtoBlockBase& protoBlockBase) {
   return protoBlockBase.has_blockhash() && protoBlockBase.has_cosigs() &&
          protoBlockBase.has_timestamp() &&
-         CheckFieldsInProtoBlockBaseCoSignatures(protoBlockBase.cosigs());
+         CheckRequiredFieldsProtoBlockBaseCoSignatures(protoBlockBase.cosigs());
 }
 
 // ============================================================================
@@ -510,14 +514,14 @@ void DSCommitteeToProtobuf(const deque<pair<PubKey, Peer>>& dsCommittee,
 
 bool ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
                            deque<pair<PubKey, Peer>>& dsCommittee) {
-  if (!CheckFieldsInProtoDSCommittee(protoDSCommittee)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoDSCommittee failed.");
+  if (!CheckRequiredFieldsProtoDSCommittee(protoDSCommittee)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSCommittee failed.");
     return false;
   }
 
   for (const auto& dsnode : protoDSCommittee.dsnodes()) {
-    if (!CheckFieldsInProtoDSNode(dsnode)) {
-      LOG_GENERAL(WARNING, "CheckFieldsInProtoDSNode failed.");
+    if (!CheckRequiredFieldsProtoDSNode(dsnode)) {
+      LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSNode failed.");
       continue;
     }
 
@@ -595,8 +599,8 @@ void BlockBaseToProtobuf(const BlockBase& base,
 
 bool ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
                          BlockBase& base) {
-  if (!CheckFieldsInProtoBlockBase(protoBlockBase)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoBlockBase failed.");
+  if (!CheckRequiredFieldsProtoBlockBase(protoBlockBase)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoBlockBase failed.");
     return false;
   }
 
@@ -653,23 +657,24 @@ void ShardingStructureToProtobuf(
 bool ProtobufToShardingStructure(
     const ProtoShardingStructure& protoShardingStructure,
     DequeOfShard& shards) {
-  if (!CheckFieldsInProtoShardingStructure(protoShardingStructure)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoShardingStructure failed.");
+  if (!CheckRequiredFieldsProtoShardingStructure(protoShardingStructure)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoShardingStructure failed.");
     return false;
   }
 
   for (const auto& proto_shard : protoShardingStructure.shards()) {
-    if (!CheckFieldsInProtoShardingStructureShard(proto_shard)) {
-      LOG_GENERAL(WARNING, "CheckFieldsInProtoShardingStructureShard failed.");
+    if (!CheckRequiredFieldsProtoShardingStructureShard(proto_shard)) {
+      LOG_GENERAL(WARNING,
+                  "CheckRequiredFieldsProtoShardingStructureShard failed.");
       continue;
     }
 
     shards.emplace_back();
 
     for (const auto& proto_member : proto_shard.members()) {
-      if (!CheckFieldsInProtoShardingStructureMember(proto_member)) {
+      if (!CheckRequiredFieldsProtoShardingStructureMember(proto_member)) {
         LOG_GENERAL(WARNING,
-                    "CheckFieldsInProtoShardingStructureMember failed.");
+                    "CheckRequiredFieldsProtoShardingStructureMember failed.");
         continue;
       }
 
@@ -1006,8 +1011,9 @@ void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
 bool ProtobufToDSBlockHeader(
     const ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
     DSBlockHeader& dsBlockHeader) {
-  if (!CheckFieldsInProtoDSBlockDSBlockHeader(protoDSBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoDSBlockDSBlockHeader failed.");
+  if (!CheckRequiredFieldsProtoDSBlockDSBlockHeader(protoDSBlockHeader)) {
+    LOG_GENERAL(WARNING,
+                "CheckRequiredFieldsProtoDSBlockDSBlockHeader failed.");
     return false;
   }
 
@@ -1030,8 +1036,9 @@ bool ProtobufToDSBlockHeader(
   PubKey tempPubKey;
   Peer tempWinnerNetworkInfo;
   for (const auto& dswinner : protoDSBlockHeader.dswinners()) {
-    if (!CheckFieldsInProtoDSBlockPowDSWinner(dswinner)) {
-      LOG_GENERAL(WARNING, "CheckFieldsInProtoDSBlockPowDSWinner failed.");
+    if (!CheckRequiredFieldsProtoDSBlockPowDSWinner(dswinner)) {
+      LOG_GENERAL(WARNING,
+                  "CheckRequiredFieldsProtoDSBlockPowDSWinner failed.");
       continue;
     }
     ProtobufByteArrayToSerializable(dswinner.key(), tempPubKey);
@@ -1085,8 +1092,8 @@ bool ProtobufToDSBlockHeader(
 bool ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
   // Deserialize header
 
-  if (!CheckFieldsInProtoDSBlock(protoDSBlock)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoDSBlock failed.");
+  if (!CheckRequiredFieldsProtoDSBlock(protoDSBlock)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlock failed.");
     return false;
   }
 
@@ -1218,9 +1225,10 @@ void MicroBlockToProtobuf(const MicroBlock& microBlock,
 bool ProtobufToMicroBlockHeader(
     const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader,
     MicroBlockHeader& microBlockHeader) {
-  if (!CheckFieldsInProtoMicroBlockMicroBlockHeader(protoMicroBlockHeader)) {
+  if (!CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
+          protoMicroBlockHeader)) {
     LOG_GENERAL(WARNING,
-                "CheckFieldsInProtoMicroBlockMicroBlockHeader failed.");
+                "CheckRequiredFieldsProtoMicroBlockMicroBlockHeader failed.");
     return false;
   }
 
@@ -1281,8 +1289,8 @@ bool ProtobufToMicroBlockHeader(
 
 bool ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
                           MicroBlock& microBlock) {
-  if (!CheckFieldsInProtoMicroBlock(protoMicroBlock)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoMicroBlock failed.");
+  if (!CheckRequiredFieldsProtoMicroBlock(protoMicroBlock)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoMicroBlock failed.");
     return false;
   }
 
@@ -1325,8 +1333,8 @@ void MbInfoToProtobuf(const MicroBlockInfo& mbInfo, ProtoMbInfo& ProtoMbInfo) {
 }
 
 bool ProtobufToMbInfo(const ProtoMbInfo& ProtoMbInfo, MicroBlockInfo& mbInfo) {
-  if (!CheckFieldsInProtoMbInfo(ProtoMbInfo)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoMbInfo failed.");
+  if (!CheckRequiredFieldsProtoMbInfo(ProtoMbInfo)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoMbInfo failed.");
     return false;
   }
 
@@ -1399,8 +1407,9 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
 bool ProtobufToTxBlockHeader(
     const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader,
     TxBlockHeader& txBlockHeader) {
-  if (!CheckFieldsInProtoTxBlockTxBlockHeader(protoTxBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoTxBlockTxBlockHeader failed.");
+  if (!CheckRequiredFieldsProtoTxBlockTxBlockHeader(protoTxBlockHeader)) {
+    LOG_GENERAL(WARNING,
+                "CheckRequiredFieldsProtoTxBlockTxBlockHeader failed.");
     return false;
   }
 
@@ -1459,8 +1468,8 @@ bool ProtobufToTxBlockHeader(
 }
 
 bool ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
-  if (!CheckFieldsInProtoTxBlock(protoTxBlock)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoTxBlock failed");
+  if (!CheckRequiredFieldsProtoTxBlock(protoTxBlock)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTxBlock failed");
     return false;
   }
 
@@ -1534,8 +1543,9 @@ void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
 bool ProtobufToVCBlockHeader(
     const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
     VCBlockHeader& vcBlockHeader) {
-  if (!CheckFieldsInProtoVCBlockVCBlockHeader(protoVCBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoVCBlockVCBlockHeader failed.");
+  if (!CheckRequiredFieldsProtoVCBlockVCBlockHeader(protoVCBlockHeader)) {
+    LOG_GENERAL(WARNING,
+                "CheckRequiredFieldsProtoVCBlockVCBlockHeader failed.");
     return false;
   }
 
@@ -1575,8 +1585,8 @@ bool ProtobufToVCBlockHeader(
 }
 
 bool ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
-  if (!CheckFieldsInProtoVCBlock(protoVCBlock)) {
-    LOG_GENERAL(WARNING, "CheckFieldsInProtoVCBlock failed.");
+  if (!CheckRequiredFieldsProtoVCBlock(protoVCBlock)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoVCBlock failed.");
     return false;
   }
 
@@ -2933,7 +2943,7 @@ bool Messenger::GetBlockLink(
     return false;
   }
 
-  if (!CheckFieldsInProtoBlockLink(result)) {
+  if (!CheckRequiredFieldsProtoBlockLink(result)) {
     LOG_GENERAL(WARNING, "ProtoBlockLink is missing some required fields");
     return false;
   }
