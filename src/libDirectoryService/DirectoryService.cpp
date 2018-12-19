@@ -40,6 +40,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/TimestampVerifier.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -488,6 +489,41 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   LOG_MARKER();
+  {
+    lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    for (auto& i : *m_mediator.m_DSCommittee) {
+      if (i.first == m_mediator.m_selfKey.second) {
+        i.second = Peer();
+        LOG_GENERAL(INFO,
+                    "Found current node to be inside ds committee. Setting it "
+                    "to Peer()");
+        break;
+      }
+    }
+
+    LOG_GENERAL(INFO, "DS committee is ");
+    for (const auto& i : *m_mediator.m_DSCommittee) {
+      LOG_GENERAL(INFO, i.second);
+    }
+
+    if (BROADCAST_GOSSIP_MODE) {
+      std::vector<Peer> peers;
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        if (i.second.m_listenPortHost != 0) {
+          peers.emplace_back(i.second);
+        }
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
+  }
+
+  if (m_awaitingToSubmitNetworkInfoUpdate && GUARD_MODE) {
+    UpdateDSGuardIdentity();
+    LOG_GENERAL(
+        INFO,
+        "Sent ds guard network information update to lookup and ds committee")
+  }
+
   m_mode = BACKUP_DS;
   DequeOfDSNode dsComm;
   {
@@ -677,6 +713,188 @@ bool DirectoryService::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   return m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC;
 }
 
+// This feature is only available to ds guard node. This allows guard node to
+// change it's network information (IP and/or port).
+// Pre-condition: Must still have access to existing public and private keypair
+bool DirectoryService::UpdateDSGuardIdentity() {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to update ds guard network info.");
+    return false;
+  }
+
+  if (!Guard::GetInstance().IsNodeInDSGuardList(m_mediator.m_selfKey.second)) {
+    LOG_GENERAL(
+        WARNING,
+        "Current node is not a ds guard node. Unable to update network info.");
+  }
+
+  // To provide current pubkey, new IP, new Port and current timestamp
+  vector<unsigned char> updatedsguardidentitymessage = {
+      MessageType::DIRECTORY, DSInstructionType::NEWDSGUARDIDENTITY};
+
+  uint64_t curDSEpochNo =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+
+  if (!Messenger::SetDSLookupNewDSGuardNetworkInfo(
+          updatedsguardidentitymessage, MessageOffset::BODY, curDSEpochNo,
+          m_mediator.m_selfPeer, get_time_as_int(), m_mediator.m_selfKey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetDSLookupNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  // Send to all lookups
+  m_mediator.m_lookup->SendMessageToLookupNodesSerial(
+      updatedsguardidentitymessage);
+
+  vector<Peer> peerInfo;
+  {
+    // Gossip to all DS committee
+    lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    for (auto const& i : *m_mediator.m_DSCommittee) {
+      if (i.second.m_listenPortHost != 0) {
+        peerInfo.push_back(i.second);
+      }
+    }
+  }
+
+  if (BROADCAST_GOSSIP_MODE) {
+    // Choose N DS nodes to be recipient ds guard network info update message
+    // TODO: changge to N ds nodes who co-sign on the ds block
+    std::vector<Peer> networkInfoUpdateReceivers;
+    unsigned int numOfNetworkInfoReceivers =
+        std::min(NUM_GOSSIP_RECEIVERS, (const unsigned int)peerInfo.size());
+
+    for (unsigned int i = 0; i < numOfNetworkInfoReceivers; i++) {
+      networkInfoUpdateReceivers.emplace_back(peerInfo.at(i));
+
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "networkInfoUpdateReceivers: " << peerInfo.at(i));
+    }
+
+    P2PComm::GetInstance().SendRumorToForeignPeers(
+        networkInfoUpdateReceivers, updatedsguardidentitymessage);
+
+  } else {
+    P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
+  }
+
+  m_awaitingToSubmitNetworkInfoUpdate = false;
+
+  return true;
+}
+
+bool DirectoryService::ProcessNewDSGuardNetworkInfo(
+    const std::vector<unsigned char>& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
+  LOG_MARKER();
+
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to update ds guard network info.");
+    return false;
+  }
+
+  uint64_t dsEpochNumber;
+  Peer dsGuardNewNetworkInfo;
+  uint64_t timestamp;
+  PubKey dsGuardPubkey;
+
+  if (!Messenger::GetDSLookupNewDSGuardNetworkInfo(
+          message, offset, dsEpochNumber, dsGuardNewNetworkInfo, timestamp,
+          dsGuardPubkey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetDSLookupNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  if (m_mediator.m_selfKey.second == dsGuardPubkey) {
+    LOG_GENERAL(INFO,
+                "[update ds guard] Node to be updated is current node. No "
+                "update needed.");
+    return false;
+  }
+
+  uint64_t currentDSEpochNumber =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
+  uint64_t loCurrentDSEpochNumber = currentDSEpochNumber - 1;
+  uint64_t hiCurrentDSEpochNumber = currentDSEpochNumber + 1;
+
+  if (!(dsEpochNumber <= hiCurrentDSEpochNumber + 1 &&
+        dsEpochNumber >= loCurrentDSEpochNumber - 1)) {
+    LOG_GENERAL(WARNING,
+                "Update of ds guard network info failure due to not within "
+                "range of expected "
+                "ds epoch loCurrentDSEpochNumber: "
+                    << loCurrentDSEpochNumber
+                    << " hiCurrentDSEpochNumber: " << hiCurrentDSEpochNumber
+                    << " dsEpochNumber: " << dsEpochNumber);
+    return false;
+  }
+
+  if (!VerifyTimestamp(timestamp, WINDOW_FOR_DS_NETWORK_INFO_UPDATE)) {
+    return false;
+  }
+
+  {
+    // Update DS committee
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+    unsigned int indexOfDSGuard;
+    bool foundDSGuardNode = false;
+    for (indexOfDSGuard = 0;
+         indexOfDSGuard < Guard::GetInstance().GetNumOfDSGuard();
+         indexOfDSGuard++) {
+      if (m_mediator.m_DSCommittee->at(indexOfDSGuard).first == dsGuardPubkey) {
+        foundDSGuardNode = true;
+        LOG_GENERAL(INFO,
+                    "[update ds guard] DS guard to be updated is at index "
+                        << indexOfDSGuard << " "
+                        << m_mediator.m_DSCommittee->at(indexOfDSGuard).second
+                        << " -> " << dsGuardNewNetworkInfo);
+        m_mediator.m_DSCommittee->at(indexOfDSGuard).second =
+            dsGuardNewNetworkInfo;
+        break;
+      }
+    }
+
+    if (foundDSGuardNode && BROADCAST_GOSSIP_MODE) {
+      std::vector<Peer> peers;
+      for (const auto& i : *m_mediator.m_DSCommittee) {
+        if (i.second.m_listenPortHost != 0) {
+          peers.emplace_back(i.second);
+        }
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers);
+    }
+
+    // Lookup to store the info
+    if (foundDSGuardNode && LOOKUP_NODE_MODE) {
+      lock_guard<mutex> g(m_mutexLookupStoreForGuardNodeUpdate);
+      DSGuardUpdateStruct dsGuardNodeIden(dsGuardPubkey, dsGuardNewNetworkInfo,
+                                          timestamp);
+      if (m_lookupStoreForGuardNodeUpdate.find(dsEpochNumber) ==
+          m_lookupStoreForGuardNodeUpdate.end()) {
+        vector<DSGuardUpdateStruct> temp = {dsGuardNodeIden};
+        m_lookupStoreForGuardNodeUpdate.emplace(dsEpochNumber, temp);
+        LOG_EPOCH(
+            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "[update ds guard] No existing record found for dsEpochNumber "
+                << dsEpochNumber << ". Adding a new record");
+
+      } else {
+        m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber)
+            .emplace_back(dsGuardNodeIden);
+        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "[update ds guard] Adding new record for dsEpochNumber "
+                      << dsEpochNumber);
+      }
+    }
+    return foundDSGuardNode;
+  }
+}
+
 bool DirectoryService::Execute(const vector<unsigned char>& message,
                                unsigned int offset, const Peer& from) {
   // LOG_MARKER();
@@ -696,7 +914,8 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
                        &DirectoryService::ProcessFinalBlockConsensus,
                        &DirectoryService::ProcessViewChangeConsensus,
                        &DirectoryService::ProcessGetDSTxBlockMessage,
-                       &DirectoryService::ProcessPoWPacketSubmission});
+                       &DirectoryService::ProcessPoWPacketSubmission,
+                       &DirectoryService::ProcessNewDSGuardNetworkInfo});
 
   const unsigned char ins_byte = message.at(offset);
 
@@ -715,8 +934,10 @@ bool DirectoryService::Execute(const vector<unsigned char>& message,
       // To-do: Error recovery
     }
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Unknown instruction byte " << hex << (unsigned int)ins_byte
+                                          << " from " << from);
+    LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
   }
 
   return result;

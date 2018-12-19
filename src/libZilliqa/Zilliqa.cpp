@@ -166,6 +166,13 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
   m_validator = make_shared<Validator>(m_mediator);
   if (ARCHIVAL_NODE) {
+    if (SyncType::RECOVERY_ALL_SYNC == syncType) {
+      LOG_GENERAL(INFO, "Archival node, wait "
+                            << WAIT_LOOKUP_WAKEUP_IN_SECONDS
+                            << " seconds for lookup wakeup...");
+      this_thread::sleep_for(chrono::seconds(WAIT_LOOKUP_WAKEUP_IN_SECONDS));
+    }
+
     m_db.Init();
     m_arch.Init();
     m_arch.InitSync();
@@ -266,6 +273,12 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         break;
       case SyncType::RECOVERY_ALL_SYNC:
         LOG_GENERAL(INFO, "Recovery all nodes, no Sync Needed");
+        break;
+      case SyncType::GUARD_DS_SYNC:
+        LOG_GENERAL(INFO, "Sync as a ds guard node");
+        m_mediator.m_lookup->SetSyncType(SyncType::GUARD_DS_SYNC);
+        m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
+        m_ds.StartSynchronization();
         break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");

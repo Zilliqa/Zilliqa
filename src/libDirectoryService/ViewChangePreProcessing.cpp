@@ -301,50 +301,55 @@ void DirectoryService::RunConsensusOnViewChange() {
   } else {
     faultyLeaderIndex = m_candidateLeaderIndex;
   }
-  // Ensure that one do not emplace 0.0.0.0
-  if (m_mediator.m_DSCommittee->at(faultyLeaderIndex).first ==
-          m_mediator.m_selfKey.second &&
-      m_mediator.m_DSCommittee->at(faultyLeaderIndex).second == Peer()) {
-    m_cumulativeFaultyLeaders.emplace_back(
-        m_mediator.m_DSCommittee->at(faultyLeaderIndex).first,
-        m_mediator.m_selfPeer);
-  } else {
-    m_cumulativeFaultyLeaders.emplace_back(
-        m_mediator.m_DSCommittee->at(faultyLeaderIndex));
-  }
 
-  m_candidateLeaderIndex = CalculateNewLeaderIndex();
-
-  LOG_GENERAL(
-      INFO, "The new consensus leader is at index "
-                << to_string(m_candidateLeaderIndex) << " "
-                << m_mediator.m_DSCommittee->at(m_candidateLeaderIndex).second);
-
-  if (DEBUG_LEVEL >= 5) {
-    for (auto& i : *m_mediator.m_DSCommittee) {
-      LOG_GENERAL(INFO, i.second);
-    }
-  }
-
-  // Upon consensus object creation failure, one should not return from the
-  // function, but rather wait for view change.
   bool ConsensusObjCreation = true;
 
-  // We compare with empty peer is due to the fact that DSCommittee for yourself
-  // is 0.0.0.0 with port 0.
-  if (m_mediator.m_DSCommittee->at(m_candidateLeaderIndex).second == Peer()) {
-    ConsensusObjCreation =
-        RunConsensusOnViewChangeWhenCandidateLeader(m_candidateLeaderIndex);
-    if (!ConsensusObjCreation) {
-      LOG_GENERAL(WARNING, "Error after RunConsensusOnDSBlockWhenDSPrimary");
+  {
+    lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+    // Ensure that one do not emplace 0.0.0.0
+    if (m_mediator.m_DSCommittee->at(faultyLeaderIndex).first ==
+            m_mediator.m_selfKey.second &&
+        m_mediator.m_DSCommittee->at(faultyLeaderIndex).second == Peer()) {
+      m_cumulativeFaultyLeaders.emplace_back(
+          m_mediator.m_DSCommittee->at(faultyLeaderIndex).first,
+          m_mediator.m_selfPeer);
+    } else {
+      m_cumulativeFaultyLeaders.emplace_back(
+          m_mediator.m_DSCommittee->at(faultyLeaderIndex));
     }
-  } else {
-    ConsensusObjCreation =
-        RunConsensusOnViewChangeWhenNotCandidateLeader(m_candidateLeaderIndex);
-    if (!ConsensusObjCreation) {
-      LOG_GENERAL(WARNING,
-                  "Error after "
-                  "RunConsensusOnViewChangeWhenNotCandidateLeader");
+
+    m_candidateLeaderIndex = CalculateNewLeaderIndex();
+
+    LOG_GENERAL(
+        INFO,
+        "The new consensus leader is at index "
+            << to_string(m_candidateLeaderIndex) << " "
+            << m_mediator.m_DSCommittee->at(m_candidateLeaderIndex).second);
+
+    if (DEBUG_LEVEL >= 5) {
+      for (auto& i : *m_mediator.m_DSCommittee) {
+        LOG_GENERAL(INFO, i.second);
+      }
+    }
+
+    // Upon consensus object creation failure, one should not return from the
+    // function, but rather wait for view change.
+    // We compare with empty peer is due to the fact that DSCommittee for
+    // yourself is 0.0.0.0 with port 0.
+    if (m_mediator.m_DSCommittee->at(m_candidateLeaderIndex).second == Peer()) {
+      ConsensusObjCreation =
+          RunConsensusOnViewChangeWhenCandidateLeader(m_candidateLeaderIndex);
+      if (!ConsensusObjCreation) {
+        LOG_GENERAL(WARNING, "Error after RunConsensusOnDSBlockWhenDSPrimary");
+      }
+    } else {
+      ConsensusObjCreation = RunConsensusOnViewChangeWhenNotCandidateLeader(
+          m_candidateLeaderIndex);
+      if (!ConsensusObjCreation) {
+        LOG_GENERAL(WARNING,
+                    "Error after "
+                    "RunConsensusOnViewChangeWhenNotCandidateLeader");
+      }
     }
   }
 

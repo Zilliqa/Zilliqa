@@ -70,7 +70,7 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 void addBalanceToGenesisAccount() {
   LOG_MARKER();
 
-  const uint128_t bal{std::numeric_limits<uint64_t>::max()};
+  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
   const uint64_t nonce{0};
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
@@ -106,7 +106,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     m_mediator.m_currentEpochNum =
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
-    if (wakeupForUpgrade) {
+    if (wakeupForUpgrade || RECOVERY_TRIM_INCOMPLETED_BLOCK) {
       m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
     }
 
@@ -164,9 +164,14 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
       if (wakeupForUpgrade) {
-        WakeupForUpgrade();
+        WakeupAtDSEpoch();
       } else {
-        WakeupForRecovery();
+        if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
+          WakeupAtDSEpoch();
+        } else {
+          WakeupAtTxEpoch();
+        }
+
         return true;
       }
     }
@@ -309,22 +314,26 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  if (!LOOKUP_NODE_MODE &&
+  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE &&
       (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
-                          << DS_DELAY_WAKEUP_IN_SECONDS
+                          << WAIT_LOOKUP_WAKEUP_IN_SECONDS
                           << " seconds for lookup wakeup...");
-    this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
+    this_thread::sleep_for(chrono::seconds(WAIT_LOOKUP_WAKEUP_IN_SECONDS));
   }
 
   m_retriever = std::make_shared<Retriever>(m_mediator);
 
   /// Retrieve block link
-  bool ds_result = m_retriever->RetrieveBlockLink(wakeupForUpgrade);
+  bool ds_result = m_retriever->RetrieveBlockLink(
+      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                           SyncType::RECOVERY_ALL_SYNC == syncType));
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
-  bool tx_result = m_retriever->RetrieveTxBlocks(wakeupForUpgrade);
+  bool tx_result = m_retriever->RetrieveTxBlocks(
+      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                           SyncType::RECOVERY_ALL_SYNC == syncType));
 
   if (!tx_result) {
     return false;
@@ -392,10 +401,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  /// If node recovery with vacuous epoch or in first DS epoch, apply re-join
-  /// process instead of node recovery
-  if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
+  /// Rejoin will be applied following below rules:
+  /// 1. Non-lookup node &&
+  /// 2. Not from upgrading mode &&
+  /// 3. Not from re-join mode &&
+  /// 4. Not from recovery-all mode &&
+  /// 5. Still in first DS epoch, or in vacuous epoch
+  if (!LOOKUP_NODE_MODE && !wakeupForUpgrade &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
+      SyncType::RECOVERY_ALL_SYNC != syncType &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
            NUM_FINAL_BLOCK_PER_POW ||
        m_mediator.GetIsVacuousEpoch(
@@ -408,9 +422,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (bDS) {
-    for (uint64_t blockNum =
-             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+               SyncType::RECOVERY_ALL_SYNC == syncType)) {
+    for (uint64_t blockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                                 .GetHeader()
+                                 .GetEpochNum() +
+                             1;
          blockNum <=
          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
          ++blockNum) {
@@ -429,56 +446,69 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve sharding structure and setup relative variables
-  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
+  if (!ARCHIVAL_NODE) {
+    BlockStorage::GetBlockStorage().GetShardStructure(
+        m_mediator.m_ds->m_shards);
 
-  if (!ipMapping.empty()) {
-    string pubKey;
+    if (!ipMapping.empty()) {
+      string pubKey;
 
-    for (auto& shard : m_mediator.m_ds->m_shards) {
-      for (auto& node : shard) {
-        pubKey =
-            DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node));
+      for (auto& shard : m_mediator.m_ds->m_shards) {
+        for (auto& node : shard) {
+          pubKey = DataConversion::SerializableToHexStr(
+              get<SHARD_NODE_PUBKEY>(node));
 
-        if (ipMapping.find(pubKey) != ipMapping.end()) {
-          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+          if (ipMapping.find(pubKey) != ipMapping.end()) {
+            get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+          }
         }
       }
     }
-  }
 
-  if (bDS) {
-    m_myshardId = m_mediator.m_ds->m_shards.size();
-  } else {
-    bool found = false;
-    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size() && !found;
-         ++i) {
-      for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
-        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
-          SetMyshardId(i);
-          found = true;
-          break;
+    bool bInShardStructure = false;
+
+    if (bDS) {
+      m_myshardId = m_mediator.m_ds->m_shards.size();
+    } else {
+      for (unsigned int i = 0;
+           i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
+        for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
+          if (get<SHARD_NODE_PUBKEY>(shardNode) ==
+              m_mediator.m_selfKey.second) {
+            SetMyshardId(i);
+            bInShardStructure = true;
+            break;
+          }
         }
       }
     }
-  }
 
-  if (LOOKUP_NODE_MODE) {
-    m_mediator.m_lookup->ProcessEntireShardingStructure();
-  } else {
-    LoadShardingStructure(true);
-    m_mediator.m_ds->ProcessShardingStructure(
-        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-        m_mediator.m_ds->m_mapNodeReputation);
+    if (LOOKUP_NODE_MODE) {
+      m_mediator.m_lookup->ProcessEntireShardingStructure();
+    } else {
+      LoadShardingStructure(true);
+      m_mediator.m_ds->ProcessShardingStructure(
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+          m_mediator.m_ds->m_mapNodeReputation);
+    }
+
+    if (!LOOKUP_NODE_MODE && !bDS && !bInShardStructure) {
+      LOG_GENERAL(WARNING,
+                  "Node is not in network, apply re-join process instead");
+      return false;
+    }
   }
 
   m_mediator.m_consensusID =
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (bDS) {
+  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+               SyncType::RECOVERY_ALL_SYNC == syncType)) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() +
+                1,
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
@@ -533,7 +563,7 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
   }
 }
 
-void Node::WakeupForUpgrade() {
+void Node::WakeupAtDSEpoch() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -611,19 +641,19 @@ void Node::WakeupForUpgrade() {
   SetState(POW_SUBMISSION);
 
   auto func = [this, block_num, dsDifficulty, difficulty]() mutable -> void {
-    LOG_GENERAL(
-        INFO, "Shard node, wait "
-                  << SHARD_DELAY_WAKEUP_IN_SECONDS - DS_DELAY_WAKEUP_IN_SECONDS
-                  << " more seconds for lookup and DS nodes wakeup...");
+    LOG_GENERAL(INFO, "Shard node, wait "
+                          << SHARD_DELAY_WAKEUP_IN_SECONDS -
+                                 WAIT_LOOKUP_WAKEUP_IN_SECONDS
+                          << " more seconds for lookup and DS nodes wakeup...");
     this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS -
-                                           DS_DELAY_WAKEUP_IN_SECONDS));
+                                           WAIT_LOOKUP_WAKEUP_IN_SECONDS));
     StartPoW(block_num, dsDifficulty, difficulty, m_mediator.m_dsBlockRand,
              m_mediator.m_txBlockRand);
   };
   DetachedFunction(1, func);
 }
 
-void Node::WakeupForRecovery() {
+void Node::WakeupAtTxEpoch() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1283,18 +1313,6 @@ bool Node::ProcessProposeGasPrice(
   return true;
 }
 
-#ifdef HEARTBEAT_TEST
-bool Node::ProcessKillPulse(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
-  LOG_MARKER();
-
-  m_mediator.m_killPulse = true;
-
-  return true;
-}
-#endif  // HEARTBEAT_TEST
-
 void Node::CommitTxnPacketBuffer() {
   LOG_MARKER();
 
@@ -1544,10 +1562,115 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
   return true;
 }
 
+void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to query from lookup for ds guard "
+                "network information update.");
+    return;
+  }
+
+  LOG_MARKER();
+
+  vector<unsigned char> queryLookupForDSGuardNetworkInfoUpdate = {
+      MessageType::LOOKUP,
+      LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
+  uint64_t dsEpochNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  LOG_GENERAL(INFO,
+              "Querying the lookup for any ds guard node network info change "
+              "for ds epoch "
+                  << dsEpochNum);
+
+  if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
+          queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
+          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
+    return;
+  }
+  m_requestedForDSGuardNetworkInfoUpdate = true;
+  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+      queryLookupForDSGuardNetworkInfoUpdate);
+}
+
+bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
+                                           unsigned int offset,
+                                           [[gnu::unused]] const Peer& from) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Node::ProcessDSGuardNetworkInfoUpdate not expected to be called from "
+        "LookUp node.");
+    return true;
+  }
+
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to process from lookup for ds guard "
+                "network information update.");
+    return false;
+  }
+
+  if (!m_requestedForDSGuardNetworkInfoUpdate) {
+    LOG_GENERAL(WARNING,
+                "Did not request for DS Guard node network info update");
+    return false;
+  }
+
+  LOG_MARKER();
+
+  vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct;
+  PubKey lookupPubkey;
+  if (!Messenger::SetNodeGetNewDSGuardNetworkInfo(
+          message, offset, vecOfDSGuardUpdateStruct, lookupPubkey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeGetNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+                                lookupPubkey)) {
+    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The message sender pubkey: "
+                  << lookupPubkey << " is not in my lookup node list.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Received from lookup " << from);
+
+  {
+    // Process and update ds committee network info
+    lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
+      replace_if(m_mediator.m_DSCommittee->begin(),
+                 m_mediator.m_DSCommittee->begin() +
+                     Guard::GetInstance().GetNumOfDSGuard(),
+                 [&dsguardupdate](const pair<PubKey, Peer>& element) {
+                   return element.first == dsguardupdate.m_dsGuardPubkey;
+                 },
+                 make_pair(dsguardupdate.m_dsGuardPubkey,
+                           dsguardupdate.m_dsGuardNewNetworkInfo));
+      LOG_GENERAL(INFO, "[update ds guard] "
+                            << dsguardupdate.m_dsGuardPubkey
+                            << " new network info is "
+                            << dsguardupdate.m_dsGuardNewNetworkInfo)
+    }
+  }
+
+  m_requestedForDSGuardNetworkInfoUpdate = false;
+  return true;
+}
+
 bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     if (!LOOKUP_NODE_MODE) {
       if (m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC) {
+        return true;
+      } else if (m_mediator.m_lookup->GetSyncType() ==
+                     SyncType::GUARD_DS_SYNC &&
+                 GUARD_MODE) {
         return true;
       }
       if (!m_fromNewProcess) {
@@ -1676,9 +1799,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Node::ProcessFallbackConsensus,
       &Node::ProcessFallbackBlock,
       &Node::ProcessProposeGasPrice,
-#ifdef HEARTBEAT_TEST
-      &Node::ProcessKillPulse,
-#endif  // HEARTBEAT_TEST
+      &Node::ProcessDSGuardNetworkInfoUpdate,
   };
 
   const unsigned char ins_byte = message.at(offset);
@@ -1698,8 +1819,10 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       // To-do: Error recovery
     }
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Unknown instruction byte " << hex << (unsigned int)ins_byte
+                                          << " from " << from);
+    LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
   }
 
   return result;
