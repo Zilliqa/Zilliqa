@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+package ZilliqaTest;
+
+message OneField
+{
+    optional uint32 field1 = 1;
+}
+
+// This simulates the case where we have added an optional field to an existing message (OneField)
+// That means an old database might have just field1, and we want to still be able to read it out even if we now have field2 as well in the new message
+message TwoFields
+{
+    optional uint32 field1 = 1;
+    optional uint32 field2 = 2;
+}
