@@ -111,7 +111,9 @@ def get_time(line):
 	return line[11:24]
 
 def get_block_number(line):
-	m = re.search(r'\[[0-9]+\]', line)
+	m = re.search(r'\[[0-9 ]+\]', line)
+	if (m == None):
+		print(line)
 	blockNumber = m.group(0)
 	blockNumber = blockNumber[1 : len(blockNumber) - 1]
 	return int(blockNumber)
