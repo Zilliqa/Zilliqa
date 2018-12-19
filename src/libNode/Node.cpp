@@ -1476,6 +1476,8 @@ void Node::CleanCreatedTransaction() {
     t_processedTransactions.clear();
   }
   m_TxnOrder.clear();
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
 }
 
 bool Node::IsShardNode(const PubKey& pubKey) {
