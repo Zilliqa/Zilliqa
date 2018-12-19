@@ -21,8 +21,8 @@
 #include <arpa/inet.h>
 #include <algorithm>
 #include <iostream>
-#include "libUtils/Logger.h"
 #include "boost/program_options.hpp"
+#include "libUtils/Logger.h"
 
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
@@ -42,10 +42,7 @@ using namespace boost::multiprecision;
 namespace po = boost::program_options;
 
 int main(int argc, const char* argv[]) {
-
-  try
-  {
-
+  try {
     INIT_FILE_LOGGER("zilliqa");
     INIT_STATE_LOGGER("state");
     INIT_EPOCHINFO_LOGGER("epochinfo");
@@ -56,37 +53,37 @@ int main(int argc, const char* argv[]) {
     string address;
     int port = 0;
     uint8_t synctype = 0;
-    const char* synctype_descr = "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup";
+    const char* synctype_descr =
+        "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup";
 
     po::options_description desc("Options");
 
-    desc.add_options()
-        ("help,h", "Print help messages")
-        ("privk,i", po::value<string>(&privK)->required(), "32-byte private key")
-        ("pubk,u", po::value<string>(&pubK)->required(), "32-byte public key")
-        ("address,a", po::value<string>(&address)->required(), "Listen IPv4/6 address in standard \"dotted decimal\" format, otherwise \"NAT\"")
-        ("port,p", po::value<int>(&port)->required(), "Specifies port to bind to")
-        ("loadconfig,l", "Loads configuration if set")
-        ("synctype,s", po::value<uint8_t>(&synctype), synctype_descr)
-        ("recovery,r", "Runs in recovery mode if set");
+    desc.add_options()("help,h", "Print help messages")(
+        "privk,i", po::value<string>(&privK)->required(),
+        "32-byte private key")("pubk,u", po::value<string>(&pubK)->required(),
+                               "32-byte public key")(
+        "address,a", po::value<string>(&address)->required(),
+        "Listen IPv4/6 address in standard \"dotted decimal\" format, "
+        "otherwise \"NAT\"")("port,p", po::value<int>(&port)->required(),
+                             "Specifies port to bind to")(
+        "loadconfig,l", "Loads configuration if set")(
+        "synctype,s", po::value<uint8_t>(&synctype), synctype_descr)(
+        "recovery,r", "Runs in recovery mode if set");
 
-        po::variables_map vm;
-    try
-    {
-      po::store(po::parse_command_line(argc, argv, desc),
-          vm);
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
 
       /** --help option
        */
-      if ( vm.count("help")  )
-      {
+      if (vm.count("help")) {
         LogInfo::LogBrandBugReport();
         cout << desc << endl;
         return SUCCESS;
       }
       po::notify(vm);
 
-      if ((port < 0) || (port > 65535))   {
+      if ((port < 0) || (port > 65535)) {
         LogInfo::LogBrandBugReport();
         std::cerr << "Invalid port number." << endl;
         return ERROR_IN_COMMAND_LINE;
@@ -106,17 +103,14 @@ int main(int argc, const char* argv[]) {
 
       if (synctype > 4) {
         LogInfo::LogBrandBugReport();
-        std::cerr << "Invalid synctype, please select: " << synctype_descr << "." << endl;
+        std::cerr << "Invalid synctype, please select: " << synctype_descr
+                  << "." << endl;
       }
-    }
-    catch(boost::program_options::required_option& e)
-    {
+    } catch (boost::program_options::required_option& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
       return ERROR_IN_COMMAND_LINE;
-    }
-    catch(boost::program_options::error& e)
-    {
+    } catch (boost::program_options::error& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
@@ -135,11 +129,12 @@ int main(int argc, const char* argv[]) {
         return -1;
       } else {
         LOG_GENERAL(INFO, "My external IP is " << nt->externalIP().c_str()
-            << " and my mapped port is "
-            << mappedPort);
+                                               << " and my mapped port is "
+                                               << mappedPort);
       }
 
-      if (IPConverter::ToNumericalIPFromStr(nt->externalIP().c_str(), ip) != 0) {
+      if (IPConverter::ToNumericalIPFromStr(nt->externalIP().c_str(), ip) !=
+          0) {
         return ERROR_IN_COMMAND_LINE;
       }
       my_network_info = Peer(ip, mappedPort);
@@ -150,8 +145,10 @@ int main(int argc, const char* argv[]) {
       my_network_info = Peer(ip, port);
     }
 
-    vector<unsigned char> tmPrivkey = DataConversion::HexStrToUint8Vec(privK.c_str());
-    vector<unsigned char> tmpPubkey = DataConversion::HexStrToUint8Vec(pubK.c_str());
+    vector<unsigned char> tmPrivkey =
+        DataConversion::HexStrToUint8Vec(privK.c_str());
+    vector<unsigned char> tmpPubkey =
+        DataConversion::HexStrToUint8Vec(pubK.c_str());
 
     PrivKey privkey;
     if (privkey.Deserialize(tmPrivkey, 0) != 0) {
@@ -166,27 +163,24 @@ int main(int argc, const char* argv[]) {
     }
 
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
-        vm.count("loadconfig"), synctype, vm.count("recovery"));
+                    vm.count("loadconfig"), synctype, vm.count("recovery"));
     auto dispatcher =
         [&zilliqa](pair<vector<unsigned char>, Peer>* message) mutable -> void {
       zilliqa.Dispatch(message);
     };
     auto broadcast_list_retriever =
         [&zilliqa](unsigned char msg_type, unsigned char ins_type,
-            const Peer& from) mutable -> vector<Peer> {
+                   const Peer& from) mutable -> vector<Peer> {
       return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
     };
 
-    P2PComm::GetInstance().StartMessagePump(my_network_info.m_listenPortHost,
-        dispatcher, broadcast_list_retriever);
+    P2PComm::GetInstance().StartMessagePump(
+        my_network_info.m_listenPortHost, dispatcher, broadcast_list_retriever);
 
-  }
-  catch(std::exception& e)
-  {
-    std::cerr << "Unhandled Exception reached the top of main: "
-        << e.what() << ", application will now exit" << std::endl;
+  } catch (std::exception& e) {
+    std::cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << std::endl;
     return ERROR_UNHANDLED_EXCEPTION;
-
   }
 
   return SUCCESS;

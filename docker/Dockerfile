@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libboost-filesystem-dev \
     libboost-system-dev \
     libboost-test-dev \
+    libboost-program-options-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \

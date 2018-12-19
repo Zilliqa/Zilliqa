@@ -74,6 +74,7 @@ apt-get install -y \
     libboost-system-dev \
     libboost-filesystem-dev \
     libboost-test-dev \
+    libboost-program-options-dev \
     libleveldb-dev \
     libsnappy-dev \
     libjsoncpp-dev \
