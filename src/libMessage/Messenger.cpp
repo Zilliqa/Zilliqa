@@ -266,7 +266,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                                                      tmpNumber);
 
   int256_t balanceDelta = protoAccount.numbersign()
-                              ? tmpNumber
+                              ? tmpNumber.convert_to<int256_t>()
                               : 0 - tmpNumber.convert_to<int256_t>();
   account.ChangeBalance(balanceDelta);
 
@@ -1962,7 +1962,7 @@ bool Messenger::StateDeltaToAddressMap(
         entry.account().balance(), tmpNumber);
 
     int256_t balanceDelta = entry.account().numbersign()
-                                ? tmpNumber
+                                ? tmpNumber.convert_to<int256_t>()
                                 : 0 - tmpNumber.convert_to<int256_t>();
 
     accountMap.insert(make_pair(address, balanceDelta));
