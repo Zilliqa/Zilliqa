@@ -286,6 +286,10 @@ const unsigned int DSBLOCK_EXTRA_WAIT_TIME{
     ReadConstantNumeric("DSBLOCK_EXTRA_WAIT_TIME", "node.pow.")};
 const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("DIFF_IP_TOLERANCE_IN_PERCENT", "node.pow.")};
+const unsigned int TXN_SHARD_TARGET_DIFFICULTY{
+    ReadConstantNumeric("TXN_SHARD_TARGET_DIFFICULTY", "node.pow.")};
+const unsigned int TXN_DS_TARGET_DIFFICULTY{
+    ReadConstantNumeric("TXN_DS_TARGET_DIFFICULTY", "node.pow.")};
 
 // Recovery and upgrading constants
 const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
