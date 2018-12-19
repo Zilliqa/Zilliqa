@@ -286,8 +286,8 @@ const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("DIFF_IP_TOLERANCE_IN_PERCENT", "node.pow.")};
 
 // Recovery and upgrading constants
-const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
-    ReadConstantNumeric("DS_DELAY_WAKEUP_IN_SECONDS", "node.recovery.")};
+const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
+    ReadConstantNumeric("WAIT_LOOKUP_WAKEUP_IN_SECONDS", "node.recovery.")};
 const bool GET_INITIAL_DS_FROM_REPO{
     ReadConstantString("GET_INITIAL_DS_FROM_REPO", "node.recovery.") == "true"};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
@@ -298,6 +298,9 @@ const string UPGRADE_HOST_ACCOUNT{
     ReadConstantString("UPGRADE_HOST_ACCOUNT", "node.recovery.")};
 const string UPGRADE_HOST_REPO{
     ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
+const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
+    ReadConstantString("RECOVERY_TRIM_INCOMPLETED_BLOCK", "node.recovery.") ==
+    "true"};
 
 // Smart contract constants
 const string SCILLA_ROOT{

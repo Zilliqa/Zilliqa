@@ -106,7 +106,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     m_mediator.m_currentEpochNum =
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
 
-    if (wakeupForUpgrade) {
+    if (wakeupForUpgrade || RECOVERY_TRIM_INCOMPLETED_BLOCK) {
       m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
     }
 
@@ -164,9 +164,14 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
     if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() ||
         SyncType::RECOVERY_ALL_SYNC == syncType) {
       if (wakeupForUpgrade) {
-        WakeupForUpgrade();
+        WakeupAtDSEpoch();
       } else {
-        WakeupForRecovery();
+        if (RECOVERY_TRIM_INCOMPLETED_BLOCK) {
+          WakeupAtDSEpoch();
+        } else {
+          WakeupAtTxEpoch();
+        }
+
         return true;
       }
     }
@@ -309,22 +314,26 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  if (!LOOKUP_NODE_MODE &&
+  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE &&
       (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
-                          << DS_DELAY_WAKEUP_IN_SECONDS
+                          << WAIT_LOOKUP_WAKEUP_IN_SECONDS
                           << " seconds for lookup wakeup...");
-    this_thread::sleep_for(chrono::seconds(DS_DELAY_WAKEUP_IN_SECONDS));
+    this_thread::sleep_for(chrono::seconds(WAIT_LOOKUP_WAKEUP_IN_SECONDS));
   }
 
   m_retriever = std::make_shared<Retriever>(m_mediator);
 
   /// Retrieve block link
-  bool ds_result = m_retriever->RetrieveBlockLink(wakeupForUpgrade);
+  bool ds_result = m_retriever->RetrieveBlockLink(
+      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                           SyncType::RECOVERY_ALL_SYNC == syncType));
 
   /// Retrieve Tx blocks, relative final-block state-delta from persistence
   bool st_result = m_retriever->RetrieveStates();
-  bool tx_result = m_retriever->RetrieveTxBlocks(wakeupForUpgrade);
+  bool tx_result = m_retriever->RetrieveTxBlocks(
+      wakeupForUpgrade || (RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+                           SyncType::RECOVERY_ALL_SYNC == syncType));
 
   if (!tx_result) {
     return false;
@@ -392,10 +401,15 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  /// If node recovery with vacuous epoch or in first DS epoch, apply re-join
-  /// process instead of node recovery
-  if (!wakeupForUpgrade && !LOOKUP_NODE_MODE &&
+  /// Rejoin will be applied following below rules:
+  /// 1. Non-lookup node &&
+  /// 2. Not from upgrading mode &&
+  /// 3. Not from re-join mode &&
+  /// 4. Not from recovery-all mode &&
+  /// 5. Still in first DS epoch, or in vacuous epoch
+  if (!LOOKUP_NODE_MODE && !wakeupForUpgrade &&
       SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
+      SyncType::RECOVERY_ALL_SYNC != syncType &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
            NUM_FINAL_BLOCK_PER_POW ||
        m_mediator.GetIsVacuousEpoch(
@@ -408,9 +422,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Save coin base for final block, from last DS epoch to current TX epoch
-  if (bDS) {
-    for (uint64_t blockNum =
-             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
+  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+               SyncType::RECOVERY_ALL_SYNC == syncType)) {
+    for (uint64_t blockNum = m_mediator.m_dsBlockChain.GetLastBlock()
+                                 .GetHeader()
+                                 .GetEpochNum() +
+                             1;
          blockNum <=
          m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
          ++blockNum) {
@@ -429,56 +446,69 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve sharding structure and setup relative variables
-  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
+  if (!ARCHIVAL_NODE) {
+    BlockStorage::GetBlockStorage().GetShardStructure(
+        m_mediator.m_ds->m_shards);
 
-  if (!ipMapping.empty()) {
-    string pubKey;
+    if (!ipMapping.empty()) {
+      string pubKey;
 
-    for (auto& shard : m_mediator.m_ds->m_shards) {
-      for (auto& node : shard) {
-        pubKey =
-            DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node));
+      for (auto& shard : m_mediator.m_ds->m_shards) {
+        for (auto& node : shard) {
+          pubKey = DataConversion::SerializableToHexStr(
+              get<SHARD_NODE_PUBKEY>(node));
 
-        if (ipMapping.find(pubKey) != ipMapping.end()) {
-          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+          if (ipMapping.find(pubKey) != ipMapping.end()) {
+            get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
+          }
         }
       }
     }
-  }
 
-  if (bDS) {
-    m_myshardId = m_mediator.m_ds->m_shards.size();
-  } else {
-    bool found = false;
-    for (unsigned int i = 0; i < m_mediator.m_ds->m_shards.size() && !found;
-         ++i) {
-      for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
-        if (get<SHARD_NODE_PUBKEY>(shardNode) == m_mediator.m_selfKey.second) {
-          SetMyshardId(i);
-          found = true;
-          break;
+    bool bInShardStructure = false;
+
+    if (bDS) {
+      m_myshardId = m_mediator.m_ds->m_shards.size();
+    } else {
+      for (unsigned int i = 0;
+           i < m_mediator.m_ds->m_shards.size() && !bInShardStructure; ++i) {
+        for (const auto& shardNode : m_mediator.m_ds->m_shards.at(i)) {
+          if (get<SHARD_NODE_PUBKEY>(shardNode) ==
+              m_mediator.m_selfKey.second) {
+            SetMyshardId(i);
+            bInShardStructure = true;
+            break;
+          }
         }
       }
     }
-  }
 
-  if (LOOKUP_NODE_MODE) {
-    m_mediator.m_lookup->ProcessEntireShardingStructure();
-  } else {
-    LoadShardingStructure(true);
-    m_mediator.m_ds->ProcessShardingStructure(
-        m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
-        m_mediator.m_ds->m_mapNodeReputation);
+    if (LOOKUP_NODE_MODE) {
+      m_mediator.m_lookup->ProcessEntireShardingStructure();
+    } else {
+      LoadShardingStructure(true);
+      m_mediator.m_ds->ProcessShardingStructure(
+          m_mediator.m_ds->m_shards, m_mediator.m_ds->m_publicKeyToshardIdMap,
+          m_mediator.m_ds->m_mapNodeReputation);
+    }
+
+    if (!LOOKUP_NODE_MODE && !bDS && !bInShardStructure) {
+      LOG_GENERAL(WARNING,
+                  "Node is not in network, apply re-join process instead");
+      return false;
+    }
   }
 
   m_mediator.m_consensusID =
       (m_mediator.m_txBlockChain.GetBlockCount()) % NUM_FINAL_BLOCK_PER_POW;
 
   /// Save coin base for micro block, from last DS epoch to current TX epoch
-  if (bDS) {
+  if (bDS && !(RECOVERY_TRIM_INCOMPLETED_BLOCK &&
+               SyncType::RECOVERY_ALL_SYNC == syncType)) {
     std::list<MicroBlockSharedPtr> microBlocks;
     if (BlockStorage::GetBlockStorage().GetRangeMicroBlocks(
-            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum(),
+            m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() +
+                1,
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             0, m_mediator.m_ds->m_shards.size(), microBlocks)) {
@@ -533,7 +563,7 @@ void Node::GetIpMapping(unordered_map<string, Peer>& ipMapping) {
   }
 }
 
-void Node::WakeupForUpgrade() {
+void Node::WakeupAtDSEpoch() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -611,19 +641,19 @@ void Node::WakeupForUpgrade() {
   SetState(POW_SUBMISSION);
 
   auto func = [this, block_num, dsDifficulty, difficulty]() mutable -> void {
-    LOG_GENERAL(
-        INFO, "Shard node, wait "
-                  << SHARD_DELAY_WAKEUP_IN_SECONDS - DS_DELAY_WAKEUP_IN_SECONDS
-                  << " more seconds for lookup and DS nodes wakeup...");
+    LOG_GENERAL(INFO, "Shard node, wait "
+                          << SHARD_DELAY_WAKEUP_IN_SECONDS -
+                                 WAIT_LOOKUP_WAKEUP_IN_SECONDS
+                          << " more seconds for lookup and DS nodes wakeup...");
     this_thread::sleep_for(chrono::seconds(SHARD_DELAY_WAKEUP_IN_SECONDS -
-                                           DS_DELAY_WAKEUP_IN_SECONDS));
+                                           WAIT_LOOKUP_WAKEUP_IN_SECONDS));
     StartPoW(block_num, dsDifficulty, difficulty, m_mediator.m_dsBlockRand,
              m_mediator.m_txBlockRand);
   };
   DetachedFunction(1, func);
 }
 
-void Node::WakeupForRecovery() {
+void Node::WakeupAtTxEpoch() {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {

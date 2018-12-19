@@ -238,7 +238,14 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
 
     txns.clear();
 
-    uint64_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+    auto account = AccountStore::GetInstance().GetAccount(addr);
+
+    if (!account) {
+      LOG_GENERAL(WARNING, "Failed to get genesis account!");
+      return false;
+    }
+
+    uint64_t nonce = account->GetNonce();
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                      num_txn, txns)) {

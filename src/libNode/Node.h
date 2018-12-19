@@ -338,9 +338,9 @@ class Node : public Executable, public Broadcastable {
 
   void GetIpMapping(std::unordered_map<std::string, Peer>& ipMapping);
 
-  void WakeupForUpgrade();
+  void WakeupAtDSEpoch();
 
-  void WakeupForRecovery();
+  void WakeupAtTxEpoch();
 
   /// Set initial state, variables, and clean-up storage
   void Init();
