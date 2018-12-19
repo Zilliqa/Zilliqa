@@ -263,7 +263,7 @@ class DirectoryService : public Executable, public Broadcastable {
   void UpdatePoWSubmissionCounterforNode(const PubKey& key);
   void ResetPoWSubmissionCounter();
   void ClearReputationOfNodeWithoutPoW();
-  std::set<PubKey> FindTopPriorityNodes();
+  std::set<PubKey> FindTopPriorityNodes(uint8_t& lowestPriority);
 
   void SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,
                                                 unsigned int& my_shards_lo,
