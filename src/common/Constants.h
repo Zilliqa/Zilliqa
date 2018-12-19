@@ -236,6 +236,8 @@ extern const unsigned int MAX_SHARD_NODE_NUM;
 extern const unsigned int MISORDER_TOLERANCE_IN_PERCENT;
 extern const unsigned int DSBLOCK_EXTRA_WAIT_TIME;
 extern const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT;
+extern const unsigned int TXN_SHARD_TARGET_DIFFICULTY;
+extern const unsigned int TXN_DS_TARGET_DIFFICULTY;
 
 // Recovery and upgrading constants
 extern const unsigned int DS_DELAY_WAKEUP_IN_SECONDS;
