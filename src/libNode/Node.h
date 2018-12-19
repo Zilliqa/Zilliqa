@@ -154,6 +154,9 @@ class Node : public Executable, public Broadcastable {
   std::condition_variable cv_fallbackConsensusObj;
   bool m_runFallback;
 
+  // Updating of ds guard var
+  std::atomic_bool m_requestedForDSGuardNetworkInfoUpdate = {false};
+
   bool CheckState(Action action);
 
   // To block certain types of incoming message for certain states
@@ -207,6 +210,9 @@ class Node : public Executable, public Broadcastable {
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
   void StoreDSBlockToDisk(const DSBlock& dsblock);
 
+  // DS Guard network info update
+  void QueryLookupForDSGuardNetworkInfoUpdate();
+
   // Message handlers
   bool ProcessStartPoW(const std::vector<unsigned char>& message,
                        unsigned int offset, const Peer& from);
@@ -233,10 +239,9 @@ class Node : public Executable, public Broadcastable {
   bool ProcessProposeGasPrice(const std::vector<unsigned char>& message,
                               unsigned int offset, const Peer& from);
 
-#ifdef HEARTBEAT_TEST
-  bool ProcessKillPulse(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
-#endif  // HEARTBEAT_TEST
+  bool ProcessDSGuardNetworkInfoUpdate(
+      const std::vector<unsigned char>& message, unsigned int offset,
+      const Peer& from);
 
   // bool ProcessCreateAccounts(const std::vector<unsigned char> & message,
   // unsigned int offset, const Peer & from);
@@ -338,9 +343,9 @@ class Node : public Executable, public Broadcastable {
 
   void GetIpMapping(std::unordered_map<std::string, Peer>& ipMapping);
 
-  void WakeupForUpgrade();
+  void WakeupAtDSEpoch();
 
-  void WakeupForRecovery();
+  void WakeupAtTxEpoch();
 
   /// Set initial state, variables, and clean-up storage
   void Init();

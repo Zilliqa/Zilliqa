@@ -266,7 +266,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                                                      tmpNumber);
 
   int256_t balanceDelta = protoAccount.numbersign()
-                              ? tmpNumber
+                              ? tmpNumber.convert_to<int256_t>()
                               : 0 - tmpNumber.convert_to<int256_t>();
   account.ChangeBalance(balanceDelta);
 
@@ -1962,7 +1962,7 @@ bool Messenger::StateDeltaToAddressMap(
         entry.account().balance(), tmpNumber);
 
     int256_t balanceDelta = entry.account().numbersign()
-                                ? tmpNumber
+                                ? tmpNumber.convert_to<int256_t>()
                                 : 0 - tmpNumber.convert_to<int256_t>();
 
     accountMap.insert(make_pair(address, balanceDelta));
@@ -5227,7 +5227,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
 }
 
 bool Messenger::SetLookupGetMicroBlockFromLookup(
-    vector<unsigned char>& dest, const unsigned int offset,
+    vector<unsigned char>& dst, const unsigned int offset,
     const vector<BlockHash>& microBlockHashes, uint32_t portNo) {
   LOG_MARKER();
 
@@ -5244,7 +5244,7 @@ bool Messenger::SetLookupGetMicroBlockFromLookup(
                 "LookupGetMicroBlockFromLookup initialization failed.");
     return false;
   }
-  return SerializeToArray(result, dest, offset);
+  return SerializeToArray(result, dst, offset);
 }
 
 bool Messenger::GetLookupGetMicroBlockFromLookup(
@@ -6498,6 +6498,210 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
       LOG_GENERAL(WARNING, "Invalid signature in tx blocks.");
       return false;
     }
+  }
+
+  return true;
+}
+
+bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint64_t dsEpochNumber, const Peer& dsGuardNewNetworkInfo,
+    const uint64_t timestamp, const pair<PrivKey, PubKey>& dsguardkey) {
+  LOG_MARKER();
+  DSLookupSetDSGuardNetworkInfoUpdate result;
+
+  result.mutable_data()->set_dsepochnumber(dsEpochNumber);
+  SerializableToProtobufByteArray(
+      dsguardkey.second, *result.mutable_data()->mutable_dsguardpubkey());
+  PeerToProtobuf(dsGuardNewNetworkInfo,
+                 *result.mutable_data()->mutable_dsguardnewnetworkinfo());
+  result.mutable_data()->set_timestamp(timestamp);
+
+  if (result.data().IsInitialized()) {
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, dsguardkey.first, dsguardkey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(
+        WARNING,
+        "DSLookupSetDSGuardNetworkInfoUpdate.Data initialization failed.");
+    return false;
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "DSLookupSetDSGuardNetworkInfoUpdate initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint64_t& dsEpochNumber, Peer& dsGuardNewNetworkInfo, uint64_t& timestamp,
+    PubKey& dsGuardPubkey) {
+  LOG_MARKER();
+
+  DSLookupSetDSGuardNetworkInfoUpdate result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "DSLookupSetDSGuardNetworkInfoUpdate initialization failed.");
+    return false;
+  }
+
+  // First deserialize the fields needed just for signature check
+  ProtobufByteArrayToSerializable(result.data().dsguardpubkey(), dsGuardPubkey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  // Check signature
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     dsGuardPubkey)) {
+    LOG_GENERAL(WARNING,
+                "DSLookupSetDSGuardNetworkInfoUpdate signature wrong.");
+    return false;
+  }
+
+  // Deserialize the remaining fields
+  dsEpochNumber = result.data().dsepochnumber();
+  ProtobufToPeer(result.data().dsguardnewnetworkinfo(), dsGuardNewNetworkInfo);
+  timestamp = result.data().timestamp();
+
+  return true;
+}
+
+bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const uint32_t portNo, const uint64_t dsEpochNumber) {
+  LOG_MARKER();
+
+  NodeGetGuardNodeNetworkInfoUpdate result;
+  result.set_portno(portNo);
+  result.set_dsepochnumber(dsEpochNumber);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(
+        WARNING,
+        "SetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
+    const vector<unsigned char>& src, const unsigned int offset,
+    uint32_t& portNo, uint64_t& dsEpochNumber) {
+  LOG_MARKER();
+
+  NodeGetGuardNodeNetworkInfoUpdate result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(
+        WARNING,
+        "GetLookupGetNewDSGuardNetworkInfoFromLookup initialization failed.");
+    return false;
+  }
+
+  portNo = result.portno();
+  dsEpochNumber = result.dsepochnumber();
+
+  return true;
+}
+
+bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
+    vector<unsigned char>& dst, unsigned int offset,
+    const vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
+    const std::pair<PrivKey, PubKey>& lookupKey) {
+  LOG_MARKER();
+  NodeSetGuardNodeNetworkInfoUpdate result;
+
+  for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
+    ProtoDSGuardUpdateStruct* proto_DSGuardUpdateStruct =
+        result.mutable_data()->add_dsguardupdatestruct();
+    SerializableToProtobufByteArray(
+        dsguardupdate.m_dsGuardPubkey,
+        *proto_DSGuardUpdateStruct->mutable_dsguardpubkey());
+    PeerToProtobuf(dsguardupdate.m_dsGuardNewNetworkInfo,
+                   *proto_DSGuardUpdateStruct->mutable_dsguardnewnetworkinfo());
+    proto_DSGuardUpdateStruct->set_timestamp(dsguardupdate.m_timestamp);
+  }
+
+  if (result.data().IsInitialized()) {
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign ds guard identity update.");
+      return false;
+    }
+    SerializableToProtobufByteArray(lookupKey.second,
+                                    *result.mutable_lookuppubkey());
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(
+        WARNING,
+        "NodeSetGuardNodeNetworkInfoUpdate.Data initialization failed.");
+    return false;
+  }
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "SetNodeSetNewDSGuardNetworkInfo initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
+    const vector<unsigned char>& src, const unsigned int offset,
+    vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
+    PubKey& lookupPubKey) {
+  LOG_MARKER();
+  NodeSetGuardNodeNetworkInfoUpdate result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "NodeSetGuardNodeNetworkInfoUpdate initialization failed.");
+    return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.lookuppubkey(), lookupPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     lookupPubKey)) {
+    LOG_GENERAL(WARNING, "NodeSetGuardNodeNetworkInfoUpdate signature wrong.");
+    return false;
+  }
+
+  for (const auto& proto_DSGuardUpdateStruct :
+       result.data().dsguardupdatestruct()) {
+    PubKey tempPubk;
+    ProtobufByteArrayToSerializable(proto_DSGuardUpdateStruct.dsguardpubkey(),
+                                    tempPubk);
+    Peer tempPeer;
+    ProtobufToPeer(proto_DSGuardUpdateStruct.dsguardnewnetworkinfo(), tempPeer);
+    uint64_t tempTimestamp = proto_DSGuardUpdateStruct.timestamp();
+    vecOfDSGuardUpdateStruct.emplace_back(
+        DSGuardUpdateStruct(tempPubk, tempPeer, tempTimestamp));
   }
 
   return true;

@@ -136,6 +136,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
               "Winning result  = 0x" << hex << winning_result.result);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning mixhash = 0x" << hex << winning_result.mix_hash);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "rand1 = 0x" << DataConversion::charArrToHexStr(rand1));
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "rand2 = 0x" << DataConversion::charArrToHexStr(rand2));
 
     m_stillMiningPrimary = false;
 
@@ -233,7 +237,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
       if (ds_pow_winning_result.success) {
         LOG_GENERAL(INFO,
-                    "Founds PoW solution that meet ds commitee "
+                    "Found PoW solution that meets ds commitee "
                     "requirement. 0x"
                         << hex << ds_pow_winning_result.result);
 

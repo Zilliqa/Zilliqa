@@ -262,7 +262,7 @@ void Node::StartFirstTxEpoch() {
   }
 
   LOG_MARKER();
-
+  m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
 
   uint16_t lastBlockHash = 0;

@@ -238,7 +238,14 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
 
     txns.clear();
 
-    uint64_t nonce = AccountStore::GetInstance().GetAccount(addr)->GetNonce();
+    auto account = AccountStore::GetInstance().GetAccount(addr);
+
+    if (!account) {
+      LOG_GENERAL(WARNING, "Failed to get genesis account!");
+      return false;
+    }
+
+    uint64_t nonce = account->GetNonce();
 
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                      num_txn, txns)) {
@@ -1549,7 +1556,8 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
 
     unsigned int i = 0;
     for (auto& ds : *m_mediator.m_DSCommittee) {
-      if (GetSyncType() == SyncType::DS_SYNC &&
+      if ((GetSyncType() == SyncType::DS_SYNC ||
+           GetSyncType() == SyncType::GUARD_DS_SYNC) &&
           ds.second == m_mediator.m_selfPeer) {
         ds.second = Peer();
       }
@@ -1571,7 +1579,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
     for (i = 0; i < m_mediator.m_blocklinkchain.GetBuiltDSComm().size(); i++) {
       if (!(m_mediator.m_DSCommittee->at(i).first ==
             m_mediator.m_blocklinkchain.GetBuiltDSComm().at(i).first)) {
-        LOG_GENERAL(WARNING, "Mis-match of ds comm at" << i);
+        LOG_GENERAL(WARNING, "Mis-match of ds comm at index " << i);
         isVerif = false;
         break;
       }
@@ -1966,7 +1974,8 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
       m_mediator.m_lookup->SendMessageToRandomLookupNode(
           getpowsubmission_message);
-    } else if (m_syncType == SyncType::DS_SYNC) {
+    } else if (m_syncType == SyncType::DS_SYNC ||
+               m_syncType == SyncType::GUARD_DS_SYNC) {
       if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
                                   m_mediator.m_dsBlockChain.GetLastBlock()
                                       .GetHeader()
@@ -2564,7 +2573,8 @@ bool Lookup::ProcessSetStartPoWFromSeed(
 
   InitMining(index);
 
-  if (m_syncType == SyncType::DS_SYNC) {
+  if (m_syncType == SyncType::DS_SYNC ||
+      m_syncType == SyncType::GUARD_DS_SYNC) {
     if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
                                 m_mediator.m_dsBlockChain.GetLastBlock()
                                     .GetHeader()
@@ -3067,7 +3077,8 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
     if (m_syncType == SyncType::DS_SYNC ||
         m_syncType == SyncType::LOOKUP_SYNC ||
-        m_syncType == SyncType::NEW_LOOKUP_SYNC) {
+        m_syncType == SyncType::NEW_LOOKUP_SYNC ||
+        m_syncType == SyncType::GUARD_DS_SYNC) {
       if (!m_isFirstLoop) {
         m_currDSExpired = true;
       } else {
@@ -3171,7 +3182,9 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Lookup::ProcessGetStateDeltaFromSeed,
       &Lookup::ProcessSetStateDeltaFromSeed,
       &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
-      &Lookup::ProcessForwardTxn};
+      &Lookup::ProcessForwardTxn,
+      &Lookup::ProcessGetDSGuardNetworkInfo};
+
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
       sizeof(ins_handlers) / sizeof(InstructionHandler);
@@ -3190,8 +3203,10 @@ bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
       // To-do: Error recovery
     }
   } else {
-    LOG_GENERAL(WARNING,
-                "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+    LOG_GENERAL(WARNING, "Unknown instruction byte "
+                             << hex << (unsigned int)ins_byte << " from "
+                             << from);
+    LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
   }
 
   return result;
@@ -3535,4 +3550,61 @@ void Lookup::SetSyncType(SyncType syncType) {
   m_syncType = syncType;
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Set sync type to " << syncType);
+}
+
+bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
+                                          unsigned int offset,
+                                          const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetDSGuardNetworkInfo not expected to be "
+                "called from other than the LookUp node.");
+    return true;
+  }
+
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to process request to update ds "
+                "guard network info.");
+    return false;
+  }
+
+  LOG_MARKER();
+
+  uint32_t portNo = 0;
+  uint64_t dsEpochNo = 0;
+
+  if (!Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
+          message, offset, portNo, dsEpochNo)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
+    return false;
+  }
+
+  if (m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.find(dsEpochNo) ==
+      m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.end()) {
+    LOG_EPOCH(
+        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        "No record found for guard ds update. No update needed. dsEpochNo: "
+            << dsEpochNo);
+    return false;
+  }
+
+  Peer requestingNode(from.m_ipAddress, portNo);
+  vector<unsigned char> setNewDSGuardNetworkInfo = {
+      MessageType::NODE, NodeInstructionType::DSGUARDNODENETWORKINFOUPDATE};
+
+  if (!Messenger::SetNodeSetNewDSGuardNetworkInfo(
+          setNewDSGuardNetworkInfo, MessageOffset::BODY,
+          m_mediator.m_ds->m_lookupStoreForGuardNodeUpdate.at(dsEpochNo),
+          m_mediator.m_selfKey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeSetNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
+                        << requestingNode);
+  P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
+  return true;
 }

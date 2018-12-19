@@ -164,6 +164,8 @@ const unsigned int UNFILLED_PERCENT_LOW{
     ReadConstantNumeric("UNFILLED_PERCENT_LOW", "node.gas.")};
 const unsigned int UNFILLED_PERCENT_HIGH{
     ReadConstantNumeric("UNFILLED_PERCENT_HIGH", "node.gas.")};
+const boost::multiprecision::uint128_t GAS_PRICE_MIN_VALUE{
+    ReadConstantString("GAS_PRICE_MIN_VALUE", "node.gas.")};
 const unsigned int GAS_PRICE_PRECISION{
     ReadConstantNumeric("GAS_PRICE_PRECISION", "node.gas.")};
 const boost::multiprecision::uint128_t PRECISION_MIN_VALUE{
@@ -227,6 +229,8 @@ const bool GUARD_MODE{ReadConstantString("GUARD_MODE", "node.guard_mode.") ==
                       "true"};
 const bool EXCLUDE_PRIV_IP{
     ReadConstantString("EXCLUDE_PRIV_IP", "node.guard_mode.") == "true"};
+const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE{ReadConstantNumeric(
+    "WINDOW_FOR_DS_NETWORK_INFO_UPDATE", "node.guard_mode.")};
 
 // Heartbeat constants
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{
@@ -288,8 +292,8 @@ const unsigned int TXN_DS_TARGET_DIFFICULTY{
     ReadConstantNumeric("TXN_DS_TARGET_DIFFICULTY", "node.pow.")};
 
 // Recovery and upgrading constants
-const unsigned int DS_DELAY_WAKEUP_IN_SECONDS{
-    ReadConstantNumeric("DS_DELAY_WAKEUP_IN_SECONDS", "node.recovery.")};
+const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
+    ReadConstantNumeric("WAIT_LOOKUP_WAKEUP_IN_SECONDS", "node.recovery.")};
 const bool GET_INITIAL_DS_FROM_REPO{
     ReadConstantString("GET_INITIAL_DS_FROM_REPO", "node.recovery.") == "true"};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
@@ -300,6 +304,9 @@ const string UPGRADE_HOST_ACCOUNT{
     ReadConstantString("UPGRADE_HOST_ACCOUNT", "node.recovery.")};
 const string UPGRADE_HOST_REPO{
     ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
+const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
+    ReadConstantString("RECOVERY_TRIM_INCOMPLETED_BLOCK", "node.recovery.") ==
+    "true"};
 
 // Smart contract constants
 const string SCILLA_ROOT{

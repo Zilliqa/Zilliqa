@@ -30,6 +30,7 @@
 
 #include "Peer.h"
 #include "libCrypto/Schnorr.h"
+#include "libMediator/Mediator.h"
 
 class Guard {
   Guard();

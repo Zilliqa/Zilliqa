@@ -774,6 +774,11 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   } else {
     LOG_GENERAL(INFO, "isVacuousEpoch now");
 
+    // Check whether any ds guard change network info
+    if (!LOOKUP_NODE_MODE) {
+      QueryLookupForDSGuardNetworkInfoUpdate();
+    }
+
     // Remove because shard nodes will be shuffled in next epoch.
     CleanMicroblockConsensusBuffer();
 
