@@ -68,19 +68,22 @@ bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,
     //    size will be (10), it will return false
     if (t != m_tranHashMap.end() &&
         (matchedIndexes.empty() || t->second > matchedIndexes.back()) &&
-        (t->second < ((tolerance_in_percent * receivedTxns.size() / 100 +
-                       matchedIndexes.size())))) {
+        (t->second <
+         ((tolerance_in_percent * receivedTxns.size() / ONE_HUNDRED_PERCENT +
+           matchedIndexes.size())))) {
       matchedIndexes.push_back(t->second);
     }
   }
 
   unsigned int min_ordered_txn_num =
-      (100 - tolerance_in_percent) * expectedTxns.size() / 100;
+      (ONE_HUNDRED_PERCENT - tolerance_in_percent) * expectedTxns.size() /
+      ONE_HUNDRED_PERCENT;
 
   LOG_GENERAL(INFO, "Minimum in order num required: "
                         << min_ordered_txn_num << " actual in order num: "
                         << matchedIndexes.size() << " similarity: "
-                        << (matchedIndexes.size() * 100 / expectedTxns.size())
+                        << (matchedIndexes.size() * ONE_HUNDRED_PERCENT /
+                            expectedTxns.size())
                         << "% "
                         << "tolerance: " << tolerance_in_percent << "%");
 
