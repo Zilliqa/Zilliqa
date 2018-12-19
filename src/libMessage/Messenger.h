@@ -51,9 +51,8 @@ class Messenger {
   // Primitives
   // ============================================================================
 
-  static bool GetDSCommitteeHash(
-      const std::deque<std::pair<PubKey, Peer>>& dsCommittee,
-      CommitteeHash& dst);
+  static bool GetDSCommitteeHash(const DequeOfDSNode& dsCommittee,
+                                 CommitteeHash& dst);
   static bool GetShardHash(const Shard& shard, CommitteeHash& dst);
 
   static bool GetShardingStructureHash(const DequeOfShard& shards,
