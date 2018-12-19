@@ -2476,11 +2476,7 @@ bool Messenger::GetMicroBlockHeader(const vector<unsigned char>& src,
     return false;
   }
 
-  if (!ProtobufToMicroBlockHeader(result, microBlockHeader)) {
-    return false;
-  }
-
-  return true;
+  return ProtobufToMicroBlockHeader(result, microBlockHeader);
 }
 
 bool Messenger::SetMicroBlock(vector<unsigned char>& dst,
