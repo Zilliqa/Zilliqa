@@ -51,7 +51,7 @@ uint128_t DirectoryService::GetNewGasPrice() {
     return GetIncreasedGasPrice();
   }
   return max(m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
-             PRECISION_MIN_VALUE);
+             max(PRECISION_MIN_VALUE, GAS_PRICE_MIN_VALUE));
 }
 
 uint128_t DirectoryService::GetHistoricalMeanGasPrice() {
@@ -135,7 +135,8 @@ uint128_t DirectoryService::GetIncreasedGasPrice() {
     median_val = *iter;
   }
 
-  return max(max(lowerbound, min(median_val, upperbound)), PRECISION_MIN_VALUE);
+  return max(max(lowerbound, min(median_val, upperbound)),
+             max(PRECISION_MIN_VALUE, GAS_PRICE_MIN_VALUE));
 }
 
 uint128_t DirectoryService::GetDecreasedGasPrice() {
@@ -160,7 +161,7 @@ uint128_t DirectoryService::GetDecreasedGasPrice() {
     decreased_val = mean_val;
   }
 
-  return max(PRECISION_MIN_VALUE, decreased_val);
+  return max(max(PRECISION_MIN_VALUE, GAS_PRICE_MIN_VALUE), decreased_val);
 }
 
 bool DirectoryService::VerifyGasPrice(const uint128_t& gasPrice) {
