@@ -185,9 +185,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetMetadata(MetaType type, std::vector<unsigned char>& data);
 
   /// Save DS committee
-  bool PutDSCommittee(
-      const std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& dsCommittee,
-      const uint16_t& consensusLeaderID);
+  bool PutDSCommittee(const std::shared_ptr<DequeOfDSNode>& dsCommittee,
+                      const uint16_t& consensusLeaderID);
 
   /// Retrieve DS committee
   bool GetDSCommittee(

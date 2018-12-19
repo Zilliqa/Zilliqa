@@ -471,9 +471,8 @@ bool BlockStorage::GetMetadata(MetaType type,
   return true;
 }
 
-bool BlockStorage::PutDSCommittee(
-    const shared_ptr<deque<pair<PubKey, Peer>>>& dsCommittee,
-    const uint16_t& consensusLeaderID) {
+bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfDSNode>& dsCommittee,
+                                  const uint16_t& consensusLeaderID) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexDsCommittee);
