@@ -621,7 +621,9 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     std::this_thread::sleep_for(chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS));
   }
 
-  if (!m_mediator.GetIsVacuousEpoch()) {
+  if (!m_mediator.GetIsVacuousEpoch() && 
+      m_mediator.m_dsBlockChain.GetLastBlock()
+        .GetHeader().GetDifficulty() >= TARGET_DIFFICULTY) {
     ProcessTransactionWhenShardLeader();
     AccountStore::GetInstance().SerializeDelta();
   }
@@ -931,7 +933,9 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(
     return true;
   }
 
-  if (!m_mediator.GetIsVacuousEpoch()) {
+  if (!m_mediator.GetIsVacuousEpoch() && 
+      m_mediator.m_dsBlockChain.GetLastBlock()
+        .GetHeader().GetDifficulty() >= TARGET_DIFFICULTY) {
     vector<TxnHash> missingTxnHashes;
     if (!ProcessTransactionWhenShardBackup(m_microblock->GetTranHashes(),
                                            missingTxnHashes)) {
