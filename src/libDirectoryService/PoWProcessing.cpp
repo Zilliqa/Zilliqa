@@ -473,7 +473,8 @@ void DirectoryService::ClearReputationOfNodeWithoutPoW() {
   }
 }
 
-std::set<PubKey> DirectoryService::FindTopPriorityNodes() {
+std::set<PubKey> DirectoryService::FindTopPriorityNodes(
+    uint8_t& lowestPriority) {
   std::vector<std::pair<PubKey, uint8_t>> vecNodePriority;
   vecNodePriority.reserve(m_allPoWs.size());
   for (const auto& kv : m_allPoWs) {
@@ -495,6 +496,7 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes() {
   for (size_t i = 0; i < MAX_SHARD_NODE_NUM && i < vecNodePriority.size();
        ++i) {
     setTopPriorityNodes.insert(vecNodePriority[i].first);
+    lowestPriority = vecNodePriority[i].second;
   }
 
   // Because the oldest DS commitee member still need to keep in the network as
