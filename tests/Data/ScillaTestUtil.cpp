@@ -98,10 +98,11 @@ uint128_t ScillaTestUtil::GetBalanceFromOutput(void) {
 uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
   // Get blocknumber from blockchain.json
   uint64_t bnum = 0;
-  for (auto &it : blockchain)
+  for (auto &it : blockchain) {
     if (it["vname"] == "BLOCKNUMBER") {
       bnum = atoi(it["value"].asCString());
     }
+  }
 
   return bnum;
 }
