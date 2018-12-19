@@ -36,6 +36,7 @@
 #include "common/Broadcastable.h"
 #include "common/Executable.h"
 #include "libConsensus/Consensus.h"
+#include "libCrypto/Schnorr.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
@@ -72,6 +73,30 @@ struct PoWSolution {
     return std::tie(nonce, result, mixhash, lookupId, gasPrice) ==
            std::tie(rhs.nonce, rhs.result, rhs.mixhash, rhs.lookupId,
                     rhs.gasPrice);
+  }
+};
+
+struct DSGuardUpdateStruct {
+  PubKey m_dsGuardPubkey;
+  Peer m_dsGuardNewNetworkInfo;
+  uint64_t m_timestamp;
+
+  DSGuardUpdateStruct()
+      : m_dsGuardPubkey(PubKey()),
+        m_dsGuardNewNetworkInfo(Peer()),
+        m_timestamp(0) {}
+
+  DSGuardUpdateStruct(const PubKey& curDSGuardPubkey,
+                      const Peer& newDSGuardNetworkInfo,
+                      const uint64_t timestampOfChangeRequest)
+      : m_dsGuardPubkey(curDSGuardPubkey),
+        m_dsGuardNewNetworkInfo(newDSGuardNetworkInfo),
+        m_timestamp(timestampOfChangeRequest) {}
+
+  bool operator==(const DSGuardUpdateStruct& rhs) const {
+    return std::tie(m_dsGuardPubkey, m_dsGuardNewNetworkInfo, m_timestamp) ==
+           std::tie(rhs.m_dsGuardPubkey, rhs.m_dsGuardNewNetworkInfo,
+                    rhs.m_timestamp);
   }
 };
 
@@ -222,6 +247,8 @@ class DirectoryService : public Executable, public Broadcastable {
                                 unsigned int offset, const Peer& from);
   bool ProcessGetDSTxBlockMessage(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
+  bool ProcessNewDSGuardNetworkInfo(const std::vector<unsigned char>& message,
+                                    unsigned int offset, const Peer& from);
 
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
@@ -519,6 +546,12 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_MutexCVViewChangePrecheck;
   std::condition_variable cv_viewChangePrecheck;
 
+  // Guard mode recovery. currently used only by lookup node.
+  std::mutex m_mutexLookupStoreForGuardNodeUpdate;
+  std::map<uint64_t, std::vector<DSGuardUpdateStruct>>
+      m_lookupStoreForGuardNodeUpdate;
+  std::atomic_bool m_awaitingToSubmitNetworkInfoUpdate = {false};
+
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
   DirectoryService(Mediator& mediator);
@@ -598,6 +631,9 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // Reset certain variables to the initial state
   bool CleanVariables();
+
+  // For DS guard to update it's network information while in GUARD_MODE
+  bool UpdateDSGuardIdentity();
 
  private:
   static std::map<DirState, std::string> DirStateStrings;

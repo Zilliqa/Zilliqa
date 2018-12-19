@@ -1313,18 +1313,6 @@ bool Node::ProcessProposeGasPrice(
   return true;
 }
 
-#ifdef HEARTBEAT_TEST
-bool Node::ProcessKillPulse(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
-  LOG_MARKER();
-
-  m_mediator.m_killPulse = true;
-
-  return true;
-}
-#endif  // HEARTBEAT_TEST
-
 void Node::CommitTxnPacketBuffer() {
   LOG_MARKER();
 
@@ -1572,10 +1560,115 @@ bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
   return true;
 }
 
+void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to query from lookup for ds guard "
+                "network information update.");
+    return;
+  }
+
+  LOG_MARKER();
+
+  vector<unsigned char> queryLookupForDSGuardNetworkInfoUpdate = {
+      MessageType::LOOKUP,
+      LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
+  uint64_t dsEpochNum =
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  LOG_GENERAL(INFO,
+              "Querying the lookup for any ds guard node network info change "
+              "for ds epoch "
+                  << dsEpochNum);
+
+  if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
+          queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
+          m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
+    return;
+  }
+  m_requestedForDSGuardNetworkInfoUpdate = true;
+  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+      queryLookupForDSGuardNetworkInfoUpdate);
+}
+
+bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
+                                           unsigned int offset,
+                                           [[gnu::unused]] const Peer& from) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Node::ProcessDSGuardNetworkInfoUpdate not expected to be called from "
+        "LookUp node.");
+    return true;
+  }
+
+  if (!GUARD_MODE) {
+    LOG_GENERAL(WARNING,
+                "Not in guard mode. Unable to process from lookup for ds guard "
+                "network information update.");
+    return false;
+  }
+
+  if (!m_requestedForDSGuardNetworkInfoUpdate) {
+    LOG_GENERAL(WARNING,
+                "Did not request for DS Guard node network info update");
+    return false;
+  }
+
+  LOG_MARKER();
+
+  vector<DSGuardUpdateStruct> vecOfDSGuardUpdateStruct;
+  PubKey lookupPubkey;
+  if (!Messenger::SetNodeGetNewDSGuardNetworkInfo(
+          message, offset, vecOfDSGuardUpdateStruct, lookupPubkey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::SetNodeGetNewDSGuardNetworkInfo failed.");
+    return false;
+  }
+
+  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+                                lookupPubkey)) {
+    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The message sender pubkey: "
+                  << lookupPubkey << " is not in my lookup node list.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Received from lookup " << from);
+
+  {
+    // Process and update ds committee network info
+    lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
+    for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
+      replace_if(m_mediator.m_DSCommittee->begin(),
+                 m_mediator.m_DSCommittee->begin() +
+                     Guard::GetInstance().GetNumOfDSGuard(),
+                 [&dsguardupdate](const pair<PubKey, Peer>& element) {
+                   return element.first == dsguardupdate.m_dsGuardPubkey;
+                 },
+                 make_pair(dsguardupdate.m_dsGuardPubkey,
+                           dsguardupdate.m_dsGuardNewNetworkInfo));
+      LOG_GENERAL(INFO, "[update ds guard] "
+                            << dsguardupdate.m_dsGuardPubkey
+                            << " new network info is "
+                            << dsguardupdate.m_dsGuardNewNetworkInfo)
+    }
+  }
+
+  m_requestedForDSGuardNetworkInfoUpdate = false;
+  return true;
+}
+
 bool Node::ToBlockMessage([[gnu::unused]] unsigned char ins_byte) {
   if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
     if (!LOOKUP_NODE_MODE) {
       if (m_mediator.m_lookup->GetSyncType() == SyncType::DS_SYNC) {
+        return true;
+      } else if (m_mediator.m_lookup->GetSyncType() ==
+                     SyncType::GUARD_DS_SYNC &&
+                 GUARD_MODE) {
         return true;
       }
       if (!m_fromNewProcess) {
@@ -1704,9 +1797,7 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       &Node::ProcessFallbackConsensus,
       &Node::ProcessFallbackBlock,
       &Node::ProcessProposeGasPrice,
-#ifdef HEARTBEAT_TEST
-      &Node::ProcessKillPulse,
-#endif  // HEARTBEAT_TEST
+      &Node::ProcessDSGuardNetworkInfoUpdate,
   };
 
   const unsigned char ins_byte = message.at(offset);
@@ -1726,8 +1817,10 @@ bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
       // To-do: Error recovery
     }
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Unknown instruction byte " << hex << (unsigned int)ins_byte);
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Unknown instruction byte " << hex << (unsigned int)ins_byte
+                                          << " from " << from);
+    LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
   }
 
   return result;

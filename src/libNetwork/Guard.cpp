@@ -28,6 +28,7 @@
 #include <string>
 
 #include "Peer.h"
+#include "common/Messages.h"
 #include "libConsensus/ConsensusCommon.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
