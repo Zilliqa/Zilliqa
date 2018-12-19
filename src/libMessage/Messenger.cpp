@@ -34,6 +34,10 @@ using namespace boost::multiprecision;
 using namespace std;
 using namespace ZilliqaMessage;
 
+// ============================================================================
+// Utility conversion functions
+// ============================================================================
+
 void SerializableToProtobufByteArray(const Serializable& serializable,
                                      ByteArray& byteArray) {
   vector<unsigned char> tmp;
@@ -112,6 +116,162 @@ void NumberToArray(const T& number, vector<unsigned char>& dst,
                    const unsigned int offset) {
   Serializable::SetNumber<T>(dst, offset, number, S);
 }
+
+// ============================================================================
+// Functions to check for fields in primitives that are used for persistent
+// storage. Remove fields from the checks once they are deprecated.
+// ============================================================================
+
+inline bool CheckFieldsInProtoBlockLink(const ProtoBlockLink& protoBlockLink) {
+  return protoBlockLink.has_index() && protoBlockLink.has_dsindex() &&
+         protoBlockLink.has_blocktype() && protoBlockLink.has_blockhash();
+}
+
+inline bool CheckFieldsInProtoDSBlockPowDSWinner(
+    const ProtoDSBlock::DSBlockHeader::PowDSWinners& powDSWinner) {
+  return powDSWinner.has_key() && powDSWinner.has_val();
+}
+
+inline bool CheckFieldsInProtoDSBlockDSBlockHashSet(
+    const ProtoDSBlock::DSBlockHashSet& dsBlockHashSet) {
+  return dsBlockHashSet.has_shardinghash() &&
+         dsBlockHashSet.has_reservedfield();
+}
+
+inline bool CheckFieldsInProtoDSBlockDSBlockHeader(
+    const ProtoDSBlock::DSBlockHeader& protoDSBlockHeader) {
+  // Don't need to enforce check on repeated member dswinners
+  // Don't need to enforce check on optional members dsdifficulty, difficulty,
+  // and gasprice
+  return protoDSBlockHeader.has_prevhash() &&
+         protoDSBlockHeader.has_leaderpubkey() &&
+         protoDSBlockHeader.has_blocknum() &&
+         protoDSBlockHeader.has_epochnum() && protoDSBlockHeader.has_swinfo() &&
+         protoDSBlockHeader.has_hash() &&
+         protoDSBlockHeader.has_committeehash() &&
+         CheckFieldsInProtoDSBlockDSBlockHashSet(protoDSBlockHeader.hash());
+}
+
+inline bool CheckFieldsInProtoDSBlock(const ProtoDSBlock& protoDSBlock) {
+  return protoDSBlock.has_header() && protoDSBlock.has_blockbase();
+}
+
+inline bool CheckFieldsInProtoDSNode(const ProtoDSNode& protoDSNode) {
+  return protoDSNode.has_pubkey() && protoDSNode.has_peer();
+}
+
+inline bool CheckFieldsInProtoDSCommittee(
+    const ProtoDSCommittee& protoDSCommittee) {
+  // Don't need to enforce check on repeated member dsnodes
+  return true;
+}
+
+inline bool CheckFieldsInProtoMicroBlockMicroBlockHeader(
+    const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
+  return protoMicroBlockHeader.has_type() &&
+         protoMicroBlockHeader.has_version() &&
+         protoMicroBlockHeader.has_shardid() &&
+         protoMicroBlockHeader.has_gaslimit() &&
+         protoMicroBlockHeader.has_gasused() &&
+         protoMicroBlockHeader.has_rewards() &&
+         protoMicroBlockHeader.has_prevhash() &&
+         protoMicroBlockHeader.has_epochnum() &&
+         protoMicroBlockHeader.has_txroothash() &&
+         protoMicroBlockHeader.has_numtxs() &&
+         protoMicroBlockHeader.has_minerpubkey() &&
+         protoMicroBlockHeader.has_dsblocknum() &&
+         protoMicroBlockHeader.has_statedeltahash() &&
+         protoMicroBlockHeader.has_tranreceipthash() &&
+         protoMicroBlockHeader.has_committeehash();
+}
+
+inline bool CheckFieldsInProtoMicroBlock(
+    const ProtoMicroBlock& protoMicroBlock) {
+  // Don't need to enforce check on repeated member tranhashes
+  return protoMicroBlock.has_header() && protoMicroBlock.has_blockbase();
+}
+
+inline bool CheckFieldsInProtoShardingStructureMember(
+    const ProtoShardingStructure::Member& protoMember) {
+  return protoMember.has_pubkey() && protoMember.has_peerinfo() &&
+         protoMember.has_reputation();
+}
+
+inline bool CheckFieldsInProtoShardingStructureShard(
+    const ProtoShardingStructure::Shard& protoShard) {
+  // Don't need to enforce check on repeated member members
+  return true;
+}
+
+inline bool CheckFieldsInProtoShardingStructure(
+    const ProtoShardingStructure& protoShardingStructure) {
+  // Don't need to enforce check on repeated member shards
+  return true;
+}
+
+inline bool CheckFieldsInProtoTxBlockTxBlockHashSet(
+    const ProtoTxBlock::TxBlockHashSet& protoTxBlockHashSet) {
+  return protoTxBlockHashSet.has_stateroothash() &&
+         protoTxBlockHashSet.has_statedeltahash() &&
+         protoTxBlockHashSet.has_mbinfohash();
+}
+
+inline bool CheckFieldsInProtoMbInfo(const ProtoMbInfo& protoMbInfo) {
+  return protoMbInfo.has_mbhash() && protoMbInfo.has_txroot() &&
+         protoMbInfo.has_shardid();
+}
+
+inline bool CheckFieldsInProtoTxBlockTxBlockHeader(
+    const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
+  return protoTxBlockHeader.has_type() && protoTxBlockHeader.has_version() &&
+         protoTxBlockHeader.has_gaslimit() &&
+         protoTxBlockHeader.has_gasused() && protoTxBlockHeader.has_rewards() &&
+         protoTxBlockHeader.has_prevhash() &&
+         protoTxBlockHeader.has_blocknum() && protoTxBlockHeader.has_hash() &&
+         protoTxBlockHeader.has_numtxs() &&
+         protoTxBlockHeader.has_minerpubkey() &&
+         protoTxBlockHeader.has_dsblocknum() &&
+         protoTxBlockHeader.has_committeehash() &&
+         CheckFieldsInProtoTxBlockTxBlockHashSet(protoTxBlockHeader.hash());
+}
+
+inline bool CheckFieldsInProtoTxBlock(const ProtoTxBlock& protoTxBlock) {
+  // Don't need to enforce check on repeated member mbinfos
+  return protoTxBlock.has_header() && protoTxBlock.has_blockbase();
+}
+
+inline bool CheckFieldsInProtoVCBlockVCBlockHeader(
+    const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
+  // Don't need to enforce check on repeated member faultyleaders
+  return protoVCBlockHeader.has_viewchangedsepochno() &&
+         protoVCBlockHeader.has_viewchangeepochno() &&
+         protoVCBlockHeader.has_viewchangestate() &&
+         protoVCBlockHeader.has_candidateleadernetworkinfo() &&
+         protoVCBlockHeader.has_candidateleaderpubkey() &&
+         protoVCBlockHeader.has_vccounter() &&
+         protoVCBlockHeader.has_committeehash() &&
+         protoVCBlockHeader.has_prevhash();
+}
+
+inline bool CheckFieldsInProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
+  return protoVCBlock.has_header() && protoVCBlock.has_blockbase();
+}
+
+inline bool CheckFieldsInProtoBlockBaseCoSignatures(
+    const ProtoBlockBase::CoSignatures& protoCoSignatures) {
+  // Don't need to enforce check on repeated members b1 and b2
+  return protoCoSignatures.has_cs1() && protoCoSignatures.has_cs2();
+}
+
+inline bool CheckFieldsInProtoBlockBase(const ProtoBlockBase& protoBlockBase) {
+  return protoBlockBase.has_blockhash() && protoBlockBase.has_cosigs() &&
+         protoBlockBase.has_timestamp() &&
+         CheckFieldsInProtoBlockBaseCoSignatures(protoBlockBase.cosigs());
+}
+
+// ============================================================================
+// Protobuf <-> Primitives conversion functions
+// ============================================================================
 
 void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
@@ -348,9 +508,19 @@ void DSCommitteeToProtobuf(const deque<pair<PubKey, Peer>>& dsCommittee,
   }
 }
 
-void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
+bool ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
                            deque<pair<PubKey, Peer>>& dsCommittee) {
+  if (!CheckFieldsInProtoDSCommittee(protoDSCommittee)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoDSCommittee failed.");
+    return false;
+  }
+
   for (const auto& dsnode : protoDSCommittee.dsnodes()) {
+    if (!CheckFieldsInProtoDSNode(dsnode)) {
+      LOG_GENERAL(WARNING, "CheckFieldsInProtoDSNode failed.");
+      continue;
+    }
+
     PubKey pubkey;
     Peer peer;
 
@@ -358,6 +528,8 @@ void ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
     ProtobufByteArrayToSerializable(dsnode.peer(), peer);
     dsCommittee.emplace_back(pubkey, peer);
   }
+
+  return true;
 }
 
 void FaultyLeaderToProtobuf(const vector<pair<PubKey, Peer>>& faultyLeaders,
@@ -421,8 +593,13 @@ void BlockBaseToProtobuf(const BlockBase& base,
   }
 }
 
-void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
+bool ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
                          BlockBase& base) {
+  if (!CheckFieldsInProtoBlockBase(protoBlockBase)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoBlockBase failed.");
+    return false;
+  }
+
   // Deserialize cosigs
   CoSignatures cosigs;
   cosigs.m_B1.resize(protoBlockBase.cosigs().b1().size());
@@ -441,7 +618,7 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
   BlockHash blockHash;
   if (!Messenger::CopyWithSizeCheck(protoBlockBase.blockhash(),
                                     blockHash.asArray())) {
-    return;
+    return false;
   }
   base.SetBlockHash(blockHash);
 
@@ -450,6 +627,8 @@ void ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
   timestamp = protoBlockBase.timestamp();
 
   base.SetTimestamp(timestamp);
+
+  return true;
 }
 
 void ShardingStructureToProtobuf(
@@ -471,13 +650,29 @@ void ShardingStructureToProtobuf(
   }
 }
 
-void ProtobufToShardingStructure(
+bool ProtobufToShardingStructure(
     const ProtoShardingStructure& protoShardingStructure,
     DequeOfShard& shards) {
+  if (!CheckFieldsInProtoShardingStructure(protoShardingStructure)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoShardingStructure failed.");
+    return false;
+  }
+
   for (const auto& proto_shard : protoShardingStructure.shards()) {
+    if (!CheckFieldsInProtoShardingStructureShard(proto_shard)) {
+      LOG_GENERAL(WARNING, "CheckFieldsInProtoShardingStructureShard failed.");
+      continue;
+    }
+
     shards.emplace_back();
 
     for (const auto& proto_member : proto_shard.members()) {
+      if (!CheckFieldsInProtoShardingStructureMember(proto_member)) {
+        LOG_GENERAL(WARNING,
+                    "CheckFieldsInProtoShardingStructureMember failed.");
+        continue;
+      }
+
       PubKey key;
       Peer peer;
 
@@ -487,6 +682,8 @@ void ProtobufToShardingStructure(
       shards.back().emplace_back(key, peer, proto_member.reputation());
     }
   }
+
+  return true;
 }
 
 void AnnouncementShardingStructureToProtobuf(
@@ -806,24 +1003,26 @@ void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
   BlockBaseToProtobuf(dsBlock, *protoBlockBase);
 }
 
-void ProtobufToDSBlockHeader(
+bool ProtobufToDSBlockHeader(
     const ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
     DSBlockHeader& dsBlockHeader) {
+  if (!CheckFieldsInProtoDSBlockDSBlockHeader(protoDSBlockHeader)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoDSBlockDSBlockHeader failed.");
+    return false;
+  }
+
   BlockHash prevHash;
   PubKey leaderPubKey;
-  uint128_t gasprice;
   SWInfo swInfo;
   CommitteeHash committeeHash;
 
   if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.prevhash(),
                                     prevHash.asArray())) {
-    return;
+    return false;
   }
 
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
-      protoDSBlockHeader.gasprice(), gasprice);
   ProtobufByteArrayToSerializable(protoDSBlockHeader.swinfo(), swInfo);
 
   // Deserialize powDSWinners
@@ -831,6 +1030,10 @@ void ProtobufToDSBlockHeader(
   PubKey tempPubKey;
   Peer tempWinnerNetworkInfo;
   for (const auto& dswinner : protoDSBlockHeader.dswinners()) {
+    if (!CheckFieldsInProtoDSBlockPowDSWinner(dswinner)) {
+      LOG_GENERAL(WARNING, "CheckFieldsInProtoDSBlockPowDSWinner failed.");
+      continue;
+    }
     ProtobufByteArrayToSerializable(dswinner.key(), tempPubKey);
     ProtobufByteArrayToSerializable(dswinner.val(), tempWinnerNetworkInfo);
     powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
@@ -843,12 +1046,12 @@ void ProtobufToDSBlockHeader(
 
   if (!Messenger::CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
                                     hash.m_shardingHash.asArray())) {
-    return;
+    return false;
   }
 
   if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.committeehash(),
                                     committeeHash.asArray())) {
-    return;
+    return false;
   }
 
   copy(protoDSBlockHeaderHash.reservedfield().begin(),
@@ -859,29 +1062,49 @@ void ProtobufToDSBlockHeader(
 
   // Generate the new DSBlock
 
-  dsBlockHeader = DSBlockHeader(protoDSBlockHeader.dsdifficulty(),
-                                protoDSBlockHeader.difficulty(), prevHash,
+  const uint8_t dsdifficulty = protoDSBlockHeader.has_dsdifficulty()
+                                   ? protoDSBlockHeader.dsdifficulty()
+                                   : 0;
+  const uint8_t difficulty =
+      protoDSBlockHeader.has_difficulty() ? protoDSBlockHeader.difficulty() : 0;
+  uint128_t gasprice = 0;
+
+  if (protoDSBlockHeader.has_gasprice()) {
+    ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+        protoDSBlockHeader.gasprice(), gasprice);
+  }
+
+  dsBlockHeader = DSBlockHeader(dsdifficulty, difficulty, prevHash,
                                 leaderPubKey, protoDSBlockHeader.blocknum(),
                                 protoDSBlockHeader.epochnum(), gasprice, swInfo,
                                 powDSWinners, hash, committeeHash);
+
+  return true;
 }
 
-void ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
+bool ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
   // Deserialize header
+
+  if (!CheckFieldsInProtoDSBlock(protoDSBlock)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoDSBlock failed.");
+    return false;
+  }
 
   const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoHeader =
       protoDSBlock.header();
 
   DSBlockHeader header;
 
-  ProtobufToDSBlockHeader(protoHeader, header);
+  if (!ProtobufToDSBlockHeader(protoHeader, header)) {
+    return false;
+  }
 
   dsBlock = DSBlock(header, CoSignatures());
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoDSBlock.blockbase();
 
-  ProtobufToBlockBase(protoBlockBase, dsBlock);
+  return ProtobufToBlockBase(protoBlockBase, dsBlock);
 }
 
 void MicroBlockHeaderToProtobuf(
@@ -992,9 +1215,15 @@ void MicroBlockToProtobuf(const MicroBlock& microBlock,
   BlockBaseToProtobuf(microBlock, *protoBlockBase);
 }
 
-void ProtobufToMicroBlockHeader(
+bool ProtobufToMicroBlockHeader(
     const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader,
     MicroBlockHeader& microBlockHeader) {
+  if (!CheckFieldsInProtoMicroBlockMicroBlockHeader(protoMicroBlockHeader)) {
+    LOG_GENERAL(WARNING,
+                "CheckFieldsInProtoMicroBlockMicroBlockHeader failed.");
+    return false;
+  }
+
   uint64_t gasLimit;
   uint64_t gasUsed;
   uint128_t rewards;
@@ -1013,12 +1242,12 @@ void ProtobufToMicroBlockHeader(
 
   if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.prevhash(),
                                     prevHash.asArray())) {
-    return;
+    return false;
   }
 
   if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.txroothash(),
                                     txRootHash.asArray())) {
-    return;
+    return false;
   }
 
   ProtobufByteArrayToSerializable(protoMicroBlockHeader.minerpubkey(),
@@ -1026,17 +1255,17 @@ void ProtobufToMicroBlockHeader(
 
   if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
                                     stateDeltaHash.asArray())) {
-    return;
+    return false;
   }
 
   if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
                                     tranReceiptHash.asArray())) {
-    return;
+    return false;
   }
 
   if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.committeehash(),
                                     committeeHash.asArray())) {
-    return;
+    return false;
   }
 
   microBlockHeader = MicroBlockHeader(
@@ -1046,10 +1275,17 @@ void ProtobufToMicroBlockHeader(
       {txRootHash, stateDeltaHash, tranReceiptHash},
       protoMicroBlockHeader.numtxs(), minerPubKey,
       protoMicroBlockHeader.dsblocknum(), committeeHash);
+
+  return true;
 }
 
-void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
+bool ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
                           MicroBlock& microBlock) {
+  if (!CheckFieldsInProtoMicroBlock(protoMicroBlock)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoMicroBlock failed.");
+    return false;
+  }
+
   // Deserialize header
 
   const ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader& protoHeader =
@@ -1057,7 +1293,9 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
 
   MicroBlockHeader header;
 
-  ProtobufToMicroBlockHeader(protoHeader, header);
+  if (!ProtobufToMicroBlockHeader(protoHeader, header)) {
+    return false;
+  }
 
   // Deserialize body
 
@@ -1075,7 +1313,7 @@ void ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoMicroBlock.blockbase();
 
-  ProtobufToBlockBase(protoBlockBase, microBlock);
+  return ProtobufToBlockBase(protoBlockBase, microBlock);
 }
 
 void MbInfoToProtobuf(const MicroBlockInfo& mbInfo, ProtoMbInfo& ProtoMbInfo) {
@@ -1086,7 +1324,12 @@ void MbInfoToProtobuf(const MicroBlockInfo& mbInfo, ProtoMbInfo& ProtoMbInfo) {
   ProtoMbInfo.set_shardid(mbInfo.m_shardId);
 }
 
-void ProtobufToMbInfo(const ProtoMbInfo& ProtoMbInfo, MicroBlockInfo& mbInfo) {
+bool ProtobufToMbInfo(const ProtoMbInfo& ProtoMbInfo, MicroBlockInfo& mbInfo) {
+  if (!CheckFieldsInProtoMbInfo(ProtoMbInfo)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoMbInfo failed.");
+    return false;
+  }
+
   copy(ProtoMbInfo.mbhash().begin(),
        ProtoMbInfo.mbhash().begin() +
            min((unsigned int)ProtoMbInfo.mbhash().size(),
@@ -1098,6 +1341,8 @@ void ProtobufToMbInfo(const ProtoMbInfo& ProtoMbInfo, MicroBlockInfo& mbInfo) {
                (unsigned int)mbInfo.m_txnRootHash.size),
        mbInfo.m_txnRootHash.asArray().begin());
   mbInfo.m_shardId = ProtoMbInfo.shardid();
+
+  return true;
 }
 
 void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
@@ -1151,9 +1396,14 @@ void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
   BlockBaseToProtobuf(txBlock, *protoBlockBase);
 }
 
-void ProtobufToTxBlockHeader(
+bool ProtobufToTxBlockHeader(
     const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader,
     TxBlockHeader& txBlockHeader) {
+  if (!CheckFieldsInProtoTxBlockTxBlockHeader(protoTxBlockHeader)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoTxBlockTxBlockHeader failed.");
+    return false;
+  }
+
   uint64_t gasLimit;
   uint64_t gasUsed;
   uint128_t rewards;
@@ -1204,9 +1454,16 @@ void ProtobufToTxBlockHeader(
       gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), hash,
       protoTxBlockHeader.numtxs(), minerPubKey, protoTxBlockHeader.dsblocknum(),
       committeeHash);
+
+  return true;
 }
 
-void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
+bool ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
+  if (!CheckFieldsInProtoTxBlock(protoTxBlock)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoTxBlock failed");
+    return false;
+  }
+
   // Deserialize header
 
   const ZilliqaMessage::ProtoTxBlock::TxBlockHeader& protoHeader =
@@ -1214,14 +1471,18 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
 
   TxBlockHeader header;
 
-  ProtobufToTxBlockHeader(protoHeader, header);
+  if (!ProtobufToTxBlockHeader(protoHeader, header)) {
+    return false;
+  }
 
   // Deserialize body
   vector<MicroBlockInfo> mbInfos;
 
   for (const auto& protoMbInfo : protoTxBlock.mbinfos()) {
     MicroBlockInfo mbInfo;
-    ProtobufToMbInfo(protoMbInfo, mbInfo);
+    if (!ProtobufToMbInfo(protoMbInfo, mbInfo)) {
+      continue;
+    }
     mbInfos.emplace_back(mbInfo);
   }
 
@@ -1230,7 +1491,7 @@ void ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoTxBlock.blockbase();
 
-  ProtobufToBlockBase(protoBlockBase, txBlock);
+  return ProtobufToBlockBase(protoBlockBase, txBlock);
 }
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
@@ -1270,9 +1531,14 @@ void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
   BlockBaseToProtobuf(vcBlock, *protoBlockBase);
 }
 
-void ProtobufToVCBlockHeader(
+bool ProtobufToVCBlockHeader(
     const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
     VCBlockHeader& vcBlockHeader) {
+  if (!CheckFieldsInProtoVCBlockVCBlockHeader(protoVCBlockHeader)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoVCBlockVCBlockHeader failed.");
+    return false;
+  }
+
   Peer candidateLeaderNetworkInfo;
   PubKey candidateLeaderPubKey;
   CommitteeHash committeeHash;
@@ -1304,9 +1570,16 @@ void ProtobufToVCBlockHeader(
       protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
       candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
       committeeHash, prevHash);
+
+  return true;
 }
 
-void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
+bool ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
+  if (!CheckFieldsInProtoVCBlock(protoVCBlock)) {
+    LOG_GENERAL(WARNING, "CheckFieldsInProtoVCBlock failed.");
+    return false;
+  }
+
   // Deserialize header
 
   const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoHeader =
@@ -1314,14 +1587,16 @@ void ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 
   VCBlockHeader header;
 
-  ProtobufToVCBlockHeader(protoHeader, header);
+  if (!ProtobufToVCBlockHeader(protoHeader, header)) {
+    return false;
+  }
 
   vcBlock = VCBlock(header, CoSignatures());
 
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoVCBlock.blockbase();
 
-  ProtobufToBlockBase(protoBlockBase, vcBlock);
+  return ProtobufToBlockBase(protoBlockBase, vcBlock);
 }
 
 void FallbackBlockHeaderToProtobuf(
@@ -1412,7 +1687,7 @@ void ProtobufToFallbackBlockHeader(
       prevHash);
 }
 
-void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
+bool ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
                              FallbackBlock& fallbackBlock) {
   // Deserialize header
   const ZilliqaMessage::ProtoFallbackBlock::FallbackBlockHeader& protoHeader =
@@ -1427,7 +1702,7 @@ void ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
   const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
       protoFallbackBlock.blockbase();
 
-  ProtobufToBlockBase(protoBlockBase, fallbackBlock);
+  return ProtobufToBlockBase(protoBlockBase, fallbackBlock);
 }
 
 bool SetConsensusAnnouncementCore(
@@ -2141,9 +2416,7 @@ bool Messenger::GetDSBlockHeader(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToDSBlockHeader(result, dsBlockHeader);
-
-  return true;
+  return ProtobufToDSBlockHeader(result, dsBlockHeader);
 }
 
 bool Messenger::SetDSBlock(vector<unsigned char>& dst,
@@ -2171,9 +2444,7 @@ bool Messenger::GetDSBlock(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToDSBlock(result, dsBlock);
-
-  return true;
+  return ProtobufToDSBlock(result, dsBlock);
 }
 
 bool Messenger::SetMicroBlockHeader(vector<unsigned char>& dst,
@@ -2205,7 +2476,9 @@ bool Messenger::GetMicroBlockHeader(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToMicroBlockHeader(result, microBlockHeader);
+  if (!ProtobufToMicroBlockHeader(result, microBlockHeader)) {
+    return false;
+  }
 
   return true;
 }
@@ -2237,9 +2510,7 @@ bool Messenger::GetMicroBlock(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToMicroBlock(result, microBlock);
-
-  return true;
+  return ProtobufToMicroBlock(result, microBlock);
 }
 
 bool Messenger::SetTxBlockHeader(vector<unsigned char>& dst,
@@ -2269,9 +2540,7 @@ bool Messenger::GetTxBlockHeader(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToTxBlockHeader(result, txBlockHeader);
-
-  return true;
+  return ProtobufToTxBlockHeader(result, txBlockHeader);
 }
 
 bool Messenger::SetTxBlock(vector<unsigned char>& dst,
@@ -2299,9 +2568,7 @@ bool Messenger::GetTxBlock(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToTxBlock(result, txBlock);
-
-  return true;
+  return ProtobufToTxBlock(result, txBlock);
 }
 
 bool Messenger::SetVCBlockHeader(vector<unsigned char>& dst,
@@ -2331,9 +2598,7 @@ bool Messenger::GetVCBlockHeader(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToVCBlockHeader(result, vcBlockHeader);
-
-  return true;
+  return ProtobufToVCBlockHeader(result, vcBlockHeader);
 }
 
 bool Messenger::SetVCBlock(vector<unsigned char>& dst,
@@ -2361,9 +2626,7 @@ bool Messenger::GetVCBlock(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToVCBlock(result, vcBlock);
-
-  return true;
+  return ProtobufToVCBlock(result, vcBlock);
 }
 
 bool Messenger::SetFallbackBlockHeader(
@@ -2674,6 +2937,11 @@ bool Messenger::GetBlockLink(
     return false;
   }
 
+  if (!CheckFieldsInProtoBlockLink(result)) {
+    LOG_GENERAL(WARNING, "ProtoBlockLink is missing some required fields");
+    return false;
+  }
+
   get<BlockLinkIndex::INDEX>(blocklink) = result.index();
   get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
 
@@ -2719,9 +2987,7 @@ bool Messenger::GetFallbackBlockWShardingStructure(
 
   ProtobufToFallbackBlock(result.fallbackblock(), fallbackblock);
 
-  ProtobufToShardingStructure(result.sharding(), shards);
-
-  return true;
+  return ProtobufToShardingStructure(result.sharding(), shards);
 }
 
 // ============================================================================
@@ -3098,7 +3364,9 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   const DSDSBlockAnnouncement& dsblock = announcement.dsblock();
 
-  ProtobufToDSBlock(dsblock.dsblock(), dsBlock);
+  if (!ProtobufToDSBlock(dsblock.dsblock(), dsBlock)) {
+    return false;
+  }
 
   ProtobufToShardingStructureAnnouncement(dsblock.sharding(), shards, allPoWs);
 
@@ -3222,7 +3490,9 @@ bool Messenger::GetDSFinalBlockAnnouncement(
   // Get the FinalBlock announcement parameters
 
   const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
-  ProtobufToTxBlock(finalblock.txblock(), txBlock);
+  if (!ProtobufToTxBlock(finalblock.txblock(), txBlock)) {
+    return false;
+  }
 
   if (finalblock.has_microblock()) {
     ProtobufToMicroBlock(finalblock.microblock(), *microBlock);
@@ -3431,17 +3701,19 @@ bool Messenger::GetNodeVCDSBlocksMessage(const vector<unsigned char>& src,
   }
 
   shardId = result.shardid();
-  ProtobufToDSBlock(result.dsblock(), dsBlock);
+  if (!ProtobufToDSBlock(result.dsblock(), dsBlock)) {
+    return false;
+  }
 
   for (const auto& proto_vcblock : result.vcblocks()) {
     VCBlock vcblock;
-    ProtobufToVCBlock(proto_vcblock, vcblock);
+    if (!ProtobufToVCBlock(proto_vcblock, vcblock)) {
+      continue;
+    }
     vcBlocks.emplace_back(move(vcblock));
   }
 
-  ProtobufToShardingStructure(result.sharding(), shards);
-
-  return true;
+  return ProtobufToShardingStructure(result.sharding(), shards);
 }
 
 bool Messenger::SetNodeFinalBlock(vector<unsigned char>& dst,
@@ -3488,7 +3760,9 @@ bool Messenger::GetNodeFinalBlock(const vector<unsigned char>& src,
   shardId = result.shardid();
   dsBlockNumber = result.dsblocknumber();
   consensusID = result.consensusid();
-  ProtobufToTxBlock(result.txblock(), txBlock);
+  if (!ProtobufToTxBlock(result.txblock(), txBlock)) {
+    return false;
+  }
   stateDelta.resize(result.statedelta().size());
   copy(result.statedelta().begin(), result.statedelta().end(),
        stateDelta.begin());
@@ -3584,9 +3858,7 @@ bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToVCBlock(result.vcblock(), vcBlock);
-
-  return true;
+  return ProtobufToVCBlock(result.vcblock(), vcBlock);
 }
 
 bool Messenger::SetNodeForwardTxnBlock(
@@ -3938,8 +4210,7 @@ bool Messenger::ArrayToShardStructure(const std::vector<unsigned char>& src,
   ProtoShardingStructure protoShardingStructure;
   protoShardingStructure.ParseFromArray(src.data() + offset,
                                         src.size() - offset);
-  ProtobufToShardingStructure(protoShardingStructure, shards);
-  return true;
+  return ProtobufToShardingStructure(protoShardingStructure, shards);
 }
 
 bool Messenger::SetNodeMissingTxnsErrorMsg(
@@ -4223,7 +4494,9 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToDSCommittee(result.dscommittee(), dsNodes);
+  if (!ProtobufToDSCommittee(result.dscommittee(), dsNodes)) {
+    return false;
+  }
 
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
@@ -4354,7 +4627,9 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
 
   for (const auto& proto_dsblock : result.dsblocks()) {
     DSBlock dsblock;
-    ProtobufToDSBlock(proto_dsblock, dsblock);
+    if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
+      continue;
+    }
     dsBlocks.emplace_back(dsblock);
   }
 
@@ -4486,7 +4761,9 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
 
   for (const auto& txblock : result.txblocks()) {
     TxBlock block;
-    ProtobufToTxBlock(txblock, block);
+    if (!ProtobufToTxBlock(txblock, block)) {
+      continue;
+    }
     txBlocks.emplace_back(block);
   }
 
@@ -5206,7 +5483,9 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
     return false;
   }
 
-  ProtobufToShardingStructure(result.sharding(), shards);
+  if (!ProtobufToShardingStructure(result.sharding(), shards)) {
+    return false;
+  }
 
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
   Signature signature;
@@ -5581,7 +5860,9 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
           LOG_GENERAL(WARNING, "DS block not initialized");
           continue;
         }
-        ProtobufToDSBlock(dirblock.dsblock(), dsblock);
+        if (!ProtobufToDSBlock(dirblock.dsblock(), dsblock)) {
+          continue;
+        }
         directoryBlocks.emplace_back(dsblock);
         break;
       case ProtoSingleDirectoryBlock::DirectoryblockCase::kVcblock:
@@ -5589,7 +5870,9 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
           LOG_GENERAL(WARNING, "VC block not initialized");
           continue;
         }
-        ProtobufToVCBlock(dirblock.vcblock(), vcblock);
+        if (!ProtobufToVCBlock(dirblock.vcblock(), vcblock)) {
+          continue;
+        }
         directoryBlocks.emplace_back(vcblock);
         break;
       case ProtoSingleDirectoryBlock::DirectoryblockCase::kFallbackblockwshard:
@@ -5599,8 +5882,11 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
         }
         ProtobufToFallbackBlock(dirblock.fallbackblockwshard().fallbackblock(),
                                 fallbackblockwshard.m_fallbackblock);
-        ProtobufToShardingStructure(dirblock.fallbackblockwshard().sharding(),
-                                    fallbackblockwshard.m_shards);
+        if (!ProtobufToShardingStructure(
+                dirblock.fallbackblockwshard().sharding(),
+                fallbackblockwshard.m_shards)) {
+          continue;
+        }
         directoryBlocks.emplace_back(fallbackblockwshard);
         break;
       case ProtoSingleDirectoryBlock::DirectoryblockCase::
@@ -6463,13 +6749,17 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const vector<unsigned char>& src,
 
   for (const auto& proto_dsblock : result.dsblocks()) {
     DSBlock dsblock;
-    ProtobufToDSBlock(proto_dsblock, dsblock);
+    if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
+      continue;
+    }
     dsBlocks.emplace_back(dsblock);
   }
 
   for (const auto& txblock : result.txblocks()) {
     TxBlock block;
-    ProtobufToTxBlock(txblock, block);
+    if (!ProtobufToTxBlock(txblock, block)) {
+      continue;
+    }
     txBlocks.emplace_back(block);
   }
 
