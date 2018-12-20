@@ -138,9 +138,10 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
                       message_length - written_length);
 
     if (P2PComm::IsHostDownOrUnreachable()) {
-      LOG_GENERAL(WARNING, "Encounter " << errno << "(" << std::strerror(errno)
-                                        << "). Adding " << from.m_ipAddress
-                                        << " to blacklist");
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << "(" << std::strerror(errno)
+                               << "). Adding " << from.m_ipAddress
+                               << " to blacklist");
       Blacklist::GetInstance().Add(from.m_ipAddress);
       return written_length;
     }
@@ -215,6 +216,10 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
                                << errno << " Desc: " << std::strerror(errno)
                                << ". IP address: " << peer);
       if (P2PComm::IsHostDownOrUnreachable()) {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << "(" << std::strerror(errno)
+                                 << "). Adding " << peer.m_ipAddress
+                                 << " to blacklist");
         Blacklist::GetInstance().Add(peer.m_ipAddress);
       }
 
@@ -284,10 +289,12 @@ void SendJob::SendMessageCore(const Peer& peer,
                                                   << ". IP address: " << peer);
 
     if (P2PComm::IsHostDownOrUnreachable()) {
-      LOG_GENERAL(WARNING, "Encounter " << errno << "(" << std::strerror(errno)
-                                        << "). Adding " << peer.m_ipAddress
-                                        << " to blacklist");
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << "(" << std::strerror(errno)
+                               << "). Adding " << peer.m_ipAddress
+                               << " to blacklist");
       Blacklist::GetInstance().Add(peer.m_ipAddress);
+      return;
     }
 
     if (retry_counter > MAXRETRYCONN) {
@@ -304,7 +311,7 @@ void SendJobPeer::DoSend() {
   if (Blacklist::GetInstance().Exist(m_peer.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << m_peer
-                          << " is in black list, block all message to it.");
+                          << " is in blacklist, block all message to it.");
     return;
   }
 
