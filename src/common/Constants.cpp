@@ -352,6 +352,8 @@ const unsigned int FALLBACK_TEST_EPOCH{
 #endif  // FALLBACK_TEST
 const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
+const unsigned int PACKET_EPOCH_LATE_ALLOW{
+    ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.tests.")};
 
 // Transaction constants
 const boost::multiprecision::uint128_t COINBASE_REWARD{

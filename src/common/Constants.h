@@ -271,6 +271,7 @@ extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
 extern const unsigned int FALLBACK_TEST_EPOCH;
 #endif  // FALLBACK_TEST
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
+extern const unsigned int PACKET_EPOCH_LATE_ALLOW;
 
 // Transaction constants
 extern const boost::multiprecision::uint128_t COINBASE_REWARD;
