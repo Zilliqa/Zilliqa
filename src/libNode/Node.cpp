@@ -492,7 +492,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
           m_mediator.m_ds->m_mapNodeReputation);
     }
 
-    if (!LOOKUP_NODE_MODE && !bDS && !bInShardStructure) {
+    if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS &&
+        !bInShardStructure) {
       LOG_GENERAL(WARNING,
                   "Node is not in network, apply re-join process instead");
       return false;

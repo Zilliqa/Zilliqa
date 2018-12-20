@@ -307,6 +307,9 @@ const string UPGRADE_HOST_REPO{
 const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
     ReadConstantString("RECOVERY_TRIM_INCOMPLETED_BLOCK", "node.recovery.") ==
     "true"};
+const bool REJOIN_NODE_NOT_IN_NETWORK{
+    ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
+    "true"};
 
 // Smart contract constants
 const string SCILLA_ROOT{
