@@ -1127,14 +1127,15 @@ bool Node::ProcessTxnPacketFromLookup(
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neightor and process it");
-    return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
-                                          lookupPubKey, transactions);
+    return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
+                                          shardId, lookupPubKey, transactions);
   }
 
   return true;
 }
 
 bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
+                                          const uint64_t& epochNum,
                                           const uint64_t& dsBlockNum,
                                           const uint32_t& shardId,
                                           const PubKey& lookupPubKey,
@@ -1153,10 +1154,17 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
+  if (epochNum + PACKET_EPOCH_LATE_ALLOW < m_mediator.m_currentEpochNum) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The epoch when the packet from is too late (" << epochNum
+                                                             << "), reject");
+    return false;
+  }
+
   if (dsBlockNum !=
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
     LOG_GENERAL(WARNING, "Wrong DS block num ("
-                             << dsBlockNum << "), m_myshardId ("
+                             << dsBlockNum << "), expected ("
                              << m_mediator.m_dsBlockChain.GetLastBlock()
                                     .GetHeader()
                                     .GetBlockNum()
@@ -1338,8 +1346,8 @@ void Node::CommitTxnPacketBuffer() {
       return;
     }
 
-    ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId, lookupPubKey,
-                                   transactions);
+    ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
+                                   lookupPubKey, transactions);
   }
 }
 
