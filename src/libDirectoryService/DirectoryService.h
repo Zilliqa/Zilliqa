@@ -126,7 +126,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::mutex m_mutexConsensus;
 
   // Temporary buffers for sharding committee members and transaction sharing
-  DequeOfShard m_tempShards;  // vector<vector<pair<PubKey, Peer>>>;
+  DequeOfShard m_tempShards;
   std::map<PubKey, uint32_t> m_tempPublicKeyToshardIdMap;
   std::map<PubKey, uint16_t> m_tempMapNodeReputation;
 
@@ -263,6 +263,9 @@ class DirectoryService : public Executable, public Broadcastable {
   void UpdatePoWSubmissionCounterforNode(const PubKey& key);
   void ResetPoWSubmissionCounter();
   void ClearReputationOfNodeWithoutPoW();
+  static void ClearReputationOfNodeFailToJoin(
+      const DequeOfShard& shards,
+      std::map<PubKey, uint16_t>& mapNodeReputation);
   std::set<PubKey> FindTopPriorityNodes(uint8_t& lowestPriority);
 
   void SetupMulticastConfigForShardingStructure(unsigned int& my_DS_cluster_num,

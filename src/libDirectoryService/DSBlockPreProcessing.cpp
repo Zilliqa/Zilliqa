@@ -526,7 +526,7 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
     }
   }
 
-  constexpr float tolerance = 0.02f;
+  constexpr float tolerance = 0.05f;
   const uint32_t MAX_NODE_OUT_OF_LIST =
       std::ceil(MAX_SHARD_NODE_NUM * tolerance);
   if (numOutOfMyPriorityList > MAX_NODE_OUT_OF_LIST) {
