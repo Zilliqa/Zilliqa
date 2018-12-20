@@ -232,6 +232,7 @@ class Node : public Executable, public Broadcastable {
   bool ProcessTxnPacketFromLookup(const std::vector<unsigned char>& message,
                                   unsigned int offset, const Peer& from);
   bool ProcessTxnPacketFromLookupCore(const std::vector<unsigned char>& message,
+                                      const uint64_t& epochNum,
                                       const uint64_t& dsBlockNum,
                                       const uint32_t& shardId,
                                       const PubKey& lookupPubKey,
