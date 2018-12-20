@@ -79,7 +79,7 @@ bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
   }
 }
 
-int ToNumericalIPFromStr(const std::string&, boost::multiprecision::uint128_t&);
+bool ToNumericalIPFromStr(const std::string&, boost::multiprecision::uint128_t&);
 }  // namespace IPConverter
 
 #endif  // __IP_CONVERTER_H__

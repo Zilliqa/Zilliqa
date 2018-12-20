@@ -69,25 +69,25 @@ void LogInternalErr(const string& ip) {
        << std::endl;
 }
 
-int ToNumericalIPFromStr(const std::string& ipStr,
+bool ToNumericalIPFromStr(const std::string& ipStr,
                          boost::multiprecision::uint128_t& ipInt) {
   boost::asio::ip::address Addr;
   try {
     Addr = boost::asio::ip::address::from_string(ipStr);
   } catch (const std::exception& e) {
     LogInvalidIP(ipStr);
-    return -1;
+    return false;
   }
   ipInt = 0;
   if (Addr.is_v4()) {
     ipInt = convertBytesToInt(Addr.to_v4());
-    return 0;
+    return true;
   } else if (Addr.is_v6()) {
     ipInt = convertBytesToInt(Addr.to_v6());
-    return 0;
+    return true;
   }
 
   LogUnsupported(ipStr);
-  return -1;
+  return false;
 }
 }  // namespace IPConverter
