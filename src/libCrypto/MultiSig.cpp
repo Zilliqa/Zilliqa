@@ -312,12 +312,12 @@ void CommitHashPoint::Set(const CommitPoint& point) {
   vector<unsigned char> domain(1);
   
   //The second domain separated hash function.
-  //The first one is the used in the Proof-of-Possession phase.
+  //The first one is used in the Proof-of-Possession phase.
   //Separation is defined using the first byte set to 0x01.
-  fill(domain.begin(), buf.end(), 0x01);
+  fill(domain.begin(), domain.end(), 0x01);
   SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
   
-  //Compute H(0x00).
+  //Compute H(0x01).
   sha2.Update(domain);
   
   const Curve& curve = Schnorr::GetInstance().GetCurve();	  
@@ -470,10 +470,24 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
 
   // Compute the challenge c = H(r, kpub, m)
 
+  //Domain separation for hash function 
+  vector<unsigned char> domain(1);
+  
+  //The third domain separated hash function.
+  //The first one is used in the Proof-of-Possession phase.
+  //The second one is used in the Proof-of-Possession phase.
+  //Separation is defined using the first byte set to 0x11.
+  fill(domain.begin(), domain.end(), 0x11);
+  SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
+  
+  //Compute H(0x11).
+  sha2.Update(domain);
+  
+
+
   m_initialized = false;
 
   vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
   const Curve& curve = Schnorr::GetInstance().GetCurve();
 
