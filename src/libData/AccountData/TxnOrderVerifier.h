@@ -75,9 +75,10 @@ bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,
     }
   }
 
-  unsigned int min_ordered_txn_num =
-      (ONE_HUNDRED_PERCENT - tolerance_in_percent) * expectedTxns.size() /
-      ONE_HUNDRED_PERCENT;
+  unsigned int min_ordered_txn_num = (unsigned int)(ceil(
+      (double)((ONE_HUNDRED_PERCENT - tolerance_in_percent) *
+               expectedTxns.size()) /
+      (double)ONE_HUNDRED_PERCENT));
 
   LOG_GENERAL(INFO, "Minimum in order num required: "
                         << min_ordered_txn_num << " actual in order num: "
