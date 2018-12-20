@@ -85,7 +85,7 @@ bool Account::InitContract() {
     return false;
   }
 
-  bool hasScillaVersion;
+  bool hasScillaVersion = false;
 
   for (auto& v : root) {
     if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
@@ -102,12 +102,6 @@ bool Account::InitContract() {
         m_scillaVersion = boost::lexical_cast<uint32_t>(v["value"].asString());
       } catch (...) {
         LOG_GENERAL(WARNING, "_scilla_version is not a number");
-        return false;
-      }
-
-      if (!boost::filesystem::exists(SCILLA_ROOT + '/' +
-                                     std::to_string(m_scillaVersion))) {
-        LOG_GENERAL(WARNING, "Folder for desired version doesn't exists");
         return false;
       }
 
