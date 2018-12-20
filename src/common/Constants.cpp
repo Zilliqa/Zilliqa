@@ -352,8 +352,6 @@ const unsigned int FALLBACK_TEST_EPOCH{
 #endif  // FALLBACK_TEST
 const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
-const unsigned int PACKET_EPOCH_LATE_ALLOW{
-    ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.tests.")};
 
 // Transaction constants
 const boost::multiprecision::uint128_t COINBASE_REWARD{
@@ -368,6 +366,8 @@ const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{ReadConstantNumeric(
     "SYS_TIMESTAMP_VARIANCE_IN_SECONDS", "node.transactions.")};
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(
     "TXN_MISORDER_TOLERANCE_IN_PERCENT", "node.transactions.")};
+const unsigned int PACKET_EPOCH_LATE_ALLOW{
+    ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.tests.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
