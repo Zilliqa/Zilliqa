@@ -149,6 +149,18 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
+    if (tx.GetGasPrice() <
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
+      throw JsonRpcException(RPC_VERIFY_REJECTED,
+                             "GasPrice " +
+                                 tx.GetGasPrice().convert_to<string>() +
+                                 " lower than minimum allowable " +
+                                 m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetGasPrice()
+                                     .convert_to<string>());
+    }
+
     if (!m_mediator.m_validator->VerifyTransaction(tx)) {
       throw JsonRpcException(RPC_VERIFY_REJECTED,
                              "Unable to verify transaction");
