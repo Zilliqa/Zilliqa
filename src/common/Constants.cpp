@@ -367,7 +367,7 @@ const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{ReadConstantNumeric(
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(
     "TXN_MISORDER_TOLERANCE_IN_PERCENT", "node.transactions.")};
 const unsigned int PACKET_EPOCH_LATE_ALLOW{
-    ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.tests.")};
+    ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{
