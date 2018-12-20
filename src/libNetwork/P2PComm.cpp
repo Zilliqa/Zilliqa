@@ -683,11 +683,8 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
-bool P2PComm::IsHostDownOrUnreachable() {
-  if (errno == EHOSTUNREACH || errno == EHOSTDOWN) {
-    return true;
-  }
-  return false;
+inline bool P2PComm::IsHostDownOrUnreachable() {
+  return (errno == EHOSTUNREACH || errno == EHOSTDOWN);
 }
 
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
