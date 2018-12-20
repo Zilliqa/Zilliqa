@@ -217,8 +217,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
                                << ". IP address: " << peer);
       if (P2PComm::IsHostDownOrUnreachable()) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << "(" << std::strerror(errno)
-                                 << "). Adding " << peer.m_ipAddress
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding " << peer.GetPrintableIPAddress()
                                  << " to blacklist");
         Blacklist::GetInstance().Add(peer.m_ipAddress);
       }
@@ -290,8 +290,8 @@ void SendJob::SendMessageCore(const Peer& peer,
 
     if (P2PComm::IsHostDownOrUnreachable()) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                               << errno << "(" << std::strerror(errno)
-                               << "). Adding " << peer.m_ipAddress
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << peer.GetPrintableIPAddress()
                                << " to blacklist");
       Blacklist::GetInstance().Add(peer.m_ipAddress);
       return;
