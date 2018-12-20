@@ -249,6 +249,7 @@ extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
 extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
 extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
+extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 
 // Smart contract constants
 extern const std::string SCILLA_ROOT;
