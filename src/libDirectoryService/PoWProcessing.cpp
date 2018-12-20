@@ -473,6 +473,22 @@ void DirectoryService::ClearReputationOfNodeWithoutPoW() {
   }
 }
 
+void DirectoryService::ClearReputationOfNodeFailToJoin(
+    const DequeOfShard& shards, std::map<PubKey, uint16_t>& mapNodeReputation) {
+  std::set<PubKey> allShardNodePubKey;
+  for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      allShardNodePubKey.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
+    }
+  }
+
+  for (auto& kv : mapNodeReputation) {
+    if (allShardNodePubKey.find(kv.first) == allShardNodePubKey.end()) {
+      kv.second = 0;
+    }
+  }
+}
+
 std::set<PubKey> DirectoryService::FindTopPriorityNodes(
     uint8_t& lowestPriority) {
   std::vector<std::pair<PubKey, uint8_t>> vecNodePriority;
