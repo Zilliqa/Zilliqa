@@ -139,8 +139,8 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
 
     if (P2PComm::IsHostDownOrUnreachable()) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                               << errno << "(" << std::strerror(errno)
-                               << "). Adding " << from.m_ipAddress
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << from.GetPrintableIPAddress()
                                << " to blacklist");
       Blacklist::GetInstance().Add(from.m_ipAddress);
       return written_length;
