@@ -17,6 +17,9 @@
  * program files.
  */
 
+/* TCP error code:
+ * https://www.gnu.org/software/libc/manual/html_node/Error-Codes.html */
+
 #include <errno.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -134,6 +137,14 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
     ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
                       message_length - written_length);
 
+    if (P2PComm::IsHostDownOrUnreachable()) {
+      LOG_GENERAL(WARNING, "Encounter " << errno << "(" << std::strerror(errno)
+                                        << "). Adding " << from.m_ipAddress
+                                        << " to blacklist");
+      Blacklist::GetInstance().Add(from.m_ipAddress);
+      return written_length;
+    }
+
     if (errno == EPIPE) {
       LOG_GENERAL(WARNING, " SIGPIPE detected. Error No: "
                                << errno << " Desc: " << std::strerror(errno));
@@ -203,6 +214,10 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
       LOG_GENERAL(WARNING, "Socket connect failed. Code = "
                                << errno << " Desc: " << std::strerror(errno)
                                << ". IP address: " << peer);
+      if (P2PComm::IsHostDownOrUnreachable()) {
+        Blacklist::GetInstance().Add(peer.m_ipAddress);
+      }
+
       return false;
     }
 
@@ -267,6 +282,13 @@ void SendJob::SendMessageCore(const Peer& peer,
     LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
                                                   << MAXRETRYCONN
                                                   << ". IP address: " << peer);
+
+    if (P2PComm::IsHostDownOrUnreachable()) {
+      LOG_GENERAL(WARNING, "Encounter " << errno << "(" << std::strerror(errno)
+                                        << "). Adding " << peer.m_ipAddress
+                                        << " to blacklist");
+      Blacklist::GetInstance().Add(peer.m_ipAddress);
+    }
 
     if (retry_counter > MAXRETRYCONN) {
       LOG_GENERAL(WARNING,
@@ -652,6 +674,13 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
 
   bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
+}
+
+bool P2PComm::IsHostDownOrUnreachable() {
+  if (errno == EHOSTUNREACH || errno == EHOSTDOWN) {
+    return true;
+  }
+  return false;
 }
 
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,

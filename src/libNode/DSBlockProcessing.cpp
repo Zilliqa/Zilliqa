@@ -41,6 +41,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
@@ -264,6 +265,7 @@ void Node::StartFirstTxEpoch() {
   LOG_MARKER();
   m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
+  Blacklist::GetInstance().Clear();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -624,6 +626,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     m_mediator.m_lookup->ProcessEntireShardingStructure();
 
     ResetConsensusId();
+    Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread();
