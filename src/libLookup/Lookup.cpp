@@ -303,7 +303,7 @@ bool Lookup::GenTxnToSend(size_t num_txn,
     if (!GetTxnFromFile::GetFromFile(addr, static_cast<uint32_t>(nonce) + 1,
                                      num_txn, txns)) {
       LOG_GENERAL(WARNING, "Failed to get txns from file");
-      return false;
+      continue;
     }
 
     copy(txns.begin(), txns.end(), back_inserter(mp[txnShard]));
