@@ -225,6 +225,142 @@ bool CommitPoint::operator==(const CommitPoint& r) const {
                         m_p.get(), r.m_p.get(), ctx.get()) == 0));
 }
 
+CommitHashPoint::CommitHashPoint()
+    : m_h(BN_new(), BN_clear_free), m_initialized(false) {
+  if (m_h == nullptr) {
+    LOG_GENERAL(WARNING, "Memory allocation failure");
+    // throw exception();
+  }
+}
+
+CommitHashPoint::CommitHashPoint(const CommitPoint& point)
+    : m_h(BN_new(), BN_clear_free), m_initialized(false) {
+  if (m_h == nullptr) {
+    LOG_GENERAL(WARNING, "Memory allocation failure");
+    // throw exception();
+  } else {
+    Set(point);
+  }
+}
+
+CommitHashPoint::CommitHashPoint(const vector<unsigned char>& src,
+                         unsigned int offset) {
+  if (Deserialize(src, offset) != 0) {
+    LOG_GENERAL(WARNING, "We failed to init CommitHashPoint.");
+  }
+}
+
+CommitHashPoint::CommitHashPoint(const CommitHashPoint& src)
+    : m_h(BN_new(), BN_clear_free), m_initialized(false) {
+  if (m_h == nullptr) {
+    LOG_GENERAL(WARNING, "Memory allocation failure");
+    // throw exception();
+  } else {
+    if (BN_copy(m_h.get(), src.m_h.get()) == NULL) {
+      LOG_GENERAL(WARNING, "CommitHashPoint copy failed");
+    } else {
+      m_initialized = true;
+    }
+  }
+}
+
+CommitHashPoint::~CommitHashPoint() {}
+
+bool CommitHashPoint::Initialized() const { return m_initialized; }
+
+unsigned int CommitHashPoint::Serialize(vector<unsigned char>& dst,
+                                    unsigned int offset) const {
+  // LOG_MARKER();
+
+  if (m_initialized) {
+    BIGNUMSerialize::SetNumber(dst, offset, COMMIT_HASH_POINT_SIZE, m_h);
+  }
+
+  return COMMIT_HASH_POINT_SIZE;
+}
+
+int CommitHashPoint::Deserialize(const vector<unsigned char>& src,
+                             unsigned int offset) {
+  // LOG_MARKER();
+
+  try {
+    m_h = BIGNUMSerialize::GetNumber(src, offset, COMMIT_HASH_POINT_SIZE);
+    if (m_h == nullptr) {
+      LOG_GENERAL(WARNING, "Deserialization failure");
+      m_initialized = false;
+    } else {
+      m_initialized = true;
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Error with CommitHashPoint::Deserialize." << ' ' << e.what());
+    return -1;
+  }
+  return 0;
+}
+
+void CommitHashPoint::Set(const CommitPoint& point) {
+  if (!point.Initialized()) {
+    LOG_GENERAL(WARNING, "Commitment point not initialized");
+    return;
+  }
+
+  m_initialized = false;
+  vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+  
+  //Domain separation for hash function 
+  vector<unsigned char> domain(1);
+  
+  //The second domain separated hash function.
+  //The first one is the used in the Proof-of-Possession phase.
+  //Separation is defined using the first byte set to 0x01.
+  fill(domain.begin(), buf.end(), 0x01);
+  SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
+  
+  //Compute H(0x00).
+  sha2.Update(domain);
+  
+  const Curve& curve = Schnorr::GetInstance().GetCurve();	  
+  
+  //Convert the commitment to octets first
+  if (EC_POINT_point2oct(curve.m_group.get(), point.m_p.get(),
+                         POINT_CONVERSION_COMPRESSED, buf.data(),
+                         Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES,
+                         NULL) != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES) {
+    LOG_GENERAL(WARNING, "Could not convert commitPoint to octets");
+    return;
+  } 
+
+  //compute H(0x01||point)
+  sha2.Update(buf);
+  vector<unsigned char> digest = sha2.Finalize();
+
+  //Build the HashPoint
+  if ((BN_bin2bn(digest.data(), digest.size(), m_h.get())) == NULL) {
+    LOG_GENERAL(WARNING, "Digest to scalar failed");
+    return;
+  }
+
+  if (BN_nnmod(m_h.get(), m_h.get(), curve.m_order.get(), NULL) == 0) {
+    LOG_GENERAL(WARNING, "Could not reduce hashpoint value modulo group order");
+    return;
+  }
+
+  m_initialized = true;
+
+}
+
+CommitHashPoint& CommitHashPoint::operator=(const CommitHashPoint& src) {
+  m_initialized = (BN_copy(m_h.get(), src.m_h.get()) != NULL);
+  return *this;
+}
+
+bool CommitHashPoint::operator==(const CommitHashPoint& r) const {
+  return (m_initialized && r.m_initialized &&
+          (BN_cmp(m_h.get(), r.m_h.get()) == 0));
+}
+
+
 Challenge::Challenge() : m_c(BN_new(), BN_clear_free), m_initialized(false) {
   if (m_c == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
