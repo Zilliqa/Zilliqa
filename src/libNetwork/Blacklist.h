@@ -53,13 +53,13 @@ class Blacklist {
   /// P2PComm may use this function
   bool Exist(const boost::multiprecision::uint128_t& ip);
 
-  /// Reputation Manager may use this function
+  /// P2PComm may use this function to blacklist certain non responding nodes
   void Add(const boost::multiprecision::uint128_t& ip);
 
-  /// Reputation Manager may use this function
+  /// P2PComm may use this function to remove a node form blacklist
   void Remove(const boost::multiprecision::uint128_t& ip);
 
-  /// Reputation Manager may use this function
+  /// Node can clear the blacklist
   void Clear();
 };
 
