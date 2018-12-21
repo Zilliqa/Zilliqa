@@ -41,6 +41,7 @@ def print_usage():
 		"\t\setupdsguard2 [num-nodes] 			- Start ds guard 2 executable and folder\n"
 		"\t\tstart [num-nodes]           		- Start node processes\n"
 		"\t\rejoindsguard2 	             		- Start ds guard 2 and rejoin the network\n"
+		"\t\validateBackupDB 	          		- Validate DB correctness\n"
 		"\t\tconnect                     		- Connect everyone\n"
 		"\t\tconnect [num-nodes]         		- Connect first num-nodes nodes\n"
 		"\t\tstop                        		- Stop node processes\n"
@@ -69,6 +70,8 @@ def main():
 			print_usage() if (numargs != 3) else run_start(numdsnodes=int(sys.argv[2]))
 		elif (command == 'rejoindsguard2'):
 			print_usage() if (numargs != 2) else run_start_dsguard2()
+		elif (command == 'validateBackupDB'):
+			print_usage() if (numargs != 2) else run_start_validateBackupDB()
 		elif (command == 'connect'):
 			if (numargs == 2):
 				run_connect(numnodes=0)
@@ -284,6 +287,26 @@ def run_start_dsguard2():
 	keypair = keypairs.split(" ")
 	os.system('cd ' + REJOIN_DS_GUARD_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; ./zilliqa_ds_guard_rejoin ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' + ' '  + str(7001) + ' 0 7 0 > ./error_log_zilliqa 2>&1 &')
 	print("Running and rejoining ds guard at port "+ str(7001))
+
+# To validate the correctness of backup persistence
+def run_start_validateBackupDB():
+	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
+	count = len(testfolders_list)
+
+	# Load the keypairs
+	keypairs = []
+	with open(LOCAL_RUN_FOLDER + 'keys.txt') as f:
+		keypairs = f.readlines()
+	keypairs = [x.strip() for x in keypairs]
+
+	# Launch node Zilliqa process
+	keypair = keypairs[0].split(" ")
+	shutil.copyfile('ds_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/ds_whitelist.xml')
+	shutil.copyfile('shard_whitelist.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/shard_whitelist.xml')
+	shutil.copyfile('constants_local.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/constants.xml')
+	shutil.copyfile('dsnodes.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/dsnodes.xml')
+	shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[0] + '/config.xml')
+	os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[0] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + 0) + ' 1 5 1 > ./error_log_zilliqa 2>&1 &')
 
 def run_connect(numnodes):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
