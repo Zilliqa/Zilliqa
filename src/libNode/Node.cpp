@@ -1350,6 +1350,7 @@ void Node::CommitTxnPacketBuffer() {
     ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
                                    lookupPubKey, transactions);
   }
+  m_txnPacketBuffer.clear();
 }
 
 // Used by Zilliqa in pow branch. This will be useful for us when doing the
