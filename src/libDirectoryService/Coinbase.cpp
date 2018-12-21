@@ -23,6 +23,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libMediator/Mediator.h"
+#include "libNetwork/Guard.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -69,15 +70,13 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
   for (const auto& kv : shard) {
     const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(kv);
     if (b1.at(i)) {
-      m_coinbaseRewardees[epochNum][shard_id].push_back(
-          Account::GetAddressFromPublicKey(pubKey));
+      m_coinbaseRewardees[epochNum][shard_id].push_back(pubKey);
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
       }
     }
     if (b2.at(i)) {
-      m_coinbaseRewardees[epochNum][shard_id].push_back(
-          Account::GetAddressFromPublicKey(pubKey));
+      m_coinbaseRewardees[epochNum][shard_id].push_back(pubKey);
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
       }
@@ -113,7 +112,7 @@ void DirectoryService::LookupCoinbase(
   for (const auto& lookupNode : vecLookup) {
     LOG_GENERAL(INFO, " " << lookupNode.first);
     m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
-        Account::GetAddressFromPublicKey(lookupNode.first));
+        lookupNode.first);
   }
 
   /*for (const auto& shard : shards) {
@@ -214,7 +213,7 @@ void DirectoryService::InitCoinbase() {
 
   for (const auto& lookupNode : vecLookup) {
     m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
-        Account::GetAddressFromPublicKey(lookupNode.first));
+        lookupNode.first);
   }
 
   if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW - 1) {
@@ -346,7 +345,8 @@ void DirectoryService::InitCoinbase() {
       LOG_GENERAL(INFO,
                   "[CNBSE] Rewarding " << shardIdRewardee.first << " shard");
       if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
-        for (auto const& addr : shardIdRewardee.second) {
+        for (auto const& pk : shardIdRewardee.second) {
+          const auto& addr = Account::GetAddressFromPublicKey(pk);
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, coinbaseAddress, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
@@ -355,7 +355,14 @@ void DirectoryService::InitCoinbase() {
           }
         }
       } else {
-        for (auto const& addr : shardIdRewardee.second) {
+        for (auto const& pk : shardIdRewardee.second) {
+          if (GUARD_MODE) {
+            if (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
+                Guard::GetInstance().IsNodeInDSGuardList(pk)) {
+              continue;
+            }
+          }
+          const auto& addr = Account::GetAddressFromPublicKey(pk);
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, coinbaseAddress, reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
@@ -392,7 +399,8 @@ void DirectoryService::InitCoinbase() {
   for (const auto& shard : m_coinbaseRewardees[m_mediator.m_currentEpochNum]) {
     if (count == shardIndex) {
       uint16_t rdm_index = lastBlockHash % shard.second.size();
-      const Address& winnerAddr = shard.second[rdm_index];
+      const Address& winnerAddr =
+          Account::GetAddressFromPublicKey(shard.second[rdm_index]);
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
               winnerAddr, coinbaseAddress, balance_left)) {

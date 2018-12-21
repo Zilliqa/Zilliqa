@@ -209,7 +209,7 @@ class DirectoryService : public Executable, public Broadcastable {
   Mediator& m_mediator;
 
   // Coinbase
-  std::map<uint64_t, std::map<int32_t, std::vector<Address>>>
+  std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
