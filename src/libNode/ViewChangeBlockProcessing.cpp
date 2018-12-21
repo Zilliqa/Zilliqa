@@ -179,7 +179,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // Check for duplicated vc block
   VCBlockSharedPtr VCBlockptr;
-  if (!BlockStorage::GetBlockStorage().GetVCBlock(temp_blockHash, VCBlockptr)) {
+  if (BlockStorage::GetBlockStorage().GetVCBlock(temp_blockHash, VCBlockptr)) {
     LOG_GENERAL(WARNING,
                 "Duplicated vc block detected. 0x" << temp_blockHash.hex());
     return false;
