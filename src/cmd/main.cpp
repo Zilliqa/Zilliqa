@@ -78,26 +78,26 @@ int main(int argc, const char* argv[]) {
       /** --help option
        */
       if (vm.count("help")) {
-        LogInfo::LogBrandBugReport();
+        SWInfo::LogBrandBugReport();
         cout << desc << endl;
         return SUCCESS;
       }
       po::notify(vm);
 
       if (privK.length() != 32) {
-        LogInfo::LogBrandBugReport();
+        SWInfo::LogBrandBugReport();
         std::cerr << "Invalid length of private key" << endl;
         return ERROR_IN_COMMAND_LINE;
       }
 
       if (pubK.length() != 32) {
-        LogInfo::LogBrandBugReport();
+        SWInfo::LogBrandBugReport();
         std::cerr << "Invalid length of public key" << endl;
         return ERROR_IN_COMMAND_LINE;
       }
 
       if (synctype > 4) {
-        LogInfo::LogBrandBugReport();
+        SWInfo::LogBrandBugReport();
         std::cerr << "Invalid synctype, please select: " << synctype_descr
                   << "." << endl;
       }
@@ -114,7 +114,7 @@ int main(int argc, const char* argv[]) {
           }
           catch (boost::bad_lexical_cast)
           {
-            LogInfo::LogBrandBugReport();
+            SWInfo::LogBrandBugReport();
             std::cerr << "Invalid port number" << endl;
             return ERROR_IN_COMMAND_LINE;
           }
@@ -122,21 +122,21 @@ int main(int argc, const char* argv[]) {
       }
 
       if ((port < 0) || (port > 65535))   {
-        LogInfo::LogBrandBugReport();
+        SWInfo::LogBrandBugReport();
         std::cerr << "Invalid or missing port number" << endl;
         return ERROR_IN_COMMAND_LINE;
       }
     }
     catch(boost::program_options::required_option& e)
     {
-      LogInfo::LogBrandBugReport();
+      SWInfo::LogBrandBugReport();
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
       return ERROR_IN_COMMAND_LINE;
     }
     catch(boost::program_options::error& e)
     {
-      LogInfo::LogBrandBugReport();
+      SWInfo::LogBrandBugReport();
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
@@ -151,7 +151,7 @@ int main(int argc, const char* argv[]) {
       int mappedPort = nt->addRedirect(port);
 
       if (mappedPort <= 0) {
-        LogInfo::LogBrandBugReport();
+        SWInfo::LogBrandBugReport();
         LOG_GENERAL(WARNING, "NAT ERROR");
         return -1;
       } else {

@@ -25,15 +25,10 @@
 #include <arpa/inet.h>
 #include <boost/asio.hpp>
 #include <string>
+#include "libUtils/SWInfo.h"
 
 /// Utility class for converter from ip address string to numerical
 /// represetation.
-
-namespace LogInfo {
-void LogBrand();
-void LogBugReport();
-void LogBrandBugReport();
-}  // namespace LogInfo
 
 namespace IPConverter {
 
@@ -73,7 +68,7 @@ bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
     LogInvalidIP(std::string(in));
     return false;
   } else {
-    LogInfo::LogBrandBugReport();
+    SWInfo::LogBrandBugReport();
     LogInternalErr(std::string(in));
     return false;
   }
