@@ -230,7 +230,7 @@ void Guard::ValidateRunTimeEnvironment() {
                 "nodeReplacementLimit: "
                     << nodeReplacementLimit);
   } else {
-    LOG_GENERAL(INFO, "Passed guard mode run time enviornment validation");
+    LOG_GENERAL(INFO, "Passed guard mode run time environment validation");
   }
 }
 

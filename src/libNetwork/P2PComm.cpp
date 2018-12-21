@@ -17,6 +17,9 @@
  * program files.
  */
 
+/* TCP error code:
+ * https://www.gnu.org/software/libc/manual/html_node/Error-Codes.html */
+
 #include <errno.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -134,6 +137,15 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
     ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
                       message_length - written_length);
 
+    if (P2PComm::IsHostDownOrUnreachable()) {
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << from.GetPrintableIPAddress()
+                               << " to blacklist");
+      Blacklist::GetInstance().Add(from.m_ipAddress);
+      return written_length;
+    }
+
     if (errno == EPIPE) {
       LOG_GENERAL(WARNING, " SIGPIPE detected. Error No: "
                                << errno << " Desc: " << std::strerror(errno));
@@ -203,6 +215,14 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
       LOG_GENERAL(WARNING, "Socket connect failed. Code = "
                                << errno << " Desc: " << std::strerror(errno)
                                << ". IP address: " << peer);
+      if (P2PComm::IsHostDownOrUnreachable()) {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding " << peer.GetPrintableIPAddress()
+                                 << " to blacklist");
+        Blacklist::GetInstance().Add(peer.m_ipAddress);
+      }
+
       return false;
     }
 
@@ -268,6 +288,15 @@ void SendJob::SendMessageCore(const Peer& peer,
                                                   << MAXRETRYCONN
                                                   << ". IP address: " << peer);
 
+    if (P2PComm::IsHostDownOrUnreachable()) {
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << peer.GetPrintableIPAddress()
+                               << " to blacklist");
+      Blacklist::GetInstance().Add(peer.m_ipAddress);
+      return;
+    }
+
     if (retry_counter > MAXRETRYCONN) {
       LOG_GENERAL(WARNING,
                   "Socket connect failed over " << MAXRETRYCONN << " times.");
@@ -282,7 +311,7 @@ void SendJobPeer::DoSend() {
   if (Blacklist::GetInstance().Exist(m_peer.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << m_peer
-                          << " is in black list, block all message to it.");
+                          << " is in blacklist, block all message to it.");
     return;
   }
 
@@ -652,6 +681,10 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
 
   bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
+}
+
+inline bool P2PComm::IsHostDownOrUnreachable() {
+  return (errno == EHOSTUNREACH || errno == EHOSTDOWN);
 }
 
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
