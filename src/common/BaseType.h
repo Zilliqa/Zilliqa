@@ -17,16 +17,11 @@
  * program files.
  */
 
-#include "ContractStorage.h"
+#ifndef __BASETYPE_H__
+#define __BASETYPE_H__
 
-#include "libUtils/DataConversion.h"
+#include <vector>
 
-using namespace dev;
+using bytes = std::vector<unsigned char>;
 
-bool ContractStorage::PutContractCode(const h160& address, const bytes& code) {
-  return m_codeDB.Insert(address.hex(), code) == 0;
-}
-
-const bytes ContractStorage::GetContractCode(const h160& address) {
-  return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
-}
+#endif  // __BASETYPE_H__

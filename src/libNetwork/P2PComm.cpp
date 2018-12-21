@@ -86,7 +86,7 @@ static bool comparePairSecond(
 
 P2PComm::P2PComm() : m_sendQueue(SENDQUEUE_SIZE) {
   auto func = [this]() -> void {
-    std::vector<unsigned char> emptyHash;
+    bytes emptyHash;
 
     while (true) {
       this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
@@ -171,8 +171,7 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
   return written_length;
 }
 
-bool SendJob::SendMessageSocketCore(const Peer& peer,
-                                    const std::vector<unsigned char>& message,
+bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                     unsigned char start_byte,
                                     const vector<unsigned char>& msg_hash) {
   // LOG_MARKER();
@@ -374,9 +373,9 @@ void P2PComm::ClearBroadcastHashAsync(
   m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
-/*static*/ void P2PComm::ProcessBroadCastMsg(
-    std::vector<unsigned char>& message, const uint32_t messageLength,
-    const Peer& from) {
+/*static*/ void P2PComm::ProcessBroadCastMsg(bytes& message,
+                                             const uint32_t messageLength,
+                                             const Peer& from) {
   vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
                                  message.begin() + HDR_LEN + HASH_LEN);
 
@@ -444,8 +443,7 @@ void P2PComm::ClearBroadcastHashAsync(
   m_dispatcher(raw_message);
 }
 
-/*static*/ void P2PComm::ProcessGossipMsg(std::vector<unsigned char>& message,
-                                          Peer& from) {
+/*static*/ void P2PComm::ProcessGossipMsg(bytes& message, Peer& from) {
   unsigned char gossipMsgTyp = message.at(HDR_LEN);
 
   const uint32_t gossipMsgRound =
@@ -882,8 +880,7 @@ void P2PComm::RebroadcastMessage(const vector<Peer>& peers,
   }
 }
 
-void P2PComm::SendMessageNoQueue(const Peer& peer,
-                                 const std::vector<unsigned char>& message,
+void P2PComm::SendMessageNoQueue(const Peer& peer, const bytes& message,
                                  const unsigned char& startByteType) {
   // LOG_MARKER();
 
@@ -897,27 +894,25 @@ void P2PComm::SendMessageNoQueue(const Peer& peer,
   SendJob::SendMessageCore(peer, message, startByteType, {});
 }
 
-bool P2PComm::SpreadRumor(const std::vector<unsigned char>& message) {
+bool P2PComm::SpreadRumor(const bytes& message) {
   LOG_MARKER();
   return m_rumorManager.AddRumor(message);
 }
 
-void P2PComm::SendRumorToForeignPeer(
-    const Peer& foreignPeer, const std::vector<unsigned char>& message) {
+void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
+                                     const bytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeer(foreignPeer, message);
 }
 
-void P2PComm::SendRumorToForeignPeers(
-    const std::vector<Peer>& foreignPeers,
-    const std::vector<unsigned char>& message) {
+void P2PComm::SendRumorToForeignPeers(const std::vector<Peer>& foreignPeers,
+                                      const bytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }
 
-void P2PComm::SendRumorToForeignPeers(
-    const std::deque<Peer>& foreignPeers,
-    const std::vector<unsigned char>& message) {
+void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
+                                      const bytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }

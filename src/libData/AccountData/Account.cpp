@@ -256,13 +256,9 @@ string Account::GetRawStorage(const h256& k_hash) const {
 
 Json::Value Account::GetInitJson() const { return m_initValJson; }
 
-const std::vector<unsigned char>& Account::GetInitData() const {
-  return m_initData;
-}
+const bytes& Account::GetInitData() const { return m_initData; }
 
-void Account::SetInitData(const std::vector<unsigned char>& initData) {
-  m_initData = initData;
-}
+void Account::SetInitData(const bytes& initData) { m_initData = initData; }
 
 vector<h256> Account::GetStorageKeyHashes() const {
   vector<h256> keyHashes;
@@ -402,9 +398,7 @@ void Account::SetCode(const vector<unsigned char>& code) {
   InitStorage();
 }
 
-const std::vector<unsigned char>& Account::GetCode() const {
-  return m_codeCache;
-}
+const bytes& Account::GetCode() const { return m_codeCache; }
 
 const dev::h256& Account::GetCodeHash() const { return m_codeHash; }
 

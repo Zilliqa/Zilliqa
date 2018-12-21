@@ -32,8 +32,7 @@ unsigned char LOW_BITS_MASK = 0x0F;
 unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
-bool Transaction::SerializeCoreFields(std::vector<unsigned char>& dst,
-                                      unsigned int offset) const {
+bool Transaction::SerializeCoreFields(bytes& dst, unsigned int offset) const {
   return Messenger::SetTransactionCoreInfo(dst, offset, m_coreInfo);
 }
 
@@ -81,8 +80,7 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
                          const uint64_t& nonce, const Address& toAddr,
                          const PubKey& senderPubKey, const uint128_t& amount,
                          const uint128_t& gasPrice, const uint64_t& gasLimit,
-                         const std::vector<unsigned char>& code,
-                         const std::vector<unsigned char>& data,
+                         const bytes& code, const bytes& data,
                          const Signature& signature)
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
@@ -92,10 +90,8 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const uint128_t& amount, const uint128_t& gasPrice,
-                         const uint64_t& gasLimit,
-                         const std::vector<unsigned char>& code,
-                         const std::vector<unsigned char>& data,
-                         const Signature& signature)
+                         const uint64_t& gasLimit, const bytes& code,
+                         const bytes& data, const Signature& signature)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
       m_signature(signature) {

@@ -1856,7 +1856,7 @@ bool GetConsensusAnnouncementCore(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     LOG_GENERAL(WARNING,
@@ -2703,8 +2703,7 @@ bool Messenger::GetFallbackBlock(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetTransactionCoreInfo(std::vector<unsigned char>& dst,
-                                       const unsigned int offset,
+bool Messenger::SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
                                        const TransactionCoreInfo& transaction) {
   ProtoTransactionCoreInfo result;
 
@@ -2717,7 +2716,7 @@ bool Messenger::SetTransactionCoreInfo(std::vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionCoreInfo(const std::vector<unsigned char>& src,
+bool Messenger::GetTransactionCoreInfo(const bytes& src,
                                        const unsigned int offset,
                                        TransactionCoreInfo& transaction) {
   ProtoTransactionCoreInfo result;
@@ -2734,8 +2733,7 @@ bool Messenger::GetTransactionCoreInfo(const std::vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetTransaction(std::vector<unsigned char>& dst,
-                               const unsigned int offset,
+bool Messenger::SetTransaction(bytes& dst, const unsigned int offset,
                                const Transaction& transaction) {
   ProtoTransaction result;
 
@@ -2748,8 +2746,7 @@ bool Messenger::SetTransaction(std::vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransaction(const std::vector<unsigned char>& src,
-                               const unsigned int offset,
+bool Messenger::GetTransaction(const bytes& src, const unsigned int offset,
                                Transaction& transaction) {
   ProtoTransaction result;
 
@@ -2766,7 +2763,7 @@ bool Messenger::GetTransaction(const std::vector<unsigned char>& src,
 }
 
 bool Messenger::SetTransactionFileOffset(
-    std::vector<unsigned char>& dst, const unsigned int offset,
+    bytes& dst, const unsigned int offset,
     const std::vector<uint32_t>& txnOffsets) {
   ProtoTxnFileOffset result;
   TransactionOffsetToProtobuf(txnOffsets, result);
@@ -2777,7 +2774,7 @@ bool Messenger::SetTransactionFileOffset(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionFileOffset(const std::vector<unsigned char>& src,
+bool Messenger::GetTransactionFileOffset(const bytes& src,
                                          const unsigned int offset,
                                          std::vector<uint32_t>& txnOffsets) {
   ProtoTxnFileOffset result;
@@ -2793,8 +2790,7 @@ bool Messenger::GetTransactionFileOffset(const std::vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::SetTransactionArray(std::vector<unsigned char>& dst,
-                                    const unsigned int offset,
+bool Messenger::SetTransactionArray(bytes& dst, const unsigned int offset,
                                     const std::vector<Transaction>& txns) {
   ProtoTransactionArray result;
   TransactionArrayToProtobuf(txns, result);
@@ -2805,8 +2801,7 @@ bool Messenger::SetTransactionArray(std::vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionArray(const std::vector<unsigned char>& src,
-                                    const unsigned int offset,
+bool Messenger::GetTransactionArray(const bytes& src, const unsigned int offset,
                                     std::vector<Transaction>& txns) {
   ProtoTransactionArray result;
 
@@ -2822,7 +2817,7 @@ bool Messenger::GetTransactionArray(const std::vector<unsigned char>& src,
 }
 
 bool Messenger::SetTransactionReceipt(
-    std::vector<unsigned char>& dst, const unsigned int offset,
+    bytes& dst, const unsigned int offset,
     const TransactionReceipt& transactionReceipt) {
   ProtoTransactionReceipt result;
 
@@ -2835,7 +2830,7 @@ bool Messenger::SetTransactionReceipt(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionReceipt(const std::vector<unsigned char>& src,
+bool Messenger::GetTransactionReceipt(const bytes& src,
                                       const unsigned int offset,
                                       TransactionReceipt& transactionReceipt) {
   ProtoTransactionReceipt result;
@@ -2853,7 +2848,7 @@ bool Messenger::GetTransactionReceipt(const std::vector<unsigned char>& src,
 }
 
 bool Messenger::SetTransactionWithReceipt(
-    std::vector<unsigned char>& dst, const unsigned int offset,
+    bytes& dst, const unsigned int offset,
     const TransactionWithReceipt& transactionWithReceipt) {
   ProtoTransactionWithReceipt result;
 
@@ -2867,7 +2862,7 @@ bool Messenger::SetTransactionWithReceipt(
 }
 
 bool Messenger::GetTransactionWithReceipt(
-    const std::vector<unsigned char>& src, const unsigned int offset,
+    const bytes& src, const unsigned int offset,
     TransactionWithReceipt& transactionWithReceipt) {
   ProtoTransactionWithReceipt result;
 
@@ -2883,8 +2878,8 @@ bool Messenger::GetTransactionWithReceipt(
   return true;
 }
 
-bool Messenger::SetPeer(std::vector<unsigned char>& dst,
-                        const unsigned int offset, const Peer& peer) {
+bool Messenger::SetPeer(bytes& dst, const unsigned int offset,
+                        const Peer& peer) {
   ProtoPeer result;
 
   PeerToProtobuf(peer, result);
@@ -2897,8 +2892,8 @@ bool Messenger::SetPeer(std::vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetPeer(const std::vector<unsigned char>& src,
-                        const unsigned int offset, Peer& peer) {
+bool Messenger::GetPeer(const bytes& src, const unsigned int offset,
+                        Peer& peer) {
   ProtoPeer result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2914,7 +2909,7 @@ bool Messenger::GetPeer(const std::vector<unsigned char>& src,
 }
 
 bool Messenger::SetBlockLink(
-    std::vector<unsigned char>& dst, const unsigned int offset,
+    bytes& dst, const unsigned int offset,
     const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
   ProtoBlockLink result;
 
@@ -3868,9 +3863,9 @@ bool Messenger::GetNodeVCBlock(const vector<unsigned char>& src,
 }
 
 bool Messenger::SetNodeForwardTxnBlock(
-    std::vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t& epochNumber, const uint64_t& dsBlockNum,
-    const uint32_t& shardId, const std::pair<PrivKey, PubKey>& lookupKey,
+    bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
+    const uint64_t& dsBlockNum, const uint32_t& shardId,
+    const std::pair<PrivKey, PubKey>& lookupKey,
     const std::vector<Transaction>& txnsCurrent,
     const std::vector<Transaction>& txnsGenerated) {
   LOG_MARKER();
@@ -3897,7 +3892,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
   Signature signature;
   if (result.transactions().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions.");
       return false;
@@ -3923,7 +3918,7 @@ bool Messenger::SetNodeForwardTxnBlock(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
+bool Messenger::GetNodeForwardTxnBlock(const bytes& src,
                                        const unsigned int offset,
                                        uint64_t& epochNumber,
                                        uint64_t& dsBlockNum, uint32_t& shardId,
@@ -3946,7 +3941,7 @@ bool Messenger::GetNodeForwardTxnBlock(const std::vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
 
   if (result.transactions().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions.");
       return false;
@@ -4191,8 +4186,7 @@ bool Messenger::GetNodeFallbackBlock(const vector<unsigned char>& src,
   return true;
 }
 
-bool Messenger::ShardStructureToArray(std::vector<unsigned char>& dst,
-                                      const unsigned int offset,
+bool Messenger::ShardStructureToArray(bytes& dst, const unsigned int offset,
                                       const DequeOfShard& shards) {
   ProtoShardingStructure protoShardingStructure;
   ShardingStructureToProtobuf(shards, protoShardingStructure);
@@ -4210,7 +4204,7 @@ bool Messenger::ShardStructureToArray(std::vector<unsigned char>& dst,
   return true;
 }
 
-bool Messenger::ArrayToShardStructure(const std::vector<unsigned char>& src,
+bool Messenger::ArrayToShardStructure(const bytes& src,
                                       const unsigned int offset,
                                       DequeOfShard& shards) {
   ProtoShardingStructure protoShardingStructure;
@@ -4342,7 +4336,7 @@ bool Messenger::SetLookupSetSeedPeers(
 
   Signature signature;
   if (result.candidateseeds().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds.");
       return false;
@@ -4391,7 +4385,7 @@ bool Messenger::GetLookupSetSeedPeers(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   if (result.candidateseeds().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds.");
       return false;
@@ -4458,7 +4452,7 @@ bool Messenger::SetLookupSetDSInfoFromSeed(
 
   SerializableToProtobufByteArray(senderKey.second, *result.mutable_pubkey());
 
-  std::vector<unsigned char> tmp;
+  bytes tmp;
   if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize DS committee.");
     return false;
@@ -4507,7 +4501,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(const vector<unsigned char>& src,
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  std::vector<unsigned char> tmp;
+  bytes tmp;
   if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize DS committee.");
     return false;
@@ -4587,7 +4581,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(
 
   Signature signature;
   if (result.dsblocks().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
       return false;
@@ -4643,7 +4637,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   if (result.dsblocks().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize DS blocks.");
       return false;
@@ -4722,7 +4716,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(
 
   Signature signature;
   if (result.txblocks().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
       return false;
@@ -4778,7 +4772,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   if (result.txblocks().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.txblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize tx blocks.");
       return false;
@@ -5066,7 +5060,7 @@ bool Messenger::SetLookupSetStateFromSeed(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
 
-  std::vector<unsigned char> tmp;
+  bytes tmp;
 
   if (!accountStore.Serialize(tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize AccountStore.");
@@ -5246,7 +5240,7 @@ bool Messenger::SetLookupSetOfflineLookups(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.nodes().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.nodes(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes.");
       return false;
@@ -5295,7 +5289,7 @@ bool Messenger::GetLookupSetOfflineLookups(const vector<unsigned char>& src,
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   if (result.nodes().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.nodes(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes.");
       return false;
@@ -5347,8 +5341,8 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const vector<unsigned char>& src,
 }
 
 bool Messenger::SetLookupSetStartPoWFromSeed(
-    std::vector<unsigned char>& dst, const unsigned int offset,
-    const uint64_t blockNumber, const std::pair<PrivKey, PubKey>& lookupKey) {
+    bytes& dst, const unsigned int offset, const uint64_t blockNumber,
+    const std::pair<PrivKey, PubKey>& lookupKey) {
   LOG_MARKER();
 
   LookupSetStartPoWFromSeed result;
@@ -5356,7 +5350,7 @@ bool Messenger::SetLookupSetStartPoWFromSeed(
   result.set_blocknumber(blockNumber);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  std::vector<unsigned char> tmp;
+  bytes tmp;
   NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, 0);
 
   Signature signature;
@@ -5376,9 +5370,9 @@ bool Messenger::SetLookupSetStartPoWFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetStartPoWFromSeed(
-    const std::vector<unsigned char>& src, const unsigned int offset,
-    PubKey& lookupPubKey) {
+bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
+                                             const unsigned int offset,
+                                             PubKey& lookupPubKey) {
   LOG_MARKER();
 
   LookupSetStartPoWFromSeed result;
@@ -5390,7 +5384,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(
     return false;
   }
 
-  std::vector<unsigned char> tmp;
+  bytes tmp;
   NumberToArray<uint64_t, sizeof(uint64_t)>(result.blocknumber(), tmp, 0);
 
   ProtobufByteArrayToSerializable(result.pubkey(), lookupPubKey);
@@ -5452,7 +5446,7 @@ bool Messenger::SetLookupSetShardsFromSeed(
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
-  std::vector<unsigned char> tmp;
+  bytes tmp;
   if (!SerializeToArray(result.sharding(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize sharding structure.");
     return false;
@@ -5497,7 +5491,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const vector<unsigned char>& src,
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
-  std::vector<unsigned char> tmp;
+  bytes tmp;
   if (!SerializeToArray(result.sharding(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize sharding structure.");
     return false;
@@ -5574,7 +5568,7 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.microblocks().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks.");
       return false;
@@ -5615,7 +5609,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   if (result.microblocks().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks.");
       return false;
@@ -5701,7 +5695,7 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.transactions().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions.");
       return false;
@@ -5743,7 +5737,7 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   ProtobufByteArrayToSerializable(result.signature(), signature);
 
   if (result.transactions().size() > 0) {
-    std::vector<unsigned char> tmp;
+    bytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions.");
       return false;
@@ -5989,7 +5983,7 @@ bool Messenger::GetConsensusCommit(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     LOG_GENERAL(WARNING,
@@ -6115,7 +6109,7 @@ bool Messenger::GetConsensusChallenge(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     LOG_GENERAL(WARNING,
@@ -6239,7 +6233,7 @@ bool Messenger::GetConsensusResponse(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     LOG_GENERAL(WARNING,
@@ -6362,7 +6356,7 @@ bool Messenger::GetConsensusCollectiveSig(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     LOG_GENERAL(WARNING,
@@ -6483,7 +6477,7 @@ bool Messenger::GetConsensusCommitFailure(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     LOG_GENERAL(WARNING,
@@ -6601,7 +6595,7 @@ bool Messenger::GetConsensusConsensusFailure(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    std::vector<unsigned char> remoteBlockHash(tmpBlockHash.size());
+    bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     LOG_GENERAL(WARNING,
@@ -6706,7 +6700,7 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
-  std::vector<unsigned char> tmp;
+  bytes tmp;
   if (result.dsblocks().size() > 0) {
     if (!RepeatableToArray(result.dsblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize ds blocks.");

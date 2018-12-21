@@ -44,9 +44,8 @@ struct TransactionCoreInfo {
                       const PubKey& senderPubKeyInput,
                       const boost::multiprecision::uint128_t& amountInput,
                       const boost::multiprecision::uint128_t& gasPriceInput,
-                      const uint64_t& gasLimitInput,
-                      const std::vector<unsigned char>& codeInput,
-                      const std::vector<unsigned char>& dataInput)
+                      const uint64_t& gasLimitInput, const bytes& codeInput,
+                      const bytes& dataInput)
       : version(versionInput),
         nonce(nonceInput),
         toAddr(toAddrInput),
@@ -64,8 +63,8 @@ struct TransactionCoreInfo {
   boost::multiprecision::uint128_t amount;
   boost::multiprecision::uint128_t gasPrice;
   uint64_t gasLimit;
-  std::vector<unsigned char> code;
-  std::vector<unsigned char> data;
+  bytes code;
+  bytes data;
 };
 
 /// Stores information on a single transaction.
@@ -86,9 +85,8 @@ class Transaction : public SerializableDataBlock {
               const Address& toAddr, const KeyPair& senderKeyPair,
               const boost::multiprecision::uint128_t& amount,
               const boost::multiprecision::uint128_t& gasPrice,
-              const uint64_t& gasLimit,
-              const std::vector<unsigned char>& code = {},
-              const std::vector<unsigned char>& data = {});
+              const uint64_t& gasLimit, const bytes& code = {},
+              const bytes& data = {});
 
   /// Constructor with specified transaction fields.
   Transaction(const TxnHash& tranID, const uint32_t& version,
@@ -96,8 +94,7 @@ class Transaction : public SerializableDataBlock {
               const PubKey& senderPubKey,
               const boost::multiprecision::uint128_t& amount,
               const boost::multiprecision::uint128_t& gasPrice,
-              const uint64_t& gasLimit, const std::vector<unsigned char>& code,
-              const std::vector<unsigned char>& data,
+              const uint64_t& gasLimit, const bytes& code, const bytes& data,
               const Signature& signature);
 
   /// Constructor with specified transaction fields.
@@ -105,8 +102,7 @@ class Transaction : public SerializableDataBlock {
               const Address& toAddr, const PubKey& senderPubKey,
               const boost::multiprecision::uint128_t& amount,
               const boost::multiprecision::uint128_t& gasPrice,
-              const uint64_t& gasLimit, const std::vector<unsigned char>& code,
-              const std::vector<unsigned char>& data,
+              const uint64_t& gasLimit, const bytes& code, const bytes& data,
               const Signature& signature);
 
   /// Constructor with core information.
@@ -114,18 +110,15 @@ class Transaction : public SerializableDataBlock {
               const Signature& signature);
 
   /// Constructor for loading transaction information from a byte stream.
-  Transaction(const std::vector<unsigned char>& src, unsigned int offset);
+  Transaction(const bytes& src, unsigned int offset);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst,
-                 unsigned int offset) const override;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
 
-  bool SerializeCoreFields(std::vector<unsigned char>& dst,
-                           unsigned int offset) const;
+  bool SerializeCoreFields(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src,
-                   unsigned int offset) override;
+  bool Deserialize(const bytes& src, unsigned int offset) override;
 
   /// Returns the transaction ID.
   const TxnHash& GetTranID() const;
@@ -158,10 +151,10 @@ class Transaction : public SerializableDataBlock {
   const uint64_t& GetGasLimit() const;
 
   /// Returns the code.
-  const std::vector<unsigned char>& GetCode() const;
+  const bytes& GetCode() const;
 
   /// Returns the data.
-  const std::vector<unsigned char>& GetData() const;
+  const bytes& GetData() const;
 
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;

@@ -76,7 +76,7 @@ bool DSBlockHeader::Serialize(vector<unsigned char>& dst,
 
 BlockHash DSBlockHeader::GetHashForRandom() const {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  std::vector<unsigned char> vec;
+  bytes vec;
 
   if (!Messenger::SetDSBlockHeader(vec, 0, *this, true)) {
     LOG_GENERAL(WARNING, "Messenger::SetDSBlockHeader failed.");
@@ -84,7 +84,7 @@ BlockHash DSBlockHeader::GetHashForRandom() const {
   }
 
   sha2.Update(vec);
-  const std::vector<unsigned char>& resVec = sha2.Finalize();
+  const bytes& resVec = sha2.Finalize();
   BlockHash blockHash;
   std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
   return blockHash;

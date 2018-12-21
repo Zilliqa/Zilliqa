@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(fat_trie) {
       m_testDB.Lookup((boost::multiprecision::uint256_t)2) == "apples",
       "ERROR: (boost_int, string)");
 
-  std::vector<unsigned char> mangoMsg = {'m', 'a', 'n', 'g', 'o'};
+  bytes mangoMsg = {'m', 'a', 'n', 'g', 'o'};
 
   m_testDB.Insert((boost::multiprecision::uint256_t)3, mangoMsg);
 

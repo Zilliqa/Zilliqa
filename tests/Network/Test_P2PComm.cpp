@@ -50,10 +50,8 @@ void process_message(pair<vector<unsigned char>, Peer>* message) {
 }
 
 static bool comparePairSecond(
-    const std::pair<std::vector<unsigned char>,
-                    chrono::time_point<chrono::system_clock>>& a,
-    const std::pair<std::vector<unsigned char>,
-                    chrono::time_point<chrono::system_clock>>& b) {
+    const std::pair<bytes, chrono::time_point<chrono::system_clock>>& a,
+    const std::pair<bytes, chrono::time_point<chrono::system_clock>>& b) {
   return a.second < b.second;
 }
 
