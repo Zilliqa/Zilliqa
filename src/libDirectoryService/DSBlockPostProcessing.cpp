@@ -32,6 +32,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
@@ -358,8 +359,9 @@ void DirectoryService::StartFirstTxEpoch() {
     m_allPoWs.clear();
   }
 
-  ClearDSPoWSolns();
+  Blacklist::GetInstance().Clear();
 
+  ClearDSPoWSolns();
   ResetPoWSubmissionCounter();
   m_viewChangeCounter = 0;
 
