@@ -273,10 +273,10 @@ unsigned int CommitPointHash::Serialize(vector<unsigned char>& dst,
   // LOG_MARKER();
 
   if (m_initialized) {
-    BIGNUMSerialize::SetNumber(dst, offset, COMMIT_HASH_POINT_SIZE, m_h);
+    BIGNUMSerialize::SetNumber(dst, offset, COMMIT_POINT_HASH_SIZE, m_h);
   }
 
-  return COMMIT_HASH_POINT_SIZE;
+  return COMMIT_POINT_HASH_SIZE;
 }
 
 int CommitPointHash::Deserialize(const vector<unsigned char>& src,
@@ -284,7 +284,7 @@ int CommitPointHash::Deserialize(const vector<unsigned char>& src,
   // LOG_MARKER();
 
   try {
-    m_h = BIGNUMSerialize::GetNumber(src, offset, COMMIT_HASH_POINT_SIZE);
+    m_h = BIGNUMSerialize::GetNumber(src, offset, COMMIT_POINT_HASH_SIZE);
     if (m_h == nullptr) {
       LOG_GENERAL(WARNING, "Deserialization failure");
       m_initialized = false;
@@ -312,7 +312,9 @@ void CommitPointHash::Set(const CommitPoint& point) {
   vector<unsigned char> domain(1);
   
   //The second domain separated hash function.
-  //The first one is used in the Proof-of-Possession phase.
+  //The first one is used in the Proof-of-Possession (PoP) phase.
+  //PoP coincides with PoW when each node proves the knowledge
+  //of the private key for a claimed public key.
   //Separation is defined using the first byte set to 0x01.
   fill(domain.begin(), domain.end(), 0x01);
   SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
@@ -959,9 +961,11 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message, unsigned int
 
 
     //The third domain separated hash function.
-    //The first one is used in the Proof-of-Possession phase.
-    //The second one is used in the Proof-of-Possession phase.
-    //Separation is defined using the first byte set to 0x11.
+    //The first one is used in the Proof-of-Possession (PoP) phase.
+    //PoP coincides with PoW when each node proves the knowledge
+    //of the private key for a claimed public key.
+    //The second one is used in CommitPointHash::Set to generate the hash of the committed point.
+    //Separation for the third hash function is defined by setting the first byte to 0x11.
   
     //Domain separation for hash function 
     vector<unsigned char> domain(1);
