@@ -225,7 +225,7 @@ bool CommitPoint::operator==(const CommitPoint& r) const {
                         m_p.get(), r.m_p.get(), ctx.get()) == 0));
 }
 
-CommitHashPoint::CommitHashPoint()
+CommitPointHash::CommitPointHash()
     : m_h(BN_new(), BN_clear_free), m_initialized(false) {
   if (m_h == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
@@ -233,7 +233,7 @@ CommitHashPoint::CommitHashPoint()
   }
 }
 
-CommitHashPoint::CommitHashPoint(const CommitPoint& point)
+CommitPointHash::CommitPointHash(const CommitPoint& point)
     : m_h(BN_new(), BN_clear_free), m_initialized(false) {
   if (m_h == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
@@ -243,32 +243,32 @@ CommitHashPoint::CommitHashPoint(const CommitPoint& point)
   }
 }
 
-CommitHashPoint::CommitHashPoint(const vector<unsigned char>& src,
+CommitPointHash::CommitPointHash(const vector<unsigned char>& src,
                          unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
-    LOG_GENERAL(WARNING, "We failed to init CommitHashPoint.");
+    LOG_GENERAL(WARNING, "We failed to init CommitPointHash.");
   }
 }
 
-CommitHashPoint::CommitHashPoint(const CommitHashPoint& src)
+CommitPointHash::CommitPointHash(const CommitPointHash& src)
     : m_h(BN_new(), BN_clear_free), m_initialized(false) {
   if (m_h == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
     // throw exception();
   } else {
     if (BN_copy(m_h.get(), src.m_h.get()) == NULL) {
-      LOG_GENERAL(WARNING, "CommitHashPoint copy failed");
+      LOG_GENERAL(WARNING, "CommitPointHash copy failed");
     } else {
       m_initialized = true;
     }
   }
 }
 
-CommitHashPoint::~CommitHashPoint() {}
+CommitPointHash::~CommitPointHash() {}
 
-bool CommitHashPoint::Initialized() const { return m_initialized; }
+bool CommitPointHash::Initialized() const { return m_initialized; }
 
-unsigned int CommitHashPoint::Serialize(vector<unsigned char>& dst,
+unsigned int CommitPointHash::Serialize(vector<unsigned char>& dst,
                                     unsigned int offset) const {
   // LOG_MARKER();
 
@@ -279,7 +279,7 @@ unsigned int CommitHashPoint::Serialize(vector<unsigned char>& dst,
   return COMMIT_HASH_POINT_SIZE;
 }
 
-int CommitHashPoint::Deserialize(const vector<unsigned char>& src,
+int CommitPointHash::Deserialize(const vector<unsigned char>& src,
                              unsigned int offset) {
   // LOG_MARKER();
 
@@ -293,13 +293,13 @@ int CommitHashPoint::Deserialize(const vector<unsigned char>& src,
     }
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING,
-                "Error with CommitHashPoint::Deserialize." << ' ' << e.what());
+                "Error with CommitPointHash::Deserialize." << ' ' << e.what());
     return -1;
   }
   return 0;
 }
 
-void CommitHashPoint::Set(const CommitPoint& point) {
+void CommitPointHash::Set(const CommitPoint& point) {
   if (!point.Initialized()) {
     LOG_GENERAL(WARNING, "Commitment point not initialized");
     return;
@@ -335,7 +335,7 @@ void CommitHashPoint::Set(const CommitPoint& point) {
   sha2.Update(buf);
   vector<unsigned char> digest = sha2.Finalize();
 
-  //Build the HashPoint
+  //Build the PointHash
   if ((BN_bin2bn(digest.data(), digest.size(), m_h.get())) == NULL) {
     LOG_GENERAL(WARNING, "Digest to scalar failed");
     return;
@@ -350,12 +350,12 @@ void CommitHashPoint::Set(const CommitPoint& point) {
 
 }
 
-CommitHashPoint& CommitHashPoint::operator=(const CommitHashPoint& src) {
+CommitPointHash& CommitPointHash::operator=(const CommitPointHash& src) {
   m_initialized = (BN_copy(m_h.get(), src.m_h.get()) != NULL);
   return *this;
 }
 
-bool CommitHashPoint::operator==(const CommitHashPoint& r) const {
+bool CommitPointHash::operator==(const CommitPointHash& r) const {
   return (m_initialized && r.m_initialized &&
           (BN_cmp(m_h.get(), r.m_h.get()) == 0));
 }
@@ -684,6 +684,18 @@ bool Response::operator==(const Response& r) const {
           (BN_cmp(m_r.get(), r.m_r.get()) == 0));
 }
 
+
+
+MultiSig::MultiSig() {}
+
+MultiSig::~MultiSig() {}
+
+MultiSig& MultiSig::GetInstance() {
+  static MultiSig multisig;
+  return multisig;
+}
+
+
 shared_ptr<PubKey> MultiSig::AggregatePubKeys(const vector<PubKey>& pubkeys) {
   const Curve& curve = Schnorr::GetInstance().GetCurve();
 
@@ -886,3 +898,196 @@ bool MultiSig::VerifyResponse(const Response& response,
   }
   return true;
 }
+
+/*
+ * This method is the same as: 
+ * bool Schnorr::Verify(const vector<unsigned char>& message,
+ *                    const Signature& toverify, const PubKey& pubkey); 
+ *
+*/
+
+bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
+                     const Signature& toverify, const PubKey& pubkey) {
+  return MultiSigVerify(message, 0, message.size(), toverify, pubkey);
+}
+
+
+/*
+ * This method is the same as:  
+ * Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
+ *                    unsigned int size, const Signature& toverify,
+ *                    const PubKey& pubkey) 
+ * except that the underlying hash function H() is now replaced by domain separated
+ * hash function H(0x11|x). 
+ * 
+*/
+
+bool MultiSig::MultiSigVerify(const vector<unsigned char>& message, unsigned int offset,
+                     unsigned int size, const Signature& toverify,
+                     const PubKey& pubkey) {
+  // Initial checks
+  if (message.size() == 0) {
+    LOG_GENERAL(WARNING, "Empty message");
+    return false;
+  }
+
+  if (message.size() < (offset + size)) {
+    LOG_GENERAL(WARNING, "Offset and size beyond message size");
+    return false;
+  }
+
+  if (!pubkey.Initialized()) {
+    LOG_GENERAL(WARNING, "Public key not initialized");
+    return false;
+  }
+
+  if (!toverify.Initialized()) {
+    LOG_GENERAL(WARNING, "Signature not initialized");
+    return false;
+  }
+
+  try {
+    // Main verification procedure
+
+    // The algorithm to check the signature (r, s) on a message m using a public
+    // key kpub is as follows
+    // 1. Check if r,s is in [1, ..., order-1]
+    // 2. Compute Q = sG + r*kpub
+    // 3. If Q = O (the neutral point), return 0;
+    // 4. r' = H(Q, kpub, m)
+    // 5. return r' == r
+
+
+    //The third domain separated hash function.
+    //The first one is used in the Proof-of-Possession phase.
+    //The second one is used in the Proof-of-Possession phase.
+    //Separation is defined using the first byte set to 0x11.
+  
+    //Domain separation for hash function 
+    vector<unsigned char> domain(1);
+    fill(domain.begin(), domain.end(), 0x11);
+    
+    SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
+  
+    //Compute H(0x11).
+    sha2.Update(domain);
+  
+    vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+
+    bool err = false;
+    bool err2 = false;
+
+    const Curve& curve = Schnorr::GetInstance().GetCurve();
+    
+    // Regenerate the commitmment part of the signature
+    unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
+                                                          BN_clear_free);
+    unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
+        EC_POINT_new(curve.m_group.get()), EC_POINT_clear_free);
+    unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
+
+    if ((challenge_built != nullptr) && (ctx != nullptr) && (Q != nullptr)) {
+      // 1. Check if r,s is in [1, ..., order-1]
+      err2 = (BN_is_zero(toverify.m_r.get()) ||
+              BN_is_negative(toverify.m_r.get()) ||
+              (BN_cmp(toverify.m_r.get(), curve.m_order.get()) != -1));
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Challenge not in range");
+        return false;
+      }
+
+      err2 = (BN_is_zero(toverify.m_s.get()) ||
+              BN_is_negative(toverify.m_s.get()) ||
+              (BN_cmp(toverify.m_s.get(), curve.m_order.get()) != -1));
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Response not in range");
+        return false;
+      }
+
+      // 2. Compute Q = sG + r*kpub
+      err2 =
+          (EC_POINT_mul(curve.m_group.get(), Q.get(), toverify.m_s.get(),
+                        pubkey.m_P.get(), toverify.m_r.get(), ctx.get()) == 0);
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Commit regenerate failed");
+        return false;
+      }
+
+      // 3. If Q = O (the neutral point), return 0;
+      err2 = (EC_POINT_is_at_infinity(curve.m_group.get(), Q.get()));
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Commit at infinity");
+        return false;
+      }
+
+      // 4. r' = H(Q, kpub, m)
+      // 4.1 Convert the committment to octets first
+      err2 = (EC_POINT_point2oct(curve.m_group.get(), Q.get(),
+                                 POINT_CONVERSION_COMPRESSED, buf.data(),
+                                 Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES,
+                                 NULL) != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Commit octet conversion failed");
+        return false;
+      }
+
+      // Hash commitment
+      sha2.Update(buf);
+
+      // Reset buf
+      fill(buf.begin(), buf.end(), 0x00);
+
+      // 4.2 Convert the public key to octets
+      err2 = (EC_POINT_point2oct(curve.m_group.get(), pubkey.m_P.get(),
+                                 POINT_CONVERSION_COMPRESSED, buf.data(),
+                                 Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES,
+                                 NULL) != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Pubkey octet conversion failed");
+        return false;
+      }
+
+      // Hash public key
+      sha2.Update(buf);
+
+      // 4.3 Hash message
+      sha2.Update(message, offset, size);
+      vector<unsigned char> digest = sha2.Finalize();
+
+      // 5. return r' == r
+      err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get()) ==
+              NULL);
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Challenge bin2bn conversion failed");
+        return false;
+      }
+
+      err2 = (BN_nnmod(challenge_built.get(), challenge_built.get(),
+                       curve.m_order.get(), NULL) == 0);
+      err = err || err2;
+      if (err2) {
+        LOG_GENERAL(WARNING, "Challenge rebuild mod failed");
+        return false;
+      }
+
+      sha2.Reset();
+    } else {
+      LOG_GENERAL(WARNING, "Memory allocation failure");
+      // throw exception();
+      return false;
+    }
+    return (!err) && (BN_cmp(challenge_built.get(), toverify.m_r.get()) == 0);
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Error with Schnorr::Verify." << ' ' << e.what());
+    return false;
+  }
+}
+
+
