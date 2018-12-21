@@ -498,7 +498,11 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
   }
 
   uint32_t numOutOfMyPriorityList = 0;
-  auto setTopPriorityNodes = FindTopPriorityNodes();
+  uint8_t lowestPriority = 0;
+  auto setTopPriorityNodes = FindTopPriorityNodes(lowestPriority);
+
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Lowest priority to join is " << to_string(lowestPriority));
 
   // Inject the DS committee members into priority nodes list, because the
   // kicked out ds nodes will join the shard node, so the verify priority for
@@ -511,16 +515,19 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
     for (const auto& shardNode : shard) {
       const PubKey& toFind = std::get<SHARD_NODE_PUBKEY>(shardNode);
       if (setTopPriorityNodes.find(toFind) == setTopPriorityNodes.end()) {
-        ++numOutOfMyPriorityList;
-        LOG_GENERAL(WARNING,
-                    "Node " << toFind << " is not in my top priority list");
+        auto reputation = m_mapNodeReputation[toFind];
+        auto priority = CalculateNodePriority(reputation);
+        if (priority < lowestPriority) {
+          ++numOutOfMyPriorityList;
+          LOG_GENERAL(WARNING,
+                      "Node " << toFind << " is not in my top priority list");
+        }
       }
     }
   }
 
-  constexpr float tolerance = 0.02f;
-  const uint32_t MAX_NODE_OUT_OF_LIST =
-      std::ceil(MAX_SHARD_NODE_NUM * tolerance);
+  const uint32_t MAX_NODE_OUT_OF_LIST = std::ceil(
+      MAX_SHARD_NODE_NUM * PRIORITY_TOLERANCE_IN_PERCENT / ONE_HUNDRED_PERCENT);
   if (numOutOfMyPriorityList > MAX_NODE_OUT_OF_LIST) {
     LOG_GENERAL(WARNING, "Number of node not in my priority "
                              << numOutOfMyPriorityList << " exceed tolerance "
@@ -667,7 +674,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     LOG_GENERAL(INFO, "PoWs recvd " << allPoWs.size()
                                     << " more than max node number "
                                     << MAX_SHARD_NODE_NUM);
-    auto setTopPriorityNodes = FindTopPriorityNodes();
+    uint8_t lowestPriority = 0;
+    auto setTopPriorityNodes = FindTopPriorityNodes(lowestPriority);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Lowest priority to join is " << to_string(lowestPriority));
 
     MapOfPubKeyPoW tmpAllPoWs;
     for (const auto& pubKeyPoW : allPoWs) {
