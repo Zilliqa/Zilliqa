@@ -36,7 +36,7 @@ template <unsigned int SIZE>
 class SHA2 {
   static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
   SHA256_CTX m_context;
-  std::vector<unsigned char> output;
+  bytes output;
 
  public:
   /// Constructor.
@@ -53,7 +53,7 @@ class SHA2 {
   ~SHA2() {}
 
   /// Hash update function.
-  void Update(const std::vector<unsigned char>& input) {
+  void Update(const bytes& input) {
     if (input.size() == 0) {
       LOG_GENERAL(WARNING, "Nothing to update");
       return;
@@ -63,8 +63,7 @@ class SHA2 {
   }
 
   /// Hash update function.
-  void Update(const std::vector<unsigned char>& input, unsigned int offset,
-              unsigned int size) {
+  void Update(const bytes& input, unsigned int offset, unsigned int size) {
     if ((offset + size) > input.size()) {
       LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
@@ -77,7 +76,7 @@ class SHA2 {
   void Reset() { SHA256_Init(&m_context); }
 
   /// Hash finalize function.
-  std::vector<unsigned char> Finalize() {
+  bytes Finalize() {
     switch (SIZE) {
       case 256:
         SHA256_Final(output.data(), &m_context);

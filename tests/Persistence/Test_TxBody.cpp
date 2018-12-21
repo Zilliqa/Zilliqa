@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
 
   TransactionWithReceipt body1 = constructDummyTxBody(0);
 
-  std::vector<unsigned char> serializedTxBody;
+  bytes serializedTxBody;
   body1.Serialize(serializedTxBody, 0);
 
   TransactionWithReceipt body2(serializedTxBody, 0);
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
     auto tx_hash3 = body3.GetTransaction().GetTranID();
     auto tx_hash4 = body4.GetTransaction().GetTranID();
 
-    std::vector<unsigned char> serializedTxBody;
+    bytes serializedTxBody;
 
     body1.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tx_hash1, serializedTxBody);

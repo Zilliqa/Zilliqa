@@ -97,12 +97,12 @@ void SendDataToShardNodesDefault(const vector<unsigned char>& message,
 
 SendDataToLookupFunc SendDataToLookupFuncDefault =
     [](const VectorOfLookupNode& lookups,
-       const std::vector<unsigned char>& message) mutable -> void {
+       const bytes& message) mutable -> void {
   SendDataToLookupNodesDefault(lookups, message);
 };
 
 SendDataToShardFunc SendDataToShardFuncDefault =
-    [](const std::vector<unsigned char>& message, const DequeOfShard& shards,
+    [](const bytes& message, const DequeOfShard& shards,
        const unsigned int& my_shards_lo,
        const unsigned int& my_shards_hi) mutable -> void {
   SendDataToShardNodesDefault(message, shards, my_shards_lo, my_shards_hi);

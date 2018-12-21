@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         Transaction txn{version,    nonce,  toAddr,
 //                         fromPubKey, amount, {/* empty sig */}};
 
-//         std::vector<unsigned char> buf;
+//         bytes buf;
 //         txn.SerializeWithoutSignature(buf, 0);
 
 //         Signature sig;
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         Transaction txn{version,    nonce,  toAddr,
 //                         fromPubKey, amount, {/* empty sig */}};
 
-//         std::vector<unsigned char> buf;
+//         bytes buf;
 //         txn.SerializeWithoutSignature(buf, 0);
 
 //         // Signature sig;
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         Transaction txn{version,    nonce,  toAddr,
 //                         fromPubKey, amount, {/* empty sig */}};
 
-//         // std::vector<unsigned char> buf;
+//         // bytes buf;
 //         // txn.SerializeWithoutSignature(buf, 0);
 
 //         // Signature sig;

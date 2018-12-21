@@ -268,7 +268,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto commitErrorFunc = [this](const vector<unsigned char>& errorMsg,
+  auto commitErrorFunc = [this](const bytes& errorMsg,
                                 const Peer& from) mutable -> bool {
     return OnNodeFinalConsensusError(errorMsg, from);
   };
@@ -299,11 +299,10 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
   }
 
   auto announcementGeneratorFunc =
-      [this](vector<unsigned char>& dst, unsigned int offset,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const vector<unsigned char>& blockHash, const uint16_t leaderID,
-             const pair<PrivKey, PubKey>& leaderKey,
-             vector<unsigned char>& messageToCosign) mutable -> bool {
+      [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
+             const uint64_t blockNumber, const bytes& blockHash,
+             const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+             bytes& messageToCosign) mutable -> bool {
     return Messenger::SetDSFinalBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_finalBlock, m_mediator.m_node->m_microblock, messageToCosign);
@@ -442,8 +441,7 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 }
 
 // Check microblock hashes
-bool DirectoryService::CheckMicroBlocks(std::vector<unsigned char>& errorMsg,
-                                        bool fromShards,
+bool DirectoryService::CheckMicroBlocks(bytes& errorMsg, bool fromShards,
                                         bool generateErrorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -628,8 +626,8 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   return ret;
 }
 
-bool DirectoryService::OnNodeFinalConsensusError(
-    const vector<unsigned char>& errorMsg, const Peer& from) {
+bool DirectoryService::OnNodeFinalConsensusError(const bytes& errorMsg,
+                                                 const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::OnNodeFailFinalConsensus not expected "
@@ -671,9 +669,9 @@ bool DirectoryService::OnNodeFinalConsensusError(
   }
 }
 
-bool DirectoryService::OnNodeMissingMicroBlocks(
-    const std::vector<unsigned char>& errorMsg, const unsigned int offset,
-    const Peer& from) {
+bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
+                                                const unsigned int offset,
+                                                const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::OnNodeMissingMicroBlocks not expected "
@@ -700,7 +698,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
   auto& microBlocks = m_microBlocks[epochNum];
 
   vector<MicroBlock> microBlocksSent;
-  vector<vector<unsigned char>> stateDeltasSent;
+  vector<bytes> stateDeltasSent;
 
   for (const auto& hash : missingMicroBlocks) {
     bool found = false;
@@ -738,7 +736,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
   }
 
   // // Final state delta
-  // vector<unsigned char> stateDelta;
+  // bytes stateDelta;
   // if (m_finalBlock->GetHeader().GetStateDeltaHash() != StateHash()) {
   //   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
   // } else {
@@ -746,8 +744,8 @@ bool DirectoryService::OnNodeMissingMicroBlocks(
   //               "State Delta Hash is empty, skip sharing final state delta");
   // }
 
-  vector<unsigned char> mb_message = {MessageType::DIRECTORY,
-                                      DSInstructionType::MICROBLOCKSUBMISSION};
+  bytes mb_message = {MessageType::DIRECTORY,
+                      DSInstructionType::MICROBLOCKSUBMISSION};
 
   if (!Messenger::SetDSMicroBlockSubmission(
           mb_message, MessageOffset::BODY,
@@ -937,8 +935,7 @@ bool DirectoryService::CheckBlockHash() {
   return true;
 }
 
-bool DirectoryService::CheckFinalBlockValidity(
-    vector<unsigned char>& errorMsg) {
+bool DirectoryService::CheckFinalBlockValidity(bytes& errorMsg) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -964,8 +961,7 @@ bool DirectoryService::CheckFinalBlockValidity(
   // header in the DS blockchain)
 }
 
-bool DirectoryService::CheckMicroBlockValidity(
-    vector<unsigned char>& errorMsg) {
+bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckMicroBlockValidity not expected to "
@@ -1006,11 +1002,10 @@ bool DirectoryService::CheckMicroBlockValidity(
 }
 
 bool DirectoryService::FinalBlockValidator(
-    const vector<unsigned char>& message, unsigned int offset,
-    vector<unsigned char>& errorMsg, const uint32_t consensusID,
-    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const PubKey& leaderKey,
-    vector<unsigned char>& messageToCosign) {
+    const bytes& message, unsigned int offset, bytes& errorMsg,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
+    bytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FinalBlockValidator not expected to be "
@@ -1034,7 +1029,7 @@ bool DirectoryService::FinalBlockValidator(
     return false;
   }
 
-  vector<unsigned char> t_errorMsg;
+  bytes t_errorMsg;
   if (CheckMicroBlocks(t_errorMsg, true,
                        false)) {  // Firstly check whether the leader
                                   // has any mb that I don't have
@@ -1123,12 +1118,11 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto func = [this](const vector<unsigned char>& input, unsigned int offset,
-                     vector<unsigned char>& errorMsg,
+  auto func = [this](const bytes& input, unsigned int offset, bytes& errorMsg,
                      const uint32_t consensusID, const uint64_t blockNumber,
-                     const vector<unsigned char>& blockHash,
-                     const uint16_t leaderID, const PubKey& leaderKey,
-                     vector<unsigned char>& messageToCosign) mutable -> bool {
+                     const bytes& blockHash, const uint16_t leaderID,
+                     const PubKey& leaderKey,
+                     bytes& messageToCosign) mutable -> bool {
     return FinalBlockValidator(input, offset, errorMsg, consensusID,
                                blockNumber, blockHash, leaderID, leaderKey,
                                messageToCosign);

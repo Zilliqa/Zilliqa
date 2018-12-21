@@ -105,7 +105,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
   }
 
   // Verify the collective signature
-  vector<unsigned char> message;
+  bytes message;
   if (!microBlock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "MicroBlockHeader serialization failed");
     return false;
@@ -125,8 +125,7 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
 }
 
 bool DirectoryService::ProcessStateDelta(
-    const vector<unsigned char>& stateDelta,
-    const StateHash& microBlockStateDeltaHash,
+    const bytes& stateDelta, const StateHash& microBlockStateDeltaHash,
     const BlockHash& microBlockHash) {
   LOG_MARKER();
 
@@ -193,7 +192,7 @@ bool DirectoryService::ProcessStateDelta(
 }
 
 bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
-    const MicroBlock& microBlock, const vector<unsigned char>& stateDelta) {
+    const MicroBlock& microBlock, const bytes& stateDelta) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessMicroblockSubmissionCore not "
@@ -287,7 +286,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
-  vector<unsigned char> body;
+  bytes body;
   microBlock.Serialize(body, 0);
   if (!BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetBlockHash(),
                                                      body)) {
@@ -362,7 +361,7 @@ void DirectoryService::CommitMBSubmissionMsgBuffer() {
 
 bool DirectoryService::ProcessMicroblockSubmissionFromShard(
     const uint64_t epochNumber, const vector<MicroBlock>& microBlocks,
-    const vector<vector<unsigned char>>& stateDeltas) {
+    const vector<bytes>& stateDeltas) {
   LOG_MARKER();
 
 #ifdef DM_TEST_DM_LESSMB_ONE
@@ -429,8 +428,8 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
 }
 
 bool DirectoryService::ProcessMicroblockSubmission(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -443,7 +442,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
   unsigned char submitMBType = 0;
   uint64_t epochNumber = 0;
   vector<MicroBlock> microBlocks;
-  vector<vector<unsigned char>> stateDeltas;
+  vector<bytes> stateDeltas;
 
   if (!Messenger::GetDSMicroBlockSubmission(message, offset, submitMBType,
                                             epochNumber, microBlocks,
@@ -468,7 +467,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
 
 bool DirectoryService::ProcessMissingMicroblockSubmission(
     const uint64_t epochNumber, const vector<MicroBlock>& microBlocks,
-    const vector<vector<unsigned char>>& stateDeltas) {
+    const vector<bytes>& stateDeltas) {
   if (epochNumber != m_mediator.m_currentEpochNum) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "untimely delivery of "
@@ -603,7 +602,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
       }
 
-      vector<unsigned char> body;
+      bytes body;
       microBlocks[i].Serialize(body, 0);
       if (!BlockStorage::GetBlockStorage().PutMicroBlock(
               microBlocks[i].GetBlockHash(), body)) {
@@ -621,7 +620,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
   }
 
   // TODO: Check if every microblock is obtained
-  std::vector<unsigned char> errorMsg;
+  bytes errorMsg;
   if (!CheckMicroBlocks(errorMsg, false, false)) {
     LOG_GENERAL(WARNING,
                 "Still have missing microblocks after fetching, what to do???");

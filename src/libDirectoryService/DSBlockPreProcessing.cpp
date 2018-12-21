@@ -162,14 +162,14 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     m_shards.emplace_back();
   }
   map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
-  vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
+  bytes lastBlockHash(BLOCK_HASH_SIZE);
 
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash =
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
-  vector<unsigned char> hashVec(BLOCK_HASH_SIZE + POW_SIZE);
+  bytes hashVec(BLOCK_HASH_SIZE + POW_SIZE);
   copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
 
   for (const auto& kv : sortedPoWSolns) {
@@ -178,7 +178,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     // sort all PoW submissions according to H(last_block_hash, pow_hash)
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
-    const vector<unsigned char>& sortHashVec = HashUtils::BytesToHash(hashVec);
+    const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
     array<unsigned char, BLOCK_HASH_SIZE> sortHash;
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
@@ -219,7 +219,7 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
   }
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  vector<unsigned char> serializedPubK;
+  bytes serializedPubK;
   for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
     // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)
     // to act as the PoW soln
@@ -230,7 +230,7 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
             .first;
     nodePubKey.Serialize(serializedPubK, 0);
     sha2.Update(serializedPubK);
-    vector<unsigned char> PubKeyHash;
+    bytes PubKeyHash;
     PubKeyHash = sha2.Finalize();
     array<unsigned char, 32> PubKeyHashArr;
 
@@ -376,7 +376,7 @@ bool DirectoryService::VerifyDifficulty() {
 bool DirectoryService::VerifyPoWOrdering(
     const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWsFromTheLeader) {
   // Requires mutex for m_shards
-  vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE, 0);
+  bytes lastBlockHash(BLOCK_HASH_SIZE, 0);
   set<PubKey> keyset;
 
   if (m_mediator.m_currentEpochNum > 1) {
@@ -404,10 +404,10 @@ bool DirectoryService::VerifyPoWOrdering(
     }
   }
 
-  vector<unsigned char> hashVec(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
+  bytes hashVec(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
   std::copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
   bool ret = true;
-  vector<unsigned char> vec(BLOCK_HASH_SIZE), preVec(BLOCK_HASH_SIZE);
+  bytes vec(BLOCK_HASH_SIZE), preVec(BLOCK_HASH_SIZE);
   uint32_t misorderNodes = 0;
   for (const auto& shard : shards) {
     for (const auto& shardNode : shard) {
@@ -453,8 +453,7 @@ bool DirectoryService::VerifyPoWOrdering(
       }
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-      const vector<unsigned char>& sortHashVec =
-          HashUtils::BytesToHash(hashVec);
+      const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
       if (DEBUG_LEVEL >= 5) {
         LOG_GENERAL(INFO, "[DSSORT]"
                               << DataConversion::Uint8VecToHexStr(sortHashVec)
@@ -817,11 +816,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // into closures.
   auto announcementGeneratorFunc =
       [this, dsWinnerPoWs = std::move(dsWinnerPoWs)](
-          vector<unsigned char>& dst, unsigned int offset,
-          const uint32_t consensusID, const uint64_t blockNumber,
-          const vector<unsigned char>& blockHash, const uint16_t leaderID,
-          const pair<PrivKey, PubKey>& leaderKey,
-          vector<unsigned char>& messageToCosign) mutable -> bool {
+          bytes& dst, unsigned int offset, const uint32_t consensusID,
+          const uint64_t blockNumber, const bytes& blockHash,
+          const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+          bytes& messageToCosign) mutable -> bool {
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_pendingDSBlock, m_shards, m_allPoWs, dsWinnerPoWs, messageToCosign);
@@ -832,11 +830,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 }
 
 bool DirectoryService::DSBlockValidator(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] vector<unsigned char>& errorMsg, const uint32_t consensusID,
-    const uint64_t blockNumber, const vector<unsigned char>& blockHash,
-    const uint16_t leaderID, const PubKey& leaderKey,
-    vector<unsigned char>& messageToCosign) {
+    const bytes& message, unsigned int offset, [[gnu::unused]] bytes& errorMsg,
+    const uint32_t consensusID, const uint64_t blockNumber,
+    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
+    bytes& messageToCosign) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1016,12 +1013,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto func = [this](const vector<unsigned char>& input, unsigned int offset,
-                     vector<unsigned char>& errorMsg,
+  auto func = [this](const bytes& input, unsigned int offset, bytes& errorMsg,
                      const uint32_t consensusID, const uint64_t blockNumber,
-                     const vector<unsigned char>& blockHash,
-                     const uint16_t leaderID, const PubKey& leaderKey,
-                     vector<unsigned char>& messageToCosign) mutable -> bool {
+                     const bytes& blockHash, const uint16_t leaderID,
+                     const PubKey& leaderKey,
+                     bytes& messageToCosign) mutable -> bool {
     return DSBlockValidator(input, offset, errorMsg, consensusID, blockNumber,
                             blockHash, leaderID, leaderKey, messageToCosign);
   };

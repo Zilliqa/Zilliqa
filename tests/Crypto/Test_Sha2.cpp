@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   sha2.Update(vec);
   vector<unsigned char> output = sha2.Finalize();
 
-  std::vector<unsigned char> expected;
+  bytes expected;
   expected = DataConversion::HexStrToUint8Vec(
       "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C");
   bool is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   sha2.Update(vec, 0, inputSize);
   vector<unsigned char> output = sha2.Finalize();
 
-  std::vector<unsigned char> expected;
+  bytes expected;
   expected = DataConversion::HexStrToUint8Vec(
       "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C");
   bool is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
