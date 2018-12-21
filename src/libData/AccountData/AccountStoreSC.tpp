@@ -122,18 +122,23 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                   "The account doesn't have enough gas to create a contract");
       return false;
     } else if (fromAccount->GetBalance() < gasDeposit + amount) {
-      LOG_GENERAL(WARNING, "The account (balance: "
-                               << fromAccount->GetBalance()
-                               << ") "
-                                  "has enough balance to pay the gas limit ("
-                               << gasDeposit
-                               << ") "
-                                  "but not enough for transfer the amount ("
-                               << amount
-                               << "), "
-                                  "create contract first and ignore amount "
-                                  "transfer however");
+      LOG_GENERAL(WARNING,
+                  "The account (balance: "
+                      << fromAccount->GetBalance()
+                      << ") "
+                         "has enough balance to pay the gas price to deposit ("
+                      << gasDeposit
+                      << ") "
+                         "but not enough for transfer the amount ("
+                      << amount
+                      << "), "
+                         "create contract first and ignore amount "
+                         "transfer however");
       validToTransferBalance = false;
+    }
+
+    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+      return false;
     }
 
     toAddr = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
@@ -246,17 +251,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     if (fromAccount->GetBalance() < gasDeposit + amount) {
-      LOG_GENERAL(WARNING,
-                  "The account (balance: "
-                      << fromAccount->GetBalance()
-                      << ") "
-                         "has not enough balance to deposit the gas limit ("
-                      << gasDeposit
-                      << ") "
-                         "and transfer the amount ("
-                      << amount
-                      << ") in the transaction, "
-                         "rejected");
+      LOG_GENERAL(
+          WARNING,
+          "The account (balance: "
+              << fromAccount->GetBalance()
+              << ") "
+                 "has not enough balance to deposit the gas price to deposit ("
+              << gasDeposit
+              << ") "
+                 "and transfer the amount ("
+              << amount
+              << ") in the transaction, "
+                 "rejected");
       return false;
     }
 
