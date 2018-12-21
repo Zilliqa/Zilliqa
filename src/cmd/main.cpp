@@ -20,10 +20,10 @@
 
 #include <arpa/inet.h>
 #include <algorithm>
-#include <iostream>
-#include "boost/program_options.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <iostream>
+#include "boost/program_options.hpp"
 
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
@@ -59,21 +59,22 @@ int main(int argc, const char* argv[]) {
 
     po::options_description desc("Options");
 
-    desc.add_options()
-        ("help,h", "Print help messages")
-        ("privk,i", po::value<string>(&privK)->required(), "32-byte private key")
-        ("pubk,u", po::value<string>(&pubK)->required(), "32-byte public key")
-        ("address,a", po::value<string>(&address)->required(), "Listen IPv4/6 address in standard \"dotted decimal\" or optionally \"dotted decimal:portnumber\" format, otherwise \"NAT\"")
-        ("port,p", po::value<int>(&port), "Specifies port to bind to, if not specified in address")
-        ("loadconfig,l", "Loads configuration if set")
-        ("synctype,s", po::value<uint8_t>(&synctype), synctype_descr)
-        ("recovery,r", "Runs in recovery mode if set");
+    desc.add_options()("help,h", "Print help messages")(
+        "privk,i", po::value<string>(&privK)->required(),
+        "32-byte private key")("pubk,u", po::value<string>(&pubK)->required(),
+                               "32-byte public key")(
+        "address,a", po::value<string>(&address)->required(),
+        "Listen IPv4/6 address in standard \"dotted decimal\" or optionally "
+        "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
+        "port,p", po::value<int>(&port),
+        "Specifies port to bind to, if not specified in address")(
+        "loadconfig,l", "Loads configuration if set")(
+        "synctype,s", po::value<uint8_t>(&synctype), synctype_descr)(
+        "recovery,r", "Runs in recovery mode if set");
 
-        po::variables_map vm;
-    try
-    {
-      po::store(po::parse_command_line(argc, argv, desc),
-          vm);
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
 
       /** --help option
        */
@@ -104,16 +105,13 @@ int main(int argc, const char* argv[]) {
 
       if (address != "NAT") {
         std::vector<std::string> socket_pair;
-        boost::algorithm::split(socket_pair, address, boost::algorithm::is_any_of(":"));
+        boost::algorithm::split(socket_pair, address,
+                                boost::algorithm::is_any_of(":"));
         if (socket_pair.size() == 2) {
           address = socket_pair[0];
-          try
-          {
+          try {
             port = boost::lexical_cast<int>(socket_pair[1]);
-            std::cout << "port" << port << endl;
-          }
-          catch (boost::bad_lexical_cast)
-          {
+          } catch (boost::bad_lexical_cast) {
             SWInfo::LogBrandBugReport();
             std::cerr << "Invalid port number" << endl;
             return ERROR_IN_COMMAND_LINE;
@@ -121,21 +119,17 @@ int main(int argc, const char* argv[]) {
         }
       }
 
-      if ((port < 0) || (port > 65535))   {
+      if ((port < 0) || (port > 65535)) {
         SWInfo::LogBrandBugReport();
         std::cerr << "Invalid or missing port number" << endl;
         return ERROR_IN_COMMAND_LINE;
       }
-    }
-    catch(boost::program_options::required_option& e)
-    {
+    } catch (boost::program_options::required_option& e) {
       SWInfo::LogBrandBugReport();
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
       return ERROR_IN_COMMAND_LINE;
-    }
-    catch(boost::program_options::error& e)
-    {
+    } catch (boost::program_options::error& e) {
       SWInfo::LogBrandBugReport();
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
@@ -160,12 +154,12 @@ int main(int argc, const char* argv[]) {
                                                << mappedPort);
       }
 
-      if (! IPConverter::ToNumericalIPFromStr(nt->externalIP().c_str(), ip)) {
+      if (!IPConverter::ToNumericalIPFromStr(nt->externalIP().c_str(), ip)) {
         return ERROR_IN_COMMAND_LINE;
       }
       my_network_info = Peer(ip, mappedPort);
     } else {
-      if (! IPConverter::ToNumericalIPFromStr(address, ip)) {
+      if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
         return ERROR_IN_COMMAND_LINE;
       }
       my_network_info = Peer(ip, port);

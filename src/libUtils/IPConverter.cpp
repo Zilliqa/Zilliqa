@@ -51,7 +51,7 @@ void LogInternalErr(const string& ip) {
 }
 
 bool ToNumericalIPFromStr(const std::string& ipStr,
-                         boost::multiprecision::uint128_t& ipInt) {
+                          boost::multiprecision::uint128_t& ipInt) {
   boost::asio::ip::address Addr;
   try {
     Addr = boost::asio::ip::address::from_string(ipStr);
