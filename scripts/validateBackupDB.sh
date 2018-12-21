@@ -23,20 +23,22 @@ aws_secret_access_key=""
 
 # Validate input argument
 if [ "$#" -ne 1 ]; then
-    echo "Usage: source ./scripts/validateBackupDB.sh backupDBName"
+    echo -e "\n\n\033[0;31mUsage: source ./scripts/validateBackupDB.sh backupDBName\033[0m\n"
     return 0
 fi
 
 if [ "$aws_access_key_id" = "" ]; then
-    echo "*ERROR* Please enter your own AWS_ACCESS_KEY_ID in validateBackupDB.sh!"
+    echo -e "\n\n\033[0;31m*ERROR* Please enter your own AWS_ACCESS_KEY_ID in validateBackupDB.sh!\033[0m\n"
     return 0
 fi
 
 if [ "$aws_secret_access_key" = "" ]; then
-    echo "*ERROR* Please enter your own AWS_SECRET_ACCESS_KEY in validateBackupDB.sh!"
+    echo -e "\n\n\033[0;31m*ERROR* Please enter your own AWS_SECRET_ACCESS_KEY in validateBackupDB.sh!\033[0m\n"
     return 0
 fi
 
+
+# Download persistence from Amazon S3 database
 backupDBName="$1"
 export AWS_ACCESS_KEY_ID=${aws_access_key_id}
 export AWS_SECRET_ACCESS_KEY=${aws_secret_access_key}
@@ -47,6 +49,7 @@ tar xzvf ${backupDBName}.tar.gz
 echo -e "\n\033[0;32mDownload ${backupDBName}.tar.gz from Amazon S3 database successfully.\033[0m\n"
 
 
+# Configure testing environment
 sed -i '/<GUARD_MODE>/c\        <GUARD_MODE>true</GUARD_MODE>' constants_local.xml
 sed -i '/<NUM_DS_ELECTION>/c\        <NUM_DS_ELECTION>1</NUM_DS_ELECTION>' constants_local.xml
 sed -i '/<NUM_FINAL_BLOCK_PER_POW>/c\        <NUM_FINAL_BLOCK_PER_POW>100</NUM_FINAL_BLOCK_PER_POW>' constants_local.xml
@@ -60,9 +63,12 @@ cp -rf persistence build/local_run/node_0001/
 echo -e "\n\n\033[0;32mConfigure testing environment successfully.\033[0m\n"
 
 
+# Start testing
 cd build
-./test/Node/test_node_validateBackupDB.py
+./tests/Node/test_node_validateBackupDB.py
 
+
+# Verify testing result
 if grep -q "RetrieveHistory Success" local_run/node_0001/zilliqa-00001-log.txt;
 then
     echo -e "\n\n\033[0;32mValidation of persistence ${backupDBName} PASS!\033[0m\n"
@@ -70,4 +76,7 @@ else
     echo -e "\n\n\033[0;31mValidation of persistence ${backupDBName} FAIL!\033[0m\n"
 fi
 
+
+# Clean up
+pkill zilliqa
 cd -
