@@ -138,7 +138,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 void Node::CommitMicroBlockConsensusBuffer() {
   lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
 
-  for (const auto& i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
+  for (const auto i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
     auto runconsensus = [this, i]() {
       ProcessMicroblockConsensusCore(i.second, MessageOffset::BODY, i.first);
     };
