@@ -557,6 +557,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     m_shards = std::move(m_tempShards);
     m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
     m_mapNodeReputation = std::move(m_tempMapNodeReputation);
+  } else if (m_mode == PRIMARY_DS) {
+    ClearReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
   }
 
   BlockStorage::GetBlockStorage().PutShardStructure(
