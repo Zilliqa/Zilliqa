@@ -238,7 +238,7 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           ret["TranID"] = tx.GetTranID().hex();
         } else {
           if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+            m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
           } else {
             m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
           }
