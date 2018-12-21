@@ -24,9 +24,17 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerManager.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/SWInfo.h"
+
+#include "boost/program_options.hpp"
+#include <boost/algorithm/string/join.hpp>
 
 using namespace std;
 using namespace boost::multiprecision;
+
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
 
 typedef void (*handler_func)(int, const char*, const char*, uint32_t,
                              const char*[]);
@@ -155,49 +163,112 @@ void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
   }
 }
 
+namespace po = boost::program_options;
+
 int main(int argc, const char* argv[]) {
-  if (argc < 3) {
-    cout << "[USAGE] " << argv[0]
-         << " <local node listen_port> <command> [command args]" << endl;
-    cout << "Available commands: addpeers broadcast cmd reportto" << endl;
-    return -1;
-  }
 
-  const char* instruction = argv[2];
+//  TODO:
+//    - validate IP and port
 
-  const message_handler message_handlers[] = {{"addpeers", &process_addpeers},
-                                              {"broadcast", &process_broadcast},
-                                              {"cmd", &process_cmd}};
 
-  const message_handler_2 message_handlers_2[] = {
-      {"remotecmd", &process_remote_cmd}};
+  try {
+    int port = -1;
+    string progname(argv[0]);
+    string cmd;
+    vector<string> cmdarg;
+    string ip;
+    vector<std::pair<string, handler_func>> cmd_available_v;
+    po::options_description desc("Options");
+    handler_func cmd_f;
 
-  bool processed = false;
-  for (auto message_handler : message_handlers) {
-    if (std::string(instruction) == std::string(message_handler.ins)) {
-      (*message_handler.func)(argc - 3, argv[0], argv[2],
-                              static_cast<unsigned int>(atoi(argv[1])),
-                              argv + 3);
-      processed = true;
-      break;
+    const message_handler message_handlers[] = {{"addpeers", &process_addpeers},
+                                                    {"broadcast", &process_broadcast},
+                                                    {"cmd", &process_cmd}};
+
+    const message_handler_2 message_handlers_2[] = {
+        {"remotecmd", &process_remote_cmd}};
+    vector<string> cmd_v;
+
+    for (auto message_handler : message_handlers) {
+      cmd_available_v.emplace_back(std::string(message_handler.ins), message_handler.func);
+      cmd_v.push_back(string(message_handler.ins));
     }
-  }
+    for (auto message_handler : message_handlers_2) {
+      cmd_available_v.emplace_back(std::string(message_handler.ins), message_handler.func);
+      cmd_v.push_back(string(message_handler.ins));
+    }
 
-  if (!processed) {
-    instruction = argv[3];
-    for (auto i : message_handlers_2) {
-      if (std::string(instruction) == std::string(i.ins)) {
-        (*i.func)(argc - 4, argv[0], argv[3], argv[1],
-                  static_cast<unsigned int>(atoi(argv[2])), argv + 4);
-        processed = true;
-        break;
+    desc.add_options()
+        ("help,h", "Print help messages")
+        ("listen_port,p", po::value<int>(&port)->required(), "Local node listen_port")
+        ("ip,i", po::value<string>(&ip)->required(), "Remote node ip_address")
+        ("cmd,c", po::value<string>(&cmd)->required(), "Command")
+        ("cmdarg,g", po::value<std::vector<string>>(&cmdarg)->required(), "Command arguments");
+
+        po::variables_map vm;
+    try
+    {
+      po::store(po::parse_command_line(argc, argv, desc),
+          vm);
+
+      /** --help option
+       */
+      string cmd_help = string("Commands supported:\n") + string(boost::algorithm::join(cmd_v, "\n"));
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        cout << desc << endl;
+        cout << cmd_help << endl;
+        return SUCCESS;
       }
+
+      // cmd lookup
+      bool found = false;
+      for (auto message_handler : cmd_available_v) {
+        if (message_handler.first == cmd) {
+          cmd_f = message_handler.second;
+          found = true;
+          break;
+        }
+      }
+      if(!found){
+        SWInfo::LogBrandBugReport();
+        std::cerr << "Unknown command" << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
+
+      po::notify(vm);
     }
-  }
+    catch(boost::program_options::required_option& e)
+    {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      std::cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    }
+    catch(boost::program_options::error& e)
+    {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
 
-  if (!processed) {
-    cout << "Unknown command parameter supplied" << endl;
-  }
 
-  return 0;
+
+    if (cmd != "remotecmd") {
+//      (*cmd_f)(argc - 3, progname, cmd, ip, port
+//                              static_cast<unsigned int>(atoi(argv[1])),
+//                              argv + 3);
+//      return SUCCESS;
+  }
+    else{
+        (*cmd_f)(argc - 3, progname, cmd, ip, port, string(boost::algorithm::join(cmd_v, "\n")).c_str());
+        return SUCCESS;
+    }
+
+  } catch (std::exception& e) {
+    std::cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << std::endl;
+    return ERROR_UNHANDLED_EXCEPTION;
+  }
+  return ERROR_UNHANDLED_EXCEPTION;
 }
