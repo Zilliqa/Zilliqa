@@ -182,6 +182,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
   if (!BlockStorage::GetBlockStorage().GetVCBlock(temp_blockHash, VCBlockptr)) {
     LOG_GENERAL(WARNING,
                 "Duplicated vc block detected. 0x" << temp_blockHash.hex());
+    return false;
   }
 
   // Check timestamp
