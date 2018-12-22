@@ -21,6 +21,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/algorithm/string.hpp>s
 #pragma GCC diagnostic pop
 #include <arpa/inet.h>
 #include <boost/asio.hpp>
@@ -35,6 +36,8 @@ namespace IPConverter {
 enum IPv { IPv4, IPv6 };
 
 const std::string ToStrFromNumericalIP(const boost::multiprecision::uint128_t&);
+
+bool GetIPPortFromSocket(std::string, std::string&, int&);
 
 void LogUnsupported(const std::string&);
 

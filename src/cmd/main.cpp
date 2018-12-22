@@ -20,7 +20,13 @@
 
 #include <arpa/inet.h>
 #include <algorithm>
+<<<<<<< Updated upstream
 #include <boost/algorithm/string.hpp>
+=======
+#include <iostream>
+#include "boost/program_options.hpp"
+
+>>>>>>> Stashed changes
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 #include "boost/program_options.hpp"
@@ -104,6 +110,7 @@ int main(int argc, const char* argv[]) {
       }
 
       if (address != "NAT") {
+<<<<<<< Updated upstream
         std::vector<std::string> socket_pair;
         boost::algorithm::split(socket_pair, address,
                                 boost::algorithm::is_any_of(":"));
@@ -116,6 +123,11 @@ int main(int argc, const char* argv[]) {
             std::cerr << "Invalid port number" << endl;
             return ERROR_IN_COMMAND_LINE;
           }
+=======
+        string address_;
+        if(IPConverter::GetIPPortFromSocket(address, address_, port)) {
+          address = address_;
+>>>>>>> Stashed changes
         }
       }
 

@@ -21,6 +21,39 @@ using namespace std;
 
 namespace IPConverter {
 
+bool GetIPPortFromSocket(string socket, string& ip, int& port) {
+  std::vector<std::string> addr_parts;
+  boost::algorithm::split(addr_parts, socket, boost::algorithm::is_any_of(":"));
+  // Check IPv6
+  if (socket[0] == "["){
+    // Strip first char '['
+    addr_parts.front() = addr_parts.front().substr(1, addr_parts.front().length());
+    // Reconstructs IP
+    std::for_each(addr_parts.begin(), addr_parts.end() - 1, [&](const std::string &piece){ ip += (":" + piece); });
+    // Strip last char ']'
+    ip = ip.substr(0, ip.length() - 1);
+
+  }
+  else if (addr_parts.size() == 2) {
+      ip = addr_parts[0];
+  }
+  else {
+    return false;
+  }
+
+  try
+  {
+    port = boost::lexical_cast<int>(addr_parts.back());
+    return true;
+  }
+  catch (boost::bad_lexical_cast)
+  {
+    return false;
+  }
+  // Defense
+  return false;
+}
+
 const std::string ToStrFromNumericalIP(
     const boost::multiprecision::uint128_t& ip) {
   char str[INET_ADDRSTRLEN];
