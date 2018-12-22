@@ -665,8 +665,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     m_consensusObject.reset(new ConsensusLeader(
         m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
         m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
-        *m_myShardMembers, static_cast<unsigned char>(NODE),
-        static_cast<unsigned char>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
+        *m_myShardMembers, static_cast<uint8_t>(NODE),
+        static_cast<uint8_t>(MICROBLOCKCONSENSUS), nodeMissingTxnsFunc,
         commitFailureFunc));
   }
 
@@ -752,8 +752,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
   m_consensusObject.reset(new ConsensusBackup(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
       m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
-      m_mediator.m_selfKey.first, peerList, static_cast<unsigned char>(NODE),
-      static_cast<unsigned char>(MICROBLOCKCONSENSUS), func));
+      m_mediator.m_selfKey.first, peerList, static_cast<uint8_t>(NODE),
+      static_cast<uint8_t>(MICROBLOCKCONSENSUS), func));
 
   if (m_consensusObject == nullptr) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),

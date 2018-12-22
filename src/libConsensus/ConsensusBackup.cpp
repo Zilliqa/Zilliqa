@@ -94,11 +94,10 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
     if (!errorMsg.empty()) {
       bytes commitFailureMsg = {
           m_classByte, m_insByte,
-          static_cast<unsigned char>(ConsensusMessageType::COMMITFAILURE)};
+          static_cast<uint8_t>(ConsensusMessageType::COMMITFAILURE)};
 
       bool result = GenerateCommitFailureMessage(
-          commitFailureMsg, MessageOffset::BODY + sizeof(unsigned char),
-          errorMsg);
+          commitFailureMsg, MessageOffset::BODY + sizeof(uint8_t), errorMsg);
 
       if (result) {
         // Update internal state
@@ -124,10 +123,10 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
   // ===============
 
   bytes commit = {m_classByte, m_insByte,
-                  static_cast<unsigned char>(ConsensusMessageType::COMMIT)};
+                  static_cast<uint8_t>(ConsensusMessageType::COMMIT)};
 
-  bool result = GenerateCommitMessage(
-      commit, MessageOffset::BODY + sizeof(unsigned char));
+  bool result =
+      GenerateCommitMessage(commit, MessageOffset::BODY + sizeof(uint8_t));
   if (result) {
     // Update internal state
     // =====================
@@ -259,9 +258,9 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   // =================
 
   bytes response = {m_classByte, m_insByte,
-                    static_cast<unsigned char>(returnmsgtype)};
+                    static_cast<uint8_t>(returnmsgtype)};
   bool result = GenerateResponseMessage(
-      response, MessageOffset::BODY + sizeof(unsigned char), subsetID);
+      response, MessageOffset::BODY + sizeof(uint8_t), subsetID);
   if (result) {
     // Update internal state
     // =====================
@@ -359,9 +358,9 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
     bytes finalcommit = {
         m_classByte, m_insByte,
-        static_cast<unsigned char>(ConsensusMessageType::FINALCOMMIT)};
+        static_cast<uint8_t>(ConsensusMessageType::FINALCOMMIT)};
     result = GenerateCommitMessage(finalcommit,
-                                   MessageOffset::BODY + sizeof(unsigned char));
+                                   MessageOffset::BODY + sizeof(uint8_t));
     if (result) {
       // Update internal state
       // =====================

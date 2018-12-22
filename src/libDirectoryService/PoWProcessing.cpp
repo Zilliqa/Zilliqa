@@ -45,8 +45,8 @@ using namespace boost::multiprecision;
 bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
   LOG_MARKER();
 
-  vector<unsigned char> powpacketmessage = {
-      MessageType::DIRECTORY, DSInstructionType::POWPACKETSUBMISSION};
+  bytes powpacketmessage = {MessageType::DIRECTORY,
+                            DSInstructionType::POWPACKETSUBMISSION};
 
   std::unique_lock<std::mutex> lk(m_mutexPowSolution);
 
@@ -89,7 +89,7 @@ bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
 }
 
 bool DirectoryService::ProcessPoWPacketSubmission(
-    const vector<unsigned char>& message, unsigned int offset,
+    const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
@@ -115,9 +115,9 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   return true;
 }
 
-bool DirectoryService::ProcessPoWSubmission(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+bool DirectoryService::ProcessPoWSubmission(const bytes& message,
+                                            unsigned int offset,
+                                            [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

@@ -276,8 +276,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
   m_consensusObject.reset(new ConsensusLeader(
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
       m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
-      *m_mediator.m_DSCommittee, static_cast<unsigned char>(DIRECTORY),
-      static_cast<unsigned char>(FINALBLOCKCONSENSUS), commitErrorFunc,
+      *m_mediator.m_DSCommittee, static_cast<uint8_t>(DIRECTORY),
+      static_cast<uint8_t>(FINALBLOCKCONSENSUS), commitErrorFunc,
       ShardCommitFailureHandlerFunc()));
 
   if (m_consensusObject == nullptr) {
@@ -637,14 +637,14 @@ bool DirectoryService::OnNodeFinalConsensusError(const bytes& errorMsg,
 
   LOG_MARKER();
 
-  if (errorMsg.size() < sizeof(unsigned char)) {
+  if (errorMsg.size() < sizeof(uint8_t)) {
     LOG_GENERAL(WARNING, "Malformed Message");
     LOG_PAYLOAD(INFO, "errorMsg from " << from, errorMsg, 200);
     return false;
   }
 
   const unsigned char type = errorMsg[0];
-  const unsigned int offset = sizeof(unsigned char);
+  const unsigned int offset = sizeof(uint8_t);
 
   switch (type) {
     case FINALCONSENSUSERRORTYPE::CHECKMICROBLOCK: {
@@ -1132,8 +1132,8 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
       m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
       m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
       m_mediator.m_selfKey.first, *m_mediator.m_DSCommittee,
-      static_cast<unsigned char>(DIRECTORY),
-      static_cast<unsigned char>(FINALBLOCKCONSENSUS), func));
+      static_cast<uint8_t>(DIRECTORY),
+      static_cast<uint8_t>(FINALBLOCKCONSENSUS), func));
 
   m_mediator.m_node->m_consensusObject = m_consensusObject;
 

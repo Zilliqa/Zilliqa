@@ -43,26 +43,24 @@ Transaction::Transaction(const Transaction& src)
       m_coreInfo(src.m_coreInfo),
       m_signature(src.m_signature) {}
 
-Transaction::Transaction(const vector<unsigned char>& src,
-                         unsigned int offset) {
+Transaction::Transaction(const bytes& src, unsigned int offset) {
   Deserialize(src, offset);
 }
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const KeyPair& senderKeyPair,
                          const uint128_t& amount, const uint128_t& gasPrice,
-                         const uint64_t& gasLimit,
-                         const vector<unsigned char>& code,
-                         const vector<unsigned char>& data)
+                         const uint64_t& gasLimit, const bytes& code,
+                         const bytes& data)
     : m_coreInfo(version, nonce, toAddr, senderKeyPair.second, amount, gasPrice,
                  gasLimit, code, data) {
-  vector<unsigned char> txnData;
+  bytes txnData;
   SerializeCoreFields(txnData, 0);
 
   // Generate the transaction ID
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
-  const vector<unsigned char>& output = sha2.Finalize();
+  const bytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return;
@@ -95,13 +93,13 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
       m_signature(signature) {
-  vector<unsigned char> txnData;
+  bytes txnData;
   SerializeCoreFields(txnData, 0);
 
   // Generate the transaction ID
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
-  const vector<unsigned char>& output = sha2.Finalize();
+  const bytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return;
@@ -120,8 +118,7 @@ Transaction::Transaction(const TxnHash& tranID,
                          const Signature& signature)
     : m_tranID(tranID), m_coreInfo(coreInfo), m_signature(signature) {}
 
-bool Transaction::Serialize(vector<unsigned char>& dst,
-                            unsigned int offset) const {
+bool Transaction::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransaction(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTransaction failed.");
     return false;
@@ -130,8 +127,7 @@ bool Transaction::Serialize(vector<unsigned char>& dst,
   return true;
 }
 
-bool Transaction::Deserialize(const vector<unsigned char>& src,
-                              unsigned int offset) {
+bool Transaction::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
     return false;
@@ -168,13 +164,9 @@ const uint128_t& Transaction::GetGasPrice() const {
 
 const uint64_t& Transaction::GetGasLimit() const { return m_coreInfo.gasLimit; }
 
-const vector<unsigned char>& Transaction::GetCode() const {
-  return m_coreInfo.code;
-}
+const bytes& Transaction::GetCode() const { return m_coreInfo.code; }
 
-const vector<unsigned char>& Transaction::GetData() const {
-  return m_coreInfo.data;
-}
+const bytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 

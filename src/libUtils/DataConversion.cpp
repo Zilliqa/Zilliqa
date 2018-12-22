@@ -21,8 +21,7 @@
 
 using namespace std;
 
-const vector<unsigned char> DataConversion::HexStrToUint8Vec(
-    const string& hex_input) {
+const bytes DataConversion::HexStrToUint8Vec(const string& hex_input) {
   vector<uint8_t> out;
   boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
                           back_inserter(out));
@@ -32,7 +31,7 @@ const vector<unsigned char> DataConversion::HexStrToUint8Vec(
 const array<unsigned char, 32> DataConversion::HexStrToStdArray(
     const string& hex_input) {
   array<unsigned char, 32> d = {0};
-  vector<unsigned char> v = HexStrToUint8Vec(hex_input);
+  bytes v = HexStrToUint8Vec(hex_input);
   copy(v.begin(), v.begin() + min((int)v.size(), 32), d.begin());
   return d;
 }
@@ -40,21 +39,20 @@ const array<unsigned char, 32> DataConversion::HexStrToStdArray(
 const array<unsigned char, 64> DataConversion::HexStrToStdArray64(
     const string& hex_input) {
   array<unsigned char, 64> d = {0};
-  vector<unsigned char> v = HexStrToUint8Vec(hex_input);
+  bytes v = HexStrToUint8Vec(hex_input);
   copy(v.begin(), v.begin() + min((int)v.size(), 64), d.begin());
   return d;
 }
 
-const string DataConversion::Uint8VecToHexStr(
-    const vector<unsigned char>& hex_vec) {
+const string DataConversion::Uint8VecToHexStr(const bytes& hex_vec) {
   string str;
   boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
   return str;
 }
 
-const string DataConversion::Uint8VecToHexStr(
-    const vector<unsigned char>& hex_vec, unsigned int offset,
-    unsigned int len) {
+const string DataConversion::Uint8VecToHexStr(const bytes& hex_vec,
+                                              unsigned int offset,
+                                              unsigned int len) {
   string str;
   boost::algorithm::hex(hex_vec.begin() + offset,
                         hex_vec.begin() + offset + len, back_inserter(str));
@@ -62,14 +60,14 @@ const string DataConversion::Uint8VecToHexStr(
 }
 
 string DataConversion::SerializableToHexStr(const Serializable& input) {
-  vector<unsigned char> tmp;
+  bytes tmp;
   input.Serialize(tmp, 0);
   string str;
   boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
   return str;
 }
 
-uint16_t DataConversion::charArrTo16Bits(const vector<unsigned char>& hex_arr) {
+uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   if (hex_arr.size() == 0) {
     return 0;
   }

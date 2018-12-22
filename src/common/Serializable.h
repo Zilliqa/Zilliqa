@@ -67,8 +67,7 @@ class Serializable {
 
     unsigned int right_shift = (numerictype_len - 1) * 8;
     for (unsigned int i = 0; i < numerictype_len; i++) {
-      dst.at(offset + i) =
-          static_cast<unsigned char>((value >> right_shift) & 0xFF);
+      dst.at(offset + i) = static_cast<uint8_t>((value >> right_shift) & 0xFF);
       right_shift -= 8;
     }
   }
@@ -119,8 +118,7 @@ class SerializableDataBlock {
 
     unsigned int right_shift = (numerictype_len - 1) * 8;
     for (unsigned int i = 0; i < numerictype_len; i++) {
-      dst.at(offset + i) =
-          static_cast<unsigned char>((value >> right_shift) & 0xFF);
+      dst.at(offset + i) = static_cast<uint8_t>((value >> right_shift) & 0xFF);
       right_shift -= 8;
     }
   }

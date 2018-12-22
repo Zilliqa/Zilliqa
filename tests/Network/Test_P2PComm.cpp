@@ -27,7 +27,7 @@
 using namespace std;
 chrono::high_resolution_clock::time_point startTime;
 
-void process_message(pair<vector<unsigned char>, Peer>* message) {
+void process_message(pair<bytes, Peer>* message) {
   LOG_MARKER();
 
   if (message->first.size() < 10) {
@@ -61,10 +61,9 @@ void TestRemoveBroadcast() {
   static const unsigned int BROADCAST_INTERVAL = 5;
   static const unsigned int BROADCAST_EXPIRY = 10;
   static const unsigned int hashNum = 100000;
-  static set<vector<unsigned char>> broadcastHashes;
+  static set<bytes> broadcastHashes;
   static mutex broadcastHashesMutex;
-  static deque<
-      pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>>
+  static deque<pair<bytes, chrono::time_point<chrono::system_clock>>>
       broadcastToRemoved;
   static mutex broadcastToRemovedMutex;
   static const chrono::time_point<chrono::system_clock> initTime =
@@ -99,7 +98,7 @@ void TestRemoveBroadcast() {
     for (unsigned int i = 0; i < hashNum; i += 2) {
       lock_guard<mutex> g(broadcastToRemovedMutex);
       string hash = to_string(i);
-      vector<unsigned char> hashS(hash.begin(), hash.end());
+      bytes hashS(hash.begin(), hash.end());
 
       if (i > 0 && 0 == (i % 100)) {
         currentTime += chrono::seconds(1);
@@ -127,7 +126,7 @@ void TestRemoveBroadcast() {
       cur -= 250;
     }
 
-    vector<unsigned char> emptyHash;
+    bytes emptyHash;
     chrono::time_point<chrono::system_clock> currentTime = initTime;
 
     while (true) {
@@ -198,18 +197,16 @@ int main() {
   struct in_addr ip_addr;
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer peer = {ip_addr.s_addr, 30303};
-  vector<unsigned char> message1 = {'H', 'e', 'l',
-                                    'l', 'o', '\0'};  // Send Hello once
+  bytes message1 = {'H', 'e', 'l', 'l', 'o', '\0'};  // Send Hello once
 
   P2PComm::GetInstance().SendMessage(peer, message1);
 
   vector<Peer> peers = {peer, peer, peer};
-  vector<unsigned char> message2 = {'W', 'o', 'r',
-                                    'l', 'd', '\0'};  // Send World 3x
+  bytes message2 = {'W', 'o', 'r', 'l', 'd', '\0'};  // Send World 3x
 
   P2PComm::GetInstance().SendMessage(peers, message2);
 
-  vector<unsigned char> longMsg(1024 * 1024 * 1024, 'z');
+  bytes longMsg(1024 * 1024 * 1024, 'z');
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();

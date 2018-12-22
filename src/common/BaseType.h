@@ -20,8 +20,9 @@
 #ifndef __BASETYPE_H__
 #define __BASETYPE_H__
 
+#include <stdint.h>
 #include <vector>
 
-using bytes = std::vector<unsigned char>;
+using bytes = std::vector<uint8_t>;
 
 #endif  // __BASETYPE_H__

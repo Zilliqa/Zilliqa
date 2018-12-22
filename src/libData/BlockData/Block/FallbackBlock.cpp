@@ -28,8 +28,7 @@ using namespace boost::multiprecision;
 
 FallbackBlock::FallbackBlock() {}
 
-FallbackBlock::FallbackBlock(const vector<unsigned char>& src,
-                             unsigned int offset) {
+FallbackBlock::FallbackBlock(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init FallbackBlock");
   }
@@ -43,8 +42,7 @@ FallbackBlock::FallbackBlock(const FallbackBlockHeader& header,
   SetBlockHash(m_header.GetMyHash());
 }
 
-bool FallbackBlock::Serialize(vector<unsigned char>& dst,
-                              unsigned int offset) const {
+bool FallbackBlock::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetFallbackBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetFallbackBlock failed.");
     return false;
@@ -53,8 +51,7 @@ bool FallbackBlock::Serialize(vector<unsigned char>& dst,
   return true;
 }
 
-bool FallbackBlock::Deserialize(const vector<unsigned char>& src,
-                                unsigned int offset) {
+bool FallbackBlock::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetFallbackBlock(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetFallbackBlock failed.");
     return false;
