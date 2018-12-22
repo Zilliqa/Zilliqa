@@ -111,8 +111,8 @@ BOOST_AUTO_TEST_CASE(test1) {
   const uint128_t& amount2 = tx2.GetAmount();
   const uint128_t& gasPrice2 = tx2.GetGasPrice();
   const uint128_t& gasLimit2 = tx2.GetGasLimit();
-  const vector<unsigned char>& code2 = tx2.GetCode();
-  const vector<unsigned char>& data2 = tx2.GetData();
+  const bytes& code2 = tx2.GetCode();
+  const bytes& data2 = tx2.GetData();
   Signature sign = TestUtils::GenerateRandomSignature();
 
   bytes byteVec;

@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         Signature sig;
 //         Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-//         vector<unsigned char> sigBuf;
+//         bytes sigBuf;
 //         sig.Serialize(sigBuf, 0);
 //         txn.SetSignature(sigBuf);
 
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         // Signature sig;
 //         // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-//         // vector<unsigned char> sigBuf;
+//         // bytes sigBuf;
 //         // sig.Serialize(sigBuf, 0);
 //         // txn.SetSignature(sigBuf);
 
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         // Signature sig;
 //         // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-//         // vector<unsigned char> sigBuf;
+//         // bytes sigBuf;
 //         // sig.Serialize(sigBuf, 0);
 //         // txn.SetSignature(sigBuf);
 

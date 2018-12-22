@@ -36,7 +36,7 @@ using namespace dev;
 
 Account::Account() {}
 
-Account::Account(const vector<unsigned char>& src, unsigned int offset) {
+Account::Account(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init Account.");
   }
@@ -61,7 +61,7 @@ void Account::InitStorage() {
   }
 }
 
-void Account::InitContract(const vector<unsigned char>& data) {
+void Account::InitContract(const bytes& data) {
   SetInitData(data);
   InitContract();
 }
@@ -120,7 +120,7 @@ void Account::SetCreateBlockNum(const uint64_t& blockNum) {
 
 const uint64_t& Account::GetCreateBlockNum() const { return m_createBlockNum; }
 
-bool Account::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
+bool Account::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccount(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
     return false;
@@ -129,8 +129,7 @@ bool Account::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   return true;
 }
 
-bool Account::Deserialize(const vector<unsigned char>& src,
-                          unsigned int offset) {
+bool Account::Deserialize(const bytes& src, unsigned int offset) {
   LOG_MARKER();
 
   if (!Messenger::GetAccount(src, offset, *this)) {
@@ -141,7 +140,7 @@ bool Account::Deserialize(const vector<unsigned char>& src,
   return true;
 }
 
-bool Account::SerializeDelta(vector<unsigned char>& dst, unsigned int offset,
+bool Account::SerializeDelta(bytes& dst, unsigned int offset,
                              Account* oldAccount, const Account& newAccount) {
   if (!Messenger::SetAccountDelta(dst, offset, oldAccount, newAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountDelta failed.");
@@ -151,9 +150,8 @@ bool Account::SerializeDelta(vector<unsigned char>& dst, unsigned int offset,
   return true;
 }
 
-bool Account::DeserializeDelta(const vector<unsigned char>& src,
-                               unsigned int offset, Account& account,
-                               bool fullCopy) {
+bool Account::DeserializeDelta(const bytes& src, unsigned int offset,
+                               Account& account, bool fullCopy) {
   if (!Messenger::GetAccountDelta(src, offset, account, fullCopy)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountDelta failed.");
     return false;
@@ -341,12 +339,12 @@ void Account::RollBack() {
 Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
   Address address;
 
-  vector<unsigned char> vec;
+  bytes vec;
   pubKey.Serialize(vec, 0);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
 
-  const vector<unsigned char>& output = sha2.Finalize();
+  const bytes& output = sha2.Finalize();
 
   if (output.size() != 32) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -363,13 +361,13 @@ Address Account::GetAddressForContract(const Address& sender,
   Address address;
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  vector<unsigned char> conBytes;
+  bytes conBytes;
   copy(sender.asArray().begin(), sender.asArray().end(),
        back_inserter(conBytes));
   SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
   sha2.Update(conBytes);
 
-  const vector<unsigned char>& output = sha2.Finalize();
+  const bytes& output = sha2.Finalize();
 
   if (output.size() != 32) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -381,7 +379,7 @@ Address Account::GetAddressForContract(const Address& sender,
   return address;
 }
 
-void Account::SetCode(const vector<unsigned char>& code) {
+void Account::SetCode(const bytes& code) {
   // LOG_MARKER();
 
   if (code.size() == 0) {

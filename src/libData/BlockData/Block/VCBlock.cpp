@@ -28,7 +28,7 @@ using namespace boost::multiprecision;
 VCBlock::VCBlock() {}
 
 // To-do: handle exceptions. Will be deprecated.
-VCBlock::VCBlock(const vector<unsigned char>& src, unsigned int offset) {
+VCBlock::VCBlock(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "Error. We failed to initialize VCBlock.");
   }
@@ -41,7 +41,7 @@ VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
   SetBlockHash(m_header.GetMyHash());
 }
 
-bool VCBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
+bool VCBlock::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetVCBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetVCBlock failed.");
     return false;
@@ -50,8 +50,7 @@ bool VCBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   return true;
 }
 
-bool VCBlock::Deserialize(const vector<unsigned char>& src,
-                          unsigned int offset) {
+bool VCBlock::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetVCBlock(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetVCBlock failed.");
     return false;

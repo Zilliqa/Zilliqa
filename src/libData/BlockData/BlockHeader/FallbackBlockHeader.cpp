@@ -36,7 +36,7 @@ FallbackBlockHeader::FallbackBlockHeader()
       m_shardId(0),
       m_prevHash() {}
 
-FallbackBlockHeader::FallbackBlockHeader(const vector<unsigned char>& src,
+FallbackBlockHeader::FallbackBlockHeader(const bytes& src,
                                          unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(INFO, "Error. We failed to initialize FallbackBlockHeader.");
@@ -60,8 +60,7 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_shardId(shardId),
       m_prevHash(prevHash) {}
 
-bool FallbackBlockHeader::Serialize(vector<unsigned char>& dst,
-                                    unsigned int offset) const {
+bool FallbackBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetFallbackBlockHeader(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetFallbackBlockHeader failed.");
     return false;
@@ -70,8 +69,7 @@ bool FallbackBlockHeader::Serialize(vector<unsigned char>& dst,
   return true;
 }
 
-bool FallbackBlockHeader::Deserialize(const vector<unsigned char>& src,
-                                      unsigned int offset) {
+bool FallbackBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetFallbackBlockHeader(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetFallbackBlockHeader failed.");
     return false;

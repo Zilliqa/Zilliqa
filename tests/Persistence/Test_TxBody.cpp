@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
 
     auto tx_hash = body1.GetTransaction().GetTranID();
 
-    vector<unsigned char> serializedTxBody;
+    bytes serializedTxBody;
     body1.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(tx_hash, serializedTxBody);
 

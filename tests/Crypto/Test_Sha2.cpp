@@ -44,14 +44,14 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
   unsigned int inputSize = strlen((const char*)input);
-  vector<unsigned char> vec;
+  bytes vec;
   copy(input, input + inputSize, back_inserter(vec));
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
   sha2.Update(vec);
   sha2.Update(vec);
-  vector<unsigned char> output = sha2.Finalize();
+  bytes output = sha2.Finalize();
 
   bytes expected;
   expected = DataConversion::HexStrToUint8Vec(
@@ -79,14 +79,14 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
   unsigned int inputSize = strlen((const char*)input);
-  vector<unsigned char> vec;
+  bytes vec;
   copy(input, input + inputSize, back_inserter(vec));
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(vec, 0, inputSize);
   sha2.Update(vec, 0, inputSize);
   sha2.Update(vec, 0, inputSize);
-  vector<unsigned char> output = sha2.Finalize();
+  bytes output = sha2.Finalize();
 
   bytes expected;
   expected = DataConversion::HexStrToUint8Vec(
