@@ -136,73 +136,76 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   m_shards.clear();
   m_publicKeyToshardIdMap.clear();
 
-  if (sortedPoWSolns.size() < m_mediator.GetShardSize(false)) {
-    LOG_GENERAL(WARNING, "PoWs recvd less than one shard size. sortedPoWSolns: "
-                             << sortedPoWSolns.size());
+  // Cap the number of nodes based on MAX_SHARD_NODE_NUM
+  const uint32_t numNodesForSharding = sortedPoWSolns.size() > MAX_SHARD_NODE_NUM ? MAX_SHARD_NODE_NUM : sortedPoWSolns.size();
+
+  LOG_GENERAL(INFO, "Number of PoWs received     = " << sortedPoWSolns.size());
+  LOG_GENERAL(INFO, "Number of PoWs for sharding = " << numNodesForSharding);
+
+  const uint32_t shardSize = m_mediator.GetShardSize(false);
+
+  // Generate the number of shards and node counts per shard
+  vector<uint32_t> shardCounts;
+  ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_THRESHOLD, numNodesForSharding, shardCounts);
+
+  // Abort if zero shards generated
+  if (shardCounts.empty())
+  {
+    LOG_GENERAL(WARNING, "Zero shards generated");
+    return;
   }
 
-  auto numShardNodes = sortedPoWSolns.size() > MAX_SHARD_NODE_NUM
-                           ? MAX_SHARD_NODE_NUM
-                           : sortedPoWSolns.size();
-
-  uint32_t numOfComms = numShardNodes / m_mediator.GetShardSize(false);
-  uint32_t max_shard = numOfComms - 1;
-
-  if (numOfComms == 0) {
-    LOG_GENERAL(WARNING, "Cannot form even one committee "
-                             << " number of Pows " << sortedPoWSolns.size()
-                             << " Setting numOfcomms to be 1");
-    numOfComms = 1;
-    max_shard = 0;
-  }
-
-  uint32_t numNodesPerShard = numShardNodes / numOfComms;
-
-  for (unsigned int i = 0; i < numOfComms; i++) {
+  // Resize the shard map to the generated number of shards
+  for (unsigned int i = 0; i < shardCounts.size(); i++) {
     m_shards.emplace_back();
   }
+
+  // Push all the sorted PoW submissions into an ordered map with key = H(last_block_hash, pow_hash)
   map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
   vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
-
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash =
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
-
   vector<unsigned char> hashVec(BLOCK_HASH_SIZE + POW_SIZE);
   copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
-
   for (const auto& kv : sortedPoWSolns) {
     const PubKey& key = kv.second;
     const auto& powHash = kv.first;
-    // sort all PoW submissions according to H(last_block_hash, pow_hash)
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-
     const vector<unsigned char>& sortHashVec = HashUtils::BytesToHash(hashVec);
     array<unsigned char, BLOCK_HASH_SIZE> sortHash;
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
   }
 
-  uint32_t i = 0, j = 0;
+  // Distribute the map-ordered nodes among the generated shards
+  // First fill up first shard, then second shard, ..., then final shard
+  auto shardCount = shardCounts.begin();
   for (const auto& kv : sortedPoWs) {
+    // Move to next shard counter if current shard already filled up
+    if (*shardCount == 0)
+    {
+      shardCount++;
+      // Stop if all shards filled up
+      if (shardCount == shardCounts.end())
+      {
+        break;
+      }
+    }
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
                                     << DataConversion::charArrToHexStr(kv.first)
                                     << endl);
     }
-
-    unsigned int shard_index = i / numNodesPerShard;
-    if (shard_index > max_shard) {
-      shard_index = j % (max_shard + 1);
-      j++;
-    }
-
+    // Put the node into the shard
     const PubKey& key = kv.second;
-    auto& shard = m_shards.at(shard_index);
+    auto& shard = m_shards.at(distance(shardCounts.begin(), shardCount));
     shard.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
     m_publicKeyToshardIdMap.emplace(key, shard_index);
-    i++;
+
+    // Decrement remaining count for this shard
+    *shardCount--;
   }
 }
 
