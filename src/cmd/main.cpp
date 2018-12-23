@@ -20,13 +20,9 @@
 
 #include <arpa/inet.h>
 #include <algorithm>
-<<<<<<< Updated upstream
-#include <boost/algorithm/string.hpp>
-=======
 #include <iostream>
 #include "boost/program_options.hpp"
 
->>>>>>> Stashed changes
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 #include "boost/program_options.hpp"
@@ -62,7 +58,6 @@ int main(int argc, const char* argv[]) {
     uint8_t synctype = 0;
     const char* synctype_descr =
         "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup";
-
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
@@ -110,24 +105,9 @@ int main(int argc, const char* argv[]) {
       }
 
       if (address != "NAT") {
-<<<<<<< Updated upstream
-        std::vector<std::string> socket_pair;
-        boost::algorithm::split(socket_pair, address,
-                                boost::algorithm::is_any_of(":"));
-        if (socket_pair.size() == 2) {
-          address = socket_pair[0];
-          try {
-            port = boost::lexical_cast<int>(socket_pair[1]);
-          } catch (boost::bad_lexical_cast) {
-            SWInfo::LogBrandBugReport();
-            std::cerr << "Invalid port number" << endl;
-            return ERROR_IN_COMMAND_LINE;
-          }
-=======
         string address_;
-        if(IPConverter::GetIPPortFromSocket(address, address_, port)) {
+        if (IPConverter::GetIPPortFromSocket(address, address_, port)) {
           address = address_;
->>>>>>> Stashed changes
         }
       }
 

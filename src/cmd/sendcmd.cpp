@@ -24,10 +24,11 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerManager.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/SWInfo.h"
 
-#include "boost/program_options.hpp"
 #include <boost/algorithm/string/join.hpp>
+#include "boost/program_options.hpp"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -36,11 +37,11 @@ using namespace boost::multiprecision;
 #define ERROR_IN_COMMAND_LINE -1
 #define ERROR_UNHANDLED_EXCEPTION -2
 
-typedef void (*handler_func)(int, const char*, const char*, uint32_t,
-                             const char*[]);
+typedef void (*handler_func)(const char*, const char*, vector<string>,
+                             const uint32_t);
 
-typedef void (*handler_func_2)(int, const char*, const char*, const char*,
-                               uint32_t, const char*[]);
+typedef void (*handler_func_remote)(const char*, const char*, vector<string>,
+                                    const uint128_t, const uint32_t);
 
 struct message_handler {
   const char* ins;
@@ -49,13 +50,13 @@ struct message_handler {
 
 struct message_handler_2 {
   const char* ins;
-  handler_func_2 func;
+  handler_func_remote func;
 };
 
-void process_addpeers(int numargs, const char* progname, const char* cmdname,
-                      uint32_t listen_port, const char* args[]) {
+void process_addpeers(const char* progname, const char* cmdname,
+                      vector<string> args, const uint32_t listen_port) {
   const int min_args_required = 3;
-
+  int numargs = args.size();
   if (numargs < min_args_required) {
     cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
          << " <33-byte public_key> <ip_addr> <listen_port> ..." << endl;
@@ -78,13 +79,14 @@ void process_addpeers(int numargs, const char* progname, const char* cmdname,
       // Public key
       // Temporarily just accept the public key as an input (for use with the
       // peer store)
-      vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[i++]);
+      vector<unsigned char> tmp =
+          DataConversion::HexStrToUint8Vec(args[i++].c_str());
       addnode_message.resize(MessageOffset::BODY + tmp.size());
       copy(tmp.begin(), tmp.end(),
            addnode_message.begin() + MessageOffset::BODY);
 
       // IP address
-      inet_pton(AF_INET, args[i++], &ip_addr);
+      inet_pton(AF_INET, args[i++].c_str(), &ip_addr);
       uint128_t tmp2 = ip_addr.s_addr;
       Serializable::SetNumber<uint128_t>(addnode_message,
                                          MessageOffset::BODY + PUB_KEY_SIZE,
@@ -93,7 +95,7 @@ void process_addpeers(int numargs, const char* progname, const char* cmdname,
       // Listen port
       Serializable::SetNumber<uint32_t>(
           addnode_message, MessageOffset::BODY + PUB_KEY_SIZE + UINT128_SIZE,
-          static_cast<unsigned int>(atoi(args[i++])), sizeof(uint32_t));
+          static_cast<unsigned int>(atoi(args[i++].c_str())), sizeof(uint32_t));
 
       // Send the ADDNODE message to the local node
       P2PComm::GetInstance().SendMessageNoQueue(my_port, addnode_message);
@@ -101,10 +103,10 @@ void process_addpeers(int numargs, const char* progname, const char* cmdname,
   }
 }
 
-void process_broadcast(int numargs, const char* progname, const char* cmdname,
-                       uint32_t listen_port, const char* args[]) {
+void process_broadcast(const char* progname, const char* cmdname,
+                       vector<string> args, const uint32_t listen_port) {
   const int num_args_required = 1;
-
+  int numargs = args.size();
   if (numargs != num_args_required) {
     cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
          << " <length of dummy message in bytes>" << endl;
@@ -113,7 +115,7 @@ void process_broadcast(int numargs, const char* progname, const char* cmdname,
     inet_pton(AF_INET, "127.0.0.1", &ip_addr);
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
-    unsigned int numbytes = static_cast<unsigned int>(atoi(args[0]));
+    unsigned int numbytes = static_cast<unsigned int>(atoi(args[0].c_str()));
     vector<unsigned char> broadcast_message(numbytes + MessageOffset::BODY,
                                             0xAA);
     broadcast_message.at(MessageOffset::TYPE) = MessageType::PEER;
@@ -126,10 +128,10 @@ void process_broadcast(int numargs, const char* progname, const char* cmdname,
   }
 }
 
-void process_cmd(int numargs, const char* progname, const char* cmdname,
-                 uint32_t listen_port, const char* args[]) {
+void process_cmd(const char* progname, const char* cmdname, vector<string> args,
+                 const uint32_t listen_port) {
   const int num_args_required = 1;
-
+  int numargs = args.size();
   if (numargs != num_args_required) {
     cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
          << " <hex string message>" << endl;
@@ -139,26 +141,26 @@ void process_cmd(int numargs, const char* progname, const char* cmdname,
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
     // Send the generic message to the local node
-    vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
+    vector<unsigned char> tmp =
+        DataConversion::HexStrToUint8Vec(args[0].c_str());
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
 
-void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
-                        const char* remote_ip, uint32_t listen_port,
-                        const char* args[]) {
+void process_remote_cmd(const char* progname, const char* cmdname,
+                        vector<string> args, const uint128_t remote_ip,
+                        const uint32_t listen_port) {
   const int num_args_required = 1;
-
+  int numargs = args.size();
   if (numargs != num_args_required) {
     cout << "[USAGE] " << progname
          << " <remote node ip_address> <remote node listen_port> " << cmdname
          << " <hex string message>" << endl;
   } else {
-    struct in_addr ip_addr;
-    inet_pton(AF_INET, remote_ip, &ip_addr);
-    Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
+    Peer my_port(remote_ip, listen_port);
 
-    vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
+    vector<unsigned char> tmp =
+        DataConversion::HexStrToUint8Vec(args[0].c_str());
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
@@ -166,103 +168,112 @@ void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
 namespace po = boost::program_options;
 
 int main(int argc, const char* argv[]) {
-
-//  TODO:
-//    - validate IP and port
-
-
+  //  TODO:
+  //    - validate IP and port
   try {
     int port = -1;
     string progname(argv[0]);
     string cmd;
     vector<string> cmdarg;
     string ip;
-    vector<std::pair<string, handler_func>> cmd_available_v;
     po::options_description desc("Options");
-    handler_func cmd_f;
-
-    const message_handler message_handlers[] = {{"addpeers", &process_addpeers},
-                                                    {"broadcast", &process_broadcast},
-                                                    {"cmd", &process_cmd}};
+    handler_func cmd_f = NULL;
+    handler_func_remote cmd_f_remote = NULL;
+    vector<string> cmd_v;
+    const message_handler message_handlers[] = {
+        {"addpeers", &process_addpeers},
+        {"broadcast", &process_broadcast},
+        {"cmd", &process_cmd}};
 
     const message_handler_2 message_handlers_2[] = {
         {"remotecmd", &process_remote_cmd}};
-    vector<string> cmd_v;
 
     for (auto message_handler : message_handlers) {
-      cmd_available_v.emplace_back(std::string(message_handler.ins), message_handler.func);
       cmd_v.push_back(string(message_handler.ins));
     }
     for (auto message_handler : message_handlers_2) {
-      cmd_available_v.emplace_back(std::string(message_handler.ins), message_handler.func);
       cmd_v.push_back(string(message_handler.ins));
     }
 
-    desc.add_options()
-        ("help,h", "Print help messages")
-        ("listen_port,p", po::value<int>(&port)->required(), "Local node listen_port")
-        ("ip,i", po::value<string>(&ip)->required(), "Remote node ip_address")
-        ("cmd,c", po::value<string>(&cmd)->required(), "Command")
-        ("cmdarg,g", po::value<std::vector<string>>(&cmdarg)->required(), "Command arguments");
+    desc.add_options()("help,h", "Print help messages")(
+        "listen_port,p", po::value<int>(&port), "Local node listen_port")(
+        "ip,i", po::value<string>(&ip), "Remote node ip_address")(
+        "cmd,c", po::value<string>(&cmd)->required(), "Command")(
+        "cmdarg,g", po::value<std::vector<string>>(&cmdarg)->required(),
+        "Command arguments");
 
-        po::variables_map vm;
-    try
-    {
-      po::store(po::parse_command_line(argc, argv, desc),
-          vm);
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
 
       /** --help option
        */
-      string cmd_help = string("Commands supported:\n") + string(boost::algorithm::join(cmd_v, "\n"));
+      string cmd_help = string("Commands supported:\n") + "\t" +
+                        string(boost::algorithm::join(cmd_v, "\n"));
       if (vm.count("help")) {
         SWInfo::LogBrandBugReport();
         cout << desc << endl;
         cout << cmd_help << endl;
         return SUCCESS;
       }
+      po::notify(vm);
 
       // cmd lookup
       bool found = false;
-      for (auto message_handler : cmd_available_v) {
-        if (message_handler.first == cmd) {
-          cmd_f = message_handler.second;
+      for (auto message_handler : message_handlers) {
+        if (string(message_handler.ins) == cmd) {
+          cmd_f = message_handler.func;
           found = true;
           break;
         }
       }
-      if(!found){
+      for (auto message_handler : message_handlers_2) {
+        if (string(message_handler.ins) == cmd) {
+          cmd_f_remote = message_handler.func;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
         SWInfo::LogBrandBugReport();
         std::cerr << "Unknown command" << endl;
         return ERROR_IN_COMMAND_LINE;
       }
-
-      po::notify(vm);
-    }
-    catch(boost::program_options::required_option& e)
-    {
+    } catch (boost::program_options::required_option& e) {
       SWInfo::LogBrandBugReport();
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
       return ERROR_IN_COMMAND_LINE;
-    }
-    catch(boost::program_options::error& e)
-    {
+    } catch (boost::program_options::error& e) {
       SWInfo::LogBrandBugReport();
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
 
-
-
     if (cmd != "remotecmd") {
-//      (*cmd_f)(argc - 3, progname, cmd, ip, port
-//                              static_cast<unsigned int>(atoi(argv[1])),
-//                              argv + 3);
-//      return SUCCESS;
-  }
-    else{
-        (*cmd_f)(argc - 3, progname, cmd, ip, port, string(boost::algorithm::join(cmd_v, "\n")).c_str());
-        return SUCCESS;
+      if ((port < 0) || (port > 65535)) {
+        SWInfo::LogBrandBugReport();
+        std::cerr << "Invalid or missing port number" << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
+
+      (*cmd_f)(progname.c_str(), cmd.c_str(), cmdarg, port);
+
+      return SUCCESS;
+    } else {
+      string ip_;
+      if (IPConverter::GetIPPortFromSocket(ip, ip_, port)) {
+        ip = ip_;
+      }
+      uint128_t remote_ip;
+      IPConverter::ToNumericalIPFromStr(ip, remote_ip);
+      if ((port < 0) || (port > 65535)) {
+        SWInfo::LogBrandBugReport();
+        std::cerr << "Invalid or missing port number" << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
+      (*cmd_f_remote)(progname.c_str(), cmd.c_str(), cmdarg, remote_ip, port);
+      return SUCCESS;
     }
 
   } catch (std::exception& e) {
