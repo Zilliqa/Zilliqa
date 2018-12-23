@@ -26,6 +26,7 @@
 #include <arpa/inet.h>
 #include <boost/asio.hpp>
 #include <string>
+#include <regex>
 #include "libUtils/SWInfo.h"
 
 /// Utility class for converter from ip address string to numerical

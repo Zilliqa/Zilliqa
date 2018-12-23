@@ -55,6 +55,8 @@ int main(int argc, const char* argv[]) {
     string pubK;
     string address;
     int port = -1;
+    unique_ptr<NAT> nt;
+    uint128_t ip;
     uint8_t synctype = 0;
     const char* synctype_descr =
         "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup";
@@ -65,7 +67,7 @@ int main(int argc, const char* argv[]) {
         "32-byte private key")("pubk,u", po::value<string>(&pubK)->required(),
                                "32-byte public key")(
         "address,a", po::value<string>(&address)->required(),
-        "Listen IPv4/6 address in standard \"dotted decimal\" or optionally "
+        "Listen IPv4/6 address formated as \"dotted decimal\" or optionally "
         "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
         "port,p", po::value<int>(&port),
         "Specifies port to bind to, if not specified in address")(
@@ -111,6 +113,10 @@ int main(int argc, const char* argv[]) {
         }
       }
 
+      if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
+        return ERROR_IN_COMMAND_LINE;
+      }
+
       if ((port < 0) || (port > 65535)) {
         SWInfo::LogBrandBugReport();
         std::cerr << "Invalid or missing port number" << endl;
@@ -126,9 +132,6 @@ int main(int argc, const char* argv[]) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
-
-    unique_ptr<NAT> nt;
-    uint128_t ip;
 
     if (address == "NAT") {
       nt = make_unique<NAT>();
@@ -151,9 +154,6 @@ int main(int argc, const char* argv[]) {
       }
       my_network_info = Peer(ip, mappedPort);
     } else {
-      if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
-        return ERROR_IN_COMMAND_LINE;
-      }
       my_network_info = Peer(ip, port);
     }
 
