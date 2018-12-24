@@ -286,14 +286,25 @@ class MultiSig {
 
   /// Checks the multi-signature validity using EC curve parameters and the
   /// specified aggregated PubKey.
-  bool MultiSigVerify(const std::vector<unsigned char>& message,
-                      const Signature& toverify, const PubKey& pubkey);
+  bool MultiSigVerify(const bytes& message, const Signature& toverify,
+                      const PubKey& pubkey);
 
   /// Checks the multi-signature validity using EC curve parameters and the
   /// specified aggregated PubKey.
-  bool MultiSigVerify(const std::vector<unsigned char>& message,
-                      unsigned int offset, unsigned int size,
-                      const Signature& toverify, const PubKey& pubkey);
+  bool MultiSigVerify(const bytes& message, unsigned int offset,
+                      unsigned int size, const Signature& toverify,
+                      const PubKey& pubkey);
+
+  /// Wrapper function for signing PoW message (including public key) for
+  /// Proof-of-Possession (PoP) phase
+  static bool SignKey(const bytes& messageWithPubKey,
+                      const std::pair<PrivKey, PubKey>& keyPair,
+                      Signature& signature);
+
+  /// Wrapper function for verifying PoW message (including public key) for
+  /// Proof-of-Possession (PoP) phase
+  static bool VerifyKey(const bytes& messageWithPubKey,
+                        const Signature& signature, const PubKey& pubKey);
 };
 
 #endif  // __MULTISIG_H__
