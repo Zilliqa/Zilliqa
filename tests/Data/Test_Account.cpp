@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   LOG_MARKER();
 
   Account acc1(TestUtils::DistUint64(), 0);
-  std::vector<unsigned char> data;
+  bytes data;
   acc1.InitContract(data);
   acc1.SetInitData(data);
 
@@ -60,17 +60,16 @@ BOOST_AUTO_TEST_CASE(testInit) {
   BOOST_CHECK_EQUAL(CREATEBLOCKNUM, acc1.GetCreateBlockNum());
 
   std::string invalidmessage = "[{\"vname\"]";
-  std::vector<unsigned char> data(invalidmessage.begin(), invalidmessage.end());
+  bytes data(invalidmessage.begin(), invalidmessage.end());
   acc1.InitContract(data);
 
   invalidmessage = "[{\"vname\":\"name\"}]";
-  data =
-      std::vector<unsigned char>(invalidmessage.begin(), invalidmessage.end());
+  data = bytes(invalidmessage.begin(), invalidmessage.end());
   acc1.InitContract(data);
 
   std::string message =
       "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
-  data = std::vector<unsigned char>(message.begin(), message.end());
+  data = bytes(message.begin(), message.end());
   acc1.InitContract(data);
 
   BOOST_CHECK_EQUAL(true, data == acc1.GetInitData());
@@ -87,7 +86,7 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   acc1.GetStorageJson();  // Improve coverage
   acc1.RollBack();        // Improve coverage
 
-  std::vector<unsigned char> code;
+  bytes code;
   acc1.SetCode(code);
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
 
@@ -192,9 +191,9 @@ BOOST_AUTO_TEST_CASE(testNonce) {
 BOOST_AUTO_TEST_CASE(testSerialize) {
   uint128_t CURRENT_BALANCE = TestUtils::DistUint128();
   Account acc1(CURRENT_BALANCE, 0);
-  std::vector<unsigned char> message1;
+  bytes message1;
 
-  std::vector<unsigned char> code = dev::h256::random().asBytes();
+  bytes code = dev::h256::random().asBytes();
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(code);
   dev::h256 hash = dev::h256(sha2.Finalize());
@@ -204,7 +203,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
 
   Account acc2(message1, 0);
 
-  std::vector<unsigned char> message2;
+  bytes message2;
   BOOST_CHECK_EQUAL(true, acc2.Serialize(message2, TestUtils::DistUint8()));
 
   uint128_t acc2Balance = acc2.GetBalance();
@@ -217,7 +216,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
       acc2.GetCodeHash() == hash,
       "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
 
-  std::vector<unsigned char> dst;
+  bytes dst;
   BOOST_CHECK_EQUAL(true, acc2.SerializeDelta(dst, 0, &acc1, acc2));
   BOOST_CHECK_EQUAL(true, acc2.DeserializeDelta(dst, 0, acc1, true));
 }

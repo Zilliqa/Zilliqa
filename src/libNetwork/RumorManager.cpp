@@ -500,8 +500,7 @@ void RumorManager::PrintStatistics() {
     uint32_t rumorId = i.first;
     auto it = m_rumorIdHashBimap.left.find(rumorId);
     if (it != m_rumorIdHashBimap.left.end()) {
-      std::vector<unsigned char> this_msg_hash =
-          HashUtils::BytesToHash(it->second);
+      bytes this_msg_hash = HashUtils::BytesToHash(it->second);
       const RRS::RumorStateMachine& state = i.second;
       LOG_GENERAL(
           INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: "

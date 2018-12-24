@@ -61,7 +61,7 @@ Curve::Curve()
 
 Curve::~Curve() {}
 
-shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
+shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const bytes& src,
                                               unsigned int offset,
                                               unsigned int size) {
   if (size <= 0) {
@@ -86,7 +86,7 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const vector<unsigned char>& src,
   return nullptr;
 }
 
-void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
+void BIGNUMSerialize::SetNumber(bytes& dst, unsigned int offset,
                                 unsigned int size, shared_ptr<BIGNUM> value) {
   if (size <= 0) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -127,8 +127,9 @@ void BIGNUMSerialize::SetNumber(vector<unsigned char>& dst, unsigned int offset,
   // }
 }
 
-shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(
-    const vector<unsigned char>& src, unsigned int offset, unsigned int size) {
+shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(const bytes& src,
+                                                 unsigned int offset,
+                                                 unsigned int size) {
   shared_ptr<BIGNUM> bnvalue = BIGNUMSerialize::GetNumber(src, offset, size);
   lock_guard<mutex> g(m_mutexECPOINT);
 
@@ -150,8 +151,8 @@ shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(
   return nullptr;
 }
 
-void ECPOINTSerialize::SetNumber(vector<unsigned char>& dst,
-                                 unsigned int offset, unsigned int size,
+void ECPOINTSerialize::SetNumber(bytes& dst, unsigned int offset,
+                                 unsigned int size,
                                  shared_ptr<EC_POINT> value) {
   shared_ptr<BIGNUM> bnvalue;
   {
@@ -199,7 +200,7 @@ PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false) {
   }
 }
 
-PrivKey::PrivKey(const vector<unsigned char>& src, unsigned int offset) {
+PrivKey::PrivKey(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init PrivKey.");
   }
@@ -223,8 +224,7 @@ PrivKey::~PrivKey() {}
 
 bool PrivKey::Initialized() const { return m_initialized; }
 
-unsigned int PrivKey::Serialize(vector<unsigned char>& dst,
-                                unsigned int offset) const {
+unsigned int PrivKey::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -234,8 +234,7 @@ unsigned int PrivKey::Serialize(vector<unsigned char>& dst,
   return PRIV_KEY_SIZE;
 }
 
-int PrivKey::Deserialize(const vector<unsigned char>& src,
-                         unsigned int offset) {
+int PrivKey::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -305,7 +304,7 @@ PubKey::PubKey(const PrivKey& privkey)
   }
 }
 
-PubKey::PubKey(const vector<unsigned char>& src, unsigned int offset) {
+PubKey::PubKey(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init PubKey.");
   }
@@ -335,8 +334,7 @@ PubKey::~PubKey() {}
 
 bool PubKey::Initialized() const { return m_initialized; }
 
-unsigned int PubKey::Serialize(vector<unsigned char>& dst,
-                               unsigned int offset) const {
+unsigned int PubKey::Serialize(bytes& dst, unsigned int offset) const {
   if (m_initialized) {
     ECPOINTSerialize::SetNumber(dst, offset, PUB_KEY_SIZE, m_P);
   }
@@ -344,7 +342,7 @@ unsigned int PubKey::Serialize(vector<unsigned char>& dst,
   return PUB_KEY_SIZE;
 }
 
-int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
+int PubKey::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -440,7 +438,7 @@ Signature::Signature()
   }
 }
 
-Signature::Signature(const vector<unsigned char>& src, unsigned int offset) {
+Signature::Signature(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init Signature.");
   }
@@ -472,8 +470,7 @@ Signature::~Signature() {}
 
 bool Signature::Initialized() const { return m_initialized; }
 
-unsigned int Signature::Serialize(vector<unsigned char>& dst,
-                                  unsigned int offset) const {
+unsigned int Signature::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -485,8 +482,7 @@ unsigned int Signature::Serialize(vector<unsigned char>& dst,
   return SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE;
 }
 
-int Signature::Deserialize(const vector<unsigned char>& src,
-                           unsigned int offset) {
+int Signature::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -547,14 +543,14 @@ pair<PrivKey, PubKey> Schnorr::GenKeyPair() {
   return make_pair(PrivKey(privkey), PubKey(pubkey));
 }
 
-bool Schnorr::Sign(const vector<unsigned char>& message, const PrivKey& privkey,
+bool Schnorr::Sign(const bytes& message, const PrivKey& privkey,
                    const PubKey& pubkey, Signature& result) {
   return Sign(message, 0, message.size(), privkey, pubkey, result);
 }
 
-bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
-                   unsigned int size, const PrivKey& privkey,
-                   const PubKey& pubkey, Signature& result) {
+bool Schnorr::Sign(const bytes& message, unsigned int offset, unsigned int size,
+                   const PrivKey& privkey, const PubKey& pubkey,
+                   Signature& result) {
   // LOG_MARKER();
   lock_guard<mutex> g(m_mutexSchnorr);
 
@@ -596,7 +592,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
   // 6. If s = 0 goto 1.
   // 7  Signature on m is (r, s)
 
-  vector<unsigned char> buf(PUBKEY_COMPRESSED_SIZE_BYTES);
+  bytes buf(PUBKEY_COMPRESSED_SIZE_BYTES);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
   bool err = false;  // detect error
@@ -664,7 +660,7 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
 
       // Hash message
       sha2.Update(message, offset, size);
-      vector<unsigned char> digest = sha2.Finalize();
+      bytes digest = sha2.Finalize();
 
       // Build the challenge
       err =
@@ -716,12 +712,12 @@ bool Schnorr::Sign(const vector<unsigned char>& message, unsigned int offset,
   return (res == 0);
 }
 
-bool Schnorr::Verify(const vector<unsigned char>& message,
-                     const Signature& toverify, const PubKey& pubkey) {
+bool Schnorr::Verify(const bytes& message, const Signature& toverify,
+                     const PubKey& pubkey) {
   return Verify(message, 0, message.size(), toverify, pubkey);
 }
 
-bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
+bool Schnorr::Verify(const bytes& message, unsigned int offset,
                      unsigned int size, const Signature& toverify,
                      const PubKey& pubkey) {
   // LOG_MARKER();
@@ -760,7 +756,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
     // 4. r' = H(Q, kpub, m)
     // 5. return r' == r
 
-    vector<unsigned char> buf(PUBKEY_COMPRESSED_SIZE_BYTES);
+    bytes buf(PUBKEY_COMPRESSED_SIZE_BYTES);
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
     bool err = false;
@@ -845,7 +841,7 @@ bool Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
 
       // 4.3 Hash message
       sha2.Update(message, offset, size);
-      vector<unsigned char> digest = sha2.Finalize();
+      bytes digest = sha2.Finalize();
 
       // 5. return r' == r
       err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get()) ==

@@ -84,7 +84,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
                 << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());
 
   // Store Tx Block to disk
-  vector<unsigned char> serializedTxBlock;
+  bytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);
@@ -274,7 +274,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
   }
 
   // Verify the collective signature
-  vector<unsigned char> message;
+  bytes message;
   if (!txblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "TxBlockHeader serialization failed");
     return false;
@@ -433,7 +433,7 @@ void Node::CallActOnFinalblock() {
   }
 
   auto composeMBnForwardTxnMessageForSender =
-      [this](vector<unsigned char>& forwardtxn_message) -> bool {
+      [this](bytes& forwardtxn_message) -> bool {
     return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
   };
   lock_guard<mutex> g(m_mutexShardMember);
@@ -445,8 +445,7 @@ void Node::CallActOnFinalblock() {
       nullptr);
 }
 
-bool Node::ComposeMBnForwardTxnMessageForSender(
-    vector<unsigned char>& mb_txns_message) {
+bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeMBnForwardTxnMessageForSender not expected to be "
@@ -573,7 +572,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 //             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
 //             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
 
-//         vector<unsigned char> serializedMicroBlock;
+//         bytes serializedMicroBlock;
 //         microBlock.Serialize(serializedMicroBlock, 0);
 //         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(),
 //                                                serializedMicroBlock);
@@ -591,8 +590,7 @@ void Node::PrepareGoodStateForFinalBlock() {
   }
 }
 
-bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
-                             unsigned int offset,
+bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
                              [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
@@ -600,7 +598,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
   TxBlock txBlock;
-  vector<unsigned char> stateDelta;
+  bytes stateDelta;
 
   if (!Messenger::GetNodeFinalBlock(message, offset, shardId, dsBlockNumber,
                                     consensusID, txBlock, stateDelta)) {
@@ -852,8 +850,7 @@ bool Node::ProcessFinalBlock(const vector<unsigned char>& message,
 }
 
 bool Node::ProcessStateDeltaFromFinalBlock(
-    const vector<unsigned char>& stateDeltaBytes,
-    const StateHash& finalBlockStateDeltaHash) {
+    const bytes& stateDeltaBytes, const StateHash& finalBlockStateDeltaHash) {
   LOG_MARKER();
 
   // Init local AccountStoreTemp first
@@ -910,7 +907,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     }
 
     // Store TxBody to disk
-    vector<unsigned char> serializedTxBody;
+    bytes serializedTxBody;
     twr.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(twr.GetTransaction().GetTranID(),
                                               serializedTxBody);
@@ -964,7 +961,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
   }
 }
 
-bool Node::ProcessMBnForwardTransaction(const vector<unsigned char>& message,
+bool Node::ProcessMBnForwardTransaction(const bytes& message,
                                         unsigned int cur_offset,
                                         [[gnu::unused]] const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
