@@ -1032,7 +1032,7 @@ bool Node::ProcessMBnForwardTransaction(const vector<unsigned char>& message,
       << entry.m_microBlock.GetHeader().GetEpochNum() << " shard "
       << entry.m_microBlock.GetHeader().GetShardId());
 
-  if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1 <
+  if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
       entry.m_microBlock.GetHeader().GetEpochNum()) {
     lock_guard<mutex> g(m_mutexMBnForwardedTxnBuffer);
     m_mbnForwardedTxnBuffer[entry.m_microBlock.GetHeader().GetEpochNum()]
