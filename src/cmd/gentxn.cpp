@@ -35,13 +35,17 @@ std::vector<KeyPairAddress> get_genesis_keypair_and_address() {
   std::vector<KeyPairAddress> result;
 
   for (auto& privKeyHexStr : GENESIS_KEYS) {
-    auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
-    auto privKey = PrivKey{privKeyBytes, 0};
-    auto pubKey = PubKey{privKey};
-    auto address = Account::GetAddressFromPublicKey(pubKey);
-
-    result.push_back(
+    bytes out; 
+    if (DataConversion::HexStrToUint8Vec(privKeyHexStr, out)){
+      auto privKeyBytes{out};
+      auto privKey = PrivKey{privKeyBytes, 0};
+      auto pubKey = PubKey{privKey};
+      auto address = Account::GetAddressFromPublicKey(pubKey);
+      result.push_back(
         std::tuple<PrivKey, PubKey, Address>(privKey, pubKey, address));
+    }else{
+      LOG_GENERAL(WARNING, "Failed to get genesis key");
+    }
   }
 
   return result;
