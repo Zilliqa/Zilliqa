@@ -245,11 +245,6 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 
-  if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
-    m_mediator.m_node->UpdateProcessedTransactions();
-    m_mediator.m_node->CallActOnFinalblock();
-  }
-
   auto composeFinalBlockMessageForSender =
       [this](vector<unsigned char>& message) -> bool {
     return ComposeFinalBlockMessageForSender(message);
@@ -275,6 +270,14 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
       << "]["
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "] AFTER SENDING FLBLK");
+
+  if (m_mediator.m_node->m_microblock != nullptr && !isVacuousEpoch) {
+    m_mediator.m_node->UpdateProcessedTransactions();
+    if (m_mediator.m_node->m_microblock->GetHeader().GetTxRootHash() !=
+        TxnHash()) {
+      m_mediator.m_node->CallActOnFinalblock();
+    }
+  }
 
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
