@@ -48,14 +48,14 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
     return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
   });
 
-  unsigned int totalSize = blocks.size();
+  unsigned int lastBlockNum = blocks.back()->GetHeader().GetBlockNum();
 
-  unsigned int extra_txblocks = totalSize % NUM_FINAL_BLOCK_PER_POW;
+  unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
 
   if (trimIncompletedBlocks) {
     // truncate the extra final blocks at last
     for (unsigned int i = 0; i < extra_txblocks; ++i) {
-      BlockStorage::GetBlockStorage().DeleteTxBlock(totalSize - 1 - i);
+      BlockStorage::GetBlockStorage().DeleteTxBlock(lastBlockNum - i);
       blocks.pop_back();
     }
   }
@@ -68,7 +68,8 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   /// current TX epoch
   if (!ARCHIVAL_NODE) {
     for (const auto& block : blocks) {
-      if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
+      if (block->GetHeader().GetBlockNum() >=
+          lastBlockNum + 1 - extra_txblocks) {
         std::vector<unsigned char> stateDelta;
         BlockStorage::GetBlockStorage().GetStateDelta(
             block->GetHeader().GetBlockNum(), stateDelta);
