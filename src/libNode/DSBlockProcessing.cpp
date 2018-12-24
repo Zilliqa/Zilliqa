@@ -75,7 +75,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   m_mediator.UpdateDSBlockRand();
 
   // Store DS Block to disk
-  vector<unsigned char> serializedDSBlock;
+  bytes serializedDSBlock;
   dsblock.Serialize(serializedDSBlock, 0);
 
   BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(),
@@ -155,7 +155,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
   }
 
   // Verify the collective signature
-  vector<unsigned char> message;
+  bytes message;
   if (!dsblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "DSBlockHeader serialization failed");
     return false;
@@ -337,7 +337,7 @@ void Node::ResetConsensusId() {
   m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 }
 
-bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
+bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                     unsigned int cur_offset,
                                     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
@@ -646,8 +646,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   return true;
 }
 
-void Node::SendDSBlockToOtherShardNodes(
-    const vector<unsigned char>& dsblock_message) {
+void Node::SendDSBlockToOtherShardNodes(const bytes& dsblock_message) {
   LOG_MARKER();
   unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
   if (cluster_size <= NUM_DS_ELECTION) {

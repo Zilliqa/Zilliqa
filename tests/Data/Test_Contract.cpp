@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   // Transaction to deploy contract.
   std::string initStr = JSONUtils::convertJsontoStr(t1.init);
-  std::vector<unsigned char> data(initStr.begin(), initStr.end());
+  bytes data(initStr.begin(), initStr.end());
   Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
                   t1.code, data);
   TransactionReceipt tr0;
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   /* ------------------------------------------------------------------- */
 
   // Execute message_1, the Donate transaction.
-  std::vector<unsigned char> dataDonate;
+  bytes dataDonate;
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataDonate);
 
   Transaction tx1(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE,
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint64_t bnum2 = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
   // Execute message_2, the Donate transaction.
-  std::vector<unsigned char> dataDonate2;
+  bytes dataDonate2;
   uint64_t amount2 =
       ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
 
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint64_t bnum4 = ScillaTestUtil::GetBlockNumberFromJson(t4.blockchain);
   // Execute message_4, the Donate transaction.
-  std::vector<unsigned char> data4;
+  bytes data4;
   uint64_t amount4 = ScillaTestUtil::PrepareMessageData(t4.message, data4);
 
   Transaction tx4(1, nonce, contrAddr, owner, amount4, PRECISION_MIN_VALUE,
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint64_t bnum5 = ScillaTestUtil::GetBlockNumberFromJson(t5.blockchain);
   // Execute message_5, the Donate transaction.
-  std::vector<unsigned char> data5;
+  bytes data5;
   uint64_t amount5 = ScillaTestUtil::PrepareMessageData(t5.message, data5);
 
   Transaction tx5(1, nonce, contrAddr, donor1, amount5, PRECISION_MIN_VALUE,
@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   // Transaction to deploy ping.
   std::string initStrPing = JSONUtils::convertJsontoStr(t0ping.init);
-  std::vector<unsigned char> dataPing(initStrPing.begin(), initStrPing.end());
+  bytes dataPing(initStrPing.begin(), initStrPing.end());
   Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
                   t0ping.code, dataPing);
   TransactionReceipt tr0;
@@ -338,7 +338,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   // Transaction to deploy pong.
   std::string initStrPong = JSONUtils::convertJsontoStr(t0pong.init);
-  std::vector<unsigned char> dataPong(initStrPong.begin(), initStrPong.end());
+  bytes dataPong(initStrPong.begin(), initStrPong.end());
   Transaction tx1(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
                   t0pong.code, dataPong);
   TransactionReceipt tr1;
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   /* ------------------------------------------------------------------- */
 
   // Set addresses of ping and pong in pong and ping respectively.
-  std::vector<unsigned char> data;
+  bytes data;
   // Replace pong address in parameter of message.
   for (auto it = t0ping.message["params"].begin();
        it != t0ping.message["params"].end(); it++) {

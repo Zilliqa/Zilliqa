@@ -31,6 +31,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "common/BaseType.h"
 #include "g3log/g3log.hpp"
 #include "g3log/loglevels.hpp"
 #include "g3log/logworker.hpp"
@@ -103,14 +104,12 @@ class Logger {
                 const char* function);
 
   /// Outputs the specified message, function name, and payload to the main log.
-  void LogMessageAndPayload(const char* msg,
-                            const std::vector<unsigned char>& payload,
+  void LogMessageAndPayload(const char* msg, const bytes& payload,
                             size_t max_bytes_to_display, const char* function);
   /// Outputs the specified message and function name to the epoch info log.
   void LogEpochInfo(const char* msg, const char* function, const char* epoch);
 
-  void LogPayload(LEVELS level, const char* msg,
-                  const std::vector<unsigned char>& payload,
+  void LogPayload(LEVELS level, const char* msg, const bytes& payload,
                   size_t max_bytes_to_display, const char* function);
 
   /// Setup the display debug level
@@ -132,8 +131,7 @@ class Logger {
   static pid_t GetPid();
 
   /// Calculate payload string according to payload vector & length
-  static void GetPayloadS(const std::vector<unsigned char>& payload,
-                          size_t max_bytes_to_display,
+  static void GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
                           std::unique_ptr<char[]>& res);
 };
 

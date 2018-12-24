@@ -19,7 +19,7 @@
 #ifndef __MESSENGERSWINFO_H__
 #define __MESSENGERSWINFO_H__
 
-#include <vector>
+#include "common/BaseType.h"
 
 class SWInfo;
 
@@ -29,11 +29,11 @@ class MessengerSWInfo {
   // Primitives
   // ============================================================================
 
-  static bool GetSWInfo(const std::vector<unsigned char>& src,
-                        const unsigned int offset, SWInfo& swInfo);
+  static bool GetSWInfo(const bytes& src, const unsigned int offset,
+                        SWInfo& swInfo);
 
-  static bool SetSWInfo(std::vector<unsigned char>& dst,
-                        const unsigned int offset, const SWInfo& swInfo);
+  static bool SetSWInfo(bytes& dst, const unsigned int offset,
+                        const SWInfo& swInfo);
 };
 
 #endif  // __MESSENGERSWINFO_H__

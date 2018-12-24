@@ -36,8 +36,7 @@ DSBlockHeader::DSBlockHeader()
       m_PoWDSWinners(),
       m_hashset() {}
 
-DSBlockHeader::DSBlockHeader(const vector<unsigned char>& src,
-                             unsigned int offset) {
+DSBlockHeader::DSBlockHeader(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
   }
@@ -64,8 +63,7 @@ DSBlockHeader::DSBlockHeader(const uint8_t dsDifficulty,
       m_PoWDSWinners(powDSWinners),
       m_hashset(hashset) {}
 
-bool DSBlockHeader::Serialize(vector<unsigned char>& dst,
-                              unsigned int offset) const {
+bool DSBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetDSBlockHeader(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetDSBlockHeader failed.");
     return false;
@@ -76,7 +74,7 @@ bool DSBlockHeader::Serialize(vector<unsigned char>& dst,
 
 BlockHash DSBlockHeader::GetHashForRandom() const {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  std::vector<unsigned char> vec;
+  bytes vec;
 
   if (!Messenger::SetDSBlockHeader(vec, 0, *this, true)) {
     LOG_GENERAL(WARNING, "Messenger::SetDSBlockHeader failed.");
@@ -84,14 +82,13 @@ BlockHash DSBlockHeader::GetHashForRandom() const {
   }
 
   sha2.Update(vec);
-  const std::vector<unsigned char>& resVec = sha2.Finalize();
+  const bytes& resVec = sha2.Finalize();
   BlockHash blockHash;
   std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
   return blockHash;
 }
 
-bool DSBlockHeader::Deserialize(const vector<unsigned char>& src,
-                                unsigned int offset) {
+bool DSBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetDSBlockHeader(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
     return false;

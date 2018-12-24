@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  vector<unsigned char> message;
+  bytes message;
   vector<PubKey> dsComm;
 
   if (!UpgradeManager::GetInstance().LoadInitialDS(dsComm)) {
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
   for (unsigned int i = 0; i < privKeys.size(); ++i) {
     Signature sig;
     Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
-    vector<unsigned char> result;
+    bytes result;
     sig.Serialize(result, 0);
     sig_str = DataConversion::Uint8VecToHexStr(result);
   }

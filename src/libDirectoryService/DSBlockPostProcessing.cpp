@@ -72,7 +72,7 @@ void DirectoryService::StoreDSBlockToStorage() {
   }
 
   // Store DS Block to disk
-  vector<unsigned char> serializedDSBlock;
+  bytes serializedDSBlock;
   m_pendingDSBlock->Serialize(serializedDSBlock, 0);
   BlockStorage::GetBlockStorage().PutDSBlock(
       m_pendingDSBlock->GetHeader().GetBlockNum(), serializedDSBlock);
@@ -89,8 +89,7 @@ void DirectoryService::StoreDSBlockToStorage() {
       m_pendingDSBlock->GetBlockHash());
 }
 
-bool DirectoryService::ComposeDSBlockMessageForSender(
-    vector<unsigned char>& dsblock_message) {
+bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeDSBlockMessageForSender not expected "
@@ -112,7 +111,7 @@ bool DirectoryService::ComposeDSBlockMessageForSender(
 }
 
 void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
-    const vector<unsigned char>& dsblock_message) {
+    const bytes& dsblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers not "
@@ -138,9 +137,8 @@ void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
 }
 
 void DirectoryService::SendDSBlockToShardNodes(
-    [[gnu::unused]] const vector<unsigned char>& dsblock_message,
-    const DequeOfShard& shards, const unsigned int& my_shards_lo,
-    const unsigned int& my_shards_hi) {
+    [[gnu::unused]] const bytes& dsblock_message, const DequeOfShard& shards,
+    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SendDSBlockToShardNodes not expected to "
@@ -158,8 +156,8 @@ void DirectoryService::SendDSBlockToShardNodes(
     uint32_t shardId =
         m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
 
-    vector<unsigned char> dsblock_message_to_shard = {
-        MessageType::NODE, NodeInstructionType::DSBLOCK};
+    bytes dsblock_message_to_shard = {MessageType::NODE,
+                                      NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeVCDSBlocksMessage(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
             *m_pendingDSBlock, m_VCBlockVector, m_shards)) {
@@ -501,8 +499,7 @@ void DirectoryService::StartFirstTxEpoch() {
 }
 
 void DirectoryService::ProcessDSBlockConsensusWhenDone(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset) {
+    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ProcessDSBlockConsensusWhenDone not "
@@ -579,20 +576,19 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "DSBlock to be sent to the lookup nodes");
 
-    auto composeDSBlockMessageForSender =
-        [this](vector<unsigned char>& message) -> bool {
+    auto composeDSBlockMessageForSender = [this](bytes& message) -> bool {
       return ComposeDSBlockMessageForSender(message);
     };
 
     auto sendDSBlockToLookupNodesAndNewDSMembers =
         [this]([[gnu::unused]] const VectorOfLookupNode& lookups,
-               const vector<unsigned char>& message) -> void {
+               const bytes& message) -> void {
       SendDSBlockToLookupNodesAndNewDSMembers(message);
     };
 
     auto sendDSBlockToShardNodes =
-        [this](const std::vector<unsigned char>& message,
-               const DequeOfShard& shards, const unsigned int& my_shards_lo,
+        [this](const bytes& message, const DequeOfShard& shards,
+               const unsigned int& my_shards_lo,
                const unsigned int& my_shards_hi) -> void {
       SendDSBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
     };
@@ -639,7 +635,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
 }
 
 bool DirectoryService::ProcessDSBlockConsensus(
-    const vector<unsigned char>& message, unsigned int offset,
+    const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

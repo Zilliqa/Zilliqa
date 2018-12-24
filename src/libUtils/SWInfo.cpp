@@ -49,8 +49,7 @@ SWInfo::SWInfo(const SWInfo& src)
 SWInfo::~SWInfo(){};
 
 /// Implements the Serialize function inherited from Serializable.
-unsigned int SWInfo::Serialize(std::vector<unsigned char>& dst,
-                               unsigned int offset) const {
+unsigned int SWInfo::Serialize(bytes& dst, unsigned int offset) const {
   LOG_MARKER();
 
   if ((offset + SIZE) > dst.size()) {
@@ -74,8 +73,7 @@ unsigned int SWInfo::Serialize(std::vector<unsigned char>& dst,
 }
 
 /// Implements the Deserialize function inherited from Serializable.
-int SWInfo::Deserialize(const std::vector<unsigned char>& src,
-                        unsigned int offset) {
+int SWInfo::Deserialize(const bytes& src, unsigned int offset) {
   LOG_MARKER();
 
   unsigned int curOffset = offset;

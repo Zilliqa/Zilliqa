@@ -40,7 +40,7 @@ const unsigned int RETRY_COUNT = 3;
 class RumorManager {
  public:
   // TYPES
-  typedef std::vector<unsigned char> RawBytes;
+  typedef bytes RawBytes;
 
  private:
   // TYPES
