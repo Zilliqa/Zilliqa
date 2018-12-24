@@ -45,8 +45,8 @@ using namespace boost::multiprecision;
 bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
   LOG_MARKER();
 
-  vector<unsigned char> powpacketmessage = {
-      MessageType::DIRECTORY, DSInstructionType::POWPACKETSUBMISSION};
+  bytes powpacketmessage = {MessageType::DIRECTORY,
+                            DSInstructionType::POWPACKETSUBMISSION};
 
   std::unique_lock<std::mutex> lk(m_mutexPowSolution);
 
@@ -89,7 +89,7 @@ bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
 }
 
 bool DirectoryService::ProcessPoWPacketSubmission(
-    const vector<unsigned char>& message, unsigned int offset,
+    const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
@@ -115,9 +115,9 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   return true;
 }
 
-bool DirectoryService::ProcessPoWSubmission(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+bool DirectoryService::ProcessPoWSubmission(const bytes& message,
+                                            unsigned int offset,
+                                            [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -473,7 +473,24 @@ void DirectoryService::ClearReputationOfNodeWithoutPoW() {
   }
 }
 
-std::set<PubKey> DirectoryService::FindTopPriorityNodes() {
+void DirectoryService::ClearReputationOfNodeFailToJoin(
+    const DequeOfShard& shards, std::map<PubKey, uint16_t>& mapNodeReputation) {
+  std::set<PubKey> allShardNodePubKey;
+  for (const auto& shard : shards) {
+    for (const auto& shardNode : shard) {
+      allShardNodePubKey.insert(std::get<SHARD_NODE_PUBKEY>(shardNode));
+    }
+  }
+
+  for (auto& kv : mapNodeReputation) {
+    if (allShardNodePubKey.find(kv.first) == allShardNodePubKey.end()) {
+      kv.second = 0;
+    }
+  }
+}
+
+std::set<PubKey> DirectoryService::FindTopPriorityNodes(
+    uint8_t& lowestPriority) {
   std::vector<std::pair<PubKey, uint8_t>> vecNodePriority;
   vecNodePriority.reserve(m_allPoWs.size());
   for (const auto& kv : m_allPoWs) {
@@ -495,6 +512,7 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes() {
   for (size_t i = 0; i < MAX_SHARD_NODE_NUM && i < vecNodePriority.size();
        ++i) {
     setTopPriorityNodes.insert(vecNodePriority[i].first);
+    lowestPriority = vecNodePriority[i].second;
   }
 
   // Because the oldest DS commitee member still need to keep in the network as

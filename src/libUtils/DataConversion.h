@@ -31,8 +31,7 @@
 class DataConversion {
  public:
   /// Converts alphanumeric hex string to byte vector.
-  static const std::vector<unsigned char> HexStrToUint8Vec(
-      const std::string& hex_input);
+  static const bytes HexStrToUint8Vec(const std::string& hex_input);
 
   /// Converts alphanumeric hex string to 32-byte array.
   static const std::array<unsigned char, 32> HexStrToStdArray(
@@ -43,13 +42,12 @@ class DataConversion {
       const std::string& hex_input);
 
   /// Converts byte vector to alphanumeric hex string.
-  static const std::string Uint8VecToHexStr(
-      const std::vector<unsigned char>& hex_vec);
+  static const std::string Uint8VecToHexStr(const bytes& hex_vec);
 
   /// Converts byte vector to alphanumeric hex string.
-  static const std::string Uint8VecToHexStr(
-      const std::vector<unsigned char>& hex_vec, unsigned int offset,
-      unsigned int len);
+  static const std::string Uint8VecToHexStr(const bytes& hex_vec,
+                                            unsigned int offset,
+                                            unsigned int len);
 
   /// Converts fixed-sized byte array to alphanumeric hex string.
   template <size_t SIZE>
@@ -64,17 +62,15 @@ class DataConversion {
   /// Converts a serializable object to alphanumeric hex string.
   static std::string SerializableToHexStr(const Serializable& input);
 
-  static inline const std::string CharArrayToString(
-      const std::vector<unsigned char>& v) {
+  static inline const std::string CharArrayToString(const bytes& v) {
     return std::string(v.begin(), v.end());
   }
 
-  static inline const std::vector<unsigned char> StringToCharArray(
-      const std::string& input) {
-    return std::vector<unsigned char>(input.begin(), input.end());
+  static inline const bytes StringToCharArray(const std::string& input) {
+    return bytes(input.begin(), input.end());
   }
 
-  static uint16_t charArrTo16Bits(const std::vector<unsigned char>& hex_arr);
+  static uint16_t charArrTo16Bits(const bytes& hex_arr);
 };
 
 #endif  // __DATACONVERSION_H__

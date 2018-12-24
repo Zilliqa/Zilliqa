@@ -42,18 +42,18 @@ class VCBlock : public BlockBase {
   VCBlock();  // creates a dummy invalid placeholder block
 
   /// Constructor for loading VC block information from a byte stream.
-  VCBlock(const std::vector<unsigned char>& src, unsigned int offset);
+  VCBlock(const bytes& src, unsigned int offset);
 
   /// Constructor with specified VC block parameters.
   VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
   /// Return size of serialized structure
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
   /// Return 0 if successed, -1 if failed
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Returns the reference to the VCBlockHeader part of the VC block.
   const VCBlockHeader& GetHeader() const;

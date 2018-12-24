@@ -30,6 +30,7 @@
 
 #include "Peer.h"
 #include "RumorManager.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
@@ -43,21 +44,18 @@ class SendJob {
  protected:
   static uint32_t writeMsg(const void* buf, int cli_sock, const Peer& from,
                            const uint32_t message_length);
-  static bool SendMessageSocketCore(const Peer& peer,
-                                    const std::vector<unsigned char>& message,
+  static bool SendMessageSocketCore(const Peer& peer, const bytes& message,
                                     unsigned char start_byte,
-                                    const std::vector<unsigned char>& msg_hash);
+                                    const bytes& msg_hash);
 
  public:
   Peer m_selfPeer;
   unsigned char m_startbyte;
-  std::vector<unsigned char> m_message;
-  std::vector<unsigned char> m_hash;
+  bytes m_message;
+  bytes m_hash;
 
-  static void SendMessageCore(const Peer& peer,
-                              const std::vector<unsigned char> message,
-                              unsigned char startbyte,
-                              const std::vector<unsigned char> hash);
+  static void SendMessageCore(const Peer& peer, const bytes message,
+                              unsigned char startbyte, const bytes hash);
 
   virtual ~SendJob() {}
   virtual void DoSend() = 0;
@@ -78,17 +76,17 @@ class SendJobPeers : public SendJob {
 
 /// Provides network layer functionality.
 class P2PComm {
-  std::set<std::vector<unsigned char>> m_broadcastHashes;
+  std::set<bytes> m_broadcastHashes;
   std::mutex m_broadcastHashesMutex;
-  std::deque<std::pair<std::vector<unsigned char>,
-                       std::chrono::time_point<std::chrono::system_clock>>>
+  std::deque<
+      std::pair<bytes, std::chrono::time_point<std::chrono::system_clock>>>
       m_broadcastToRemove;
   std::mutex m_broadcastToRemoveMutex;
   RumorManager m_rumorManager;
 
   const static uint32_t MAXPUMPMESSAGE = 128;
 
-  void ClearBroadcastHashAsync(const std::vector<unsigned char>& message_hash);
+  void ClearBroadcastHashAsync(const bytes& message_hash);
 
   P2PComm();
   ~P2PComm();
@@ -97,8 +95,8 @@ class P2PComm {
   P2PComm(P2PComm const&) = delete;
   void operator=(P2PComm const&) = delete;
 
-  using ShaMessage = std::vector<unsigned char>;
-  static ShaMessage shaMessage(const std::vector<unsigned char>& message);
+  using ShaMessage = bytes;
+  static ShaMessage shaMessage(const bytes& message);
 
   Peer m_selfPeer;
 
@@ -107,10 +105,9 @@ class P2PComm {
   boost::lockfree::queue<SendJob*> m_sendQueue;
   void ProcessSendJob(SendJob* job);
 
-  static void ProcessBroadCastMsg(std::vector<unsigned char>& message,
-                                  const uint32_t messageLength,
+  static void ProcessBroadCastMsg(bytes& message, const uint32_t messageLength,
                                   const Peer& from);
-  static void ProcessGossipMsg(std::vector<unsigned char>& message, Peer& from);
+  static void ProcessGossipMsg(bytes& message, Peer& from);
 
   static void EventCallback(struct bufferevent* bev, short events, void* ctx);
   static void AcceptConnectionCallback(evconnlistener* listener,
@@ -122,13 +119,13 @@ class P2PComm {
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  using Dispatcher =
-      std::function<void(std::pair<std::vector<unsigned char>, Peer>*)>;
+  using Dispatcher = std::function<void(std::pair<bytes, Peer>*)>;
 
   using BroadcastListFunc = std::function<std::vector<Peer>(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
   void InitializeRumorManager(const std::vector<Peer>& peers);
+  inline static bool IsHostHavingNetworkIssue();
 
  private:
   using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
@@ -147,47 +144,43 @@ class P2PComm {
                         BroadcastListFunc broadcast_list_retriever);
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(const std::vector<Peer>& peers,
-                   const std::vector<unsigned char>& message,
+  void SendMessage(const std::vector<Peer>& peers, const bytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL);
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(const std::deque<Peer>& peers,
-                   const std::vector<unsigned char>& message,
+  void SendMessage(const std::deque<Peer>& peers, const bytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL);
 
   /// Sends normal message to specified peer.
-  void SendMessage(const Peer& peer, const std::vector<unsigned char>& message,
+  void SendMessage(const Peer& peer, const bytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL);
 
   /// Multicasts message of type=broadcast to specified list of peers.
   void SendBroadcastMessage(const std::vector<Peer>& peers,
-                            const std::vector<unsigned char>& message);
+                            const bytes& message);
 
   /// Multicasts message of type=broadcast to specified list of peers.
   void SendBroadcastMessage(const std::deque<Peer>& peers,
-                            const std::vector<unsigned char>& message);
+                            const bytes& message);
 
-  void RebroadcastMessage(const std::vector<Peer>& peers,
-                          const std::vector<unsigned char>& message,
-                          const std::vector<unsigned char>& msg_hash);
+  void RebroadcastMessage(const std::vector<Peer>& peers, const bytes& message,
+                          const bytes& msg_hash);
 
   void SendMessageNoQueue(
-      const Peer& peer, const std::vector<unsigned char>& message,
+      const Peer& peer, const bytes& message,
       const unsigned char& startByteType = START_BYTE_NORMAL);
 
   void SetSelfPeer(const Peer& self);
 
-  bool SpreadRumor(const std::vector<unsigned char>& message);
+  bool SpreadRumor(const bytes& message);
 
-  void SendRumorToForeignPeer(const Peer& foreignPeer,
-                              const std::vector<unsigned char>& message);
+  void SendRumorToForeignPeer(const Peer& foreignPeer, const bytes& message);
 
   void SendRumorToForeignPeers(const std::vector<Peer>& foreignPeers,
-                               const std::vector<unsigned char>& message);
+                               const bytes& message);
 
   void SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
-                               const std::vector<unsigned char>& message);
+                               const bytes& message);
 };
 
 #endif  // __P2PCOMM_H__

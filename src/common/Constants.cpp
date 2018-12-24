@@ -286,6 +286,12 @@ const unsigned int DSBLOCK_EXTRA_WAIT_TIME{
     ReadConstantNumeric("DSBLOCK_EXTRA_WAIT_TIME", "node.pow.")};
 const unsigned int DIFF_IP_TOLERANCE_IN_PERCENT{
     ReadConstantNumeric("DIFF_IP_TOLERANCE_IN_PERCENT", "node.pow.")};
+const unsigned int TXN_SHARD_TARGET_DIFFICULTY{
+    ReadConstantNumeric("TXN_SHARD_TARGET_DIFFICULTY", "node.pow.")};
+const unsigned int TXN_DS_TARGET_DIFFICULTY{
+    ReadConstantNumeric("TXN_DS_TARGET_DIFFICULTY", "node.pow.")};
+const unsigned int PRIORITY_TOLERANCE_IN_PERCENT{
+    ReadConstantNumeric("PRIORITY_TOLERANCE_IN_PERCENT", "node.pow.")};
 
 // Recovery and upgrading constants
 const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
@@ -302,6 +308,9 @@ const string UPGRADE_HOST_REPO{
     ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
 const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
     ReadConstantString("RECOVERY_TRIM_INCOMPLETED_BLOCK", "node.recovery.") ==
+    "true"};
+const bool REJOIN_NODE_NOT_IN_NETWORK{
+    ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};
 
 // Smart contract constants
@@ -362,6 +371,8 @@ const unsigned int SYS_TIMESTAMP_VARIANCE_IN_SECONDS{ReadConstantNumeric(
     "SYS_TIMESTAMP_VARIANCE_IN_SECONDS", "node.transactions.")};
 const unsigned int TXN_MISORDER_TOLERANCE_IN_PERCENT{ReadConstantNumeric(
     "TXN_MISORDER_TOLERANCE_IN_PERCENT", "node.transactions.")};
+const unsigned int PACKET_EPOCH_LATE_ALLOW{
+    ReadConstantNumeric("PACKET_EPOCH_LATE_ALLOW", "node.transactions.")};
 
 // Viewchange constants
 const unsigned int POST_VIEWCHANGE_BUFFER{

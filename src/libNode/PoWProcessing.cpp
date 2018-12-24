@@ -272,8 +272,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
                                  const uint128_t& gasPrice) {
   LOG_MARKER();
 
-  vector<unsigned char> powmessage = {MessageType::DIRECTORY,
-                                      DSInstructionType::POWSUBMISSION};
+  bytes powmessage = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
 
   if (!Messenger::SetDSPoWSubmission(
           powmessage, MessageOffset::BODY, block_num, difficultyLevel,
@@ -312,8 +311,8 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
 }
 
 bool Node::ReadVariablesFromStartPoWMessage(
-    const vector<unsigned char>& message, unsigned int cur_offset,
-    uint64_t& block_num, uint8_t& ds_difficulty, uint8_t& difficulty,
+    const bytes& message, unsigned int cur_offset, uint64_t& block_num,
+    uint8_t& ds_difficulty, uint8_t& difficulty,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -429,8 +428,7 @@ bool Node::ReadVariablesFromStartPoWMessage(
   return true;
 }
 
-bool Node::ProcessStartPoW(const vector<unsigned char>& message,
-                           unsigned int offset,
+bool Node::ProcessStartPoW(const bytes& message, unsigned int offset,
                            [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

@@ -33,7 +33,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-#include "CrowdFundingCodes.h"
+#include "ScillaTestUtil.h"
 
 #define BOOST_TEST_MODULE contracttest
 #define BOOST_TEST_DYN_LINK
@@ -44,7 +44,6 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(contracttest)
 
-Address toAddress;
 PrivKey priv1(
     DataConversion::HexStrToUint8Vec(
         "1658F915F3F9AE35E6B471B7670F53AD1A5BE15D7331EC7FD5E503F21D3450C8"),
@@ -52,253 +51,380 @@ PrivKey priv1(
     priv2(
         DataConversion::HexStrToUint8Vec(
             "0FC87BC5ACF5D1243DE7301972B9649EE31688F291F781396B0F67AD98A88147"),
+        0),
+    priv3(
+        DataConversion::HexStrToUint8Vec(
+            "0AB52CF5D3F9A1E730243DB96419729EE31688F29B0F67AD98A881471F781396"),
         0);
-KeyPair sender(priv1, {priv1}), sender2(priv2, {priv2});
-Address fromAddr, fromAddr2;
-uint64_t nonce = 0;
 
 // Create Transaction to create contract
-BOOST_AUTO_TEST_CASE(testContract) {
+BOOST_AUTO_TEST_CASE(testCrowdfunding) {
+  KeyPair owner(priv1, {priv1}), donor1(priv2, {priv2}), donor2(priv3, {priv3});
+  Address ownerAddr, donor1Addr, donor2Addr, contrAddr;
+  uint64_t nonce = 0;
+
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
 
   if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
     return;
   }
 
   AccountStore::GetInstance().Init();
 
-  // PrivKey senderPrivKey(
-  //     DataConversion::HexStrToUint8Vec(
-  //         "1658F915F3F9AE35E6B471B7670F53AD1A5BE15D7331EC7FD5E503F21D3450C8"),
-  //     0);
-  // PubKey senderPubKey(senderPrivKey);
-  // sender.first = senderPrivKey;
-  // sender.second = senderPubKey;
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  donor1Addr = Account::GetAddressFromPublicKey(donor1.second);
+  donor2Addr = Account::GetAddressFromPublicKey(donor2.second);
 
-  fromAddr = Account::GetAddressFromPublicKey(sender.second);
+  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccount(donor1Addr, {2000000, nonce});
+  AccountStore::GetInstance().AddAccount(donor2Addr, {2000000, nonce});
 
-  // PrivKey senderPrivKey2(
-  //     DataConversion::HexStrToUint8Vec(
-  //         "0FC87BC5ACF5D1243DE7301972B9649EE31688F291F781396B0F67AD98A88147"),
-  //     0);
-  // PubKey senderPubKey2(senderPrivKey2);
-  // sender2.first = senderPrivKey2;
-  // sender2.second = senderPubKey2;
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "CrowdFunding Address: " << contrAddr);
 
-  fromAddr2 = Account::GetAddressFromPublicKey(sender2.second);
-
-  AccountStore::GetInstance().AddAccount(fromAddr, {2000000, nonce});
-
-  toAddress = Account::GetAddressForContract(fromAddr, nonce);
-  LOG_GENERAL(INFO, "CrowdFunding Address: " << toAddress);
-
-  {
-    std::vector<unsigned char> code(cfCodeStr.begin(), cfCodeStr.end());
-
-    string initStr =
-        regex_replace(cfInitStr, regex("\\$ADDR"), "0x" + toAddress.hex());
-    std::vector<unsigned char> data(initStr.begin(), initStr.end());
-
-    Transaction tx0(1, nonce, NullAddress, sender, 0, PRECISION_MIN_VALUE, 5000,
-                    code, data);
-
-    TransactionReceipt tr0;
-    AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx0, tr0);
-
-    bool checkToAddr = true;
-    Account* account = AccountStore::GetInstance().GetAccount(toAddress);
-    if (account == nullptr) {
-      checkToAddr = false;
-    } else {
-      nonce++;
-    }
-    BOOST_CHECK_MESSAGE(checkToAddr, "Error with creation of contract account");
-
-    cfOutStr0.erase(std::remove(cfOutStr0.begin(), cfOutStr0.end(), ' '),
-                    cfOutStr0.end());
-    cfOutStr0.erase(std::remove(cfOutStr0.begin(), cfOutStr0.end(), '\n'),
-                    cfOutStr0.end());
-
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr0 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, "[Create] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
+  // Deploying the contract can use data from the 1st Scilla test.
+  ScillaTestUtil::ScillaTest t1;
+  if (!ScillaTestUtil::GetScillaTest(t1, "crowdfunding", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_1.");
+    return;
   }
 
-  std::vector<unsigned char> dataDonate(cfDataDonateStr.begin(),
-                                        cfDataDonateStr.end());
-
-  {
-    Transaction tx1(1, nonce, toAddress, sender, 100, PRECISION_MIN_VALUE, 5000,
-                    {}, dataDonate);
-    TransactionReceipt tr1;
-    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx1, tr1)) {
-      nonce++;
+  // Replace owner address in init.json.
+  for (auto& it : t1.init) {
+    if (it["vname"] == "owner") {
+      it["value"] = "0x" + ownerAddr.hex();
     }
+  }
+  // and remove _creation_block (automatic insertion later).
+  ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
 
-    cfOutStr1.erase(std::remove(cfOutStr1.begin(), cfOutStr1.end(), ' '),
-                    cfOutStr1.end());
-    cfOutStr1.erase(std::remove(cfOutStr1.begin(), cfOutStr1.end(), '\n'),
-                    cfOutStr1.end());
+  uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
 
-    cfOutStr1 =
-        regex_replace(cfOutStr1, regex("\\$ADDR"), "0x" + fromAddr.hex());
+  // Transaction to deploy contract.
+  std::string initStr = JSONUtils::convertJsontoStr(t1.init);
+  bytes data(initStr.begin(), initStr.end());
+  Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
+                  t1.code, data);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+  Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(account != nullptr,
+                      "Error with creation of contract account");
+  nonce++;
 
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
+  /* ------------------------------------------------------------------- */
 
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
+  // Execute message_1, the Donate transaction.
+  bytes dataDonate;
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataDonate);
 
-    BOOST_CHECK_MESSAGE(cfOutStr1 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, "[Call1] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call1] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
+  Transaction tx1(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE,
+                  5000, {}, dataDonate);
+  TransactionReceipt tr1;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1)) {
+    nonce++;
   }
 
-  {
-    Transaction tx2(1, nonce, toAddress, sender2, 200, PRECISION_MIN_VALUE,
-                    5000, {}, dataDonate);
-    TransactionReceipt tr2;
-    if (AccountStore::GetInstance().UpdateAccounts(100, 1, true, tx2, tr2)) {
-      nonce++;
-    }
+  uint128_t contrBal = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t oBal = ScillaTestUtil::GetBalanceFromOutput();
 
-    cfOutStr2.erase(std::remove(cfOutStr2.begin(), cfOutStr2.end(), ' '),
-                    cfOutStr2.end());
-    cfOutStr2.erase(std::remove(cfOutStr2.begin(), cfOutStr2.end(), '\n'),
-                    cfOutStr2.end());
+  LOG_GENERAL(INFO, "[Call1] Owner balance: "
+                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+  LOG_GENERAL(INFO, "[Call1] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call1] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call1] Contract balance (scilla): " << contrBal);
+  LOG_GENERAL(INFO, "[Call1] Contract balance (blockchain): " << oBal);
+  BOOST_CHECK_MESSAGE(contrBal == oBal && contrBal == amount,
+                      "Balance mis-match after Donate");
 
-    cfOutStr2 =
-        regex_replace(cfOutStr2, regex("\\$ADDR1"), "0x" + fromAddr.hex());
-    cfOutStr2 =
-        regex_replace(cfOutStr2, regex("\\$ADDR2"), "0x" + fromAddr2.hex());
+  /* ------------------------------------------------------------------- */
 
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr2 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, cfOutStr2);
-    LOG_GENERAL(INFO, output_file);
-
-    LOG_GENERAL(INFO, "[Call2] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call2] Sender2 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO, "[Call2] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
+  // Do another donation from donor2
+  ScillaTestUtil::ScillaTest t2;
+  if (!ScillaTestUtil::GetScillaTest(t2, "crowdfunding", 2)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_2.");
+    return;
   }
 
-  std::vector<unsigned char> dataGetFunds(cfDataGetFundsStr.begin(),
-                                          cfDataGetFundsStr.end());
+  uint64_t bnum2 = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
+  // Execute message_2, the Donate transaction.
+  bytes dataDonate2;
+  uint64_t amount2 =
+      ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
 
-  {
-    Transaction tx3(1, nonce, toAddress, sender2, 0, PRECISION_MIN_VALUE, 5000,
-                    {}, dataGetFunds);
-    TransactionReceipt tr3;
-    if (AccountStore::GetInstance().UpdateAccounts(200, 1, true, tx3, tr3)) {
-      nonce++;
-    }
-
-    cfOutStr3.erase(std::remove(cfOutStr3.begin(), cfOutStr3.end(), ' '),
-                    cfOutStr3.end());
-    cfOutStr3.erase(std::remove(cfOutStr3.begin(), cfOutStr3.end(), '\n'),
-                    cfOutStr3.end());
-
-    cfOutStr3 =
-        regex_replace(cfOutStr3, regex("\\$ADDR1"), "0x" + fromAddr.hex());
-    cfOutStr3 =
-        regex_replace(cfOutStr3, regex("\\$ADDR2"), "0x" + fromAddr2.hex());
-
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr3 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, cfOutStr3);
-    LOG_GENERAL(INFO, output_file);
-
-    LOG_GENERAL(INFO, "[Call3] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call3] Sender2 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO, "[Call3] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
+  Transaction tx2(1, nonce, contrAddr, donor2, amount2, PRECISION_MIN_VALUE,
+                  5000, {}, dataDonate2);
+  TransactionReceipt tr2;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum2, 1, true, tx2, tr2)) {
+    nonce++;
   }
 
-  std::vector<unsigned char> dataClaimBack(cfDataClaimBackStr.begin(),
-                                           cfDataClaimBackStr.end());
+  uint128_t contrBal2 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t oBal2 = ScillaTestUtil::GetBalanceFromOutput();
 
-  {
-    Transaction tx4(1, nonce, toAddress, sender, 0, PRECISION_MIN_VALUE, 5000,
-                    {}, dataClaimBack);
-    TransactionReceipt tr4;
-    if (AccountStore::GetInstance().UpdateAccounts(300, 1, true, tx4, tr4)) {
-      nonce++;
-    }
+  LOG_GENERAL(INFO, "[Call2] Owner balance: "
+                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+  LOG_GENERAL(INFO, "[Call2] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call2] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call2] Contract balance (scilla): " << contrBal2);
+  LOG_GENERAL(INFO, "[Call2] Contract balance (blockchain): " << oBal2);
+  BOOST_CHECK_MESSAGE(contrBal2 == oBal2 && contrBal2 == amount + amount2,
+                      "Balance mis-match after Donate2");
 
-    cfOutStr4.erase(std::remove(cfOutStr4.begin(), cfOutStr4.end(), ' '),
-                    cfOutStr4.end());
-    cfOutStr4.erase(std::remove(cfOutStr4.begin(), cfOutStr4.end(), '\n'),
-                    cfOutStr4.end());
+  /* ------------------------------------------------------------------- */
 
-    cfOutStr4 =
-        regex_replace(cfOutStr4, regex("\\$ADDR1"), "0x" + fromAddr.hex());
-    cfOutStr4 =
-        regex_replace(cfOutStr4, regex("\\$ADDR2"), "0x" + fromAddr2.hex());
-
-    ifstream infile{OUTPUT_JSON};
-    std::string output_file{istreambuf_iterator<char>(infile),
-                            istreambuf_iterator<char>()};
-
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), ' '),
-                      output_file.end());
-    output_file.erase(std::remove(output_file.begin(), output_file.end(), '\n'),
-                      output_file.end());
-
-    BOOST_CHECK_MESSAGE(cfOutStr4 == output_file,
-                        "Error: didn't get desired output");
-
-    LOG_GENERAL(INFO, "[Call4] Sender1 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr));
-    LOG_GENERAL(INFO, "[Call4] Sender2 balance: "
-                          << AccountStore::GetInstance().GetBalance(fromAddr2));
-    LOG_GENERAL(INFO, "[Call4] Contract balance: "
-                          << AccountStore::GetInstance().GetBalance(toAddress));
+  // Let's try donor1 donating again, it shouldn't have an impact.
+  // Execute message_3, the unsuccessful Donate transaction.
+  Transaction tx3(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE,
+                  5000, {}, dataDonate);
+  TransactionReceipt tr3;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx3, tr3)) {
+    nonce++;
   }
+  uint128_t contrBal3 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t oBal3 = ScillaTestUtil::GetBalanceFromOutput();
+
+  LOG_GENERAL(INFO, "[Call3] Owner balance: "
+                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+  LOG_GENERAL(INFO, "[Call3] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call3] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call3] Contract balance (scilla): " << contrBal3);
+  LOG_GENERAL(INFO, "[Call3] Contract balance (blockchain): " << oBal3);
+  BOOST_CHECK_MESSAGE(contrBal3 == contrBal2,
+                      "Balance mis-match after Donate3");
+
+  /* ------------------------------------------------------------------- */
+
+  // Owner tries to get fund, fails
+  ScillaTestUtil::ScillaTest t4;
+  if (!ScillaTestUtil::GetScillaTest(t4, "crowdfunding", 4)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_4.");
+    return;
+  }
+
+  uint64_t bnum4 = ScillaTestUtil::GetBlockNumberFromJson(t4.blockchain);
+  // Execute message_4, the Donate transaction.
+  bytes data4;
+  uint64_t amount4 = ScillaTestUtil::PrepareMessageData(t4.message, data4);
+
+  Transaction tx4(1, nonce, contrAddr, owner, amount4, PRECISION_MIN_VALUE,
+                  5000, {}, data4);
+  TransactionReceipt tr4;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum4, 1, true, tx4, tr4)) {
+    nonce++;
+  }
+
+  uint128_t contrBal4 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t oBal4 = ScillaTestUtil::GetBalanceFromOutput();
+
+  LOG_GENERAL(INFO, "[Call4] Owner balance: "
+                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+  LOG_GENERAL(INFO, "[Call4] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call4] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call4] Contract balance (scilla): " << contrBal4);
+  LOG_GENERAL(INFO, "[Call4] Contract balance (blockchain): " << oBal4);
+  BOOST_CHECK_MESSAGE(contrBal4 == contrBal3 && contrBal4 == oBal4,
+                      "Balance mis-match after GetFunds");
+
+  /* ------------------------------------------------------------------- */
+
+  // Donor1 ClaimsBack his funds. Succeeds.
+  ScillaTestUtil::ScillaTest t5;
+  if (!ScillaTestUtil::GetScillaTest(t5, "crowdfunding", 5)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test crowdfunding_5.");
+    return;
+  }
+
+  uint64_t bnum5 = ScillaTestUtil::GetBlockNumberFromJson(t5.blockchain);
+  // Execute message_5, the Donate transaction.
+  bytes data5;
+  uint64_t amount5 = ScillaTestUtil::PrepareMessageData(t5.message, data5);
+
+  Transaction tx5(1, nonce, contrAddr, donor1, amount5, PRECISION_MIN_VALUE,
+                  5000, {}, data5);
+  TransactionReceipt tr5;
+  if (AccountStore::GetInstance().UpdateAccounts(bnum5, 1, true, tx5, tr5)) {
+    nonce++;
+  }
+
+  uint128_t contrBal5 = AccountStore::GetInstance().GetBalance(contrAddr);
+  uint128_t oBal5 = ScillaTestUtil::GetBalanceFromOutput();
+
+  LOG_GENERAL(INFO, "[Call5] Owner balance: "
+                        << AccountStore::GetInstance().GetBalance(ownerAddr));
+  LOG_GENERAL(INFO, "[Call5] Donor1 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor1Addr));
+  LOG_GENERAL(INFO, "[Call5] Donor2 balance: "
+                        << AccountStore::GetInstance().GetBalance(donor2Addr));
+  LOG_GENERAL(INFO, "[Call5] Contract balance (scilla): " << contrBal4);
+  LOG_GENERAL(INFO, "[Call5] Contract balance (blockchain): " << oBal4);
+  BOOST_CHECK_MESSAGE(contrBal5 == oBal5 && contrBal5 == contrBal4 - amount,
+                      "Balance mis-match after GetFunds");
+
+  /* ------------------------------------------------------------------- */
+}
+
+BOOST_AUTO_TEST_CASE(testPingPong) {
+  KeyPair owner(priv1, {priv1}), ping(priv2, {priv2}), pong(priv3, {priv3});
+  Address ownerAddr, pingAddr, pongAddr;
+  uint64_t nonce = 0;
+
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccount(ownerAddr, {2000000, nonce});
+
+  pingAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  pongAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
+
+  LOG_GENERAL(INFO,
+              "Ping Address: " << pingAddr << " ; PongAddress: " << pongAddr);
+
+  /* ------------------------------------------------------------------- */
+
+  // Deploying the contract can use data from the 0th Scilla test.
+  ScillaTestUtil::ScillaTest t0ping;
+  if (!ScillaTestUtil::GetScillaTest(t0ping, "ping", 0)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test ping_0.");
+    return;
+  }
+
+  uint64_t bnumPing = ScillaTestUtil::GetBlockNumberFromJson(t0ping.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(t0ping.init);
+
+  // Transaction to deploy ping.
+  std::string initStrPing = JSONUtils::convertJsontoStr(t0ping.init);
+  bytes dataPing(initStrPing.begin(), initStrPing.end());
+  Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
+                  t0ping.code, dataPing);
+  TransactionReceipt tr0;
+  AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx0, tr0);
+  Account* accountPing = AccountStore::GetInstance().GetAccount(pingAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountPing != nullptr,
+                      "Error with creation of ping account");
+  nonce++;
+
+  // Deploying the contract can use data from the 0th Scilla test.
+  ScillaTestUtil::ScillaTest t0pong;
+  if (!ScillaTestUtil::GetScillaTest(t0pong, "pong", 0)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test pong_0.");
+    return;
+  }
+
+  uint64_t bnumPong = ScillaTestUtil::GetBlockNumberFromJson(t0pong.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(t0pong.init);
+
+  // Transaction to deploy pong.
+  std::string initStrPong = JSONUtils::convertJsontoStr(t0pong.init);
+  bytes dataPong(initStrPong.begin(), initStrPong.end());
+  Transaction tx1(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
+                  t0pong.code, dataPong);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx1, tr1);
+  Account* accountPong = AccountStore::GetInstance().GetAccount(pongAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountPong != nullptr,
+                      "Error with creation of pong account");
+  nonce++;
+
+  LOG_GENERAL(INFO, "Deployed ping and pong contracts.");
+
+  /* ------------------------------------------------------------------- */
+
+  // Set addresses of ping and pong in pong and ping respectively.
+  bytes data;
+  // Replace pong address in parameter of message.
+  for (auto it = t0ping.message["params"].begin();
+       it != t0ping.message["params"].end(); it++) {
+    if ((*it)["vname"] == "pongAddr") {
+      (*it)["value"] = "0x" + pongAddr.hex();
+    }
+  }
+  uint64_t amount = ScillaTestUtil::PrepareMessageData(t0ping.message, data);
+  Transaction tx2(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
+                  {}, data);
+  TransactionReceipt tr2;
+  if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx2, tr2)) {
+    nonce++;
+  }
+
+  // Replace ping address in paramter of message.
+  for (auto it = t0pong.message["params"].begin();
+       it != t0pong.message["params"].end(); it++) {
+    if ((*it)["vname"] == "pingAddr") {
+      (*it)["value"] = "0x" + pingAddr.hex();
+    }
+  }
+  amount = ScillaTestUtil::PrepareMessageData(t0pong.message, data);
+  Transaction tx3(1, nonce, pongAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
+                  {}, data);
+  TransactionReceipt tr3;
+  if (AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx3, tr3)) {
+    nonce++;
+  }
+
+  LOG_GENERAL(INFO, "Finished setting ping-pong addresses in both contracts.");
+
+  /* ------------------------------------------------------------------- */
+
+  // Let's just ping now and see the ping-pong bounces.
+  ScillaTestUtil::ScillaTest t1ping;
+  if (!ScillaTestUtil::GetScillaTest(t1ping, "ping", 1)) {
+    LOG_GENERAL(WARNING, "Unable to fetch test ping_1.");
+    return;
+  }
+
+  ScillaTestUtil::PrepareMessageData(t1ping.message, data);
+  Transaction tx4(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
+                  {}, data);
+  TransactionReceipt tr4;
+  if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx4, tr4)) {
+    nonce++;
+  }
+
+  // Fetch the states of both ping and pong and verify "count" is 0.
+  Json::Value pingState = accountPing->GetStorageJson();
+  int pingCount = -1;
+  for (auto& it : pingState) {
+    if (it["vname"] == "count") {
+      pingCount = atoi(it["value"].asCString());
+    }
+  }
+  Json::Value pongState = accountPing->GetStorageJson();
+  int pongCount = -1;
+  for (auto& it : pongState) {
+    if (it["vname"] == "count") {
+      pongCount = atoi(it["value"].asCString());
+    }
+  }
+  BOOST_CHECK_MESSAGE(pingCount == 0 && pongCount == 0,
+                      "Ping / Pong did not reach count 0.");
+
+  LOG_GENERAL(INFO, "Ping and pong bounced back to reach 0. Successful.");
+
+  /* ------------------------------------------------------------------- */
 }
 
 BOOST_AUTO_TEST_SUITE_END()

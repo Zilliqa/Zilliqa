@@ -115,8 +115,7 @@ bool Server::StartCollectorThread() {
             m_mediator.m_lookup->m_txnShardMap.at(0).empty()) {
           continue;
         }
-        vector<unsigned char> msg = {MessageType::LOOKUP,
-                                     LookupInstructionType::FORWARDTXN};
+        bytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
         auto upperLayerNodes = m_mediator.m_lookup->GetAboveLayer();
         auto upperLayerNode =
@@ -148,6 +147,18 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     }
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
+
+    if (tx.GetGasPrice() <
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
+      throw JsonRpcException(RPC_VERIFY_REJECTED,
+                             "GasPrice " +
+                                 tx.GetGasPrice().convert_to<string>() +
+                                 " lower than minimum allowable " +
+                                 m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetGasPrice()
+                                     .convert_to<string>());
+    }
 
     if (!m_mediator.m_validator->VerifyTransaction(tx)) {
       throw JsonRpcException(RPC_VERIFY_REJECTED,
@@ -226,7 +237,7 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
           ret["TranID"] = tx.GetTranID().hex();
         } else {
           if (!ARCHIVAL_LOOKUP) {
-            m_mediator.m_lookup->AddToTxnShardMap(tx, shard);
+            m_mediator.m_lookup->AddToTxnShardMap(tx, num_shards);
           } else {
             m_mediator.m_lookup->AddToTxnShardMap(tx, 0);
           }
@@ -352,7 +363,7 @@ Json::Value Server::GetBalance(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -388,7 +399,7 @@ Json::Value Server::GetSmartContractState(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -415,7 +426,7 @@ Json::Value Server::GetSmartContractInit(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -445,7 +456,7 @@ Json::Value Server::GetSmartContractCode(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -477,7 +488,7 @@ Json::Value Server::GetSmartContracts(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    vector<unsigned char> tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -761,10 +772,10 @@ Json::Value Server::DSBlockListing(unsigned int page) {
       // add the hash of genesis block
       DSBlockHeader dshead = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
       SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-      vector<unsigned char> vec;
+      bytes vec;
       dshead.Serialize(vec, 0);
       sha2.Update(vec);
-      const vector<unsigned char>& resVec = sha2.Finalize();
+      const bytes& resVec = sha2.Finalize();
       m_DSBlockCache.second.insert_new(
           m_DSBlockCache.second.size(),
           DataConversion::Uint8VecToHexStr(resVec));
@@ -789,10 +800,10 @@ Json::Value Server::DSBlockListing(unsigned int page) {
     DSBlockHeader dshead =
         m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    vector<unsigned char> vec;
+    bytes vec;
     dshead.Serialize(vec, 0);
     sha2.Update(vec);
-    const vector<unsigned char>& resVec = sha2.Finalize();
+    const bytes& resVec = sha2.Finalize();
 
     m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(),
                                      DataConversion::Uint8VecToHexStr(resVec));
@@ -850,10 +861,10 @@ Json::Value Server::TxBlockListing(unsigned int page) {
       // add the hash of genesis block
       TxBlockHeader txhead = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
       SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-      vector<unsigned char> vec;
+      bytes vec;
       txhead.Serialize(vec, 0);
       sha2.Update(vec);
-      const vector<unsigned char>& resVec = sha2.Finalize();
+      const bytes& resVec = sha2.Finalize();
       m_TxBlockCache.second.insert_new(
           m_TxBlockCache.second.size(),
           DataConversion::Uint8VecToHexStr(resVec));
@@ -878,10 +889,10 @@ Json::Value Server::TxBlockListing(unsigned int page) {
     TxBlockHeader txhead =
         m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    vector<unsigned char> vec;
+    bytes vec;
     txhead.Serialize(vec, 0);
     sha2.Update(vec);
-    const vector<unsigned char>& resVec = sha2.Finalize();
+    const bytes& resVec = sha2.Finalize();
 
     m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(),
                                      DataConversion::Uint8VecToHexStr(resVec));
