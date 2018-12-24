@@ -885,19 +885,19 @@ bool MultiSig::VerifyResponse(const Response& response,
 
 /*
  * This method is the same as:
- * bool Schnorr::Verify(const vector<unsigned char>& message,
+ * bool Schnorr::Verify(const bytes& message,
  *                    const Signature& toverify, const PubKey& pubkey);
  *
  */
 
-bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
-                              const Signature& toverify, const PubKey& pubkey) {
+bool MultiSig::MultiSigVerify(const bytes& message, const Signature& toverify,
+                              const PubKey& pubkey) {
   return MultiSigVerify(message, 0, message.size(), toverify, pubkey);
 }
 
 /*
  * This method is the same as:
- * Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
+ * Schnorr::Verify(const bytes& message, unsigned int offset,
  *                    unsigned int size, const Signature& toverify,
  *                    const PubKey& pubkey)
  * except that the underlying hash function H() is now replaced by domain
@@ -905,9 +905,9 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
  *
  */
 
-bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
-                              unsigned int offset, unsigned int size,
-                              const Signature& toverify, const PubKey& pubkey) {
+bool MultiSig::MultiSigVerify(const bytes& message, unsigned int offset,
+                              unsigned int size, const Signature& toverify,
+                              const PubKey& pubkey) {
   // Initial checks
   if (message.size() == 0) {
     LOG_GENERAL(WARNING, "Empty message");
@@ -1071,4 +1071,20 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
     LOG_GENERAL(WARNING, "Error with Schnorr::Verify." << ' ' << e.what());
     return false;
   }
+}
+
+bool MultiSig::SignKey(const bytes& messageWithPubKey,
+                       const pair<PrivKey, PubKey>& keyPair,
+                       Signature& signature) {
+  // This function is only used by Messenger::SetDSPoWSubmission for
+  // Proof-of-Possession (PoP) phase
+  return Schnorr::GetInstance().Sign(messageWithPubKey, keyPair.first,
+                                     keyPair.second, signature);
+}
+
+bool MultiSig::VerifyKey(const bytes& messageWithPubKey,
+                         const Signature& signature, const PubKey& pubKey) {
+  // This function is only used by Messenger::GetDSPoWSubmission for
+  // Proof-of-Possession (PoP) phase
+  return Schnorr::GetInstance().Verify(messageWithPubKey, signature, pubKey);
 }

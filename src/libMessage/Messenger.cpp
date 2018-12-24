@@ -3076,8 +3076,7 @@ bool Messenger::SetDSPoWSubmission(
     result.data().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
-    if (!Schnorr::GetInstance().Sign(tmp, submitterKey.first,
-                                     submitterKey.second, signature)) {
+    if (!MultiSig::GetInstance().SignKey(tmp, submitterKey, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign PoW.");
       return false;
     }
@@ -3131,8 +3130,7 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
-                                     submitterPubKey)) {
+  if (!MultiSig::GetInstance().VerifyKey(tmp, signature, submitterPubKey)) {
     LOG_GENERAL(WARNING, "PoW submission signature wrong.");
     return false;
   }
