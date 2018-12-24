@@ -27,7 +27,7 @@
 
 /// Processes messages related to PeerStore management.
 class PeerManager : public Executable, public Broadcastable {
-  std::pair<PrivKey, PubKey> m_selfKey;
+  PairOfKey m_selfKey;
   Peer m_selfPeer;
 
   bool ProcessHello(const bytes& message, unsigned int offset,
@@ -52,8 +52,7 @@ class PeerManager : public Executable, public Broadcastable {
   };
 
   /// Constructor.
-  PeerManager(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-              bool loadConfig);
+  PeerManager(const PairOfKey& key, const Peer& peer, bool loadConfig);
 
   /// Destructor.
   ~PeerManager();

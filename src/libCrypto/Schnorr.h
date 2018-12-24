@@ -170,6 +170,8 @@ struct PubKey : public Serializable {
   }
 };
 
+using PairOfKey = std::pair<PrivKey, PubKey>;
+
 inline std::ostream& operator<<(std::ostream& os, const PubKey& p) {
   os << "0x" << DataConversion::SerializableToHexStr(p);
   return os;
@@ -250,7 +252,7 @@ class Schnorr {
   const Curve& GetCurve() const;
 
   /// Generates a new PrivKey and PubKey pair.
-  std::pair<PrivKey, PubKey> GenKeyPair();
+  PairOfKey GenKeyPair();
 
   /// Signs a message using the EC curve parameters and the specified key pair.
   bool Sign(const bytes& message, const PrivKey& privkey, const PubKey& pubkey,

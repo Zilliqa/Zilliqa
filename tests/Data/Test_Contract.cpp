@@ -57,7 +57,8 @@ PrivKey priv1(
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testCrowdfunding) {
-  KeyPair owner(priv1, {priv1}), donor1(priv2, {priv2}), donor2(priv3, {priv3});
+  PairOfKey owner(priv1, {priv1}), donor1(priv2, {priv2}),
+      donor2(priv3, {priv3});
   Address ownerAddr, donor1Addr, donor2Addr, contrAddr;
   uint64_t nonce = 0;
 
@@ -275,7 +276,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 }
 
 BOOST_AUTO_TEST_CASE(testPingPong) {
-  KeyPair owner(priv1, {priv1}), ping(priv2, {priv2}), pong(priv3, {priv3});
+  PairOfKey owner(priv1, {priv1}), ping(priv2, {priv2}), pong(priv3, {priv3});
   Address ownerAddr, pingAddr, pongAddr;
   uint64_t nonce = 0;
 

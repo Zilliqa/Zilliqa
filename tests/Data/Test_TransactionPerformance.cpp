@@ -31,11 +31,10 @@
 using namespace boost::multiprecision;
 using namespace std;
 
-using KeyPair = std::pair<PrivKey, PubKey>;
-
 BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 
-// decltype(auto) GenWithSigning(const KeyPair& sender, const KeyPair& receiver,
+// decltype(auto) GenWithSigning(const PairOfKey& sender, const PairOfKey&
+// receiver,
 //                               size_t n)
 // {
 //     LOG_MARKER();
@@ -72,7 +71,7 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //     return txns;
 // }
 
-// decltype(auto) GenWithoutSigning(const KeyPair& sender, const KeyPair&
+// decltype(auto) GenWithoutSigning(const PairOfKey& sender, const PairOfKey&
 // receiver,
 //                                  size_t n)
 // {
@@ -110,8 +109,8 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //     return txns;
 // }
 
-// decltype(auto) GenWithoutSigningAndSerializing(const KeyPair& sender,
-//                                                const KeyPair& receiver,
+// decltype(auto) GenWithoutSigningAndSerializing(const PairOfKey& sender,
+//                                                const PairOfKey& receiver,
 //                                                size_t n)
 // {
 //     LOG_MARKER();
@@ -148,8 +147,8 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //     return txns;
 // }
 
-decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
-                                 size_t n) {
+decltype(auto) GenWithDummyValue(const PairOfKey& sender,
+                                 const PairOfKey& receiver, size_t n) {
   LOG_MARKER();
   std::vector<Transaction> txns;
 

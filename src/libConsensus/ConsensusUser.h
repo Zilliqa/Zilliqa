@@ -33,7 +33,7 @@ class ConsensusUser : public Executable, public Broadcastable {
   bool ProcessConsensusMessage(const bytes& message, unsigned int offset,
                                const Peer& from);
 
-  std::pair<PrivKey, PubKey> m_selfKey;
+  PairOfKey m_selfKey;
   Peer m_selfPeer;
   bool m_leaderOrBackup;  // false = leader, true = backup
   std::shared_ptr<ConsensusCommon> m_consensus;
@@ -49,7 +49,7 @@ class ConsensusUser : public Executable, public Broadcastable {
                       // ConsensusBackup will process (transparent to user)
   };
 
-  ConsensusUser(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
+  ConsensusUser(const PairOfKey& key, const Peer& peer);
   ~ConsensusUser();
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);

@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(test1) {
     fromAddr.asArray().at(i) = i + 8;
   }
 
-  KeyPair sender = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey sender = Schnorr::GetInstance().GenKeyPair();
   Address fromCheck = Account::GetAddressFromPublicKey(sender.second);
   Signature sig = TestUtils::GetSignature(
       TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender.first,
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(testOperators) {
 
   TxnHash txH1 = TxnHash();
   TxnHash txH2 = txH1;
-  KeyPair kp = TestUtils::GenerateRandomKeyPair();
+  PairOfKey kp = TestUtils::GenerateRandomKeyPair();
   Signature sig = TestUtils::GetSignature(
       TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), kp.first,
       kp.second);

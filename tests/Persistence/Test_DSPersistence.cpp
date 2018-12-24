@@ -57,7 +57,7 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
     prevHash1.asArray().at(i) = i + 1;
   }
 
-  std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
   std::map<PubKey, Peer> powDSWinners;
   for (int i = 0; i < 3; i++) {
