@@ -280,10 +280,11 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   uint16_t backupID = 0;
 
   CommitPoint commitPoint;
+  CommitPointHash commitPointHash;
 
-  if (!Messenger::GetConsensusCommit(commit, offset, m_consensusID,
-                                     m_blockNumber, m_blockHash, backupID,
-                                     commitPoint, m_committee)) {
+  if (!Messenger::GetConsensusCommit(
+          commit, offset, m_consensusID, m_blockNumber, m_blockHash, backupID,
+          commitPoint, commitPointHash, m_committee)) {
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed.");
     return false;
   }
@@ -296,6 +297,21 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   // Check the commit
   if (!commitPoint.Initialized()) {
     LOG_GENERAL(WARNING, "Invalid commit received");
+    return false;
+  }
+
+  // Check the deserialized commit hash
+  if (!commitPointHash.Initialized()) {
+    LOG_GENERAL(WARNING, "Invalid commit hash received");
+    return false;
+  }
+
+  // Check the value of the commit hash
+  CommitPointHash commitPointHashExpected;
+  if (!(commitPointHashExpected == commitPointHash)) {
+    LOG_GENERAL(WARNING, "Commit hash check failed. Deserialized = "
+                             << string(commitPointHash) << " Expected = "
+                             << string(commitPointHashExpected));
     return false;
   }
 

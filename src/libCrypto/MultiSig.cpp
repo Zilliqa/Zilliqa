@@ -244,7 +244,7 @@ CommitPointHash::CommitPointHash(const CommitPoint& point)
 }
 
 CommitPointHash::CommitPointHash(const vector<unsigned char>& src,
-                         unsigned int offset) {
+                                 unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init CommitPointHash.");
   }
@@ -269,7 +269,7 @@ CommitPointHash::~CommitPointHash() {}
 bool CommitPointHash::Initialized() const { return m_initialized; }
 
 unsigned int CommitPointHash::Serialize(vector<unsigned char>& dst,
-                                    unsigned int offset) const {
+                                        unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -280,7 +280,7 @@ unsigned int CommitPointHash::Serialize(vector<unsigned char>& dst,
 }
 
 int CommitPointHash::Deserialize(const vector<unsigned char>& src,
-                             unsigned int offset) {
+                                 unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -307,37 +307,37 @@ void CommitPointHash::Set(const CommitPoint& point) {
 
   m_initialized = false;
   vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
-  
-  //Domain separation for hash function 
+
+  // Domain separation for hash function
   vector<unsigned char> domain(1);
-  
-  //The second domain separated hash function.
-  //The first one is used in the Proof-of-Possession (PoP) phase.
-  //PoP coincides with PoW when each node proves the knowledge
-  //of the private key for a claimed public key.
-  //Separation is defined using the first byte set to 0x01.
+
+  // The second domain separated hash function.
+  // The first one is used in the Proof-of-Possession (PoP) phase.
+  // PoP coincides with PoW when each node proves the knowledge
+  // of the private key for a claimed public key.
+  // Separation is defined using the first byte set to 0x01.
   fill(domain.begin(), domain.end(), 0x01);
-  SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
-  
-  //Compute H(0x01).
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+  // Compute H(0x01).
   sha2.Update(domain);
-  
-  const Curve& curve = Schnorr::GetInstance().GetCurve();	  
-  
-  //Convert the commitment to octets first
+
+  const Curve& curve = Schnorr::GetInstance().GetCurve();
+
+  // Convert the commitment to octets first
   if (EC_POINT_point2oct(curve.m_group.get(), point.m_p.get(),
                          POINT_CONVERSION_COMPRESSED, buf.data(),
                          Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES,
                          NULL) != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES) {
     LOG_GENERAL(WARNING, "Could not convert commitPoint to octets");
     return;
-  } 
+  }
 
-  //compute H(0x01||point)
+  // compute H(0x01||point)
   sha2.Update(buf);
   vector<unsigned char> digest = sha2.Finalize();
 
-  //Build the PointHash
+  // Build the PointHash
   if ((BN_bin2bn(digest.data(), digest.size(), m_h.get())) == NULL) {
     LOG_GENERAL(WARNING, "Digest to scalar failed");
     return;
@@ -349,7 +349,6 @@ void CommitPointHash::Set(const CommitPoint& point) {
   }
 
   m_initialized = true;
-
 }
 
 CommitPointHash& CommitPointHash::operator=(const CommitPointHash& src) {
@@ -361,7 +360,6 @@ bool CommitPointHash::operator==(const CommitPointHash& r) const {
   return (m_initialized && r.m_initialized &&
           (BN_cmp(m_h.get(), r.m_h.get()) == 0));
 }
-
 
 Challenge::Challenge() : m_c(BN_new(), BN_clear_free), m_initialized(false) {
   if (m_c == nullptr) {
@@ -472,20 +470,18 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
 
   // Compute the challenge c = H(r, kpub, m)
 
-  //Domain separation for hash function 
+  // Domain separation for hash function
   vector<unsigned char> domain(1);
-  
-  //The third domain separated hash function.
-  //The first one is used in the Proof-of-Possession phase.
-  //The second one is used in the Proof-of-Possession phase.
-  //Separation is defined using the first byte set to 0x11.
-  fill(domain.begin(), domain.end(), 0x11);
-  SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
-  
-  //Compute H(0x11).
-  sha2.Update(domain);
-  
 
+  // The third domain separated hash function.
+  // The first one is used in the Proof-of-Possession phase.
+  // The second one is used in the Proof-of-Possession phase.
+  // Separation is defined using the first byte set to 0x11.
+  fill(domain.begin(), domain.end(), 0x11);
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+  // Compute H(0x11).
+  sha2.Update(domain);
 
   m_initialized = false;
 
@@ -686,8 +682,6 @@ bool Response::operator==(const Response& r) const {
           (BN_cmp(m_r.get(), r.m_r.get()) == 0));
 }
 
-
-
 MultiSig::MultiSig() {}
 
 MultiSig::~MultiSig() {}
@@ -696,7 +690,6 @@ MultiSig& MultiSig::GetInstance() {
   static MultiSig multisig;
   return multisig;
 }
-
 
 shared_ptr<PubKey> MultiSig::AggregatePubKeys(const vector<PubKey>& pubkeys) {
   const Curve& curve = Schnorr::GetInstance().GetCurve();
@@ -902,31 +895,30 @@ bool MultiSig::VerifyResponse(const Response& response,
 }
 
 /*
- * This method is the same as: 
+ * This method is the same as:
  * bool Schnorr::Verify(const vector<unsigned char>& message,
- *                    const Signature& toverify, const PubKey& pubkey); 
+ *                    const Signature& toverify, const PubKey& pubkey);
  *
-*/
+ */
 
 bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
-                     const Signature& toverify, const PubKey& pubkey) {
+                              const Signature& toverify, const PubKey& pubkey) {
   return MultiSigVerify(message, 0, message.size(), toverify, pubkey);
 }
 
-
 /*
- * This method is the same as:  
+ * This method is the same as:
  * Schnorr::Verify(const vector<unsigned char>& message, unsigned int offset,
  *                    unsigned int size, const Signature& toverify,
- *                    const PubKey& pubkey) 
- * except that the underlying hash function H() is now replaced by domain separated
- * hash function H(0x11|x). 
- * 
-*/
+ *                    const PubKey& pubkey)
+ * except that the underlying hash function H() is now replaced by domain
+ * separated hash function H(0x11|x).
+ *
+ */
 
-bool MultiSig::MultiSigVerify(const vector<unsigned char>& message, unsigned int offset,
-                     unsigned int size, const Signature& toverify,
-                     const PubKey& pubkey) {
+bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
+                              unsigned int offset, unsigned int size,
+                              const Signature& toverify, const PubKey& pubkey) {
   // Initial checks
   if (message.size() == 0) {
     LOG_GENERAL(WARNING, "Empty message");
@@ -959,30 +951,30 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message, unsigned int
     // 4. r' = H(Q, kpub, m)
     // 5. return r' == r
 
+    // The third domain separated hash function.
+    // The first one is used in the Proof-of-Possession (PoP) phase.
+    // PoP coincides with PoW when each node proves the knowledge
+    // of the private key for a claimed public key.
+    // The second one is used in CommitPointHash::Set to generate the hash of
+    // the committed point. Separation for the third hash function is defined by
+    // setting the first byte to 0x11.
 
-    //The third domain separated hash function.
-    //The first one is used in the Proof-of-Possession (PoP) phase.
-    //PoP coincides with PoW when each node proves the knowledge
-    //of the private key for a claimed public key.
-    //The second one is used in CommitPointHash::Set to generate the hash of the committed point.
-    //Separation for the third hash function is defined by setting the first byte to 0x11.
-  
-    //Domain separation for hash function 
+    // Domain separation for hash function
     vector<unsigned char> domain(1);
     fill(domain.begin(), domain.end(), 0x11);
-    
-    SHA2<HASH_TYPE::HASH_VARIANT_256>sha2;
-  
-    //Compute H(0x11).
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
+    // Compute H(0x11).
     sha2.Update(domain);
-  
+
     vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
 
     bool err = false;
     bool err2 = false;
 
     const Curve& curve = Schnorr::GetInstance().GetCurve();
-    
+
     // Regenerate the commitmment part of the signature
     unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
                                                           BN_clear_free);
@@ -1032,8 +1024,8 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message, unsigned int
       // 4.1 Convert the committment to octets first
       err2 = (EC_POINT_point2oct(curve.m_group.get(), Q.get(),
                                  POINT_CONVERSION_COMPRESSED, buf.data(),
-                                 Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES,
-                                 NULL) != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+                                 Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, NULL) !=
+              Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
       err = err || err2;
       if (err2) {
         LOG_GENERAL(WARNING, "Commit octet conversion failed");
@@ -1049,8 +1041,8 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message, unsigned int
       // 4.2 Convert the public key to octets
       err2 = (EC_POINT_point2oct(curve.m_group.get(), pubkey.m_P.get(),
                                  POINT_CONVERSION_COMPRESSED, buf.data(),
-                                 Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES,
-                                 NULL) != Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+                                 Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES, NULL) !=
+              Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
       err = err || err2;
       if (err2) {
         LOG_GENERAL(WARNING, "Pubkey octet conversion failed");
@@ -1093,5 +1085,3 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message, unsigned int
     return false;
   }
 }
-
-

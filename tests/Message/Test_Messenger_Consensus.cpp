@@ -45,14 +45,15 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
   vector<unsigned char> blockHash(TestUtils::Dist1to99(),
                                   TestUtils::DistUint8());
   uint16_t backupID = max((uint16_t)2, (uint16_t)TestUtils::Dist1to99());
-  CommitPoint commit = CommitPoint(CommitSecret());
+  CommitPoint commitPoint = CommitPoint(CommitSecret());
+  CommitPointHash commitPointHash(commitPoint);
   pair<PrivKey, PubKey> backupKey;
   backupKey.first = PrivKey();
   backupKey.second = PubKey(backupKey.first);
 
-  BOOST_CHECK(Messenger::SetConsensusCommit(dst, offset, consensusID,
-                                            blockNumber, blockHash, backupID,
-                                            commit, backupKey));
+  BOOST_CHECK(Messenger::SetConsensusCommit(
+      dst, offset, consensusID, blockNumber, blockHash, backupID, commitPoint,
+      commitPointHash, backupKey));
 
   deque<pair<PubKey, Peer>> committeeKeys;
   for (unsigned int i = 0, count = max((unsigned int)backupID + 1,
@@ -63,13 +64,15 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
         TestUtils::GenerateRandomPeer());
   }
 
-  CommitPoint commitDeserialized;
+  CommitPoint commitPointDeserialized;
+  CommitPointHash commitPointHashDeserialized;
 
-  BOOST_CHECK(Messenger::GetConsensusCommit(dst, offset, consensusID,
-                                            blockNumber, blockHash, backupID,
-                                            commitDeserialized, committeeKeys));
+  BOOST_CHECK(Messenger::GetConsensusCommit(
+      dst, offset, consensusID, blockNumber, blockHash, backupID,
+      commitPointDeserialized, commitPointHashDeserialized, committeeKeys));
 
-  BOOST_CHECK(commit == commitDeserialized);
+  BOOST_CHECK(commitPoint == commitPointDeserialized);
+  BOOST_CHECK(commitPointHash == commitPointHashDeserialized);
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {

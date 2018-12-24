@@ -188,7 +188,7 @@ bool ConsensusBackup::GenerateCommitMessage(vector<unsigned char>& commit,
 
   if (!Messenger::SetConsensusCommit(
           commit, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
-          *m_commitPoint,
+          *m_commitPoint, CommitPointHash(*m_commitPoint),
           make_pair(m_myPrivKey, GetCommitteeMember(m_myID).first))) {
     LOG_GENERAL(WARNING, "Messenger::SetConsensusCommit failed.");
     return false;
