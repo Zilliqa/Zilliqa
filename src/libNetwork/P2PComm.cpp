@@ -134,7 +134,7 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
     ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
                       message_length - written_length);
 
-    if (P2PComm::IsHostDownOrUnreachable()) {
+    if (P2PComm::IsHostHavingNetworkIssue()) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                << errno << " (" << std::strerror(errno)
                                << "). Adding " << from.GetPrintableIPAddress()
@@ -211,7 +211,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
       LOG_GENERAL(WARNING, "Socket connect failed. Code = "
                                << errno << " Desc: " << std::strerror(errno)
                                << ". IP address: " << peer);
-      if (P2PComm::IsHostDownOrUnreachable()) {
+      if (P2PComm::IsHostHavingNetworkIssue()) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                  << errno << " (" << std::strerror(errno)
                                  << "). Adding " << peer.GetPrintableIPAddress()
@@ -282,7 +282,7 @@ void SendJob::SendMessageCore(const Peer& peer, const bytes message,
                                                   << MAXRETRYCONN
                                                   << ". IP address: " << peer);
 
-    if (P2PComm::IsHostDownOrUnreachable()) {
+    if (P2PComm::IsHostHavingNetworkIssue()) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
                                << errno << " (" << std::strerror(errno)
                                << "). Adding " << peer.GetPrintableIPAddress()
@@ -670,8 +670,9 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
-inline bool P2PComm::IsHostDownOrUnreachable() {
-  return (errno == EHOSTUNREACH || errno == EHOSTDOWN);
+inline bool P2PComm::IsHostHavingNetworkIssue() {
+  return (errno == EHOSTUNREACH || errno == EHOSTDOWN || errno == ETIMEDOUT ||
+          errno == ECONNREFUSED);
 }
 
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
