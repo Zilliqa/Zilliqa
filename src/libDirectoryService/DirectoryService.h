@@ -593,7 +593,7 @@ class DirectoryService : public Executable, public Broadcastable {
   template <class Container>
   bool SaveCoinbaseCore(const std::vector<bool>& b1,
                         const std::vector<bool>& b2, const Container& shard,
-                        const uint32_t& shard_id, const uint64_t& epochNum);
+                        const int32_t& shard_id, const uint64_t& epochNum);
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const std::vector<unsigned char>& message, unsigned int offset,

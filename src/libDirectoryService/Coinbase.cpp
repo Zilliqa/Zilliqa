@@ -33,7 +33,7 @@ template <class Container>
 bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
                                         const vector<bool>& b2,
                                         const Container& shard,
-                                        const uint32_t& shard_id,
+                                        const int32_t& shard_id,
                                         const uint64_t& epochNum) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
