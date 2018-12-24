@@ -41,14 +41,14 @@ using namespace boost::multiprecision;
 int main() {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Reset();
-  vector<unsigned char> message;
+  bytes message;
   string s;
   cin >> s;
   // TODO: Handle Exceptions
   PubKey key(DataConversion::HexStrToUint8Vec(s), 0);
   key.Serialize(message, 0);
   sha2.Update(message, 0, PUB_KEY_SIZE);
-  const vector<unsigned char>& tmp2 = sha2.Finalize();
+  const bytes& tmp2 = sha2.Finalize();
   Address toAddr;
   copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
   cout << toAddr << endl;

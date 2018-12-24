@@ -58,8 +58,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-  vector<unsigned char> dsblockmsg = {MessageType::NODE,
-                                      NodeInstructionType::DSBLOCK};
+  bytes dsblockmsg = {MessageType::NODE, NodeInstructionType::DSBLOCK};
   unsigned int curr_offset = MessageOffset::BODY;
 
   BlockHash prevHash1;
@@ -114,8 +113,8 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-  vector<unsigned char> getDSBlockMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETDSBLOCKFROMSEED};
+  bytes getDSBlockMessage = {MessageType::LOOKUP,
+                             LookupInstructionType::GETDSBLOCKFROMSEED};
 
   if (!Messenger::SetLookupGetDSBlockFromSeed(
           getDSBlockMessage, MessageOffset::BODY, 0, 1, 5000)) {
@@ -136,7 +135,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 //     inet_pton(AF_INET, "127.0.0.1", &ip_addr);
 //     Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-//     vector<unsigned char> txblockmsg = { MessageType::NODE,
+//     bytes txblockmsg = { MessageType::NODE,
 //     NodeInstructionType::FINALBLOCK }; unsigned int curr_offset =
 //     MessageOffset::BODY;
 
@@ -193,7 +192,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 //     inet_pton(AF_INET, "127.0.0.1", &ip_addr);
 //     Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-//     vector<unsigned char> txbodymsg = { MessageType::NODE,
+//     bytes txbodymsg = { MessageType::NODE,
 //     NodeInstructionType::FORWARDTRANSACTION }; unsigned int curr_offset =
 //     MessageOffset::BODY;
 

@@ -26,6 +26,7 @@
 #include <limits>
 #include <random>
 #include <tuple>
+#include "common/BaseType.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"
 #include "libData/BlockData/BlockHeader/MicroBlockHeader.h"
@@ -64,8 +65,7 @@ TxBlockHeader GenerateRandomTxBlockHeader();
 VCBlockHeader GenerateRandomVCBlockHeader();
 FallbackBlockHeader GenerateRandomFallbackBlockHeader();
 CoSignatures GenerateRandomCoSignatures();
-Signature GetSignature(const std::vector<unsigned char>&, const PrivKey&,
-                       const PubKey&);
+Signature GetSignature(const bytes&, const PrivKey&, const PubKey&);
 Signature GenerateRandomSignature();
 
 using DS_Comitte_t = std::deque<std::pair<PubKey, Peer>>;
@@ -74,7 +74,7 @@ DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
 Shard GenerateRandomShard(size_t);
 DequeOfShard GenerateDequeueOfShard(size_t);
 std::string GenerateRandomString(size_t);
-std::vector<unsigned char> GenerateRandomCharVector(size_t);
+bytes GenerateRandomCharVector(size_t);
 }  // namespace TestUtils
 
 #endif  // __TESTUTILS_H__

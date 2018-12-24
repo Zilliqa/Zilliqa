@@ -88,7 +88,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   }
 
   // Verify the collective signature
-  vector<unsigned char> message;
+  bytes message;
   if (!vcblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "VCBlockHeader serialization failed");
     return false;
@@ -107,8 +107,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   return true;
 }
 
-bool Node::ProcessVCBlock(const vector<unsigned char>& message,
-                          unsigned int cur_offset,
+bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
@@ -223,7 +222,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
       latestInd, vcblock.GetHeader().GetVieWChangeDSEpochNo(), BlockType::VC,
       vcblock.GetBlockHash());
 
-  vector<unsigned char> dst;
+  bytes dst;
   vcblock.Serialize(dst, 0);
 
   if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
@@ -293,8 +292,7 @@ void Node::UpdateRetrieveDSCommiteeCompositionAfterVC(
   }
 }
 
-void Node::SendVCBlockToOtherShardNodes(
-    const vector<unsigned char>& vcblock_message) {
+void Node::SendVCBlockToOtherShardNodes(const bytes& vcblock_message) {
   LOG_MARKER();
   unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
   if (cluster_size <= NUM_DS_ELECTION) {

@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(testWriteAndReadSTATEROOT) {
   std::fill(in_root.asArray().begin(), in_root.asArray().end(), 0x77);
   BlockStorage::GetBlockStorage().PutMetadata(STATEROOT, in_root.asBytes());
 
-  std::vector<unsigned char> rootBytes;
+  bytes rootBytes;
   BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes);
   dev::h256 out_root(rootBytes);
 

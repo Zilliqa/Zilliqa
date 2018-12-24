@@ -32,16 +32,15 @@ class PeerManager : public Executable, public Broadcastable {
   std::pair<PrivKey, PubKey> m_selfKey;
   Peer m_selfPeer;
 
-  bool ProcessHello(const std::vector<unsigned char>& message,
-                    unsigned int offset, const Peer& from);
-  bool ProcessAddPeer(const std::vector<unsigned char>& message,
-                      unsigned int offset, const Peer& from);
-  bool ProcessPing(const std::vector<unsigned char>& message,
-                   unsigned int offset, const Peer& from);
-  bool ProcessPingAll(const std::vector<unsigned char>& message,
-                      unsigned int offset, const Peer& from);
-  bool ProcessBroadcast(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
+  bool ProcessHello(const bytes& message, unsigned int offset,
+                    const Peer& from);
+  bool ProcessAddPeer(const bytes& message, unsigned int offset,
+                      const Peer& from);
+  bool ProcessPing(const bytes& message, unsigned int offset, const Peer& from);
+  bool ProcessPingAll(const bytes& message, unsigned int offset,
+                      const Peer& from);
+  bool ProcessBroadcast(const bytes& message, unsigned int offset,
+                        const Peer& from);
 
   void SetupLogLevel();
 
@@ -62,8 +61,7 @@ class PeerManager : public Executable, public Broadcastable {
   ~PeerManager();
 
   /// Implements the Execute function inherited from Executable.
-  bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-               const Peer& from);
+  bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
   /// Implements the GetBroadcastList function inherited from Broadcastable.
   std::vector<Peer> GetBroadcastList(unsigned char ins_type,

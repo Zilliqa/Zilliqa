@@ -274,7 +274,7 @@ bool UpgradeManager::HasNewSW() {
 
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
-  const vector<unsigned char> sha = DataConversion::HexStrToUint8Vec(shaStr);
+  const bytes sha = DataConversion::HexStrToUint8Vec(shaStr);
   const unsigned int len = sigStr.size() / pubKeys.size();
   vector<Signature> mutliSig;
 
@@ -398,10 +398,10 @@ bool UpgradeManager::DownloadSW() {
     fstream debFile(m_packageFileName, ios::in);
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    vector<unsigned char> vec((istreambuf_iterator<char>(debFile)),
-                              (istreambuf_iterator<char>()));
+    bytes vec((istreambuf_iterator<char>(debFile)),
+              (istreambuf_iterator<char>()));
     sha2.Update(vec, 0, vec.size());
-    vector<unsigned char> output = sha2.Finalize();
+    bytes output = sha2.Finalize();
     downloadSha = DataConversion::Uint8VecToHexStr(output);
   }
 
@@ -505,7 +505,7 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
             PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
       }
 
-      vector<unsigned char> message;
+      bytes message;
 
       unsigned int curr_offset = 0;
       for (auto& dsKey : initialDSCommittee) {

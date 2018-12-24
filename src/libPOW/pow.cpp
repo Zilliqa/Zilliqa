@@ -281,12 +281,12 @@ void POW::MineFullGPUThread(uint64_t blockNum,
   return;
 }
 
-std::vector<unsigned char> POW::ConcatAndhash(
-    const std::array<unsigned char, UINT256_SIZE>& rand1,
-    const std::array<unsigned char, UINT256_SIZE>& rand2,
-    const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-    uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice) {
-  std::vector<unsigned char> vec;
+bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
+                         const std::array<unsigned char, UINT256_SIZE>& rand2,
+                         const boost::multiprecision::uint128_t& ipAddr,
+                         const PubKey& pubKey, uint32_t lookupId,
+                         const boost::multiprecision::uint128_t& gasPrice) {
+  bytes vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);
   }
@@ -295,7 +295,7 @@ std::vector<unsigned char> POW::ConcatAndhash(
     vec.push_back(s1);
   }
 
-  std::vector<unsigned char> ipAddrVec;
+  bytes ipAddrVec;
   Serializable::SetNumber<boost::multiprecision::uint128_t>(
       ipAddrVec, 0, ipAddr, UINT128_SIZE);
   vec.insert(std::end(vec), std::begin(ipAddrVec), std::end(ipAddrVec));
@@ -309,7 +309,7 @@ std::vector<unsigned char> POW::ConcatAndhash(
 
   SHA2<256> sha2;
   sha2.Update(vec);
-  std::vector<unsigned char> sha2_result = sha2.Finalize();
+  bytes sha2_result = sha2.Finalize();
   return sha2_result;
 }
 
@@ -327,7 +327,7 @@ ethash_mining_result_t POW::PoWMine(
   std::lock_guard<std::mutex> g(m_mutexPoWMine);
   EthashConfigureClient(blockNum, fullDataset);
   auto boundary = DifficultyLevelInInt(difficulty);
-  std::vector<unsigned char> sha3_result =
+  bytes sha3_result =
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
@@ -358,7 +358,7 @@ bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
   LOG_MARKER();
   EthashConfigureClient(blockNum);
   const auto boundary = DifficultyLevelInInt(difficulty);
-  std::vector<unsigned char> sha3_result =
+  bytes sha3_result =
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
   auto headerHash =
       StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
