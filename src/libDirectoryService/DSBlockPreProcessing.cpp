@@ -39,6 +39,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/ShardSizeCalculator.h"
 #include "libUtils/TimestampVerifier.h"
 #include "libUtils/UpgradeManager.h"
 
@@ -137,7 +138,9 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   m_publicKeyToshardIdMap.clear();
 
   // Cap the number of nodes based on MAX_SHARD_NODE_NUM
-  const uint32_t numNodesForSharding = sortedPoWSolns.size() > MAX_SHARD_NODE_NUM ? MAX_SHARD_NODE_NUM : sortedPoWSolns.size();
+  const uint32_t numNodesForSharding =
+      sortedPoWSolns.size() > MAX_SHARD_NODE_NUM ? MAX_SHARD_NODE_NUM
+                                                 : sortedPoWSolns.size();
 
   LOG_GENERAL(INFO, "Number of PoWs received     = " << sortedPoWSolns.size());
   LOG_GENERAL(INFO, "Number of PoWs for sharding = " << numNodesForSharding);
@@ -146,11 +149,11 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   // Generate the number of shards and node counts per shard
   vector<uint32_t> shardCounts;
-  ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_THRESHOLD, numNodesForSharding, shardCounts);
+  ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_THRESHOLD,
+                                           numNodesForSharding, shardCounts);
 
   // Abort if zero shards generated
-  if (shardCounts.empty())
-  {
+  if (shardCounts.empty()) {
     LOG_GENERAL(WARNING, "Zero shards generated");
     return;
   }
@@ -160,7 +163,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     m_shards.emplace_back();
   }
 
-  // Push all the sorted PoW submissions into an ordered map with key = H(last_block_hash, pow_hash)
+  // Push all the sorted PoW submissions into an ordered map with key =
+  // H(last_block_hash, pow_hash)
   map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
   vector<unsigned char> lastBlockHash(BLOCK_HASH_SIZE);
   if (m_mediator.m_currentEpochNum > 1) {
@@ -182,16 +186,16 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   // Distribute the map-ordered nodes among the generated shards
   // First fill up first shard, then second shard, ..., then final shard
   auto shardCount = shardCounts.begin();
+  uint32_t shard_index = 0;
   for (const auto& kv : sortedPoWs) {
     // Move to next shard counter if current shard already filled up
-    if (*shardCount == 0)
-    {
+    if (*shardCount == 0) {
       shardCount++;
       // Stop if all shards filled up
-      if (shardCount == shardCounts.end())
-      {
+      if (shardCount == shardCounts.end()) {
         break;
       }
+      shard_index = distance(shardCounts.begin(), shardCount);
     }
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
@@ -200,8 +204,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     }
     // Put the node into the shard
     const PubKey& key = kv.second;
-    auto& shard = m_shards.at(distance(shardCounts.begin(), shardCount));
-    shard.emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
+    m_shards.at(shard_index)
+        .emplace_back(key, m_allPoWConns.at(key), m_mapNodeReputation[key]);
     m_publicKeyToshardIdMap.emplace(key, shard_index);
 
     // Decrement remaining count for this shard

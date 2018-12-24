@@ -88,18 +88,18 @@ BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 #define EXPECTED td_i.first
 #define NUMOFNODES_v td_i.second
 
+// Right now the result for this test needs to be inspected visually
 BOOST_AUTO_TEST_CASE(test_shard_size_bounds) {
   INIT_STDOUT_LOGGER();
-  ShardSizeMap testData;
-  prepareTestdata(testData);
-  for (auto const& TD_i : testData) {
-    for (auto const& numOfNodes : NUMOFNODES_v) {
-      uint32_t result = ShardSizeCalculator::CalculateShardSize(numOfNodes);
-      BOOST_CHECK_MESSAGE(result == EXPECTED,
-                          "For number of nodes: " + to_string(numOfNodes) +
-                              " Expected: " + to_string(EXPECTED) +
-                              ". Result: " + to_string(result));
-    }
+
+  const uint32_t shardSize = 20;
+  const uint32_t shardSizeThreshold = 10;
+  vector<uint32_t> shardCounts;
+
+  for (uint32_t numNodesForSharding = 0; numNodesForSharding <= (shardSize * 4);
+       numNodesForSharding++) {
+    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeThreshold,
+                                             numNodesForSharding, shardCounts);
   }
 }
 
