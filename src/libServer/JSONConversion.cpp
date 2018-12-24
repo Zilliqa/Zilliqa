@@ -126,8 +126,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
-  vector<unsigned char> toAddr_ser =
-      DataConversion::HexStrToUint8Vec(toAddr_str);
+  bytes toAddr_ser = DataConversion::HexStrToUint8Vec(toAddr_str);
   Address toAddr(toAddr_ser);
 
   string amount_str = _json["amount"].asString();
@@ -139,14 +138,13 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
   string pubKey_str = _json["pubKey"].asString();
-  vector<unsigned char> pubKey_ser =
-      DataConversion::HexStrToUint8Vec(pubKey_str);
+  bytes pubKey_ser = DataConversion::HexStrToUint8Vec(pubKey_str);
   PubKey pubKey(pubKey_ser, 0);
 
   string sign_str = _json["signature"].asString();
-  vector<unsigned char> sign = DataConversion::HexStrToUint8Vec(sign_str);
+  bytes sign = DataConversion::HexStrToUint8Vec(sign_str);
 
-  vector<unsigned char> code, data;
+  bytes code, data;
 
   code = DataConversion::StringToCharArray(_json["code"].asString());
   data = DataConversion::StringToCharArray(_json["data"].asString());

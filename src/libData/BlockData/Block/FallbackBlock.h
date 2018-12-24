@@ -43,16 +43,16 @@ class FallbackBlock : public BlockBase {
   FallbackBlock();  // creates a dummy invalid placeholder block
 
   /// Constructor for loading finalblock block information from a byte stream.
-  FallbackBlock(const std::vector<unsigned char>& src, unsigned int offset);
+  FallbackBlock(const bytes& src, unsigned int offset);
 
   /// Constructor with specified fallback block parameters.
   FallbackBlock(const FallbackBlockHeader& header, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Returns the reference to the FallbackBlockHeader part of the fallback
   /// block.

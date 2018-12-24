@@ -52,7 +52,7 @@ class VCBlockHeader : public BlockHeaderBase {
                     // blocknum is maxsize of uint256
 
   /// Constructor for loading VC block header information from a byte stream.
-  VCBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
+  VCBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified VC block header parameters.
   VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
@@ -64,10 +64,10 @@ class VCBlockHeader : public BlockHeaderBase {
                 const CommitteeHash& committeeHash, const BlockHash& prevHash);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Returns the DS Epoch number where view change happen
   const uint64_t& GetVieWChangeDSEpochNo() const;

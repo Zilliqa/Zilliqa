@@ -69,7 +69,7 @@ bool Retriever::RetrieveTxBlocks(bool trimIncompletedBlocks) {
   if (!ARCHIVAL_NODE) {
     for (const auto& block : blocks) {
       if (block->GetHeader().GetBlockNum() >= totalSize - extra_txblocks) {
-        std::vector<unsigned char> stateDelta;
+        bytes stateDelta;
         BlockStorage::GetBlockStorage().GetStateDelta(
             block->GetHeader().GetBlockNum(), stateDelta);
 
@@ -101,7 +101,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
 
   if (!blocklinks.empty()) {
     if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0) {
-      std::vector<unsigned char> latestActiveDSBlockNumVec;
+      bytes latestActiveDSBlockNumVec;
       if (!BlockStorage::GetBlockStorage().GetMetadata(
               MetaType::LATESTACTIVEDSBLOCKNUM, latestActiveDSBlockNumVec)) {
         LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
@@ -116,7 +116,7 @@ bool Retriever::RetrieveBlockLink(bool trimIncompletedBlocks) {
 
   /// Check whether the termination of last running happens before the last
   /// DSEpoch properly ended.
-  std::vector<unsigned char> isDSIncompleted;
+  bytes isDSIncompleted;
   if (!BlockStorage::GetBlockStorage().GetMetadata(MetaType::DSINCOMPLETED,
                                                    isDSIncompleted)) {
     LOG_GENERAL(WARNING, "No GetMetadata or failed");

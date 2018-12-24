@@ -72,8 +72,7 @@ class BlockStorage : public Singleton<BlockStorage> {
     }
   };
   ~BlockStorage() = default;
-  bool PutBlock(const uint64_t& blockNum,
-                const std::vector<unsigned char>& body,
+  bool PutBlock(const uint64_t& blockNum, const bytes& body,
                 const BlockType& blockType);
 
  public:
@@ -99,25 +98,19 @@ class BlockStorage : public Singleton<BlockStorage> {
   unsigned int GetTxBodyDBSize();
 
   /// Adds a DS block to storage.
-  bool PutDSBlock(const uint64_t& blockNum,
-                  const std::vector<unsigned char>& body);
-  bool PutVCBlock(const BlockHash& blockhash,
-                  const std::vector<unsigned char>& body);
-  bool PutFallbackBlock(const BlockHash& blockhash,
-                        const std::vector<unsigned char>& body);
-  bool PutBlockLink(const uint64_t& index,
-                    const std::vector<unsigned char>& body);
+  bool PutDSBlock(const uint64_t& blockNum, const bytes& body);
+  bool PutVCBlock(const BlockHash& blockhash, const bytes& body);
+  bool PutFallbackBlock(const BlockHash& blockhash, const bytes& body);
+  bool PutBlockLink(const uint64_t& index, const bytes& body);
 
   /// Adds a Tx block to storage.
-  bool PutTxBlock(const uint64_t& blockNum,
-                  const std::vector<unsigned char>& body);
+  bool PutTxBlock(const uint64_t& blockNum, const bytes& body);
 
   // /// Adds a micro block to storage.
-  bool PutMicroBlock(const BlockHash& blockHash,
-                     const std::vector<unsigned char>& body);
+  bool PutMicroBlock(const BlockHash& blockHash, const bytes& body);
 
   /// Adds a transaction body to storage.
-  bool PutTxBody(const dev::h256& key, const std::vector<unsigned char>& body);
+  bool PutTxBody(const dev::h256& key, const bytes& body);
 
   /// Retrieves the requested DS block.
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
@@ -160,7 +153,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool DeleteFallbackBlock(const BlockHash& blockhash);
 
   // /// Adds a transaction body to storage.
-  // bool PutTxBody(const std::string & key, const std::vector<unsigned char> &
+  // bool PutTxBody(const std::string & key, const bytes &
   // body);
 
   // /// Retrieves the requested transaction body.
@@ -179,10 +172,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetAllBlockLink(std::list<BlockLink>& blocklinks);
 
   /// Save Last Transactions Trie Root Hash
-  bool PutMetadata(MetaType type, const std::vector<unsigned char>& data);
+  bool PutMetadata(MetaType type, const bytes& data);
 
   /// Retrieve Last Transactions Trie Root Hash
-  bool GetMetadata(MetaType type, std::vector<unsigned char>& data);
+  bool GetMetadata(MetaType type, bytes& data);
 
   /// Save DS committee
   bool PutDSCommittee(const std::shared_ptr<DequeOfDSNode>& dsCommittee,
@@ -200,12 +193,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetShardStructure(DequeOfShard& shards);
 
   /// Save state delta
-  bool PutStateDelta(const uint64_t& finalBlockNum,
-                     const std::vector<unsigned char>& stateDelta);
+  bool PutStateDelta(const uint64_t& finalBlockNum, const bytes& stateDelta);
 
   /// Retrieve state delta
-  bool GetStateDelta(const uint64_t& finalBlockNum,
-                     std::vector<unsigned char>& stateDelta);
+  bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
 
   /// Clean a DB
   bool ResetDB(DBTYPE type);

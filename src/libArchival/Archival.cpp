@@ -79,9 +79,9 @@ void Archival::InitSync() {
   DetachedFunction(1, func);
 }
 
-bool Archival::Execute(
-    [[gnu::unused]] const std::vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+bool Archival::Execute([[gnu::unused]] const bytes& message,
+                       [[gnu::unused]] unsigned int offset,
+                       [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
   return true;
 }

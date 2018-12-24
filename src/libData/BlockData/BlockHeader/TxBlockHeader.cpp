@@ -37,8 +37,7 @@ TxBlockHeader::TxBlockHeader()
       m_minerPubKey(),
       m_dsBlockNum(INIT_BLOCK_NUMBER) {}
 
-TxBlockHeader::TxBlockHeader(const vector<unsigned char>& src,
-                             unsigned int offset) {
+TxBlockHeader::TxBlockHeader(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init TxBlockHeader.");
   }
@@ -66,8 +65,7 @@ TxBlockHeader::TxBlockHeader(uint8_t type, uint32_t version,
       m_minerPubKey(minerPubKey),
       m_dsBlockNum(dsBlockNum) {}
 
-bool TxBlockHeader::Serialize(vector<unsigned char>& dst,
-                              unsigned int offset) const {
+bool TxBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTxBlockHeader(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTxBlockHeader failed.");
     return false;
@@ -76,8 +74,7 @@ bool TxBlockHeader::Serialize(vector<unsigned char>& dst,
   return true;
 }
 
-bool TxBlockHeader::Deserialize(const vector<unsigned char>& src,
-                                unsigned int offset) {
+bool TxBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetTxBlockHeader(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTxBlockHeader failed.");
     return false;

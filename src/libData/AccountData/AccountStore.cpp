@@ -85,8 +85,7 @@ AccountStore& AccountStore::GetInstance() {
   return accountstore;
 }
 
-bool AccountStore::Serialize(vector<unsigned char>& src,
-                             unsigned int offset) const {
+bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
   LOG_MARKER();
 
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
@@ -94,8 +93,7 @@ bool AccountStore::Serialize(vector<unsigned char>& src,
                                                                       offset);
 }
 
-bool AccountStore::Deserialize(const vector<unsigned char>& src,
-                               unsigned int offset) {
+bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
   LOG_MARKER();
 
   this->Init();
@@ -128,15 +126,15 @@ bool AccountStore::SerializeDelta() {
   return true;
 }
 
-void AccountStore::GetSerializedDelta(vector<unsigned char>& dst) {
+void AccountStore::GetSerializedDelta(bytes& dst) {
   lock_guard<mutex> g(m_mutexDelta);
 
   copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
        back_inserter(dst));
 }
 
-bool AccountStore::DeserializeDelta(const vector<unsigned char>& src,
-                                    unsigned int offset, bool reversible) {
+bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
+                                    bool reversible) {
   LOG_MARKER();
 
   if (reversible) {
@@ -160,8 +158,7 @@ bool AccountStore::DeserializeDelta(const vector<unsigned char>& src,
   return true;
 }
 
-bool AccountStore::DeserializeDeltaTemp(const vector<unsigned char>& src,
-                                        unsigned int offset) {
+bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
@@ -230,7 +227,7 @@ bool AccountStore::RetrieveFromDisk() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
 
-  vector<unsigned char> rootBytes;
+  bytes rootBytes;
   if (!BlockStorage::GetBlockStorage().GetMetadata(STATEROOT, rootBytes)) {
     return false;
   }
