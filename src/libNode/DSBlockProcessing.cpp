@@ -310,7 +310,6 @@ void Node::StartFirstTxEpoch() {
   }
 
   m_justDidFallback = false;
-  CommitTxnPacketBuffer();
 
   if (BROADCAST_GOSSIP_MODE) {
     std::vector<Peer> peers;
@@ -324,7 +323,7 @@ void Node::StartFirstTxEpoch() {
     P2PComm::GetInstance().InitializeRumorManager(peers);
   }
 
-  SetState(MICROBLOCK_CONSENSUS_PREP);
+  CommitTxnPacketBuffer();
 
   auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
