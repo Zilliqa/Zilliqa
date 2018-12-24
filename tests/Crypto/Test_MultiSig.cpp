@@ -100,12 +100,12 @@ BOOST_AUTO_TEST_CASE(test_multisig) {
   BOOST_CHECK_MESSAGE(signature != nullptr, "AggregateSign failed");
 
   /// Verify the signature
-  BOOST_CHECK_MESSAGE(
-      multisig.MultiSigVerify(message_rand, *signature, *aggregatedPubkey) == true,
-      "Signature verification (correct message) failed");
-  BOOST_CHECK_MESSAGE(
-      multisig.MultiSigVerify(message_1, *signature, *aggregatedPubkey) == false,
-      "Signature verification (wrong message) failed");
+  BOOST_CHECK_MESSAGE(multisig.MultiSigVerify(message_rand, *signature,
+                                              *aggregatedPubkey) == true,
+                      "Signature verification (correct message) failed");
+  BOOST_CHECK_MESSAGE(multisig.MultiSigVerify(message_1, *signature,
+                                              *aggregatedPubkey) == false,
+                      "Signature verification (wrong message) failed");
 
   /// Check CommitPoint operator =
   CommitPoint cp_copy;
@@ -230,12 +230,12 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   BOOST_CHECK_MESSAGE(signature != nullptr, "AggregateSign failed");
 
   /// Verify the signature
-  BOOST_CHECK_MESSAGE(
-      multisig.MultiSigVerify(message_rand, *signature, *aggregatedPubkey) == true,
-      "Signature verification (correct message) failed");
-  BOOST_CHECK_MESSAGE(
-      multisig.MultiSigVerify(message_1, *signature, *aggregatedPubkey) == false,
-      "Signature verification (wrong message) failed");
+  BOOST_CHECK_MESSAGE(multisig.MultiSigVerify(message_rand, *signature,
+                                              *aggregatedPubkey) == true,
+                      "Signature verification (correct message) failed");
+  BOOST_CHECK_MESSAGE(multisig.MultiSigVerify(message_1, *signature,
+                                              *aggregatedPubkey) == false,
+                      "Signature verification (wrong message) failed");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
