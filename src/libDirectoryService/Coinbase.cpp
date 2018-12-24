@@ -358,7 +358,7 @@ void DirectoryService::InitCoinbase() {
         for (auto const& pk : shardIdRewardee.second) {
           if (GUARD_MODE) {
             if (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
-                Guard::GetInstance().IsNodeInDSGuardList(pk)) {
+                Guard::GetInstance().IsNodeInShardGuardList(pk)) {
               continue;
             }
           }
@@ -399,6 +399,14 @@ void DirectoryService::InitCoinbase() {
   for (const auto& shard : m_coinbaseRewardees[m_mediator.m_currentEpochNum]) {
     if (count == shardIndex) {
       uint16_t rdm_index = lastBlockHash % shard.second.size();
+      if (GUARD_MODE) {
+        while (
+            Guard::GetInstance().IsNodeInDSGuardList(shard.second[rdm_index]) ||
+            Guard::GetInstance().IsNodeInShardGuardList(
+                shard.second[rdm_index])) {
+          rdm_index = (rdm_index + 1) % shard.second.size();
+        }
+      }
       const Address& winnerAddr =
           Account::GetAddressFromPublicKey(shard.second[rdm_index]);
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);

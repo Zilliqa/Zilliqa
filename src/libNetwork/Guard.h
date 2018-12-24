@@ -46,8 +46,6 @@ class Guard {
   std::mutex m_mutexShardGuardList;
   std::vector<PubKey> m_ShardGuardList;
 
-  std::set<Address> m_GuardSet;
-
   // IPFilter
   std::mutex m_mutexIPExclusion;
   std::vector<std::pair<boost::multiprecision::uint128_t,
