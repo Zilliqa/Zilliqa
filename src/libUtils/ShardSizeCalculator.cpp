@@ -30,16 +30,15 @@ uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes) {
     return 819;
   }
 
-  static uint32_t range[] = {
-      0,     651,   1368,
-      2133,  2868,  3675,
-      4464,  5229,  6024,
-      6858,  7710,  8580,
-      9468,  10335, 11130,
-      11925, 12720, 13515,
-      14364, 15390, 16200,
-      17010, 17820, 18768,
-      19584, 20400, numeric_limits<uint32_t>::max()};
+  static uint32_t range[] = {0,     651,   1368,
+                             2133,  2868,  3675,
+                             4464,  5229,  6024,
+                             6858,  7710,  8580,
+                             9468,  10335, 11130,
+                             11925, 12720, 13515,
+                             14364, 15390, 16200,
+                             17010, 17820, 18768,
+                             19584, 20400, numeric_limits<uint32_t>::max()};
 
   // result[0] will never be used
   static uint32_t result[] = {0,   651, 651, 684, 711, 717, 735, 744, 747,
@@ -58,8 +57,9 @@ uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes) {
   return result[index];
 }
 
-void ShardSizeCalculator::GenerateShardCounts(const uint32_t shardSize, const uint32_t shardSizeThreshold, const uint32_t numNodesForSharding, vector<uint32_t>& shardCounts)
-{
+void ShardSizeCalculator::GenerateShardCounts(
+    const uint32_t shardSize, const uint32_t shardSizeThreshold,
+    const uint32_t numNodesForSharding, vector<uint32_t>& shardCounts) {
   LOG_MARKER();
 
   const uint32_t SHARD_THRESHOLD_LO = shardSize - shardSizeThreshold;
@@ -70,56 +70,57 @@ void ShardSizeCalculator::GenerateShardCounts(const uint32_t shardSize, const ui
   LOG_GENERAL(INFO, "Maximum allowed shard size  = " << SHARD_THRESHOLD_HI);
 
   // Abort if total number of nodes is below SHARD_THRESHOLD_LO
-  if (numNodesForSharding < SHARD_THRESHOLD_LO)
-  {
-    LOG_GENERAL(WARNING, "Number of PoWs for sharding (" << numNodesForSharding << ") is not enough for even one shard.");
+  if (numNodesForSharding < SHARD_THRESHOLD_LO) {
+    LOG_GENERAL(WARNING, "Number of PoWs for sharding ("
+                             << numNodesForSharding
+                             << ") is not enough for even one shard.");
     return;
   }
 
   // Get the number of full shards that can be formed
   const uint32_t numOfCompleteShards = numNodesForSharding / shardSize;
 
-  if (numOfCompleteShards == 0)
-  {
+  if (numOfCompleteShards == 0) {
     // If can't form one full shard, set first shard count to 0
     shardCounts.resize(1);
     shardCounts.at(0) = 0;
-  }
-  else
-  {
+  } else {
     // If can form one or more full shards, set shard count to shardSize
     shardCounts.resize(numOfCompleteShards);
     fill(shardCounts.begin(), shardCounts.end(), shardSize);
   }
 
   // Get the remaining count of unsharded nodes
-  uint32_t numUnshardedNodes = numNodesForSharding - (numOfCompleteShards * shardSize);
+  uint32_t numUnshardedNodes =
+      numNodesForSharding - (numOfCompleteShards * shardSize);
 
-  if (numUnshardedNodes < SHARD_THRESHOLD_LO)
-  {
-    // If remaining count is less than SHARD_THRESHOLD_LO, distribute among the shards
-    for (auto& shardCount : shardCounts)
-    {
-      // Add just enough nodes to each shard such that we don't go over SHARD_THRESHOLD_HI
-      const uint32_t nodesToAdd = min(SHARD_THRESHOLD_HI - shardCount, numUnshardedNodes);
+  if (numUnshardedNodes == numNodesForSharding) {
+    // Remaining count = original node count -> set first shard count to
+    // remaining count
+    shardCounts.at(0) = numUnshardedNodes;
+  } else if (numUnshardedNodes < SHARD_THRESHOLD_LO) {
+    // If remaining count is less than SHARD_THRESHOLD_LO, distribute among the
+    // shards
+    for (auto& shardCount : shardCounts) {
+      // Add just enough nodes to each shard such that we don't go over
+      // SHARD_THRESHOLD_HI
+      const uint32_t nodesToAdd =
+          min(SHARD_THRESHOLD_HI - shardCount, numUnshardedNodes);
       shardCount += nodesToAdd;
       numUnshardedNodes -= nodesToAdd;
 
-      if (numUnshardedNodes == 0)
-      {
+      if (numUnshardedNodes == 0) {
         break;
       }
     }
-  }
-  else
-  {
-    // If remaining count is greater than or equal to SHARD_THRESHOLD_LO, allow formation of another shard  
+  } else {
+    // If remaining count is greater than or equal to SHARD_THRESHOLD_LO, allow
+    // formation of another shard
     shardCounts.emplace_back(numUnshardedNodes);
   }
 
   LOG_GENERAL(INFO, "Final computed shard sizes:");
-  for (unsigned int i = 0; i < shardCounts.size(); i++)
-  {
+  for (unsigned int i = 0; i < shardCounts.size(); i++) {
     LOG_GENERAL(INFO, "Shard " << i << " = " << shardCounts.at(i));
   }
 }
