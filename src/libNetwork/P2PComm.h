@@ -129,7 +129,7 @@ class P2PComm {
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
   void InitializeRumorManager(const std::vector<Peer>& peers);
-  inline static bool IsHostDownOrUnreachable();
+  inline static bool IsHostHavingNetworkIssue();
 
  private:
   using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
