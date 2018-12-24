@@ -34,7 +34,7 @@ Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 Validator::~Validator() {}
 
 bool Validator::VerifyTransaction(const Transaction& tran) const {
-  vector<unsigned char> txnData;
+  bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
   return Schnorr::GetInstance().Verify(txnData, tran.GetSignature(),
@@ -201,7 +201,7 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   }
 
   // Verify the collective signature
-  vector<unsigned char> serializedHeader;
+  bytes serializedHeader;
   block.GetHeader().Serialize(serializedHeader, 0);
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
@@ -258,7 +258,7 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
       // Store DS Block to disk
       if (!ARCHIVAL_NODE) {
-        vector<unsigned char> serializedDSBlock;
+        bytes serializedDSBlock;
         dsblock.Serialize(serializedDSBlock, 0);
         BlockStorage::GetBlockStorage().PutDSBlock(
             dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
@@ -293,7 +293,7 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,
                                                vcblock.GetBlockHash());
-      vector<unsigned char> vcblockserialized;
+      bytes vcblockserialized;
       vcblock.Serialize(vcblockserialized, 0);
       BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
                                                  vcblockserialized);
@@ -346,7 +346,7 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::FB,
                                                fallbackblock.GetBlockHash());
-      vector<unsigned char> fallbackblockser;
+      bytes fallbackblockser;
       fallbackwshardingstructure.Serialize(fallbackblockser, 0);
       BlockStorage::GetBlockStorage().PutFallbackBlock(
           fallbackblock.GetBlockHash(), fallbackblockser);

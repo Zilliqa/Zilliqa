@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   LOG_MARKER();
 
-  vector<unsigned char> vec;
+  bytes vec;
 
   for (auto& i : GENESIS_KEYS) {
     auto privKeyBytes{DataConversion::HexStrToUint8Vec(i)};

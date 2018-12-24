@@ -17,37 +17,37 @@
  * program files.
  */
 
-#include <array>
-#include <chrono>
-#include <functional>
-#include <iostream>
-#include <thread>
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
-#pragma GCC diagnostic pop
-#include "common/Constants.h"
-#include "common/Messages.h"
-#include "common/Serializable.h"
-#include "libCrypto/Schnorr.h"
-#include "libCrypto/Sha2.h"
-#include "libData/AccountData/Address.h"
-#include "libUtils/DataConversion.h"
+#ifndef __SCILLATESTUTIL_H__
+#define __SCILLATESTUTIL_H__
+
+#include "boost/multiprecision/cpp_int.hpp"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 
-using namespace std;
-using namespace boost::multiprecision;
+namespace ScillaTestUtil {
 
-// Usage: input the hex string of private key
-int main() {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Reset();
-  bytes message;
-  string s;
-  cin >> s;
+// The constituents of a Scilla test.
+struct ScillaTest {
+  // Scilla ASCII source.
+  bytes code;
+  // inititialization, message, state and expected output JSONs.
+  Json::Value init, message, state, blockchain, expOutput;
+};
 
-  PrivKey privKey{DataConversion::HexStrToUint8Vec(s), 0};
-  PubKey pubKey{privKey};
+// Parse a JSON file from filesystem.
+bool ParseJsonFile(Json::Value &j, std::string filename);
+// Get ScillaTest for contract "name" and test numbered "i".
+bool GetScillaTest(ScillaTest &t, std::string contrName, unsigned int i);
+// Get _balance from output state of interpreter, from OUTPUT_JSON.
+// Return 0 on failure.
+boost::multiprecision::uint128_t GetBalanceFromOutput(void);
+// Return BLOCKNUMBER in Json. Return 0 if not found.
+uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
+// Return the _amount in message.json. Remove that and _sender.
+uint64_t PrepareMessageData(Json::Value &message, bytes &data);
+// Remove _creation_block field from init JSON.
+bool RemoveCreationBlockFromInit(Json::Value &init);
 
-  cout << pubKey << endl;
-}
+}  // end namespace ScillaTestUtil
+
+#endif  // __SCILLATESTUTIL_H__

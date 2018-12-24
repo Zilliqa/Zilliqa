@@ -41,7 +41,7 @@ struct CommitSecret : public Serializable {
   CommitSecret();
 
   /// Constructor for loading existing secret from a byte stream.
-  CommitSecret(const std::vector<unsigned char>& src, unsigned int offset);
+  CommitSecret(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   CommitSecret(const CommitSecret& src);
@@ -53,11 +53,10 @@ struct CommitSecret : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Assignment operator.
   CommitSecret& operator=(const CommitSecret&);
@@ -82,7 +81,7 @@ struct CommitPoint : public Serializable {
   CommitPoint(const CommitSecret& secret);
 
   /// Constructor for loading public point information from a byte stream.
-  CommitPoint(const std::vector<unsigned char>& src, unsigned int offset);
+  CommitPoint(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   CommitPoint(const CommitPoint&);
@@ -94,11 +93,10 @@ struct CommitPoint : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Sets the commitment point value based on the specified CommitSecret.
   void Set(const CommitSecret& secret);
@@ -172,15 +170,14 @@ struct Challenge : public Serializable {
 
   /// Constructor for generating a new challenge.
   Challenge(const CommitPoint& aggregatedCommit, const PubKey& aggregatedPubkey,
-            const std::vector<unsigned char>& message);
+            const bytes& message);
 
   /// Constructor for generating a new challenge (with size and offset)
   Challenge(const CommitPoint& aggregatedCommit, const PubKey& aggregatedPubkey,
-            const std::vector<unsigned char>& message, unsigned int offset,
-            unsigned int size);
+            const bytes& message, unsigned int offset, unsigned int size);
 
   /// Constructor for loading challenge information from a byte stream.
-  Challenge(const std::vector<unsigned char>& src, unsigned int offset);
+  Challenge(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   Challenge(const Challenge& src);
@@ -192,16 +189,14 @@ struct Challenge : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Sets the challenge value based on the specified input parameters.
   void Set(const CommitPoint& aggregatedCommit, const PubKey& aggregatedPubkey,
-           const std::vector<unsigned char>& message, unsigned int offset,
-           unsigned int size);
+           const bytes& message, unsigned int offset, unsigned int size);
 
   /// Assignment operator.
   Challenge& operator=(const Challenge& src);
@@ -227,7 +222,7 @@ struct Response : public Serializable {
            const PrivKey& privkey);
 
   /// Constructor for loading response information from a byte stream.
-  Response(const std::vector<unsigned char>& src, unsigned int offset);
+  Response(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   Response(const Response& src);
@@ -239,11 +234,10 @@ struct Response : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Sets the response value based on the specified input parameters.
   void Set(const CommitSecret& secret, const Challenge& challenge,

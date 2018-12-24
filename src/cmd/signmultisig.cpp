@@ -29,8 +29,7 @@ int main(int argc, const char* argv[]) {
     return -1;
   }
 
-  const vector<unsigned char> message =
-      DataConversion::HexStrToUint8Vec(string(argv[1]));
+  const bytes message = DataConversion::HexStrToUint8Vec(string(argv[1]));
 
   string line;
   vector<PrivKey> privKeys;
@@ -59,7 +58,7 @@ int main(int argc, const char* argv[]) {
   for (unsigned int i = 0; i < privKeys.size(); ++i) {
     Signature sig;
     Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
-    vector<unsigned char> result;
+    bytes result;
     sig.Serialize(result, 0);
     cout << DataConversion::Uint8VecToHexStr(result);
   }

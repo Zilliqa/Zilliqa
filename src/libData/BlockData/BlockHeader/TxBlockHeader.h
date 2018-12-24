@@ -52,7 +52,7 @@ class TxBlockHeader : public BlockHeaderBase {
   TxBlockHeader();
 
   /// Constructor for loading Tx block header information from a byte stream.
-  TxBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
+  TxBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified Tx block header parameters.
   TxBlockHeader(const uint8_t type, const uint32_t version,
@@ -64,12 +64,10 @@ class TxBlockHeader : public BlockHeaderBase {
                 const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst,
-                 unsigned int offset) const override;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src,
-                   unsigned int offset) override;
+  bool Deserialize(const bytes& src, unsigned int offset) override;
 
   /// Returns the type of the block.
   const uint8_t& GetType() const;

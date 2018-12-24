@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE(test_multisig) {
 
   /// 1 MB message
   const unsigned int message_size = 1048576;
-  vector<unsigned char> message_rand(message_size);
-  vector<unsigned char> message_1(message_size, 0x01);
+  bytes message_rand(message_size);
+  bytes message_1(message_size, 0x01);
   generate(message_rand.begin(), message_rand.end(), std::rand);
 
   /// Aggregate public keys
@@ -147,8 +147,8 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
 
   /// 1 MB message
   const unsigned int message_size = 1048576;
-  vector<unsigned char> message_rand(message_size);
-  vector<unsigned char> message_1(message_size, 0x01);
+  bytes message_rand(message_size);
+  bytes message_1(message_size, 0x01);
   generate(message_rand.begin(), message_rand.end(), std::rand);
 
   /// Aggregate public keys
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   vector<CommitSecret> secrets1;
   vector<CommitPoint> points1;
   for (unsigned int i = 0; i < nbsigners; i++) {
-    vector<unsigned char> tmp1, tmp2;
+    bytes tmp1, tmp2;
     secrets.at(i).Serialize(tmp1, 0);
     secrets1.emplace_back(tmp1, 0);
     points.emplace_back(secrets.at(i));
@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   Challenge challenge(*aggregatedCommit, *aggregatedPubkey, message_rand);
   BOOST_CHECK_MESSAGE(challenge.Initialized() == true,
                       "Challenge generation failed");
-  vector<unsigned char> tmp;
+  bytes tmp;
   challenge.Serialize(tmp, 0);
   Challenge challenge2(tmp, 0);
   BOOST_CHECK_MESSAGE(challenge == challenge2,
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
     responses.emplace_back(secrets.at(i), challenge, privkeys.at(i));
     BOOST_CHECK_MESSAGE(responses.back().Initialized() == true,
                         "Response generation failed");
-    vector<unsigned char> tmp;
+    bytes tmp;
     responses.back().Serialize(tmp, 0);
     responses1.emplace_back(tmp, 0);
     // Verify response

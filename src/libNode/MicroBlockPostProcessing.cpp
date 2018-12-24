@@ -56,8 +56,7 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
-bool Node::ComposeMicroBlockMessageForSender(
-    vector<unsigned char>& microblock_message) const {
+bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeMicroBlockMessageForSender not expected to be "
@@ -69,7 +68,7 @@ bool Node::ComposeMicroBlockMessageForSender(
 
   microblock_message = {MessageType::DIRECTORY,
                         DSInstructionType::MICROBLOCKSUBMISSION};
-  vector<unsigned char> stateDelta;
+  bytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   if (!Messenger::SetDSMicroBlockSubmission(
@@ -84,8 +83,8 @@ bool Node::ComposeMicroBlockMessageForSender(
   return true;
 }
 
-bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from) {
+bool Node::ProcessMicroblockConsensus(const bytes& message, unsigned int offset,
+                                      const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -138,7 +137,7 @@ bool Node::ProcessMicroblockConsensus(const vector<unsigned char>& message,
 void Node::CommitMicroBlockConsensusBuffer() {
   lock_guard<mutex> g(m_mutexMicroBlockConsensusBuffer);
 
-  for (const auto& i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
+  for (const auto i : m_microBlockConsensusBuffer[m_mediator.m_consensusID]) {
     auto runconsensus = [this, i]() {
       ProcessMicroblockConsensusCore(i.second, MessageOffset::BODY, i.first);
     };
@@ -151,7 +150,7 @@ void Node::CleanMicroblockConsensusBuffer() {
   m_microBlockConsensusBuffer.clear();
 }
 
-bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
+bool Node::ProcessMicroblockConsensusCore(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
   LOG_MARKER();
@@ -225,7 +224,7 @@ bool Node::ProcessMicroblockConsensusCore(const vector<unsigned char>& message,
     ds_shards.emplace_back(ds_shard);
 
     auto composeMicroBlockMessageForSender =
-        [this](vector<unsigned char>& microblock_message) -> bool {
+        [this](bytes& microblock_message) -> bool {
       return ComposeMicroBlockMessageForSender(microblock_message);
     };
     {

@@ -17,6 +17,9 @@
  * program files.
  */
 
+/* TCP error code:
+ * https://www.gnu.org/software/libc/manual/html_node/Error-Codes.html */
+
 #include <errno.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -60,8 +63,7 @@ P2PComm::BroadcastListFunc P2PComm::m_broadcast_list_retriever;
 
 /// Comparison operator for ordering the list of message hashes.
 struct hash_compare {
-  bool operator()(const vector<unsigned char>& l,
-                  const vector<unsigned char>& r) {
+  bool operator()(const bytes& l, const bytes& r) {
     return equal(l.begin(), l.end(), r.begin(), r.end());
   }
 };
@@ -74,16 +76,14 @@ static void close_socket(int* cli_sock) {
 }
 
 static bool comparePairSecond(
-    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
-        a,
-    const pair<vector<unsigned char>, chrono::time_point<chrono::system_clock>>&
-        b) {
+    const pair<bytes, chrono::time_point<chrono::system_clock>>& a,
+    const pair<bytes, chrono::time_point<chrono::system_clock>>& b) {
   return a.second < b.second;
 }
 
 P2PComm::P2PComm() : m_sendQueue(SENDQUEUE_SIZE) {
   auto func = [this]() -> void {
-    std::vector<unsigned char> emptyHash;
+    bytes emptyHash;
 
     while (true) {
       this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
@@ -134,6 +134,15 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
     ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
                       message_length - written_length);
 
+    if (P2PComm::IsHostHavingNetworkIssue()) {
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << from.GetPrintableIPAddress()
+                               << " to blacklist");
+      Blacklist::GetInstance().Add(from.m_ipAddress);
+      return written_length;
+    }
+
     if (errno == EPIPE) {
       LOG_GENERAL(WARNING, " SIGPIPE detected. Error No: "
                                << errno << " Desc: " << std::strerror(errno));
@@ -159,10 +168,9 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
   return written_length;
 }
 
-bool SendJob::SendMessageSocketCore(const Peer& peer,
-                                    const std::vector<unsigned char>& message,
+bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                     unsigned char start_byte,
-                                    const vector<unsigned char>& msg_hash) {
+                                    const bytes& msg_hash) {
   // LOG_MARKER();
   LOG_PAYLOAD(DEBUG, "Sending message to " << peer, message,
               Logger::MAX_BYTES_TO_DISPLAY);
@@ -203,6 +211,14 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
       LOG_GENERAL(WARNING, "Socket connect failed. Code = "
                                << errno << " Desc: " << std::strerror(errno)
                                << ". IP address: " << peer);
+      if (P2PComm::IsHostHavingNetworkIssue()) {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding " << peer.GetPrintableIPAddress()
+                                 << " to blacklist");
+        Blacklist::GetInstance().Add(peer.m_ipAddress);
+      }
+
       return false;
     }
 
@@ -257,16 +273,23 @@ bool SendJob::SendMessageSocketCore(const Peer& peer,
   return true;
 }
 
-void SendJob::SendMessageCore(const Peer& peer,
-                              const vector<unsigned char> message,
-                              unsigned char startbyte,
-                              const vector<unsigned char> hash) {
+void SendJob::SendMessageCore(const Peer& peer, const bytes message,
+                              unsigned char startbyte, const bytes hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
     retry_counter++;
     LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
                                                   << MAXRETRYCONN
                                                   << ". IP address: " << peer);
+
+    if (P2PComm::IsHostHavingNetworkIssue()) {
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << peer.GetPrintableIPAddress()
+                               << " to blacklist");
+      Blacklist::GetInstance().Add(peer.m_ipAddress);
+      return;
+    }
 
     if (retry_counter > MAXRETRYCONN) {
       LOG_GENERAL(WARNING,
@@ -282,7 +305,7 @@ void SendJobPeer::DoSend() {
   if (Blacklist::GetInstance().Exist(m_peer.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << m_peer
-                          << " is in black list, block all message to it.");
+                          << " is in blacklist, block all message to it.");
     return;
   }
 
@@ -338,18 +361,17 @@ void P2PComm::ProcessSendJob(SendJob* job) {
   m_SendPool.AddJob(funcSendMsg);
 }
 
-void P2PComm::ClearBroadcastHashAsync(
-    const vector<unsigned char>& message_hash) {
+void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
   LOG_MARKER();
   lock_guard<mutex> guard(m_broadcastToRemoveMutex);
   m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
-/*static*/ void P2PComm::ProcessBroadCastMsg(
-    std::vector<unsigned char>& message, const uint32_t messageLength,
-    const Peer& from) {
-  vector<unsigned char> msg_hash(message.begin() + HDR_LEN,
-                                 message.begin() + HDR_LEN + HASH_LEN);
+/*static*/ void P2PComm::ProcessBroadCastMsg(bytes& message,
+                                             const uint32_t messageLength,
+                                             const Peer& from) {
+  bytes msg_hash(message.begin() + HDR_LEN,
+                 message.begin() + HDR_LEN + HASH_LEN);
 
   P2PComm& p2p = P2PComm::GetInstance();
 
@@ -365,7 +387,7 @@ void P2PComm::ClearBroadcastHashAsync(
       SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
       sha256.Update(message, HDR_LEN + HASH_LEN,
                     message.size() - HDR_LEN - HASH_LEN);
-      vector<unsigned char> this_msg_hash = sha256.Finalize();
+      bytes this_msg_hash = sha256.Finalize();
 
       if (this_msg_hash == msg_hash) {
         p2p.m_broadcastHashes.insert(this_msg_hash);
@@ -404,19 +426,15 @@ void P2PComm::ClearBroadcastHashAsync(
                  << "] RECV");
 
   // Move the shared_ptr message to raw pointer type
-  pair<vector<unsigned char>, Peer>* raw_message =
-      new pair<vector<unsigned char>, Peer>(
-          vector<unsigned char>(message.begin() + HDR_LEN + HASH_LEN,
-                                message.end()),
-          from);
+  pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(
+      bytes(message.begin() + HDR_LEN + HASH_LEN, message.end()), from);
   LOG_GENERAL(INFO, "Size of broadcast message: " << message.size());
 
   // Queue the message
   m_dispatcher(raw_message);
 }
 
-/*static*/ void P2PComm::ProcessGossipMsg(std::vector<unsigned char>& message,
-                                          Peer& from) {
+/*static*/ void P2PComm::ProcessGossipMsg(bytes& message, Peer& from) {
   unsigned char gossipMsgTyp = message.at(HDR_LEN);
 
   const uint32_t gossipMsgRound =
@@ -442,8 +460,8 @@ void P2PComm::ClearBroadcastHashAsync(
     LOG_GENERAL(INFO, "Received Gossip of type - FORWARD from Peer :" << from);
 
     if (p2p.SpreadRumor(rumor_message)) {
-      std::pair<vector<unsigned char>, Peer>* raw_message =
-          new pair<vector<unsigned char>, Peer>(rumor_message, from);
+      std::pair<bytes, Peer>* raw_message =
+          new pair<bytes, Peer>(rumor_message, from);
 
       LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
 
@@ -453,8 +471,8 @@ void P2PComm::ClearBroadcastHashAsync(
   } else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
                                               gossipMsgRound, rumor_message,
                                               from)) {
-    std::pair<vector<unsigned char>, Peer>* raw_message =
-        new pair<vector<unsigned char>, Peer>(rumor_message, from);
+    std::pair<bytes, Peer>* raw_message =
+        new pair<bytes, Peer>(rumor_message, from);
 
     LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
 
@@ -497,7 +515,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     LOG_GENERAL(WARNING, "evbuffer_get_length failure.");
     return;
   }
-  vector<unsigned char> message(len);
+  bytes message(len);
   if (evbuffer_copyout(input, message.data(), len) !=
       static_cast<ev_ssize_t>(len)) {
     LOG_GENERAL(WARNING, "evbuffer_copyout failure.");
@@ -582,10 +600,8 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Move the shared_ptr message to raw pointer type
-    pair<vector<unsigned char>, Peer>* raw_message =
-        new pair<vector<unsigned char>, Peer>(
-            vector<unsigned char>(message.begin() + HDR_LEN, message.end()),
-            from);
+    pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(
+        bytes(message.begin() + HDR_LEN, message.end()), from);
     LOG_GENERAL(INFO, "Size of normal message: " << message.size());
 
     // Queue the message
@@ -654,6 +670,11 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
+inline bool P2PComm::IsHostHavingNetworkIssue() {
+  return (errno == EHOSTUNREACH || errno == EHOSTDOWN || errno == ETIMEDOUT ||
+          errno == ECONNREFUSED);
+}
+
 void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
                                BroadcastListFunc broadcast_list_retriever) {
   LOG_MARKER();
@@ -704,8 +725,7 @@ void P2PComm::StartMessagePump(uint32_t listen_port_host, Dispatcher dispatcher,
   event_base_free(base);
 }
 
-void P2PComm::SendMessage(const vector<Peer>& peers,
-                          const vector<unsigned char>& message,
+void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
                           const unsigned char& startByteType) {
   // LOG_MARKER();
 
@@ -727,8 +747,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers,
   }
 }
 
-void P2PComm::SendMessage(const deque<Peer>& peers,
-                          const vector<unsigned char>& message,
+void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
                           const unsigned char& startByteType) {
   // LOG_MARKER();
 
@@ -750,8 +769,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers,
   }
 }
 
-void P2PComm::SendMessage(const Peer& peer,
-                          const vector<unsigned char>& message,
+void P2PComm::SendMessage(const Peer& peer, const bytes& message,
                           const unsigned char& startByteType) {
   // LOG_MARKER();
 
@@ -770,7 +788,7 @@ void P2PComm::SendMessage(const Peer& peer,
 }
 
 void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
-                                   const vector<unsigned char>& message) {
+                                   const bytes& message) {
   LOG_MARKER();
 
   if (peers.empty()) {
@@ -788,7 +806,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   job->m_message = message;
   job->m_hash = sha256.Finalize();
 
-  vector<unsigned char> hashCopy(job->m_hash);
+  bytes hashCopy(job->m_hash);
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -800,7 +818,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
 }
 
 void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
-                                   const vector<unsigned char>& message) {
+                                   const bytes& message) {
   LOG_MARKER();
 
   if (peers.empty()) {
@@ -818,7 +836,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   job->m_message = message;
   job->m_hash = sha256.Finalize();
 
-  vector<unsigned char> hashCopy(job->m_hash);
+  bytes hashCopy(job->m_hash);
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -830,8 +848,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
 }
 
 void P2PComm::RebroadcastMessage(const vector<Peer>& peers,
-                                 const vector<unsigned char>& message,
-                                 const vector<unsigned char>& msg_hash) {
+                                 const bytes& message, const bytes& msg_hash) {
   LOG_MARKER();
 
   // Make job
@@ -849,8 +866,7 @@ void P2PComm::RebroadcastMessage(const vector<Peer>& peers,
   }
 }
 
-void P2PComm::SendMessageNoQueue(const Peer& peer,
-                                 const std::vector<unsigned char>& message,
+void P2PComm::SendMessageNoQueue(const Peer& peer, const bytes& message,
                                  const unsigned char& startByteType) {
   // LOG_MARKER();
 
@@ -864,27 +880,25 @@ void P2PComm::SendMessageNoQueue(const Peer& peer,
   SendJob::SendMessageCore(peer, message, startByteType, {});
 }
 
-bool P2PComm::SpreadRumor(const std::vector<unsigned char>& message) {
+bool P2PComm::SpreadRumor(const bytes& message) {
   LOG_MARKER();
   return m_rumorManager.AddRumor(message);
 }
 
-void P2PComm::SendRumorToForeignPeer(
-    const Peer& foreignPeer, const std::vector<unsigned char>& message) {
+void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
+                                     const bytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeer(foreignPeer, message);
 }
 
-void P2PComm::SendRumorToForeignPeers(
-    const std::vector<Peer>& foreignPeers,
-    const std::vector<unsigned char>& message) {
+void P2PComm::SendRumorToForeignPeers(const std::vector<Peer>& foreignPeers,
+                                      const bytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }
 
-void P2PComm::SendRumorToForeignPeers(
-    const std::deque<Peer>& foreignPeers,
-    const std::vector<unsigned char>& message) {
+void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
+                                      const bytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }

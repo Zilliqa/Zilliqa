@@ -304,7 +304,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  std::vector<unsigned char> metaRes;
+  bytes metaRes;
   if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::WAKEUPFORUPGRADE,
                                                   metaRes)) {
     if (metaRes[0] == '1') {
@@ -492,7 +492,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
           m_mediator.m_ds->m_mapNodeReputation);
     }
 
-    if (!LOOKUP_NODE_MODE && !bDS && !bInShardStructure) {
+    if (REJOIN_NODE_NOT_IN_NETWORK && !LOOKUP_NODE_MODE && !bDS &&
+        !bInShardStructure) {
       LOG_GENERAL(WARNING,
                   "Node is not in network, apply re-join process instead");
       return false;
@@ -531,7 +532,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   if (st_result && ds_result && tx_result) {
     if (m_retriever->ValidateStates()) {
       if (!LOOKUP_NODE_MODE || m_retriever->CleanExtraTxBodies()) {
-        LOG_GENERAL(INFO, "RetrieveHistory Successed");
+        LOG_GENERAL(INFO, "RetrieveHistory Success");
         m_mediator.m_isRetrievedHistory = true;
         res = true;
       }
@@ -952,8 +953,7 @@ fromPubKey, size_t n)
     return txns;
 }*/
 
-bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
-                                   unsigned int offset,
+bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
                                    [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -995,8 +995,7 @@ bool Node::ProcessSubmitMissingTxn(const vector<unsigned char>& message,
   return true;
 }
 
-bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
-                                    unsigned int offset,
+bool Node::ProcessSubmitTransaction(const bytes& message, unsigned int offset,
                                     [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1036,9 +1035,9 @@ bool Node::ProcessSubmitTransaction(const vector<unsigned char>& message,
   return true;
 }
 
-bool Node::ProcessTxnPacketFromLookup(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
+                                      [[gnu::unused]] unsigned int offset,
+                                      [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1127,14 +1126,15 @@ bool Node::ProcessTxnPacketFromLookup(
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
                 "should be from gossip neightor and process it");
-    return ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId,
-                                          lookupPubKey, transactions);
+    return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
+                                          shardId, lookupPubKey, transactions);
   }
 
   return true;
 }
 
-bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
+bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
+                                          const uint64_t& epochNum,
                                           const uint64_t& dsBlockNum,
                                           const uint32_t& shardId,
                                           const PubKey& lookupPubKey,
@@ -1153,10 +1153,17 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
     return false;
   }
 
+  if (epochNum + PACKET_EPOCH_LATE_ALLOW < m_mediator.m_currentEpochNum) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "The epoch when the packet from is too late (" << epochNum
+                                                             << "), reject");
+    return false;
+  }
+
   if (dsBlockNum !=
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
     LOG_GENERAL(WARNING, "Wrong DS block num ("
-                             << dsBlockNum << "), m_myshardId ("
+                             << dsBlockNum << "), expected ("
                              << m_mediator.m_dsBlockChain.GetLastBlock()
                                     .GetHeader()
                                     .GetBlockNum()
@@ -1274,9 +1281,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const vector<unsigned char>& message,
   return true;
 }
 
-bool Node::ProcessProposeGasPrice(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+bool Node::ProcessProposeGasPrice([[gnu::unused]] const bytes& message,
+                                  [[gnu::unused]] unsigned int offset,
+                                  [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1338,14 +1345,15 @@ void Node::CommitTxnPacketBuffer() {
       return;
     }
 
-    ProcessTxnPacketFromLookupCore(message, dsBlockNum, shardId, lookupPubKey,
-                                   transactions);
+    ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum, shardId,
+                                   lookupPubKey, transactions);
   }
+  m_txnPacketBuffer.clear();
 }
 
 // Used by Zilliqa in pow branch. This will be useful for us when doing the
 // accounts and wallet in the future. bool Node::ProcessCreateAccounts(const
-// vector<unsigned char> & message, unsigned int offset, const Peer & from)
+// bytes & message, unsigned int offset, const Peer & from)
 // {
 // #ifndef IS_LOOKUP_NODE
 //     // Message = [117-byte account 1] ... [117-byte account n]
@@ -1494,6 +1502,8 @@ void Node::CleanCreatedTransaction() {
     t_processedTransactions.clear();
   }
   m_TxnOrder.clear();
+  m_gasUsedTotal = 0;
+  m_txnFees = 0;
 }
 
 bool Node::IsShardNode(const PubKey& pubKey) {
@@ -1513,8 +1523,7 @@ bool Node::IsShardNode(const Peer& peerInfo) {
                       }) != m_myShardMembers->end();
 }
 
-bool Node::ProcessDoRejoin(const std::vector<unsigned char>& message,
-                           unsigned int offset,
+bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
                            [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1570,7 +1579,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 
   LOG_MARKER();
 
-  vector<unsigned char> queryLookupForDSGuardNetworkInfoUpdate = {
+  bytes queryLookupForDSGuardNetworkInfoUpdate = {
       MessageType::LOOKUP,
       LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
   uint64_t dsEpochNum =
@@ -1593,7 +1602,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
       queryLookupForDSGuardNetworkInfoUpdate);
 }
 
-bool Node::ProcessDSGuardNetworkInfoUpdate(const vector<unsigned char>& message,
+bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
                                            unsigned int offset,
                                            [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
@@ -1722,7 +1731,7 @@ void Node::GetNodesToBroadCastUsingTreeBasedClustering(
 // Tree-Based Clustering decision
 //  --  Should I broadcast the message to some-one from my shard.
 //  --  If yes, To whom-all should i broadcast the message.
-void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
+void Node::SendBlockToOtherShardNodes(const bytes& message,
                                       uint32_t cluster_size,
                                       uint32_t num_of_child_clusters) {
   LOG_MARKER();
@@ -1731,7 +1740,7 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
   sha256.Update(message);  // raw_message hash
-  std::vector<unsigned char> this_msg_hash = sha256.Finalize();
+  bytes this_msg_hash = sha256.Finalize();
 
   lock_guard<mutex> g(m_mutexShardMember);
 
@@ -1775,14 +1784,14 @@ void Node::SendBlockToOtherShardNodes(const vector<unsigned char>& message,
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }
 
-bool Node::Execute(const vector<unsigned char>& message, unsigned int offset,
+bool Node::Execute(const bytes& message, unsigned int offset,
                    const Peer& from) {
   // LOG_MARKER();
 
   bool result = true;
 
-  typedef bool (Node::*InstructionHandler)(const vector<unsigned char>&,
-                                           unsigned int, const Peer&);
+  typedef bool (Node::*InstructionHandler)(const bytes&, unsigned int,
+                                           const Peer&);
 
   InstructionHandler ins_handlers[] = {
       &Node::ProcessStartPoW,

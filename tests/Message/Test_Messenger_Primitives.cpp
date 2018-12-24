@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
 
   DSBlockHeader dsBlockHeader = TestUtils::GenerateRandomDSBlockHeader();
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
 
   DSBlock dsBlock(TestUtils::GenerateRandomDSBlockHeader(),
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlockHeader) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   MicroBlockHeader microBlockHeader =
       TestUtils::GenerateRandomMicroBlockHeader();
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
 
   MicroBlockHeader microBlockHeader =
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlockHeader) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
 
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
 
   TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   VCBlockHeader vcBlockHeader = TestUtils::GenerateRandomVCBlockHeader();
 
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   VCBlock vcBlock(TestUtils::GenerateRandomVCBlockHeader(),
                   TestUtils::GenerateRandomCoSignatures());
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlockHeader) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   FallbackBlockHeader fallbackBlockHeader =
       TestUtils::GenerateRandomFallbackBlockHeader();
@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlock) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   FallbackBlock fallbackBlock(TestUtils::GenerateRandomFallbackBlockHeader(),
                               TestUtils::GenerateRandomCoSignatures());
@@ -248,7 +248,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetFallbackBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_CopyWithSizeCheck) {
-  vector<unsigned char> arr;
+  bytes arr;
   dev::h256 result;
 
   generate(result.asArray().begin(), result.asArray().end(),

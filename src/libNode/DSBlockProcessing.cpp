@@ -41,6 +41,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
@@ -74,7 +75,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   m_mediator.UpdateDSBlockRand();
 
   // Store DS Block to disk
-  vector<unsigned char> serializedDSBlock;
+  bytes serializedDSBlock;
   dsblock.Serialize(serializedDSBlock, 0);
 
   BlockStorage::GetBlockStorage().PutDSBlock(dsblock.GetHeader().GetBlockNum(),
@@ -154,7 +155,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
   }
 
   // Verify the collective signature
-  vector<unsigned char> message;
+  bytes message;
   if (!dsblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "DSBlockHeader serialization failed");
     return false;
@@ -264,6 +265,7 @@ void Node::StartFirstTxEpoch() {
   LOG_MARKER();
   m_requestedForDSGuardNetworkInfoUpdate = false;
   ResetConsensusId();
+  Blacklist::GetInstance().Clear();
 
   uint16_t lastBlockHash = 0;
   if (m_mediator.m_currentEpochNum > 1) {
@@ -308,7 +310,6 @@ void Node::StartFirstTxEpoch() {
   }
 
   m_justDidFallback = false;
-  CommitTxnPacketBuffer();
 
   if (BROADCAST_GOSSIP_MODE) {
     std::vector<Peer> peers;
@@ -322,7 +323,7 @@ void Node::StartFirstTxEpoch() {
     P2PComm::GetInstance().InitializeRumorManager(peers);
   }
 
-  SetState(MICROBLOCK_CONSENSUS_PREP);
+  CommitTxnPacketBuffer();
 
   auto main_func3 = [this]() mutable -> void { RunConsensusOnMicroBlock(); };
 
@@ -336,7 +337,7 @@ void Node::ResetConsensusId() {
   m_mediator.m_consensusID = m_mediator.m_currentEpochNum == 1 ? 1 : 0;
 }
 
-bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
+bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                     unsigned int cur_offset,
                                     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
@@ -624,6 +625,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
     m_mediator.m_lookup->ProcessEntireShardingStructure();
 
     ResetConsensusId();
+    Blacklist::GetInstance().Clear();
 
     if (m_mediator.m_lookup->GetIsServer() && !ARCHIVAL_LOOKUP) {
       m_mediator.m_lookup->SenderTxnBatchThread();
@@ -644,8 +646,7 @@ bool Node::ProcessVCDSBlocksMessage(const vector<unsigned char>& message,
   return true;
 }
 
-void Node::SendDSBlockToOtherShardNodes(
-    const vector<unsigned char>& dsblock_message) {
+void Node::SendDSBlockToOtherShardNodes(const bytes& dsblock_message) {
   LOG_MARKER();
   unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
   if (cluster_size <= NUM_DS_ELECTION) {

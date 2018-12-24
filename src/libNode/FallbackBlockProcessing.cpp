@@ -101,7 +101,7 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock) {
   }
 
   // Verify the collective signature
-  vector<unsigned char> message;
+  bytes message;
   if (!fallbackblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed");
     return false;
@@ -120,8 +120,7 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock) {
   return true;
 }
 
-bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
-                                unsigned int cur_offset,
+bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
                                 [[gnu::unused]] const Peer& from) {
   // Message = [Fallback block]
   LOG_MARKER();
@@ -265,7 +264,7 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
         latestInd, fallbackblock.GetHeader().GetFallbackDSEpochNo(),
         BlockType::FB, fallbackblock.GetBlockHash());
 
-    vector<unsigned char> dst;
+    bytes dst;
 
     FallbackBlockWShardingStructure fbblockwshards(fallbackblock,
                                                    m_mediator.m_ds->m_shards);
@@ -323,7 +322,7 @@ bool Node::ProcessFallbackBlock(const vector<unsigned char>& message,
 }
 
 void Node::SendFallbackBlockToOtherShardNodes(
-    const vector<unsigned char>& fallbackblock_message) {
+    const bytes& fallbackblock_message) {
   LOG_MARKER();
   unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
   if (cluster_size <= NUM_DS_ELECTION) {

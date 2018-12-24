@@ -28,12 +28,12 @@
 /// [TEST ONLY] Internal class for testing consensus.
 class ConsensusUser : public Executable, public Broadcastable {
  private:
-  bool ProcessSetLeader(const std::vector<unsigned char>& message,
-                        unsigned int offset, const Peer& from);
-  bool ProcessStartConsensus(const std::vector<unsigned char>& message,
-                             unsigned int offset, const Peer& from);
-  bool ProcessConsensusMessage(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
+  bool ProcessSetLeader(const bytes& message, unsigned int offset,
+                        const Peer& from);
+  bool ProcessStartConsensus(const bytes& message, unsigned int offset,
+                             const Peer& from);
+  bool ProcessConsensusMessage(const bytes& message, unsigned int offset,
+                               const Peer& from);
 
   std::pair<PrivKey, PubKey> m_selfKey;
   Peer m_selfPeer;
@@ -54,12 +54,10 @@ class ConsensusUser : public Executable, public Broadcastable {
   ConsensusUser(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
   ~ConsensusUser();
 
-  bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-               const Peer& from);
+  bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
-  bool MyMsgValidatorFunc(
-      const std::vector<unsigned char>& message,
-      std::vector<unsigned char>& errorMsg);  // Needed by backup
+  bool MyMsgValidatorFunc(const bytes& message,
+                          bytes& errorMsg);  // Needed by backup
 };
 
 #endif  // __CONSENSUSUSER_H__

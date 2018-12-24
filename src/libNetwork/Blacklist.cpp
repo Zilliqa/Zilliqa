@@ -18,6 +18,7 @@
  */
 
 #include "Blacklist.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 
@@ -52,4 +53,5 @@ void Blacklist::Remove(const boost::multiprecision::uint128_t& ip) {
 void Blacklist::Clear() {
   lock_guard<mutex> g(m_mutexBlacklistIP);
   m_blacklistIP.clear();
+  LOG_GENERAL(INFO, "[blacklist] Blacklist cleared.");
 }
