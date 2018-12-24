@@ -307,7 +307,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   }
 
   // Check the value of the commit hash
-  CommitPointHash commitPointHashExpected;
+  CommitPointHash commitPointHashExpected(commitPoint);
   if (!(commitPointHashExpected == commitPointHash)) {
     LOG_GENERAL(WARNING, "Commit hash check failed. Deserialized = "
                              << string(commitPointHash) << " Expected = "
@@ -728,8 +728,8 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(
   }
 
   // Verify the collective signature
-  if (!Schnorr::GetInstance().Verify(m_messageToCosign, subset.collectiveSig,
-                                     aggregated_key)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(
+          m_messageToCosign, subset.collectiveSig, aggregated_key)) {
     LOG_GENERAL(WARNING, "Collective sig verification failed");
     SetStateSubset(subsetID, ERROR);
 

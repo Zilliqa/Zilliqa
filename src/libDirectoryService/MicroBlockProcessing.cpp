@@ -112,8 +112,8 @@ bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
   }
   microBlock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), microBlock.GetB1());
-  if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                     microBlock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(
+          message, 0, message.size(), microBlock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

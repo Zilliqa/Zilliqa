@@ -23,6 +23,9 @@
 
 using namespace std;
 
+static const uint8_t SECOND_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE = 0x01;
+static const uint8_t THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE = 0x11;
+
 CommitSecret::CommitSecret()
     : m_s(BN_new(), BN_clear_free), m_initialized(false) {
   // commit->secret should be in [1,...,order-1]
@@ -308,19 +311,17 @@ void CommitPointHash::Set(const CommitPoint& point) {
   m_initialized = false;
   vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
 
-  // Domain separation for hash function
-  vector<unsigned char> domain(1);
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
   // The second domain separated hash function.
+
   // The first one is used in the Proof-of-Possession (PoP) phase.
   // PoP coincides with PoW when each node proves the knowledge
   // of the private key for a claimed public key.
-  // Separation is defined using the first byte set to 0x01.
-  fill(domain.begin(), domain.end(), 0x01);
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
-  // Compute H(0x01).
-  sha2.Update(domain);
+  // Separation for the second hash function is defined by setting the first
+  // byte to 0x01.
+  sha2.Update({SECOND_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE});
 
   const Curve& curve = Schnorr::GetInstance().GetCurve();
 
@@ -470,18 +471,19 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
 
   // Compute the challenge c = H(r, kpub, m)
 
-  // Domain separation for hash function
-  vector<unsigned char> domain(1);
-
-  // The third domain separated hash function.
-  // The first one is used in the Proof-of-Possession phase.
-  // The second one is used in the Proof-of-Possession phase.
-  // Separation is defined using the first byte set to 0x11.
-  fill(domain.begin(), domain.end(), 0x11);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
-  // Compute H(0x11).
-  sha2.Update(domain);
+  // The third domain separated hash function.
+
+  // The first one is used in the Proof-of-Possession (PoP) phase.
+  // PoP coincides with PoW when each node proves the knowledge
+  // of the private key for a claimed public key.
+
+  // The second one is used in the Proof-of-Possession phase.
+
+  // Separation for the third hash function is defined by setting the first byte
+  // to 0x11.
+  sha2.Update({THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE});
 
   m_initialized = false;
 
@@ -951,22 +953,20 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
     // 4. r' = H(Q, kpub, m)
     // 5. return r' == r
 
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+
     // The third domain separated hash function.
+
     // The first one is used in the Proof-of-Possession (PoP) phase.
     // PoP coincides with PoW when each node proves the knowledge
     // of the private key for a claimed public key.
+
     // The second one is used in CommitPointHash::Set to generate the hash of
-    // the committed point. Separation for the third hash function is defined by
+    // the committed point.
+
+    // Separation for the third hash function is defined by
     // setting the first byte to 0x11.
-
-    // Domain separation for hash function
-    vector<unsigned char> domain(1);
-    fill(domain.begin(), domain.end(), 0x11);
-
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-
-    // Compute H(0x11).
-    sha2.Update(domain);
+    sha2.Update({THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE});
 
     vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
 
@@ -975,7 +975,7 @@ bool MultiSig::MultiSigVerify(const vector<unsigned char>& message,
 
     const Curve& curve = Schnorr::GetInstance().GetCurve();
 
-    // Regenerate the commitmment part of the signature
+    // Regenerate the commitment part of the signature
     unique_ptr<BIGNUM, void (*)(BIGNUM*)> challenge_built(BN_new(),
                                                           BN_clear_free);
     unique_ptr<EC_POINT, void (*)(EC_POINT*)> Q(
