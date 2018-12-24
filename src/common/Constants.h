@@ -223,6 +223,7 @@ extern const unsigned int MAXRETRYCONN;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int SENDQUEUE_SIZE;
+extern const unsigned int MAX_MESSAGE_SIZE_IN_BYTES;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;
