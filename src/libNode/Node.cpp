@@ -243,6 +243,36 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
+bool Node::ValidateTxns()
+{
+  auto last_tx_block = m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  for(uint i = 1; i<last_tx_block; i++)
+  {
+    auto microblockInfos = m_mediator.m_txBlockChain.GetBlock(i).GetMicroBlockInfos();
+    for(auto mbInfo : microblockInfos)
+    {
+      MicroBlockSharedPtr mbptr;
+      if(BlockStorage::GetMicroBlock(mbInfo.m_microBlockHash, mbptr))
+      {
+        auto tranHashes = mbptr->GetTranHashes();
+        for(auto tranHash : tranHashes)
+        {
+          if(!BlockStorage::GetTxBody(tranHash))
+          {
+            return false;
+          }
+        }
+      }
+      else
+      {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 void Node::Prepare(bool runInitializeGenesisBlocks) {
   LOG_MARKER();
   m_mediator.m_currentEpochNum =
@@ -541,6 +571,10 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     if (m_retriever->ValidateStates()) {
       if (!LOOKUP_NODE_MODE || m_retriever->CleanExtraTxBodies()) {
         LOG_GENERAL(INFO, "RetrieveHistory Success");
+        if(ValidateTxns())
+        {
+          LOG_GENERAL(INFO,"ValidateTxns Success");
+        }
         m_mediator.m_isRetrievedHistory = true;
         res = true;
       }
