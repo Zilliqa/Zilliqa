@@ -83,13 +83,7 @@ class Lookup : public Executable, public Broadcastable {
   /// To indicate which type of synchronization is using
   SyncType m_syncType = SyncType::NO_SYNC;
 
-  // Rsync the lost txBodies from remote lookup nodes if this lookup are doing
-  // its recovery
-  Peer GetLookupPeerToRsync();
-
   void SetAboveLayer();
-  // Doing Rsync commands
-  bool RsyncTxBodies();
 
   /// Post processing after the DS node successfully synchronized with the
   /// network

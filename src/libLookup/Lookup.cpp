@@ -2651,31 +2651,6 @@ bool Lookup::GetDSInfoLoop() {
   return false;
 }
 
-Peer Lookup::GetLookupPeerToRsync() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::GetLookupPeerToRsync not expected to be called "
-                "from other than the LookUp node.");
-    return Peer();
-  }
-
-  LOG_MARKER();
-
-  std::vector<Peer> t_Peers;
-  {
-    lock_guard<mutex> lock(m_mutexLookupNodes);
-    for (const auto& p : m_lookupNodes) {
-      if (p.second != m_mediator.m_selfPeer) {
-        t_Peers.emplace_back(p.second);
-      }
-    }
-  }
-
-  int index = rand() % t_Peers.size();
-
-  return t_Peers[index];
-}
-
 std::vector<unsigned char> Lookup::ComposeGetLookupOfflineMessage() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2787,44 +2762,6 @@ bool Lookup::GetMyLookupOnline() {
   if (found) {
     SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
   }
-  return true;
-}
-
-bool Lookup::RsyncTxBodies() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::RsyncTxBodies not expected to be called from "
-                "other than the LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-  const Peer& p = GetLookupPeerToRsync();
-  string ipAddr = std::string(p.GetPrintableIPAddress());
-  string port = std::to_string(p.m_listenPortHost);
-  string dbNameStr =
-      BlockStorage::GetBlockStorage().GetDBName(BlockStorage::TX_BODY)[0];
-  string cmdStr;
-  if (ipAddr == "127.0.0.1" || ipAddr == "localhost") {
-    string indexStr = port;
-    indexStr.erase(indexStr.begin());
-    cmdStr = "rsync -iraz --size-only ../node_0" + indexStr + "/" +
-             PERSISTENCE_PATH + "/" + dbNameStr + "/* " + PERSISTENCE_PATH +
-             "/" + dbNameStr + "/";
-  } else {
-    cmdStr =
-        "rsync -iraz --size-only -e \"ssh -o "
-        "StrictHostKeyChecking=no\" ubuntu@" +
-        ipAddr + ":" + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" +
-        dbNameStr + "/* " + PERSISTENCE_PATH + "/" + dbNameStr + "/";
-  }
-  LOG_GENERAL(INFO, cmdStr);
-
-  string output;
-  if (!SysCommand::ExecuteCmdWithOutput(cmdStr, output)) {
-    return false;
-  }
-  LOG_GENERAL(INFO, "RunRsync: " << output);
   return true;
 }
 
