@@ -643,6 +643,12 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   BlockStorage::GetBlockStorage().PutDSCommittee(
       m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
 
+  if (LOOKUP_NODE_MODE) {
+    BlockStorage::GetBlockStorage().PutDiagnosticData(
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+        m_mediator.m_ds->m_shards, *m_mediator.m_DSCommittee);
+  }
+
   return true;
 }
 

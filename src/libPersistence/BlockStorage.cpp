@@ -610,6 +610,69 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
   return true;
 }
 
+bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
+                                     const DequeOfShard& shards,
+                                     const DequeOfDSNode& dsCommittee) {
+  LOG_MARKER();
+
+  bytes data;
+
+  if (!Messenger::SetDiagnosticData(data, 0, shards, dsCommittee)) {
+    LOG_GENERAL(WARNING, "Messenger::SetDiagnosticData failed");
+    return false;
+  }
+
+  lock_guard<mutex> g(m_mutexDiagnostic);
+
+  if ((NUM_DS_EPOCHS_BEFORE_CLEARING_DIAGNOSTIC_DATA > 0) &&
+      (m_diagnosticDBCounter >=
+       NUM_DS_EPOCHS_BEFORE_CLEARING_DIAGNOSTIC_DATA)) {
+    if (!ResetDB(DIAGNOSTIC)) {
+      LOG_GENERAL(WARNING, "Failed to reset diagnostic db");
+    } else {
+      LOG_GENERAL(INFO, "Diagnostic db cleared");
+    }
+  }
+
+  if (0 != m_diagnosticDB->Insert(dsBlockNum, data)) {
+    LOG_GENERAL(WARNING, "Failed to store diagnostic data");
+    return false;
+  }
+
+  m_diagnosticDBCounter++;
+
+  return true;
+}
+
+bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
+                                     DequeOfShard& shards,
+                                     DequeOfDSNode& dsCommittee) {
+  LOG_MARKER();
+
+  string dataStr;
+
+  {
+    lock_guard<mutex> g(m_mutexDiagnostic);
+    dataStr = m_diagnosticDB->Lookup(dsBlockNum);
+  }
+
+  if (dataStr.empty()) {
+    LOG_GENERAL(WARNING,
+                "Failed to retrieve diagnostic data for DS block number "
+                    << dsBlockNum);
+    return false;
+  }
+
+  bytes data(dataStr.begin(), dataStr.end());
+
+  if (!Messenger::GetDiagnosticData(data, 0, shards, dsCommittee)) {
+    LOG_GENERAL(WARNING, "Messenger::GetDiagnosticData failed");
+    return false;
+  }
+
+  return true;
+}
+
 bool BlockStorage::ResetDB(DBTYPE type) {
   bool ret = false;
   switch (type) {
@@ -671,6 +734,14 @@ bool BlockStorage::ResetDB(DBTYPE type) {
     case STATE_DELTA: {
       lock_guard<mutex> g(m_mutexStateDelta);
       ret = m_stateDeltaDB->ResetDB();
+      break;
+    }
+    case DIAGNOSTIC: {
+      lock_guard<mutex> g(m_mutexDiagnostic);
+      ret = m_diagnosticDB->ResetDB();
+      if (ret) {
+        m_diagnosticDBCounter = 0;
+      }
       break;
     }
   }
@@ -743,23 +814,30 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_stateDeltaDB->GetDBName());
       break;
     }
+    case DIAGNOSTIC: {
+      lock_guard<mutex> g(m_mutexDiagnostic);
+      ret.push_back(m_diagnosticDB->GetDBName());
+      break;
+    }
   }
 
   return ret;
 }
 
+// Don't use short-circuit logical AND (&&) here so that we attempt to reset all
+// databases
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
-    return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
-           ResetDB(MICROBLOCK) && ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) &&
-           ResetDB(FB_BLOCK) && ResetDB(BLOCKLINK) &&
-           ResetDB(SHARD_STRUCTURE) && ResetDB(STATE_DELTA);
+    return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
+           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
+           ResetDB(FB_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
+           ResetDB(STATE_DELTA);
   } else  // IS_LOOKUP_NODE
   {
-    return ResetDB(META) && ResetDB(DS_BLOCK) && ResetDB(TX_BLOCK) &&
-           ResetDB(TX_BODY) && ResetDB(TX_BODY_TMP) && ResetDB(MICROBLOCK) &&
-           ResetDB(DS_COMMITTEE) && ResetDB(VC_BLOCK) && ResetDB(FB_BLOCK) &&
-           ResetDB(BLOCKLINK) && ResetDB(SHARD_STRUCTURE) &&
-           ResetDB(STATE_DELTA);
+    return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
+           ResetDB(TX_BODY) & ResetDB(TX_BODY_TMP) & ResetDB(MICROBLOCK) &
+           ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(FB_BLOCK) &
+           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
+           ResetDB(STATE_DELTA) & ResetDB(DIAGNOSTIC);
   }
 }

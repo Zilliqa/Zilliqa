@@ -2972,6 +2972,39 @@ bool Messenger::GetFallbackBlockWShardingStructure(const bytes& src,
   return ProtobufToShardingStructure(result.sharding(), shards);
 }
 
+bool Messenger::SetDiagnosticData(bytes& dst, const unsigned int offset,
+                                  const DequeOfShard& shards,
+                                  const DequeOfDSNode& dsCommittee) {
+  ProtoDiagnosticData result;
+
+  ShardingStructureToProtobuf(shards, *result.mutable_shards());
+  DSCommitteeToProtobuf(dsCommittee, *result.mutable_dscommittee());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDiagnosticData initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
+                                  DequeOfShard& shards,
+                                  DequeOfDSNode& dsCommittee) {
+  ProtoDiagnosticData result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDiagnosticData initialization failed");
+    return false;
+  }
+
+  ProtobufToShardingStructure(result.shards(), shards);
+
+  return ProtobufToDSCommittee(result.dscommittee(), dsCommittee);
+}
+
 // ============================================================================
 // Peer Manager messages
 // ============================================================================

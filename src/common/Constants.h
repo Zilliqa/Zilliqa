@@ -113,6 +113,7 @@ extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int MSG_VERSION;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
+extern const unsigned int NUM_DS_EPOCHS_BEFORE_CLEARING_DIAGNOSTIC_DATA;
 
 // Archival constants
 extern const bool ARCHIVAL_NODE;
