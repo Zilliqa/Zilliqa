@@ -1110,7 +1110,8 @@ bool Node::ProcessTxnPacketFromLookup(
     }
   }
 
-  if (m_mediator.m_lookup->IsLookupNode(from)) {
+  if (m_mediator.m_lookup->IsLookupNode(from) &&
+      from.GetPrintableIPAddress() != "127.0.0.1") {
     if (epochNumber < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
