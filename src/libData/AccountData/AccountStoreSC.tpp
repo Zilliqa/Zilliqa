@@ -523,7 +523,7 @@ std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
       " -istate " + INPUT_STATE_JSON + " -iblockchain " +
       INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
       OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
-      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas);
+      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas) + " -disable-pp-json";
   LOG_GENERAL(INFO, cmdStr);
   return cmdStr;
 }
