@@ -3686,7 +3686,6 @@ bool Messenger::GetNodeVCDSBlocksMessage(const bytes& src,
 }
 
 bool Messenger::SetNodeFinalBlock(bytes& dst, const unsigned int offset,
-                                  const uint32_t shardId,
                                   const uint64_t dsBlockNumber,
                                   const uint32_t consensusID,
                                   const TxBlock& txBlock,
@@ -3695,7 +3694,6 @@ bool Messenger::SetNodeFinalBlock(bytes& dst, const unsigned int offset,
 
   NodeFinalBlock result;
 
-  result.set_shardid(shardId);
   result.set_dsblocknumber(dsBlockNumber);
   result.set_consensusid(consensusID);
   TxBlockToProtobuf(txBlock, *result.mutable_txblock());
@@ -3710,7 +3708,7 @@ bool Messenger::SetNodeFinalBlock(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetNodeFinalBlock(const bytes& src, const unsigned int offset,
-                                  uint32_t& shardId, uint64_t& dsBlockNumber,
+                                  uint64_t& dsBlockNumber,
                                   uint32_t& consensusID, TxBlock& txBlock,
                                   bytes& stateDelta) {
   LOG_MARKER();
@@ -3724,7 +3722,6 @@ bool Messenger::GetNodeFinalBlock(const bytes& src, const unsigned int offset,
     return false;
   }
 
-  shardId = result.shardid();
   dsBlockNumber = result.dsblocknumber();
   consensusID = result.consensusid();
   if (!ProtobufToTxBlock(result.txblock(), txBlock)) {
