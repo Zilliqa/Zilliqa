@@ -560,6 +560,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     ClearReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
   }
 
+  m_mediator.m_node->m_myshardId = m_shards.size();
   BlockStorage::GetBlockStorage().PutShardStructure(
       m_shards, m_mediator.m_node->m_myshardId);
 
