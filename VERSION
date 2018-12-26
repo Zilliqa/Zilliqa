@@ -1,16 +1,29 @@
-=== Major Version ===
-3
-=== Minor Version ===
-2
-=== Fix Version ===
-0
-=== Expected DS Epoch ===
+=== [Zilliqa] Expected DS Epoch===
 4
+=== [Scilla] Expected DS Epoch===
+4
+=== [Zilliqa]Major Version ===
+3
+=== [Zilliqa]Minor Version ===
+2
+=== [Zilliqa]Fix Version ===
+0
 
 ### DO NOT MODIFY FOLLOWING SECTION! IT WILL BE AUTOMATICALLY GENERATED. ###
-=== Git Commit ID ===
-9902711
-=== SHA-256 ===
+=== [Scilla]Major Version ===
 
-=== Schnorr Signature ===
+=== [Scilla]Minor Version ===
 
+=== [Scilla]Fix Version ===
+
+=== [Zilliqa] Git Commit ID ===
+
+=== [Zilliqa] SHA-256 ===
+
+=== [Zilliqa] Schnorr Signature ===
+
+=== [Scilla] Git Commit ID ===
+
+=== [Scilla] SHA-256 ===
+
+=== [Scilla] Schnorr Signature ===
