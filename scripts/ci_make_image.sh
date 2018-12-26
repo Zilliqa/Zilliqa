@@ -20,26 +20,9 @@
 #
 # Usage:
 #
-#    ./scripts/ci_make_image.sh zilliqa # make k8s-zilliqa
-#    ./scripts/ci_make_image.sh scilla  # make k8s-scilla
+#    ./scripts/ci_make_image.sh
 
 set -e
-
-target=$1
-
-ext=""
-case $target in
-    zilliqa)
-        # Do nothing
-    ;;
-    scilla)
-        ext=".scilla"
-    ;;
-    *)
-        echo "Usage: $0 [zilliqa|scilla]"
-        exit 1
-    ;;
-esac
 
 docker --version
 aws --version
@@ -47,10 +30,16 @@ aws --version
 commit=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2
-source_image=zilliqa:${commit}${ext}
-target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}${ext}
+#TODO: remove .scilla suffix
+source_image=zilliqa:${commit}.scilla
+target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})
-make -C docker k8s-${target} COMMIT=${commit}
+make -C docker k8s-scilla COMMIT=${commit}
 docker tag ${source_image} ${target_image}
 docker push ${target_image}
+
+#TODO: remove target_image2
+target_image2=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}.scilla
+docker tag ${source_image} ${target_image2}
+docker push ${target_image2}
