@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <openssl/rand.h>
 #include <array>
 #include <regex>
 #include <string>
@@ -30,6 +31,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libUtils/TimeUtils.h"
 
 #include "ScillaTestUtil.h"
 
@@ -434,6 +436,130 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   LOG_GENERAL(INFO, "Ping and pong bounced back to reach 0. Successful.");
 
   /* ------------------------------------------------------------------- */
+}
+
+BOOST_AUTO_TEST_CASE(testFungibleToken) {
+  // 1. Bootstrap our test case. Use test case 0 as the basis.
+  KeyPair owner(priv1, {priv1}), transferee(priv2, {priv2});
+  Address ownerAddr, transfereeAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  transfereeAddr = Account::GetAddressFromPublicKey(transferee.second);
+
+  AccountStore::GetInstance().AddAccount(ownerAddr, {bal, nonce});
+  AccountStore::GetInstance().AddAccount(transfereeAddr, {bal, nonce});
+
+  const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
+
+  for (auto hodlers : numHodlers) {
+    contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+    LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr);
+
+    // Deploy the contract using data from the 1st Scilla test.
+    ScillaTestUtil::ScillaTest t1;
+    if (!ScillaTestUtil::GetScillaTest(t1, "fungible-token", 2)) {
+      LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_1.");
+      return;
+    }
+
+    // Replace owner address in init.json.
+    for (auto& it : t1.init) {
+      if (it["vname"] == "owner") {
+        it["value"] = "0x" + ownerAddr.hex();
+      }
+    }
+    // and remove _creation_block (automatic insertion later).
+    ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
+
+    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
+
+    // Transaction to deploy contract.
+    std::string initStr = JSONUtils::convertJsontoStr(t1.init);
+    bytes data(initStr.begin(), initStr.end());
+    Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
+                    500000, t1.code, data);
+    TransactionReceipt tr0;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account != nullptr,
+                        "Error with creation of contract account");
+    nonce++;
+
+    // 2. Pre-generate and save a large map and save it to LDB
+    std::string initOwnerBalance;
+    for (unsigned int i = 0; i < hodlers; i++) {
+      unsigned char* hodler = new unsigned char[20];
+      RAND_bytes(hodler, 20);
+      std::vector<unsigned char> hodlerAddress(hodler, hodler + 20);
+      std::string hodlerNumTokens = "1";
+
+      Json::Value kvPair;
+      kvPair["key"] = "0x" + DataConversion::Uint8VecToHexStr(hodlerAddress);
+      kvPair["val"] = hodlerNumTokens;
+
+      for (auto& it : t1.state) {
+        if (it["vname"] == "balances") {
+          // we have to artifically insert the owner here
+          if (i == 0) {
+            Json::Value ownerBal;
+            ownerBal["key"] =
+                "0x" + DataConversion::Uint8VecToHexStr(ownerAddr.asBytes());
+            ownerBal["val"] = "88888888";
+            it["value"][i] = ownerBal;
+            continue;
+          }
+
+          it["value"][i] = kvPair;
+        }
+      }
+    }
+
+    // save the state
+    for (auto& s : t1.state) {
+      // skip _balance
+      if (s["vname"].asString() == "_balance") {
+        continue;
+      }
+
+      std::string vname = s["vname"].asString();
+      std::string type = s["type"].asString();
+      std::string value = s["value"].isString()
+                              ? s["value"].asString()
+                              : JSONUtils::convertJsontoStr(s["value"]);
+
+      account->SetStorage(vname, type, value);
+    }
+
+    // 3. Create a call to Transfer from one account to another
+    bytes dataTransfer;
+    uint64_t amount =
+        ScillaTestUtil::PrepareMessageData(t1.message, dataTransfer);
+
+    Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                    88888888, {}, dataTransfer);
+    TransactionReceipt tr1;
+    auto t = r_timer_start();
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+    LOG_GENERAL(INFO, "UpdateAccounts (usec) = " << r_timer_end(t));
+    LOG_GENERAL(INFO, "Size of Map (balances) = " << hodlers);
+    LOG_GENERAL(INFO, "Gas used = " << tr1.GetCumGas());
+    nonce++;
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
