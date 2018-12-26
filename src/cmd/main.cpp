@@ -157,19 +157,14 @@ int main(int argc, const char* argv[]) {
       my_network_info = Peer(ip, port);
     }
 
-    vector<unsigned char> tmPrivkey =
-        DataConversion::HexStrToUint8Vec(privK.c_str());
-    vector<unsigned char> tmpPubkey =
-        DataConversion::HexStrToUint8Vec(pubK.c_str());
-
     PrivKey privkey;
-    if (privkey.Deserialize(tmPrivkey, 0) != 0) {
+    if (privkey.Deserialize(DataConversion::HexStrToUint8Vec(privK), 0) != 0) {
       LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
       return -1;
     }
 
     PubKey pubkey;
-    if (pubkey.Deserialize(tmpPubkey, 0) != 0) {
+    if (pubkey.Deserialize(DataConversion::HexStrToUint8Vec(pubK), 0) != 0) {
       LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
       return -1;
     }
