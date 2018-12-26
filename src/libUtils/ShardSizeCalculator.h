@@ -27,6 +27,16 @@ class ShardSizeCalculator {
   /// Calculate and return the min size of required each shard for a specifc
   /// number of total nodes
   static uint32_t CalculateShardSize(const uint32_t numberOfNodes);
+
+  static void GenerateShardCounts(const uint32_t shardSize,
+                                  const uint32_t shardSizeThreshold,
+                                  const uint32_t numNodesForSharding,
+                                  std::vector<uint32_t>& shardCounts,
+                                  bool logDetails = true);
+
+  static uint32_t GetTrimmedShardCount(const uint32_t shardSize,
+                                       const uint32_t shardSizeThreshold,
+                                       const uint32_t numNodesForSharding);
 };
 
 #endif  // __SHARD_SIZE_CALCULATOR_H__
