@@ -44,14 +44,12 @@ using namespace std;
 using namespace boost::multiprecision;
 
 void description() {
-
   std::cout << endl << "Description:\n";
-  std::cout
-      << "\tAccepts public key and prints computed address on stdout." << endl;
+  std::cout << "\tAccepts public key and prints computed address on stdout."
+            << endl;
 }
 
 int main(int argc, const char* argv[]) {
-
   try {
     string pubk;
     po::options_description desc("Options");
@@ -97,7 +95,7 @@ int main(int argc, const char* argv[]) {
 
   } catch (exception& e) {
     cerr << "Unhandled Exception reached the top of main: " << e.what()
-              << ", application will now exit" << endl;
+         << ", application will now exit" << endl;
     return ERROR_UNHANDLED_EXCEPTION;
   }
   return SUCCESS;

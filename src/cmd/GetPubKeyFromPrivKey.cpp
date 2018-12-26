@@ -44,20 +44,19 @@ using namespace std;
 using namespace boost::multiprecision;
 
 void description() {
-
   std::cout << endl << "Description:\n";
-  std::cout
-      << "\tAccepts private key and prints computed public key on stdout." << endl;
+  std::cout << "\tAccepts private key and prints computed public key on stdout."
+            << endl;
 }
 
 int main(int argc, const char* argv[]) {
-
   try {
     string privk;
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
-        "privk, k", po::value<string>(&privk)->required(), "32-byte private key");
+        "privk, k", po::value<string>(&privk)->required(),
+        "32-byte private key");
 
     po::variables_map vm;
     try {
@@ -94,7 +93,7 @@ int main(int argc, const char* argv[]) {
 
   } catch (exception& e) {
     cerr << "Unhandled Exception reached the top of main: " << e.what()
-              << ", application will now exit" << endl;
+         << ", application will now exit" << endl;
     return ERROR_UNHANDLED_EXCEPTION;
   }
   return SUCCESS;

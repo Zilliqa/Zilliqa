@@ -197,8 +197,11 @@ int main(int argc, const char* argv[]) {
 
     desc.add_options()("help,h", "Print help messages")(
         "port,p", po::value<int>(&port), "Local node listen port")(
-        "address,a", po::value<string>(&ip), "Remote node IPv4/6 address formated as \"dotted decimal\" or optionally \"dotted decimal:portnumber\"")(
-        "cmd,c", po::value<string>(&cmd)->required(), "Command; see commands listed below")(
+        "address,a", po::value<string>(&ip),
+        "Remote node IPv4/6 address formated as \"dotted decimal\" or "
+        "optionally \"dotted decimal:portnumber\"")(
+        "cmd,c", po::value<string>(&cmd)->required(),
+        "Command; see commands listed below")(
         "cmdarg,g", po::value<std::vector<string>>(&cmdarg)->required(),
         "Command arguments");
 

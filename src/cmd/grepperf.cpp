@@ -152,8 +152,10 @@ int main(int argc, const char* argv[]) {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
-        "l,log-file-name", po::value<string>(&strFileName), "zilliqa log file name")(
-        "r,result-file-name", po::value<string>(&strResultName), "grep result file name");
+        "l,log-file-name", po::value<string>(&strFileName),
+        "zilliqa log file name")("r,result-file-name",
+                                 po::value<string>(&strResultName),
+                                 "grep result file name");
 
     po::variables_map vm;
     try {
@@ -186,7 +188,7 @@ int main(int argc, const char* argv[]) {
 
   } catch (exception& e) {
     cerr << "Unhandled Exception reached the top of main: " << e.what()
-              << ", application will now exit" << endl;
+         << ", application will now exit" << endl;
     return ERROR_UNHANDLED_EXCEPTION;
   }
   return SUCCESS;

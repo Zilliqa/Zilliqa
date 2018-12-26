@@ -38,9 +38,12 @@ int main(int argc, const char* argv[]) {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
-        "message,m", po::value<string>(&message_)->required(), "Command; see commands listed below")(
-        "privk,i", po::value<string>(&privk_fn)->required(), "Filename containing private keys each per line")(
-        "pubk,u", po::value<string>(&pubk_fn)->required(), "Filename containing public keys each per line");
+        "message,m", po::value<string>(&message_)->required(),
+        "Command; see commands listed below")(
+        "privk,i", po::value<string>(&privk_fn)->required(),
+        "Filename containing private keys each per line")(
+        "pubk,u", po::value<string>(&pubk_fn)->required(),
+        "Filename containing public keys each per line");
 
     po::variables_map vm;
     try {
@@ -70,7 +73,7 @@ int main(int argc, const char* argv[]) {
     vector<uint8_t> v;
     v.push_back(53);
 
-    PrivKey pk(v,0);
+    PrivKey pk(v, 0);
 
     string line;
     try {
@@ -80,9 +83,9 @@ int main(int argc, const char* argv[]) {
           privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
         }
       }
-    }
-    catch (std::exception& e) {
-      std::cerr << "Problem occured when reading private keys on line: " << privKeys.size() + 1 << endl;
+    } catch (std::exception& e) {
+      std::cerr << "Problem occured when reading private keys on line: "
+                << privKeys.size() + 1 << endl;
       return ERROR_IN_COMMAND_LINE;
     }
     if (privKeys.size() < 1) {
@@ -98,9 +101,9 @@ int main(int argc, const char* argv[]) {
           pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
         }
       }
-    }
-    catch (std::exception& e) {
-      std::cerr << "Problem occured when reading public keys on line: "  << pubKeys.size() + 1 << endl;
+    } catch (std::exception& e) {
+      std::cerr << "Problem occured when reading public keys on line: "
+                << pubKeys.size() + 1 << endl;
       return ERROR_IN_COMMAND_LINE;
     }
     if (pubKeys.size() < 1) {
@@ -116,9 +119,11 @@ int main(int argc, const char* argv[]) {
 
     for (unsigned int i = 0; i < privKeys.size(); ++i) {
       Signature sig;
-      if (! Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig)) {
+      if (!Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i),
+                                       sig)) {
         std::cerr << "Failed to sign message" << endl;
-        std::cerr << "Either private key or public key on line " << i + 1 << " are corrupted." << endl;
+        std::cerr << "Either private key or public key on line " << i + 1
+                  << " are corrupted." << endl;
       }
       vector<unsigned char> result;
       sig.Serialize(result, 0);

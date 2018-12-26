@@ -19,9 +19,9 @@
 #include <string>
 #include "libUtils/UpgradeManager.h"
 
-#include "boost/program_options.hpp"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include "boost/program_options.hpp"
 
 namespace po = boost::program_options;
 
@@ -63,8 +63,10 @@ int main(int argc, char** argv) {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
-        "privk,i", po::value<string>(&privk_fn)->required(), "Filename containing private keys each per line")(
-        "pubk,u", po::value<string>(&pubk_fn)->required(), "Filename containing public keys each per line");
+        "privk,i", po::value<string>(&privk_fn)->required(),
+        "Filename containing private keys each per line")(
+        "pubk,u", po::value<string>(&pubk_fn)->required(),
+        "Filename containing public keys each per line");
 
     po::variables_map vm;
     try {
@@ -111,9 +113,9 @@ int main(int argc, char** argv) {
           privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
         }
       }
-    }
-    catch (exception& e) {
-      cerr << "Problem occured when reading private keys on line: " << privKeys.size() + 1 << endl;
+    } catch (exception& e) {
+      cerr << "Problem occured when reading private keys on line: "
+           << privKeys.size() + 1 << endl;
       return ERROR_IN_COMMAND_LINE;
     }
 
@@ -125,9 +127,9 @@ int main(int argc, char** argv) {
           pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
         }
       }
-    }
-    catch (exception& e) {
-      cerr << "Problem occured when reading public keys on line: "  << pubKeys.size() + 1 << endl;
+    } catch (exception& e) {
+      cerr << "Problem occured when reading public keys on line: "
+           << pubKeys.size() + 1 << endl;
       return ERROR_IN_COMMAND_LINE;
     }
 
@@ -163,7 +165,7 @@ int main(int argc, char** argv) {
 
   } catch (exception& e) {
     cerr << "Unhandled Exception reached the top of main: " << e.what()
-              << ", application will now exit" << endl;
+         << ", application will now exit" << endl;
     return ERROR_UNHANDLED_EXCEPTION;
   }
   return SUCCESS;
