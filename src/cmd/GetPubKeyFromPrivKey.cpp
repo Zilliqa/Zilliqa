@@ -23,6 +23,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#include "boost/program_options.hpp"
 #pragma GCC diagnostic pop
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -32,20 +33,69 @@
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SWInfo.h"
 
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+
+namespace po = boost::program_options;
 using namespace std;
 using namespace boost::multiprecision;
 
-// Usage: input the hex string of private key
-int main() {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Reset();
-  bytes message;
-  string s;
-  cin >> s;
+void description() {
 
-  PrivKey privKey{DataConversion::HexStrToUint8Vec(s), 0};
-  PubKey pubKey{privKey};
+  std::cout << endl << "Description:\n";
+  std::cout
+      << "\tAccepts private key and prints computed public key on stdout." << endl;
+}
 
-  cout << pubKey << endl;
+int main(int argc, const char* argv[]) {
+
+  try {
+    string privk;
+    po::options_description desc("Options");
+
+    desc.add_options()("help,h", "Print help messages")(
+        "privk, k", po::value<string>(&privk)->required(), "32-byte private key");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+
+      /** --help option
+       */
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        description();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Reset();
+    vector<unsigned char> message;
+
+    PrivKey privKey{DataConversion::HexStrToUint8Vec(privk), 0};
+    PubKey pubKey{privKey};
+
+    cout << pubKey << endl;
+
+  } catch (exception& e) {
+    cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << endl;
+    return ERROR_UNHANDLED_EXCEPTION;
+  }
+  return SUCCESS;
 }
