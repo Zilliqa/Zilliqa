@@ -68,8 +68,8 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
         MAKE_LITERAL_PAIR(INVALID_COMMHASH)};
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
-                                 const vector<unsigned char>& block_hash,
-                                 uint16_t my_id, const PrivKey& privkey,
+                                 const bytes& block_hash, uint16_t my_id,
+                                 const PrivKey& privkey,
                                  const deque<pair<PubKey, Peer>>& committee,
                                  unsigned char class_byte,
                                  unsigned char ins_byte)
@@ -86,8 +86,8 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
 
 ConsensusCommon::~ConsensusCommon() {}
 
-Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
-                                       unsigned int offset, unsigned int size) {
+Signature ConsensusCommon::SignMessage(const bytes& msg, unsigned int offset,
+                                       unsigned int size) {
   LOG_MARKER();
 
   Signature signature;
@@ -100,8 +100,8 @@ Signature ConsensusCommon::SignMessage(const vector<unsigned char>& msg,
   return signature;
 }
 
-bool ConsensusCommon::VerifyMessage(const vector<unsigned char>& msg,
-                                    unsigned int offset, unsigned int size,
+bool ConsensusCommon::VerifyMessage(const bytes& msg, unsigned int offset,
+                                    unsigned int size,
                                     const Signature& toverify,
                                     uint16_t peer_id) {
   LOG_MARKER();
@@ -174,7 +174,7 @@ Signature ConsensusCommon::AggregateSign(const Challenge& challenge,
   return *result;
 }
 
-Challenge ConsensusCommon::GetChallenge(const vector<unsigned char>& msg,
+Challenge ConsensusCommon::GetChallenge(const bytes& msg,
                                         const CommitPoint& aggregated_commit,
                                         const PubKey& aggregated_key) {
   LOG_MARKER();
@@ -195,7 +195,7 @@ pair<PubKey, Peer> ConsensusCommon::GetCommitteeMember(
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
 
-bool ConsensusCommon::GetConsensusID(const std::vector<unsigned char>& message,
+bool ConsensusCommon::GetConsensusID(const bytes& message,
                                      const unsigned int offset,
                                      uint32_t& consensusID) const {
   if (message.size() > offset) {
@@ -302,7 +302,7 @@ unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize) {
   return ceil(shardSize * TOLERANCE_FRACTION);
 }
 
-bool ConsensusCommon::CanProcessMessage(const vector<unsigned char>& message,
+bool ConsensusCommon::CanProcessMessage(const bytes& message,
                                         unsigned int offset) {
   if (message.size() <= offset) {
     LOG_GENERAL(WARNING, "Consensus message offset " << offset << " >= size "

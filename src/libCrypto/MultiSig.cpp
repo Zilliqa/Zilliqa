@@ -46,8 +46,7 @@ CommitSecret::CommitSecret()
   m_initialized = (!err);
 }
 
-CommitSecret::CommitSecret(const vector<unsigned char>& src,
-                           unsigned int offset) {
+CommitSecret::CommitSecret(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init CommitSecret.");
   }
@@ -71,8 +70,7 @@ CommitSecret::~CommitSecret() {}
 
 bool CommitSecret::Initialized() const { return m_initialized; }
 
-unsigned int CommitSecret::Serialize(vector<unsigned char>& dst,
-                                     unsigned int offset) const {
+unsigned int CommitSecret::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -82,8 +80,7 @@ unsigned int CommitSecret::Serialize(vector<unsigned char>& dst,
   return COMMIT_SECRET_SIZE;
 }
 
-int CommitSecret::Deserialize(const vector<unsigned char>& src,
-                              unsigned int offset) {
+int CommitSecret::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -134,8 +131,7 @@ CommitPoint::CommitPoint(const CommitSecret& secret)
   }
 }
 
-CommitPoint::CommitPoint(const vector<unsigned char>& src,
-                         unsigned int offset) {
+CommitPoint::CommitPoint(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init CommitPoint.");
   }
@@ -161,8 +157,7 @@ CommitPoint::~CommitPoint() {}
 
 bool CommitPoint::Initialized() const { return m_initialized; }
 
-unsigned int CommitPoint::Serialize(vector<unsigned char>& dst,
-                                    unsigned int offset) const {
+unsigned int CommitPoint::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -172,8 +167,7 @@ unsigned int CommitPoint::Serialize(vector<unsigned char>& dst,
   return COMMIT_POINT_SIZE;
 }
 
-int CommitPoint::Deserialize(const vector<unsigned char>& src,
-                             unsigned int offset) {
+int CommitPoint::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -233,15 +227,13 @@ Challenge::Challenge() : m_c(BN_new(), BN_clear_free), m_initialized(false) {
 }
 
 Challenge::Challenge(const CommitPoint& aggregatedCommit,
-                     const PubKey& aggregatedPubkey,
-                     const vector<unsigned char>& message)
+                     const PubKey& aggregatedPubkey, const bytes& message)
     : Challenge(aggregatedCommit, aggregatedPubkey, message, 0,
                 message.size()) {}
 
 Challenge::Challenge(const CommitPoint& aggregatedCommit,
-                     const PubKey& aggregatedPubkey,
-                     const vector<unsigned char>& message, unsigned int offset,
-                     unsigned int size)
+                     const PubKey& aggregatedPubkey, const bytes& message,
+                     unsigned int offset, unsigned int size)
     : m_c(BN_new(), BN_clear_free), m_initialized(false) {
   if (m_c == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
@@ -251,7 +243,7 @@ Challenge::Challenge(const CommitPoint& aggregatedCommit,
   }
 }
 
-Challenge::Challenge(const vector<unsigned char>& src, unsigned int offset) {
+Challenge::Challenge(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init Challenge.");
   }
@@ -275,8 +267,7 @@ Challenge::~Challenge() {}
 
 bool Challenge::Initialized() const { return m_initialized; }
 
-unsigned int Challenge::Serialize(vector<unsigned char>& dst,
-                                  unsigned int offset) const {
+unsigned int Challenge::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -286,8 +277,7 @@ unsigned int Challenge::Serialize(vector<unsigned char>& dst,
   return CHALLENGE_SIZE;
 }
 
-int Challenge::Deserialize(const vector<unsigned char>& src,
-                           unsigned int offset) {
+int Challenge::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
@@ -307,9 +297,8 @@ int Challenge::Deserialize(const vector<unsigned char>& src,
 }
 
 void Challenge::Set(const CommitPoint& aggregatedCommit,
-                    const PubKey& aggregatedPubkey,
-                    const vector<unsigned char>& message, unsigned int offset,
-                    unsigned int size) {
+                    const PubKey& aggregatedPubkey, const bytes& message,
+                    unsigned int offset, unsigned int size) {
   // Initial checks
 
   if (!aggregatedCommit.Initialized()) {
@@ -336,7 +325,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
 
   m_initialized = false;
 
-  vector<unsigned char> buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
+  bytes buf(Schnorr::PUBKEY_COMPRESSED_SIZE_BYTES);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
   const Curve& curve = Schnorr::GetInstance().GetCurve();
@@ -370,7 +359,7 @@ void Challenge::Set(const CommitPoint& aggregatedCommit,
 
   // Hash message
   sha2.Update(message, offset, size);
-  vector<unsigned char> digest = sha2.Finalize();
+  bytes digest = sha2.Finalize();
 
   // Build the challenge
   if ((BN_bin2bn(digest.data(), digest.size(), m_c.get())) == NULL) {
@@ -416,7 +405,7 @@ Response::Response(const CommitSecret& secret, const Challenge& challenge,
   }
 }
 
-Response::Response(const vector<unsigned char>& src, unsigned int offset) {
+Response::Response(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init Response.");
   }
@@ -440,8 +429,7 @@ Response::~Response() {}
 
 bool Response::Initialized() const { return m_initialized; }
 
-unsigned int Response::Serialize(vector<unsigned char>& dst,
-                                 unsigned int offset) const {
+unsigned int Response::Serialize(bytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if (m_initialized) {
@@ -451,8 +439,7 @@ unsigned int Response::Serialize(vector<unsigned char>& dst,
   return RESPONSE_SIZE;
 }
 
-int Response::Deserialize(const vector<unsigned char>& src,
-                          unsigned int offset) {
+int Response::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {

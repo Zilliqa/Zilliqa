@@ -36,7 +36,7 @@ void test() {
 BOOST_AUTO_TEST_CASE(testLogger3) {
   // Write to stdout
   INIT_STDOUT_LOGGER();
-  vector<unsigned char> bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
+  bytes bytestream = {0x12, 0x34, 0x56, 0x78, 0x9A};
 
   LOG_GENERAL(INFO, "Hello world");
   LOG_PAYLOAD(INFO, "Hello world", bytestream,

@@ -36,7 +36,7 @@ bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
                              std::vector<Transaction>& txns) {
   f.seekg(0, std::ios::beg);
 
-  std::vector<unsigned char> buffOffsetInfo(sizeof(uint32_t));
+  bytes buffOffsetInfo(sizeof(uint32_t));
   f.read((char*)&buffOffsetInfo[0], sizeof(uint32_t));
   uint32_t txnOffsetInfoSize = SerializableDataBlock::GetNumber<uint32_t>(
       buffOffsetInfo, 0, sizeof(uint32_t));
@@ -46,7 +46,7 @@ bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
     return false;
   }
 
-  std::vector<unsigned char> buffTxnOffsets(txnOffsetInfoSize);
+  bytes buffTxnOffsets(txnOffsetInfoSize);
   f.read((char*)&buffTxnOffsets[0], txnOffsetInfoSize);
 
   uint32_t txnDataStart = f.tellg();
@@ -66,7 +66,7 @@ bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
   for (unsigned int i = startNum;
        i < startNum + totalNum && i < (txnOffsets.size() - 1); ++i) {
     uint32_t txnSize = txnOffsets[i + 1] - txnOffsets[i];
-    std::vector<unsigned char> buffTxn(txnSize);
+    bytes buffTxn(txnSize);
     f.read((char*)&buffTxn[0], txnSize);
 
     Transaction txn;

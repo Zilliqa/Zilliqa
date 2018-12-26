@@ -27,7 +27,7 @@
 using namespace std;
 
 void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
-                                  const vector<unsigned char>& message) {
+                                  const bytes& message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DataSender::SendDataToLookupNodesDefault not "
@@ -48,7 +48,7 @@ void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
-void SendDataToShardNodesDefault(const vector<unsigned char>& message,
+void SendDataToShardNodesDefault(const bytes& message,
                                  const DequeOfShard& shards,
                                  const unsigned int& my_shards_lo,
                                  const unsigned int& my_shards_hi) {
@@ -97,12 +97,12 @@ void SendDataToShardNodesDefault(const vector<unsigned char>& message,
 
 SendDataToLookupFunc SendDataToLookupFuncDefault =
     [](const VectorOfLookupNode& lookups,
-       const std::vector<unsigned char>& message) mutable -> void {
+       const bytes& message) mutable -> void {
   SendDataToLookupNodesDefault(lookups, message);
 };
 
 SendDataToShardFunc SendDataToShardFuncDefault =
-    [](const std::vector<unsigned char>& message, const DequeOfShard& shards,
+    [](const bytes& message, const DequeOfShard& shards,
        const unsigned int& my_shards_lo,
        const unsigned int& my_shards_hi) mutable -> void {
   SendDataToShardNodesDefault(message, shards, my_shards_lo, my_shards_hi);
@@ -204,7 +204,7 @@ bool DataSender::SendDataToOthers(
   }
 
   if (inB2) {
-    vector<unsigned char> message;
+    bytes message;
     if (!(composeMessageForSenderFunc &&
           composeMessageForSenderFunc(message))) {
       LOG_GENERAL(

@@ -67,12 +67,12 @@ void DirectoryService::StoreFinalBlockToDisk() {
                 << ", Timestamp: " << m_finalBlock->GetTimestamp()
                 << ", NumTxs: " << m_finalBlock->GetHeader().GetNumTxs());
 
-  vector<unsigned char> serializedTxBlock;
+  bytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(
       m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock);
 
-  vector<unsigned char> stateDelta;
+  bytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
   BlockStorage::GetBlockStorage().PutStateDelta(
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
@@ -80,7 +80,7 @@ void DirectoryService::StoreFinalBlockToDisk() {
 }
 
 bool DirectoryService::ComposeFinalBlockMessageForSender(
-    vector<unsigned char>& finalblock_message) {
+    bytes& finalblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeFinalBlockMessageForSender not "
@@ -95,7 +95,7 @@ bool DirectoryService::ComposeFinalBlockMessageForSender(
   const uint64_t dsBlockNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  vector<unsigned char> stateDelta;
+  bytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY, 0,
@@ -110,9 +110,8 @@ bool DirectoryService::ComposeFinalBlockMessageForSender(
 }
 
 void DirectoryService::SendFinalBlockToShardNodes(
-    [[gnu::unused]] const vector<unsigned char>& finalblock_message,
-    const DequeOfShard& shards, const unsigned int& my_shards_lo,
-    const unsigned int& my_shards_hi) {
+    [[gnu::unused]] const bytes& finalblock_message, const DequeOfShard& shards,
+    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SendFinalBlockToShardNodes not expected "
@@ -125,7 +124,7 @@ void DirectoryService::SendFinalBlockToShardNodes(
   const uint64_t dsBlockNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  vector<unsigned char> stateDelta;
+  bytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   auto p = shards.begin();
@@ -135,8 +134,8 @@ void DirectoryService::SendFinalBlockToShardNodes(
     uint32_t shardId =
         m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
 
-    vector<unsigned char> finalblock_message = {
-        MessageType::NODE, NodeInstructionType::FINALBLOCK};
+    bytes finalblock_message = {MessageType::NODE,
+                                NodeInstructionType::FINALBLOCK};
     if (!Messenger::SetNodeFinalBlock(
             finalblock_message, MessageOffset::BODY, shardId, dsBlockNumber,
             m_mediator.m_consensusID, *m_finalBlock, stateDelta)) {
@@ -245,14 +244,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 
-  auto composeFinalBlockMessageForSender =
-      [this](vector<unsigned char>& message) -> bool {
+  auto composeFinalBlockMessageForSender = [this](bytes& message) -> bool {
     return ComposeFinalBlockMessageForSender(message);
   };
 
   auto sendFinalBlockToShardNodes =
-      [this](const std::vector<unsigned char>& message,
-             const DequeOfShard& shards, const unsigned int& my_shards_lo,
+      [this](const bytes& message, const DequeOfShard& shards,
+             const unsigned int& my_shards_lo,
              const unsigned int& my_shards_hi) -> void {
     SendFinalBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
   };
@@ -357,9 +355,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   DetachedFunction(1, func);
 }
 
-bool DirectoryService::ProcessFinalBlockConsensus(
-    const vector<unsigned char>& message, unsigned int offset,
-    const Peer& from) {
+bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
+                                                  unsigned int offset,
+                                                  const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -453,8 +451,8 @@ void DirectoryService::CleanFinalblockConsensusBuffer() {
 }
 
 bool DirectoryService::ProcessFinalBlockConsensusCore(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {

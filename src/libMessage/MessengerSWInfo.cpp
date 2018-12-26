@@ -26,7 +26,7 @@ using namespace std;
 using namespace ZilliqaMessage;
 
 template <class T = ProtoSWInfo>
-bool SerializeToArray(const T& protoMessage, vector<unsigned char>& dst,
+bool SerializeToArray(const T& protoMessage, bytes& dst,
                       const unsigned int offset) {
   if ((offset + protoMessage.ByteSize()) > dst.size()) {
     dst.resize(offset + protoMessage.ByteSize());
@@ -50,8 +50,7 @@ void ProtobufToSWInfo(const ProtoSWInfo& protoSWInfo, SWInfo& swInfo) {
                   protoSWInfo.commit());
 }
 
-bool MessengerSWInfo::SetSWInfo(std::vector<unsigned char>& dst,
-                                const unsigned int offset,
+bool MessengerSWInfo::SetSWInfo(bytes& dst, const unsigned int offset,
                                 const SWInfo& swInfo) {
   ProtoSWInfo result;
 
@@ -65,8 +64,8 @@ bool MessengerSWInfo::SetSWInfo(std::vector<unsigned char>& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool MessengerSWInfo::GetSWInfo(const std::vector<unsigned char>& src,
-                                const unsigned int offset, SWInfo& swInfo) {
+bool MessengerSWInfo::GetSWInfo(const bytes& src, const unsigned int offset,
+                                SWInfo& swInfo) {
   ProtoSWInfo result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);

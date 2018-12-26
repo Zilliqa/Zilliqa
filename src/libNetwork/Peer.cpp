@@ -30,7 +30,7 @@ Peer::Peer() : m_ipAddress(0), m_listenPortHost(0) {}
 Peer::Peer(const uint128_t& ip_address, uint32_t listen_port_host)
     : m_ipAddress(ip_address), m_listenPortHost(listen_port_host) {}
 
-Peer::Peer(const vector<unsigned char>& src, unsigned int offset)
+Peer::Peer(const bytes& src, unsigned int offset)
     : m_ipAddress(0), m_listenPortHost(0) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init Peer.");
@@ -61,8 +61,7 @@ const string Peer::GetPrintableIPAddress() const {
   return string(str);
 }
 
-unsigned int Peer::Serialize(vector<unsigned char>& dst,
-                             unsigned int offset) const {
+unsigned int Peer::Serialize(bytes& dst, unsigned int offset) const {
   Serializable::SetNumber<uint128_t>(dst, offset, m_ipAddress, UINT128_SIZE);
   Serializable::SetNumber<uint32_t>(dst, offset + UINT128_SIZE,
                                     m_listenPortHost, sizeof(uint32_t));
@@ -70,7 +69,7 @@ unsigned int Peer::Serialize(vector<unsigned char>& dst,
   return UINT128_SIZE + sizeof(uint32_t);
 }
 
-int Peer::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
+int Peer::Deserialize(const bytes& src, unsigned int offset) {
   try {
     m_ipAddress = Serializable::GetNumber<uint128_t>(src, offset, UINT128_SIZE);
     m_listenPortHost = Serializable::GetNumber<uint32_t>(

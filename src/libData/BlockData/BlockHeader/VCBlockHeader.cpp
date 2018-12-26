@@ -34,8 +34,7 @@ VCBlockHeader::VCBlockHeader()
       m_FaultyLeaders(),
       m_prevHash() {}
 
-VCBlockHeader::VCBlockHeader(const vector<unsigned char>& src,
-                             unsigned int offset) {
+VCBlockHeader::VCBlockHeader(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(INFO, "Error. We failed to initialize VCBlockHeader.");
   }
@@ -57,8 +56,7 @@ VCBlockHeader::VCBlockHeader(
       m_FaultyLeaders(faultyLeaders),
       m_prevHash(prevHash) {}
 
-bool VCBlockHeader::Serialize(vector<unsigned char>& dst,
-                              unsigned int offset) const {
+bool VCBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetVCBlockHeader(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetVCBlockHeader failed.");
     return false;
@@ -67,8 +65,7 @@ bool VCBlockHeader::Serialize(vector<unsigned char>& dst,
   return true;
 }
 
-bool VCBlockHeader::Deserialize(const vector<unsigned char>& src,
-                                unsigned int offset) {
+bool VCBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetVCBlockHeader(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetVCBlockHeader failed.");
     return false;

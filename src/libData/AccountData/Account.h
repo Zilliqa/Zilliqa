@@ -55,8 +55,8 @@ class Account : public SerializableDataBlock {
   // The associated code for this account.
   uint64_t m_createBlockNum = 0;
   Json::Value m_initValJson;
-  std::vector<unsigned char> m_initData;
-  std::vector<unsigned char> m_codeCache;
+  bytes m_initData;
+  bytes m_codeCache;
 
   const dev::h256 GetKeyHash(const std::string& key) const;
 
@@ -66,7 +66,7 @@ class Account : public SerializableDataBlock {
   Account();
 
   /// Constructor for loading account information from a byte stream.
-  Account(const std::vector<unsigned char>& src, unsigned int offset);
+  Account(const bytes& src, unsigned int offset);
 
   /// Constructor for a account.
   Account(const boost::multiprecision::uint128_t& balance,
@@ -79,7 +79,7 @@ class Account : public SerializableDataBlock {
   void InitStorage();
 
   /// Parse the Immutable Data at Constract Initialization Stage
-  void InitContract(const std::vector<unsigned char>& data);
+  void InitContract(const bytes& data);
 
   /// Set the block number when this account was created.
   void SetCreateBlockNum(const uint64_t& blockNum);
@@ -88,10 +88,10 @@ class Account : public SerializableDataBlock {
   const uint64_t& GetCreateBlockNum() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Increases account balance by the specified delta amount.
   bool IncreaseBalance(const boost::multiprecision::uint128_t& delta);
@@ -122,9 +122,9 @@ class Account : public SerializableDataBlock {
   const dev::h256& GetStorageRoot() const;
 
   /// Set the code
-  void SetCode(const std::vector<unsigned char>& code);
+  void SetCode(const bytes& code);
 
-  const std::vector<unsigned char>& GetCode() const;
+  const bytes& GetCode() const;
 
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
@@ -141,9 +141,9 @@ class Account : public SerializableDataBlock {
 
   Json::Value GetInitJson() const;
 
-  const std::vector<unsigned char>& GetInitData() const;
+  const bytes& GetInitData() const;
 
-  void SetInitData(const std::vector<unsigned char>& initData);
+  void SetInitData(const bytes& initData);
 
   void InitContract();
 
@@ -165,13 +165,11 @@ class Account : public SerializableDataBlock {
   friend inline std::ostream& operator<<(std::ostream& out,
                                          Account const& account);
 
-  static bool SerializeDelta(std::vector<unsigned char>& dst,
-                             unsigned int offset, Account* oldAccount,
-                             const Account& newAccount);
+  static bool SerializeDelta(bytes& dst, unsigned int offset,
+                             Account* oldAccount, const Account& newAccount);
 
-  static bool DeserializeDelta(const std::vector<unsigned char>& src,
-                               unsigned int offset, Account& account,
-                               bool fullCopy);
+  static bool DeserializeDelta(const bytes& src, unsigned int offset,
+                               Account& account, bool fullCopy);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account) {

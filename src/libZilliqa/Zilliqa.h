@@ -48,15 +48,14 @@ class Zilliqa {
   Archival m_arch;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
-  boost::lockfree::queue<std::pair<std::vector<unsigned char>, Peer>*>
-      m_msgQueue;
+  boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
 
   jsonrpc::HttpServer m_httpserver;
   Server m_server;
 
   ThreadPool m_queuePool{MAXMESSAGE, "QueuePool"};
 
-  void ProcessMessage(std::pair<std::vector<unsigned char>, Peer>* message);
+  void ProcessMessage(std::pair<bytes, Peer>* message);
 
  public:
   /// Constructor.
@@ -70,7 +69,7 @@ class Zilliqa {
   void LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
 
   /// Forwards an incoming message for processing by the appropriate subclass.
-  void Dispatch(std::pair<std::vector<unsigned char>, Peer>* message);
+  void Dispatch(std::pair<bytes, Peer>* message);
 
   /// Returns a list of broadcast peers based on the specified message and
   /// instruction types.

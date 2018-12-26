@@ -40,8 +40,8 @@ using namespace jsonrpc;
 
 void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
                               const Peer& peer) {
-  vector<unsigned char> tmp1;
-  vector<unsigned char> tmp2;
+  bytes tmp1;
+  bytes tmp2;
 
   key.first.Serialize(tmp1, 0);
   key.second.Serialize(tmp2, 0);
@@ -50,10 +50,10 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
 
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Reset();
-  vector<unsigned char> message;
+  bytes message;
   key.second.Serialize(message, 0);
   sha2.Update(message, 0, PUB_KEY_SIZE);
-  const vector<unsigned char>& tmp3 = sha2.Finalize();
+  const bytes& tmp3 = sha2.Finalize();
   Address toAddr;
   copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
@@ -80,7 +80,7 @@ void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
          MessageTypeInstructionStrings[msgType][instruction];
 }
 
-void Zilliqa::ProcessMessage(pair<vector<unsigned char>, Peer>* message) {
+void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
@@ -151,7 +151,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
-    pair<vector<unsigned char>, Peer>* message = NULL;
+    pair<bytes, Peer>* message = NULL;
     while (true) {
       while (m_msgQueue.pop(message)) {
         // For now, we use a thread pool to handle this message
@@ -303,13 +303,13 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
 }
 
 Zilliqa::~Zilliqa() {
-  pair<vector<unsigned char>, Peer>* message = NULL;
+  pair<bytes, Peer>* message = NULL;
   while (m_msgQueue.pop(message)) {
     delete message;
   }
 }
 
-void Zilliqa::Dispatch(pair<vector<unsigned char>, Peer>* message) {
+void Zilliqa::Dispatch(pair<bytes, Peer>* message) {
   // LOG_MARKER();
 
   // Queue message

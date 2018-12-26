@@ -26,7 +26,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool TxBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
+bool TxBlock::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTxBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTxBlock failed.");
     return false;
@@ -35,8 +35,7 @@ bool TxBlock::Serialize(vector<unsigned char>& dst, unsigned int offset) const {
   return true;
 }
 
-bool TxBlock::Deserialize(const vector<unsigned char>& src,
-                          unsigned int offset) {
+bool TxBlock::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetTxBlock(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTxBlock failed.");
     return false;
@@ -48,7 +47,7 @@ bool TxBlock::Deserialize(const vector<unsigned char>& src,
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 TxBlock::TxBlock() {}
 
-TxBlock::TxBlock(const vector<unsigned char>& src, unsigned int offset) {
+TxBlock::TxBlock(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init TxBlock.");
   }

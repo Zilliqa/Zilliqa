@@ -39,7 +39,7 @@ template <class number_type>
 void test(const char* number_label, unsigned int size) {
   LOG_MARKER();
 
-  vector<unsigned char> v;
+  bytes v;
   number_type n = 65539;
 
   LOG_GENERAL(INFO, number_label << " value = " << n);

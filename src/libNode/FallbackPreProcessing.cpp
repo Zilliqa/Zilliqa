@@ -31,14 +31,12 @@
 
 using namespace std;
 
-bool Node::FallbackValidator(const vector<unsigned char>& message,
-                             unsigned int offset,
-                             [[gnu::unused]] vector<unsigned char>& errorMsg,
+bool Node::FallbackValidator(const bytes& message, unsigned int offset,
+                             [[gnu::unused]] bytes& errorMsg,
                              const uint32_t consensusID,
-                             const uint64_t blockNumber,
-                             const vector<unsigned char>& blockHash,
+                             const uint64_t blockNumber, const bytes& blockHash,
                              const uint16_t leaderID, const PubKey& leaderKey,
-                             vector<unsigned char>& messageToCosign) {
+                             bytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FallbackValidator not expected to be"
@@ -491,9 +489,9 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
     m_consensusObject.reset(new ConsensusLeader(
         m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
         m_consensusBlockHash, m_consensusMyID, m_mediator.m_selfKey.first,
-        *m_myShardMembers, static_cast<unsigned char>(NODE),
-        static_cast<unsigned char>(FALLBACKCONSENSUS),
-        NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
+        *m_myShardMembers, static_cast<uint8_t>(NODE),
+        static_cast<uint8_t>(FALLBACKCONSENSUS), NodeCommitFailureHandlerFunc(),
+        ShardCommitFailureHandlerFunc()));
   }
 
   if (m_consensusObject == nullptr) {
@@ -504,7 +502,7 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
 
   ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
-  vector<unsigned char> m;
+  bytes m;
   {
     lock_guard<mutex> g(m_mutexPendingFallbackBlock);
     m_pendingFallbackBlock->Serialize(m, 0);
@@ -513,11 +511,10 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
   std::this_thread::sleep_for(std::chrono::seconds(FALLBACK_EXTRA_TIME));
 
   auto announcementGeneratorFunc =
-      [this](vector<unsigned char>& dst, unsigned int offset,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const vector<unsigned char>& blockHash, const uint16_t leaderID,
-             const pair<PrivKey, PubKey>& leaderKey,
-             vector<unsigned char>& messageToCosign) mutable -> bool {
+      [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
+             const uint64_t blockNumber, const bytes& blockHash,
+             const uint16_t leaderID, const pair<PrivKey, PubKey>& leaderKey,
+             bytes& messageToCosign) mutable -> bool {
     lock_guard<mutex> g(m_mutexPendingFallbackBlock);
     return Messenger::SetNodeFallbackBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
@@ -545,12 +542,11 @@ bool Node::RunConsensusOnFallbackWhenBackup() {
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto func = [this](const vector<unsigned char>& input, unsigned int offset,
-                     vector<unsigned char>& errorMsg,
+  auto func = [this](const bytes& input, unsigned int offset, bytes& errorMsg,
                      const uint32_t consensusID, const uint64_t blockNumber,
-                     const vector<unsigned char>& blockHash,
-                     const uint16_t leaderID, const PubKey& leaderKey,
-                     vector<unsigned char>& messageToCosign) mutable -> bool {
+                     const bytes& blockHash, const uint16_t leaderID,
+                     const PubKey& leaderKey,
+                     bytes& messageToCosign) mutable -> bool {
     return FallbackValidator(input, offset, errorMsg, consensusID, blockNumber,
                              blockHash, leaderID, leaderKey, messageToCosign);
   };
@@ -561,8 +557,8 @@ bool Node::RunConsensusOnFallbackWhenBackup() {
         m_mediator.m_consensusID, m_mediator.m_currentEpochNum,
         m_consensusBlockHash, m_consensusMyID, m_consensusLeaderID,
         m_mediator.m_selfKey.first, *m_myShardMembers,
-        static_cast<unsigned char>(NODE),
-        static_cast<unsigned char>(FALLBACKCONSENSUS), func));
+        static_cast<uint8_t>(NODE), static_cast<uint8_t>(FALLBACKCONSENSUS),
+        func));
   }
 
   if (m_consensusObject == nullptr) {

@@ -63,14 +63,14 @@ BOOST_AUTO_TEST_CASE(DSBlock_test) {
 
   DSBlock block1(header1, signature1);
 
-  std::vector<unsigned char> message1;
+  bytes message1;
   block1.Serialize(message1, 0);
   LOG_PAYLOAD(INFO, "Block1 serialized", message1,
               Logger::MAX_BYTES_TO_DISPLAY);
 
   DSBlock block2(message1, 0);
 
-  std::vector<unsigned char> message2;
+  bytes message2;
   block2.Serialize(message2, 0);
   dsHeader = block2.GetHeader();
   LOG_PAYLOAD(INFO, "Block2 serialized", message2,
@@ -178,11 +178,11 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   Transaction tx2 = CreateDummyTx2();
 
   // compute tx root hash
-  std::vector<unsigned char> vec;
+  bytes vec;
   tx1.Serialize(vec, 0);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
-  std::vector<unsigned char> tx1HashVec = sha2.Finalize();
+  bytes tx1HashVec = sha2.Finalize();
   std::array<unsigned char, TRAN_HASH_SIZE> tx1Hash;
   copy(tx1HashVec.begin(), tx1HashVec.end(), tx1Hash.begin());
 
@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   sha2.Reset();
   tx2.Serialize(vec, 0);
   sha2.Update(vec);
-  std::vector<unsigned char> tx2HashVec = sha2.Finalize();
+  bytes tx2HashVec = sha2.Finalize();
   std::array<unsigned char, TRAN_HASH_SIZE> tx2Hash;
   copy(tx2HashVec.begin(), tx2HashVec.end(), tx2Hash.begin());
 
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   header0.Serialize(vec, 0);
   sha2.Reset();
   sha2.Update(vec);
-  std::vector<unsigned char> prevHash1Vec = sha2.Finalize();
+  bytes prevHash1Vec = sha2.Finalize();
   std::array<unsigned char, BLOCK_HASH_SIZE> prevHash1;
   copy(prevHash1Vec.begin(), prevHash1Vec.end(), prevHash1.begin());
 
@@ -238,22 +238,22 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   vec.clear();
   copy(tx2Hash.begin(), tx2Hash.end(), back_inserter(vec));
   sha2.Update(vec);
-  std::vector<unsigned char> txRootHash1Vec = sha2.Finalize();
+  bytes txRootHash1Vec = sha2.Finalize();
   std::array<unsigned char, TRAN_HASH_SIZE> txRootHash1;
   copy(txRootHash1Vec.begin(), txRootHash1Vec.end(), txRootHash1.begin());
 
   sha2.Reset();
-  std::vector<unsigned char> headerSerialized;
+  bytes headerSerialized;
   dsHeader.Serialize(headerSerialized, 0);
   sha2.Update(headerSerialized);
-  std::vector<unsigned char> headerHashVec = sha2.Finalize();
+  bytes headerHashVec = sha2.Finalize();
   std::array<unsigned char, BLOCK_HASH_SIZE> headerHash;
   copy(headerHashVec.begin(), headerHashVec.end(), headerHash.begin());
   TxBlockHeader header1(1, 1, 100, 50, prevHash1, 1, 23456, txRootHash1, 2,
                         pubKey1, dsHeader.GetBlockNum(), headerHash);
   TxBlock block1(header1, signature1, tranHashes1, 2, tranData1);
 
-  std::vector<unsigned char> message1;
+  bytes message1;
   block1.Serialize(message1, 0);
 
   LOG_PAYLOAD(INFO, "Block1 serialized", message1,
@@ -261,7 +261,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
 
   TxBlock block2(message1, 0);
 
-  std::vector<unsigned char> message2;
+  bytes message2;
   block2.Serialize(message2, 0);
 
   LOG_PAYLOAD(INFO, "Block2 serialized", message2,
@@ -320,14 +320,13 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   BOOST_CHECK_MESSAGE(gasUsed2 == 50,
                       "expected: " << 50 << " actual: " << gasUsed2 << "\n");
 
-  std::vector<unsigned char> byteVec;
+  bytes byteVec;
   byteVec.resize(BLOCK_HASH_SIZE);
   copy(prevHash2.begin(), prevHash2.end(), byteVec.begin());
   LOG_PAYLOAD(INFO, "Block 2 prevHash", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
   std::string expectedStr =
       "0D3979DA06841562C90DE5212BE5EFCF88FAEA17118945B6B49D304DE295E407";
-  std::vector<unsigned char> expectedVec =
-      DataConversion::HexStrToUint8Vec(expectedStr);
+  bytes expectedVec = DataConversion::HexStrToUint8Vec(expectedStr);
   bool is_prevHash_equal = std::equal(byteVec.begin(), byteVec.end(),
                                       expectedVec.begin(), expectedVec.end());
   BOOST_CHECK_MESSAGE(
@@ -408,7 +407,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   BOOST_CHECK_MESSAGE(dsBlockNum2 == 10,
                       "expected: " << 10 << " actual: " << dsBlockNum2);
 
-  std::vector<unsigned char> dsBlockHeader2Vec(BLOCK_HASH_SIZE);
+  bytes dsBlockHeader2Vec(BLOCK_HASH_SIZE);
   copy(dsBlockHeader2.begin(), dsBlockHeader2.end(), dsBlockHeader2Vec.begin());
   BOOST_CHECK_MESSAGE(
       dsBlockHeader2 == headerHash,
