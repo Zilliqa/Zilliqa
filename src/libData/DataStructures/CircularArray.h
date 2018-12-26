@@ -98,6 +98,9 @@ class CircularArray {
   /// Returns the number of elements stored till now in the array.
   uint64_t size() { return m_size; }
 
+  /// Increase size
+  void increase_size(uint64_t size) { m_size += size; }
+
   /// Returns the storage capacity of the array.
   size_t capacity() { return m_capacity; }
 };
