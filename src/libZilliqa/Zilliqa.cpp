@@ -280,6 +280,10 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
         m_ds.StartSynchronization();
         break;
+      case SyncType::DB_VERIF:
+        LOG_GENERAL(INFO, "Intitialize DB verification");
+        m_n.ValidateDB();
+        break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
         break;
