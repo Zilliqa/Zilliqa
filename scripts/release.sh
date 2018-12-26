@@ -24,11 +24,18 @@ GitHubToken=""
 packageName=""
 releaseTitle=""
 releaseDescription=""
+privKeyFile=""
+pubKeyFile=""
+constantFile=""
+constantLookupFile=""
+constantArchivalFile=""
 
+# [OPTIONAL] User configuration settings
+scillaPath=""    # Scilla will NOT be released if leaving this field empty
 
 # Environment variables
 releaseDir="release"
-versionFile="VERSION"
+versionFile="../VERSION"
 dsNodeFile="dsnodes.xml"
 majorLine=2
 minorLine=4
@@ -39,82 +46,61 @@ shaLine=14
 sigLine=16
 
 # Validate input argument
-if [ "$#" -ne 5 ]; then
-    echo "Usage: source ./release.sh privateKeyFileName publicKeyFileName constantFileName constantLookupFileName constantArchivalFileName"
+if [ "$#" -ne 0 ]; then
+    echo "Usage: source ./scripts/release.sh"
     return 1
 fi
 
-if [ ! -f "$1" ]; then
-    echo "*ERROR* File : $1 not found!"
+if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ] || [ "$constantArchivalFile" = "" ]; then
+    echo -e "\n\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
     return 1
 fi
 
-if [ ! -f "$2" ]; then
-    echo "*ERROR* File : $2 not found!"
+if [ ! -f "${privKeyFile}" ]; then
+    echo -e "\n\n\033[0;31m*ERROR* Private key file : ${privKeyFile} not found, please confirm privKeyFile field in release.sh!\033[0m\n"
     return 1
 fi
 
-if [ ! -f "$3" ]; then
-    echo "*ERROR* File : $3 not found!"
+if [ ! -f "${pubKeyFile}" ]; then
+    echo -e "\n\n\033[0;31m*ERROR* Public key file : ${pubKeyFile} not found, please confirm pubKeyFile field in release.sh!\033[0m\n"
     return 1
 fi
 
-if [ ! -f "$4" ]; then
-    echo "*ERROR* File : $4 not found!"
+if [ ! -f "${constantFile}" ]; then
+    echo -e "\n\n\033[0;31m*ERROR* Constant file : ${constantFile} not found, please confirm constantFile field in release.sh!\033[0m\n"
     return 1
 fi
 
-if [ ! -f "$5" ]; then
-    echo "*ERROR* File : $5 not found!"
+if [ ! -f "${constantLookupFile}" ]; then
+    echo -e "\n\n\033[0;31m*ERROR* Lookup constant file : ${constantLookupFile} not found, please confirm constantLookupFile field in release.sh!\033[0m\n"
     return 1
 fi
 
-if [ "$GitHubToken" = "" ]; then
-    echo "*ERROR* Please enter your own GitHub token in release.sh!"
+if [ ! -f "${constantArchivalFile}" ]; then
+    echo -e "\n\n\033[0;31m*ERROR* Archival constant file : ${constantArchivalFile} not found, please confirm constantArchivalFile field in release.sh!\033[0m\n"
     return 1
 fi
 
-if [ "$packageName" = "" ]; then
-    echo "*ERROR* Please enter the package name in release.sh!"
-    return 1
-fi
-
-if [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ]; then
-    echo "*ERROR* Please enter the release title and description in release.sh!"
-    return 1
+if [ -d "${scillaPath}" ]; then
+    echo -e "\n\n\033[0;32m*INFO* Scilla will be released.\033[0m\n"
+else
+    echo -e "\n\n\033[0;32m*INFO* Scilla Path : ${scillaPath} not existed, we will NOT release Scilla.\033[0m\n"
 fi
 
 # Read information from files
-constantFile="$(realpath $3)"
-constantLookupFile="$(realpath $4)"
-constantArchivalFile="$(realpath $5)"
+constantFile="$(realpath ${constantFile})"
+constantLookupFile="$(realpath ${constantLookupFile})"
+constantArchivalFile="$(realpath ${constantArchivalFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
-defaultMajor="$(sed -n ${majorLine}p ${versionFile})"
-defaultMinor="$(sed -n ${minorLine}p ${versionFile})"
-defaultFix="$(sed -n ${fixLine}p ${versionFile})"
-defaultDS="$(sed -n ${DSLine}p ${versionFile})"
-defaultCommit="$(sed -n ${commitLine}p ${versionFile})"
-currentVer=${defaultMajor}.${defaultMinor}.${defaultFix}.${defaultDS}.${defaultCommit}
-
-# Ask user to input new version information
-echo -e "Current software version:  ${currentVer}"
-read -p "Please enter major version [${defaultMajor}]: " major
-major=${major:-${defaultMajor}}
-read -p "Please enter minor version [${defaultMinor}]: " minor
-minor=${minor:-${defaultMinor}}
-read -p "Please enter fix version [${defaultFix}]: " fix
-fix=${fix:-${defaultFix}}
-read -p "Please enter expected DS epoch [${defaultDS}]: " DS
-DS=${DS:-${defaultDS}}
+major="$(sed -n ${majorLine}p ${versionFile})"
+minor="$(sed -n ${minorLine}p ${versionFile})"
+fix="$(sed -n ${fixLine}p ${versionFile})"
+DS="$(sed -n ${DSLine}p ${versionFile})"
 commit="$(git describe --always)"
 
 # Write new version information into version file
 echo -e "Writing new software version into ${versionFile}..."
-sed -i "${majorLine}s/.*/${major}/" ${versionFile}
-sed -i "${minorLine}s/.*/${minor}/" ${versionFile}
-sed -i "${fixLine}s/.*/${fix}/" ${versionFile}
-sed -i "${DSLine}s/.*/${DS}/" ${versionFile}
 sed -i "${commitLine}s/.*/${commit}/" ${versionFile}
 newVer=${major}.${minor}.${fix}.${DS}.${commit}
 export ZIL_VER=${newVer}
@@ -131,8 +117,8 @@ echo -e "Deb packages are generated successfully.\n"
 
 # Make SHA-256 & multi-signature
 echo -e "Making SHA-256 & multi-signature..."
-privKeyFile="$(realpath $1)"
-pubKeyFile="$(realpath $2)"
+privKeyFile="$(realpath ${privKeyFile})"
+pubKeyFile="$(realpath ${pubKeyFile})"
 cd ${releaseDir}
 sha="$(sha256sum ${debFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
