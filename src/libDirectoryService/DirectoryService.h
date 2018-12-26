@@ -321,10 +321,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   // internal calls from ProcessFinalBlockConsensus
   bool ComposeFinalBlockMessageForSender(bytes& finalblock_message);
-  void SendFinalBlockToShardNodes(const bytes& finalblock_message,
-                                  const DequeOfShard& shards,
-                                  const unsigned int& my_shards_lo,
-                                  const unsigned int& my_shards_hi);
   void ProcessFinalBlockConsensusWhenDone();
   void CommitFinalBlockConsensusBuffer();
 

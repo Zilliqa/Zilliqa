@@ -264,7 +264,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;
-  SendDataToShardFunc t_sendDataToShardFunc = nullptr;
   // Broadcasting vcblock to lookup nodes iff view change do not occur before ds
   // block consensus. This is to be consistent with how normal node process the
   // vc block (before ds block).
@@ -285,7 +284,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP: {
-      t_sendDataToShardFunc = SendDataToShardFuncDefault;
       break;
     }
     case VIEWCHANGE_CONSENSUS:
@@ -296,17 +294,25 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
           "illegal view change state. state: " << to_string(viewChangeState));
   }
 
-  if (t_sendDataToLookupFunc || t_sendDataToShardFunc) {
+  if (t_sendDataToLookupFunc) {
     auto composeVCBlockForSender =
         [this](vector<unsigned char>& vcblock_message) -> bool {
       return ComposeVCBlockForSender(vcblock_message);
     };
 
+    // Acquire shard receivers cosigs from MicroBlocks
+    unordered_map<uint32_t, BlockBase> t_microBlocks;
+    const auto& microBlocks = m_microBlocks
+        [m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()];
+    for (const auto& microBlock : microBlocks) {
+      t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
+    }
+
     DataSender::GetInstance().SendDataToOthers(
-        *m_pendingVCBlock, tmpDSCommittee, m_shards,
+        *m_pendingVCBlock, tmpDSCommittee, m_shards, t_microBlocks,
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeVCBlockForSender, t_sendDataToLookupFunc, t_sendDataToShardFunc);
+        composeVCBlockForSender, t_sendDataToLookupFunc);
   }
 }
 
