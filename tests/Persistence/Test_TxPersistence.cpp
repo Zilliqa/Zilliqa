@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
 
   TxBlock block1 = constructDummyTxBlock(0);
 
-  std::vector<unsigned char> serializedTxBlock;
+  bytes serializedTxBlock;
   block1.Serialize(serializedTxBlock, 0);
 
   TxBlock block2(serializedTxBlock, 0);
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
 
   TxBlock block1 = constructDummyTxBlock(0);
 
-  std::vector<unsigned char> serializedTxBlock;
+  bytes serializedTxBlock;
   block1.Serialize(serializedTxBlock, 0);
 
   BlockStorage::GetBlockStorage().PutTxBlock(0, serializedTxBlock);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
   TxBlock block3 = constructDummyTxBlock(3);
   TxBlock block4 = constructDummyTxBlock(4);
 
-  std::vector<unsigned char> serializedTxBlock;
+  bytes serializedTxBlock;
 
   block1.Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(1, serializedTxBlock);
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks) {
   for (int i = 5; i < 21; i++) {
     block = constructDummyTxBlock(i);
 
-    std::vector<unsigned char> serializedTxBlock;
+    bytes serializedTxBlock;
 
     block.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks) {
 void writeBlock(int id) {
   TxBlock block = constructDummyTxBlock(id);
 
-  std::vector<unsigned char> serializedDSBlock;
+  bytes serializedDSBlock;
 
   block.Serialize(serializedDSBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(id, serializedDSBlock);
@@ -223,7 +223,7 @@ void bootstrap(int num_threads) {
     for (int j = 0; j < 100; j++) {
       TxBlock block = constructDummyTxBlock(i * 1000 + j);
 
-      std::vector<unsigned char> serializedTxBlock;
+      bytes serializedTxBlock;
 
       block.Serialize(serializedTxBlock, 0);
       BlockStorage::GetBlockStorage().PutTxBlock(i * 1000 + j,
@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles) {
   for (int i = 21; i < 2500; i++) {
     block = constructDummyTxBlock(i);
 
-    std::vector<unsigned char> serializedTxBlock;
+    bytes serializedTxBlock;
 
     block.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB) {
     for (int i = 0; i < 10; i++) {
       TxBlock block = constructDummyTxBlock(i);
 
-      std::vector<unsigned char> serializedTxBlock;
+      bytes serializedTxBlock;
 
       block.Serialize(serializedTxBlock, 0);
 

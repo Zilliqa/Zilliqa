@@ -42,7 +42,7 @@ using namespace boost::multiprecision;
 int main() {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   sha2.Reset();
-  vector<unsigned char> message;
+  bytes message;
   string s;
   cin >> s;
 

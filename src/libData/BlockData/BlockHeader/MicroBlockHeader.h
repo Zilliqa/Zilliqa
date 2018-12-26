@@ -53,7 +53,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   MicroBlockHeader();
 
   /// Constructor for loading existing microblock header from a byte stream.
-  MicroBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
+  MicroBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with predefined member values.
   MicroBlockHeader(const uint8_t type, const uint32_t version,
@@ -66,10 +66,10 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so
   // no need to add Doxygen tags for now

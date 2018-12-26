@@ -46,8 +46,7 @@ Account* AccountStoreTemp::GetAccount(const Address& address) {
   return nullptr;
 }
 
-bool AccountStoreTemp::DeserializeDelta(const vector<unsigned char>& src,
-                                        unsigned int offset) {
+bool AccountStoreTemp::DeserializeDelta(const bytes& src, unsigned int offset) {
   LOG_MARKER();
 
   if (!Messenger::GetAccountStoreDelta(src, offset, *this)) {

@@ -19,7 +19,7 @@
 #ifndef __MESSENGERACCOUNTSTOREBASE_H__
 #define __MESSENGERACCOUNTSTOREBASE_H__
 
-#include <vector>
+#include "common/BaseType.h"
 
 // This class is only used by AccountStoreBase template class
 // If AccountStoreBase.tpp included Messenger.h, we enter into some circular
@@ -33,12 +33,11 @@ class MessengerAccountStoreBase {
   // ============================================================================
 
   template <class MAP>
-  static bool SetAccountStore(std::vector<unsigned char>& dst,
-                              const unsigned int offset,
+  static bool SetAccountStore(bytes& dst, const unsigned int offset,
                               const MAP& addressToAccount);
   template <class MAP>
-  static bool GetAccountStore(const std::vector<unsigned char>& src,
-                              const unsigned int offset, MAP& addressToAccount);
+  static bool GetAccountStore(const bytes& src, const unsigned int offset,
+                              MAP& addressToAccount);
 };
 
 #endif  // __MESSENGERACCOUNTSTOREBASE_H__
