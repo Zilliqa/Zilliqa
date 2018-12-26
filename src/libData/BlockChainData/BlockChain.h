@@ -104,6 +104,18 @@ class BlockChain {
 
     if (blockNumOfExistingBlock < blockNumOfNewBlock ||
         INIT_BLOCK_NUMBER == blockNumOfExistingBlock) {
+      if (m_blocks.size() > 0) {
+        uint64_t blockNumOfLastBlock =
+            m_blocks.back().GetHeader().GetBlockNum();
+        uint64_t blockNumMissed = blockNumOfNewBlock - blockNumOfLastBlock - 1;
+        if (blockNumMissed > 0) {
+          LOG_GENERAL(INFO,
+                      "block number inconsistent, increase the size of "
+                      "CircularArray, blockNumMissed: "
+                          << blockNumMissed);
+          m_blocks.increase_size(blockNumMissed);
+        }
+      }
       m_blocks.insert_new(blockNumOfNewBlock, block);
     } else {
       LOG_GENERAL(WARNING, "Failed to add " << blockNumOfNewBlock << " "
