@@ -65,17 +65,17 @@ class TxBlock : public BlockBase {
               // maxsize of uint256
 
   /// Constructor for loading Tx block information from a byte stream.
-  TxBlock(const std::vector<unsigned char>& src, unsigned int offset);
+  TxBlock(const bytes& src, unsigned int offset);
 
   /// Constructor with specified Tx block parameters.
   TxBlock(const TxBlockHeader& header,
           const std::vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Returns the reference to the TxBlockHeader part of the Tx block.
   const TxBlockHeader& GetHeader() const;

@@ -64,7 +64,7 @@ bool ArchiveDB::InsertSerializable(const Serializable& sz, const string& index,
   if (!m_isInitialized) {
     return false;
   }
-  vector<unsigned char> vec;
+  bytes vec;
   sz.Serialize(vec, 0);
   try {
     auto MongoClient = (m_pool->acquire());
@@ -91,7 +91,7 @@ bool ArchiveDB::InsertSerializable(const SerializableDataBlock& sz,
   if (!m_isInitialized) {
     return false;
   }
-  vector<unsigned char> vec;
+  bytes vec;
   sz.Serialize(vec, 0);
   try {
     auto MongoClient = (m_pool->acquire());
@@ -111,8 +111,7 @@ bool ArchiveDB::InsertSerializable(const SerializableDataBlock& sz,
   }
 }
 
-bool ArchiveDB::GetSerializable(vector<unsigned char>& retVec,
-                                const string& index,
+bool ArchiveDB::GetSerializable(bytes& retVec, const string& index,
                                 const string& collectionName) {
   if (!m_isInitialized) {
     return false;

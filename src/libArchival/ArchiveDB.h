@@ -36,7 +36,6 @@ class ArchiveDB : public BaseDB {
                           const std::string& index,
                           const std::string& collectionName);
   bool InsertAccount(const Address& addr, const Account& acc);
-  bool GetSerializable(std::vector<unsigned char>& retVec,
-                       const std::string& index,
+  bool GetSerializable(bytes& retVec, const std::string& index,
                        const std::string& collectionName);
 };

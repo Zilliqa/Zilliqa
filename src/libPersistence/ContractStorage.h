@@ -50,11 +50,10 @@ class ContractStorage : public Singleton<ContractStorage> {
   dev::OverlayDB& GetStateDB() { return m_stateDB; }
 
   /// Adds a contract code to persistence
-  bool PutContractCode(const dev::h160& address,
-                       const std::vector<unsigned char>& code);
+  bool PutContractCode(const dev::h160& address, const bytes& code);
 
   /// Get the desired code from persistence
-  const std::vector<unsigned char> GetContractCode(const dev::h160& address);
+  const bytes GetContractCode(const dev::h160& address);
 };
 
 #endif  // CONTRACTSTORAGE_H

@@ -54,7 +54,7 @@ class DSBlockHeader : public BlockHeaderBase {
   DSBlockHeader();  // creates a dummy invalid placeholder BlockHeader
 
   /// Constructor for loading DS block header information from a byte stream.
-  DSBlockHeader(const std::vector<unsigned char>& src, unsigned int offset);
+  DSBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified DS block header parameters.
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
@@ -67,12 +67,10 @@ class DSBlockHeader : public BlockHeaderBase {
                 const CommitteeHash& committeeHash);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst,
-                 unsigned int offset) const override;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src,
-                   unsigned int offset) override;
+  bool Deserialize(const bytes& src, unsigned int offset) override;
 
   /// Implements the GetHash function for serializing based on concrete vars
   /// only, primarily used for generating randomness seed

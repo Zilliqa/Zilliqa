@@ -27,13 +27,13 @@ FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
     : m_fallbackblock(fallbackblock), m_shards(shards) {}
 
 FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
-    const std::vector<unsigned char>& src, unsigned int offset) {
+    const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "Failed to initialize");
   }
 }
 
-bool FallbackBlockWShardingStructure::Serialize(std::vector<unsigned char>& dst,
+bool FallbackBlockWShardingStructure::Serialize(bytes& dst,
                                                 unsigned int offset) const {
   if (!Messenger::SetFallbackBlockWShardingStructure(
           dst, offset, m_fallbackblock, m_shards)) {
@@ -43,8 +43,8 @@ bool FallbackBlockWShardingStructure::Serialize(std::vector<unsigned char>& dst,
   return true;
 }
 
-bool FallbackBlockWShardingStructure::Deserialize(
-    const std::vector<unsigned char>& src, unsigned int offset) {
+bool FallbackBlockWShardingStructure::Deserialize(const bytes& src,
+                                                  unsigned int offset) {
   if (!Messenger::GetFallbackBlockWShardingStructure(
           src, offset, m_fallbackblock, m_shards)) {
     LOG_GENERAL(WARNING, "Unable to Deserialize");

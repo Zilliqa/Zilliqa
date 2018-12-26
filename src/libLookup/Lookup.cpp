@@ -216,13 +216,13 @@ Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
   Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
                   amount, 1, 1, {}, {});
 
-  // std::vector<unsigned char> buf;
+  // bytes buf;
   // txn.SerializeWithoutSignature(buf, 0);
 
   // Signature sig;
   // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-  // vector<unsigned char> sigBuf;
+  // bytes sigBuf;
   // sig.Serialize(sigBuf, 0);
   // txn.SetSignature(sigBuf);
 
@@ -347,8 +347,7 @@ bool Lookup::IsLookupNode(const Peer& peerInfo) const {
                       }) != lookups.end();
 }
 
-void Lookup::SendMessageToLookupNodes(
-    const std::vector<unsigned char>& message) const {
+void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   LOG_MARKER();
 
   // LOG_GENERAL(INFO, "i am here " <<
@@ -373,8 +372,7 @@ void Lookup::SendMessageToLookupNodes(
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
-void Lookup::SendMessageToLookupNodesSerial(
-    const std::vector<unsigned char>& message) const {
+void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   LOG_MARKER();
 
   // LOG_GENERAL("i am here " <<
@@ -396,8 +394,7 @@ void Lookup::SendMessageToLookupNodesSerial(
   P2PComm::GetInstance().SendMessage(allLookupNodes, message);
 }
 
-void Lookup::SendMessageToRandomLookupNode(
-    const std::vector<unsigned char>& message) const {
+void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
   LOG_MARKER();
 
   // int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
@@ -412,8 +409,7 @@ void Lookup::SendMessageToRandomLookupNode(
   P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
 }
 
-void Lookup::SendMessageToSeedNodes(
-    const std::vector<unsigned char>& message) const {
+void Lookup::SendMessageToSeedNodes(const bytes& message) const {
   LOG_MARKER();
 
   for (auto node : m_seedNodes) {
@@ -427,8 +423,8 @@ void Lookup::SendMessageToSeedNodes(
 bool Lookup::GetSeedPeersFromLookup() {
   LOG_MARKER();
 
-  vector<unsigned char> getSeedPeersMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETSEEDPEERS};
+  bytes getSeedPeersMessage = {MessageType::LOOKUP,
+                               LookupInstructionType::GETSEEDPEERS};
 
   if (!Messenger::SetLookupGetSeedPeers(
           getSeedPeersMessage, MessageOffset::BODY,
@@ -443,11 +439,11 @@ bool Lookup::GetSeedPeersFromLookup() {
   return true;
 }
 
-vector<unsigned char> Lookup::ComposeGetDSInfoMessage(bool initialDS) {
+bytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
   LOG_MARKER();
 
-  vector<unsigned char> getDSNodesMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETDSINFOFROMSEED};
+  bytes getDSNodesMessage = {MessageType::LOOKUP,
+                             LookupInstructionType::GETDSINFOFROMSEED};
 
   if (!Messenger::SetLookupGetDSInfoFromSeed(
           getDSNodesMessage, MessageOffset::BODY,
@@ -460,11 +456,11 @@ vector<unsigned char> Lookup::ComposeGetDSInfoMessage(bool initialDS) {
   return getDSNodesMessage;
 }
 
-vector<unsigned char> Lookup::ComposeGetStateMessage() {
+bytes Lookup::ComposeGetStateMessage() {
   LOG_MARKER();
 
-  vector<unsigned char> getStateMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETSTATEFROMSEED};
+  bytes getStateMessage = {MessageType::LOOKUP,
+                           LookupInstructionType::GETSTATEFROMSEED};
 
   if (!Messenger::SetLookupGetStateFromSeed(
           getStateMessage, MessageOffset::BODY,
@@ -496,12 +492,12 @@ bool Lookup::GetStateFromLookupNodes() {
   return true;
 }
 
-vector<unsigned char> Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
-                                                       uint64_t highBlockNum) {
+bytes Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
+                                       uint64_t highBlockNum) {
   LOG_MARKER();
 
-  vector<unsigned char> getDSBlockMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETDSBLOCKFROMSEED};
+  bytes getDSBlockMessage = {MessageType::LOOKUP,
+                             LookupInstructionType::GETDSBLOCKFROMSEED};
 
   if (!Messenger::SetLookupGetDSBlockFromSeed(
           getDSBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
@@ -526,12 +522,12 @@ bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
   return true;
 }
 
-vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
-                                                       uint64_t highBlockNum) {
+bytes Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
+                                       uint64_t highBlockNum) {
   LOG_MARKER();
 
-  vector<unsigned char> getTxBlockMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETTXBLOCKFROMSEED};
+  bytes getTxBlockMessage = {MessageType::LOOKUP,
+                             LookupInstructionType::GETTXBLOCKFROMSEED};
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "ComposeGetTxBlockMessage for blocks " << lowBlockNum << " to "
@@ -548,11 +544,11 @@ vector<unsigned char> Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
   return getTxBlockMessage;
 }
 
-vector<unsigned char> Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
+bytes Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
   LOG_MARKER();
 
-  vector<unsigned char> getStateDeltaMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETSTATEDELTAFROMSEED};
+  bytes getStateDeltaMessage = {MessageType::LOOKUP,
+                                LookupInstructionType::GETSTATEDELTAFROMSEED};
 
   if (!Messenger::SetLookupGetStateDeltaFromSeed(
           getStateDeltaMessage, MessageOffset::BODY, blockNum,
@@ -590,8 +586,8 @@ bool Lookup::GetStateDeltaFromLookupNodes(const uint64_t& blockNum) {
 bool Lookup::GetTxBodyFromSeedNodes(string txHashStr) {
   LOG_MARKER();
 
-  vector<unsigned char> getTxBodyMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETTXBODYFROMSEED};
+  bytes getTxBodyMessage = {MessageType::LOOKUP,
+                            LookupInstructionType::GETTXBODYFROMSEED};
 
   if (!Messenger::SetLookupGetTxBodyFromSeed(
           getTxBodyMessage, MessageOffset::BODY,
@@ -736,7 +732,7 @@ bool Lookup::ProcessEntireShardingStructure() {
   return true;
 }
 
-bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
+bool Lookup::ProcessGetSeedPeersFromLookup(const bytes& message,
                                            unsigned int offset,
                                            const Peer& from) {
   LOG_MARKER();
@@ -812,8 +808,8 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
 
   // ================================================
 
-  vector<unsigned char> seedPeersMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETSEEDPEERS};
+  bytes seedPeersMessage = {MessageType::LOOKUP,
+                            LookupInstructionType::SETSEEDPEERS};
 
   if (!Messenger::SetLookupSetSeedPeers(seedPeersMessage, MessageOffset::BODY,
                                         m_mediator.m_selfKey, candidateSeeds)) {
@@ -827,8 +823,8 @@ bool Lookup::ProcessGetSeedPeersFromLookup(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from) {
+bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
+                                      const Peer& from) {
   //#ifndef IS_LOOKUP_NODE
 
   LOG_MARKER();
@@ -843,8 +839,8 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
     return false;
   }
 
-  vector<unsigned char> dsInfoMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
+  bytes dsInfoMessage = {MessageType::LOOKUP,
+                         LookupInstructionType::SETDSINFOFROMSEED};
 
   if (initialDS) {
     LOG_GENERAL(WARNING, "[DSINFOVERIF]"
@@ -883,7 +879,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const vector<unsigned char>& message,
 // lowBlockNum = 1 => Latest block number
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
-bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
+bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from) {
   //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
 
@@ -907,8 +903,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const vector<unsigned char>& message,
                                                       << lowBlockNum << " to "
                                                       << highBlockNum);
 
-  vector<unsigned char> dsBlockMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETDSBLOCKFROMSEED};
+  bytes dsBlockMessage = {MessageType::LOOKUP,
+                          LookupInstructionType::SETDSBLOCKFROMSEED};
 
   if (!Messenger::SetLookupSetDSBlockFromSeed(
           dsBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
@@ -981,8 +977,8 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
   }
 }
 
-bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from) {
+bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from) {
   LOG_MARKER();
 
   uint32_t portNo = 0;
@@ -994,8 +990,8 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
   }
 
   Peer requestingNode(from.m_ipAddress, portNo);
-  vector<unsigned char> setStateMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETSTATEFROMSEED};
+  bytes setStateMessage = {MessageType::LOOKUP,
+                           LookupInstructionType::SETSTATEFROMSEED};
 
   if (!Messenger::SetLookupSetStateFromSeed(
           setStateMessage, MessageOffset::BODY, m_mediator.m_selfKey,
@@ -1015,7 +1011,7 @@ bool Lookup::ProcessGetStateFromSeed(const vector<unsigned char>& message,
 // lowBlockNum = 1 => Latest block number
 // lowBlockNum = 0 => lowBlockNum set to 1
 // highBlockNum = 0 => Latest block number
-bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
+bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from) {
   // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
 
@@ -1040,8 +1036,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const vector<unsigned char>& message,
                                                       << lowBlockNum << " to "
                                                       << highBlockNum);
 
-  vector<unsigned char> txBlockMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETTXBLOCKFROMSEED};
+  bytes txBlockMessage = {MessageType::LOOKUP,
+                          LookupInstructionType::SETTXBLOCKFROMSEED};
   if (!Messenger::SetLookupSetTxBlockFromSeed(
           txBlockMessage, MessageOffset::BODY, lowBlockNum, highBlockNum,
           m_mediator.m_selfKey, txBlocks)) {
@@ -1107,7 +1103,7 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   }
 }
 
-bool Lookup::ProcessGetStateDeltaFromSeed(const vector<unsigned char>& message,
+bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
   LOG_MARKER();
@@ -1126,7 +1122,7 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const vector<unsigned char>& message,
             "ProcessGetStateDeltaFromSeed requested by "
                 << from << " for block " << blockNum);
 
-  vector<unsigned char> stateDelta;
+  bytes stateDelta;
 
   if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta)) {
     LOG_GENERAL(INFO, "Block Number "
@@ -1134,8 +1130,8 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const vector<unsigned char>& message,
                           << " absent. Didn't include it in response message.");
   }
 
-  vector<unsigned char> stateDeltaMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETSTATEDELTAFROMSEED};
+  bytes stateDeltaMessage = {MessageType::LOOKUP,
+                             LookupInstructionType::SETSTATEDELTAFROMSEED};
 
   if (!Messenger::SetLookupSetStateDeltaFromSeed(
           stateDeltaMessage, MessageOffset::BODY, blockNum,
@@ -1152,8 +1148,8 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from) {
+bool Lookup::ProcessGetTxBodyFromSeed(const bytes& message, unsigned int offset,
+                                      const Peer& from) {
   // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
 
   LOG_MARKER();
@@ -1172,8 +1168,8 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
 
   BlockStorage::GetBlockStorage().GetTxBody(TxnHash(tranHash), tptr);
 
-  vector<unsigned char> txBodyMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETTXBODYFROMSEED};
+  bytes txBodyMessage = {MessageType::LOOKUP,
+                         LookupInstructionType::SETTXBODYFROMSEED};
 
   if (!Messenger::SetLookupSetTxBodyFromSeed(txBodyMessage, MessageOffset::BODY,
                                              tranHash, *tptr)) {
@@ -1190,8 +1186,8 @@ bool Lookup::ProcessGetTxBodyFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from) {
+bool Lookup::ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from) {
   LOG_MARKER();
 
   uint32_t portNo = 0;
@@ -1203,8 +1199,7 @@ bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
   }
 
   Peer requestingNode(from.m_ipAddress, portNo);
-  vector<unsigned char> msg = {MessageType::LOOKUP,
-                               LookupInstructionType::SETSHARDSFROMSEED};
+  bytes msg = {MessageType::LOOKUP, LookupInstructionType::SETSHARDSFROMSEED};
 
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
@@ -1221,8 +1216,8 @@ bool Lookup::ProcessGetShardFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from) {
+bool Lookup::ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
+                                     const Peer& from) {
   LOG_MARKER();
 
   DequeOfShard shards;
@@ -1258,8 +1253,7 @@ bool Lookup::ProcessSetShardFromSeed(const vector<unsigned char>& message,
 bool Lookup::GetShardFromLookup() {
   LOG_MARKER();
 
-  vector<unsigned char> msg = {MessageType::LOOKUP,
-                               LookupInstructionType::GETSHARDSFROMSEED};
+  bytes msg = {MessageType::LOOKUP, LookupInstructionType::GETSHARDSFROMSEED};
 
   if (!Messenger::SetLookupGetShardsFromSeed(
           msg, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost)) {
@@ -1273,8 +1267,8 @@ bool Lookup::GetShardFromLookup() {
   return true;
 }
 
-bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from) {
+bool Lookup::ProcessGetNetworkId(const bytes& message, unsigned int offset,
+                                 const Peer& from) {
   // #ifndef IS_LOOKUP_NODE
   LOG_MARKER();
 
@@ -1285,8 +1279,8 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
 
-  vector<unsigned char> networkIdMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETNETWORKIDFROMSEED};
+  bytes networkIdMessage = {MessageType::LOOKUP,
+                            LookupInstructionType::SETNETWORKIDFROMSEED};
   unsigned int curr_offset = MessageOffset::BODY;
 
   string networkId = "TESTNET";  // TODO: later convert it to a enum
@@ -1299,7 +1293,7 @@ bool Lookup::ProcessGetNetworkId(const vector<unsigned char>& message,
   // #endif // IS_LOOKUP_NODE
 }
 
-bool Lookup::ProcessSetSeedPeersFromLookup(const vector<unsigned char>& message,
+bool Lookup::ProcessSetSeedPeersFromLookup(const bytes& message,
                                            unsigned int offset,
                                            [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
@@ -1361,7 +1355,7 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
     return false;
   }
 
-  vector<unsigned char> body;
+  bytes body;
   microblock.Serialize(body, 0);
   if (!BlockStorage::GetBlockStorage().PutMicroBlock(microblock.GetBlockHash(),
                                                      body)) {
@@ -1372,9 +1366,9 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
   return true;
 }
 
-bool Lookup::ProcessGetMicroBlockFromLookup(
-    const vector<unsigned char>& message, unsigned int offset,
-    const Peer& from) {
+bool Lookup::ProcessGetMicroBlockFromLookup(const bytes& message,
+                                            unsigned int offset,
+                                            const Peer& from) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1414,8 +1408,8 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
     }
   }
 
-  vector<unsigned char> retMsg = {
-      MessageType::LOOKUP, LookupInstructionType::SETMICROBLOCKFROMLOOKUP};
+  bytes retMsg = {MessageType::LOOKUP,
+                  LookupInstructionType::SETMICROBLOCKFROMLOOKUP};
 
   if (retMicroBlocks.size() == 0) {
     LOG_GENERAL(WARNING, "return size 0 for microblocks");
@@ -1432,9 +1426,9 @@ bool Lookup::ProcessGetMicroBlockFromLookup(
   return true;
 }
 
-bool Lookup::ProcessSetMicroBlockFromLookup(
-    const vector<unsigned char>& message, unsigned int offset,
-    [[gnu::unused]] const Peer& from) {
+bool Lookup::ProcessSetMicroBlockFromLookup(const bytes& message,
+                                            unsigned int offset,
+                                            [[gnu::unused]] const Peer& from) {
   //[numberOfMicroBlocks][microblock1][microblock2]...
 
   vector<MicroBlock> mbs;
@@ -1471,8 +1465,8 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
 }
 
 void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
-  vector<unsigned char> msg = {MessageType::LOOKUP,
-                               LookupInstructionType::GETMICROBLOCKFROMLOOKUP};
+  bytes msg = {MessageType::LOOKUP,
+               LookupInstructionType::GETMICROBLOCKFROMLOOKUP};
 
   if (mbHashes.size() == 0) {
     LOG_GENERAL(INFO, "No microBlock requested");
@@ -1489,8 +1483,8 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
   SendMessageToRandomLookupNode(msg);
 }
 
-bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from) {
+bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
+                                      const Peer& from) {
   //#ifndef IS_LOOKUP_NODE
 
   LOG_MARKER();
@@ -1609,7 +1603,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
+bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
                                        unsigned int offset,
                                        [[gnu::unused]] const Peer& from) {
   // #ifndef IS_LOOKUP_NODE TODO: uncomment later
@@ -1658,7 +1652,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
       // Store DS Block to disk
       if (!ARCHIVAL_NODE) {
-        vector<unsigned char> serializedDSBlock;
+        bytes serializedDSBlock;
         dsblock.Serialize(serializedDSBlock, 0);
         BlockStorage::GetBlockStorage().PutDSBlock(
             dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
@@ -1681,7 +1675,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetTxBlockFromSeed(const vector<unsigned char>& message,
+bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from) {
   //#ifndef IS_LOOKUP_NODE
   LOG_MARKER();
@@ -1805,7 +1799,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
     // Store Tx Block to disk
     if (!ARCHIVAL_NODE) {
-      vector<unsigned char> serializedTxBlock;
+      bytes serializedTxBlock;
       txBlock.Serialize(serializedTxBlock, 0);
       BlockStorage::GetBlockStorage().PutTxBlock(
           txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
@@ -1845,7 +1839,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   cv_setTxBlockFromSeed.notify_all();
 }
 
-bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
+bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
   LOG_MARKER();
@@ -1858,7 +1852,7 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
   unique_lock<mutex> lock(m_mutexSetStateDeltaFromSeed);
 
   uint64_t blockNum = 0;
-  std::vector<unsigned char> stateDelta;
+  bytes stateDelta;
   PubKey lookupPubKey;
 
   if (!Messenger::GetLookupSetStateDeltaFromSeed(message, offset, blockNum,
@@ -1891,8 +1885,7 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
-                                     unsigned int offset,
+bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
                                      [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
@@ -1902,7 +1895,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
 
   unique_lock<mutex> lock(m_mutexSetState);
   PubKey lookupPubKey;
-  vector<unsigned char> accountStoreBytes;
+  bytes accountStoreBytes;
   if (!Messenger::GetLookupSetStateFromSeed(message, offset, lookupPubKey,
                                             accountStoreBytes)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -1961,7 +1954,7 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
                 "start PoW");
 
       // Ask lookup to inform me when it's time to do PoW
-      vector<unsigned char> getpowsubmission_message = {
+      bytes getpowsubmission_message = {
           MessageType::LOOKUP, LookupInstructionType::GETSTARTPOWFROMSEED};
 
       if (!Messenger::SetLookupGetStartPoWFromSeed(
@@ -2032,8 +2025,8 @@ bool Lookup::ProcessSetStateFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessGetTxnsFromLookup(const vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from) {
+bool Lookup::ProcessGetTxnsFromLookup(const bytes& message, unsigned int offset,
+                                      const Peer& from) {
   vector<TxnHash> txnhashes;
   txnhashes.clear();
 
@@ -2061,8 +2054,8 @@ bool Lookup::ProcessGetTxnsFromLookup(const vector<unsigned char>& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
 
-  vector<unsigned char> setTxnMsg = {MessageType::LOOKUP,
-                                     LookupInstructionType::SETTXNFROMLOOKUP};
+  bytes setTxnMsg = {MessageType::LOOKUP,
+                     LookupInstructionType::SETTXNFROMLOOKUP};
 
   if (!Messenger::SetLookupSetTxnsFromLookup(setTxnMsg, MessageOffset::BODY,
                                              m_mediator.m_selfKey, txnvector)) {
@@ -2075,8 +2068,7 @@ bool Lookup::ProcessGetTxnsFromLookup(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetTxnsFromLookup(const vector<unsigned char>& message,
-                                      unsigned int offset,
+bool Lookup::ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
                                       [[gnu::unused]] const Peer& from) {
   vector<TransactionWithReceipt> txns;
   PubKey lookupPubKey;
@@ -2101,8 +2093,7 @@ bool Lookup::ProcessSetTxnsFromLookup(const vector<unsigned char>& message,
 }
 
 void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes) {
-  vector<unsigned char> msg = {MessageType::LOOKUP,
-                               LookupInstructionType::GETTXNFROMLOOKUP};
+  bytes msg = {MessageType::LOOKUP, LookupInstructionType::GETTXNFROMLOOKUP};
 
   if (txnhashes.size() == 0) {
     LOG_GENERAL(INFO, "No txn requested");
@@ -2119,8 +2110,7 @@ void Lookup::SendGetTxnFromLookup(const vector<TxnHash>& txnhashes) {
   SendMessageToRandomLookupNode(msg);
 }
 
-bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
-                                      unsigned int offset,
+bool Lookup::ProcessSetTxBodyFromSeed(const bytes& message, unsigned int offset,
                                       [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
@@ -2145,7 +2135,7 @@ bool Lookup::ProcessSetTxBodyFromSeed(const vector<unsigned char>& message,
   //     LOG_GENERAL(WARNING, "UpdateAccounts failed");
   //     return false;
   // }
-  vector<unsigned char> serializedTxBody;
+  bytes serializedTxBody;
   twr.Serialize(serializedTxBody, 0);
   BlockStorage::GetBlockStorage().PutTxBody(tranHash, serializedTxBody);
 
@@ -2242,8 +2232,8 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   return true;
 }
 
-bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from) {
+bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
+                                     const Peer& from) {
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2281,8 +2271,8 @@ bool Lookup::ProcessSetLookupOffline(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from) {
+bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
+                                    const Peer& from) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -2329,8 +2319,8 @@ bool Lookup::ProcessSetLookupOnline(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from) {
+bool Lookup::ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
+                                      const Peer& from) {
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2351,8 +2341,8 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
 
-  vector<unsigned char> offlineLookupsMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETOFFLINELOOKUPS};
+  bytes offlineLookupsMessage = {MessageType::LOOKUP,
+                                 LookupInstructionType::SETOFFLINELOOKUPS};
 
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
@@ -2378,8 +2368,8 @@ bool Lookup::ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from) {
+bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
+                                      const Peer& from) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -2438,9 +2428,9 @@ bool Lookup::ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessRaiseStartPoW(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+bool Lookup::ProcessRaiseStartPoW([[gnu::unused]] const bytes& message,
+                                  [[gnu::unused]] unsigned int offset,
+                                  [[gnu::unused]] const Peer& from) {
   // Message = empty
 
   LOG_MARKER();
@@ -2475,7 +2465,7 @@ bool Lookup::ProcessRaiseStartPoW(
   return true;
 }
 
-bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
+bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
                                         unsigned int offset, const Peer& from) {
   LOG_MARKER();
 
@@ -2519,8 +2509,8 @@ bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
   }
 
   // Tell the new node that it's time to start PoW
-  vector<unsigned char> setstartpow_message = {
-      MessageType::LOOKUP, LookupInstructionType::SETSTARTPOWFROMSEED};
+  bytes setstartpow_message = {MessageType::LOOKUP,
+                               LookupInstructionType::SETSTARTPOWFROMSEED};
   if (!Messenger::SetLookupSetStartPoWFromSeed(
           setstartpow_message, MessageOffset::BODY,
           m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
@@ -2534,9 +2524,9 @@ bool Lookup::ProcessGetStartPoWFromSeed(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessSetStartPoWFromSeed(
-    [[gnu::unused]] const vector<unsigned char>& message,
-    [[gnu::unused]] unsigned int offset, [[gnu::unused]] const Peer& from) {
+bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
+                                        [[gnu::unused]] unsigned int offset,
+                                        [[gnu::unused]] const Peer& from) {
   // Message = empty
 
   LOG_MARKER();
@@ -2651,43 +2641,18 @@ bool Lookup::GetDSInfoLoop() {
   return false;
 }
 
-Peer Lookup::GetLookupPeerToRsync() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::GetLookupPeerToRsync not expected to be called "
-                "from other than the LookUp node.");
-    return Peer();
-  }
-
-  LOG_MARKER();
-
-  std::vector<Peer> t_Peers;
-  {
-    lock_guard<mutex> lock(m_mutexLookupNodes);
-    for (const auto& p : m_lookupNodes) {
-      if (p.second != m_mediator.m_selfPeer) {
-        t_Peers.emplace_back(p.second);
-      }
-    }
-  }
-
-  int index = rand() % t_Peers.size();
-
-  return t_Peers[index];
-}
-
-std::vector<unsigned char> Lookup::ComposeGetLookupOfflineMessage() {
+bytes Lookup::ComposeGetLookupOfflineMessage() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ComposeGetLookupOfflineMessage not expected to be "
                 "called from other than the LookUp node.");
-    return std::vector<unsigned char>();
+    return bytes();
   }
 
   LOG_MARKER();
 
-  vector<unsigned char> getLookupOfflineMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETLOOKUPOFFLINE};
+  bytes getLookupOfflineMessage = {MessageType::LOOKUP,
+                                   LookupInstructionType::SETLOOKUPOFFLINE};
 
   if (!Messenger::SetLookupSetLookupOffline(
           getLookupOfflineMessage, MessageOffset::BODY,
@@ -2700,18 +2665,18 @@ std::vector<unsigned char> Lookup::ComposeGetLookupOfflineMessage() {
   return getLookupOfflineMessage;
 }
 
-std::vector<unsigned char> Lookup::ComposeGetLookupOnlineMessage() {
+bytes Lookup::ComposeGetLookupOnlineMessage() {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ComposeGetLookupOnlineMessage not expected to be "
                 "called from other than the LookUp node.");
-    return std::vector<unsigned char>();
+    return bytes();
   }
 
   LOG_MARKER();
 
-  vector<unsigned char> getLookupOnlineMessage = {
-      MessageType::LOOKUP, LookupInstructionType::SETLOOKUPONLINE};
+  bytes getLookupOnlineMessage = {MessageType::LOOKUP,
+                                  LookupInstructionType::SETLOOKUPONLINE};
 
   if (!Messenger::SetLookupSetLookupOnline(
           getLookupOnlineMessage, MessageOffset::BODY,
@@ -2787,44 +2752,6 @@ bool Lookup::GetMyLookupOnline() {
   if (found) {
     SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
   }
-  return true;
-}
-
-bool Lookup::RsyncTxBodies() {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::RsyncTxBodies not expected to be called from "
-                "other than the LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-  const Peer& p = GetLookupPeerToRsync();
-  string ipAddr = std::string(p.GetPrintableIPAddress());
-  string port = std::to_string(p.m_listenPortHost);
-  string dbNameStr =
-      BlockStorage::GetBlockStorage().GetDBName(BlockStorage::TX_BODY)[0];
-  string cmdStr;
-  if (ipAddr == "127.0.0.1" || ipAddr == "localhost") {
-    string indexStr = port;
-    indexStr.erase(indexStr.begin());
-    cmdStr = "rsync -iraz --size-only ../node_0" + indexStr + "/" +
-             PERSISTENCE_PATH + "/" + dbNameStr + "/* " + PERSISTENCE_PATH +
-             "/" + dbNameStr + "/";
-  } else {
-    cmdStr =
-        "rsync -iraz --size-only -e \"ssh -o "
-        "StrictHostKeyChecking=no\" ubuntu@" +
-        ipAddr + ":" + REMOTE_TEST_DIR + "/" + PERSISTENCE_PATH + "/" +
-        dbNameStr + "/* " + PERSISTENCE_PATH + "/" + dbNameStr + "/";
-  }
-  LOG_GENERAL(INFO, cmdStr);
-
-  string output;
-  if (!SysCommand::ExecuteCmdWithOutput(cmdStr, output)) {
-    return false;
-  }
-  LOG_GENERAL(INFO, "RunRsync: " << output);
   return true;
 }
 
@@ -2914,18 +2841,18 @@ bool Lookup::ToBlockMessage(unsigned char ins_byte) {
           ins_byte != LookupInstructionType::SETDIRBLOCKSFROMSEED);
 }
 
-std::vector<unsigned char> Lookup::ComposeGetOfflineLookupNodes() {
+bytes Lookup::ComposeGetOfflineLookupNodes() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ComposeGetOfflineLookupNodes not expected to be "
                 "called from the LookUp node.");
-    return std::vector<unsigned char>();
+    return bytes();
   }
 
   LOG_MARKER();
 
-  vector<unsigned char> getCurrLookupsMessage = {
-      MessageType::LOOKUP, LookupInstructionType::GETOFFLINELOOKUPS};
+  bytes getCurrLookupsMessage = {MessageType::LOOKUP,
+                                 LookupInstructionType::GETOFFLINELOOKUPS};
 
   if (!Messenger::SetLookupGetOfflineLookups(
           getCurrLookupsMessage, MessageOffset::BODY,
@@ -2953,9 +2880,9 @@ bool Lookup::GetOfflineLookupNodes() {
   return true;
 }
 
-bool Lookup::ProcessGetDirectoryBlocksFromSeed(
-    const vector<unsigned char>& message, unsigned int offset,
-    const Peer& from) {
+bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
+                                               unsigned int offset,
+                                               const Peer& from) {
   uint64_t index_num;
   uint32_t portNo;
 
@@ -2968,8 +2895,8 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
     return false;
   }
 
-  vector<unsigned char> msg = {MessageType::LOOKUP,
-                               LookupInstructionType::SETDIRBLOCKSFROMSEED};
+  bytes msg = {MessageType::LOOKUP,
+               LookupInstructionType::SETDIRBLOCKSFROMSEED};
 
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
@@ -3018,7 +2945,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(
 }
 
 bool Lookup::ProcessSetDirectoryBlocksFromSeed(
-    const vector<unsigned char>& message, unsigned int offset,
+    const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
@@ -3127,8 +3054,8 @@ void Lookup::CheckBufferTxBlocks() {
 void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(
     const uint64_t& index_num) {
   LOG_MARKER();
-  vector<unsigned char> message = {MessageType::LOOKUP,
-                                   LookupInstructionType::GETDIRBLOCKSFROMSEED};
+  bytes message = {MessageType::LOOKUP,
+                   LookupInstructionType::GETDIRBLOCKSFROMSEED};
 
   if (!Messenger::SetLookupGetDirectoryBlocksFromSeed(
           message, MessageOffset::BODY, m_mediator.m_selfPeer.m_listenPortHost,
@@ -3140,14 +3067,14 @@ void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(
   SendMessageToRandomLookupNode(message);
 }
 
-bool Lookup::Execute(const vector<unsigned char>& message, unsigned int offset,
+bool Lookup::Execute(const bytes& message, unsigned int offset,
                      const Peer& from) {
   LOG_MARKER();
 
   bool result = true;
 
-  typedef bool (Lookup::*InstructionHandler)(const vector<unsigned char>&,
-                                             unsigned int, const Peer&);
+  typedef bool (Lookup::*InstructionHandler)(const bytes&, unsigned int,
+                                             const Peer&);
 
   InstructionHandler ins_handlers[] = {
       &Lookup::ProcessGetSeedPeersFromLookup,
@@ -3307,8 +3234,7 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
       chrono::milliseconds(LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
 
   for (unsigned int i = 0; i < numShards + 1; i++) {
-    vector<unsigned char> msg = {MessageType::NODE,
-                                 NodeInstructionType::FORWARDTXNPACKET};
+    bytes msg = {MessageType::NODE, NodeInstructionType::FORWARDTXNPACKET};
     bool result = false;
 
     {
@@ -3439,8 +3365,8 @@ bool Lookup::VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
   return vecLookupNodes.cend() != iter;
 }
 
-bool Lookup::ProcessForwardTxn(const vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from) {
+bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
+                               const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessForwardTxn not expected to be called from "
@@ -3483,9 +3409,9 @@ bool Lookup::ProcessForwardTxn(const vector<unsigned char>& message,
   return true;
 }
 
-bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
-    const vector<unsigned char>& message, unsigned int offset,
-    const Peer& from) {
+bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(const bytes& message,
+                                                 unsigned int offset,
+                                                 const Peer& from) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -3530,8 +3456,8 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
                 << " to " << txHighBlockNum << " with receiving port "
                 << listenPort);
 
-  vector<unsigned char> dsTxBlocksMessage = {
-      MessageType::DIRECTORY, DSInstructionType::VCPUSHLATESTDSTXBLOCK};
+  bytes dsTxBlocksMessage = {MessageType::DIRECTORY,
+                             DSInstructionType::VCPUSHLATESTDSTXBLOCK};
 
   if (!Messenger::SetVCNodeSetDSTxBlockFromSeed(
           dsTxBlocksMessage, MessageOffset::BODY, m_mediator.m_selfKey,
@@ -3552,7 +3478,7 @@ void Lookup::SetSyncType(SyncType syncType) {
             "Set sync type to " << syncType);
 }
 
-bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
+bool Lookup::ProcessGetDSGuardNetworkInfo(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
   if (!LOOKUP_NODE_MODE) {
@@ -3591,7 +3517,7 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const vector<unsigned char>& message,
   }
 
   Peer requestingNode(from.m_ipAddress, portNo);
-  vector<unsigned char> setNewDSGuardNetworkInfo = {
+  bytes setNewDSGuardNetworkInfo = {
       MessageType::NODE, NodeInstructionType::DSGUARDNODENETWORKINFOUPDATE};
 
   if (!Messenger::SetNodeSetNewDSGuardNetworkInfo(

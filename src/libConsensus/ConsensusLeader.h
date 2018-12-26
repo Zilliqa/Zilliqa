@@ -31,17 +31,14 @@
 #include "libNetwork/PeerStore.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const std::vector<unsigned char>& errorMsg,
-                           const Peer& from)>
+typedef std::function<bool(const bytes& errorMsg, const Peer& from)>
     NodeCommitFailureHandlerFunc;
-typedef std::function<bool(std::map<unsigned int, std::vector<unsigned char>>)>
+typedef std::function<bool(std::map<unsigned int, bytes>)>
     ShardCommitFailureHandlerFunc;
 typedef std::function<bool(
-    std::vector<unsigned char>& dst, unsigned int offset,
-    const uint32_t consensusID, const uint64_t blockNumber,
-    const std::vector<unsigned char>& blockHash, const uint16_t leaderID,
-    const std::pair<PrivKey, PubKey>& leaderKey,
-    std::vector<unsigned char>& messageToCosign)>
+    bytes& dst, unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    const std::pair<PrivKey, PubKey>& leaderKey, bytes& messageToCosign)>
     AnnouncementGeneratorFunc;
 
 /// Implements the functionality for the consensus committee leader.
@@ -82,7 +79,7 @@ class ConsensusLeader : public ConsensusCommon {
   Challenge m_challenge;
 
   unsigned int m_commitFailureCounter;
-  std::map<unsigned int, std::vector<unsigned char>> m_commitFailureMap;
+  std::map<unsigned int, bytes> m_commitFailureMap;
 
   // Tracking data for each consensus subset
   // TODO: the vectors should be replaced by more space efficient DS
@@ -114,37 +111,32 @@ class ConsensusLeader : public ConsensusCommon {
   void GenerateConsensusSubsets();
   void StartConsensusSubsets();
   void SubsetEnded(uint16_t subsetID);
-  bool ProcessMessageCommitCore(const std::vector<unsigned char>& commit,
-                                unsigned int offset, Action action,
+  bool ProcessMessageCommitCore(const bytes& commit, unsigned int offset,
+                                Action action,
                                 ConsensusMessageType returnmsgtype,
                                 State nextstate);
-  bool ProcessMessageCommit(const std::vector<unsigned char>& commit,
-                            unsigned int offset);
-  bool ProcessMessageCommitFailure(
-      const std::vector<unsigned char>& commitFailureMsg, unsigned int offset,
-      const Peer& from);
-  bool GenerateChallengeMessage(std::vector<unsigned char>& challenge,
-                                unsigned int offset, uint16_t subsetID);
-  bool ProcessMessageResponseCore(const std::vector<unsigned char>& response,
-                                  unsigned int offset, Action action,
+  bool ProcessMessageCommit(const bytes& commit, unsigned int offset);
+  bool ProcessMessageCommitFailure(const bytes& commitFailureMsg,
+                                   unsigned int offset, const Peer& from);
+  bool GenerateChallengeMessage(bytes& challenge, unsigned int offset,
+                                uint16_t subsetID);
+  bool ProcessMessageResponseCore(const bytes& response, unsigned int offset,
+                                  Action action,
                                   ConsensusMessageType returnmsgtype,
                                   State nextstate);
-  bool ProcessMessageResponse(const std::vector<unsigned char>& response,
-                              unsigned int offset);
-  bool GenerateCollectiveSigMessage(std::vector<unsigned char>& collectivesig,
-                                    unsigned int offset, uint16_t subsetID);
-  bool ProcessMessageFinalCommit(const std::vector<unsigned char>& finalcommit,
-                                 unsigned int offset);
-  bool ProcessMessageFinalResponse(
-      const std::vector<unsigned char>& finalresponse, unsigned int offset);
+  bool ProcessMessageResponse(const bytes& response, unsigned int offset);
+  bool GenerateCollectiveSigMessage(bytes& collectivesig, unsigned int offset,
+                                    uint16_t subsetID);
+  bool ProcessMessageFinalCommit(const bytes& finalcommit, unsigned int offset);
+  bool ProcessMessageFinalResponse(const bytes& finalresponse,
+                                   unsigned int offset);
 
  public:
   /// Constructor.
   ConsensusLeader(
-      uint32_t consensus_id,  // unique identifier for this consensus session
-      uint64_t block_number,  // latest final block number
-      const std::vector<unsigned char>&
-          block_hash,    // unique identifier for this consensus session
+      uint32_t consensus_id,    // unique identifier for this consensus session
+      uint64_t block_number,    // latest final block number
+      const bytes& block_hash,  // unique identifier for this consensus session
       uint16_t node_id,  // leader's identifier (= index in some ordered lookup
                          // table shared by all nodes)
       const PrivKey& privkey,  // leader's private key
@@ -167,8 +159,8 @@ class ConsensusLeader : public ConsensusCommon {
                       bool useGossipProto = false);
 
   /// Function to process any consensus message received.
-  bool ProcessMessage(const std::vector<unsigned char>& message,
-                      unsigned int offset, const Peer& from);
+  bool ProcessMessage(const bytes& message, unsigned int offset,
+                      const Peer& from);
 
   unsigned int GetNumForConsensusFailure() { return m_numForConsensusFailure; }
 

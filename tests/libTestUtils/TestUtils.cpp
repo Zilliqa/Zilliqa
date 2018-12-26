@@ -224,14 +224,14 @@ std::string GenerateRandomString(size_t length) {
   return str;
 }
 
-vector<unsigned char> GenerateRandomCharVector(size_t length) {
-  vector<unsigned char> cv(length, 0);
+bytes GenerateRandomCharVector(size_t length) {
+  bytes cv(length, 0);
   std::generate_n(cv.begin(), length, randchar);
   return cv;
 }
 
-Signature GetSignature(const vector<unsigned char>& data,
-                       const PrivKey& privkey, const PubKey& pubkey) {
+Signature GetSignature(const bytes& data, const PrivKey& privkey,
+                       const PubKey& pubkey) {
   Signature result;
 
   Schnorr::GetInstance().Sign(data, privkey, pubkey, result);

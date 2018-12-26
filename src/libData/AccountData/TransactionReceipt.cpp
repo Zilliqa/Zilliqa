@@ -26,8 +26,7 @@ using namespace boost::multiprecision;
 
 TransactionReceipt::TransactionReceipt() { update(); }
 
-bool TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
-                                   unsigned int offset) const {
+bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransactionReceipt(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTransactionReceipt failed.");
     return false;
@@ -36,8 +35,7 @@ bool TransactionReceipt::Serialize(std::vector<unsigned char>& dst,
   return true;
 }
 
-bool TransactionReceipt::Deserialize(const std::vector<unsigned char>& src,
-                                     unsigned int offset) {
+bool TransactionReceipt::Deserialize(const bytes& src, unsigned int offset) {
   try {
     if (!Messenger::GetTransactionReceipt(src, offset, *this)) {
       LOG_GENERAL(WARNING, "Messenger::GetTransactionReceipt failed.");
@@ -109,8 +107,7 @@ void TransactionReceipt::update() {
 }
 
 /// Implements the Serialize function inherited from Serializable.
-bool TransactionWithReceipt::Serialize(std::vector<unsigned char>& dst,
-                                       unsigned int offset) const {
+bool TransactionWithReceipt::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransactionWithReceipt(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTransactionWithReceipt failed.");
     return false;
@@ -119,7 +116,7 @@ bool TransactionWithReceipt::Serialize(std::vector<unsigned char>& dst,
 }
 
 /// Implements the Deserialize function inherited from Serializable.
-bool TransactionWithReceipt::Deserialize(const std::vector<unsigned char>& src,
+bool TransactionWithReceipt::Deserialize(const bytes& src,
                                          unsigned int offset) {
   if (!Messenger::GetTransactionWithReceipt(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTransactionWithReceipt failed.");

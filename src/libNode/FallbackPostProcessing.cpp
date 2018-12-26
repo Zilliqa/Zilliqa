@@ -37,7 +37,7 @@
 using namespace std;
 
 bool Node::ComposeFallbackBlockMessageForSender(
-    vector<unsigned char>& fallbackblock_message) const {
+    bytes& fallbackblock_message) const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeFallbackBlockMessageForSender not "
@@ -96,7 +96,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
     return;
   }
 
-  vector<unsigned char> message;
+  bytes message;
   if (!m_pendingFallbackBlock->GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "FallbackBlockHeader serialization failed");
     return;
@@ -119,7 +119,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
       latestInd, m_pendingFallbackBlock->GetHeader().GetFallbackDSEpochNo(),
       BlockType::FB, m_pendingFallbackBlock->GetBlockHash());
 
-  vector<unsigned char> dst;
+  bytes dst;
 
   FallbackBlockWShardingStructure fbblockwshards(*m_pendingFallbackBlock,
                                                  m_mediator.m_ds->m_shards);
@@ -214,7 +214,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
   }
 
   auto composeFallbackBlockMessageForSender =
-      [this](vector<unsigned char>& fallback_message) -> bool {
+      [this](bytes& fallback_message) -> bool {
     return ComposeFallbackBlockMessageForSender(fallback_message);
   };
 
@@ -242,8 +242,8 @@ void Node::ProcessFallbackConsensusWhenDone() {
   }
 }
 
-bool Node::ProcessFallbackConsensus(const vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from) {
+bool Node::ProcessFallbackConsensus(const bytes& message, unsigned int offset,
+                                    const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessFallbackConsensus not expected "

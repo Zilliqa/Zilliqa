@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_SUITE(messenger_protobuf_test)
 BOOST_AUTO_TEST_CASE(test_optionalfield) {
   INIT_STDOUT_LOGGER();
 
-  vector<unsigned char> tmp;
+  bytes tmp;
 
   // Serialize a OneField message
   OneField oneField;

@@ -27,8 +27,8 @@
 class Executable {
  public:
   /// Message processing function.
-  virtual bool Execute(const std::vector<unsigned char>& message,
-                       unsigned int offset, const Peer& from) = 0;
+  virtual bool Execute(const bytes& message, unsigned int offset,
+                       const Peer& from) = 0;
 
   /// Virtual destructor.
   virtual ~Executable() {}

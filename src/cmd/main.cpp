@@ -88,8 +88,8 @@ int main(int argc, const char* argv[]) {
     my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
   }
 
-  vector<unsigned char> tmPrivkey = DataConversion::HexStrToUint8Vec(argv[1]);
-  vector<unsigned char> tmpPubkey = DataConversion::HexStrToUint8Vec(argv[2]);
+  bytes tmPrivkey = DataConversion::HexStrToUint8Vec(argv[1]);
+  bytes tmpPubkey = DataConversion::HexStrToUint8Vec(argv[2]);
 
   PrivKey privkey;
   if (privkey.Deserialize(tmPrivkey, 0) != 0) {
@@ -106,8 +106,7 @@ int main(int argc, const char* argv[]) {
   Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
                   atoi(argv[5]) == 1, atoi(argv[6]), atoi(argv[7]) == 1);
 
-  auto dispatcher =
-      [&zilliqa](pair<vector<unsigned char>, Peer>* message) mutable -> void {
+  auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
     zilliqa.Dispatch(message);
   };
   auto broadcast_list_retriever =
