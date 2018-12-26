@@ -533,53 +533,74 @@ bool BlockStorage::GetDSCommittee(
   return true;
 }
 
-bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
-                                     const uint32_t myshardId) {
+bool BlockStorage::PutShardStructure(const uint64_t& blockNum,
+                                     const DequeOfShard& shards,
+                                     const uint32_t& myshardId) {
   LOG_MARKER();
 
-  lock_guard<mutex> g(m_mutexShardStructure);
-  m_shardStructureDB->ResetDB();
-  unsigned int index = 0;
-  string shardId = to_string(myshardId);
+  // Key = blockNum
+  // Value = myshardId | shards
 
-  if (0 != m_shardStructureDB->Insert(index++,
-                                      bytes(shardId.begin(), shardId.end()))) {
-    LOG_GENERAL(WARNING, "Failed to store shard ID:" << myshardId);
+  bytes shardIDAndStructure;
+
+  Serializable::SetNumber<uint32_t>(shardIDAndStructure, 0, myshardId,
+                                    sizeof(uint32_t));
+
+  if (!Messenger::ShardStructureToArray(shardIDAndStructure, sizeof(uint32_t),
+                                        shards)) {
+    LOG_GENERAL(WARNING, "Messenger::ShardStructureToArray failed");
     return false;
   }
 
-  LOG_GENERAL(INFO, "Stored shard ID:" << myshardId);
+  {
+    lock_guard<mutex> g(m_mutexShardStructure);
+    m_shardStructureDB->ResetDB();
 
-  bytes shardStructure;
-
-  if (!Messenger::ShardStructureToArray(shardStructure, 0, shards)) {
-    LOG_GENERAL(WARNING, "Failed to serialize sharding structure");
-    return false;
+    if (0 != m_shardStructureDB->Insert(blockNum, shardIDAndStructure)) {
+      LOG_GENERAL(WARNING, "Failed to store sharding structure");
+      return false;
+    }
   }
 
-  if (0 != m_shardStructureDB->Insert(index++, shardStructure)) {
-    LOG_GENERAL(WARNING, "Failed to store sharding structure");
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Stored sharding structure");
+  LOG_GENERAL(INFO, "Stored sharding structure for DS block "
+                        << blockNum << " with shard ID " << myshardId);
   return true;
 }
 
 bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   LOG_MARKER();
 
-  unsigned int index = 1;
-  string dataStr;
+  // Key = blockNum
+  // Value = myshardId | shards
 
-  {
-    lock_guard<mutex> g(m_mutexShardStructure);
-    dataStr = m_shardStructureDB->Lookup(index++);
+  // Return the latest entry
+
+  lock_guard<mutex> g(m_mutexShardStructure);
+
+  leveldb::Iterator* it =
+      m_shardStructureDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  it->SeekToLast();
+
+  if (!it->Valid()) {
+    LOG_GENERAL(INFO, "Unable to retrieve latest sharding structure");
+    return false;
   }
 
-  Messenger::ArrayToShardStructure(bytes(dataStr.begin(), dataStr.end()), 0,
-                                   shards);
-  LOG_GENERAL(INFO, "Retrieved sharding structure");
+  string keyBlockNum = it->key().ToString();
+  string valShardIDAndStructure = it->value().ToString();
+  bytes valShardIDAndStructureBytes(valShardIDAndStructure.begin(),
+                                    valShardIDAndStructure.end());
+  uint32_t myshardId = Serializable::GetNumber<uint32_t>(
+      valShardIDAndStructureBytes, 0, sizeof(uint32_t));
+
+  if (!Messenger::ArrayToShardStructure(valShardIDAndStructureBytes,
+                                        sizeof(uint32_t), shards)) {
+    LOG_GENERAL(WARNING, "Messenger::ArrayToShardStructure failed");
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "Retrieved sharding structure for DS block "
+                        << keyBlockNum << " with shard ID " << myshardId);
   return true;
 }
 

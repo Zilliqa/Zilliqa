@@ -661,6 +661,8 @@ bool ProtobufToShardingStructure(
     return false;
   }
 
+  shards.clear();
+
   for (const auto& proto_shard : protoShardingStructure.shards()) {
     if (!CheckRequiredFieldsProtoShardingStructureShard(proto_shard)) {
       LOG_GENERAL(WARNING,

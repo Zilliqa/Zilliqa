@@ -187,7 +187,8 @@ class BlockStorage : public Singleton<BlockStorage> {
       uint16_t& consensusLeaderID);
 
   /// Save shard structure
-  bool PutShardStructure(const DequeOfShard& shards, const uint32_t myshardId);
+  bool PutShardStructure(const uint64_t& blockNum, const DequeOfShard& shards,
+                         const uint32_t& myshardId);
 
   /// Retrieve shard structure
   bool GetShardStructure(DequeOfShard& shards);

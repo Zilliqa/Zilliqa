@@ -736,8 +736,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     return false;
   }
 
-  BlockStorage::GetBlockStorage().PutShardStructure(
-      m_shards, m_mediator.m_node->m_myshardId);
+  if (!BlockStorage::GetBlockStorage().PutShardStructure(
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          m_shards, m_mediator.m_node->m_myshardId)) {
+    LOG_GENERAL(WARNING, "PutShardStructure failed");
+  }
 
   // Compute the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;

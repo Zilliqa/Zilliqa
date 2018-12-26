@@ -28,6 +28,10 @@ add_executable(Test_TxBody Test_TxBody.cpp)
 target_include_directories(Test_TxBody PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_TxBody PUBLIC Crypto AccountData Utils Persistence Message)
 
+add_executable(Test_ShardStructure Test_ShardStructure.cpp)
+target_include_directories(Test_ShardStructure PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_ShardStructure PUBLIC Crypto AccountData Utils Persistence Message TestUtils)
+
 #FIXME: built but not enabled
 add_executable(ReadBlock ReadBlock.cpp)
 target_include_directories(ReadBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)

@@ -476,8 +476,11 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   m_mediator.m_ds->m_shards = move(t_shards);
 
   m_myshardId = shardId;
-  BlockStorage::GetBlockStorage().PutShardStructure(m_mediator.m_ds->m_shards,
-                                                    m_myshardId);
+  if (!BlockStorage::GetBlockStorage().PutShardStructure(
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          m_mediator.m_ds->m_shards, m_myshardId)) {
+    LOG_GENERAL(WARNING, "PutShardStructure failed");
+  }
 
   LogReceivedDSBlockDetails(dsblock);
 
