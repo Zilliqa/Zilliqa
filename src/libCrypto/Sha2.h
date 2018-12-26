@@ -53,23 +53,25 @@ class SHA2 {
   ~SHA2() {}
 
   /// Hash update function.
-  void Update(const bytes& input) {
+  bool Update(const bytes& input) {
     if (input.size() == 0) {
       LOG_GENERAL(WARNING, "Nothing to update");
-      return;
+      return false;
     }
 
     SHA256_Update(&m_context, input.data(), input.size());
+    return true;
   }
 
   /// Hash update function.
-  void Update(const bytes& input, unsigned int offset, unsigned int size) {
+  bool Update(const bytes& input, unsigned int offset, unsigned int size) {
     if ((offset + size) > input.size()) {
       LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
+      return false;
     }
-
     SHA256_Update(&m_context, input.data() + offset, size);
+    return true;
   }
 
   /// Resets the algorithm.

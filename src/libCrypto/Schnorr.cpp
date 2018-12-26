@@ -205,13 +205,14 @@ PrivKey::PrivKey() : m_d(BN_new(), BN_clear_free), m_initialized(false) {
     } while (BN_is_zero(m_d.get()));
   } else {
     LOG_GENERAL(WARNING, "Memory allocation failure");
-    // throw exception();
+    throw exception();
   }
 }
 
 PrivKey::PrivKey(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init PrivKey.");
+    throw exception();
   }
 }
 
@@ -219,13 +220,13 @@ PrivKey::PrivKey(const PrivKey& src)
     : m_d(BN_new(), BN_clear_free), m_initialized(false) {
   if (m_d != nullptr) {
     if (BN_copy(m_d.get(), src.m_d.get()) == NULL) {
-      LOG_GENERAL(WARNING, "PrivKey copy failed");
+      throw exception();
     } else {
       m_initialized = true;
     }
   } else {
     LOG_GENERAL(WARNING, "Memory allocation failure");
-    // throw exception();
+    throw exception();
   }
 }
 
@@ -278,7 +279,7 @@ PubKey::PubKey()
       m_initialized(false) {
   if (m_P == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
-    // throw exception();
+    throw exception();
   }
 }
 
@@ -288,11 +289,10 @@ PubKey::PubKey(const PrivKey& privkey)
       m_initialized(false) {
   if (m_P == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
-    // throw exception();
-    return;
+    throw exception();
   } else if (!privkey.Initialized()) {
     LOG_GENERAL(WARNING, "Private key is not initialized");
-    return;
+    throw exception();
   } else {
     const Curve& curve = Schnorr::GetInstance().GetCurve();
 
@@ -316,6 +316,7 @@ PubKey::PubKey(const PrivKey& privkey)
 PubKey::PubKey(const bytes& src, unsigned int offset) {
   if (Deserialize(src, offset) != 0) {
     LOG_GENERAL(WARNING, "We failed to init PubKey.");
+    throw exception();
   }
 }
 
@@ -325,14 +326,15 @@ PubKey::PubKey(const PubKey& src)
       m_initialized(false) {
   if (m_P == nullptr) {
     LOG_GENERAL(WARNING, "Memory allocation failure");
-    // throw exception();
+    throw exception();
     return;
   } else if (src.m_P == nullptr) {
     LOG_GENERAL(WARNING, "src (ec point) is null in pub key construct.");
-    // throw exception();
+    throw exception();
   } else {
     if (EC_POINT_copy(m_P.get(), src.m_P.get()) != 1) {
       LOG_GENERAL(WARNING, "PubKey copy failed");
+      throw exception();
     } else {
       m_initialized = true;
     }
