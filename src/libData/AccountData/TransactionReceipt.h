@@ -42,10 +42,8 @@ class TransactionReceipt : public SerializableDataBlock {
 
  public:
   TransactionReceipt();
-  bool Serialize(std::vector<unsigned char>& dst,
-                 unsigned int offset) const override;
-  bool Deserialize(const std::vector<unsigned char>& src,
-                   unsigned int offset) override;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
+  bool Deserialize(const bytes& src, unsigned int offset) override;
   void SetResult(const bool& result);
   void SetCumGas(const uint64_t& cumGas);
   void AddEntry(const LogEntry& entry);
@@ -66,18 +64,15 @@ class TransactionWithReceipt : public SerializableDataBlock {
   TransactionWithReceipt(const Transaction& tran,
                          const TransactionReceipt& tranReceipt)
       : m_transaction(tran), m_tranReceipt(tranReceipt) {}
-  TransactionWithReceipt(const std::vector<unsigned char>& src,
-                         unsigned int offset) {
+  TransactionWithReceipt(const bytes& src, unsigned int offset) {
     Deserialize(src, offset);
   }
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst,
-                 unsigned int offset) const override;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src,
-                   unsigned int offset) override;
+  bool Deserialize(const bytes& src, unsigned int offset) override;
 
   const Transaction& GetTransaction() const { return m_transaction; }
   const TransactionReceipt& GetTransactionReceipt() const {

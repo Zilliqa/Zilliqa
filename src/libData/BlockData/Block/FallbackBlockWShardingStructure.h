@@ -28,14 +28,13 @@ struct FallbackBlockWShardingStructure : public SerializableDataBlock {
   DequeOfShard m_shards;
 
   FallbackBlockWShardingStructure();
-  FallbackBlockWShardingStructure(const std::vector<unsigned char>& src,
-                                  unsigned int offset);
+  FallbackBlockWShardingStructure(const bytes& src, unsigned int offset);
   FallbackBlockWShardingStructure(const FallbackBlock& fallbackblock,
                                   const DequeOfShard& shards);
 
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 };
 
 #endif  // __FALLBACKBLOCKWSHARDINGSTRUCTURE_H__

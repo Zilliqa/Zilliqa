@@ -29,7 +29,7 @@ namespace ScillaTestUtil {
 // The constituents of a Scilla test.
 struct ScillaTest {
   // Scilla ASCII source.
-  std::vector<unsigned char> code;
+  bytes code;
   // inititialization, message, state and expected output JSONs.
   Json::Value init, message, state, blockchain, expOutput;
 };
@@ -44,8 +44,7 @@ boost::multiprecision::uint128_t GetBalanceFromOutput(void);
 // Return BLOCKNUMBER in Json. Return 0 if not found.
 uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
 // Return the _amount in message.json. Remove that and _sender.
-uint64_t PrepareMessageData(Json::Value &message,
-                            std::vector<unsigned char> &data);
+uint64_t PrepareMessageData(Json::Value &message, bytes &data);
 // Remove _creation_block field from init JSON.
 bool RemoveCreationBlockFromInit(Json::Value &init);
 

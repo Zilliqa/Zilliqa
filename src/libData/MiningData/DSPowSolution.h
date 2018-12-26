@@ -63,7 +63,7 @@ class DSPowSolution {
                 const Signature& signatureInput);
 
   /// Constructor for loading DSPowSolution information from a byte stream.
-  DSPowSolution(const std::vector<unsigned char>& src, unsigned int offset);
+  DSPowSolution(const bytes& src, unsigned int offset);
 
   /// Returns the current block number.
   const uint64_t& GetBlockNumber() const;

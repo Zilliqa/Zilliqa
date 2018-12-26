@@ -71,7 +71,7 @@ Transaction constructDummyTxBody(int instanceNum) {
 //     transactionsTrie.init();
 
 //     Transaction txn1 = constructDummyTxBody(1);
-//     std::vector<unsigned char> serializedTxn1;
+//     bytes serializedTxn1;
 //     txn1.Serialize(serializedTxn1, 0);
 
 //     RLPStream k;
@@ -84,7 +84,7 @@ Transaction constructDummyTxBody(int instanceNum) {
 //     LOG_GENERAL(INFO, transactionsTrie.root());
 
 //     Transaction txn2 = constructDummyTxBody(2);
-//     std::vector<unsigned char> serializedTxn2;
+//     bytes serializedTxn2;
 //     txn2.Serialize(serializedTxn2, 0);
 
 //     k << 2;
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(fat_trie2) {
   transactionsTrie.init();
 
   Transaction txn1 = constructDummyTxBody(1);
-  std::vector<unsigned char> serializedTxn1;
+  bytes serializedTxn1;
   txn1.Serialize(serializedTxn1, 0);
 
   RLPStream k;
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(fat_trie2) {
   LOG_GENERAL(INFO, transactionsTrie.root());
 
   Transaction txn2 = constructDummyTxBody(2);
-  std::vector<unsigned char> serializedTxn2;
+  bytes serializedTxn2;
   txn2.Serialize(serializedTxn2, 0);
 
   k << 2;

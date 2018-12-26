@@ -77,7 +77,7 @@ bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
                     string sampleName, bool didResetCF, bool didResetICF) {
   LOG_MARKER();
 
-  std::vector<unsigned char> icfData(icfDataStr.begin(), icfDataStr.end());
+  bytes icfData(icfDataStr.begin(), icfDataStr.end());
   Transaction icfTx(1, nonce, icfAddress, sender, amount, gasPrice, gasLimit,
                     {}, icfData);
   TransactionReceipt icfTr;
@@ -155,9 +155,9 @@ bool CreateContract(const int& blockNum, ResetType rType) {
       return false;
   }
 
-  std::vector<unsigned char> code(codeStr.begin(), codeStr.end());
+  bytes code(codeStr.begin(), codeStr.end());
 
-  std::vector<unsigned char> initData(initStr.begin(), initStr.end());
+  bytes initData(initStr.begin(), initStr.end());
 
   // LOG_GENERAL(INFO, "nonce: " << nonce);
 
@@ -215,8 +215,7 @@ void AutoTest(bool doResetCF, bool doResetICF,
       }
 
       if (samples[i].cfDataStr != "") {
-        std::vector<unsigned char> cfData(samples[i].cfDataStr.begin(),
-                                          samples[i].cfDataStr.end());
+        bytes cfData(samples[i].cfDataStr.begin(), samples[i].cfDataStr.end());
 
         uint128_t* t_nonce;
         if (samples[i].cfSender == sender) {

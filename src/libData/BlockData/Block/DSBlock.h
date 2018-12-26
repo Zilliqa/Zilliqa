@@ -43,16 +43,16 @@ class DSBlock : public BlockBase {
               // maxsize of uint256
 
   /// Constructor for loading DS block information from a byte stream.
-  DSBlock(const std::vector<unsigned char>& src, unsigned int offset);
+  DSBlock(const bytes& src, unsigned int offset);
 
   /// Constructor with specified DS block parameters.
   DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Returns the reference to the DSBlockHeader part of the DS block.
   const DSBlockHeader& GetHeader() const;

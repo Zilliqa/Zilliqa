@@ -53,13 +53,13 @@ struct BIGNUMSerialize {
   static std::mutex m_mutexBIGNUM;
 
   /// Deserializes a BIGNUM from specified byte stream.
-  static std::shared_ptr<BIGNUM> GetNumber(
-      const std::vector<unsigned char>& src, unsigned int offset,
-      unsigned int size);
+  static std::shared_ptr<BIGNUM> GetNumber(const bytes& src,
+                                           unsigned int offset,
+                                           unsigned int size);
 
   /// Serializes a BIGNUM into specified byte stream.
-  static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
-                        unsigned int size, std::shared_ptr<BIGNUM> value);
+  static void SetNumber(bytes& dst, unsigned int offset, unsigned int size,
+                        std::shared_ptr<BIGNUM> value);
 };
 
 /// EC-Schnorr utility for serializing ECPOINT data type.
@@ -67,13 +67,13 @@ struct ECPOINTSerialize {
   static std::mutex m_mutexECPOINT;
 
   /// Deserializes an ECPOINT from specified byte stream.
-  static std::shared_ptr<EC_POINT> GetNumber(
-      const std::vector<unsigned char>& src, unsigned int offset,
-      unsigned int size);
+  static std::shared_ptr<EC_POINT> GetNumber(const bytes& src,
+                                             unsigned int offset,
+                                             unsigned int size);
 
   /// Serializes an ECPOINT into specified byte stream.
-  static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
-                        unsigned int size, std::shared_ptr<EC_POINT> value);
+  static void SetNumber(bytes& dst, unsigned int offset, unsigned int size,
+                        std::shared_ptr<EC_POINT> value);
 };
 
 /// Stores information on an EC-Schnorr private key.
@@ -88,7 +88,7 @@ struct PrivKey : public Serializable {
   PrivKey();
 
   /// Constructor for loading existing key from a byte stream.
-  PrivKey(const std::vector<unsigned char>& src, unsigned int offset);
+  PrivKey(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   PrivKey(const PrivKey& src);
@@ -100,11 +100,10 @@ struct PrivKey : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Assignment operator.
   PrivKey& operator=(const PrivKey&);
@@ -138,7 +137,7 @@ struct PubKey : public Serializable {
   PubKey(const PrivKey& privkey);
 
   /// Constructor for loading existing key from a byte stream.
-  PubKey(const std::vector<unsigned char>& src, unsigned int offset);
+  PubKey(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   PubKey(const PubKey&);
@@ -150,11 +149,10 @@ struct PubKey : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Assignment operator.
   PubKey& operator=(const PubKey& src);
@@ -194,7 +192,7 @@ struct Signature : public Serializable {
   Signature();
 
   /// Constructor for loading existing signature from a byte stream.
-  Signature(const std::vector<unsigned char>& src, unsigned int offset);
+  Signature(const bytes& src, unsigned int offset);
 
   /// Copy constructor.
   Signature(const Signature&);
@@ -206,11 +204,10 @@ struct Signature : public Serializable {
   bool Initialized() const;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Assignment operator.
   Signature& operator=(const Signature&);
@@ -258,24 +255,22 @@ class Schnorr {
   std::pair<PrivKey, PubKey> GenKeyPair();
 
   /// Signs a message using the EC curve parameters and the specified key pair.
-  bool Sign(const std::vector<unsigned char>& message, const PrivKey& privkey,
-            const PubKey& pubkey, Signature& result);
-
-  /// Signs a message using the EC curve parameters and the specified key pair.
-  bool Sign(const std::vector<unsigned char>& message, unsigned int offset,
-            unsigned int size, const PrivKey& privkey, const PubKey& pubkey,
+  bool Sign(const bytes& message, const PrivKey& privkey, const PubKey& pubkey,
             Signature& result);
 
-  /// Checks the signature validity using the EC curve parameters and the
-  /// specified PubKey.
-  bool Verify(const std::vector<unsigned char>& message,
-              const Signature& toverify, const PubKey& pubkey);
+  /// Signs a message using the EC curve parameters and the specified key pair.
+  bool Sign(const bytes& message, unsigned int offset, unsigned int size,
+            const PrivKey& privkey, const PubKey& pubkey, Signature& result);
 
   /// Checks the signature validity using the EC curve parameters and the
   /// specified PubKey.
-  bool Verify(const std::vector<unsigned char>& message, unsigned int offset,
-              unsigned int size, const Signature& toverify,
+  bool Verify(const bytes& message, const Signature& toverify,
               const PubKey& pubkey);
+
+  /// Checks the signature validity using the EC curve parameters and the
+  /// specified PubKey.
+  bool Verify(const bytes& message, unsigned int offset, unsigned int size,
+              const Signature& toverify, const PubKey& pubkey);
 
   /// Utility function for printing EC_POINT coordinates.
   void PrintPoint(const EC_POINT* point);

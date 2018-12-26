@@ -45,7 +45,7 @@ struct Peer : public Serializable {
        uint32_t listen_port_host);
 
   /// Constructor for loading peer information from a byte stream.
-  Peer(const std::vector<unsigned char>& src, unsigned int offset);
+  Peer(const bytes& src, unsigned int offset);
 
   /// Equality comparison operator.
   bool operator==(const Peer& r) const;
@@ -66,11 +66,10 @@ struct Peer : public Serializable {
   }
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const;
+  unsigned int Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  int Deserialize(const bytes& src, unsigned int offset);
 
   /// Getters.
   const boost::multiprecision::uint128_t& GetIpAddress() const;
@@ -87,7 +86,7 @@ namespace std {
 template <>
 struct hash<Peer> {
   size_t operator()(const Peer& obj) const {
-    std::vector<unsigned char> s_peer;
+    bytes s_peer;
     obj.Serialize(s_peer, 0);
     std::string str_peer(s_peer.begin(), s_peer.end());
     return std::hash<string>()(str_peer);

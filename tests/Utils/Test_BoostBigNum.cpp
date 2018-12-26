@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum) {
   cout << num << endl;
 
   // Serialize
-  vector<unsigned char> bytestream(32, 0x00);
+  bytes bytestream(32, 0x00);
   for (unsigned int i = 0; i < 32; i++) {
     bytestream.at(31 - i) = num.convert_to<uint8_t>();
     num >>= 8;
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(testBoostBigNum) {
   uint128_t ipaddr_big = ip_addr.s_addr;
   uint32_t ipaddr_normal = ip_addr.s_addr;
 
-  vector<unsigned char> v1, v2;
+  bytes v1, v2;
   Serializable::SetNumber<uint128_t>(v1, 0, ipaddr_big, UINT128_SIZE);
   Serializable::SetNumber<uint32_t>(v2, 0, ipaddr_normal, sizeof(uint32_t));
 

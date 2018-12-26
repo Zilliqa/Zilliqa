@@ -34,8 +34,7 @@ void AccountStoreBase<MAP>::Init() {
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::Serialize(std::vector<unsigned char>& dst,
-                                      unsigned int offset) const {
+bool AccountStoreBase<MAP>::Serialize(bytes& dst, unsigned int offset) const {
   if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
@@ -46,8 +45,7 @@ bool AccountStoreBase<MAP>::Serialize(std::vector<unsigned char>& dst,
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::Deserialize(const std::vector<unsigned char>& src,
-                                        unsigned int offset) {
+bool AccountStoreBase<MAP>::Deserialize(const bytes& src, unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");

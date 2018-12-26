@@ -138,7 +138,7 @@ bool DirectoryService::CheckState(Action action) {
   return true;
 }
 
-bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
+bool DirectoryService::ProcessSetPrimary(const bytes& message,
                                          unsigned int offset,
                                          [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
@@ -207,7 +207,7 @@ bool DirectoryService::ProcessSetPrimary(const vector<unsigned char>& message,
     m_mediator.m_DSCommittee->resize(ds.size());
     copy(ds.begin(), ds.end(), m_mediator.m_DSCommittee->begin());
 
-    vector<unsigned char> setDSBootstrapNodeMessage = {
+    bytes setDSBootstrapNodeMessage = {
         MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
     if (!Messenger::SetLookupSetDSInfoFromSeed(
@@ -620,8 +620,8 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
 
   if (m_mode == PRIMARY_DS) {
     // Notify lookup that it's time to do PoW
-    vector<unsigned char> startpow_message = {
-        MessageType::LOOKUP, LookupInstructionType::RAISESTARTPOW};
+    bytes startpow_message = {MessageType::LOOKUP,
+                              LookupInstructionType::RAISESTARTPOW};
     m_mediator.m_lookup->SendMessageToLookupNodesSerial(startpow_message);
 
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
@@ -730,8 +730,8 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   }
 
   // To provide current pubkey, new IP, new Port and current timestamp
-  vector<unsigned char> updatedsguardidentitymessage = {
-      MessageType::DIRECTORY, DSInstructionType::NEWDSGUARDIDENTITY};
+  bytes updatedsguardidentitymessage = {MessageType::DIRECTORY,
+                                        DSInstructionType::NEWDSGUARDIDENTITY};
 
   uint64_t curDSEpochNo =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
@@ -786,7 +786,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 }
 
 bool DirectoryService::ProcessNewDSGuardNetworkInfo(
-    const std::vector<unsigned char>& message, unsigned int offset,
+    const bytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 
@@ -895,14 +895,14 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   }
 }
 
-bool DirectoryService::Execute(const vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from) {
+bool DirectoryService::Execute(const bytes& message, unsigned int offset,
+                               const Peer& from) {
   // LOG_MARKER();
 
   bool result = false;
 
   typedef bool (DirectoryService::*InstructionHandler)(
-      const vector<unsigned char>&, unsigned int, const Peer&);
+      const bytes&, unsigned int, const Peer&);
 
   std::vector<InstructionHandler> ins_handlers;
 

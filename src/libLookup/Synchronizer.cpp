@@ -38,9 +38,9 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
     prevHash.asArray().at(i) = i + 1;
   }
 
-  vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(
+  bytes tmpprivkey = DataConversion::HexStrToUint8Vec(
       "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-  vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(
+  bytes tmppubkey = DataConversion::HexStrToUint8Vec(
       "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
   // FIXME: Handle exceptions.
   PrivKey privKey(tmpprivkey, 0);
@@ -64,7 +64,7 @@ bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
   dsBlockChain.AddBlock(dsBlock);
 
   // Store DS Block to disk
-  vector<unsigned char> serializedDSBlock;
+  bytes serializedDSBlock;
   dsBlock.Serialize(serializedDSBlock, 0);
   BlockStorage::GetBlockStorage().PutDSBlock(dsBlock.GetHeader().GetBlockNum(),
                                              serializedDSBlock);
@@ -79,9 +79,9 @@ bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
 }
 
 TxBlock Synchronizer::ConstructGenesisTxBlock() {
-  vector<unsigned char> tmpprivkey = DataConversion::HexStrToUint8Vec(
+  bytes tmpprivkey = DataConversion::HexStrToUint8Vec(
       "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-  vector<unsigned char> tmppubkey = DataConversion::HexStrToUint8Vec(
+  bytes tmppubkey = DataConversion::HexStrToUint8Vec(
       "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
   // FIXME: Handle exceptions.
   PrivKey privKey(tmpprivkey, 0);
@@ -101,7 +101,7 @@ bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
   txBlockChain.AddBlock(txBlock);
 
   // Store Tx Block to disk
-  vector<unsigned char> serializedTxBlock;
+  bytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);

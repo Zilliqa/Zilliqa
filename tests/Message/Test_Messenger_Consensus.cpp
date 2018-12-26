@@ -38,12 +38,11 @@ BOOST_AUTO_TEST_CASE(init) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
-  vector<unsigned char> blockHash(TestUtils::Dist1to99(),
-                                  TestUtils::DistUint8());
+  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t backupID = max((uint16_t)2, (uint16_t)TestUtils::Dist1to99());
   CommitPoint commit = CommitPoint(CommitSecret());
   pair<PrivKey, PubKey> backupKey;
@@ -73,19 +72,17 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
   uint16_t subsetID = TestUtils::DistUint16();
-  vector<unsigned char> blockHash(TestUtils::Dist1to99(),
-                                  TestUtils::DistUint8());
+  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t leaderID = TestUtils::DistUint8();
   CommitPoint aggregatedCommit = CommitPoint(CommitSecret());
   PubKey aggregatedKey = PubKey(PrivKey());
-  Challenge challenge(
-      aggregatedCommit, aggregatedKey,
-      vector<unsigned char>(TestUtils::Dist1to99(), TestUtils::DistUint8()));
+  Challenge challenge(aggregatedCommit, aggregatedKey,
+                      bytes(TestUtils::Dist1to99(), TestUtils::DistUint8()));
   pair<PrivKey, PubKey> leaderKey;
   leaderKey.first = PrivKey();
   leaderKey.second = PubKey(leaderKey.first);
@@ -105,12 +102,11 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusConsensusFailure) {
-  vector<unsigned char> dst;
+  bytes dst;
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
-  vector<unsigned char> blockHash(TestUtils::Dist1to99(),
-                                  TestUtils::DistUint8());
+  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t leaderID = TestUtils::DistUint8();
   pair<PrivKey, PubKey> leaderKey;
   leaderKey.first = PrivKey();

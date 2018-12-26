@@ -90,7 +90,7 @@ class BlockLinkChain {
     m_blockLinkChain.insert_new(
         index, std::make_tuple(index, dsindex, blocktype, blockhash));
 
-    std::vector<unsigned char> dst;
+    bytes dst;
     LOG_GENERAL(INFO, "[DBS]"
                           << "Stored " << index << " " << dsindex << " "
                           << blocktype << " " << blockhash);
