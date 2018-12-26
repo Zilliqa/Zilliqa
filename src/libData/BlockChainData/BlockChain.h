@@ -104,9 +104,9 @@ class BlockChain {
 
     if (blockNumOfExistingBlock < blockNumOfNewBlock ||
         INIT_BLOCK_NUMBER == blockNumOfExistingBlock) {
-      if (m_blocks.size() != 0) {
+      if (m_blocks.size() > 0) {
         uint64_t blockNumOfLastBlock =
-            m_blocks[blockNumOfNewBlock - 1].GetHeader().GetBlockNum();
+            m_blocks.back().GetHeader().GetBlockNum();
         uint64_t blockNumMissed = blockNumOfNewBlock - blockNumOfLastBlock - 1;
         if (blockNumMissed > 0) {
           LOG_GENERAL(INFO,
