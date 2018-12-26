@@ -28,6 +28,15 @@
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
+#include "boost/program_options.hpp"
+
+namespace po = boost::program_options;
+
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+#define ERROR_UNEXPECTED -3
+
 using KeyPairAddress = std::tuple<PrivKey, PubKey, Address>;
 using NonceRange = std::tuple<std::size_t, std::size_t>;
 
@@ -110,10 +119,11 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   }
 }
 
-void usage(const std::string& prog) {
-  std::cout << "Usage: " << prog << " [BEGIN [END]]\n";
-  std::cout << "\n";
-  std::cout << "Description:\n";
+using namespace std;
+
+void description() {
+
+  std::cout << endl << "Description:\n";
   std::cout
       << "\tGenerate transactions starting from batch BEGIN (default to 0) "
          "to batch END (default to START+10000)\n";
@@ -125,55 +135,87 @@ void usage(const std::string& prog) {
 }
 
 int main(int argc, char** argv) {
-  std::string prog(argv[0]);
+  try {
+    const unsigned long delta = 10000;
+    unsigned long begin = 0, end = delta;
 
-  const unsigned long delta = 10000;
-  unsigned long begin = 0, end = delta;
+    po::options_description desc("Options");
 
-  if (argc > 1) {
-    begin = strtoul(argv[1], nullptr, 10);
-    if (begin != ULONG_MAX) {
-      end = begin + delta;
+    desc.add_options()("help,h", "Print help messages")(
+        "b,begin", po::value<unsigned long>(&begin), "Start of transaction batch (default to 0)")(
+        "e,end", po::value<unsigned long>(&end), "End of transaction batch (default to parameter --begin|-b + 10000)");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+
+      /** --help option
+       */
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        description();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+
+      if (begin != ULONG_MAX) {
+        end = begin + delta;
+      }
+
+      if (begin == ULONG_MAX || end == ULONG_MAX || begin > end) {
+        description();
+        return 1;
+      }
+
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      return ERROR_IN_COMMAND_LINE;
     }
+
+      auto receiver = Schnorr::GetInstance().GenKeyPair();
+      auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
+
+      std::string txn_path{TXN_PATH};
+      if (!boost::filesystem::exists(txn_path)) {
+        std::cerr << "Cannot find path '" << txn_path
+                  << "', check TXN_PATH in constants.xml\n";
+        return 1;
+      }
+
+      auto batch_size = NUM_TXN_TO_SEND_PER_ACCOUNT;
+
+      auto fromAccounts = get_genesis_keypair_and_address();
+
+      std::cout << "Number of genesis accounts: " << fromAccounts.size() << "\n";
+      std::cout << "Begin batch: " << begin << "\n";
+      std::cout << "End batch: " << end << "\n";
+      std::cout << "Destionation directory (TXN_PATH): " << txn_path << "\n";
+      std::cout << "Batch size (NUM_TXN_TO_SEND_PER_ACCOUNT): " << batch_size
+                << "\n";
+
+      for (auto batch = begin; batch < end; batch++) {
+        auto begin_nonce = batch * batch_size + 1;
+        auto end_nonce = (batch + 1) * batch_size + 1;
+        auto nonce_range = std::make_tuple(begin_nonce, end_nonce);
+
+        for (auto& from : fromAccounts) {
+          gen_txn_file(txn_path, from, toAddr, nonce_range);
+        }
+      }
+
+  } catch (exception& e) {
+    cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << endl;
+    return ERROR_UNHANDLED_EXCEPTION;
   }
+  return SUCCESS;
 
-  if (argc > 2) {
-    end = strtoul(argv[2], nullptr, 10);
-  }
 
-  if (begin == ULONG_MAX || end == ULONG_MAX || begin > end) {
-    usage(prog);
-    return 1;
-  }
-
-  auto receiver = Schnorr::GetInstance().GenKeyPair();
-  auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
-
-  std::string txn_path{TXN_PATH};
-  if (!boost::filesystem::exists(txn_path)) {
-    std::cerr << "Cannot find path '" << txn_path
-              << "', check TXN_PATH in constants.xml\n";
-    return 1;
-  }
-
-  auto batch_size = NUM_TXN_TO_SEND_PER_ACCOUNT;
-
-  auto fromAccounts = get_genesis_keypair_and_address();
-
-  std::cout << "Number of genesis accounts: " << fromAccounts.size() << "\n";
-  std::cout << "Begin batch: " << begin << "\n";
-  std::cout << "End batch: " << end << "\n";
-  std::cout << "Destionation directory (TXN_PATH): " << txn_path << "\n";
-  std::cout << "Batch size (NUM_TXN_TO_SEND_PER_ACCOUNT): " << batch_size
-            << "\n";
-
-  for (auto batch = begin; batch < end; batch++) {
-    auto begin_nonce = batch * batch_size + 1;
-    auto end_nonce = (batch + 1) * batch_size + 1;
-    auto nonce_range = std::make_tuple(begin_nonce, end_nonce);
-
-    for (auto& from : fromAccounts) {
-      gen_txn_file(txn_path, from, toAddr, nonce_range);
-    }
-  }
 }
