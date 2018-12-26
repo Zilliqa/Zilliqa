@@ -743,6 +743,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     return false;
   }
 
+  m_mediator.m_node->m_myshardId = m_shards.size();
   BlockStorage::GetBlockStorage().PutShardStructure(
       m_shards, m_mediator.m_node->m_myshardId);
 
