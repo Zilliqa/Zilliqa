@@ -54,6 +54,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
+  std::shared_ptr<LevelDB> m_diagnosticDB;
 
   BlockStorage()
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
@@ -65,10 +66,12 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks")),
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
-        m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")) {
+        m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
+        m_diagnosticDBCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
+      m_diagnosticDB = std::make_shared<LevelDB>("diagnostic");
     }
   };
   ~BlockStorage() = default;
@@ -88,7 +91,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     FB_BLOCK,
     BLOCKLINK,
     SHARD_STRUCTURE,
-    STATE_DELTA
+    STATE_DELTA,
+    DIAGNOSTIC
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -198,6 +202,14 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieve state delta
   bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
 
+  /// Save data for diagnostic / monitoring purposes
+  bool PutDiagnosticData(const uint64_t& dsBlockNum, const DequeOfShard& shards,
+                         const DequeOfDSNode& dsCommittee);
+
+  /// Retrieve diagnostic data
+  bool GetDiagnosticData(const uint64_t& dsBlockNum, DequeOfShard& shards,
+                         DequeOfDSNode& dsCommittee);
+
   /// Clean a DB
   bool ResetDB(DBTYPE type);
 
@@ -219,6 +231,9 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::mutex m_mutexStateDelta;
   std::mutex m_mutexTxBody;
   std::mutex m_mutexTxBodyTmp;
+  std::mutex m_mutexDiagnostic;
+
+  unsigned int m_diagnosticDBCounter;
 };
 
 #endif  // BLOCKSTORAGE_H

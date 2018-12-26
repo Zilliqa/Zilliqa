@@ -193,6 +193,13 @@ class Messenger {
                                                  FallbackBlock& fallbackblock,
                                                  DequeOfShard& shards);
 
+  static bool SetDiagnosticData(bytes& dst, const unsigned int offset,
+                                const DequeOfShard& shards,
+                                const DequeOfDSNode& dsCommittee);
+  static bool GetDiagnosticData(const bytes& src, const unsigned int offset,
+                                DequeOfShard& shards,
+                                DequeOfDSNode& dsCommittee);
+
   // ============================================================================
   // Peer Manager messages
   // ============================================================================
