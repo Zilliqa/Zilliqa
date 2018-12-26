@@ -24,6 +24,16 @@
 #include <vector>
 
 #include "common/MessageNames.h"
+#include "libUtils/SWInfo.h"
+
+#include "boost/program_options.hpp"
+
+namespace po = boost::program_options;
+
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+#define ERROR_UNEXPECTED -3
 
 struct MessageSizeTime {
   uint32_t size;
@@ -132,21 +142,52 @@ void printResult(const std::string& strFileName) {
   fs.close();
 }
 
+using namespace std;
+
 int main(int argc, const char* argv[]) {
-  if (argc < 3) {
-    std::cout << "[USAGE] " << argv[0]
-              << " <zilliqa log file name> <grep result file name>"
-              << std::endl;
-    return -1;
-  }
+  try {
+    std::string strFileName(argv[1]);
+    std::string strResultName(argv[2]);
 
-  std::string strFileName(argv[1]);
-  std::string strResultName(argv[2]);
-  if (grepFile(strFileName)) {
-    printResult(strResultName);
-    std::cout << "Grep performance result successfully write into "
-              << strResultName << std::endl;
-  }
+    po::options_description desc("Options");
 
-  return 0;
+    desc.add_options()("help,h", "Print help messages")(
+        "l,log-file-name", po::value<string>(&strFileName), "zilliqa log file name")(
+        "r,result-file-name", po::value<string>(&strResultName), "grep result file name");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+
+      /** --help option
+       */
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    if (grepFile(strFileName)) {
+      printResult(strResultName);
+      std::cout << "Grep performance result successfully write into "
+                << strResultName << std::endl;
+    }
+
+  } catch (exception& e) {
+    cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << endl;
+    return ERROR_UNHANDLED_EXCEPTION;
+  }
+  return SUCCESS;
 }

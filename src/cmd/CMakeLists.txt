@@ -47,6 +47,7 @@ target_link_libraries(gensigninitialds PUBLIC Utils Persistence g3logger)
 
 add_executable(grepperf grepperf.cpp)
 target_include_directories(grepperf PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(grepperf PUBLIC Boost::program_options)
 
 add_executable(getaddr GetAddressFromPubKey.cpp)
 add_custom_command(TARGET zilliqa
