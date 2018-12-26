@@ -252,16 +252,24 @@ bool Node::ValidateTxns() {
         m_mediator.m_txBlockChain.GetBlock(i).GetMicroBlockInfos();
     for (auto mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
+      LOG_GENERAL(INFO, mbInfo.m_shardId);
+      /// Skip because empty microblocks are not stored
+      if (mbInfo.m_txnRootHash == TxnHash()) {
+        continue;
+      }
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
         auto tranHashes = mbptr->GetTranHashes();
         for (auto tranHash : tranHashes) {
           TxBodySharedPtr tx;
           if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
+            LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch")
             return false;
           }
         }
       } else {
+        LOG_GENERAL(WARNING, " " << mbInfo.m_microBlockHash
+                                 << "failed to fetch microblock");
         return false;
       }
     }
