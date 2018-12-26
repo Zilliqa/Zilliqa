@@ -31,10 +31,10 @@ BlockHeaderBase::BlockHeaderBase(const CommitteeHash& committeeHash)
 
 BlockHash BlockHeaderBase::GetMyHash() const {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  std::vector<unsigned char> vec;
+  bytes vec;
   Serialize(vec, 0);
   sha2.Update(vec);
-  const std::vector<unsigned char>& resVec = sha2.Finalize();
+  const bytes& resVec = sha2.Finalize();
   BlockHash blockHash;
   std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
   return blockHash;

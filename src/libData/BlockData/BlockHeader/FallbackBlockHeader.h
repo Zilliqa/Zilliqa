@@ -50,8 +50,7 @@ class FallbackBlockHeader : public BlockHeaderBase {
 
   /// Constructor for loading fallback block header information from a byte
   /// stream.
-  FallbackBlockHeader(const std::vector<unsigned char>& src,
-                      unsigned int offset);
+  FallbackBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified fallback block header parameters.
   FallbackBlockHeader(
@@ -62,10 +61,10 @@ class FallbackBlockHeader : public BlockHeaderBase {
       const CommitteeHash& committeeHash, const BlockHash& prevHash);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(std::vector<unsigned char>& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::vector<unsigned char>& src, unsigned int offset);
+  bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Returns the hash of prev dir block
   const BlockHash& GetPrevHash() const { return m_prevHash; }

@@ -436,8 +436,7 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    vector<unsigned char> tmpaddr =
-        DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -481,8 +480,7 @@ GetSmartContractStateResponse Server::GetSmartContractState(
       return ret;
     }
 
-    vector<unsigned char> tmpaddr =
-        DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -523,8 +521,7 @@ GetSmartContractInitResponse Server::GetSmartContractInit(
       return ret;
     }
 
-    vector<unsigned char> tmpaddr =
-        DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -564,8 +561,7 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    vector<unsigned char> tmpaddr =
-        DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -606,8 +602,7 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    vector<unsigned char> tmpaddr =
-        DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -908,10 +903,10 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
       // add the hash of genesis block
       DSBlockHeader dshead = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
       SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-      vector<unsigned char> vec;
+      bytes vec;
       dshead.Serialize(vec, 0);
       sha2.Update(vec);
-      const vector<unsigned char>& resVec = sha2.Finalize();
+      const bytes& resVec = sha2.Finalize();
       m_DSBlockCache.second.insert_new(
           m_DSBlockCache.second.size(),
           DataConversion::Uint8VecToHexStr(resVec));
@@ -939,10 +934,10 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
     DSBlockHeader dshead =
         m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    vector<unsigned char> vec;
+    bytes vec;
     dshead.Serialize(vec, 0);
     sha2.Update(vec);
-    const vector<unsigned char>& resVec = sha2.Finalize();
+    const bytes& resVec = sha2.Finalize();
 
     m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(),
                                      DataConversion::Uint8VecToHexStr(resVec));
@@ -1001,10 +996,10 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
       // add the hash of genesis block
       TxBlockHeader txhead = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
       SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-      vector<unsigned char> vec;
+      bytes vec;
       txhead.Serialize(vec, 0);
       sha2.Update(vec);
-      const vector<unsigned char>& resVec = sha2.Finalize();
+      const bytes& resVec = sha2.Finalize();
       m_TxBlockCache.second.insert_new(
           m_TxBlockCache.second.size(),
           DataConversion::Uint8VecToHexStr(resVec));
@@ -1032,10 +1027,10 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
     TxBlockHeader txhead =
         m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-    vector<unsigned char> vec;
+    bytes vec;
     txhead.Serialize(vec, 0);
     sha2.Update(vec);
-    const vector<unsigned char>& resVec = sha2.Finalize();
+    const bytes& resVec = sha2.Finalize();
 
     m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(),
                                      DataConversion::Uint8VecToHexStr(resVec));

@@ -58,8 +58,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   //     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
   AccountStoreTemp(AccountStore& parent);
 
-  bool DeserializeDelta(const std::vector<unsigned char>& src,
-                        unsigned int offset);
+  bool DeserializeDelta(const bytes& src, unsigned int offset);
 
   /// Returns the Account associated with the specified address.
   Account* GetAccount(const Address& address) override;
@@ -91,7 +90,7 @@ class AccountStore
   // mutex related to reversibles
   std::mutex m_mutexReversibles;
 
-  std::vector<unsigned char> m_stateDeltaSerialized;
+  bytes m_stateDeltaSerialized;
 
   AccountStore();
   ~AccountStore();
@@ -103,21 +102,18 @@ class AccountStore
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
 
-  bool Serialize(std::vector<unsigned char>& src,
-                 unsigned int offset) const override;
+  bool Serialize(bytes& src, unsigned int offset) const override;
 
-  bool Deserialize(const std::vector<unsigned char>& src,
-                   unsigned int offset) override;
+  bool Deserialize(const bytes& src, unsigned int offset) override;
 
   bool SerializeDelta();
 
-  void GetSerializedDelta(std::vector<unsigned char>& dst);
+  void GetSerializedDelta(bytes& dst);
 
-  bool DeserializeDelta(const std::vector<unsigned char>& src,
-                        unsigned int offset, bool reversible = false);
+  bool DeserializeDelta(const bytes& src, unsigned int offset,
+                        bool reversible = false);
 
-  bool DeserializeDeltaTemp(const std::vector<unsigned char>& src,
-                            unsigned int offset);
+  bool DeserializeDeltaTemp(const bytes& src, unsigned int offset);
 
   /// Empty the state trie, must be called explicitly otherwise will retrieve
   /// the historical data

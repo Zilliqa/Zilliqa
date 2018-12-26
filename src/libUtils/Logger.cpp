@@ -186,8 +186,8 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
 }
 
 void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
-                        const std::vector<unsigned char>& payload,
-                        size_t max_bytes_to_display, const char* function) {
+                        const bytes& payload, size_t max_bytes_to_display,
+                        const char* function) {
   std::unique_ptr<char[]> payload_string;
   GetPayloadS(payload, max_bytes_to_display, payload_string);
   lock_guard<mutex> guard(m);
@@ -277,8 +277,7 @@ void Logger::DisableLevel(LEVELS level) { g3::log_levels::disable(level); }
 
 pid_t Logger::GetPid() { return getCurrentPid(); }
 
-void Logger::GetPayloadS(const std::vector<unsigned char>& payload,
-                         size_t max_bytes_to_display,
+void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
                          std::unique_ptr<char[]>& res) {
   static const char* hex_table = "0123456789ABCDEF";
   size_t payload_string_len = (payload.size() * 2) + 1;

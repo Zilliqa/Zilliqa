@@ -42,8 +42,7 @@ BlockStorage& BlockStorage::GetBlockStorage() {
   return bs;
 }
 
-bool BlockStorage::PutBlock(const uint64_t& blockNum,
-                            const vector<unsigned char>& body,
+bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
                             const BlockType& blockType) {
   int ret = -1;  // according to LevelDB::Insert return value
   if (blockType == BlockType::DS) {
@@ -56,8 +55,7 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum,
   return (ret == 0);
 }
 
-bool BlockStorage::PutDSBlock(const uint64_t& blockNum,
-                              const vector<unsigned char>& body) {
+bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
   bool ret = false;
   if (PutBlock(blockNum, body, BlockType::DS)) {
     if (PutMetadata(MetaType::DSINCOMPLETED, {'1'})) {
@@ -71,34 +69,30 @@ bool BlockStorage::PutDSBlock(const uint64_t& blockNum,
   return ret;
 }
 
-bool BlockStorage::PutVCBlock(const BlockHash& blockhash,
-                              const vector<unsigned char>& body) {
+bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {
   int ret = -1;
   ret = m_VCBlockDB->Insert(blockhash, body);
   return (ret == 0);
 }
 
 bool BlockStorage::PutFallbackBlock(const BlockHash& blockhash,
-                                    const vector<unsigned char>& body) {
+                                    const bytes& body) {
   int ret = -1;
   ret = m_fallbackBlockDB->Insert(blockhash, body);
   return (ret == 0);
 }
 
-bool BlockStorage::PutBlockLink(const uint64_t& index,
-                                const vector<unsigned char>& body) {
+bool BlockStorage::PutBlockLink(const uint64_t& index, const bytes& body) {
   int ret = -1;
   ret = m_blockLinkDB->Insert(index, body);
   return (ret == 0);
 }
 
-bool BlockStorage::PutTxBlock(const uint64_t& blockNum,
-                              const vector<unsigned char>& body) {
+bool BlockStorage::PutTxBlock(const uint64_t& blockNum, const bytes& body) {
   return PutBlock(blockNum, body, BlockType::Tx);
 }
 
-bool BlockStorage::PutTxBody(const dev::h256& key,
-                             const vector<unsigned char>& body) {
+bool BlockStorage::PutTxBody(const dev::h256& key, const bytes& body) {
   int ret;
 
   if (!LOOKUP_NODE_MODE) {
@@ -113,7 +107,7 @@ bool BlockStorage::PutTxBody(const dev::h256& key,
 }
 
 bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
-                                 const vector<unsigned char>& body) {
+                                 const bytes& body) {
   int ret = m_microBlockDB->Insert(blockHash, body);
 
   return (ret == 0);
@@ -128,8 +122,8 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   if (blockString.empty()) {
     return false;
   }
-  microblock = make_shared<MicroBlock>(
-      vector<unsigned char>(blockString.begin(), blockString.end()), 0);
+  microblock =
+      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -151,8 +145,8 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
       delete it;
       return false;
     }
-    MicroBlockSharedPtr block = MicroBlockSharedPtr(new MicroBlock(
-        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+    MicroBlockSharedPtr block = MicroBlockSharedPtr(
+        new MicroBlock(bytes(blockString.begin(), blockString.end()), 0));
 
     if (block->GetHeader().GetEpochNum() < lowEpochNum ||
         block->GetHeader().GetEpochNum() > hiEpochNum ||
@@ -185,8 +179,8 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
 
   // LOG_GENERAL(INFO, blockString);
   LOG_GENERAL(INFO, blockString.length());
-  block = DSBlockSharedPtr(new DSBlock(
-      std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+  block = DSBlockSharedPtr(
+      new DSBlock(bytes(blockString.begin(), blockString.end()), 0));
 
   return true;
 }
@@ -201,8 +195,8 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
 
   // LOG_GENERAL(INFO, blockString);
   LOG_GENERAL(INFO, blockString.length());
-  block = VCBlockSharedPtr(new VCBlock(
-      std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+  block = VCBlockSharedPtr(
+      new VCBlock(bytes(blockString.begin(), blockString.end()), 0));
 
   return true;
 }
@@ -221,8 +215,7 @@ bool BlockStorage::GetFallbackBlock(
 
   fallbackblockwsharding =
       FallbackBlockSharedPtr(new FallbackBlockWShardingStructure(
-          std::vector<unsigned char>(blockString.begin(), blockString.end()),
-          0));
+          bytes(blockString.begin(), blockString.end()), 0));
 
   return true;
 }
@@ -238,9 +231,8 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   // LOG_GENERAL(INFO, blockString);
   LOG_GENERAL(INFO, blockString.length());
   BlockLink blnk;
-  if (!Messenger::GetBlockLink(
-          vector<unsigned char>(blockString.begin(), blockString.end()), 0,
-          blnk)) {
+  if (!Messenger::GetBlockLink(bytes(blockString.begin(), blockString.end()), 0,
+                               blnk)) {
     LOG_GENERAL(WARNING, "Serialization of blockLink failed");
     return false;
   }
@@ -256,8 +248,8 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
     return false;
   }
 
-  block = TxBlockSharedPtr(new TxBlock(
-      std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+  block = TxBlockSharedPtr(
+      new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
 
   return true;
 }
@@ -276,7 +268,7 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
     return false;
   }
   body = TxBodySharedPtr(new TransactionWithReceipt(
-      std::vector<unsigned char>(bodyString.begin(), bodyString.end()), 0));
+      bytes(bodyString.begin(), bodyString.end()), 0));
 
   return true;
 }
@@ -315,7 +307,7 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
   return (ret == 0);
 }
 
-// bool BlockStorage::PutTxBody(const string & key, const vector<unsigned char>
+// bool BlockStorage::PutTxBody(const string & key, const bytes
 // & body)
 // {
 //     int ret = m_txBodyDB.Insert(key, body);
@@ -327,7 +319,7 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
 //     string bodyString = m_txBodyDB.Lookup(key);
 //     const unsigned char* raw_memory = reinterpret_cast<const unsigned
 //     char*>(bodyString.c_str()); body = TxBodySharedPtr( new
-//     Transaction(std::vector<unsigned char>(raw_memory,
+//     Transaction(bytes(raw_memory,
 //                                             raw_memory + bodyString.size()),
 //                                             0) );
 // }
@@ -346,8 +338,8 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
       return false;
     }
 
-    DSBlockSharedPtr block = DSBlockSharedPtr(new DSBlock(
-        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+    DSBlockSharedPtr block = DSBlockSharedPtr(
+        new DSBlock(bytes(blockString.begin(), blockString.end()), 0));
     blocks.emplace_back(block);
     LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
   }
@@ -375,8 +367,8 @@ bool BlockStorage::GetAllTxBlocks(std::list<TxBlockSharedPtr>& blocks) {
       delete it;
       return false;
     }
-    TxBlockSharedPtr block = TxBlockSharedPtr(new TxBlock(
-        std::vector<unsigned char>(blockString.begin(), blockString.end()), 0));
+    TxBlockSharedPtr block = TxBlockSharedPtr(
+        new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
     blocks.emplace_back(block);
     LOG_GENERAL(INFO, "Retrievd TxBlock Num:" << bns);
   }
@@ -431,9 +423,8 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
       return false;
     }
     BlockLink blcklink;
-    if (!Messenger::GetBlockLink(
-            vector<unsigned char>(blockString.begin(), blockString.end()), 0,
-            blcklink)) {
+    if (!Messenger::GetBlockLink(bytes(blockString.begin(), blockString.end()),
+                                 0, blcklink)) {
       LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
       delete it;
       return false;
@@ -449,15 +440,13 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
   return true;
 }
 
-bool BlockStorage::PutMetadata(MetaType type,
-                               const std::vector<unsigned char>& data) {
+bool BlockStorage::PutMetadata(MetaType type, const bytes& data) {
   LOG_MARKER();
   int ret = m_metadataDB->Insert(std::to_string((int)type), data);
   return (ret == 0);
 }
 
-bool BlockStorage::GetMetadata(MetaType type,
-                               std::vector<unsigned char>& data) {
+bool BlockStorage::GetMetadata(MetaType type, bytes& data) {
   LOG_MARKER();
   string metaString = m_metadataDB->Lookup(std::to_string((int)type));
 
@@ -466,7 +455,7 @@ bool BlockStorage::GetMetadata(MetaType type,
     return false;
   }
 
-  data = std::vector<unsigned char>(metaString.begin(), metaString.end());
+  data = bytes(metaString.begin(), metaString.end());
 
   return true;
 }
@@ -480,16 +469,15 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfDSNode>& dsCommittee,
   unsigned int index = 0;
   string leaderId = to_string(consensusLeaderID);
 
-  if (0 !=
-      m_dsCommitteeDB->Insert(
-          index++, vector<unsigned char>(leaderId.begin(), leaderId.end()))) {
+  if (0 != m_dsCommitteeDB->Insert(index++,
+                                   bytes(leaderId.begin(), leaderId.end()))) {
     LOG_GENERAL(WARNING, "Failed to store DS leader ID:" << consensusLeaderID);
     return false;
   }
 
   LOG_GENERAL(INFO, "Stored DS leader ID:" << consensusLeaderID);
 
-  vector<unsigned char> data;
+  bytes data;
 
   for (const auto& ds : *dsCommittee) {
     int pubKeySize = ds.first.Serialize(data, 0);
@@ -535,12 +523,8 @@ bool BlockStorage::GetDSCommittee(
     }
 
     dsCommittee->emplace_back(
-        PubKey(vector<unsigned char>(dataStr.begin(),
-                                     dataStr.begin() + PUB_KEY_SIZE),
-               0),
-        Peer(vector<unsigned char>(dataStr.begin() + PUB_KEY_SIZE,
-                                   dataStr.end()),
-             0));
+        PubKey(bytes(dataStr.begin(), dataStr.begin() + PUB_KEY_SIZE), 0),
+        Peer(bytes(dataStr.begin() + PUB_KEY_SIZE, dataStr.end()), 0));
     LOG_GENERAL(INFO, "Retrieved DS committee: " << dsCommittee->back().first
                                                  << ", "
                                                  << dsCommittee->back().second);
@@ -558,16 +542,15 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
   unsigned int index = 0;
   string shardId = to_string(myshardId);
 
-  if (0 !=
-      m_shardStructureDB->Insert(
-          index++, vector<unsigned char>(shardId.begin(), shardId.end()))) {
+  if (0 != m_shardStructureDB->Insert(index++,
+                                      bytes(shardId.begin(), shardId.end()))) {
     LOG_GENERAL(WARNING, "Failed to store shard ID:" << myshardId);
     return false;
   }
 
   LOG_GENERAL(INFO, "Stored shard ID:" << myshardId);
 
-  vector<unsigned char> shardStructure;
+  bytes shardStructure;
 
   if (!Messenger::ShardStructureToArray(shardStructure, 0, shards)) {
     LOG_GENERAL(WARNING, "Failed to serialize sharding structure");
@@ -594,14 +577,14 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
     dataStr = m_shardStructureDB->Lookup(index++);
   }
 
-  Messenger::ArrayToShardStructure(
-      vector<unsigned char>(dataStr.begin(), dataStr.end()), 0, shards);
+  Messenger::ArrayToShardStructure(bytes(dataStr.begin(), dataStr.end()), 0,
+                                   shards);
   LOG_GENERAL(INFO, "Retrieved sharding structure");
   return true;
 }
 
 bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
-                                 const std::vector<unsigned char>& stateDelta) {
+                                 const bytes& stateDelta) {
   LOG_MARKER();
 
   if (0 != m_stateDeltaDB->Insert(finalBlockNum, stateDelta)) {
@@ -617,11 +600,11 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
 }
 
 bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
-                                 std::vector<unsigned char>& stateDelta) {
+                                 bytes& stateDelta) {
   LOG_MARKER();
 
   string dataStr = m_stateDeltaDB->Lookup(finalBlockNum);
-  stateDelta = vector<unsigned char>(dataStr.begin(), dataStr.end());
+  stateDelta = bytes(dataStr.begin(), dataStr.end());
   LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
               stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
   return true;

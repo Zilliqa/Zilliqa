@@ -38,8 +38,7 @@ MicroBlockHeader::MicroBlockHeader()
       m_minerPubKey(),
       m_dsBlockNum(INIT_BLOCK_NUMBER) {}
 
-MicroBlockHeader::MicroBlockHeader(const vector<unsigned char>& src,
-                                   unsigned int offset) {
+MicroBlockHeader::MicroBlockHeader(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init MicroBlockHeader.");
   }
@@ -66,8 +65,7 @@ MicroBlockHeader::MicroBlockHeader(
       m_minerPubKey(minerPubKey),
       m_dsBlockNum(dsBlockNum) {}
 
-bool MicroBlockHeader::Serialize(vector<unsigned char>& dst,
-                                 unsigned int offset) const {
+bool MicroBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetMicroBlockHeader(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlockHeader failed.");
     return false;
@@ -76,8 +74,7 @@ bool MicroBlockHeader::Serialize(vector<unsigned char>& dst,
   return true;
 }
 
-bool MicroBlockHeader::Deserialize(const vector<unsigned char>& src,
-                                   unsigned int offset) {
+bool MicroBlockHeader::Deserialize(const bytes& src, unsigned int offset) {
   if (!Messenger::GetMicroBlockHeader(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetMicroBlockHeader failed.");
     return false;

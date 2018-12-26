@@ -113,19 +113,17 @@ class Lookup : public Executable, public Broadcastable {
   // TxBlockBuffer
   std::vector<TxBlock> m_txBlockBuffer;
 
-  std::vector<unsigned char> ComposeGetDSInfoMessage(bool initialDS = false);
-  std::vector<unsigned char> ComposeGetStateMessage();
+  bytes ComposeGetDSInfoMessage(bool initialDS = false);
+  bytes ComposeGetStateMessage();
 
-  std::vector<unsigned char> ComposeGetDSBlockMessage(uint64_t lowBlockNum,
-                                                      uint64_t highBlockNum);
-  std::vector<unsigned char> ComposeGetTxBlockMessage(uint64_t lowBlockNum,
-                                                      uint64_t highBlockNum);
-  std::vector<unsigned char> ComposeGetStateDeltaMessage(uint64_t blockNum);
+  bytes ComposeGetDSBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
+  bytes ComposeGetTxBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
+  bytes ComposeGetStateDeltaMessage(uint64_t blockNum);
 
-  std::vector<unsigned char> ComposeGetLookupOfflineMessage();
-  std::vector<unsigned char> ComposeGetLookupOnlineMessage();
+  bytes ComposeGetLookupOfflineMessage();
+  bytes ComposeGetLookupOnlineMessage();
 
-  std::vector<unsigned char> ComposeGetOfflineLookupNodes();
+  bytes ComposeGetOfflineLookupNodes();
 
   void RetrieveDSBlocks(std::vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
                         uint64_t& highBlockNum, bool partialRetrieve = false);
@@ -165,19 +163,16 @@ class Lookup : public Executable, public Broadcastable {
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
-  void SendMessageToLookupNodes(
-      const std::vector<unsigned char>& message) const;
+  void SendMessageToLookupNodes(const bytes& message) const;
 
   // Calls P2PComm::SendMessage serially to every Lookup Nodes
-  void SendMessageToLookupNodesSerial(
-      const std::vector<unsigned char>& message) const;
+  void SendMessageToLookupNodesSerial(const bytes& message) const;
 
   // Calls P2PComm::SendMessage to one of the last x Lookup Nodes randomly
-  void SendMessageToRandomLookupNode(
-      const std::vector<unsigned char>& message) const;
+  void SendMessageToRandomLookupNode(const bytes& message) const;
 
   // Calls P2PComm::SendMessage serially for every Seed peer
-  void SendMessageToSeedNodes(const std::vector<unsigned char>& message) const;
+  void SendMessageToSeedNodes(const bytes& message) const;
 
   // TODO: move the Get and ProcessSet functions to Synchronizer
   std::vector<Peer> GetAboveLayer();
@@ -192,11 +187,11 @@ class Lookup : public Executable, public Broadcastable {
   bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
 
-  bool ProcessGetShardFromSeed(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
+  bool ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
+                               const Peer& from);
 
-  bool ProcessSetShardFromSeed(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
+  bool ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
+                               const Peer& from);
   bool GetShardFromLookup();
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -233,97 +228,93 @@ class Lookup : public Executable, public Broadcastable {
   void SendTxnPacketToNodes(uint32_t);
 
   bool ProcessEntireShardingStructure();
-  bool ProcessGetSeedPeersFromLookup(const std::vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from);
-  bool ProcessGetDSInfoFromSeed(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from);
-  bool ProcessGetDSBlockFromSeed(const std::vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
-  bool ProcessGetTxBlockFromSeed(const std::vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
-  bool ProcessGetStateDeltaFromSeed(const std::vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from);
-  bool ProcessGetTxBodyFromSeed(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from);
-  bool ProcessGetStateFromSeed(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
+  bool ProcessGetSeedPeersFromLookup(const bytes& message, unsigned int offset,
+                                     const Peer& from);
+  bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
+                                const Peer& from);
+  bool ProcessGetDSBlockFromSeed(const bytes& message, unsigned int offset,
+                                 const Peer& from);
+  bool ProcessGetTxBlockFromSeed(const bytes& message, unsigned int offset,
+                                 const Peer& from);
+  bool ProcessGetStateDeltaFromSeed(const bytes& message, unsigned int offset,
+                                    const Peer& from);
+  bool ProcessGetTxBodyFromSeed(const bytes& message, unsigned int offset,
+                                const Peer& from);
+  bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
+                               const Peer& from);
 
-  bool ProcessGetNetworkId(const std::vector<unsigned char>& message,
-                           unsigned int offset, const Peer& from);
+  bool ProcessGetNetworkId(const bytes& message, unsigned int offset,
+                           const Peer& from);
 
-  bool ProcessGetTxnsFromLookup(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from);
-  bool ProcessSetTxnsFromLookup(const std::vector<unsigned char>& message,
-                                unsigned int offset,
+  bool ProcessGetTxnsFromLookup(const bytes& message, unsigned int offset,
+                                const Peer& from);
+  bool ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
-  bool ProcessGetMicroBlockFromLookup(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from);
-  bool ProcessSetMicroBlockFromLookup(const std::vector<unsigned char>& message,
-                                      unsigned int offset, const Peer& from);
+  bool ProcessGetMicroBlockFromLookup(const bytes& message, unsigned int offset,
+                                      const Peer& from);
+  bool ProcessSetMicroBlockFromLookup(const bytes& message, unsigned int offset,
+                                      const Peer& from);
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
-  bool ProcessGetOfflineLookups(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from);
+  bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
+                                const Peer& from);
 
-  bool ProcessSetSeedPeersFromLookup(const std::vector<unsigned char>& message,
-                                     unsigned int offset, const Peer& from);
-  bool ProcessSetDSInfoFromSeed(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from);
-  bool ProcessSetDSBlockFromSeed(const std::vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
-  bool ProcessSetTxBlockFromSeed(const std::vector<unsigned char>& message,
-                                 unsigned int offset, const Peer& from);
+  bool ProcessSetSeedPeersFromLookup(const bytes& message, unsigned int offset,
+                                     const Peer& from);
+  bool ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
+                                const Peer& from);
+  bool ProcessSetDSBlockFromSeed(const bytes& message, unsigned int offset,
+                                 const Peer& from);
+  bool ProcessSetTxBlockFromSeed(const bytes& message, unsigned int offset,
+                                 const Peer& from);
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
-  bool ProcessSetStateDeltaFromSeed(const std::vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from);
-  bool ProcessSetTxBodyFromSeed(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from);
-  bool ProcessSetStateFromSeed(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
+  bool ProcessSetStateDeltaFromSeed(const bytes& message, unsigned int offset,
+                                    const Peer& from);
+  bool ProcessSetTxBodyFromSeed(const bytes& message, unsigned int offset,
+                                const Peer& from);
+  bool ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
+                               const Peer& from);
 
-  bool ProcessSetLookupOffline(const std::vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from);
-  bool ProcessSetLookupOnline(const std::vector<unsigned char>& message,
-                              unsigned int offset, const Peer& from);
+  bool ProcessSetLookupOffline(const bytes& message, unsigned int offset,
+                               const Peer& from);
+  bool ProcessSetLookupOnline(const bytes& message, unsigned int offset,
+                              const Peer& from);
 
-  bool ProcessSetOfflineLookups(const std::vector<unsigned char>& message,
-                                unsigned int offset, const Peer& from);
+  bool ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
+                                const Peer& from);
 
-  bool ProcessRaiseStartPoW(const std::vector<unsigned char>& message,
-                            unsigned int offset, const Peer& from);
-  bool ProcessGetStartPoWFromSeed(const std::vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
-  bool ProcessSetStartPoWFromSeed(const std::vector<unsigned char>& message,
-                                  unsigned int offset, const Peer& from);
+  bool ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
+                            const Peer& from);
+  bool ProcessGetStartPoWFromSeed(const bytes& message, unsigned int offset,
+                                  const Peer& from);
+  bool ProcessSetStartPoWFromSeed(const bytes& message, unsigned int offset,
+                                  const Peer& from);
 
-  bool ProcessGetDirectoryBlocksFromSeed(
-      const std::vector<unsigned char>& message, unsigned int offset,
-      const Peer& from);
+  bool ProcessGetDirectoryBlocksFromSeed(const bytes& message,
+                                         unsigned int offset, const Peer& from);
 
-  bool ProcessSetDirectoryBlocksFromSeed(
-      const std::vector<unsigned char>& message, unsigned int offset,
-      const Peer& from);
+  bool ProcessSetDirectoryBlocksFromSeed(const bytes& message,
+                                         unsigned int offset, const Peer& from);
 
-  bool ProcessVCGetLatestDSTxBlockFromSeed(
-      const std::vector<unsigned char>& message, unsigned int offset,
-      const Peer& from);
-  bool ProcessForwardTxn(const std::vector<unsigned char>& message,
-                         unsigned int offset, const Peer& from);
+  bool ProcessVCGetLatestDSTxBlockFromSeed(const bytes& message,
+                                           unsigned int offset,
+                                           const Peer& from);
+  bool ProcessForwardTxn(const bytes& message, unsigned int offset,
+                         const Peer& from);
 
-  bool ProcessGetDSGuardNetworkInfo(const std::vector<unsigned char>& message,
-                                    unsigned int offset, const Peer& from);
+  bool ProcessGetDSGuardNetworkInfo(const bytes& message, unsigned int offset,
+                                    const Peer& from);
 
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
 
   static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
 
-  bool Execute(const std::vector<unsigned char>& message, unsigned int offset,
-               const Peer& from);
+  bool Execute(const bytes& message, unsigned int offset, const Peer& from);
 
   inline SyncType GetSyncType() const { return m_syncType; }
   void SetSyncType(SyncType syncType);
