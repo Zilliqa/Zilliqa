@@ -59,21 +59,26 @@ uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes) {
 
 void ShardSizeCalculator::GenerateShardCounts(
     const uint32_t shardSize, const uint32_t shardSizeThreshold,
-    const uint32_t numNodesForSharding, vector<uint32_t>& shardCounts) {
+    const uint32_t numNodesForSharding, vector<uint32_t>& shardCounts,
+    bool logDetails) {
   LOG_MARKER();
 
   const uint32_t SHARD_THRESHOLD_LO = shardSize - shardSizeThreshold;
   const uint32_t SHARD_THRESHOLD_HI = shardSize + shardSizeThreshold;
 
-  LOG_GENERAL(INFO, "Default shard size          = " << shardSize);
-  LOG_GENERAL(INFO, "Minimum allowed shard size  = " << SHARD_THRESHOLD_LO);
-  LOG_GENERAL(INFO, "Maximum allowed shard size  = " << SHARD_THRESHOLD_HI);
+  if (logDetails) {
+    LOG_GENERAL(INFO, "Default shard size          = " << shardSize);
+    LOG_GENERAL(INFO, "Minimum allowed shard size  = " << SHARD_THRESHOLD_LO);
+    LOG_GENERAL(INFO, "Maximum allowed shard size  = " << SHARD_THRESHOLD_HI);
+  }
 
   // Abort if total number of nodes is below SHARD_THRESHOLD_LO
   if (numNodesForSharding < SHARD_THRESHOLD_LO) {
-    LOG_GENERAL(WARNING, "Number of PoWs for sharding ("
-                             << numNodesForSharding
-                             << ") is not enough for even one shard.");
+    if (logDetails) {
+      LOG_GENERAL(WARNING, "Number of PoWs for sharding ("
+                               << numNodesForSharding
+                               << ") is not enough for even one shard.");
+    }
     return;
   }
 
@@ -119,8 +124,32 @@ void ShardSizeCalculator::GenerateShardCounts(
     shardCounts.emplace_back(numUnshardedNodes);
   }
 
-  LOG_GENERAL(INFO, "Final computed shard sizes:");
-  for (unsigned int i = 0; i < shardCounts.size(); i++) {
-    LOG_GENERAL(INFO, "Shard " << i << " = " << shardCounts.at(i));
+  if (logDetails) {
+    LOG_GENERAL(INFO, "Final computed shard sizes:");
+    for (unsigned int i = 0; i < shardCounts.size(); i++) {
+      LOG_GENERAL(INFO, "Shard " << i << " = " << shardCounts.at(i));
+    }
   }
+}
+
+uint32_t ShardSizeCalculator::GetTrimmedShardCount(
+    const uint32_t shardSize, const uint32_t shardSizeThreshold,
+    const uint32_t numNodesForSharding) {
+  LOG_MARKER();
+
+  vector<uint32_t> shardCounts;
+
+  GenerateShardCounts(shardSize, shardSizeThreshold, numNodesForSharding,
+                      shardCounts, false);
+
+  if (shardCounts.empty()) {
+    return numNodesForSharding;
+  }
+
+  uint32_t trimmedCount = 0;
+  for (const auto& shardCount : shardCounts) {
+    trimmedCount += shardCount;
+  }
+
+  return trimmedCount;
 }
