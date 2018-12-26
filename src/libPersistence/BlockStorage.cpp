@@ -256,13 +256,8 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   std::string bodyString;
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
-    return false;
-  } else  // IS_LOOKUP_NODE
-  {
-    bodyString = m_txBodyDB->Lookup(key);
-  }
+
+  bodyString = m_txBodyDB->Lookup(key);
 
   if (bodyString.empty()) {
     return false;
