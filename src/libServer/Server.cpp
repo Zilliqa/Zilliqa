@@ -533,15 +533,18 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
     TxBodySharedPtr tptr;
     TxnHash tranHash(tranID);
     if (tranID.size() != TRAN_HASH_SIZE * 2) {
-      return "Size not appropriate";
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Address size not appropriate");
     }
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
     if (!isPresent) {
-      return "Txn Hash not Present";
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Txn Hash not Present");
     }
     const Transaction& tx = tptr->GetTransaction();
     if (tx.GetCode().empty() || tx.GetToAddr() != NullAddress) {
-      return "ID not a contract txn";
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "ID is not a contract txn");
     }
 
     return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
@@ -550,7 +553,7 @@ string Server::GetContractAddressFromTransactionID(const string& tranID) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
-    return "Unable to process";
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
