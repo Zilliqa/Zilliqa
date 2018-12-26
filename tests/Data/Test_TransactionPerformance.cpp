@@ -58,13 +58,13 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         Transaction txn{version,    nonce,  toAddr,
 //                         fromPubKey, amount, {/* empty sig */}};
 
-//         std::vector<unsigned char> buf;
+//         bytes buf;
 //         txn.SerializeWithoutSignature(buf, 0);
 
 //         Signature sig;
 //         Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-//         vector<unsigned char> sigBuf;
+//         bytes sigBuf;
 //         sig.Serialize(sigBuf, 0);
 //         txn.SetSignature(sigBuf);
 
@@ -96,13 +96,13 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         Transaction txn{version,    nonce,  toAddr,
 //                         fromPubKey, amount, {/* empty sig */}};
 
-//         std::vector<unsigned char> buf;
+//         bytes buf;
 //         txn.SerializeWithoutSignature(buf, 0);
 
 //         // Signature sig;
 //         // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-//         // vector<unsigned char> sigBuf;
+//         // bytes sigBuf;
 //         // sig.Serialize(sigBuf, 0);
 //         // txn.SetSignature(sigBuf);
 
@@ -134,13 +134,13 @@ BOOST_AUTO_TEST_SUITE(TransactionPrefillPerformance)
 //         Transaction txn{version,    nonce,  toAddr,
 //                         fromPubKey, amount, {/* empty sig */}};
 
-//         // std::vector<unsigned char> buf;
+//         // bytes buf;
 //         // txn.SerializeWithoutSignature(buf, 0);
 
 //         // Signature sig;
 //         // Schnorr::GetInstance().Sign(buf, fromPrivKey, fromPubKey, sig);
 
-//         // vector<unsigned char> sigBuf;
+//         // bytes sigBuf;
 //         // sig.Serialize(sigBuf, 0);
 //         // txn.SetSignature(sigBuf);
 

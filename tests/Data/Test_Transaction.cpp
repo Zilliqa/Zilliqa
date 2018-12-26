@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(test1) {
       fromCheck,
       shardSize);  // Check against nothing, just to increase coverage
 
-  std::vector<unsigned char> message1;
+  bytes message1;
   tx1.Serialize(message1, 0);
 
   LOG_PAYLOAD(INFO, "Transaction1 serialized", message1,
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(test1) {
     LOG_PAYLOAD(INFO, "SERIALZED", message1, Logger::MAX_BYTES_TO_DISPLAY);
   }
   LOG_GENERAL(INFO, "address 1" << fromCheck.hex());
-  std::vector<unsigned char> message2;
+  bytes message2;
   tx2.Serialize(message2, 0);
 
   LOG_PAYLOAD(INFO, "Transaction2 serialized", message2,
@@ -111,11 +111,11 @@ BOOST_AUTO_TEST_CASE(test1) {
   const uint128_t& amount2 = tx2.GetAmount();
   const uint128_t& gasPrice2 = tx2.GetGasPrice();
   const uint128_t& gasLimit2 = tx2.GetGasLimit();
-  const vector<unsigned char>& code2 = tx2.GetCode();
-  const vector<unsigned char>& data2 = tx2.GetData();
+  const bytes& code2 = tx2.GetCode();
+  const bytes& data2 = tx2.GetData();
   Signature sign = TestUtils::GenerateRandomSignature();
 
-  std::vector<unsigned char> byteVec;
+  bytes byteVec;
   byteVec.resize(TRAN_HASH_SIZE);
   copy(tranID2.begin(), tranID2.end(), byteVec.begin());
   LOG_PAYLOAD(INFO, "Transaction2 tranID", byteVec,

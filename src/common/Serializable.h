@@ -20,18 +20,16 @@
 #ifndef __SERIALIZABLE_H__
 #define __SERIALIZABLE_H__
 
-#include <vector>
+#include "BaseType.h"
 
 /// Specifies the interface required for classes that are byte serializable.
 class Serializable {
  public:
   /// Serializes internal state to destination byte stream.
-  virtual unsigned int Serialize(std::vector<unsigned char>& dst,
-                                 unsigned int offset) const = 0;
+  virtual unsigned int Serialize(bytes& dst, unsigned int offset) const = 0;
 
   /// Deserializes source byte stream into internal state.
-  virtual int Deserialize(const std::vector<unsigned char>& src,
-                          unsigned int offset) = 0;
+  virtual int Deserialize(const bytes& src, unsigned int offset) = 0;
 
   /// Virtual destructor.
   virtual ~Serializable() {}
@@ -40,8 +38,7 @@ class Serializable {
   /// the specified offset. Returns 0 if there are not enough bytes to read from
   /// the stream.
   template <class numerictype>
-  static numerictype GetNumber(const std::vector<unsigned char>& src,
-                               unsigned int offset,
+  static numerictype GetNumber(const bytes& src, unsigned int offset,
                                unsigned int numerictype_len) {
     numerictype result = 0;
 
@@ -60,8 +57,8 @@ class Serializable {
   /// Template function for placing a number into the destination byte stream at
   /// the specified offset. Destination is resized if necessary.
   template <class numerictype>
-  static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
-                        numerictype value, unsigned int numerictype_len) {
+  static void SetNumber(bytes& dst, unsigned int offset, numerictype value,
+                        unsigned int numerictype_len) {
     const unsigned int length_available = dst.size() - offset;
 
     if (length_available < numerictype_len) {
@@ -70,8 +67,7 @@ class Serializable {
 
     unsigned int right_shift = (numerictype_len - 1) * 8;
     for (unsigned int i = 0; i < numerictype_len; i++) {
-      dst.at(offset + i) =
-          static_cast<unsigned char>((value >> right_shift) & 0xFF);
+      dst.at(offset + i) = static_cast<uint8_t>((value >> right_shift) & 0xFF);
       right_shift -= 8;
     }
   }
@@ -81,12 +77,10 @@ class Serializable {
 class SerializableDataBlock {
  public:
   /// Serializes internal state to destination byte stream.
-  virtual bool Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const = 0;
+  virtual bool Serialize(bytes& dst, unsigned int offset) const = 0;
 
   /// Deserializes source byte stream into internal state.
-  virtual bool Deserialize(const std::vector<unsigned char>& src,
-                           unsigned int offset) = 0;
+  virtual bool Deserialize(const bytes& src, unsigned int offset) = 0;
 
   /// Virtual destructor.
   virtual ~SerializableDataBlock() {}
@@ -95,8 +89,7 @@ class SerializableDataBlock {
   /// the specified offset. Returns 0 if there are not enough bytes to read from
   /// the stream.
   template <class numerictype>
-  static numerictype GetNumber(const std::vector<unsigned char>& src,
-                               unsigned int offset,
+  static numerictype GetNumber(const bytes& src, unsigned int offset,
                                unsigned int numerictype_len) {
     numerictype result = 0;
 
@@ -115,8 +108,8 @@ class SerializableDataBlock {
   /// Template function for placing a number into the destination byte stream at
   /// the specified offset. Destination is resized if necessary.
   template <class numerictype>
-  static void SetNumber(std::vector<unsigned char>& dst, unsigned int offset,
-                        numerictype value, unsigned int numerictype_len) {
+  static void SetNumber(bytes& dst, unsigned int offset, numerictype value,
+                        unsigned int numerictype_len) {
     const unsigned int length_available = dst.size() - offset;
 
     if (length_available < numerictype_len) {
@@ -125,8 +118,7 @@ class SerializableDataBlock {
 
     unsigned int right_shift = (numerictype_len - 1) * 8;
     for (unsigned int i = 0; i < numerictype_len; i++) {
-      dst.at(offset + i) =
-          static_cast<unsigned char>((value >> right_shift) & 0xFF);
+      dst.at(offset + i) = static_cast<uint8_t>((value >> right_shift) & 0xFF);
       right_shift -= 8;
     }
   }

@@ -27,30 +27,27 @@
 
 class HashUtils {
  public:
-  static const std::vector<unsigned char> SerializableToHash(
-      const Serializable& sz) {
-    std::vector<unsigned char> vec;
+  static const bytes SerializableToHash(const Serializable& sz) {
+    bytes vec;
     sz.Serialize(vec, 0);
     return BytesToHash(vec);
   }
   // Temporary function for use by data blocks
-  static const std::vector<unsigned char> SerializableToHash(
-      const SerializableDataBlock& sz) {
-    std::vector<unsigned char> vec;
+  static const bytes SerializableToHash(const SerializableDataBlock& sz) {
+    bytes vec;
     sz.Serialize(vec, 0);
     return BytesToHash(vec);
   }
-  static const std::vector<unsigned char> BytesToHash(
-      const std::vector<unsigned char>& vec) {
+  static const bytes BytesToHash(const bytes& vec) {
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
 
     sha2.Update(vec);
-    const std::vector<unsigned char>& resVec = sha2.Finalize();
+    const bytes& resVec = sha2.Finalize();
 
     return resVec;
   }
   static uint16_t SerializableToHash16Bits(const Serializable& sz) {
-    const std::vector<unsigned char>& vec = SerializableToHash(sz);
+    const bytes& vec = SerializableToHash(sz);
 
     if (vec.size() == 0) {
       return 0;
@@ -62,7 +59,7 @@ class HashUtils {
   }
   // Temporary function for use by data blocks
   static uint16_t SerializableToHash16Bits(const SerializableDataBlock& sz) {
-    const std::vector<unsigned char>& vec = SerializableToHash(sz);
+    const bytes& vec = SerializableToHash(sz);
 
     if (vec.size() == 0) {
       return 0;

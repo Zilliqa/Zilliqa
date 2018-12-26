@@ -28,14 +28,13 @@
 #include "common/Singleton.h"
 #include "libData/BlockData/Block/BlockBase.h"
 
-typedef std::function<bool(std::vector<unsigned char>& message)>
-    ComposeMessageForSenderFunc;
+typedef std::function<bool(bytes& message)> ComposeMessageForSenderFunc;
 typedef std::function<void(const VectorOfLookupNode& lookups,
-                           const std::vector<unsigned char>& message)>
+                           const bytes& message)>
     SendDataToLookupFunc;
-typedef std::function<void(
-    const std::vector<unsigned char>& message, const DequeOfShard& shards,
-    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi)>
+typedef std::function<void(const bytes& message, const DequeOfShard& shards,
+                           const unsigned int& my_shards_lo,
+                           const unsigned int& my_shards_hi)>
     SendDataToShardFunc;
 
 extern SendDataToLookupFunc SendDataToLookupFuncDefault;

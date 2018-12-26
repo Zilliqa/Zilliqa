@@ -34,8 +34,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool PeerManager::ProcessHello(const vector<unsigned char>& message,
-                               unsigned int offset, const Peer& from) {
+bool PeerManager::ProcessHello(const bytes& message, unsigned int offset,
+                               const Peer& from) {
   LOG_MARKER();
 
   PubKey key;
@@ -58,8 +58,7 @@ bool PeerManager::ProcessHello(const vector<unsigned char>& message,
   return true;
 }
 
-bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
-                                 unsigned int offset,
+bool PeerManager::ProcessAddPeer(const bytes& message, unsigned int offset,
                                  [[gnu::unused]] const Peer& from) {
   // Message = [32-byte peer key] [4-byte peer ip address] [4-byte peer listen
   // port]
@@ -93,8 +92,8 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
 
     // Say hello
 
-    vector<unsigned char> hello_message = {MessageType::PEER,
-                                           PeerManager::InstructionType::HELLO};
+    bytes hello_message = {MessageType::PEER,
+                           PeerManager::InstructionType::HELLO};
 
     if (!Messenger::SetPMHello(hello_message, MessageOffset::BODY, m_selfKey,
                                m_selfPeer.m_listenPortHost)) {
@@ -110,8 +109,8 @@ bool PeerManager::ProcessAddPeer(const vector<unsigned char>& message,
   return false;
 }
 
-bool PeerManager::ProcessPing(const vector<unsigned char>& message,
-                              unsigned int offset, const Peer& from) {
+bool PeerManager::ProcessPing(const bytes& message, unsigned int offset,
+                              const Peer& from) {
   // Message = [raw byte stream]
 
   LOG_MARKER();
@@ -120,20 +119,18 @@ bool PeerManager::ProcessPing(const vector<unsigned char>& message,
                                                 << " from address "
                                                 << from.m_ipAddress);
 
-  vector<unsigned char> ping_message(message.begin() + offset, message.end());
+  bytes ping_message(message.begin() + offset, message.end());
   LOG_PAYLOAD(INFO, "Ping message", ping_message, Logger::MAX_BYTES_TO_DISPLAY);
   return true;
 }
 
-bool PeerManager::ProcessPingAll(const vector<unsigned char>& message,
-                                 unsigned int offset,
+bool PeerManager::ProcessPingAll(const bytes& message, unsigned int offset,
                                  [[gnu::unused]] const Peer& from) {
   // Message = [raw byte stream]
 
   LOG_MARKER();
 
-  vector<unsigned char> ping_message = {MessageType::PEER,
-                                        PeerManager::InstructionType::PING};
+  bytes ping_message = {MessageType::PEER, PeerManager::InstructionType::PING};
 
   const unsigned int message_size = min(message.size() - offset, (size_t)1024);
 
@@ -146,14 +143,13 @@ bool PeerManager::ProcessPingAll(const vector<unsigned char>& message,
   return true;
 }
 
-bool PeerManager::ProcessBroadcast(const vector<unsigned char>& message,
-                                   unsigned int offset,
+bool PeerManager::ProcessBroadcast(const bytes& message, unsigned int offset,
                                    [[gnu::unused]] const Peer& from) {
   // Message = [raw byte stream]
 
   LOG_MARKER();
 
-  vector<unsigned char> broadcast_message(message.size() - offset);
+  bytes broadcast_message(message.size() - offset);
   copy(message.begin() + offset, message.end(), broadcast_message.begin());
 
   LOG_PAYLOAD(INFO, "Broadcast message", broadcast_message,
@@ -207,14 +203,14 @@ PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
 
 PeerManager::~PeerManager() {}
 
-bool PeerManager::Execute(const vector<unsigned char>& message,
-                          unsigned int offset, const Peer& from) {
+bool PeerManager::Execute(const bytes& message, unsigned int offset,
+                          const Peer& from) {
   LOG_MARKER();
 
   bool result = false;
 
-  typedef bool (PeerManager::*InstructionHandler)(const vector<unsigned char>&,
-                                                  unsigned int, const Peer&);
+  typedef bool (PeerManager::*InstructionHandler)(const bytes&, unsigned int,
+                                                  const Peer&);
 
   InstructionHandler ins_handlers[] = {
       &PeerManager::ProcessHello,     &PeerManager::ProcessAddPeer,

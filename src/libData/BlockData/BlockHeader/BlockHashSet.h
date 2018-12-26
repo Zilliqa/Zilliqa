@@ -20,6 +20,7 @@
 #ifndef __BLOCKHASHSET_H__
 #define __BLOCKHASHSET_H__
 
+#include "common/BaseType.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 
@@ -74,8 +75,7 @@ struct MicroBlockHashSet {
   TxnHash m_tranReceiptHash;   // Tx Receipt hash
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const {
+  unsigned int Serialize(bytes& dst, unsigned int offset) const {
     copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(),
          dst.begin() + offset);
     offset += TRAN_HASH_SIZE;
@@ -90,7 +90,7 @@ struct MicroBlockHashSet {
   }
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset) {
+  int Deserialize(const bytes& src, unsigned int offset) {
     try {
       copy(src.begin() + offset, src.begin() + offset + TRAN_HASH_SIZE,
            m_txRootHash.asArray().begin());
@@ -163,8 +163,7 @@ struct TxBlockHashSet {
   MBInfoHash m_mbInfoHash;     // Hash concatenated from all microblock infos
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const {
+  unsigned int Serialize(bytes& dst, unsigned int offset) const {
     copy(m_stateRootHash.asArray().begin(), m_stateRootHash.asArray().end(),
          dst.begin() + offset);
     offset += STATE_HASH_SIZE;
@@ -178,7 +177,7 @@ struct TxBlockHashSet {
   }
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset) {
+  int Deserialize(const bytes& src, unsigned int offset) {
     try {
       copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
            m_stateRootHash.asArray().begin());
@@ -246,8 +245,7 @@ struct FallbackBlockHashSet {
   StateHash m_stateRootHash;
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(std::vector<unsigned char>& dst,
-                         unsigned int offset) const {
+  unsigned int Serialize(bytes& dst, unsigned int offset) const {
     copy(m_stateRootHash.asArray().begin(), m_stateRootHash.asArray().end(),
          dst.begin() + offset);
     offset += STATE_HASH_SIZE;
@@ -256,7 +254,7 @@ struct FallbackBlockHashSet {
   }
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const std::vector<unsigned char>& src, unsigned int offset) {
+  int Deserialize(const bytes& src, unsigned int offset) {
     try {
       copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
            m_stateRootHash.asArray().begin());
