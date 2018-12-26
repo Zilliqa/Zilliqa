@@ -185,17 +185,15 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   // Distribute the map-ordered nodes among the generated shards
   // First fill up first shard, then second shard, ..., then final shard
-  auto shardCount = shardCounts.begin();
   uint32_t shard_index = 0;
   for (const auto& kv : sortedPoWs) {
     // Move to next shard counter if current shard already filled up
-    if (*shardCount == 0) {
-      shardCount++;
+    if (shardCounts.at(shard_index) == 0) {
+      shard_index++;
       // Stop if all shards filled up
-      if (shardCount == shardCounts.end()) {
+      if (shard_index == shardCounts.size()) {
         break;
       }
-      shard_index = distance(shardCounts.begin(), shardCount);
     }
     if (DEBUG_LEVEL >= 5) {
       LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
@@ -209,7 +207,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     m_publicKeyToshardIdMap.emplace(key, shard_index);
 
     // Decrement remaining count for this shard
-    *shardCount--;
+    shardCounts.at(shard_index)--;
   }
 }
 
@@ -553,18 +551,17 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
 
   // Put it back to vector for easy manipulation and adjustment of the ordering
   VectorOfPoWSoln sortedPoWSolns;
-  if (trimBeyondCommSize && (COMM_SIZE > 0)) {
-    const unsigned int numNodesTotal = PoWOrderSorter.size();
-    const unsigned int numNodesAfterTrim =
-        (numNodesTotal < COMM_SIZE)
-            ? numNodesTotal
-            : numNodesTotal - (numNodesTotal % COMM_SIZE);
+  if (trimBeyondCommSize) {
+    const uint32_t numNodesTotal = PoWOrderSorter.size();
+    const uint32_t numNodesAfterTrim =
+        ShardSizeCalculator::GetTrimmedShardCount(
+            m_mediator.GetShardSize(false), SHARD_SIZE_THRESHOLD,
+            numNodesTotal);
 
     LOG_GENERAL(INFO, "Trimming the solutions sorted list from "
-                          << numNodesTotal << " to " << numNodesAfterTrim
-                          << " to avoid going over COMM_SIZE " << COMM_SIZE);
+                          << numNodesTotal << " to " << numNodesAfterTrim);
 
-    unsigned int count = 0;
+    uint32_t count = 0;
     if (!GUARD_MODE) {
       for (auto kv = PoWOrderSorter.begin();
            (kv != PoWOrderSorter.end()) && (count < numNodesAfterTrim);
@@ -587,9 +584,9 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
       // "FilteredPoWOrderSorter"
       // 5. Finally, sort "FilteredPoWOrderSorter" and stored result in
       // "PoWOrderSorter"
-      unsigned int trimmedGuardCount =
+      uint32_t trimmedGuardCount =
           ceil(numNodesAfterTrim * ConsensusCommon::TOLERANCE_FRACTION);
-      unsigned int trimmedNonGuardCount = numNodesAfterTrim - trimmedGuardCount;
+      uint32_t trimmedNonGuardCount = numNodesAfterTrim - trimmedGuardCount;
 
       if (trimmedGuardCount + trimmedNonGuardCount < numNodesAfterTrim) {
         LOG_GENERAL(WARNING,
