@@ -607,10 +607,9 @@ class DirectoryService : public Executable, public Broadcastable {
   void RunConsensusOnDSBlock(bool isRejoin = false);
   bool IsDSBlockVCState(unsigned char vcBlockState);
 
-  // Sort the PoW submissions. Put to public static function, so it can be
-  // covered by auto test.
-  static VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows,
-                                     bool trimBeyondCommSize = false);
+  // Sort the PoW submissions
+  VectorOfPoWSoln SortPoWSoln(const MapOfPubKeyPoW& pows,
+                              bool trimBeyondCommSize = false);
   int64_t GetAllPoWSize() const;
 
   bool ProcessAndSendPoWPacketSubmissionToOtherDSComm();
