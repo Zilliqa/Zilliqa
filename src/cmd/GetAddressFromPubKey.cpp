@@ -47,7 +47,7 @@ void description() {
 
   std::cout << endl << "Description:\n";
   std::cout
-      << "\tAccepts public key and returns computed address on stdout." << endl;
+      << "\tAccepts public key and prints computed address on stdout." << endl;
 }
 
 int main(int argc, const char* argv[]) {
@@ -101,5 +101,4 @@ int main(int argc, const char* argv[]) {
     return ERROR_UNHANDLED_EXCEPTION;
   }
   return SUCCESS;
-
 }
