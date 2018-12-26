@@ -57,6 +57,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -97,6 +98,16 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
 
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
+
+  if (syncType == SyncType::DB_VERIF) {
+    m_mediator.m_dsBlockChain.Reset();
+    m_mediator.m_txBlockChain.Reset();
+
+    m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
+                                           m_mediator.m_txBlockChain);
+
+    return true;
+  }
 
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
@@ -243,13 +254,87 @@ void Node::AddGenesisInfo(SyncType syncType) {
   }
 }
 
-bool Node::ValidateTxns() {
-  auto last_tx_block =
-      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+bool Node::ValidateDB() {
+  deque<pair<PubKey, Peer>> dsComm;
+  for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
+    dsComm.emplace_back(dsKey, Peer());
+  }
+  std::list<BlockLink> blocklinks;
+  if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
+    LOG_GENERAL(WARNING, "BlockStorage skipped or incompleted");
+    return false;
+  }
 
-  for (uint i = 1; i < last_tx_block; i++) {
-    auto microblockInfos =
-        m_mediator.m_txBlockChain.GetBlock(i).GetMicroBlockInfos();
+  blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
+    return std::get<BlockLinkIndex::INDEX>(a) <
+           std::get<BlockLinkIndex::INDEX>(b);
+  });
+  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+      dirBlocks;
+  for (auto blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
+       blocklinkItr++) {
+    const auto& blocklink = *blocklinkItr;
+    if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
+      auto blockNum = get<BlockLinkIndex::DSINDEX>(blocklink);
+      if (blockNum == 0) {
+        continue;
+      }
+      DSBlockSharedPtr dsblock;
+      if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, dsblock)) {
+        LOG_GENERAL(WARNING, "Could not rertv DS Block " << blockNum);
+        return false;
+      }
+      dirBlocks.emplace_back(*dsblock);
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
+      auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+      VCBlockSharedPtr vcblock;
+      if (!BlockStorage::GetBlockStorage().GetVCBlock(blockHash, vcblock)) {
+        LOG_GENERAL(WARNING, "Could not retrv VC Block " << blockHash);
+        return false;
+      }
+      dirBlocks.emplace_back(*vcblock);
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::FB) {
+      auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+      FallbackBlockSharedPtr fallbackwshardingstruct;
+      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
+              std::get<BlockLinkIndex::BLOCKHASH>(blocklink),
+              fallbackwshardingstruct)) {
+        LOG_GENERAL(WARNING, "Could not retrv FB blocks " << blockHash);
+        return false;
+      }
+      dirBlocks.emplace_back(*fallbackwshardingstruct);
+    }
+  }
+
+  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 0, dsComm)) {
+    LOG_GENERAL(WARNING, "Fail to verify Dir Blocks");
+    return false;
+  }
+  std::list<TxBlockSharedPtr> blocks;
+  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
+    LOG_GENERAL(WARNING, "Fail to get Tx Blocks");
+    return false;
+  }
+
+  blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+  });
+
+  vector<TxBlock> txBlocks;
+
+  for (auto txblock : blocks) {
+    txBlocks.emplace_back(*txblock);
+  }
+
+  if (m_mediator.m_validator->CheckTxBlocks(txBlocks, dsComm,
+                                            blocklinks.back()) !=
+      ValidatorBase::TxBlockValidationMsg::VALID) {
+    LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
+    return false;
+  }
+
+  for (uint i = 1; i < txBlocks.size(); i++) {
+    auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
     for (auto mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
       LOG_GENERAL(INFO, mbInfo.m_shardId);
@@ -263,7 +348,7 @@ bool Node::ValidateTxns() {
         for (auto tranHash : tranHashes) {
           TxBodySharedPtr tx;
           if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
-            LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch")
+            LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch");
             return false;
           }
         }
@@ -274,6 +359,10 @@ bool Node::ValidateTxns() {
       }
     }
   }
+  LOG_GENERAL(INFO, "ValidateDB Success");
+
+  
+
   return true;
 }
 
@@ -575,9 +664,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     if (m_retriever->ValidateStates()) {
       if (!LOOKUP_NODE_MODE || m_retriever->CleanExtraTxBodies()) {
         LOG_GENERAL(INFO, "RetrieveHistory Success");
-        if (ValidateTxns()) {
-          LOG_GENERAL(INFO, "ValidateTxns Success");
-        }
         m_mediator.m_isRetrievedHistory = true;
         res = true;
       }

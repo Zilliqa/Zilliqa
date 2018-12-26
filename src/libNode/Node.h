@@ -446,7 +446,7 @@ class Node : public Executable, public Broadcastable {
   /// Recover the previous state by retrieving persistence data
   bool StartRetrieveHistory(const SyncType syncType, bool& wakeupForUpgrade);
 
-  bool ValidateTxns();
+  bool ValidateDB();
 
   // Erase m_committedTransactions for given epoch number
   // void EraseCommittedTransactions(uint64_t epochNum)
