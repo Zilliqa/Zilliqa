@@ -48,10 +48,9 @@ void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
-void SendDataToShardNodesDefault(const bytes& message,
-                                 const DequeOfShard& shards,
-                                 const unsigned int& my_shards_lo,
-                                 const unsigned int& my_shards_hi) {
+void SendDataToShardNodesDefault(
+    const bytes& message,
+    const std::deque<std::vector<Peer>>& sharded_receivers) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DataSender::SendDataToShardNodesDefault not expected to "
@@ -61,37 +60,12 @@ void SendDataToShardNodesDefault(const bytes& message,
   // Too few target shards - avoid asking all DS clusters to send
   LOG_MARKER();
 
-  auto p = shards.begin();
-  advance(p, my_shards_lo);
-
-  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
+  for (const auto& receivers : sharded_receivers) {
     if (BROADCAST_GOSSIP_MODE) {
-      // Choose N other Shard nodes to be recipient of final block
-      std::vector<Peer> shardReceivers;
-      unsigned int numOfReceivers =
-          std::min(NUM_GOSSIP_RECEIVERS, (uint32_t)p->size());
-
-      for (unsigned int i = 0; i < numOfReceivers; i++) {
-        const auto& kv = p->at(i);
-        shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-      }
-
-      P2PComm::GetInstance().SendRumorToForeignPeers(shardReceivers, message);
+      P2PComm::GetInstance().SendRumorToForeignPeers(receivers, message);
     } else {
-      vector<Peer> shard_peers;
-
-      for (const auto& kv : *p) {
-        shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-        LOG_GENERAL(INFO, " PubKey: " << DataConversion::SerializableToHexStr(
-                                             std::get<SHARD_NODE_PUBKEY>(kv))
-                                      << " IP:Port "
-                                      << std::get<SHARD_NODE_PEER>(kv));
-      }
-
-      P2PComm::GetInstance().SendBroadcastMessage(shard_peers, message);
+      P2PComm::GetInstance().SendBroadcastMessage(receivers, message);
     }
-
-    p++;
   }
 }
 
@@ -99,13 +73,6 @@ SendDataToLookupFunc SendDataToLookupFuncDefault =
     [](const VectorOfLookupNode& lookups,
        const bytes& message) mutable -> void {
   SendDataToLookupNodesDefault(lookups, message);
-};
-
-SendDataToShardFunc SendDataToShardFuncDefault =
-    [](const bytes& message, const DequeOfShard& shards,
-       const unsigned int& my_shards_lo,
-       const unsigned int& my_shards_hi) mutable -> void {
-  SendDataToShardNodesDefault(message, shards, my_shards_lo, my_shards_hi);
 };
 
 DataSender::DataSender() {}
@@ -161,11 +128,53 @@ void DataSender::DetermineShardToSendDataTo(
   }
 }
 
+void DataSender::DetermineNodesToSendDataTo(
+    const DequeOfShard& shards,
+    const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
+    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi,
+    std::deque<std::vector<Peer>>& sharded_receivers) {
+  auto p = shards.begin();
+  advance(p, my_shards_lo);
+
+  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
+    std::vector<Peer> shardReceivers;
+    if (BROADCAST_GOSSIP_MODE) {
+      // Choose N other Shard nodes to be recipient of final block
+      unsigned int numOfReceivers =
+          std::min(NUM_GOSSIP_RECEIVERS, (uint32_t)p->size());
+
+      auto blockRecver = blockswcosigRecver.find(i);
+      if (blockRecver != blockswcosigRecver.end()) {
+        for (unsigned int i = 0; i < numOfReceivers && i < p->size(); i++) {
+          if (blockRecver->second.GetB2().at(i)) {
+            const auto& kv = p->at(i);
+            shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+          } else {
+            numOfReceivers++;
+          }
+        }
+      } else {
+        for (unsigned int i = 0; i < numOfReceivers; i++) {
+          const auto& kv = p->at(i);
+          shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+        }
+      }
+    } else {
+      for (const auto& kv : *p) {
+        shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+      }
+    }
+    sharded_receivers.emplace_back(shardReceivers);
+    p++;
+  }
+}
+
 bool DataSender::SendDataToOthers(
-    const BlockBase& blockwcosig,
+    const BlockBase& blockwcosigSender,
     const deque<pair<PubKey, Peer>>& sendercommittee,
-    const DequeOfShard& shards, const VectorOfLookupNode& lookups,
-    const BlockHash& hashForRandom,
+    const DequeOfShard& shards,
+    const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
+    const VectorOfLookupNode& lookups, const BlockHash& hashForRandom,
     const ComposeMessageForSenderFunc& composeMessageForSenderFunc,
     const SendDataToLookupFunc& sendDataToLookupFunc,
     const SendDataToShardFunc& sendDataToShardFunc) {
@@ -178,8 +187,8 @@ bool DataSender::SendDataToOthers(
 
   LOG_MARKER();
 
-  if (blockwcosig.GetB2().size() != sendercommittee.size()) {
-    LOG_GENERAL(WARNING, "B2 size " << blockwcosig.GetB2().size()
+  if (blockwcosigSender.GetB2().size() != sendercommittee.size()) {
+    LOG_GENERAL(WARNING, "B2 size " << blockwcosigSender.GetB2().size()
                                     << " and committee size "
                                     << sendercommittee.size()
                                     << " is not identical!");
@@ -187,8 +196,8 @@ bool DataSender::SendDataToOthers(
   }
 
   deque<pair<PubKey, Peer>> tmpCommittee;
-  for (unsigned int i = 0; i < blockwcosig.GetB2().size(); i++) {
-    if (blockwcosig.GetB2().at(i)) {
+  for (unsigned int i = 0; i < blockwcosigSender.GetB2().size(); i++) {
+    if (blockwcosigSender.GetB2().at(i)) {
       tmpCommittee.push_back(sendercommittee.at(i));
     }
   }
@@ -251,6 +260,11 @@ bool DataSender::SendDataToOthers(
       if ((my_cluster_num + 1) <= shards.size()) {
         if (sendDataToShardFunc) {
           sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
+        } else {
+          std::deque<std::vector<Peer>> sharded_receivers;
+          DetermineNodesToSendDataTo(shards, blockswcosigRecver, my_shards_lo,
+                                     my_shards_hi, sharded_receivers);
+          SendDataToShardNodesDefault(message, sharded_receivers);
         }
       }
     }
