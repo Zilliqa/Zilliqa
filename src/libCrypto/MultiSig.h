@@ -259,6 +259,8 @@ class MultiSig {
   MultiSig(MultiSig const&) = delete;
   void operator=(MultiSig const&) = delete;
 
+  std::mutex m_mutexMultiSigVerify;
+
  public:
   /// Returns a MultiSig instance.
   static MultiSig& GetInstance();

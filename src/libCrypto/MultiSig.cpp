@@ -908,6 +908,10 @@ bool MultiSig::MultiSigVerify(const bytes& message, const Signature& toverify,
 bool MultiSig::MultiSigVerify(const bytes& message, unsigned int offset,
                               unsigned int size, const Signature& toverify,
                               const PubKey& pubkey) {
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
+  lock_guard<mutex> g(m_mutexMultiSigVerify);
+
   // Initial checks
   if (message.size() == 0) {
     LOG_GENERAL(WARNING, "Empty message");
