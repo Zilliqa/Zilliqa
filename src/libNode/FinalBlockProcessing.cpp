@@ -438,10 +438,10 @@ void Node::CallActOnFinalblock() {
   };
 
   auto sendMbnFowardTxnToShardNodes =
-      [this]([[gnu::unused]] const bytes& message,
-             [[gnu::unused]] const DequeOfShard& shards,
-             [[gnu::unused]] const unsigned int& my_shards_lo,
-             [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
+      []([[gnu::unused]] const bytes& message,
+         [[gnu::unused]] const DequeOfShard& shards,
+         [[gnu::unused]] const unsigned int& my_shards_lo,
+         [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
 
   lock_guard<mutex> g(m_mutexShardMember);
   DataSender::GetInstance().SendDataToOthers(
