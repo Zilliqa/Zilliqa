@@ -64,7 +64,7 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
 
     if(!status.ok())
     {
-        LOG_GENERAL(WARNING, "LevelDB status is not OK.");
+        LOG_GENERAL(WARNING, "LevelDB status is not OK. "<<status.ToString());
     }
 
     m_db.reset(db);
