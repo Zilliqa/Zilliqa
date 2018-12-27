@@ -364,9 +364,12 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     {
       hash = HashUtils::BytesToHash(message);
 
-      auto it1 = m_rumorIdHashBimap.right.find(message);
+      auto it1 = m_rumorIdHashBimap.right.find(hash);
       if (it1 != m_rumorIdHashBimap.right.end()) {
         recvdRumorId = it1->second;
+      } else {
+        // I have not asked for this raw message.. so ignoring
+        return false;
       }
 
       // toBeDispatched
@@ -398,6 +401,10 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
             "Sending Gossip Raw Message to subscribers of Gossip_Message_Hash: "
                 << DataConversion::Uint8VecToHexStr(hash).substr(0, 6));
         for (auto& p : it2->second) {
+          // avoid un-neccessarily sending again back to sender itself
+          if (p == from) {
+            continue;
+          }
           RRS::Message pushMsg(RRS::Message::Type::PUSH, recvdRumorId, -1);
           SendMessage(p, pushMsg);
         }
