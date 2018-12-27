@@ -131,8 +131,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
           ++m_mediator.m_ds->m_consensusMyID;
         }
 
-        m_mediator.m_node->m_consensusMyID =
-            m_mediator.m_ds->m_consensusMyID.load();
+        m_consensusMyID = m_mediator.m_ds->m_consensusMyID.load();
 
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
