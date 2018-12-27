@@ -48,6 +48,7 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
     if(m_subdirectory.empty())
     {
         status = leveldb::DB::Open(options, "./" + path + "/" + this->m_dbName, &db);
+        LOG_GENERAL(INFO,"./" + path + "/" + this->m_dbName);
     }
     else
     {
@@ -58,6 +59,7 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
         status = leveldb::DB::Open(options, 
             "./" + path + "/" + this->m_subdirectory + "/" + this->m_dbName,
             &db);
+        LOG_GENERAL(INFO,"./" + path + "/" + this->m_subdirectory + "/" + this->m_dbName);
     }
 
     if(!status.ok())

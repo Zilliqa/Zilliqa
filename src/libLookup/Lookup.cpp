@@ -3541,6 +3541,7 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   string path = "";
   uint32_t code = 0;
   PubKey archPubkey;
+  const string ArchFolderName = "historicalDB";
 
   if (!Messenger::GetSeedNodeHistoricalDB(message, offset, archPubkey, code,
                                           path)) {
@@ -3548,13 +3549,12 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Path: " << path);
-
-  const string ArchFolderName = "historicalDB";
+  LOG_GENERAL(INFO, "Path: " << ArchFolderName + "/" + path);
 
   if (code == 1) {
     BlockStorage::GetBlockStorage().InitiateHistoricalDB(ArchFolderName + "/" +
                                                          path);
+
     m_historicalDB = true;
   } else {
     LOG_GENERAL(WARNING, "Code is errored " << code);
