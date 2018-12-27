@@ -234,8 +234,6 @@ void DirectoryService::InitCoinbase() {
     return;
   }
 
-  Address genesisAccount(GENESIS_WALLETS[0]);
-
   uint128_t sig_count = 0;
   uint32_t lookup_count = 0;
   for (auto const& epochNum : m_coinbaseRewardees) {
@@ -293,7 +291,7 @@ void DirectoryService::InitCoinbase() {
       if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
         for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, genesisAccount, reward_each_lookup)) {
+                  addr, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             suc_lookup_counter++;
@@ -301,8 +299,8 @@ void DirectoryService::InitCoinbase() {
         }
       } else {
         for (auto const& addr : shardIdRewardee.second) {
-          if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, genesisAccount, reward_each)) {
+          if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr,
+                                                              reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             if (addr == myAddr) {
@@ -338,8 +336,8 @@ void DirectoryService::InitCoinbase() {
       uint16_t rdm_index = lastBlockHash % shard.second.size();
       const Address& winnerAddr = shard.second[rdm_index];
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
-      if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-              winnerAddr, genesisAccount, balance_left)) {
+      if (!AccountStore::GetInstance().UpdateCoinbaseTemp(winnerAddr,
+                                                          balance_left)) {
         LOG_GENERAL(WARNING, "Could not reward lucky draw!");
       }
 
