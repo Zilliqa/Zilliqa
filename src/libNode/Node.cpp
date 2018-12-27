@@ -271,9 +271,7 @@ bool Node::ValidateDB() {
   });
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
-  for (auto blocklinkItr = blocklinks.begin(); blocklinkItr != blocklinks.end();
-       blocklinkItr++) {
-    const auto& blocklink = *blocklinkItr;
+  for (const auto& blocklink : blocklinks) {
     if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
       auto blockNum = get<BlockLinkIndex::DSINDEX>(blocklink);
       if (blockNum == 0) {
@@ -360,6 +358,8 @@ bool Node::ValidateDB() {
     }
   }
   LOG_GENERAL(INFO, "ValidateDB Success");
+
+  BlockStorage::GetBlockStorage().ReleaseTxDB();
 
   bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
 
