@@ -223,7 +223,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
         *m_microblock, *m_myShardMembers, m_mediator.m_ds->m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeFallbackBlockMessageForSender);
+        m_consensusMyID, composeFallbackBlockMessageForSender);
   }
 
   {
