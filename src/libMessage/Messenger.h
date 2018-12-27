@@ -759,5 +759,14 @@ class Messenger {
       const bytes& src, const unsigned int offset,
       std::vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
       PubKey& lookupPubKey);
+
+  static bool SetSeedNodeHistoricalDB(
+      std::vector<unsigned char>& dst, const unsigned int offset,
+      const std::pair<PrivKey, PubKey>& archivalKeys, const uint32_t code,
+      const std::string& path);
+  static bool GetSeedNodeHistoricalDB(const std::vector<unsigned char>& src,
+                                      const unsigned int offset,
+                                      PubKey& archivalPubKey, uint32_t& code,
+                                      std::string& path);
 };
 #endif  // __MESSENGER_H__

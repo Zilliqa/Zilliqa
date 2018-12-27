@@ -26,6 +26,48 @@
 
 using namespace std;
 
+
+LevelDB::LevelDB(const string& dbName, const string& path, const string& subdirectory)
+{
+    this->m_subdirectory = subdirectory;
+    this->m_dbName = dbName;
+
+    if(!(boost::filesystem::exists("./"+path)))
+    {
+        LOG_GENERAL(WARNING, "./"+path+"does not exist");
+        return;
+    }
+
+    leveldb::Options options;
+    options.max_open_files = 256;
+    options.create_if_missing = true;
+
+    leveldb::DB* db;
+    leveldb::Status status;
+
+    if(m_subdirectory.empty())
+    {
+        status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
+    }
+    else
+    {
+        if (!(boost::filesystem::exists("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory)))
+        {
+            boost::filesystem::create_directories("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory);
+        }
+        status = leveldb::DB::Open(options, 
+            "./" + PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
+            &db);
+    }
+
+    if(!status.ok())
+    {
+        LOG_GENERAL(WARNING, "LevelDB status is not OK.");
+    }
+
+    m_db.reset(db);
+}
+
 LevelDB::LevelDB(const string & dbName, const string & subdirectory)
 {
     this->m_subdirectory = subdirectory;
