@@ -131,6 +131,7 @@ void DataSender::DetermineShardToSendDataTo(
 void DataSender::DetermineNodesToSendDataTo(
     const DequeOfShard& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
+    const uint16_t& consensusMyId,
     const unsigned int& my_shards_lo, const unsigned int& my_shards_hi,
     std::deque<std::vector<Peer>>& sharded_receivers) {
   auto p = shards.begin();
@@ -139,22 +140,50 @@ void DataSender::DetermineNodesToSendDataTo(
   for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
     std::vector<Peer> shardReceivers;
     if (BROADCAST_GOSSIP_MODE) {
-      // Choose N other Shard nodes to be recipient of final block
-      unsigned int numOfReceivers =
-          std::min(NUM_GOSSIP_RECEIVERS, (uint32_t)p->size());
-
       auto blockRecver = blockswcosigRecver.find(i);
       if (blockRecver != blockswcosigRecver.end()) {
-        for (unsigned int i = 0; i < numOfReceivers && i < p->size(); i++) {
+        // cosigs found, select nodes with cosig
+        std::vector<Peer> nodes_cosigned;
+        std::vector<Peer> nodes_not_cosigned;
+        for (unsigned int i = 0; i < p->size(); i++) {
+          const auto& kv = p->at(i);
           if (blockRecver->second.GetB2().at(i)) {
-            const auto& kv = p->at(i);
-            shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
+            nodes_cosigned.emplace_back(std::get<SHARD_NODE_PEER>(kv));
           } else {
-            numOfReceivers++;
+            nodes_not_cosigned.emplace_back(std::get<SHARD_NODE_PEER>(kv));
           }
         }
+
+        unsigned int node_to_send_from_cosigned = 0;
+        unsigned int node_to_send_from_not_cosigned = 0;
+
+        if (nodes_cosigned.size() >= NUM_GOSSIP_RECEIVERS) {
+          // pick from index based on consensusMyId
+          node_to_send_from_cosigned = consensusMyId % (nodes_cosigned.size() - NUM_GOSSIP_RECEIVERS);
+        } else {
+          if (nodes_not_cosigned.size() >= NUM_GOSSIP_RECEIVERS - nodes_cosigned.size()) {
+            node_to_send_from_cosigned = consensusMyId % (nodes_not_cosigned.size() - NUM_GOSSIP_RECEIVERS + nodes_cosigned.size());
+          }
+
+          for (unsigned int i = node_to_send_from_not_cosigned; 
+               i < min(nodes_not_cosigned.size(), 
+                       node_to_send_from_not_cosigned + NUM_GOSSIP_RECEIVERS - nodes_cosigned.size()); i++) {
+            shardReceivers.emplace_back(nodes_not_cosigned.at(i));
+          }
+        }
+
+        for (unsigned int i = node_to_send_from_cosigned; i < min(node_to_send_from_cosigned + NUM_GOSSIP_RECEIVERS, nodes_cosigned.size()); i++) {
+          shardReceivers.emplace_back(nodes_cosigned.at(i));
+        }
       } else {
-        for (unsigned int i = 0; i < numOfReceivers; i++) {
+        // No cosig found, use default order
+        // pick node from index based on consensusMyId
+        unsigned int node_to_send_from = 0;
+        if (p->size() >= NUM_GOSSIP_RECEIVERS) {
+          node_to_send_from = consensusMyId % (p->size() - NUM_GOSSIP_RECEIVERS);
+        }
+
+        for (unsigned int i = node_to_send_from; i < min(node_to_send_from + NUM_GOSSIP_RECEIVERS, p->size()); i++) {
           const auto& kv = p->at(i);
           shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
         }
@@ -175,6 +204,7 @@ bool DataSender::SendDataToOthers(
     const DequeOfShard& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
     const VectorOfLookupNode& lookups, const BlockHash& hashForRandom,
+    const uint16_t& consensusMyId,
     const ComposeMessageForSenderFunc& composeMessageForSenderFunc,
     const SendDataToLookupFunc& sendDataToLookupFunc,
     const SendDataToShardFunc& sendDataToShardFunc) {
@@ -262,8 +292,9 @@ bool DataSender::SendDataToOthers(
           sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
         } else {
           std::deque<std::vector<Peer>> sharded_receivers;
-          DetermineNodesToSendDataTo(shards, blockswcosigRecver, my_shards_lo,
-                                     my_shards_hi, sharded_receivers);
+          DetermineNodesToSendDataTo(shards, blockswcosigRecver, consensusMyId, 
+                                     my_shards_lo, my_shards_hi, 
+                                     sharded_receivers);
           SendDataToShardNodesDefault(message, sharded_receivers);
         }
       }
