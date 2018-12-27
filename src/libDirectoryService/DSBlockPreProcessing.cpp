@@ -322,11 +322,13 @@ bool DirectoryService::VerifyPoWWinner(
                                .GetDSDifficulty();
         }
 
-        bool result = POW::GetInstance().PoWVerify(
-            m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
+        auto headerHash = POW::GenHeaderHash(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
-            dsPowSoln.gasPrice, dsPowSoln.nonce,
+            dsPowSoln.gasPrice);
+        bool result = POW::GetInstance().PoWVerify(
+            m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
+            headerHash, dsPowSoln.nonce,
             DataConversion::charArrToHexStr(dsPowSoln.result),
             DataConversion::charArrToHexStr(dsPowSoln.mixhash));
         if (!result) {
