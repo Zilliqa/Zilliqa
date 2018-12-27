@@ -131,8 +131,8 @@ void DataSender::DetermineShardToSendDataTo(
 void DataSender::DetermineNodesToSendDataTo(
     const DequeOfShard& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-    const uint16_t& consensusMyId,
-    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi,
+    const uint16_t& consensusMyId, const unsigned int& my_shards_lo,
+    const unsigned int& my_shards_hi,
     std::deque<std::vector<Peer>>& sharded_receivers) {
   auto p = shards.begin();
   advance(p, my_shards_lo);
@@ -159,20 +159,31 @@ void DataSender::DetermineNodesToSendDataTo(
 
         if (nodes_cosigned.size() >= NUM_GOSSIP_RECEIVERS) {
           // pick from index based on consensusMyId
-          node_to_send_from_cosigned = consensusMyId % (nodes_cosigned.size() - NUM_GOSSIP_RECEIVERS);
+          node_to_send_from_cosigned =
+              consensusMyId % (nodes_cosigned.size() - NUM_GOSSIP_RECEIVERS);
         } else {
-          if (nodes_not_cosigned.size() >= NUM_GOSSIP_RECEIVERS - nodes_cosigned.size()) {
-            node_to_send_from_cosigned = consensusMyId % (nodes_not_cosigned.size() - NUM_GOSSIP_RECEIVERS + nodes_cosigned.size());
+          // if nodes_cosigned is not enough to meet NUM_GOSSIP_RECEIVERS, try
+          // to get node from not_cosigned
+          if (nodes_not_cosigned.size() >=
+              NUM_GOSSIP_RECEIVERS - nodes_cosigned.size()) {
+            node_to_send_from_cosigned =
+                consensusMyId % (nodes_not_cosigned.size() -
+                                 NUM_GOSSIP_RECEIVERS + nodes_cosigned.size());
           }
 
-          for (unsigned int i = node_to_send_from_not_cosigned; 
-               i < min(nodes_not_cosigned.size(), 
-                       node_to_send_from_not_cosigned + NUM_GOSSIP_RECEIVERS - nodes_cosigned.size()); i++) {
+          for (unsigned int i = node_to_send_from_not_cosigned;
+               i < min(nodes_not_cosigned.size(),
+                       node_to_send_from_not_cosigned + NUM_GOSSIP_RECEIVERS -
+                           nodes_cosigned.size());
+               i++) {
             shardReceivers.emplace_back(nodes_not_cosigned.at(i));
           }
         }
 
-        for (unsigned int i = node_to_send_from_cosigned; i < min(node_to_send_from_cosigned + NUM_GOSSIP_RECEIVERS, nodes_cosigned.size()); i++) {
+        for (unsigned int i = node_to_send_from_cosigned;
+             i < min(node_to_send_from_cosigned + NUM_GOSSIP_RECEIVERS,
+                     (unsigned int)nodes_cosigned.size());
+             i++) {
           shardReceivers.emplace_back(nodes_cosigned.at(i));
         }
       } else {
@@ -180,10 +191,14 @@ void DataSender::DetermineNodesToSendDataTo(
         // pick node from index based on consensusMyId
         unsigned int node_to_send_from = 0;
         if (p->size() >= NUM_GOSSIP_RECEIVERS) {
-          node_to_send_from = consensusMyId % (p->size() - NUM_GOSSIP_RECEIVERS);
+          node_to_send_from =
+              consensusMyId % (p->size() - NUM_GOSSIP_RECEIVERS);
         }
 
-        for (unsigned int i = node_to_send_from; i < min(node_to_send_from + NUM_GOSSIP_RECEIVERS, p->size()); i++) {
+        for (unsigned int i = node_to_send_from;
+             i < min(node_to_send_from + NUM_GOSSIP_RECEIVERS,
+                     (unsigned int)p->size());
+             i++) {
           const auto& kv = p->at(i);
           shardReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
         }
@@ -292,8 +307,8 @@ bool DataSender::SendDataToOthers(
           sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
         } else {
           std::deque<std::vector<Peer>> sharded_receivers;
-          DetermineNodesToSendDataTo(shards, blockswcosigRecver, consensusMyId, 
-                                     my_shards_lo, my_shards_hi, 
+          DetermineNodesToSendDataTo(shards, blockswcosigRecver, consensusMyId,
+                                     my_shards_lo, my_shards_hi,
                                      sharded_receivers);
           SendDataToShardNodesDefault(message, sharded_receivers);
         }
