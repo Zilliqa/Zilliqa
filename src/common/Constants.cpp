@@ -258,8 +258,8 @@ const unsigned int PUMPMESSAGE_MILLISECONDS{
     ReadConstantNumeric("PUMPMESSAGE_MILLISECONDS", "node.p2pcomm.")};
 const unsigned int SENDQUEUE_SIZE{
     ReadConstantNumeric("SENDQUEUE_SIZE", "node.p2pcomm.")};
-const unsigned int MAX_MESSAGE_SIZE_IN_BYTES{
-    ReadConstantNumeric("MAX_MESSAGE_SIZE_IN_BYTES", "node.p2pcomm.")};
+const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES{
+    ReadConstantNumeric("MAX_GOSSIP_MSG_SIZE_IN_BYTES", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
