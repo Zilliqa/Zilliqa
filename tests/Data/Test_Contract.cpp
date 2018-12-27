@@ -439,9 +439,9 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 }
 
 BOOST_AUTO_TEST_CASE(testFungibleToken) {
-  // 1. Bootstrap our test case. Use test case 0 as the basis.
-  KeyPair owner(priv1, {priv1}), transferee(priv2, {priv2});
-  Address ownerAddr, transfereeAddr, contrAddr;
+  // 1. Bootstrap our test case.
+  KeyPair owner(priv1, {priv1});
+  Address ownerAddr, contrAddr;
   uint64_t nonce = 0;
 
   INIT_STDOUT_LOGGER();
@@ -458,16 +458,13 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
   const uint128_t bal{std::numeric_limits<uint128_t>::max()};
 
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  transfereeAddr = Account::GetAddressFromPublicKey(transferee.second);
-
   AccountStore::GetInstance().AddAccount(ownerAddr, {bal, nonce});
-  AccountStore::GetInstance().AddAccount(transfereeAddr, {bal, nonce});
 
   const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
 
   for (auto hodlers : numHodlers) {
     contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
-    LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr);
+    LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr.hex());
 
     // Deploy the contract using data from the 2nd Scilla test.
     ScillaTestUtil::ScillaTest t2;
@@ -503,13 +500,12 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     // 2. Pre-generate and save a large map and save it to LDB
     std::string initOwnerBalance;
     for (unsigned int i = 0; i < hodlers; i++) {
-      unsigned char* hodler = new unsigned char[20];
-      RAND_bytes(hodler, 20);
-      std::vector<unsigned char> hodlerAddress(hodler, hodler + 20);
+      std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
+      RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
       std::string hodlerNumTokens = "1";
 
       Json::Value kvPair;
-      kvPair["key"] = "0x" + DataConversion::Uint8VecToHexStr(hodlerAddress);
+      kvPair["key"] = "0x" + DataConversion::Uint8VecToHexStr(hodler);
       kvPair["val"] = hodlerNumTokens;
 
       for (auto& it : t2.state) {
