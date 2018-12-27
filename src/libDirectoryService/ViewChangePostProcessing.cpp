@@ -312,7 +312,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         *m_pendingVCBlock, tmpDSCommittee, m_shards, t_microBlocks,
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeVCBlockForSender, t_sendDataToLookupFunc);
+        m_consensusMyID, composeVCBlockForSender, t_sendDataToLookupFunc);
   }
 }
 

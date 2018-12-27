@@ -176,7 +176,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   DataSender::GetInstance().SendDataToOthers(
       *m_finalBlock, *m_mediator.m_DSCommittee, m_shards, t_microBlocks,
       m_mediator.m_lookup->GetLookupNodes(),
-      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
       composeFinalBlockMessageForSender);
 
   LOG_STATE(
