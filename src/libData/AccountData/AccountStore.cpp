@@ -280,7 +280,6 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
-                                      const Address& genesisAddress,
                                       const uint128_t& amount) {
   // LOG_MARKER();
 
@@ -289,8 +288,8 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   if (m_accountStoreTemp->GetAccount(rewardee) == nullptr) {
     m_accountStoreTemp->AddAccount(rewardee, {0, 0});
   }
-  return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee, amount);
-  // Should the nonce increase ??
+
+  return m_accountStoreTemp->IncreaseBalance(rewardee, amount);
 }
 
 boost::multiprecision::uint128_t AccountStore::GetNonceTemp(
