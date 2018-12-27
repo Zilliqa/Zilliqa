@@ -31,12 +31,16 @@ constantLookupFile=""
 constantArchivalFile=""
 
 # [OPTIONAL] User configuration settings
-scillaPath=""    # Scilla will NOT be released if leaving this field empty
+# If you want to release Scilla, please define this variable
+# If you do NOT want to release Scilla, please leave this variable empty
+scillaPath=""
 
 # Environment variables
 releaseDir="release"
 versionFile="VERSION"
 dsNodeFile="dsnodes.xml"
+scillaVersionPath="/src/lang/base/Syntax.ml"
+scillaVersionKeyword="scilla_version"
 zilliqaDSLine=2
 scillaDSLine=4
 zilliqaMajorLine=6
@@ -103,45 +107,64 @@ constantArchivalFile="$(realpath ${constantArchivalFile})"
 versionFile="$(realpath ${versionFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
-major="$(sed -n ${zilliqaMajorLine}p ${versionFile})"
-minor="$(sed -n ${zilliqaMinorLine}p ${versionFile})"
-fix="$(sed -n ${zilliqaFixLine}p ${versionFile})"
-DS="$(sed -n ${zilliqaDSLine}p ${versionFile})"
-commit="$(git describe --always)"
-newVer=${major}.${minor}.${fix}.${DS}.${commit}
+zilliqaMajor="$(sed -n ${zilliqaMajorLine}p ${versionFile})"
+zilliqaMinor="$(sed -n ${zilliqaMinorLine}p ${versionFile})"
+zilliqaFix="$(sed -n ${zilliqaFixLine}p ${versionFile})"
+zilliqaDS="$(sed -n ${zilliqaDSLine}p ${versionFile})"
+zilliqaCommit="$(git describe --always)"
+newVer=${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}
 export ZIL_VER=${newVer}
 export ZIL_PACK_NAME=${packageName}
 
 # Use cpack to making deb file
-echo -e "Make deb package..."
+echo -e "\n\n\033[0;32mMake Zilliqa deb package...\033[0m\n"
 rm -rf ${releaseDir}
 cmake -H. -B${releaseDir} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr/local/
 cmake --build ${releaseDir} --j4
 cd ${releaseDir}; make package; cp ${versionFile} .; debFile="$(ls *.deb)"; cd -
-echo -e "Deb packages are generated successfully.\n"
+echo -e "\n\n\033[0;32mDeb packages are generated successfully.\033[0m\n"
 
 # Write new version information into version file and make SHA-256 & multi-signature
 privKeyFile="$(realpath ${privKeyFile})"
 pubKeyFile="$(realpath ${pubKeyFile})"
 cd ${releaseDir}
-sed -i "${zilliqaCommitLine}s/.*/${commit}/" $(basename ${versionFile})
-echo -e "Making SHA-256 & multi-signature..."
+sed -i "${zilliqaCommitLine}s/.*/${zilliqaCommit}/" $(basename ${versionFile})
+echo -e "\n\n\033[0;32mMaking SHA-256 & multi-signature...\033[0m\n"
 sha="$(sha256sum ${debFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
 sed -i "${zilliqaShaLine}s/.*/${sha}/" $(basename ${versionFile})
 signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
 sed -i "${zilliqaSigLine}s/.*/${signature}/" $(basename ${versionFile})
+if [ "$scillaPath" != "" ]; then
+# [Optional] Read version information from lang/base/Syntax.ml, then write into VERSION
+    scillaVersionFullPath=${scillaPath}${scillaVersionPath}
+    if [ -f "${scillaVersionFullPath}" ]; then
+        scillaMajor="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f1|cut -d '(' -f2)"
+        scillaMinor="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f2)"
+        scillaFix="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f3|cut -d ')' -f1)"
+        scillaMajor="${scillaMajor##*( )}"
+        scillaMinor="${scillaMinor##*( )}"
+        scillaFix="${scillaFix##*( )}"
+        sed -i "${scillaMajorLine}s/.*/${scillaMajor}/" $(basename ${versionFile})
+        sed -i "${scillaMinorLine}s/.*/${scillaMinor}/" $(basename ${versionFile})
+        sed -i "${scillaFixLine}s/.*/${scillaFix}/" $(basename ${versionFile})
+    fi
+
+# [Optional] Make scilla image, and pack to deb file
+
+fi
+
+
 cd -
-echo -e "SHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\n"
+echo -e "\n\n\033[0;32mSHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\033[0m\n"
 
 #Update the xml
 cd ${releaseDir}
-echo -e "Updating xml file"
 cp ../constants_local.xml ./constants.xml
 ret="$(./bin/gensigninitialds   ${privKeyFile} ${pubKeyFile})"
 cd -
 
 # Upload package onto GitHub
-echo -e "Creating new release and uploading package onto GitHub..."
+echo -e "\n\n\033[0;32mCreating new release and uploading package onto GitHub...\033[0m\n"
 fullCommit="$(git rev-parse HEAD)"
 releaseLog="release.log"
 curl -v -s \
