@@ -41,11 +41,12 @@ versionFile="VERSION"
 dsNodeFile="dsnodes.xml"
 scillaVersionPath="/src/lang/base/Syntax.ml"
 scillaVersionKeyword="scilla_version"
-zilliqaDSLine=2
-scillaDSLine=4
-zilliqaMajorLine=6
-zilliqaMinorLine=8
-zilliqaFixLine=10
+scillaDebFolder="release_scilla"
+zilliqaMajorLine=2
+zilliqaMinorLine=4
+zilliqaFixLine=6
+zilliqaDSLine=8
+scillaDSLine=10
 scillaMajorLine=14
 scillaMinorLine=16
 scillaFixLine=18
@@ -58,45 +59,45 @@ scillaSigLine=30
 
 # Validate input argument
 if [ "$#" -ne 0 ]; then
-    echo "Usage: source scripts/release.sh"
+    echo -e "\n\032[0;32mUsage: source scripts/release.sh\033[0m\n"
     return 1
 fi
 
 if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ] || [ "$constantArchivalFile" = "" ]; then
-    echo -e "\n\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
+    echo -e "\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
     return 1
 fi
 
 if [ ! -f "${privKeyFile}" ]; then
-    echo -e "\n\n\033[0;31m*ERROR* Private key file : ${privKeyFile} not found, please confirm privKeyFile field in release.sh!\033[0m\n"
+    echo -e "\n\033[0;31m*ERROR* Private key file : ${privKeyFile} not found, please confirm privKeyFile field in release.sh!\033[0m\n"
     return 1
 fi
 
 if [ ! -f "${pubKeyFile}" ]; then
-    echo -e "\n\n\033[0;31m*ERROR* Public key file : ${pubKeyFile} not found, please confirm pubKeyFile field in release.sh!\033[0m\n"
+    echo -e "\n\033[0;31m*ERROR* Public key file : ${pubKeyFile} not found, please confirm pubKeyFile field in release.sh!\033[0m\n"
     return 1
 fi
 
 if [ ! -f "${constantFile}" ]; then
-    echo -e "\n\n\033[0;31m*ERROR* Constant file : ${constantFile} not found, please confirm constantFile field in release.sh!\033[0m\n"
+    echo -e "\n\033[0;31m*ERROR* Constant file : ${constantFile} not found, please confirm constantFile field in release.sh!\033[0m\n"
     return 1
 fi
 
 if [ ! -f "${constantLookupFile}" ]; then
-    echo -e "\n\n\033[0;31m*ERROR* Lookup constant file : ${constantLookupFile} not found, please confirm constantLookupFile field in release.sh!\033[0m\n"
+    echo -e "\n\033[0;31m*ERROR* Lookup constant file : ${constantLookupFile} not found, please confirm constantLookupFile field in release.sh!\033[0m\n"
     return 1
 fi
 
 if [ ! -f "${constantArchivalFile}" ]; then
-    echo -e "\n\n\033[0;31m*ERROR* Archival constant file : ${constantArchivalFile} not found, please confirm constantArchivalFile field in release.sh!\033[0m\n"
+    echo -e "\n\033[0;31m*ERROR* Archival constant file : ${constantArchivalFile} not found, please confirm constantArchivalFile field in release.sh!\033[0m\n"
     return 1
 fi
 
 if [ -d "${scillaPath}" ]; then
-    echo -e "\n\n\033[0;32m*INFO* Scilla will be released.\033[0m\n"
+    echo -e "\n\033[0;32m*INFO* Scilla will be released.\033[0m\n"
     scillaPath="$(realpath ${scillaPath})"
 else
-    echo -e "\n\n\033[0;32m*INFO* Scilla Path : ${scillaPath} not existed, Scilla will NOT be released.\033[0m\n"
+    echo -e "\n\033[0;32m*INFO* Scilla Path : ${scillaPath} not existed, Scilla will NOT be released.\033[0m\n"
     scillaPath=""
 fi
 
@@ -117,30 +118,33 @@ export ZIL_VER=${newVer}
 export ZIL_PACK_NAME=${packageName}
 
 # Use cpack to making deb file
-echo -e "\n\n\033[0;32mMake Zilliqa deb package...\033[0m\n"
+echo -e "\n\033[0;32mMake Zilliqa deb package...\033[0m\n"
 rm -rf ${releaseDir}
 cmake -H. -B${releaseDir} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr/local/
 cmake --build ${releaseDir} --j4
-cd ${releaseDir}; make package; cp ${versionFile} .; debFile="$(ls *.deb)"; cd -
-echo -e "\n\n\033[0;32mDeb packages are generated successfully.\033[0m\n"
+cd ${releaseDir}; make package; cp ${versionFile} .; zilliqaDebFile="$(ls *.deb)"; cd -
+echo -e "\n\033[0;32mZilliqa deb packages are generated successfully.\033[0m\n"
 
 # Write new version information into version file and make SHA-256 & multi-signature
 privKeyFile="$(realpath ${privKeyFile})"
 pubKeyFile="$(realpath ${pubKeyFile})"
 cd ${releaseDir}
 sed -i "${zilliqaCommitLine}s/.*/${zilliqaCommit}/" $(basename ${versionFile})
-echo -e "\n\n\033[0;32mMaking SHA-256 & multi-signature...\033[0m\n"
-sha="$(sha256sum ${debFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
-sed -i "${zilliqaShaLine}s/.*/${sha}/" $(basename ${versionFile})
-signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
-sed -i "${zilliqaSigLine}s/.*/${signature}/" $(basename ${versionFile})
+echo -e "\n\033[0;32mMaking Zilliqa SHA-256 & multi-signature...\033[0m\n"
+zilliqaSha="$(sha256sum ${zilliqaDebFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
+sed -i "${zilliqaShaLine}s/.*/${zilliqaSha}/" $(basename ${versionFile})
+zilliqaSignature="$(./bin/signmultisig ${zilliqaSha} ${privKeyFile} ${pubKeyFile})"
+sed -i "${zilliqaSigLine}s/.*/${zilliqaSignature}/" $(basename ${versionFile})
+
 if [ "$scillaPath" != "" ]; then
-# [Optional] Read version information from lang/base/Syntax.ml, then write into VERSION
     scillaVersionFullPath=${scillaPath}${scillaVersionPath}
+
+    # Read version information from lang/base/Syntax.ml, then write into VERSION
     if [ -f "${scillaVersionFullPath}" ]; then
         scillaMajor="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f1|cut -d '(' -f2)"
         scillaMinor="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f2)"
         scillaFix="$(grep -r ${scillaVersionKeyword} ${scillaVersionFullPath}|cut -d ',' -f3|cut -d ')' -f1)"
+        scillaDS="$(sed -n ${scillaDSLine}p $(basename ${versionFile}))"
         scillaMajor="${scillaMajor##*( )}"
         scillaMinor="${scillaMinor##*( )}"
         scillaFix="${scillaFix##*( )}"
@@ -148,23 +152,48 @@ if [ "$scillaPath" != "" ]; then
         sed -i "${scillaMinorLine}s/.*/${scillaMinor}/" $(basename ${versionFile})
         sed -i "${scillaFixLine}s/.*/${scillaFix}/" $(basename ${versionFile})
     fi
-
-# [Optional] Make scilla image, and pack to deb file
-
 fi
 
-
 cd -
-echo -e "\n\n\033[0;32mSHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\033[0m\n"
+echo -e "\n\033[0;32mZilliqa SHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\033[0m\n"
 
-#Update the xml
+# Make scilla image, and pack to deb file
+if [ "$scillaPath" != "" ]; then
+    cd ${scillaPath}
+    scillaCommit="$(git describe --always)"
+    make
+    cd -
+    rm -rf ${scillaDebFolder}/scilla/*
+    mkdir ${scillaDebFolder}/scilla/${scillaMajor}
+    cp -rf ${scillaPath}/* ${scillaDebFolder}/scilla/${scillaMajor}/
+    sed -i "/Version: /c\Version: ${scillaMajor}.${scillaMinor}.${scillaFix}" ${scillaDebFolder}/DEBIAN/control
+    echo -e "\n\033[0;32mMake Scilla deb package...\033[0m\n"
+    scillaDebFile=scilla-${packageName}-${scillaMajor}.${scillaMinor}.${scillaFix}.${scillaDS}.${scillaCommit}-Linux.deb
+    if [ -f "${scillaDebFile}" ]; then
+        rm ${scillaDebFile}
+    fi
+    dpkg-deb --build ${scillaDebFolder}
+    mv ${scillaDebFolder}.deb ${scillaDebFile}
+    scillaSha="$(sha256sum ${scillaDebFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
+    echo -e "\n\033[0;32mScilla deb packages are generated successfully.\033[0m\n"
+    echo -e "\n\033[0;32mMaking Scilla SHA-256 & multi-signature...\033[0m\n"
+    cd ${releaseDir}
+    sed -i "${scillaCommitLine}s/.*/${scillaCommit}/" $(basename ${versionFile})
+    sed -i "${scillaShaLine}s/.*/${scillaSha}/" $(basename ${versionFile})
+    scillaSignature="$(./bin/signmultisig ${scillaSha} ${privKeyFile} ${pubKeyFile})"
+    sed -i "${scillaSigLine}s/.*/${scillaSignature}/" $(basename ${versionFile})
+    cd -
+    echo -e "\n\033[0;32mScilla SHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\033[0m\n"
+fi
+
+# Update the xml
 cd ${releaseDir}
 cp ../constants_local.xml ./constants.xml
 ret="$(./bin/gensigninitialds   ${privKeyFile} ${pubKeyFile})"
 cd -
 
 # Upload package onto GitHub
-echo -e "\n\n\033[0;32mCreating new release and uploading package onto GitHub...\033[0m\n"
+echo -e "\n\033[0;32mCreating new release and uploading package onto GitHub...\033[0m\n"
 fullCommit="$(git rev-parse HEAD)"
 releaseLog="release.log"
 curl -v -s \
@@ -183,7 +212,7 @@ line="$(sed '6!d' ${releaseLog})"
 releaseId=${line:8:8}
 check='^[0-9]+$'
 if ! [[ $releaseId =~ $check ]] ; then
-    echo -e "*ERROR* Create new release fail! Please check input value and ${releaseLog}, then try again."
+    echo -e "\n\032[0;32m*ERROR* Create new release fail! Please check input value and ${releaseLog}, then try again.\033[0m\n"
     return 1
 fi
 curl -v -s \
@@ -194,8 +223,8 @@ curl -v -s \
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/vnd.debian.binary-package" \
-  --data-binary @${releaseDir}/${debFile} \
-  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${debFile}"
+  --data-binary @${releaseDir}/${zilliqaDebFile} \
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${zilliqaDebFile}"
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/octet-stream" \
@@ -216,5 +245,12 @@ curl -v -s  \
   -H "Content-Type:application/octet-stream"  \
   --data-binary @"${constantArchivalFile}" \
   "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantArchivalFile##*/}_archival"
+if [ "$scillaPath" != "" ]; then
+    curl -v -s \
+      -H "Authorization: token ${GitHubToken}" \
+      -H "Content-Type:application/vnd.debian.binary-package" \
+      --data-binary @${scillaDebFile} \
+      "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${scillaDebFile}"
+fi
 rm ${releaseLog}
-echo -e "\n\n\033[0;32mA new draft release with package is created on Github successfully, please proceed to publishing the draft release on Github web page.\033[0m\n"
+echo -e "\n\033[0;32mA new draft release with package is created on Github successfully, please proceed to publishing the draft release on Github web page.\033[0m\n"

@@ -1,13 +1,13 @@
-=== [Zilliqa] Expected DS Epoch===
-4
-=== [Scilla] Expected DS Epoch===
-4
 === [Zilliqa]Major Version ===
 3
 === [Zilliqa]Minor Version ===
 2
 === [Zilliqa]Fix Version ===
 0
+=== [Zilliqa] Expected DS Epoch===
+4
+=== [Scilla] Expected DS Epoch===
+6
 
 ### DO NOT MODIFY FOLLOWING SECTION! IT WILL BE AUTOMATICALLY GENERATED. ###
 === [Scilla]Major Version ===
@@ -27,3 +27,4 @@
 === [Scilla] SHA-256 ===
 
 === [Scilla] Schnorr Signature ===
+
