@@ -56,6 +56,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_stateDeltaDB;
   std::shared_ptr<LevelDB> m_diagnosticDB;
 
+  // m_diagnosticDB is needed only for LOOKUP_NODE_MODE, but to make the unit
+  // test and monitoring tools work with the default setting of
+  // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
+
   BlockStorage()
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
@@ -67,11 +71,11 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
+        m_diagnosticDB(std::make_shared<LevelDB>("diagnostic")),
         m_diagnosticDBCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
       m_txBodyTmpDB = std::make_shared<LevelDB>("txBodiesTmp");
-      m_diagnosticDB = std::make_shared<LevelDB>("diagnostic");
     }
   };
   ~BlockStorage() = default;
@@ -206,9 +210,15 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutDiagnosticData(const uint64_t& dsBlockNum, const DequeOfShard& shards,
                          const DequeOfDSNode& dsCommittee);
 
-  /// Retrieve diagnostic data
+  /// Retrieve diagnostic data for specific block number
   bool GetDiagnosticData(const uint64_t& dsBlockNum, DequeOfShard& shards,
                          DequeOfDSNode& dsCommittee);
+
+  /// Retrieve the number of entries in the diagnostic data db
+  unsigned int GetDiagnosticDataCount();
+
+  /// Delete the requested diagnostic data entry from the db
+  bool DeleteDiagnosticData(const uint64_t& dsBlockNum);
 
   /// Clean a DB
   bool ResetDB(DBTYPE type);

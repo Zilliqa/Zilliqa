@@ -52,11 +52,17 @@ BOOST_AUTO_TEST_SUITE(persistencetest)
 BOOST_AUTO_TEST_CASE(testDiagnostic) {
   INIT_STDOUT_LOGGER();
 
+  // Clear the database first
+  BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DBTYPE::DIAGNOSTIC);
+
   vector<uint64_t> histDSBlockNum;
   vector<DequeOfShard> histShards;
   vector<DequeOfDSNode> histDSCommittee;
 
-  for (unsigned int i = 0; i < 3; i++) {
+  const unsigned int NUM_ENTRIES = 5;
+
+  // Test writing and looking up all entries
+  for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
     histDSBlockNum.emplace_back(TestUtils::DistUint64());
     histShards.emplace_back(TestUtils::GenerateDequeueOfShard(2));
     histDSCommittee.emplace_back(TestUtils::GenerateRandomDSCommittee(3));
@@ -70,7 +76,7 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
         histDSBlockNum.back(), histShards.back(), histDSCommittee.back()));
   }
 
-  for (unsigned int i = 0; i < 3; i++) {
+  for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
     DequeOfShard shardsDeserialized;
     DequeOfDSNode dsCommitteeDeserialized;
 
@@ -79,6 +85,34 @@ BOOST_AUTO_TEST_CASE(testDiagnostic) {
 
     BOOST_CHECK(shardsDeserialized == histShards.at(i));
     BOOST_CHECK(dsCommitteeDeserialized == histDSCommittee.at(i));
+  }
+
+  // Test deletion of entries
+  for (unsigned int i = 0; i < NUM_ENTRIES; i++) {
+    // First, check the entry is still there
+    DequeOfShard shardsDeserialized;
+    DequeOfDSNode dsCommitteeDeserialized;
+
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticData(
+        histDSBlockNum.at(i), shardsDeserialized, dsCommitteeDeserialized));
+
+    BOOST_CHECK(shardsDeserialized == histShards.at(i));
+    BOOST_CHECK(dsCommitteeDeserialized == histDSCommittee.at(i));
+
+    // Check the db size
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataCount() ==
+                (NUM_ENTRIES - i));
+
+    // Then, delete the entry
+    BOOST_CHECK(BlockStorage::GetBlockStorage().DeleteDiagnosticData(
+        histDSBlockNum.at(i)));
+
+    // Check that the entry has been deleted
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticData(
+                    histDSBlockNum.at(i), shardsDeserialized,
+                    dsCommitteeDeserialized) == false);
+    BOOST_CHECK(BlockStorage::GetBlockStorage().GetDiagnosticDataCount() ==
+                (NUM_ENTRIES - i - 1));
   }
 }
 
