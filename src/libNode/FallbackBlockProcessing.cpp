@@ -204,7 +204,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
     }
 
     // Check consensus leader network info and pubkey
-    uint32_t leaderConsensusId =
+    uint16_t leaderConsensusId =
         fallbackblock.GetHeader().GetLeaderConsensusId();
     if (leaderConsensusId >= m_mediator.m_ds->m_shards[shard_id].size()) {
       LOG_GENERAL(

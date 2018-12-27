@@ -205,7 +205,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
     if (candidateLeaderInfo.first == m_mediator.m_selfKey.first &&
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
-      m_consensusLeaderID = m_consensusMyID;
+      m_consensusLeaderID = m_consensusMyID.load();
     } else {
       deque<pair<PubKey, Peer>>::iterator iterConsensusLeaderID =
           find(m_mediator.m_DSCommittee->begin(),
@@ -231,8 +231,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
       m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
     }
-    m_mediator.m_node->m_consensusMyID = m_consensusMyID;
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+    m_mediator.m_node->m_consensusMyID = m_consensusMyID.load();
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
     if (m_mediator.m_node->m_consensusMyID ==
         m_mediator.m_node->m_consensusLeaderID) {
       m_mediator.m_node->m_isPrimary = true;
