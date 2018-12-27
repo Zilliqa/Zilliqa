@@ -22,6 +22,7 @@
 #include "Mediator.h"
 #include "common/Constants.h"
 #include "libCrypto/Sha2.h"
+#include "libServer/GetworkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/ShardSizeCalculator.h"
@@ -135,6 +136,21 @@ void Mediator::IncreaseEpochNum() {
     m_isVacuousEpoch = true;
   } else {
     m_isVacuousEpoch = false;
+  }
+
+  // Update GetWork Server info for nodes in shard
+  if (GETWORK_SERVER_MINE) {
+    // roughly calc how many seconds to next PoW
+    auto num_block =
+        NUM_FINAL_BLOCK_PER_POW - (m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW);
+
+    num_block = num_block % NUM_FINAL_BLOCK_PER_POW;
+    auto now = std::chrono::system_clock::now();
+    auto wait_seconds = chrono::seconds(
+        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000) *
+        num_block);
+
+    GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
   }
 }
 

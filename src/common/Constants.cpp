@@ -276,6 +276,10 @@ const bool FULL_DATASET_MINE{
     ReadConstantString("FULL_DATASET_MINE", "node.pow.") == "true"};
 const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
                            "true"};
+const bool GETWORK_SERVER_MINE{
+    ReadConstantString("GETWORK_SERVER_MINE", "node.pow.") == "true"};
+const unsigned int GETWORK_SERVER_PORT{
+    ReadConstantNumeric("GETWORK_SERVER_PORT", "node.pow.")};
 const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{

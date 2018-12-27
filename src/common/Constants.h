@@ -234,6 +234,8 @@ extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
 extern const bool CUDA_GPU_MINE;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
+extern const bool GETWORK_SERVER_MINE;
+extern const unsigned int GETWORK_SERVER_PORT;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
