@@ -206,9 +206,9 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
                           block.GetB1());
-  if (!Schnorr::GetInstance().Verify(serializedHeader, 0,
-                                     serializedHeader.size(), block.GetCS2(),
-                                     *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(serializedHeader, 0,
+                                              serializedHeader.size(),
+                                              block.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

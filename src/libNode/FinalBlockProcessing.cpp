@@ -281,8 +281,8 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
   }
   txblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), txblock.GetB1());
-  if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                     txblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(
+          message, 0, message.size(), txblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -740,11 +740,11 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
         LOG_STATE("[REWARD][" << setw(15) << left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
                               << "][" << m_mediator.m_currentEpochNum << "]["
-                              << reward << "]");
+                              << reward << "] FLBLK");
       } else {
         LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
                   "[REWARD]"
-                      << "Got no reward thist ds epoch");
+                      << "Got no reward this ds epoch");
       }
     }
   }

@@ -95,8 +95,8 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   }
   vcblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), vcblock.GetB1());
-  if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                     vcblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(
+          message, 0, message.size(), vcblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);

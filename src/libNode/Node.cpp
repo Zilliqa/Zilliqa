@@ -131,7 +131,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
           ++m_mediator.m_ds->m_consensusMyID;
         }
 
-        m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
+        m_mediator.m_node->m_consensusMyID =
+            m_mediator.m_ds->m_consensusMyID.load();
 
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
@@ -277,8 +278,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     m_mediator.m_DSCommittee->clear();
   }
 
-  BlockStorage::GetBlockStorage().GetDSCommittee(
-      m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+  uint16_t ds_consensusLeaderID = 0;
+
+  BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
+                                                 ds_consensusLeaderID);
+
+  m_mediator.m_ds->m_consensusLeaderID = ds_consensusLeaderID;
 
   unordered_map<string, Peer> ipMapping;
   GetIpMapping(ipMapping);

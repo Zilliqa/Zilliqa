@@ -70,6 +70,8 @@ shared_ptr<BIGNUM> BIGNUMSerialize::GetNumber(const bytes& src,
     return nullptr;
   }
 
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
   lock_guard<mutex> g(m_mutexBIGNUM);
 
   if (offset + size <= src.size()) {
@@ -94,6 +96,8 @@ void BIGNUMSerialize::SetNumber(bytes& dst, unsigned int offset,
     return;
   }
 
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
   lock_guard<mutex> g(m_mutexBIGNUM);
 
   const int actual_bn_size = BN_num_bytes(value.get());
@@ -131,6 +135,9 @@ shared_ptr<EC_POINT> ECPOINTSerialize::GetNumber(const bytes& src,
                                                  unsigned int offset,
                                                  unsigned int size) {
   shared_ptr<BIGNUM> bnvalue = BIGNUMSerialize::GetNumber(src, offset, size);
+
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
   lock_guard<mutex> g(m_mutexECPOINT);
 
   if (bnvalue != nullptr) {
@@ -156,6 +163,8 @@ void ECPOINTSerialize::SetNumber(bytes& dst, unsigned int offset,
                                  shared_ptr<EC_POINT> value) {
   shared_ptr<BIGNUM> bnvalue;
   {
+    // This mutex is to prevent multi-threaded issues with the use of openssl
+    // functions
     std::lock_guard<mutex> g(m_mutexECPOINT);
 
     unique_ptr<BN_CTX, void (*)(BN_CTX*)> ctx(BN_CTX_new(), BN_CTX_free);
@@ -535,6 +544,9 @@ const Curve& Schnorr::GetCurve() const { return m_curve; }
 
 pair<PrivKey, PubKey> Schnorr::GenKeyPair() {
   // LOG_MARKER();
+
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
   lock_guard<mutex> g(m_mutexSchnorr);
 
   PrivKey privkey;
@@ -552,6 +564,9 @@ bool Schnorr::Sign(const bytes& message, unsigned int offset, unsigned int size,
                    const PrivKey& privkey, const PubKey& pubkey,
                    Signature& result) {
   // LOG_MARKER();
+
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
   lock_guard<mutex> g(m_mutexSchnorr);
 
   // Initial checks
@@ -721,6 +736,9 @@ bool Schnorr::Verify(const bytes& message, unsigned int offset,
                      unsigned int size, const Signature& toverify,
                      const PubKey& pubkey) {
   // LOG_MARKER();
+
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
   lock_guard<mutex> g(m_mutexSchnorr);
 
   // Initial checks
@@ -875,6 +893,9 @@ bool Schnorr::Verify(const bytes& message, unsigned int offset,
 
 void Schnorr::PrintPoint(const EC_POINT* point) {
   LOG_MARKER();
+
+  // This mutex is to prevent multi-threaded issues with the use of openssl
+  // functions
   lock_guard<mutex> g(m_mutexSchnorr);
 
   unique_ptr<BIGNUM, void (*)(BIGNUM*)> x(BN_new(), BN_clear_free);
