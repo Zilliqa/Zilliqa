@@ -47,16 +47,16 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
 
     if(m_subdirectory.empty())
     {
-        status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
+        status = leveldb::DB::Open(options, "./" + path + "/" + this->m_dbName, &db);
     }
     else
     {
-        if (!(boost::filesystem::exists("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory)))
+        if (!(boost::filesystem::exists("./" + path + "/" + this->m_subdirectory)))
         {
-            boost::filesystem::create_directories("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory);
+            boost::filesystem::create_directories("./" + path + "/" + this->m_subdirectory);
         }
         status = leveldb::DB::Open(options, 
-            "./" + PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
+            "./" + path + "/" + this->m_subdirectory + "/" + this->m_dbName,
             &db);
     }
 
