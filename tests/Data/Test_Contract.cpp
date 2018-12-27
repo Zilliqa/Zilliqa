@@ -15,11 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <openssl/rand.h>
 #include <array>
 #include <regex>
 #include <string>
 #include <vector>
+
+#include <openssl/rand.h>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+
 #include "common/Constants.h"
 #include "depends/common/CommonIO.h"
 #include "libCrypto/Schnorr.h"
@@ -555,6 +559,209 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     LOG_GENERAL(INFO, "Size of Map (balances) = " << hodlers);
     LOG_GENERAL(INFO, "Gas used = " << tr1.GetCumGas());
     nonce++;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
+  // 1. Bootstrap test case
+  const unsigned int numOperators = 5;
+  const unsigned int numHodlers[] = {50000, 75000, 100000, 125000, 150000};
+  std::string numTokensOwned = "1";
+
+  KeyPair owner(priv1, {priv1});
+  KeyPair sender;  // also an operator, assigned later.
+  Address ownerAddr, senderAddr, contrAddr;
+
+  vector<KeyPair> operators;
+  vector<Address> operatorAddrs;
+
+  uint64_t ownerNonce = 0;
+  uint64_t senderNonce = 0;
+
+  // generate operator keypairs
+  for (unsigned int i = 0; i < numOperators; i++) {
+    KeyPair oprtr = Schnorr::GetInstance().GenKeyPair();
+    Address operatorAddr = Account::GetAddressFromPublicKey(oprtr.second);
+    operators.emplace_back(oprtr);
+    operatorAddrs.emplace_back(operatorAddr);
+
+    if (i == 0) {
+      sender = oprtr;
+    }
+  }
+
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+
+  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccount(ownerAddr, {bal, ownerNonce});
+
+  senderAddr = Account::GetAddressFromPublicKey(sender.second);
+  AccountStore::GetInstance().AddAccount(senderAddr, {bal, senderNonce});
+
+  for (auto hodlers : numHodlers) {
+    contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+    LOG_GENERAL(INFO, "NonFungibleToken Address: " << contrAddr.hex());
+
+    // Deploy the contract using data from the 10th Scilla test.
+    ScillaTestUtil::ScillaTest t10;
+    if (!ScillaTestUtil::GetScillaTest(t10, "nonfungible-token", 10)) {
+      LOG_GENERAL(WARNING, "Unable to fetch test nonfungible-token_10;.");
+      return;
+    }
+
+    // Replace owner address in init.json.
+    for (auto& it : t10.init) {
+      if (it["vname"] == "owner") {
+        it["value"] = "0x" + ownerAddr.hex();
+      }
+    }
+    // and remove _creation_block (automatic insertion later).
+    ScillaTestUtil::RemoveCreationBlockFromInit(t10.init);
+
+    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t10.blockchain);
+
+    // Transaction to deploy contract.
+    std::string initStr = JSONUtils::convertJsontoStr(t10.init);
+    bytes data(initStr.begin(), initStr.end());
+    Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
+                    500000, t10.code, data);
+    TransactionReceipt tr0;
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account != nullptr,
+                        "Error with creation of contract account");
+    ownerNonce++;
+
+    // 2. Insert n owners of 1 token each, with 5 operator approvals.
+    //  Map Uint256 ByStr20
+    Json::Value tokenOwnerMap(Json::arrayValue);
+    // Map ByStr20 Uint256
+    Json::Value ownedTokenCount(Json::arrayValue);
+    // Map ByStr20 (Map ByStr20 Bool)
+    Json::Value operatorApprovals(Json::arrayValue);
+
+    Json::Value adtBoolTrue;
+    adtBoolTrue["constructor"] = "True",
+    adtBoolTrue["argtypes"] = Json::arrayValue;
+    adtBoolTrue["arguments"] = Json::arrayValue;
+
+    Json::Value approvedOperators(Json::arrayValue);
+    for (auto& operatorAddr : operatorAddrs) {
+      Json::Value operatorApprovalEntry;
+      operatorApprovalEntry["key"] = "0x" + operatorAddr.hex();
+      operatorApprovalEntry["val"] = adtBoolTrue;
+      approvedOperators.append(operatorApprovalEntry);
+    }
+
+    for (unsigned int i = 0; i < hodlers; i++) {
+      Address hodler;
+      RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
+
+      // contract owner gets the first token
+      if (i == 0) {
+        hodler = Account::GetAddressFromPublicKey(owner.second);
+      }
+
+      // set ownership
+      Json::Value tokenOwnerEntry;
+      tokenOwnerEntry["key"] = to_string(i + 1);
+      tokenOwnerEntry["val"] = "0x" + hodler.hex();
+      tokenOwnerMap[i] = tokenOwnerEntry;
+
+      // set token count
+      Json::Value tokenCountEntry;
+      tokenCountEntry["key"] = "0x" + hodler.hex();
+      tokenCountEntry["val"] = numTokensOwned;
+      ownedTokenCount[i] = tokenCountEntry;
+
+      // set operator approval
+      Json::Value ownerApprovalEntry;
+      ownerApprovalEntry["key"] = "0x" + hodler.hex();
+      ownerApprovalEntry["val"] = approvedOperators;
+      operatorApprovals[i] = ownerApprovalEntry;
+    }
+
+    for (auto& it : t10.state) {
+      std::string vname(it["vname"].asString());
+
+      if (vname == "tokenOwnerMap") {
+        it["value"] = tokenOwnerMap;
+        continue;
+      }
+
+      if (vname == "ownedTokenCount") {
+        it["value"] = ownedTokenCount;
+      }
+
+      if (vname == "operatorApprovals") {
+        it["value"] = operatorApprovals;
+        continue;
+      }
+    }
+
+    for (auto& s : t10.state) {
+      // skip _balance
+      if (s["vname"].asString() == "_balance") {
+        continue;
+      }
+
+      std::string vname = s["vname"].asString();
+      std::string type = s["type"].asString();
+      std::string value = s["value"].isString()
+                              ? s["value"].asString()
+                              : JSONUtils::convertJsontoStr(s["value"]);
+
+      account->SetStorage(vname, type, value);
+    }
+
+    // 3. Execute transferFrom as an operator
+    boost::random::mt19937 rng;
+    boost::random::uniform_int_distribution<> ownerDist(0, int(hodlers - 1));
+    Json::Value randomReceiver = tokenOwnerMap[ownerDist(rng)];
+
+    // modify t3.message
+    for (auto& p : t10.message["params"]) {
+      if (p["vname"] == "tokenId") {
+        p["value"] = "1";
+      }
+
+      if (p["vname"] == "from") {
+        p["value"] = "0x" + ownerAddr.hex();
+      }
+
+      if (p["vname"] == "to") {
+        p["value"] = randomReceiver["val"];
+      }
+    }
+
+    bytes dataTransfer;
+    uint64_t amount =
+        ScillaTestUtil::PrepareMessageData(t10.message, dataTransfer);
+
+    Transaction tx1(1, senderNonce, contrAddr, sender, amount,
+                    PRECISION_MIN_VALUE, 88888888, {}, dataTransfer);
+    TransactionReceipt tr1;
+    auto t = r_timer_start();
+
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+
+    LOG_GENERAL(INFO, "UpdateAccounts (usec) = " << r_timer_end(t));
+    LOG_GENERAL(INFO, "Number of Operators = " << numOperators);
+    LOG_GENERAL(INFO, "Number of Hodlers = " << hodlers);
+    LOG_GENERAL(INFO, "Gas used = " << tr1.GetCumGas());
+    senderNonce++;
   }
 }
 
