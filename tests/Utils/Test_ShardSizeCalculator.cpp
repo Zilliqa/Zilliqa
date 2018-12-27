@@ -103,4 +103,19 @@ BOOST_AUTO_TEST_CASE(test_shard_size_bounds) {
   }
 }
 
+// Right now the result for this test needs to be inspected visually
+BOOST_AUTO_TEST_CASE(test_shard_count_generation) {
+  INIT_STDOUT_LOGGER();
+
+  const uint32_t shardSize = 20;
+  const uint32_t shardSizeThreshold = 10;
+  vector<uint32_t> shardCounts;
+
+  for (uint32_t numNodesForSharding = 0; numNodesForSharding <= (shardSize * 4);
+       numNodesForSharding++) {
+    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeThreshold,
+                                             numNodesForSharding, shardCounts);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

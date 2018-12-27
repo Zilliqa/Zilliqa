@@ -46,7 +46,7 @@ FallbackBlockHeader::FallbackBlockHeader(const bytes& src,
 FallbackBlockHeader::FallbackBlockHeader(
     const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
     const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
-    const uint32_t leaderConsensusId, const Peer& leaderNetworkInfo,
+    const uint16_t leaderConsensusId, const Peer& leaderNetworkInfo,
     const PubKey& leaderPubKey, const uint32_t shardId,
     const CommitteeHash& committeeHash, const BlockHash& prevHash)
     : BlockHeaderBase(committeeHash),
@@ -94,7 +94,7 @@ const StateHash& FallbackBlockHeader::GetStateRootHash() const {
   return m_hashset.m_stateRootHash;
 }
 
-uint32_t FallbackBlockHeader::GetLeaderConsensusId() const {
+uint16_t FallbackBlockHeader::GetLeaderConsensusId() const {
   return m_leaderConsensusId;
 }
 

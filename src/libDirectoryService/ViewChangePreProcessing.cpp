@@ -123,7 +123,7 @@ bool DirectoryService::ViewChangeValidator(
   }
 
   // Verify candidate leader index
-  uint32_t candidateLeaderIndex = CalculateNewLeaderIndex();
+  uint16_t candidateLeaderIndex = CalculateNewLeaderIndex();
   if (m_mediator.m_DSCommittee->at(candidateLeaderIndex).second !=
       m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo()) {
     LOG_GENERAL(
@@ -385,7 +385,7 @@ void DirectoryService::ScheduleViewChangeTimeout() {
 }
 
 bool DirectoryService::ComputeNewCandidateLeader(
-    const uint32_t candidateLeaderIndex) {
+    const uint16_t candidateLeaderIndex) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComputeNewCandidateLeader not expected "
@@ -475,7 +475,7 @@ bool DirectoryService::NodeVCPrecheck() {
   return false;
 }
 
-uint32_t DirectoryService::CalculateNewLeaderIndex() {
+uint16_t DirectoryService::CalculateNewLeaderIndex() {
   // New leader is computed using the following
   // new candidate leader index is
   // H((finalblock or vc block), vc counter) % size
@@ -501,7 +501,7 @@ uint32_t DirectoryService::CalculateNewLeaderIndex() {
                                     sizeof(uint32_t));
   sha2.Update(vcCounterBytes);
   uint16_t lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
-  uint32_t candidateLeaderIndex;
+  uint16_t candidateLeaderIndex;
 
   if (!GUARD_MODE) {
     candidateLeaderIndex = lastBlockHash % m_mediator.m_DSCommittee->size();
@@ -559,7 +559,7 @@ bool DirectoryService::CheckUseVCBlockInsteadOfDSBlock(
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
-    const uint32_t candidateLeaderIndex) {
+    const uint16_t candidateLeaderIndex) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::"
@@ -642,7 +642,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
 }
 
 bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
-    const uint32_t candidateLeaderIndex) {
+    const uint16_t candidateLeaderIndex) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
