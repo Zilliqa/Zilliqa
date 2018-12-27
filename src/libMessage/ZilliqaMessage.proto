@@ -335,7 +335,7 @@ message ProtoFallbackBlock
         required uint64 fallbackepochno      = 2;
         required uint32 fallbackstate        = 3; // only LSB used
         required bytes stateroothash         = 4;
-        required uint32 leaderconsensusid    = 5;
+        required uint32 leaderconsensusid    = 5; // only lower 2 bytes used
         required ByteArray leadernetworkinfo = 6;
         required ByteArray leaderpubkey      = 7;
         required uint32 shardid              = 8;

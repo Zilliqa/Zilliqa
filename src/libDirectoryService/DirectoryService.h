@@ -178,7 +178,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::condition_variable cv_MissingMicroBlock;
 
   // View Change
-  std::atomic<uint32_t> m_candidateLeaderIndex;
+  std::atomic<uint16_t> m_candidateLeaderIndex;
   std::vector<std::pair<PubKey, Peer>> m_cumulativeFaultyLeaders;
   std::shared_ptr<VCBlock> m_pendingVCBlock;
   std::mutex m_mutexPendingVCBlock;
@@ -416,12 +416,12 @@ class DirectoryService : public Executable, public Broadcastable {
   void SetLastKnownGoodState();
   void RunConsensusOnViewChange();
   void ScheduleViewChangeTimeout();
-  bool ComputeNewCandidateLeader(const uint32_t candidateLeaderIndex);
-  uint32_t CalculateNewLeaderIndex();
+  bool ComputeNewCandidateLeader(const uint16_t candidateLeaderIndex);
+  uint16_t CalculateNewLeaderIndex();
   bool RunConsensusOnViewChangeWhenCandidateLeader(
-      const uint32_t candidateLeaderIndex);
+      const uint16_t candidateLeaderIndex);
   bool RunConsensusOnViewChangeWhenNotCandidateLeader(
-      const uint32_t candidateLeaderIndex);
+      const uint16_t candidateLeaderIndex);
   void ProcessViewChangeConsensusWhenDone();
   void ProcessNextConsensus(unsigned char viewChangeState);
 
@@ -470,7 +470,7 @@ class DirectoryService : public Executable, public Broadcastable {
   /// Sharing assignment for state delta
   std::vector<Peer> m_sharingAssignment;
 
-  uint16_t m_consensusLeaderID;
+  std::atomic<uint16_t> m_consensusLeaderID;
 
   std::mutex m_MutexScheduleDSMicroBlockConsensus;
   std::condition_variable cv_scheduleDSMicroBlockConsensus;
@@ -500,7 +500,7 @@ class DirectoryService : public Executable, public Broadcastable {
   std::atomic<uint32_t> m_viewChangeCounter;
 
   /// The ID number of this Zilliqa instance for use with consensus operations.
-  uint16_t m_consensusMyID;
+  std::atomic<uint16_t> m_consensusMyID;
 
   /// The epoch number when DS tries doing Rejoin
   uint64_t m_latestActiveDSBlockNum = 0;
