@@ -61,8 +61,8 @@ class DataSender : Singleton<DataSender> {
   void DetermineNodesToSendDataTo(
       const DequeOfShard& shards,
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-      const uint16_t& consensusMyId,
-      const unsigned int& my_shards_lo, const unsigned int& my_shards_hi,
+      const uint16_t& consensusMyId, const unsigned int& my_shards_lo,
+      const unsigned int& my_shards_hi,
       std::deque<std::vector<Peer>>& sharded_receivers);
 
   bool SendDataToOthers(
@@ -71,8 +71,7 @@ class DataSender : Singleton<DataSender> {
       const DequeOfShard& shards,
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
       const VectorOfLookupNode& lookups, const BlockHash& hashForRandom,
-      const uint16_t& consensusMyId,
-      const ComposeMessageForSenderFunc&,
+      const uint16_t& consensusMyId, const ComposeMessageForSenderFunc&,
       const SendDataToLookupFunc& sendDataToLookupFunc =
           SendDataToLookupFuncDefault,
       const SendDataToShardFunc& sendDataToShardFunc = nullptr);
