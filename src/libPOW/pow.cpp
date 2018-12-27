@@ -24,7 +24,10 @@
 #include <iostream>
 
 #include "common/Serializable.h"
+#include "depends/libethash/include/ethash/ethash.hpp"
+#include "depends/libethash/lib/ethash/ethash-internal.hpp"
 #include "libCrypto/Sha2.h"
+#include "libServer/GetworkServer.h"
 #include "libUtils/DataConversion.h"
 #include "pow.h"
 
@@ -41,7 +44,8 @@ POW::POW() {
   m_epochContextLight =
       ethash::create_epoch_context(ethash::get_epoch_number(m_currentBlockNum));
 
-  if (FULL_DATASET_MINE && !CUDA_GPU_MINE && !OPENCL_GPU_MINE) {
+  if (!GETWORK_SERVER_MINE && FULL_DATASET_MINE && !CUDA_GPU_MINE &&
+      !OPENCL_GPU_MINE) {
     m_epochContextFull = ethash::create_epoch_context_full(
         ethash::get_epoch_number(m_currentBlockNum));
   }
@@ -62,7 +66,12 @@ POW& POW::GetInstance() {
   return pow;
 }
 
-void POW::StopMining() { m_shouldMine = false; }
+void POW::StopMining() {
+  m_shouldMine = false;
+  if (GETWORK_SERVER_MINE) {
+    GetWorkServer::GetInstance().StopMining();
+  }
+}
 
 std::string POW::BytesToHexString(const uint8_t* str, const uint64_t s) {
   std::ostringstream ret;
@@ -155,7 +164,8 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
     m_epochContextLight = ethash::create_epoch_context(epochNumber);
   }
 
-  bool isMineFullCpu = fullDataset && !CUDA_GPU_MINE && !OPENCL_GPU_MINE;
+  bool isMineFullCpu =
+      fullDataset && !CUDA_GPU_MINE && !OPENCL_GPU_MINE && !GETWORK_SERVER_MINE;
 
   if (isMineFullCpu && (m_epochContextFull == nullptr ||
                         ethash::get_epoch_number(block_number) !=
@@ -167,6 +177,24 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
   m_currentBlockNum = block_number;
 
   return true;
+}
+
+ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
+                                        ethash_hash256 const& header_hash,
+                                        uint8_t difficulty) {
+  LOG_MARKER();
+  int ethash_epoch = ethash::get_epoch_number(blockNum);
+  std::string seed = BlockhashToHexString(ethash::calculate_seed(ethash_epoch));
+  std::string boundary = BlockhashToHexString(DifficultyLevelInInt(difficulty));
+  std::string headerStr = BlockhashToHexString(header_hash);
+
+  PoWWorkPackage work = {headerStr, seed, boundary, blockNum, difficulty};
+
+  GetWorkServer::GetInstance().StartMining(work);
+  // -1: wait for the 1st accept result
+  auto result = GetWorkServer::GetInstance().GetResult(-1);
+  GetWorkServer::GetInstance().StopMining();
+  return result;
 }
 
 ethash_mining_result_t POW::MineLight(ethash_hash256 const& header_hash,
@@ -337,7 +365,9 @@ ethash_mining_result_t POW::PoWMine(
 
   m_shouldMine = true;
 
-  if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
+  if (GETWORK_SERVER_MINE) {
+    result = MineGetWork(blockNum, headerHash, difficulty);
+  } else if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
     result = MineFullGPU(blockNum, headerHash, difficulty);
   } else if (fullDataset) {
     result = MineFull(headerHash, boundary);
@@ -345,6 +375,19 @@ ethash_mining_result_t POW::PoWMine(
     result = MineLight(headerHash, boundary);
   }
   return result;
+}
+
+bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,
+                    const std::string& header, const std::string& mix_hash,
+                    const uint64_t winning_nonce) {
+  EthashConfigureClient(blockNum);
+  const auto boundary = DifficultyLevelInInt(difficulty);
+
+  auto headerHash = StringToBlockhash(header);
+  auto winningMixhash = StringToBlockhash(mix_hash);
+
+  return ethash::verify(*m_epochContextLight, headerHash, winningMixhash,
+                        winning_nonce, boundary);
 }
 
 bool POW::PoWVerify(uint64_t blockNum, uint8_t difficulty,

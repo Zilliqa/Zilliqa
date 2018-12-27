@@ -45,6 +45,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
+#include "libServer/GetworkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
@@ -1710,6 +1711,21 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
             "ProcessSetTxBlockFromSeed sent by " << from << " for blocks "
                                                  << lowBlockNum << " to "
                                                  << highBlockNum);
+
+  // Update GetWork Server info for new nodes not in shards
+  if (GETWORK_SERVER_MINE) {
+    // roughly calc how many seconds to next PoW
+    auto cur_block = std::max(lowBlockNum, highBlockNum);
+    auto num_block =
+        NUM_FINAL_BLOCK_PER_POW - (cur_block % NUM_FINAL_BLOCK_PER_POW);
+    num_block = num_block % NUM_FINAL_BLOCK_PER_POW;
+    auto now = std::chrono::system_clock::now();
+    auto wait_seconds = chrono::seconds(
+        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000) *
+        num_block);
+
+    GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
+  }
 
   if (lowBlockNum > highBlockNum) {
     LOG_GENERAL(

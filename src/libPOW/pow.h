@@ -87,6 +87,10 @@ class POW {
 
   /// Verifies a proof-of-work submission.
   bool PoWVerify(uint64_t blockNum, uint8_t difficulty,
+                 const std::string& header, const std::string& mix_hash,
+                 const uint64_t winning_nonce);
+
+  bool PoWVerify(uint64_t blockNum, uint8_t difficulty,
                  const std::array<unsigned char, UINT256_SIZE>& rand1,
                  const std::array<unsigned char, UINT256_SIZE>& rand2,
                  const boost::multiprecision::uint128_t& ipAddr,
@@ -122,6 +126,9 @@ class POW {
                                    ethash_hash256 const& boundary);
   ethash_mining_result_t MineFull(ethash_hash256 const& header_hash,
                                   ethash_hash256 const& boundary);
+  ethash_mining_result_t MineGetWork(uint64_t blockNum,
+                                     ethash_hash256 const& header_hash,
+                                     uint8_t difficulty);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_hash256 const& header_hash,
                                      uint8_t difficulty);
