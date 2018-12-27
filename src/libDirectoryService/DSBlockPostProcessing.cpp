@@ -396,7 +396,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->ResetConsensusId();
 
     // Check if I am the leader or backup of the shard
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
 
     if (m_mediator.m_node->m_consensusMyID ==
         m_mediator.m_node->m_consensusLeaderID) {
