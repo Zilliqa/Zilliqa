@@ -624,16 +624,6 @@ bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
 
   lock_guard<mutex> g(m_mutexDiagnostic);
 
-  if ((NUM_DS_EPOCHS_BEFORE_CLEARING_DIAGNOSTIC_DATA > 0) &&
-      (m_diagnosticDBCounter >=
-       NUM_DS_EPOCHS_BEFORE_CLEARING_DIAGNOSTIC_DATA)) {
-    if (!ResetDB(DIAGNOSTIC)) {
-      LOG_GENERAL(WARNING, "Failed to reset diagnostic db");
-    } else {
-      LOG_GENERAL(INFO, "Diagnostic db cleared");
-    }
-  }
-
   if (0 != m_diagnosticDB->Insert(dsBlockNum, data)) {
     LOG_GENERAL(WARNING, "Failed to store diagnostic data");
     return false;
@@ -671,6 +661,20 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
   }
 
   return true;
+}
+
+unsigned int BlockStorage::GetDiagnosticDataCount() {
+  lock_guard<mutex> g(m_mutexDiagnostic);
+  return m_diagnosticDBCounter;
+}
+
+bool BlockStorage::DeleteDiagnosticData(const uint64_t& dsBlockNum) {
+  lock_guard<mutex> g(m_mutexDiagnostic);
+  bool result = (0 == m_diagnosticDB->DeleteKey(dsBlockNum));
+  if (result) {
+    m_diagnosticDBCounter--;
+  }
+  return result;
 }
 
 bool BlockStorage::ResetDB(DBTYPE type) {

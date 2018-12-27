@@ -67,8 +67,8 @@ const unsigned int MSG_VERSION{ReadConstantNumeric("MSG_VERSION")};
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
 const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
-const unsigned int NUM_DS_EPOCHS_BEFORE_CLEARING_DIAGNOSTIC_DATA{
-    ReadConstantNumeric("NUM_DS_EPOCHS_BEFORE_CLEARING_DIAGNOSTIC_DATA")};
+const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
+    ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 
 // Archival constants
 const bool ARCHIVAL_NODE{
