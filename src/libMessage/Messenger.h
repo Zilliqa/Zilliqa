@@ -638,12 +638,13 @@ class Messenger {
                                  const uint64_t blockNumber,
                                  const bytes& blockHash,
                                  const uint16_t backupID,
-                                 const CommitPoint& commit,
+                                 const CommitPoint& commitPoint,
+                                 const CommitPointHash& commitPointHash,
                                  const std::pair<PrivKey, PubKey>& backupKey);
   static bool GetConsensusCommit(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      CommitPoint& commit,
+      CommitPoint& commitPoint, CommitPointHash& commitPointHash,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 
   static bool SetConsensusChallenge(
