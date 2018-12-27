@@ -35,8 +35,6 @@ class Messenger {
  public:
   template <class K, class V>
   static bool CopyWithSizeCheck(const K& arr, V& result) {
-    LOG_MARKER();
-
     // Fixed length copying.
     if (arr.size() != result.size()) {
       LOG_GENERAL(WARNING, "Size check while copying failed. Size expected = "
