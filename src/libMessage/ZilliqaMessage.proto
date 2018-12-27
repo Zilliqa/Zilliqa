@@ -897,3 +897,18 @@ message NodeSetGuardNodeNetworkInfoUpdate
     required ByteArray lookuppubkey                 = 2;
     required ByteArray signature                    = 3;
 }
+
+
+
+message SeedSetHistoricalDB
+{
+    message Data
+    {
+        required uint32 code            = 1;
+        optional string path            = 2;
+    }
+    required Data data                  = 1;
+    required ByteArray pubkey           = 2;
+    required ByteArray signature        = 3;
+
+}

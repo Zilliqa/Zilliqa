@@ -361,7 +361,19 @@ bool Node::ValidateDB() {
   }
   LOG_GENERAL(INFO, "ValidateDB Success");
 
-  
+  bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
+
+  if (!Messenger::SetSeedNodeHistoricalDB(message, MessageOffset::BODY,
+                                          m_mediator.m_selfKey, 1,
+                                          PERSISTENCE_PATH)) {
+    LOG_GENERAL(WARNING, "SetSeedNodeHistoricalDB failed");
+    return false;
+  }
+
+  struct in_addr ip_addr;
+  inet_pton(AF_INET, "127.0.0.1", &ip_addr);
+  Peer seed((uint128_t)ip_addr.s_addr, 30303);
+  P2PComm::GetInstance().SendMessage(seed, message);
 
   return true;
 }

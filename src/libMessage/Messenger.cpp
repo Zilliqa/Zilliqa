@@ -6965,3 +6965,65 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
 
   return true;
 }
+
+bool Messenger::SetSeedNodeHistoricalDB(
+    vector<unsigned char>& dst, const unsigned int offset,
+    const pair<PrivKey, PubKey>& archivalKeys, const uint32_t code,
+    const string& path) {
+  SeedSetHistoricalDB result;
+
+  Signature signature;
+  result.mutable_data()->set_code(code);
+  result.mutable_data()->set_path(path);
+  SerializableToProtobufByteArray(archivalKeys.second,
+                                  *result.mutable_pubkey());
+
+  if (result.data().IsInitialized()) {
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, archivalKeys.first,
+                                     archivalKeys.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign SeedSetHistoricalDB");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB.Data initialization failed");
+    return false;
+  }
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetSeedNodeHistoricalDB(const vector<unsigned char>& src,
+                                        const unsigned int offset,
+                                        PubKey& archivalPubKey, uint32_t& code,
+                                        string& path) {
+  SeedSetHistoricalDB result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB initialization failed ");
+    return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), archivalPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     archivalPubKey)) {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB signature wrong.");
+    return false;
+  }
+  code = result.data().code();
+  path = result.data().path();
+
+  return true;
+}
