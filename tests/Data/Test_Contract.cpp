@@ -469,29 +469,29 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
     LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr);
 
-    // Deploy the contract using data from the 1st Scilla test.
-    ScillaTestUtil::ScillaTest t1;
-    if (!ScillaTestUtil::GetScillaTest(t1, "fungible-token", 2)) {
-      LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_1.");
+    // Deploy the contract using data from the 2nd Scilla test.
+    ScillaTestUtil::ScillaTest t2;
+    if (!ScillaTestUtil::GetScillaTest(t2, "fungible-token", 2)) {
+      LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_2.");
       return;
     }
 
     // Replace owner address in init.json.
-    for (auto& it : t1.init) {
+    for (auto& it : t2.init) {
       if (it["vname"] == "owner") {
         it["value"] = "0x" + ownerAddr.hex();
       }
     }
     // and remove _creation_block (automatic insertion later).
-    ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
+    ScillaTestUtil::RemoveCreationBlockFromInit(t2.init);
 
-    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
+    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
 
     // Transaction to deploy contract.
-    std::string initStr = JSONUtils::convertJsontoStr(t1.init);
+    std::string initStr = JSONUtils::convertJsontoStr(t2.init);
     bytes data(initStr.begin(), initStr.end());
     Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
-                    500000, t1.code, data);
+                    500000, t2.code, data);
     TransactionReceipt tr0;
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
     Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
@@ -512,7 +512,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
       kvPair["key"] = "0x" + DataConversion::Uint8VecToHexStr(hodlerAddress);
       kvPair["val"] = hodlerNumTokens;
 
-      for (auto& it : t1.state) {
+      for (auto& it : t2.state) {
         if (it["vname"] == "balances") {
           // we have to artifically insert the owner here
           if (i == 0) {
@@ -530,7 +530,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     }
 
     // save the state
-    for (auto& s : t1.state) {
+    for (auto& s : t2.state) {
       // skip _balance
       if (s["vname"].asString() == "_balance") {
         continue;
@@ -548,7 +548,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     // 3. Create a call to Transfer from one account to another
     bytes dataTransfer;
     uint64_t amount =
-        ScillaTestUtil::PrepareMessageData(t1.message, dataTransfer);
+        ScillaTestUtil::PrepareMessageData(t2.message, dataTransfer);
 
     Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
                     88888888, {}, dataTransfer);
