@@ -34,6 +34,10 @@ struct ScillaTest {
 
 // Parse a JSON file from filesystem.
 bool ParseJsonFile(Json::Value &j, std::string filename);
+
+// Get the size in bytes of a file from filesystem.
+uint64_t GetFileSize(std::string filename);
+
 // Get ScillaTest for contract "name" and test numbered "i".
 bool GetScillaTest(ScillaTest &t, std::string contrName, unsigned int i);
 // Get _balance from output state of interpreter, from OUTPUT_JSON.
