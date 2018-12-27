@@ -743,11 +743,11 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
         LOG_STATE("[REWARD][" << setw(15) << left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
                               << "][" << m_mediator.m_currentEpochNum << "]["
-                              << reward << "]");
+                              << reward << "] FLBLK");
       } else {
         LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
                   "[REWARD]"
-                      << "Got no reward thist ds epoch");
+                      << "Got no reward this ds epoch");
       }
     }
   }

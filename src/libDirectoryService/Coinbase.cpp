@@ -281,13 +281,17 @@ void DirectoryService::InitCoinbase() {
 
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
-  for (auto const& epochNum : m_coinbaseRewardees) {
-    LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum.first << " epoch");
+  const auto& myAddr =
+      Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second);
+  for (auto const& epochNumShardRewardee : m_coinbaseRewardees) {
+    LOG_GENERAL(
+        INFO, "[CNBSE] Rewarding " << epochNumShardRewardee.first << " epoch");
 
-    for (auto const& shardId : epochNum.second) {
-      LOG_GENERAL(INFO, "[CNBSE] Rewarding " << shardId.first << " shard");
-      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
-        for (auto const& addr : shardId.second) {
+    for (auto const& shardIdRewardee : epochNumShardRewardee.second) {
+      LOG_GENERAL(INFO,
+                  "[CNBSE] Rewarding " << shardIdRewardee.first << " shard");
+      if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
+        for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, genesisAccount, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
@@ -296,22 +300,21 @@ void DirectoryService::InitCoinbase() {
           }
         }
       } else {
-        for (auto const& addr : shardId.second) {
+        for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, genesisAccount, reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
-            if (addr ==
-                Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second)) {
+            if (addr == myAddr) {
               LOG_EPOCH(INFO,
                         std::to_string(m_mediator.m_currentEpochNum).c_str(),
-                        "[REWARD]"
-                            << "Rewarded " << reward_each);
+                        "[REWARD] Rewarded " << reward_each << " for blk "
+                                             << epochNumShardRewardee.first);
               LOG_STATE("[REWARD]["
                         << setw(15) << left
                         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                         << m_mediator.m_currentEpochNum << "][" << reward_each
-                        << "]");
+                        << "] for blk " << epochNumShardRewardee.first);
             }
             suc_counter++;
           }
@@ -339,10 +342,15 @@ void DirectoryService::InitCoinbase() {
               winnerAddr, genesisAccount, balance_left)) {
         LOG_GENERAL(WARNING, "Could not reward lucky draw!");
       }
-      LOG_STATE("[REWARD][" << setw(15) << left
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << "][" << m_mediator.m_currentEpochNum << "]["
-                            << balance_left << "]");
+
+      // Only log reward for my self so can find out the reward of mine in state
+      // log
+      if (winnerAddr == myAddr) {
+        LOG_STATE("[REWARD][" << setw(15) << left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum << "]["
+                              << balance_left << "] lucky draw");
+      }
       return;
     } else {
       ++count;

@@ -396,7 +396,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->ResetConsensusId();
 
     // Check if I am the leader or backup of the shard
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
 
     if (m_mediator.m_node->m_consensusMyID ==
         m_mediator.m_node->m_consensusLeaderID) {
@@ -560,6 +560,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     ClearReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
   }
 
+  m_mediator.m_node->m_myshardId = m_shards.size();
   BlockStorage::GetBlockStorage().PutShardStructure(
       m_shards, m_mediator.m_node->m_myshardId);
 

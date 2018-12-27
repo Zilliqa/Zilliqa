@@ -38,7 +38,7 @@ class FallbackBlockHeader : public BlockHeaderBase {
   uint64_t m_fallbackEpochNo;
   unsigned char m_fallbackState;
   FallbackBlockHashSet m_hashset;
-  uint32_t m_leaderConsensusId;
+  uint16_t m_leaderConsensusId;
   Peer m_leaderNetworkInfo;
   PubKey m_leaderPubKey;
   uint32_t m_shardId;
@@ -56,7 +56,7 @@ class FallbackBlockHeader : public BlockHeaderBase {
   FallbackBlockHeader(
       const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
       const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
-      const uint32_t leaderConsensusId, const Peer& leaderNetworkInfo,
+      const uint16_t leaderConsensusId, const Peer& leaderNetworkInfo,
       const PubKey& leaderPubKey, const uint32_t shardId,
       const CommitteeHash& committeeHash, const BlockHash& prevHash);
 
@@ -83,7 +83,7 @@ class FallbackBlockHeader : public BlockHeaderBase {
   const StateHash& GetStateRootHash() const;
 
   /// Return the consensus Id of the leader
-  uint32_t GetLeaderConsensusId() const;
+  uint16_t GetLeaderConsensusId() const;
 
   /// Return the IP and port of leader (at the point where fall back happen)
   const Peer& GetLeaderNetworkInfo() const;

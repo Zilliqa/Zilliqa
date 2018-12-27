@@ -296,6 +296,8 @@ void Node::ProcessTransactionWhenShardLeader() {
   m_gasUsedTotal = 0;
   m_txnFees = 0;
 
+  vector<Transaction> gasLimitExceededTxnBuffer;
+
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
     Transaction t;
     TransactionReceipt tr;
@@ -307,6 +309,11 @@ void Node::ProcessTransactionWhenShardLeader() {
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
+
+      if (m_gasUsedTotal + t.GetGasLimit() > MICROBLOCK_GAS_LIMIT) {
+        gasLimitExceededTxnBuffer.emplace_back(t);
+        continue;
+      }
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
@@ -399,6 +406,10 @@ void Node::ProcessTransactionWhenShardLeader() {
       t_createdTxns.insert(nonceTxn.second);
     }
   }
+
+  for (const auto& t : gasLimitExceededTxnBuffer) {
+    t_createdTxns.insert(t);
+  }
 }
 
 bool Node::ProcessTransactionWhenShardBackup(
@@ -484,6 +495,8 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   m_gasUsedTotal = 0;
   m_txnFees = 0;
 
+  vector<Transaction> gasLimitExceededTxnBuffer;
+
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
     Transaction t;
     TransactionReceipt tr;
@@ -495,6 +508,11 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
       // nonce if has and with larger gasPrice then replace with that one.
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
+
+      if (m_gasUsedTotal + t.GetGasLimit() > MICROBLOCK_GAS_LIMIT) {
+        gasLimitExceededTxnBuffer.emplace_back(t);
+        continue;
+      }
 
       if (m_mediator.m_validator->CheckCreatedTransaction(t, tr)) {
         if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
@@ -571,6 +589,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
     }
+  }
+
+  for (const auto& t : gasLimitExceededTxnBuffer) {
+    t_createdTxns.insert(t);
   }
 
   if (!VerifyTxnOrderWTolerance(t_tranHashes, tranHashes,
