@@ -206,6 +206,8 @@ const unsigned int ROUND_TIME_IN_MS{
     ReadConstantNumeric("ROUND_TIME_IN_MS", "node.gossip.")};
 const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
     ReadConstantNumeric("SIMULATED_NETWORK_DELAY_IN_MS", "node.gossip.")};
+const unsigned int KEEP_RAWMSG_FROM_LAST_N_ROUNDS{
+    ReadConstantNumeric("KEEP_RAWMSG_FROM_LAST_N_ROUNDS", "node.gossip.")};
 
 // GPU mining constants
 const string GPU_TO_USE{ReadConstantString("GPU_TO_USE", "node.gpu.")};

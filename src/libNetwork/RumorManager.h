@@ -58,12 +58,17 @@ class RumorManager {
   RumorHashesPeersMap m_hashesSubscriberMap;
   Peer m_selfPeer;
   std::vector<RawBytes> m_bufferRawMsg;
+  std::deque<std::pair<RumorHashRumorBiMap::iterator,
+                       std::chrono::high_resolution_clock::time_point>>
+      m_rumorRawMsgTimestamp;
 
   int64_t m_rumorIdGenerator;
   std::mutex m_mutex;
   std::mutex m_continueRoundMutex;
   std::atomic<bool> m_continueRound;
   std::condition_variable m_condStopRound;
+
+  int32_t RAW_MESSAGE_EXPIRY_IN_MS;
 
   void SendMessages(const Peer& toPeer,
                     const std::vector<RRS::Message>& messages);
@@ -100,6 +105,8 @@ class RumorManager {
                                const RawBytes& message);
 
   void PrintStatistics();
+
+  void CleanUp();
 
   // CONST METHODS
   const RumorIdRumorBimap& rumors() const;
