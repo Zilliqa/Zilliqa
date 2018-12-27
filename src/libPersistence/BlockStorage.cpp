@@ -222,6 +222,11 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   return true;
 }
 
+bool BlockStorage::ReleaseTxDB() {
+  m_txBodyDB.reset();
+  return true;
+}
+
 bool BlockStorage::GetFallbackBlock(
     const BlockHash& blockhash,
     FallbackBlockSharedPtr& fallbackblockwsharding) {
