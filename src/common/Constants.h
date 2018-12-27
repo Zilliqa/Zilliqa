@@ -45,6 +45,7 @@ const unsigned int PUB_KEY_SIZE = 33;
 const unsigned int SIGNATURE_CHALLENGE_SIZE = 32;
 const unsigned int SIGNATURE_RESPONSE_SIZE = 32;
 const unsigned int COMMIT_SECRET_SIZE = 32;
+const unsigned int COMMIT_POINT_HASH_SIZE = 32;
 const unsigned int COMMIT_POINT_SIZE = 33;
 const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
@@ -225,6 +226,7 @@ extern const unsigned int MAXRETRYCONN;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int SENDQUEUE_SIZE;
+extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;

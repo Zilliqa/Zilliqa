@@ -607,6 +607,18 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     // Queue the message
     m_dispatcher(raw_message);
   } else if (startByte == START_BYTE_GOSSIP) {
+    // Check for the maximum gossiped-message size
+    if (message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
+      LOG_GENERAL(WARNING, "Gossip message received [Size:"
+                               << message.size()
+                               << "] is unexpectedly large [ >"
+                               << MAX_GOSSIP_MSG_SIZE_IN_BYTES
+                               << " ]. Will be blacklisting the sender");
+      Blacklist::GetInstance().Add(
+          from.m_ipAddress);  // so we dont spend cost sending any data to this
+                              // sender as well.
+      return;
+    }
     if (messageLength <
         GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN) {
       LOG_GENERAL(WARNING,

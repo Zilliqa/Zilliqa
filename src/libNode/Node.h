@@ -384,9 +384,9 @@ class Node : public Executable, public Broadcastable {
 
   /// Sharding variables
   std::atomic<uint32_t> m_myshardId;
-  std::atomic<uint32_t> m_consensusMyID;
+  std::atomic<uint16_t> m_consensusMyID;
   std::atomic<bool> m_isPrimary;
-  std::atomic<uint32_t> m_consensusLeaderID;
+  std::atomic<uint16_t> m_consensusLeaderID;
   std::shared_ptr<ConsensusCommon> m_consensusObject;
 
   // Finalblock Processing
