@@ -191,6 +191,7 @@ extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
 extern const unsigned int NUM_GOSSIP_RECEIVERS;
 extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
+extern const unsigned int KEEP_RAWMSG_FROM_LAST_N_ROUNDS;
 
 // GPU mining constants
 extern const std::string GPU_TO_USE;

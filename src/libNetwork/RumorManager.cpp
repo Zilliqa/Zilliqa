@@ -46,6 +46,7 @@ RumorManager::RumorManager()
       m_rumorIdHashBimap(),
       m_rumorHashRawMsgBimap(),
       m_selfPeer(),
+      m_rumorRawMsgTimestamp(),
       m_rumorIdGenerator(0),
       m_mutex(),
       m_continueRoundMutex(),
@@ -66,6 +67,7 @@ void RumorManager::StartRounds() {
   }
 
   std::thread([&]() {
+    unsigned int rounds = 0;
     while (true) {
       std::unique_lock<std::mutex> guard(m_continueRoundMutex);
       m_continueRound = true;
@@ -84,6 +86,10 @@ void RumorManager::StartRounds() {
           if (l != m_peerIdPeerBimap.left.end()) {
             SendMessages(l->second, result.second);
           }
+        }
+        if (++rounds % KEEP_RAWMSG_FROM_LAST_N_ROUNDS == 0) {
+          CleanUp();
+          rounds = 0;
         }
       }  // end critical section
       if (m_condStopRound.wait_for(guard,
@@ -133,6 +139,7 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   m_peerIdSet.clear();
   m_selfPeer = myself;
   m_rumorHashRawMsgBimap.clear();
+  m_rumorRawMsgTimestamp.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {
@@ -151,6 +158,11 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   } else {
     m_rumorHolder.reset(new RRS::RumorHolder(m_peerIdSet, 0));
   }
+
+  RAW_MESSAGE_EXPIRY_IN_MS = (KEEP_RAWMSG_FROM_LAST_N_ROUNDS < MAX_TOTAL_ROUNDS)
+                                 ? MAX_TOTAL_ROUNDS * 3 * (ROUND_TIME_IN_MS)
+                                 : KEEP_RAWMSG_FROM_LAST_N_ROUNDS *
+                                       (ROUND_TIME_IN_MS);  // milliseconds
 
   return true;
 }
@@ -196,18 +208,25 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
       m_rumorIdHashBimap.insert(
           RumorIdRumorBimap::value_type(++m_rumorIdGenerator, hash));
 
-      m_rumorHashRawMsgBimap.insert(
-          RumorHashRumorBiMap::value_type(hash, message));
+      std::pair<RumorHashRumorBiMap::iterator, bool> result =
+          m_rumorHashRawMsgBimap.insert(
+              RumorHashRumorBiMap::value_type(hash, message));
 
-      LOG_PAYLOAD(INFO,
-                  "New Gossip message initiated by me ("
-                      << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
-                      << ", Current Round: 0, Gossip_Message_Hash: "
-                      << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                      << " ]",
-                  message, Logger::MAX_BYTES_TO_DISPLAY);
+      if (result.second) {
+        // add the timestamp for this raw rumor message
+        m_rumorRawMsgTimestamp.push_back(std::make_pair(
+            result.first, std::chrono::high_resolution_clock::now()));
 
-      return m_rumorHolder->addRumor(m_rumorIdGenerator);
+        LOG_PAYLOAD(INFO,
+                    "New Gossip message initiated by me ("
+                        << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
+                        << ", Current Round: 0, Gossip_Message_Hash: "
+                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
+                        << " ]",
+                    message, Logger::MAX_BYTES_TO_DISPLAY);
+
+        return m_rumorHolder->addRumor(m_rumorIdGenerator);
+      }
     } else {
       LOG_GENERAL(DEBUG, "This Rumor was already received. No problem.");
     }
@@ -370,9 +389,10 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       }
 
       // toBeDispatched
-      if (m_rumorHashRawMsgBimap
-              .insert(RumorHashRumorBiMap::value_type(hash, message))
-              .second) {
+      std::pair<RumorHashRumorBiMap::iterator, bool> result =
+          m_rumorHashRawMsgBimap.insert(
+              RumorHashRumorBiMap::value_type(hash, message));
+      if (result.second) {
         LOG_PAYLOAD(INFO,
                     "New Gossip Raw message received from Peer: "
                         << from << ", Gossip_Message_Hash: "
@@ -380,6 +400,9 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
                         << " ]",
                     message, Logger::MAX_BYTES_TO_DISPLAY);
         toBeDispatched = true;
+        // add the timestamp for this raw rumor message
+        m_rumorRawMsgTimestamp.push_back(std::make_pair(
+            result.first, std::chrono::high_resolution_clock::now()));
       } else {
         LOG_PAYLOAD(DEBUG,
                     "Old Gossip Raw message received from Peer: "
@@ -508,5 +531,32 @@ void RumorManager::PrintStatistics() {
                                      .substr(0, 6)
                               << " ], " << state);
     }
+  }
+}
+
+void RumorManager::CleanUp() {
+  int count = 0;
+  auto now = std::chrono::high_resolution_clock::now();
+  while (not m_rumorRawMsgTimestamp.empty()) {
+    auto elapsed_milliseconds =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - m_rumorRawMsgTimestamp.front().second)
+            .count();
+    LOG_GENERAL(DEBUG, "elapsed_milliseconds:" << elapsed_milliseconds
+                                               << " , RAW_MESSAGE_EXPIRY_IN_MS:"
+                                               << RAW_MESSAGE_EXPIRY_IN_MS);
+    if (elapsed_milliseconds > RAW_MESSAGE_EXPIRY_IN_MS) {  // older
+      auto hash = m_rumorRawMsgTimestamp.front().first->left;
+      m_rumorHashRawMsgBimap.erase(m_rumorRawMsgTimestamp.front().first);
+
+      m_rumorIdHashBimap.right.erase(hash);
+      m_rumorRawMsgTimestamp.pop_front();
+      count++;
+    } else {
+      break;  // other in deque are definately not older. so quit loop
+    }
+  }
+  if (count != 0) {
+    LOG_GENERAL(INFO, "Cleaned " << count << " messages");
   }
 }
