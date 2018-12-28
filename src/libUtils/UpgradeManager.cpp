@@ -42,6 +42,23 @@ const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP = 1;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_LEADER = 2;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_LOOKUP = 3;
 
+enum VERSION_LINE : unsigned int {
+  ZILLIQA_MAJOR_VERSION_LINE = 2,
+  ZILLIQA_MINOR_VERSION_LINE = 4,
+  ZILLIQA_FIX_VERSION_LINE = 6,
+  ZILLIQA_DS_LINE = 8,
+  SCILLA_DS_LINE = 10,
+  SCILLA_MAJOR_VERSION_LINE = 14,
+  SCILLA_MINOR_VERSION_LINE = 16,
+  SCILLA_FIX_VERSION_LINE = 18,
+  ZILLIQA_COMMIT_LINE = 20,
+  ZILLIQA_SHA_LINE = 22,
+  ZILLIQA_SIG_LINE = 24,
+  SCILLA_COMMIT_LINE = 26,
+  SCILLA_SHA_LINE = 28,
+  SCILLA_SIG_LINE = 30,
+};
+
 namespace {
 
 const string dsNodePubProp = "pubk";
@@ -258,18 +275,24 @@ bool UpgradeManager::HasNewSW() {
 
   LOG_GENERAL(INFO, "Parsing public key file completed.");
 
-  string shaStr, sigStr;
+  string zilliqaShaStr, zilliqaSigStr, scillaShaStr, scillaSigStr;
   {
     fstream versionFile(versionName, ios::in);
     int line_no = 0;
 
-    /// Read SHA-256 hash
-    while (line_no != 14 && getline(versionFile, shaStr)) {
+    while (line_no != ZILLIQA_SHA_LINE && getline(versionFile, zilliqaShaStr)) {
       ++line_no;
     }
 
-    /// Read signature
-    while (line_no != 16 && getline(versionFile, sigStr)) {
+    while (line_no != ZILLIQA_SIG_LINE && getline(versionFile, zilliqaSigStr)) {
+      ++line_no;
+    }
+
+    while (line_no != SCILLA_SHA_LINE && getline(versionFile, zilliqaShaStr)) {
+      ++line_no;
+    }
+
+    while (line_no != SCILLA_SIG_LINE && getline(versionFile, zilliqaSigStr)) {
       ++line_no;
     }
   }
@@ -277,33 +300,40 @@ bool UpgradeManager::HasNewSW() {
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
   bytes tempSha;
-  if (!DataConversion::HexStrToUint8Vec(shaStr, tempSha)) {
+
+  if (!DataConversion::HexStrToUint8Vec(zilliqaShaStr, tempSha)) {
     return false;
   }
 
-  const bytes sha = tempSha;
+  const bytes zilliqaSha = tempSha;
 
-  const unsigned int len = sigStr.size() / pubKeys.size();
-  vector<Signature> mutliSig;
+  if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
+    return false;
+  }
+
+  const bytes scillaSha = tempSha;
+  const unsigned int len = zilliqaSigStr.size() / pubKeys.size();
+  vector<Signature> zilliqaMutliSig;
 
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
     bytes tempMultisigBytes;
-    if (!DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len),
+    if (!DataConversion::HexStrToUint8Vec(zilliqaSigStr.substr(i * len, len),
                                           tempMultisigBytes)) {
       continue;
     }
-    mutliSig.emplace_back(tempMultisigBytes, 0);
+    zilliqaMutliSig.emplace_back(tempMultisigBytes, 0);
   }
 
   /// Multi-sig verification
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    if (!Schnorr::GetInstance().Verify(sha, mutliSig.at(i), pubKeys.at(i))) {
+    if (!Schnorr::GetInstance().Verify(zilliqaSha, zilliqaMutliSig.at(i),
+                                       pubKeys.at(i))) {
       LOG_GENERAL(WARNING, "Multisig verification failed!");
       return false;
     }
   }
 
-  return m_latestSHA != sha;
+  return m_latestZilliqaSHA != zilliqaSha || m_latestScillaSHA != scillaSha;
 }
 
 bool UpgradeManager::DownloadSW() {
@@ -350,52 +380,83 @@ bool UpgradeManager::DownloadSW() {
 
   LOG_GENERAL(INFO, "Package (.deb) file has been downloaded successfully.");
 
-  uint32_t major, minor, fix, commit;
-  uint64_t upgradeDS;
-  string sha;
+  uint32_t zilliqaMajor, zilliqaMinor, zilliqaFix, zilliqaCommit, scillaMajor,
+      scillaMinor, scillaFix, scillaCommit;
+  uint64_t zilliqaUpgradeDS, scillaUpgradeDS;
+  string zilliqaSha, scillaSha;
 
   try {
     fstream versionFile(versionName, ios::in);
     int line_no = 0;
     string line;
 
-    /// Read major version
-    while (line_no != 2 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_MAJOR_VERSION_LINE &&
+           getline(versionFile, line)) {
       ++line_no;
     }
 
-    major = stoul(line);
+    zilliqaMajor = stoul(line);
 
-    /// Read minor version
-    while (line_no != 4 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_MINOR_VERSION_LINE &&
+           getline(versionFile, line)) {
       ++line_no;
     }
 
-    minor = stoul(line);
+    zilliqaMinor = stoul(line);
 
-    /// Read fix version
-    while (line_no != 6 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_FIX_VERSION_LINE && getline(versionFile, line)) {
       ++line_no;
     }
 
-    fix = stoul(line);
+    zilliqaFix = stoul(line);
 
-    /// Read expected DS epoch
-    while (line_no != 8 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_DS_LINE && getline(versionFile, line)) {
       ++line_no;
     }
 
-    upgradeDS = stoull(line);
+    zilliqaUpgradeDS = stoull(line);
 
-    /// Read Git commit ID
-    while (line_no != 12 && getline(versionFile, line)) {
+    while (line_no != SCILLA_DS_LINE && getline(versionFile, line)) {
       ++line_no;
     }
 
-    commit = stoul(line, nullptr, 16);
+    scillaUpgradeDS = stoull(line);
 
-    /// Read SHA-256 hash
-    while (line_no != 14 && getline(versionFile, sha)) {
+    while (line_no != SCILLA_MAJOR_VERSION_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaMajor = stoul(line);
+
+    while (line_no != SCILLA_MINOR_VERSION_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaMinor = stoul(line);
+
+    while (line_no != SCILLA_FIX_VERSION_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaFix = stoul(line);
+
+    while (line_no != ZILLIQA_COMMIT_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    zilliqaCommit = stoul(line, nullptr, 16);
+
+    while (line_no != ZILLIQA_SHA_LINE && getline(versionFile, zilliqaSha)) {
+      ++line_no;
+    }
+
+    while (line_no != SCILLA_COMMIT_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaCommit = stoul(line, nullptr, 16);
+
+    while (line_no != SCILLA_SHA_LINE && getline(versionFile, scillaSha)) {
       ++line_no;
     }
   } catch (const std::exception& e) {
@@ -418,17 +479,17 @@ bool UpgradeManager::DownloadSW() {
     DataConversion::Uint8VecToHexStr(output, downloadSha);
   }
 
-  if (sha != downloadSha) {
-    LOG_GENERAL(WARNING, "SHA-256 checksum of .deb file mismatch. Expected: "
-                             << sha << " Actual: " << downloadSha);
+  if (zilliqaSha != downloadSha) {
+    LOG_GENERAL(WARNING,
+                "Zilliqa SHA-256 checksum of .deb file mismatch. Expected: "
+                    << zilliqaSha << " Actual: " << downloadSha);
     return false;
   }
-#if 1  // clark
-  m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit,
-                                       major, minor, fix, upgradeDS, commit);
-#else
-  m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
-  return DataConversion::HexStrToUint8Vec(sha, m_latestSHA);
+
+  m_latestSWInfo = make_shared<SWInfo>(
+      zilliqaMajor, zilliqaMinor, zilliqaFix, zilliqaUpgradeDS, zilliqaCommit,
+      scillaMajor, scillaMinor, scillaFix, scillaUpgradeDS, scillaCommit);
+  return DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
 }
 
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {

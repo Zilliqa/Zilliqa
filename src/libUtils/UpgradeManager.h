@@ -28,7 +28,7 @@
 class UpgradeManager {
  private:
   std::shared_ptr<SWInfo> m_latestSWInfo;
-  bytes m_latestSHA;
+  bytes m_latestZilliqaSHA, m_latestScillaSHA;
   CURL* m_curl;
   std::string m_constantFileName;
   std::string m_constantLookupFileName;
