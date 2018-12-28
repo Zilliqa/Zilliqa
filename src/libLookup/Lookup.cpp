@@ -3541,7 +3541,6 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   string path = "";
   uint32_t code = 0;
   PubKey archPubkey;
-  const string ArchFolderName = "historicalDB";
 
   if (!Messenger::GetSeedNodeHistoricalDB(message, offset, archPubkey, code,
                                           path)) {
@@ -3549,10 +3548,14 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
     return false;
   }
 
-  LOG_GENERAL(INFO, "Path: " << ArchFolderName + "/" + path);
+  if (!(archPubkey ==
+        PubKey(DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY), 0))) {
+    LOG_GENERAL(WARNING, "PubKey not of verifier");
+    return false;
+  }
 
   if (code == 1) {
-    BlockStorage::GetBlockStorage().InitiateHistoricalDB(ArchFolderName + "/" +
+    BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH + "/" +
                                                          path);
 
     m_historicalDB = true;
@@ -3561,7 +3564,6 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
     return false;
   }
 
-  // Check for archival pubkey
   LOG_GENERAL(INFO, "HistDB Success");
   return true;
 }

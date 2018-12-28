@@ -159,7 +159,7 @@
         <UPGRADE_HOST_ACCOUNT>Zilliqa</UPGRADE_HOST_ACCOUNT>
         <UPGRADE_HOST_REPO>Zilliqa</UPGRADE_HOST_REPO>
         <RECOVERY_TRIM_INCOMPLETED_BLOCK>false</RECOVERY_TRIM_INCOMPLETED_BLOCK>
-        <REJOIN_NODE_NOT_IN_NETWORK>true</REJOIN_NODE_NOT_IN_NETWORK>
+        <REJOIN_NODE_NOT_IN_NETWORK>false</REJOIN_NODE_NOT_IN_NETWORK>
     </recovery>
     <smart_contract>
         <SCILLA_ROOT/>
@@ -210,6 +210,10 @@
             <pubkey/>
         </peer>
     </lookups>
+    <verifier>
+        <VERIFIER_PATH/>
+        <VERIFIER_PUBKEY/>
+    </verifier>
     <upper_seed>
         <!--
         <peer>

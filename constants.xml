@@ -196,6 +196,10 @@
         <VIEWCHANGE_PRECHECK_TIME>10</VIEWCHANGE_PRECHECK_TIME>
         <VIEWCHANGE_TIME>600</VIEWCHANGE_TIME>
     </viewchange>
+    <verifier>
+        <VERIFIER_PATH/>
+        <VERIFIER_PUBKEY/>
+    </verifier>
     <!-- These are the genesis accounts -->
     <accounts>
         <account>
