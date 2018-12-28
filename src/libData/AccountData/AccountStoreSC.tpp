@@ -324,6 +324,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                    runnerPrint)) {
       ret = false;
     }
+    LOG_GENERAL(DEBUG,
+                "Exec scilla-runner (microseconds) = " << r_timer_end(tnow));
 
     if (ret && !ParseCallContract(gasRemained, runnerPrint)) {
       ret = false;
@@ -419,6 +421,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 template <class MAP>
 void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   LOG_MARKER();
+  auto tnow = r_timer_start();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
   boost::filesystem::create_directories("./" + SCILLA_FILES);
@@ -426,7 +429,6 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
     boost::filesystem::create_directories("./" + SCILLA_LOG);
   }
-
   // Scilla code
   // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
   std::ofstream os(INPUT_CODE);
@@ -442,6 +444,8 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   // Block Json
   JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
                              GetBlockStateJson(m_curBlockNum));
+
+  LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tnow));
 }
 
 template <class MAP>
@@ -648,7 +652,7 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint) {
   // LOG_MARKER();
-
+  auto tnow = r_timer_start();
   std::ifstream in(OUTPUT_JSON, std::ios::binary);
   std::string outStr;
 
@@ -674,6 +678,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
 
   if (reader->parse(outStr.c_str(), outStr.c_str() + outStr.size(), &jsonOutput,
                     &errors)) {
+    LOG_GENERAL(DEBUG, "Parse scilla-runner output (microseconds) = "
+                           << r_timer_end(tnow));
     return true;
   }
   LOG_GENERAL(WARNING, "Failed to parse contract output json: " << errors);
@@ -684,6 +690,8 @@ template <class MAP>
 bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                                                       uint64_t& gasRemained) {
   // LOG_MARKER();
+  auto tnow = r_timer_start();
+
   if (!_json.isMember("gas_remaining")) {
     LOG_GENERAL(
         WARNING,
@@ -772,6 +780,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     LOG_GENERAL(INFO,
                 "null message in scilla output when invoking a "
                 "contract, transaction finished");
+    LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tnow));
     return true;
   }
 
