@@ -59,7 +59,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
   if (fromAddr == Address()) {
     LOG_GENERAL(WARNING,
-                "Address for issuing coinbase cannot be used for sending txn");
+                "Invalid address for issuing transactions");
     return false;
   }
 
@@ -104,7 +104,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
 
   if (fromAddr == Address()) {
     LOG_GENERAL(WARNING,
-                "Address for issuing coinbase cannot be used for sending txn");
+                "Invalid address for issuing transactions");
     return false;
   }
 

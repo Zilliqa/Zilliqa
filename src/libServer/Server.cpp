@@ -179,7 +179,7 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     if (fromAddr == Address()) {
       throw JsonRpcException(
           RPC_INVALID_ADDRESS_OR_KEY,
-          "Address for issuing coinbase cannot be used for sending txn");
+          "Invalid address for issuing transactions");
     }
 
     if (sender == nullptr) {
