@@ -28,10 +28,9 @@ add_executable(Test_TxBody Test_TxBody.cpp)
 target_include_directories(Test_TxBody PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_TxBody PUBLIC Crypto AccountData Utils Persistence Message)
 
-#FIXME: macOS error: fatal error: in "Test setup": boost::runtime::access_to_missing_argument: There is no argument provided for parameter color_output
-#add_executable(Test_Diagnostic Test_Diagnostic.cpp)
-#target_include_directories(Test_Diagnostic PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-#target_link_libraries(Test_Diagnostic PUBLIC Crypto AccountData Utils Persistence Message Boost::unit_test_framework TestUtils)
+add_executable(Test_Diagnostic Test_Diagnostic.cpp)
+target_include_directories(Test_Diagnostic PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_Diagnostic PUBLIC Crypto AccountData Utils Persistence Message Boost::unit_test_framework TestUtils)
 
 #FIXME: built but not enabled
 add_executable(ReadBlock ReadBlock.cpp)
@@ -46,8 +45,7 @@ target_link_libraries(ReadBlock PUBLIC Crypto AccountData Utils Persistence)
 #target_include_directories(ReadTransactions PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_link_libraries(ReadTransactions PUBLIC Crypto AccountData Utils Persistence)
 
-#set(TESTCASES_ENABLED Test_MetaPersistence Test_TrieDB Test_DSPersistence Test_TxPersistence Test_TxBody Test_Diagnostic)
-set(TESTCASES_ENABLED Test_MetaPersistence Test_TrieDB Test_DSPersistence Test_TxPersistence Test_TxBody)
+set(TESTCASES_ENABLED Test_MetaPersistence Test_TrieDB Test_DSPersistence Test_TxPersistence Test_TxBody Test_Diagnostic)
 
 foreach(testcase ${TESTCASES_ENABLED})
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${testcase}_run)
