@@ -459,12 +459,11 @@ message NodeDSBlock
 
 message NodeFinalBlock
 {
-    required uint32 shardid       = 1;
-    required uint64 dsblocknumber = 2;
-    required uint32 consensusid   = 3;
-    required ProtoTxBlock txblock = 4;
-    required bytes statedelta     = 5;
-    repeated uint32 shardids      = 6;
+    required uint64 dsblocknumber = 1;
+    required uint32 consensusid   = 2;
+    required ProtoTxBlock txblock = 3;
+    required bytes statedelta     = 4;
+    repeated uint32 shardids      = 5;
 }
 
 message NodeMBnForwardTransaction
