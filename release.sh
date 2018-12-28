@@ -146,7 +146,7 @@ cd ${releaseDir}
 echo -e "Updating ds xml file"
 cp ../constants_local.xml ./constants.xml
 cp ../${dsNodeFile} ./${dsNodeFile}
-ret="$(./bin/gensigninitialds   ${privKeyFile} ${pubKeyFile})"
+ret="$(./bin/gensigninitialds --privk ${privKeyFile} --pubk ${pubKeyFile})"
 cp ./${dsNodeFile} ../${dsNodeFile}
 cd - 
 
