@@ -279,6 +279,9 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
                                     << reward_each_lookup);
 
+  // Add rewards come from gas fee back to the coinbase account
+  AccountStore::GetInstance().IncreaseBalance(coinbaseAccount, m_totalTxnFees);
+
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
   const auto& myAddr =
@@ -351,6 +354,7 @@ void DirectoryService::InitCoinbase() {
                               << "][" << m_mediator.m_currentEpochNum << "]["
                               << balance_left << "] lucky draw");
       }
+
       return;
     } else {
       ++count;

@@ -177,9 +177,8 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
     if (fromAddr == Address()) {
-      throw JsonRpcException(
-          RPC_INVALID_ADDRESS_OR_KEY,
-          "Invalid address for issuing transactions");
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Invalid address for issuing transactions");
     }
 
     if (sender == nullptr) {
