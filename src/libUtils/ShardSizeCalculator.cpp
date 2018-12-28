@@ -58,13 +58,13 @@ uint32_t ShardSizeCalculator::CalculateShardSize(const uint32_t numberOfNodes) {
 }
 
 void ShardSizeCalculator::GenerateShardCounts(
-    const uint32_t shardSize, const uint32_t shardSizeThreshold,
-    const uint32_t numNodesForSharding, vector<uint32_t>& shardCounts,
-    bool logDetails) {
+    const uint32_t shardSize, const uint32_t shardSizeThresholdLo,
+    const uint32_t shardSizeThresholdHi, const uint32_t numNodesForSharding,
+    vector<uint32_t>& shardCounts, bool logDetails) {
   LOG_MARKER();
 
-  const uint32_t SHARD_THRESHOLD_LO = shardSize - shardSizeThreshold;
-  const uint32_t SHARD_THRESHOLD_HI = shardSize + shardSizeThreshold;
+  const uint32_t SHARD_THRESHOLD_LO = shardSize - shardSizeThresholdLo;
+  const uint32_t SHARD_THRESHOLD_HI = shardSize + shardSizeThresholdHi;
 
   if (logDetails) {
     LOG_GENERAL(INFO, "Default shard size          = " << shardSize);
@@ -103,7 +103,8 @@ void ShardSizeCalculator::GenerateShardCounts(
     // Remaining count = original node count -> set first shard count to
     // remaining count
     shardCounts.at(0) = numUnshardedNodes;
-  } else if (numUnshardedNodes < SHARD_THRESHOLD_LO) {
+  } else if ((numUnshardedNodes < SHARD_THRESHOLD_LO) &&
+             (SHARD_THRESHOLD_HI > 0)) {
     // If remaining count is less than SHARD_THRESHOLD_LO, distribute among the
     // shards
     for (auto& shardCount : shardCounts) {
@@ -133,14 +134,14 @@ void ShardSizeCalculator::GenerateShardCounts(
 }
 
 uint32_t ShardSizeCalculator::GetTrimmedShardCount(
-    const uint32_t shardSize, const uint32_t shardSizeThreshold,
-    const uint32_t numNodesForSharding) {
+    const uint32_t shardSize, const uint32_t shardSizeThresholdLo,
+    const uint32_t shardSizeThresholdHi, const uint32_t numNodesForSharding) {
   LOG_MARKER();
 
   vector<uint32_t> shardCounts;
 
-  GenerateShardCounts(shardSize, shardSizeThreshold, numNodesForSharding,
-                      shardCounts, false);
+  GenerateShardCounts(shardSize, shardSizeThresholdLo, shardSizeThresholdHi,
+                      numNodesForSharding, shardCounts, false);
 
   if (shardCounts.empty()) {
     return numNodesForSharding;

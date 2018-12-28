@@ -241,8 +241,10 @@ const unsigned int COMM_SIZE{
     ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
 const unsigned int NUM_DS_ELECTION{
     ReadConstantNumeric("NUM_DS_ELECTION", "node.network_composition.")};
-const unsigned int SHARD_SIZE_THRESHOLD{
-    ReadConstantNumeric("SHARD_SIZE_THRESHOLD", "node.network_composition.")};
+const unsigned int SHARD_SIZE_THRESHOLD_LO{ReadConstantNumeric(
+    "SHARD_SIZE_THRESHOLD_LO", "node.network_composition.")};
+const unsigned int SHARD_SIZE_THRESHOLD_HI{ReadConstantNumeric(
+    "SHARD_SIZE_THRESHOLD_HI", "node.network_composition.")};
 
 // P2PComm constants
 const unsigned int BROADCAST_INTERVAL{

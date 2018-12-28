@@ -214,7 +214,8 @@ extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 // Network composition constants
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
-extern const unsigned int SHARD_SIZE_THRESHOLD;
+extern const unsigned int SHARD_SIZE_THRESHOLD_LO;
+extern const unsigned int SHARD_SIZE_THRESHOLD_HI;
 
 // P2PComm constants
 extern const unsigned int BROADCAST_INTERVAL;

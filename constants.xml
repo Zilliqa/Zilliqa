@@ -114,7 +114,8 @@
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>200</COMM_SIZE>
         <NUM_DS_ELECTION>5</NUM_DS_ELECTION>
-        <SHARD_SIZE_THRESHOLD>50</SHARD_SIZE_THRESHOLD>
+        <SHARD_SIZE_THRESHOLD_LO>50</SHARD_SIZE_THRESHOLD_LO>
+        <SHARD_SIZE_THRESHOLD_HI>10</SHARD_SIZE_THRESHOLD_HI>
     </network_composition>
     <p2pcomm>
         <BROADCAST_INTERVAL>60</BROADCAST_INTERVAL>

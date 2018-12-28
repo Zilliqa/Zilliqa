@@ -29,13 +29,15 @@ class ShardSizeCalculator {
   static uint32_t CalculateShardSize(const uint32_t numberOfNodes);
 
   static void GenerateShardCounts(const uint32_t shardSize,
-                                  const uint32_t shardSizeThreshold,
+                                  const uint32_t shardSizeThresholdLo,
+                                  const uint32_t shardSizeThresholdHi,
                                   const uint32_t numNodesForSharding,
                                   std::vector<uint32_t>& shardCounts,
                                   bool logDetails = true);
 
   static uint32_t GetTrimmedShardCount(const uint32_t shardSize,
-                                       const uint32_t shardSizeThreshold,
+                                       const uint32_t shardSizeThresholdLo,
+                                       const uint32_t shardSizeThresholdHi,
                                        const uint32_t numNodesForSharding);
 };
 
