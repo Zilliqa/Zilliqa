@@ -79,6 +79,10 @@ void addBalanceToGenesisAccount() {
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);
   }
+
+  // Init account for issuing coinbase rewards
+  AccountStore::GetInstance().AddAccount(Address(),
+                                         {TOTAL_COINBASE_REWARD, nonce});
   AccountStore::GetInstance().UpdateStateTrieAll();
 }
 

@@ -234,7 +234,7 @@ void DirectoryService::InitCoinbase() {
     return;
   }
 
-  Address genesisAccount(GENESIS_WALLETS[0]);
+  Address coinbaseAccount = Address();
 
   uint128_t sig_count = 0;
   uint32_t lookup_count = 0;
@@ -252,7 +252,7 @@ void DirectoryService::InitCoinbase() {
 
   uint128_t total_reward;
 
-  if (!SafeMath<uint128_t>::add(COINBASE_REWARD, m_totalTxnFees,
+  if (!SafeMath<uint128_t>::add(COINBASE_REWARD_PER_DS, m_totalTxnFees,
                                 total_reward)) {
     LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     return;
@@ -279,6 +279,9 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
                                     << reward_each_lookup);
 
+  // Add rewards come from gas fee back to the coinbase account
+  AccountStore::GetInstance().IncreaseBalance(coinbaseAccount, m_totalTxnFees);
+
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
   const auto& myAddr =
@@ -293,7 +296,7 @@ void DirectoryService::InitCoinbase() {
       if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
         for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, genesisAccount, reward_each_lookup)) {
+                  addr, coinbaseAccount, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             suc_lookup_counter++;
@@ -302,7 +305,7 @@ void DirectoryService::InitCoinbase() {
       } else {
         for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, genesisAccount, reward_each)) {
+                  addr, coinbaseAccount, reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             if (addr == myAddr) {
@@ -339,7 +342,7 @@ void DirectoryService::InitCoinbase() {
       const Address& winnerAddr = shard.second[rdm_index];
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-              winnerAddr, genesisAccount, balance_left)) {
+              winnerAddr, coinbaseAccount, balance_left)) {
         LOG_GENERAL(WARNING, "Could not reward lucky draw!");
       }
 
@@ -351,6 +354,7 @@ void DirectoryService::InitCoinbase() {
                               << "][" << m_mediator.m_currentEpochNum << "]["
                               << balance_left << "] lucky draw");
       }
+
       return;
     } else {
       ++count;
