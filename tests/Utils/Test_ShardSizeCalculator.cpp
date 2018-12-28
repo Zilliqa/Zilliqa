@@ -108,13 +108,29 @@ BOOST_AUTO_TEST_CASE(test_shard_count_generation) {
   INIT_STDOUT_LOGGER();
 
   const uint32_t shardSize = 20;
-  const uint32_t shardSizeThreshold = 10;
+  const uint32_t shardSizeThresholdLo = 10;
+  const uint32_t shardSizeThresholdHi = 0;
   vector<uint32_t> shardCounts;
 
   for (uint32_t numNodesForSharding = 0; numNodesForSharding <= (shardSize * 4);
        numNodesForSharding++) {
-    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeThreshold,
+    LOG_GENERAL(INFO, "Testing node count = " << numNodesForSharding);
+    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeThresholdLo,
+                                             shardSizeThresholdHi,
                                              numNodesForSharding, shardCounts);
+    LOG_GENERAL(INFO, "================================");
+  }
+
+  const uint32_t shardSizeThresholdLo2 = 5;
+  const uint32_t shardSizeThresholdHi2 = 5;
+
+  for (uint32_t numNodesForSharding = 0; numNodesForSharding <= (shardSize * 4);
+       numNodesForSharding++) {
+    LOG_GENERAL(INFO, "Testing node count = " << numNodesForSharding);
+    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeThresholdLo2,
+                                             shardSizeThresholdHi2,
+                                             numNodesForSharding, shardCounts);
+    LOG_GENERAL(INFO, "================================");
   }
 }
 
