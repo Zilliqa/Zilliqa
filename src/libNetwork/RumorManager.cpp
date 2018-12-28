@@ -159,10 +159,13 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
     m_rumorHolder.reset(new RRS::RumorHolder(m_peerIdSet, 0));
   }
 
-  RAW_MESSAGE_EXPIRY_IN_MS = (KEEP_RAWMSG_FROM_LAST_N_ROUNDS < MAX_TOTAL_ROUNDS)
-                                 ? MAX_TOTAL_ROUNDS * 3 * (ROUND_TIME_IN_MS)
-                                 : KEEP_RAWMSG_FROM_LAST_N_ROUNDS *
-                                       (ROUND_TIME_IN_MS);  // milliseconds
+  // RawMessage older than below expiry will be cleared.
+  // Its calculated as (last KEEP_RAWMSG_FROM_LAST_N_ROUNDS rounds X each ROUND
+  // time)
+  m_rawMessageExpiryInMs = (KEEP_RAWMSG_FROM_LAST_N_ROUNDS < MAX_TOTAL_ROUNDS)
+                               ? MAX_TOTAL_ROUNDS * 3 * (ROUND_TIME_IN_MS)
+                               : KEEP_RAWMSG_FROM_LAST_N_ROUNDS *
+                                     (ROUND_TIME_IN_MS);  // milliseconds
 
   return true;
 }
@@ -208,9 +211,8 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
       m_rumorIdHashBimap.insert(
           RumorIdRumorBimap::value_type(++m_rumorIdGenerator, hash));
 
-      std::pair<RumorHashRumorBiMap::iterator, bool> result =
-          m_rumorHashRawMsgBimap.insert(
-              RumorHashRumorBiMap::value_type(hash, message));
+      auto result = m_rumorHashRawMsgBimap.insert(
+          RumorHashRumorBiMap::value_type(hash, message));
 
       if (result.second) {
         // add the timestamp for this raw rumor message
@@ -392,9 +394,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
       }
 
       // toBeDispatched
-      std::pair<RumorHashRumorBiMap::iterator, bool> result =
-          m_rumorHashRawMsgBimap.insert(
-              RumorHashRumorBiMap::value_type(hash, message));
+      auto result = m_rumorHashRawMsgBimap.insert(
+          RumorHashRumorBiMap::value_type(hash, message));
       if (result.second) {
         LOG_PAYLOAD(INFO,
                     "New Gossip Raw message received from Peer: "
@@ -544,15 +545,15 @@ void RumorManager::PrintStatistics() {
 void RumorManager::CleanUp() {
   int count = 0;
   auto now = std::chrono::high_resolution_clock::now();
-  while (not m_rumorRawMsgTimestamp.empty()) {
+  while (!m_rumorRawMsgTimestamp.empty()) {
     auto elapsed_milliseconds =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             now - m_rumorRawMsgTimestamp.front().second)
             .count();
     LOG_GENERAL(DEBUG, "elapsed_milliseconds:" << elapsed_milliseconds
-                                               << " , RAW_MESSAGE_EXPIRY_IN_MS:"
-                                               << RAW_MESSAGE_EXPIRY_IN_MS);
-    if (elapsed_milliseconds > RAW_MESSAGE_EXPIRY_IN_MS) {  // older
+                                               << " , m_rawMessageExpiryInMs:"
+                                               << m_rawMessageExpiryInMs);
+    if (elapsed_milliseconds > m_rawMessageExpiryInMs) {  // older
       auto hash = m_rumorRawMsgTimestamp.front().first->left;
       m_rumorHashRawMsgBimap.erase(m_rumorRawMsgTimestamp.front().first);
 
