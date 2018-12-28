@@ -459,7 +459,7 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
   if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
     LOG_GENERAL(INFO, "Received Gossip of type - FORWARD from Peer :" << from);
 
-    if (p2p.SpreadRumor(rumor_message)) {
+    if (p2p.SpreadForeignRumor(rumor_message)) {
       std::pair<bytes, Peer>* raw_message =
           new pair<bytes, Peer>(rumor_message, from);
 
@@ -897,6 +897,11 @@ bool P2PComm::SpreadRumor(const bytes& message) {
   return m_rumorManager.AddRumor(message);
 }
 
+bool P2PComm::SpreadForeignRumor(const bytes& message) {
+  LOG_MARKER();
+  return m_rumorManager.AddForeignRumor(message);
+}
+
 void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
                                      const bytes& message) {
   LOG_MARKER();
@@ -917,11 +922,17 @@ void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
 
-void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers) {
+void P2PComm::SetSelfKey(const std::pair<PrivKey, PubKey>& self) {
+  m_selfKey = self;
+}
+
+void P2PComm::InitializeRumorManager(
+    const std::vector<std::pair<PubKey, Peer>>& peers,
+    std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
 
   m_rumorManager.StopRounds();
-  if (m_rumorManager.Initialize(peers, m_selfPeer)) {
+  if (m_rumorManager.Initialize(peers, m_selfPeer, fullNetworkKeys)) {
     if (peers.size() != 0) {
       m_rumorManager.StartRounds();
     }
@@ -929,3 +940,34 @@ void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers) {
     m_rumorManager.SpreadBufferedRumors();
   }
 }
+
+/*Signature P2PComm::SignMessage(const bytes& msg, unsigned int offset,
+                                       unsigned int size) {
+  LOG_MARKER();
+
+  Signature signature;
+  bool result =
+      Schnorr::GetInstance().Sign(msg, offset, size, m_mediator->  m_selfKey,
+                                  GetCommitteeMember(m_myID).first, signature);
+  if (!result) {
+    return Signature();
+  }
+  return signature;
+}
+
+bool P2PComm::VerifyMessage(const bytes& msg, unsigned int offset,
+                                    unsigned int size,
+                                    const Signature& toverify,
+                                    uint16_t peer_id) {
+  LOG_MARKER();
+  bool result = Schnorr::GetInstance().Verify(
+      msg, offset, size, toverify, GetCommitteeMember(peer_id).first);
+
+  if (!result) {
+    LOG_GENERAL(INFO, "Peer id: " << peer_id << " pubkey: 0x"
+                                  << DataConversion::SerializableToHexStr(
+                                         GetCommitteeMember(peer_id).first));
+    LOG_GENERAL(INFO, "pubkeys size: " << m_committee.size());
+  }
+  return result;
+}*/

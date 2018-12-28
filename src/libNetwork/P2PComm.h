@@ -99,6 +99,7 @@ class P2PComm {
   static ShaMessage shaMessage(const bytes& message);
 
   Peer m_selfPeer;
+  std::pair<PrivKey, PubKey> m_selfKey;
 
   ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
 
@@ -124,7 +125,8 @@ class P2PComm {
   using BroadcastListFunc = std::function<std::vector<Peer>(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
-  void InitializeRumorManager(const std::vector<Peer>& peers);
+  void InitializeRumorManager(const std::vector<std::pair<PubKey, Peer>>& peers,
+                              std::vector<PubKey>& fullNetworkKeys);
   inline static bool IsHostHavingNetworkIssue();
 
  private:
@@ -172,7 +174,11 @@ class P2PComm {
 
   void SetSelfPeer(const Peer& self);
 
+  void SetSelfKey(const std::pair<PrivKey, PubKey>& self);
+
   bool SpreadRumor(const bytes& message);
+
+  bool SpreadForeignRumor(const bytes& message);
 
   void SendRumorToForeignPeer(const Peer& foreignPeer, const bytes& message);
 
@@ -181,6 +187,14 @@ class P2PComm {
 
   void SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
                                const bytes& message);
+
+  /*Signature SignMessage(const bytes& msg, unsigned int offset,
+                                       unsigned int size);
+
+  bool VerifyMessage(const bytes& msg, unsigned int offset,
+                                    unsigned int size,
+                                    const Signature& toverify,
+                                    uint16_t peer_id);*/
 };
 
 #endif  // __P2PCOMM_H__
