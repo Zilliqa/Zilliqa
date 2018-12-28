@@ -510,7 +510,6 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     nonce++;
 
     // 2. Pre-generate and save a large map and save it to LDB
-    std::string initOwnerBalance;
     for (unsigned int i = 0; i < hodlers; i++) {
       std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
@@ -561,14 +560,16 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
                     88888888, {}, dataTransfer);
     TransactionReceipt tr1;
+
     auto startTimeCall = r_timer_start();
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
     auto timeElapsedCall = r_timer_end(startTimeCall);
+
     LOG_GENERAL(
         INFO, "Size of output = " << ScillaTestUtil::GetFileSize("output.json"))
     LOG_GENERAL(INFO, "Size of map (balances) = " << hodlers);
     LOG_GENERAL(INFO, "Gas used (invocation) = " << tr1.GetCumGas());
-    LOG_GENERAL(INFO, "UpdateAccounts (usec) = " << timeElapsedCall);
+    LOG_GENERAL(INFO, "UpdateAccounts (micro) = " << timeElapsedCall);
     nonce++;
   }
 }
@@ -648,11 +649,18 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                     500000, t10.code, data);
     TransactionReceipt tr0;
+    auto startTimeDeployment = r_timer_start();
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
+
     // We should now have a new account.
     BOOST_CHECK_MESSAGE(account != nullptr,
                         "Error with creation of contract account");
+    LOG_GENERAL(INFO, "Contract size = "
+                          << ScillaTestUtil::GetFileSize("input.scilla"));
+    LOG_GENERAL(INFO, "Gas used (deployment) = " << tr0.GetCumGas());
+    LOG_GENERAL(INFO, "UpdateAccounts (micro) = " << timeElapsedDeployment);
     ownerNonce++;
 
     // 2. Insert n owners of 1 token each, with 5 operator approvals.
@@ -764,14 +772,17 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     Transaction tx1(1, senderNonce, contrAddr, sender, amount,
                     PRECISION_MIN_VALUE, 88888888, {}, dataTransfer);
     TransactionReceipt tr1;
-    auto t = r_timer_start();
 
+    auto startTimeCall = r_timer_start();
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+    auto timeElapsedCall = r_timer_end(startTimeCall);
 
-    LOG_GENERAL(INFO, "UpdateAccounts (usec) = " << r_timer_end(t));
-    LOG_GENERAL(INFO, "Number of Operators = " << numOperators);
-    LOG_GENERAL(INFO, "Number of Hodlers = " << hodlers);
-    LOG_GENERAL(INFO, "Gas used = " << tr1.GetCumGas());
+    LOG_GENERAL(
+        INFO, "Size of output = " << ScillaTestUtil::GetFileSize("output.json"))
+    LOG_GENERAL(INFO, "Size of map (inner) = " << numOperators);
+    LOG_GENERAL(INFO, "Size of map (outer) = " << hodlers);
+    LOG_GENERAL(INFO, "Gas used (transferFrom) = " << tr1.GetCumGas());
+    LOG_GENERAL(INFO, "UpdateAccounts (micro) = " << timeElapsedCall);
     senderNonce++;
   }
 }
