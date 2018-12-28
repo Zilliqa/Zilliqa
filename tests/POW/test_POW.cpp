@@ -279,35 +279,34 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, false);
-  bool verifyLight =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, false, std::time(0));
+  bool verifyLight = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   bool verifyRand =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
+                          winning_result.winning_nonce, winning_result.result,
+                          winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
   // Now let's adjust the difficulty expectation during verification
-  rand1 = {{'0', '1'}};
   difficultyToUse = 30;
-  bool verifyDifficulty =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+  bool verifyDifficulty = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
   difficultyToUse = 10;
   uint64_t winning_nonce = 0;
   bool verifyWinningNonce = POWClient.PoWVerify(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0,
-      winning_nonce, winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
@@ -321,35 +320,34 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 34567;
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, false);
-  bool verifyLight =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, false, std::time(0));
+  bool verifyLight = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   bool verifyRand =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
+                          winning_result.winning_nonce, winning_result.result,
+                          winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
   // Now let's adjust the difficulty expectation during verification
-  rand1 = {{'0', '1'}};
   difficultyToUse = 30;
-  bool verifyDifficulty =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+  bool verifyDifficulty = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
   difficultyToUse = 10;
   uint64_t winning_nonce = 0;
   bool verifyWinningNonce = POWClient.PoWVerify(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0,
-      winning_nonce, winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
@@ -363,35 +361,34 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, true);
-  bool verifyLight =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+  bool verifyLight = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   bool verifyRand =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
+                          winning_result.winning_nonce, winning_result.result,
+                          winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
   // Now let's adjust the difficulty expectation during verification
-  rand1 = {{'0', '1'}};
   difficultyToUse = 30;
-  bool verifyDifficulty =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+  bool verifyDifficulty = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
   difficultyToUse = 10;
   uint64_t winning_nonce = 0;
   bool verifyWinningNonce = POWClient.PoWVerify(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0,
-      winning_nonce, winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
@@ -421,35 +418,34 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, true);
-  bool verifyLight =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+  bool verifyLight = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   bool verifyRand =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
+                          winning_result.winning_nonce, winning_result.result,
+                          winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
   // Now let's adjust the difficulty expectation during verification
-  rand1 = {{'0', '1'}};
   difficultyToUse = 30;
-  bool verifyDifficulty =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+  bool verifyDifficulty = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
   difficultyToUse = 10;
   uint64_t winning_nonce = 0;
   bool verifyWinningNonce = POWClient.PoWVerify(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0,
-      winning_nonce, winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
@@ -479,35 +475,34 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   // Light client mine and verify
   uint8_t difficultyToUse = 20;
   uint64_t blockToUse = 1234567;
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0, true);
-  bool verifyLight =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+  bool verifyLight = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(verifyLight);
 
   rand1 = {{'0', '3'}};
+  auto wrongHeaderHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   bool verifyRand =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+      POWClient.PoWVerify(blockToUse, difficultyToUse, wrongHeaderHash,
+                          winning_result.winning_nonce, winning_result.result,
+                          winning_result.mix_hash);
   BOOST_REQUIRE(!verifyRand);
 
   // Now let's adjust the difficulty expectation during verification
-  rand1 = {{'0', '1'}};
   difficultyToUse = 30;
-  bool verifyDifficulty =
-      POWClient.PoWVerify(blockToUse, difficultyToUse, rand1, rand2, ipAddr,
-                          pubKey, 0, 0, winning_result.winning_nonce,
-                          winning_result.result, winning_result.mix_hash);
+  bool verifyDifficulty = POWClient.PoWVerify(
+      blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyDifficulty);
 
   difficultyToUse = 10;
   uint64_t winning_nonce = 0;
   bool verifyWinningNonce = POWClient.PoWVerify(
-      blockToUse, difficultyToUse, rand1, rand2, ipAddr, pubKey, 0, 0,
-      winning_nonce, winning_result.result, winning_result.mix_hash);
+      blockToUse, difficultyToUse, headerHash, winning_nonce,
+      winning_result.result, winning_result.mix_hash);
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
