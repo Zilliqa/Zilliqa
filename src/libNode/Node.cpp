@@ -1130,7 +1130,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
-                "should be from gossip neightor and process it");
+                "should be from gossip neighbor and process it");
     return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
                                           shardId, lookupPubKey, transactions);
   }

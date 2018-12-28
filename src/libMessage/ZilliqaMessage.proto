@@ -738,14 +738,15 @@ message ConsensusCommit
 {
     message ConsensusInfo
     {
-        required uint32 consensusid      = 1;
-        required uint64 blocknumber      = 2;
-        required bytes blockhash         = 3; // 32 bytes
-        required uint32 backupid         = 4; // only lower 2 bytes used
-        required ByteArray commit        = 5;
+        required uint32 consensusid        = 1;
+        required uint64 blocknumber        = 2;
+        required bytes blockhash           = 3; // 32 bytes
+        required uint32 backupid           = 4; // only lower 2 bytes used
+        required ByteArray commitpoint     = 5;
+        required ByteArray commitpointhash = 6;
     }
-    required ConsensusInfo consensusinfo = 1;
-    required ByteArray signature         = 2;
+    required ConsensusInfo consensusinfo   = 1;
+    required ByteArray signature           = 2;
 }
 
 message ConsensusChallenge

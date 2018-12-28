@@ -115,18 +115,17 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   ethash_mining_result winning_result;
 
   uint32_t shardGuardDiff = 1;
+  auto headerHash = POW::GenHeaderHash(
+      rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
+      m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice);
   // Only in guard mode that shard guard can submit diffferent PoW
   if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
                         m_mediator.m_selfKey.second)) {
     winning_result = POW::GetInstance().PoWMine(
-        block_num, shardGuardDiff, rand1, rand2,
-        m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
-        lookupId, m_proposedGasPrice, FULL_DATASET_MINE);
+        block_num, shardGuardDiff, headerHash, FULL_DATASET_MINE, std::time(0));
   } else {
     winning_result = POW::GetInstance().PoWMine(
-        block_num, difficulty, rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
-        m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice,
-        FULL_DATASET_MINE);
+        block_num, difficulty, headerHash, FULL_DATASET_MINE, std::time(0));
   }
 
   if (winning_result.success) {
@@ -231,9 +230,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                   "doing more pow");
 
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
-          block_num, ds_difficulty, rand1, rand2,
-          m_mediator.m_selfPeer.m_ipAddress, m_mediator.m_selfKey.second,
-          lookupId, m_proposedGasPrice, FULL_DATASET_MINE);
+          block_num, ds_difficulty, headerHash, FULL_DATASET_MINE,
+          winning_result.winning_nonce);
 
       if (ds_pow_winning_result.success) {
         LOG_GENERAL(INFO,

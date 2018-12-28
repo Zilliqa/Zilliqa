@@ -3076,8 +3076,7 @@ bool Messenger::SetDSPoWSubmission(
     result.data().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
-    if (!Schnorr::GetInstance().Sign(tmp, submitterKey.first,
-                                     submitterKey.second, signature)) {
+    if (!MultiSig::GetInstance().SignKey(tmp, submitterKey, signature)) {
       LOG_GENERAL(WARNING, "Failed to sign PoW.");
       return false;
     }
@@ -3131,8 +3130,7 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
-                                     submitterPubKey)) {
+  if (!MultiSig::GetInstance().VerifyKey(tmp, signature, submitterPubKey)) {
     LOG_GENERAL(WARNING, "PoW submission signature wrong.");
     return false;
   }
@@ -5853,7 +5851,8 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
 bool Messenger::SetConsensusCommit(
     bytes& dst, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
-    const CommitPoint& commit, const pair<PrivKey, PubKey>& backupKey) {
+    const CommitPoint& commitPoint, const CommitPointHash& commitPointHash,
+    const pair<PrivKey, PubKey>& backupKey) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -5865,7 +5864,11 @@ bool Messenger::SetConsensusCommit(
   result.mutable_consensusinfo()->set_backupid(backupID);
 
   SerializableToProtobufByteArray(
-      commit, *result.mutable_consensusinfo()->mutable_commit());
+      commitPoint, *result.mutable_consensusinfo()->mutable_commitpoint());
+
+  SerializableToProtobufByteArray(
+      commitPointHash,
+      *result.mutable_consensusinfo()->mutable_commitpointhash());
 
   if (!result.consensusinfo().IsInitialized()) {
     LOG_GENERAL(WARNING, "ConsensusCommit.Data initialization failed.");
@@ -5896,7 +5899,8 @@ bool Messenger::SetConsensusCommit(
 bool Messenger::GetConsensusCommit(
     const bytes& src, const unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-    CommitPoint& commit, const deque<pair<PubKey, Peer>>& committeeKeys) {
+    CommitPoint& commitPoint, CommitPointHash& commitPointHash,
+    const deque<pair<PubKey, Peer>>& committeeKeys) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -5948,7 +5952,10 @@ bool Messenger::GetConsensusCommit(
     return false;
   }
 
-  ProtobufByteArrayToSerializable(result.consensusinfo().commit(), commit);
+  ProtobufByteArrayToSerializable(result.consensusinfo().commitpoint(),
+                                  commitPoint);
+  ProtobufByteArrayToSerializable(result.consensusinfo().commitpointhash(),
+                                  commitPointHash);
 
   bytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());

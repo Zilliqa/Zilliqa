@@ -73,32 +73,30 @@ class POW {
   /// Initializes the POW hash function for the specified block number.
   bool EthashConfigureClient(uint64_t block_number, bool fullDataset = false);
 
-  /// Triggers the proof-of-work mining.
-  ethash_mining_result_t PoWMine(
-      uint64_t blockNum, uint8_t difficulty,
+  static ethash_hash256 GenHeaderHash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2,
       const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
-      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice,
-      bool fullDataset);
+      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
+
+  /// Triggers the proof-of-work mining.
+  ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
+                                 const ethash_hash256& headerHash,
+                                 bool fullDataset, uint64_t startNonce);
 
   /// Terminates proof-of-work mining.
   void StopMining();
 
   /// Verifies a proof-of-work submission.
   bool PoWVerify(uint64_t blockNum, uint8_t difficulty,
-                 const std::array<unsigned char, UINT256_SIZE>& rand1,
-                 const std::array<unsigned char, UINT256_SIZE>& rand2,
-                 const boost::multiprecision::uint128_t& ipAddr,
-                 const PubKey& pubKey, uint32_t lookupId,
-                 const boost::multiprecision::uint128_t& gasPrice,
-                 uint64_t winning_nonce, const std::string& winning_result,
+                 const ethash_hash256& headerHash, uint64_t winning_nonce,
+                 const std::string& winning_result,
                  const std::string& winning_mixhash);
-  bytes ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
-                      const std::array<unsigned char, UINT256_SIZE>& rand2,
-                      const boost::multiprecision::uint128_t& ipAddr,
-                      const PubKey& pubKey, uint32_t lookupId,
-                      const boost::multiprecision::uint128_t& gasPrice);
+  static bytes ConcatAndhash(
+      const std::array<unsigned char, UINT256_SIZE>& rand1,
+      const std::array<unsigned char, UINT256_SIZE>& rand2,
+      const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
+      uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
   ethash::result LightHash(uint64_t blockNum, ethash_hash256 const& header_hash,
                            uint64_t nonce);
   bool CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
@@ -119,12 +117,14 @@ class POW {
   std::mutex m_mutexMiningResult;
 
   ethash_mining_result_t MineLight(ethash_hash256 const& header_hash,
-                                   ethash_hash256 const& boundary);
+                                   ethash_hash256 const& boundary,
+                                   uint64_t startNonce);
   ethash_mining_result_t MineFull(ethash_hash256 const& header_hash,
-                                  ethash_hash256 const& boundary);
+                                  ethash_hash256 const& boundary,
+                                  uint64_t startNonce);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_hash256 const& header_hash,
-                                     uint8_t difficulty);
+                                     uint8_t difficulty, uint64_t startNonce);
   void MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& header_hash,
                          uint8_t difficulty, uint64_t nonce);
   void InitOpenCL();

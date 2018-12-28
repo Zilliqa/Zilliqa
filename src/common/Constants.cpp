@@ -206,6 +206,8 @@ const unsigned int ROUND_TIME_IN_MS{
     ReadConstantNumeric("ROUND_TIME_IN_MS", "node.gossip.")};
 const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
     ReadConstantNumeric("SIMULATED_NETWORK_DELAY_IN_MS", "node.gossip.")};
+const unsigned int KEEP_RAWMSG_FROM_LAST_N_ROUNDS{
+    ReadConstantNumeric("KEEP_RAWMSG_FROM_LAST_N_ROUNDS", "node.gossip.")};
 
 // GPU mining constants
 const string GPU_TO_USE{ReadConstantString("GPU_TO_USE", "node.gpu.")};
@@ -241,8 +243,10 @@ const unsigned int COMM_SIZE{
     ReadConstantNumeric("COMM_SIZE", "node.network_composition.")};
 const unsigned int NUM_DS_ELECTION{
     ReadConstantNumeric("NUM_DS_ELECTION", "node.network_composition.")};
-const unsigned int SHARD_SIZE_THRESHOLD{
-    ReadConstantNumeric("SHARD_SIZE_THRESHOLD", "node.network_composition.")};
+const unsigned int SHARD_SIZE_TOLERANCE_LO{ReadConstantNumeric(
+    "SHARD_SIZE_TOLERANCE_LO", "node.network_composition.")};
+const unsigned int SHARD_SIZE_TOLERANCE_HI{ReadConstantNumeric(
+    "SHARD_SIZE_TOLERANCE_HI", "node.network_composition.")};
 
 // P2PComm constants
 const unsigned int BROADCAST_INTERVAL{
@@ -260,6 +264,8 @@ const unsigned int PUMPMESSAGE_MILLISECONDS{
     ReadConstantNumeric("PUMPMESSAGE_MILLISECONDS", "node.p2pcomm.")};
 const unsigned int SENDQUEUE_SIZE{
     ReadConstantNumeric("SENDQUEUE_SIZE", "node.p2pcomm.")};
+const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES{
+    ReadConstantNumeric("MAX_GOSSIP_MSG_SIZE_IN_BYTES", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==

@@ -35,8 +35,6 @@ class Messenger {
  public:
   template <class K, class V>
   static bool CopyWithSizeCheck(const K& arr, V& result) {
-    LOG_MARKER();
-
     // Fixed length copying.
     if (arr.size() != result.size()) {
       LOG_GENERAL(WARNING, "Size check while copying failed. Size expected = "
@@ -636,12 +634,13 @@ class Messenger {
                                  const uint64_t blockNumber,
                                  const bytes& blockHash,
                                  const uint16_t backupID,
-                                 const CommitPoint& commit,
+                                 const CommitPoint& commitPoint,
+                                 const CommitPointHash& commitPointHash,
                                  const std::pair<PrivKey, PubKey>& backupKey);
   static bool GetConsensusCommit(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      CommitPoint& commit,
+      CommitPoint& commitPoint, CommitPointHash& commitPointHash,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 
   static bool SetConsensusChallenge(

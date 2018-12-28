@@ -68,6 +68,10 @@ void TransactionReceipt::SetCumGas(const uint64_t& cumGas) {
   m_tranReceiptObj["cumulative_gas"] = to_string(m_cumGas);
 }
 
+void TransactionReceipt::SetEpochNum(const uint64_t& epochNum) {
+  m_tranReceiptObj["epoch_num"] = to_string(epochNum);
+}
+
 void TransactionReceipt::SetString(const std::string& tranReceiptStr) {
   try {
     if (!JSONUtils::convertStrtoJson(tranReceiptStr, m_tranReceiptObj)) {
