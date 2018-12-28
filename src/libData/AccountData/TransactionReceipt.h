@@ -46,6 +46,7 @@ class TransactionReceipt : public SerializableDataBlock {
   bool Deserialize(const bytes& src, unsigned int offset) override;
   void SetResult(const bool& result);
   void SetCumGas(const uint64_t& cumGas);
+  void SetEpochNum(const uint64_t& epochNum);
   void AddEntry(const LogEntry& entry);
   const std::string& GetString() const { return m_tranReceiptStr; }
   void SetString(const std::string& tranReceiptStr);
