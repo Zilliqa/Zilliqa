@@ -57,6 +57,9 @@ class UpgradeManager {
   /// the metadata, and kill current node
   bool ReplaceNode(Mediator& mediator);
 
+  /// Install downloaded scilla to /scilla/majorVersion/
+  bool InstallScilla();
+
   const std::shared_ptr<SWInfo> GetLatestSWInfo() { return m_latestSWInfo; }
 
   /// Should be only called internally, put in public just for testing

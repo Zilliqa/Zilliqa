@@ -328,11 +328,16 @@ message ProtoTransactionWithReceipt
 
 message ProtoSWInfo
 {
-    required uint32 majorversion        = 1;
-    required uint32 minorversion        = 2;
-    required uint32 fixversion          = 3;
-    required uint64 upgradeds           = 4;
-    required uint32 commit              = 5;
+    required uint32 zilliqamajorversion        = 1;
+    required uint32 zilliqaminorversion        = 2;
+    required uint32 zilliqafixversion          = 3;
+    required uint64 zilliqaupgradeds           = 4;
+    required uint32 zilliqacommit              = 5;
+    required uint32 scillamajorversion         = 6;
+    required uint32 scillaminorversion         = 7;
+    required uint32 scillafixversion           = 8;
+    required uint64 scillaupgradeds            = 9;
+    required uint32 scillacommit               = 10;
 }
 
 message ProtoFallbackBlock

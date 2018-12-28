@@ -423,9 +423,11 @@ bool UpgradeManager::DownloadSW() {
                              << sha << " Actual: " << downloadSha);
     return false;
   }
-
+#if 1  // clark
+  m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit,
+                                       major, minor, fix, upgradeDS, commit);
+#else
   m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
-
   return DataConversion::HexStrToUint8Vec(sha, m_latestSHA);
 }
 
@@ -567,3 +569,5 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
     return false;
   }
 }
+
+bool UpgradeManager::InstallScilla() { return true; }

@@ -22,27 +22,47 @@
 using namespace std;
 
 SWInfo::SWInfo()
-    : m_majorVersion(0),
-      m_minorVersion(0),
-      m_fixVersion(0),
-      m_upgradeDS(0),
-      m_commit(0) {}
+    : m_zilliqaMajorVersion(0),
+      m_zilliqaMinorVersion(0),
+      m_zilliqaFixVersion(0),
+      m_zilliqaUpgradeDS(0),
+      m_zilliqaCommit(0),
+      m_scillaMajorVersion(0),
+      m_scillaMinorVersion(0),
+      m_scillaFixVersion(0),
+      m_scillaUpgradeDS(0),
+      m_scillaCommit(0) {}
 
-SWInfo::SWInfo(const uint32_t& majorVersion, const uint32_t& minorVersion,
-               const uint32_t& fixVersion, const uint64_t& upgradeDS,
-               const uint32_t& commit)
-    : m_majorVersion(majorVersion),
-      m_minorVersion(minorVersion),
-      m_fixVersion(fixVersion),
-      m_upgradeDS(upgradeDS),
-      m_commit(commit) {}
+SWInfo::SWInfo(const uint32_t& zilliqaMajorVersion,
+               const uint32_t& zilliqaMinorVersion,
+               const uint32_t& zilliqaFixVersion,
+               const uint64_t& zilliqaUpgradeDS, const uint32_t& zilliqaCommit,
+               const uint32_t& scillaMajorVersion,
+               const uint32_t& scillaMinorVersion,
+               const uint32_t& scillaFixVersion,
+               const uint64_t& scillaUpgradeDS, const uint32_t& scillaCommit)
+    : m_zilliqaMajorVersion(zilliqaMajorVersion),
+      m_zilliqaMinorVersion(zilliqaMinorVersion),
+      m_zilliqaFixVersion(zilliqaFixVersion),
+      m_zilliqaUpgradeDS(zilliqaUpgradeDS),
+      m_zilliqaCommit(zilliqaCommit),
+      m_scillaMajorVersion(scillaMajorVersion),
+      m_scillaMinorVersion(scillaMinorVersion),
+      m_scillaFixVersion(scillaFixVersion),
+      m_scillaUpgradeDS(scillaUpgradeDS),
+      m_scillaCommit(scillaCommit) {}
 
 SWInfo::SWInfo(const SWInfo& src)
-    : m_majorVersion(src.m_majorVersion),
-      m_minorVersion(src.m_minorVersion),
-      m_fixVersion(src.m_fixVersion),
-      m_upgradeDS(src.m_upgradeDS),
-      m_commit(src.m_commit) {}
+    : m_zilliqaMajorVersion(src.m_zilliqaMajorVersion),
+      m_zilliqaMinorVersion(src.m_zilliqaMinorVersion),
+      m_zilliqaFixVersion(src.m_zilliqaFixVersion),
+      m_zilliqaUpgradeDS(src.m_zilliqaUpgradeDS),
+      m_zilliqaCommit(src.m_zilliqaCommit),
+      m_scillaMajorVersion(src.m_scillaMajorVersion),
+      m_scillaMinorVersion(src.m_scillaMinorVersion),
+      m_scillaFixVersion(src.m_scillaFixVersion),
+      m_scillaUpgradeDS(src.m_scillaUpgradeDS),
+      m_scillaCommit(src.m_scillaCommit) {}
 
 SWInfo::~SWInfo(){};
 
@@ -56,15 +76,25 @@ unsigned int SWInfo::Serialize(bytes& dst, unsigned int offset) const {
 
   unsigned int curOffset = offset;
 
-  SetNumber<uint32_t>(dst, curOffset, m_majorVersion, sizeof(uint32_t));
+  SetNumber<uint32_t>(dst, curOffset, m_zilliqaMajorVersion, sizeof(uint32_t));
   curOffset += sizeof(uint32_t);
-  SetNumber<uint32_t>(dst, curOffset, m_minorVersion, sizeof(uint32_t));
+  SetNumber<uint32_t>(dst, curOffset, m_zilliqaMinorVersion, sizeof(uint32_t));
   curOffset += sizeof(uint32_t);
-  SetNumber<uint32_t>(dst, curOffset, m_fixVersion, sizeof(uint32_t));
+  SetNumber<uint32_t>(dst, curOffset, m_zilliqaFixVersion, sizeof(uint32_t));
   curOffset += sizeof(uint32_t);
-  SetNumber<uint64_t>(dst, curOffset, m_upgradeDS, sizeof(uint64_t));
+  SetNumber<uint64_t>(dst, curOffset, m_zilliqaUpgradeDS, sizeof(uint64_t));
   curOffset += sizeof(uint64_t);
-  SetNumber<uint32_t>(dst, curOffset, m_commit, sizeof(uint32_t));
+  SetNumber<uint32_t>(dst, curOffset, m_zilliqaCommit, sizeof(uint32_t));
+  curOffset += sizeof(uint32_t);
+  SetNumber<uint32_t>(dst, curOffset, m_scillaMajorVersion, sizeof(uint32_t));
+  curOffset += sizeof(uint32_t);
+  SetNumber<uint32_t>(dst, curOffset, m_scillaMinorVersion, sizeof(uint32_t));
+  curOffset += sizeof(uint32_t);
+  SetNumber<uint32_t>(dst, curOffset, m_scillaFixVersion, sizeof(uint32_t));
+  curOffset += sizeof(uint32_t);
+  SetNumber<uint64_t>(dst, curOffset, m_scillaUpgradeDS, sizeof(uint64_t));
+  curOffset += sizeof(uint64_t);
+  SetNumber<uint32_t>(dst, curOffset, m_scillaCommit, sizeof(uint32_t));
   curOffset += sizeof(uint32_t);
 
   return SIZE;
@@ -77,15 +107,29 @@ int SWInfo::Deserialize(const bytes& src, unsigned int offset) {
   unsigned int curOffset = offset;
 
   try {
-    m_majorVersion = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    m_zilliqaMajorVersion =
+        GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
-    m_minorVersion = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    m_zilliqaMinorVersion =
+        GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
-    m_fixVersion = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    m_zilliqaFixVersion = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
-    m_upgradeDS = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+    m_zilliqaUpgradeDS = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
     curOffset += sizeof(uint64_t);
-    m_commit = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    m_zilliqaCommit = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    m_scillaMajorVersion =
+        GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    m_scillaMinorVersion =
+        GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    m_scillaFixVersion = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
+    curOffset += sizeof(uint32_t);
+    m_scillaUpgradeDS = GetNumber<uint64_t>(src, curOffset, sizeof(uint64_t));
+    curOffset += sizeof(uint64_t);
+    m_scillaCommit = GetNumber<uint32_t>(src, curOffset, sizeof(uint32_t));
     curOffset += sizeof(uint32_t);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Error with SWInfo::Deserialize." << ' ' << e.what());
@@ -97,9 +141,14 @@ int SWInfo::Deserialize(const bytes& src, unsigned int offset) {
 
 /// Less-than comparison operator.
 bool SWInfo::operator<(const SWInfo& r) const {
-  return tie(m_majorVersion, m_minorVersion, m_fixVersion, m_upgradeDS,
-             m_commit) < tie(r.m_majorVersion, r.m_minorVersion, r.m_fixVersion,
-                             r.m_upgradeDS, r.m_commit);
+  return tie(m_zilliqaMajorVersion, m_zilliqaMinorVersion, m_zilliqaFixVersion,
+             m_zilliqaUpgradeDS, m_zilliqaCommit, m_scillaMajorVersion,
+             m_scillaMinorVersion, m_scillaFixVersion, m_scillaUpgradeDS,
+             m_scillaCommit) <
+         tie(r.m_zilliqaMajorVersion, r.m_zilliqaMinorVersion,
+             r.m_zilliqaFixVersion, r.m_zilliqaUpgradeDS, r.m_zilliqaCommit,
+             r.m_scillaMajorVersion, r.m_scillaMinorVersion,
+             r.m_scillaFixVersion, r.m_scillaUpgradeDS, r.m_scillaCommit);
 }
 
 /// Greater-than comparison operator.
@@ -107,17 +156,43 @@ bool SWInfo::operator>(const SWInfo& r) const { return r < *this; }
 
 /// Equality operator.
 bool SWInfo::operator==(const SWInfo& r) const {
-  return tie(m_majorVersion, m_minorVersion, m_fixVersion, m_upgradeDS,
-             m_commit) == tie(r.m_majorVersion, r.m_minorVersion,
-                              r.m_fixVersion, r.m_upgradeDS, r.m_commit);
+  return tie(m_zilliqaMajorVersion, m_zilliqaMinorVersion, m_zilliqaFixVersion,
+             m_zilliqaUpgradeDS, m_zilliqaCommit, m_scillaMajorVersion,
+             m_scillaMinorVersion, m_scillaFixVersion, m_scillaUpgradeDS,
+             m_scillaCommit) ==
+         tie(r.m_zilliqaMajorVersion, r.m_zilliqaMinorVersion,
+             r.m_zilliqaFixVersion, r.m_zilliqaUpgradeDS, r.m_zilliqaCommit,
+             r.m_scillaMajorVersion, r.m_scillaMinorVersion,
+             r.m_scillaFixVersion, r.m_scillaUpgradeDS, r.m_scillaCommit);
 }
 
 /// Unequality operator.
 bool SWInfo::operator!=(const SWInfo& r) const { return !(*this == r); }
 
 /// Getters.
-const uint32_t& SWInfo::GetMajorVersion() const { return m_majorVersion; };
-const uint32_t& SWInfo::GetMinorVersion() const { return m_minorVersion; };
-const uint32_t& SWInfo::GetFixVersion() const { return m_fixVersion; };
-const uint64_t& SWInfo::GetUpgradeDS() const { return m_upgradeDS; };
-const uint32_t& SWInfo::GetCommit() const { return m_commit; };
+const uint32_t& SWInfo::GetZilliqaMajorVersion() const {
+  return m_zilliqaMajorVersion;
+};
+const uint32_t& SWInfo::GetZilliqaMinorVersion() const {
+  return m_zilliqaMinorVersion;
+};
+const uint32_t& SWInfo::GetZilliqaFixVersion() const {
+  return m_zilliqaFixVersion;
+};
+const uint64_t& SWInfo::GetZilliqaUpgradeDS() const {
+  return m_zilliqaUpgradeDS;
+};
+const uint32_t& SWInfo::GetZilliqaCommit() const { return m_zilliqaCommit; };
+const uint32_t& SWInfo::GetScillaMajorVersion() const {
+  return m_scillaMajorVersion;
+};
+const uint32_t& SWInfo::GetScillaMinorVersion() const {
+  return m_scillaMinorVersion;
+};
+const uint32_t& SWInfo::GetScillaFixVersion() const {
+  return m_scillaFixVersion;
+};
+const uint64_t& SWInfo::GetScillaUpgradeDS() const {
+  return m_scillaUpgradeDS;
+};
+const uint32_t& SWInfo::GetScillaCommit() const { return m_scillaCommit; };
