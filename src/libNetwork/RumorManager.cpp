@@ -113,8 +113,9 @@ void RumorManager::StopRounds() {
 }
 
 // PUBLIC METHODS
-bool RumorManager::Initialize(const std::vector<Peer>& peers,
-                              const Peer& myself) {
+bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
+                              const Peer& myself,
+                              std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
@@ -140,15 +141,20 @@ bool RumorManager::Initialize(const std::vector<Peer>& peers,
   m_selfPeer = myself;
   m_rumorHashRawMsgBimap.clear();
   m_rumorRawMsgTimestamp.clear();
+  m_fullNetworkKeys.clear();
+  m_pubKeyPeerBiMap.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {
-    if (p.m_listenPortHost != 0) {
+    if (p.second.m_listenPortHost != 0) {
       ++peerIdGenerator;
-      m_peerIdPeerBimap.insert(PeerIdPeerBiMap::value_type(peerIdGenerator, p));
+      m_peerIdPeerBimap.insert(
+          PeerIdPeerBiMap::value_type(peerIdGenerator, p.second));
+      m_pubKeyPeerBiMap.insert(PubKeyPeerBiMap::value_type(p.first, p.second));
       m_peerIdSet.insert(peerIdGenerator);
     }
   }
+  m_fullNetworkKeys = fullNetworkKeys;
 
   // Now create the one and only RumorHolder
   if (GOSSIP_CUSTOM_ROUNDS_SETTINGS) {
@@ -178,6 +184,13 @@ void RumorManager::SpreadBufferedRumors() {
     }
     m_bufferRawMsg.clear();
   }
+}
+
+bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
+  // verify if the pubkey is from with-in our network
+  // verify if signature matches the one in message.
+  // If all above check pass, add the rumor
+  return AddRumor(message);
 }
 
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {

@@ -28,6 +28,7 @@
 #include <unordered_map>
 
 #include "Peer.h"
+#include "libCrypto/Schnorr.h"
 #include "libRumorSpreading/RumorHolder.h"
 
 enum RRSMessageOffset : unsigned int {
@@ -51,10 +52,12 @@ class RumorManager {
   typedef std::deque<std::pair<RumorHashRumorBiMap::iterator,
                                std::chrono::high_resolution_clock::time_point>>
       RumorRawMsgTimestampDeque;
+  typedef boost::bimap<PubKey, Peer> PubKeyPeerBiMap;
 
   // MEMBERS
   std::shared_ptr<RRS::RumorHolder> m_rumorHolder;
   PeerIdPeerBiMap m_peerIdPeerBimap;
+  PubKeyPeerBiMap m_pubKeyPeerBiMap;
   std::unordered_set<int> m_peerIdSet;
   RumorIdRumorBimap m_rumorIdHashBimap;
   RumorHashRumorBiMap m_rumorHashRawMsgBimap;
@@ -62,6 +65,7 @@ class RumorManager {
   Peer m_selfPeer;
   std::vector<RawBytes> m_bufferRawMsg;
   RumorRawMsgTimestampDeque m_rumorRawMsgTimestamp;
+  std::vector<PubKey> m_fullNetworkKeys;
 
   int64_t m_rumorIdGenerator;
   std::mutex m_mutex;
@@ -84,9 +88,12 @@ class RumorManager {
   ~RumorManager();
 
   // METHODS
-  bool Initialize(const std::vector<Peer>& peers, const Peer& myself);
+  bool Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
+                  const Peer& myself, std::vector<PubKey>& fullNetworkKeys);
 
   bool AddRumor(const RawBytes& message);
+
+  bool AddForeignRumor(const RawBytes& message);
 
   void SpreadBufferedRumors();
 

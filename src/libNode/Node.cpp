@@ -586,13 +586,21 @@ void Node::WakeupAtDSEpoch() {
                                            .GetBlockNum() +
                                        1);
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
       for (const auto& i : *m_mediator.m_DSCommittee) {
         if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
+          peers.emplace_back(i);
         }
+        // Get the pubkeys for ds committee
+        pubKeys.emplace_back(i.first);
       }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+
+      // Get the pubkeys for all other shard members aswell
+      for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
+        pubKeys.emplace_back(i.first);
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     auto func = [this]() mutable -> void {
@@ -678,13 +686,21 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
       for (const auto& i : *m_mediator.m_DSCommittee) {
         if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
+          peers.emplace_back(i);
         }
+        // Get the pubkeys for ds committee
+        pubKeys.emplace_back(i.first);
       }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+
+      // Get the pubkeys for all other shard members aswell
+      for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
+        pubKeys.emplace_back(i.first);
+      }
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
     m_mediator.m_ds->SetState(
         DirectoryService::DirState::MICROBLOCK_SUBMISSION);
@@ -696,14 +712,23 @@ void Node::WakeupAtTxEpoch() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<Peer> peers;
+    std::vector<std::pair<PubKey, Peer>> peers;
+    std::vector<PubKey> pubKeys;
     for (const auto& i : *m_myShardMembers) {
       if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i.second);
+        peers.emplace_back(i);
       }
+      // Get the pubkeys for my shard member
+      pubKeys.emplace_back(i.first);
     }
+
+    // Get the pubkeys for ds committee
+    for (const auto& i : *m_mediator.m_DSCommittee) {
+      pubKeys.emplace_back(i.first);
+    }
+
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   SetState(WAITING_FINALBLOCK);
