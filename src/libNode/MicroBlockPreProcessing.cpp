@@ -78,7 +78,7 @@ bool Node::ComposeMicroBlock() {
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
     if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
-                                  COINBASE_REWARD, rewards)) {
+                                  COINBASE_REWARD_PER_DS, rewards)) {
       LOG_GENERAL(WARNING, "rewards addition unsafe!");
     }
   } else {
@@ -1058,10 +1058,10 @@ bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
   // Check Rewards
   if (m_mediator.GetIsVacuousEpoch() &&
       m_mediator.m_ds->m_mode != DirectoryService::IDLE) {
-    // Check COINBASE_REWARD + totalTxnFees
+    // Check COINBASE_REWARD_PER_DS + totalTxnFees
     uint128_t rewards = 0;
     if (!SafeMath<uint128_t>::add(m_mediator.m_ds->m_totalTxnFees,
-                                  COINBASE_REWARD, rewards)) {
+                                  COINBASE_REWARD_PER_DS, rewards)) {
       LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     }
     if (rewards != m_microblock->GetHeader().GetRewards()) {

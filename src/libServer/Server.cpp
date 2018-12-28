@@ -176,6 +176,12 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
     const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
     const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
+    if (fromAddr == Address()) {
+      throw JsonRpcException(
+          RPC_INVALID_ADDRESS_OR_KEY,
+          "Address for issuing coinbase cannot be used for sending txn");
+    }
+
     if (sender == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "The sender of the txn has no balance");
