@@ -15,7 +15,7 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 #
-# This Dockerfile is incomplete and should only be used with other Dockerfiles
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     dnsutils \
     gdb \
