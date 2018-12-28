@@ -66,9 +66,7 @@ def run_restart(pubKey, privKey, port, typ, path, name):
 
 	for x in range(0, 1):
 		keypair = keypairs[x].split(" ")
-
-		os.system('cd ' + path + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/'+name+' ' + keypair[1] + ' ' + keypair[0] + ' ' + nodeIP +' ' + port + ' 0 '+typ+ ' 1 >> ./error_log_zilliqa 2>&1 &')
-
+		os.system('cd ' + path + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/' + name + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + nodeIP + ' --port ' + port + ' --synctype ' + typ + ' --recovery >> ./error_log_zilliqa 2>&1 &')
 
 if __name__ == "__main__":
 	main()

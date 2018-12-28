@@ -136,7 +136,7 @@ pubKeyFile="$(realpath $2)"
 cd ${releaseDir}
 sha="$(sha256sum ${debFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
 sed -i "${shaLine}s/.*/${sha}/" ${versionFile}
-signature="$(./bin/signmultisig ${sha} ${privKeyFile} ${pubKeyFile})"
+signature="$(./bin/signmultisig --message ${sha} --privk ${privKeyFile} --pubk ${pubKeyFile})"
 sed -i "${sigLine}s/.*/${signature}/" ${versionFile}
 cd -
 echo -e "SHA-256 & multi-signature are written into ${versionFile} successfully.\n"
