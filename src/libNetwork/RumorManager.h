@@ -48,6 +48,9 @@ class RumorManager {
   typedef boost::bimap<int, RawBytes> RumorIdRumorBimap;
   typedef boost::bimap<RawBytes, RawBytes> RumorHashRumorBiMap;
   typedef std::map<RawBytes, std::set<Peer>> RumorHashesPeersMap;
+  typedef std::deque<std::pair<RumorHashRumorBiMap::iterator,
+                               std::chrono::high_resolution_clock::time_point>>
+      RumorRawMsgTimestampDeque;
 
   // MEMBERS
   std::shared_ptr<RRS::RumorHolder> m_rumorHolder;
@@ -58,9 +61,7 @@ class RumorManager {
   RumorHashesPeersMap m_hashesSubscriberMap;
   Peer m_selfPeer;
   std::vector<RawBytes> m_bufferRawMsg;
-  std::deque<std::pair<RumorHashRumorBiMap::iterator,
-                       std::chrono::high_resolution_clock::time_point>>
-      m_rumorRawMsgTimestamp;
+  RumorRawMsgTimestampDeque m_rumorRawMsgTimestamp;
 
   int64_t m_rumorIdGenerator;
   std::mutex m_mutex;
@@ -68,7 +69,7 @@ class RumorManager {
   std::atomic<bool> m_continueRound;
   std::condition_variable m_condStopRound;
 
-  int32_t RAW_MESSAGE_EXPIRY_IN_MS;
+  int32_t m_rawMessageExpiryInMs;
 
   void SendMessages(const Peer& toPeer,
                     const std::vector<RRS::Message>& messages);
