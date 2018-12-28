@@ -359,7 +359,7 @@ bool Node::ValidateDB() {
   }
   LOG_GENERAL(INFO, "ValidateDB Success");
 
-  BlockStorage::GetBlockStorage().ReleaseTxDB();
+  BlockStorage::GetBlockStorage().ReleaseDB();
 
   bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
 

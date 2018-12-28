@@ -134,7 +134,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieves the requested Tx block.
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
-  bool ReleaseTxDB();
+  bool ReleaseDB();
 
   // /// Retrieves the requested Micro block
   bool GetMicroBlock(const BlockHash& blockHash,

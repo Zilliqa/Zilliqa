@@ -222,8 +222,14 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   return true;
 }
 
-bool BlockStorage::ReleaseTxDB() {
+bool BlockStorage::ReleaseDB() {
   m_txBodyDB.reset();
+  m_microBlockDB.reset();
+  m_VCBlockDB.reset();
+  m_txBlockchainDB.reset();
+  m_dsBlockchainDB.reset();
+  m_fallbackBlockDB.reset();
+  m_blockLinkDB.reset();
   return true;
 }
 
