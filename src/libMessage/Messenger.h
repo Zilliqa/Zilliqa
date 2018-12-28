@@ -314,16 +314,14 @@ class Messenger {
                                        DequeOfShard& shards);
 
   static bool SetNodeFinalBlock(bytes& dst, const unsigned int offset,
-                                const uint32_t shardId,
                                 const uint64_t dsBlockNumber,
                                 const uint32_t consensusID,
                                 const TxBlock& txBlock,
                                 const bytes& stateDelta);
 
   static bool GetNodeFinalBlock(const bytes& src, const unsigned int offset,
-                                uint32_t& shardId, uint64_t& dsBlockNumber,
-                                uint32_t& consensusID, TxBlock& txBlock,
-                                bytes& stateDelta);
+                                uint64_t& dsBlockNumber, uint32_t& consensusID,
+                                TxBlock& txBlock, bytes& stateDelta);
 
   static bool SetNodeVCBlock(bytes& dst, const unsigned int offset,
                              const VCBlock& vcBlock);
