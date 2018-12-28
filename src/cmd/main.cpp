@@ -53,6 +53,8 @@ int main(int argc, const char* argv[]) {
     Peer my_network_info;
     string privK;
     string pubK;
+    PrivKey privkey;
+    PubKey pubkey;
     string address;
     int port = -1;
     unique_ptr<NAT> nt;
@@ -88,15 +90,17 @@ int main(int argc, const char* argv[]) {
       }
       po::notify(vm);
 
-      if (privK.length() != 32) {
-        SWInfo::LogBrandBugReport();
-        std::cerr << "Invalid length of private key" << endl;
+      try {
+        privkey = PrivKey::GetPrivKeyFromString(privK);
+      } catch (std::invalid_argument& e) {
+        std::cerr << e.what() << endl;
         return ERROR_IN_COMMAND_LINE;
       }
 
-      if (pubK.length() != 32) {
-        SWInfo::LogBrandBugReport();
-        std::cerr << "Invalid length of public key" << endl;
+      try {
+        pubkey = PubKey::GetPubKeyFromString(pubK);
+      } catch (std::invalid_argument& e) {
+        std::cerr << e.what() << endl;
         return ERROR_IN_COMMAND_LINE;
       }
 
@@ -155,18 +159,6 @@ int main(int argc, const char* argv[]) {
       my_network_info = Peer(ip, mappedPort);
     } else {
       my_network_info = Peer(ip, port);
-    }
-
-    PrivKey privkey;
-    if (privkey.Deserialize(DataConversion::HexStrToUint8Vec(privK), 0) != 0) {
-      LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
-      return -1;
-    }
-
-    PubKey pubkey;
-    if (pubkey.Deserialize(DataConversion::HexStrToUint8Vec(pubK), 0) != 0) {
-      LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
-      return -1;
     }
 
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
