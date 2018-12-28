@@ -58,8 +58,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
 
   if (fromAddr == Address()) {
-    LOG_GENERAL(WARNING,
-                "Invalid address for issuing transactions");
+    LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
     return false;
   }
 
@@ -103,8 +102,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   unsigned int numShards = m_mediator.m_node->getNumShards();
 
   if (fromAddr == Address()) {
-    LOG_GENERAL(WARNING,
-                "Invalid address for issuing transactions");
+    LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
     return false;
   }
 
