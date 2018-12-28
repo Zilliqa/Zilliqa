@@ -57,11 +57,17 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   const PubKey& senderPubKey = tx.GetSenderPubKey();
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
 
+  if (fromAddr == Address()) {
+    LOG_GENERAL(WARNING,
+                "Address for issuing coinbase cannot be used for sending txn");
+    return false;
+  }
+
   // Check if from account exists in local storage
   if (!AccountStore::GetInstance().IsAccountExist(fromAddr)) {
-    LOG_GENERAL(INFO, "fromAddr not found: " << fromAddr
-                                             << ". Transaction rejected: "
-                                             << tx.GetTranID());
+    LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
+                                                << ". Transaction rejected: "
+                                                << tx.GetTranID());
     return false;
   }
 
@@ -95,6 +101,12 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
+
+  if (fromAddr == Address()) {
+    LOG_GENERAL(WARNING,
+                "Address for issuing coinbase cannot be used for sending txn");
+    return false;
+  }
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
     unsigned int correct_shard_from =
