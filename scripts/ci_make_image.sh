@@ -30,16 +30,10 @@ aws --version
 commit=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2
-#TODO: remove .scilla suffix
-source_image=zilliqa:${commit}.scilla
+source_image=zilliqa:${commit}
 target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})
-make -C docker k8s-scilla COMMIT=${commit}
+make -C docker k8s COMMIT=${commit}
 docker tag ${source_image} ${target_image}
 docker push ${target_image}
-
-#TODO: remove target_image2
-target_image2=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}.scilla
-docker tag ${source_image} ${target_image2}
-docker push ${target_image2}
