@@ -321,11 +321,11 @@ ethash_hash256 POW::GenHeaderHash(
     const std::array<unsigned char, UINT256_SIZE>& rand2,
     const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
     uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice) {
-  bytes sha3_result =
+  bytes sha2_result =
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
-  return StringToBlockhash(DataConversion::Uint8VecToHexStr(sha3_result));
+  return StringToBlockhash(DataConversion::Uint8VecToHexStr(sha2_result));
 }
 
 ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
