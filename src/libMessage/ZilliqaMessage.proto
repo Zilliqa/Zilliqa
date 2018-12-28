@@ -202,6 +202,14 @@ message ProtoVCBlock
     // Add new members here
 }
 
+// Used in database "diagnostic"
+message ProtoDiagnosticData
+{
+    optional ProtoShardingStructure shards = 1; // Added in: v1.0, Deprecated in: N/A
+    optional ProtoDSCommittee dscommittee  = 2; // Added in: v1.0, Deprecated in: N/A
+    // Add new members here
+}
+
 // ============================================================================
 // Primitives
 // ============================================================================
