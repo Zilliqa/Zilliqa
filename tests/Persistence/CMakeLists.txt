@@ -30,7 +30,7 @@ target_link_libraries(Test_TxBody PUBLIC Crypto AccountData Utils Persistence Me
 
 add_executable(Test_Diagnostic Test_Diagnostic.cpp)
 target_include_directories(Test_Diagnostic PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_Diagnostic PUBLIC Crypto AccountData Utils Persistence Message TestUtils)
+target_link_libraries(Test_Diagnostic PUBLIC Crypto AccountData Utils Persistence Message Boost::unit_test_framework TestUtils)
 
 #FIXME: built but not enabled
 add_executable(ReadBlock ReadBlock.cpp)
