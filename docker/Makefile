@@ -7,6 +7,10 @@ all: release release-cuda
 len=$(shell echo $(COMMIT) | wc -c)
 commit=$(shell echo $(COMMIT) | cut -c 1-7)
 
+major=$(shell tail -n +2 ../VERSION | head -n1)
+minor=$(shell tail -n +4 ../VERSION | head -n1)
+fix=$(shell tail -n +6 ../VERSION | head -n1)
+
 check-commit:
 	@if [ -z "$(COMMIT)" ]; \
 	then \
@@ -37,8 +41,8 @@ k8s: check-commit get-scilla
 
 # build release version docker image for public usage
 release: get-scilla
-	docker build -f Dockerfile .
+	docker build -f Dockerfile -t zilliqa/zilliqa:v$(major).$(minor).$(fix) .
 
 release-cuda: get-scilla
-	docker build -f Dockerfile.cuda .
+	docker build -f Dockerfile.cuda -t zilliqa/zilliqa:v$(major).$(minor).$(fix)-cuda .
 
