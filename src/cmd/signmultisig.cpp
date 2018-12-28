@@ -80,12 +80,12 @@ int main(int argc, const char* argv[]) {
       vector<unsigned char> key_v;
       fstream privFile(privk_fn, ios::in);
       while (getline(privFile, line)) {
-        if (line.size() != 64) {
-          cerr << "Error: incorrect length of private key" << endl;
+        try {
+          privKeys.push_back(PrivKey::GetPrivKeyFromString(line));
+        } catch (std::invalid_argument& e) {
+          std::cerr << e.what() << endl;
           return ERROR_IN_COMMAND_LINE;
         }
-        key_v = DataConversion::HexStrToUint8Vec(line);
-        privKeys.emplace_back(key_v, 0);
       }
     } catch (std::exception& e) {
       std::cerr << "Problem occured when processing private keys on line: "
@@ -103,15 +103,9 @@ int main(int argc, const char* argv[]) {
       vector<unsigned char> key_v;
       fstream pubFile(pubk_fn, ios::in);
       while (getline(pubFile, line)) {
-        //        if (line.size() != 66) {
-        //          cerr << "Error: incorrect length of private key" << endl;
-        //          return ERROR_IN_COMMAND_LINE;
-        //        }
-        //        key_v = DataConversion::HexStrToUint8Vec(line);
-        //        pubKeys.emplace_back(key_v, 0);
         try {
           pubKeys.push_back(PubKey::GetPubKeyFromString(line));
-        } catch (std::exception& e) {
+        } catch (std::invalid_argument& e) {
           std::cerr << e.what() << endl;
           return ERROR_IN_COMMAND_LINE;
         }

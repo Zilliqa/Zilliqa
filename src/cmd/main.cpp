@@ -65,7 +65,7 @@ int main(int argc, const char* argv[]) {
     desc.add_options()("help,h", "Print help messages")(
         "privk,i", po::value<string>(&privK)->required(),
         "32-byte private key")("pubk,u", po::value<string>(&pubK)->required(),
-                               "32-byte public key")(
+                               "33-byte public key")(
         "address,a", po::value<string>(&address)->required(),
         "Listen IPv4/6 address formated as \"dotted decimal\" or optionally "
         "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(

@@ -55,7 +55,7 @@ int main(int argc, const char* argv[]) {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
-        "pubk,u", po::value<string>(&pubk)->required(), "32-byte public key");
+        "pubk,u", po::value<string>(&pubk)->required(), "33-byte public key");
 
     po::variables_map vm;
     try {
@@ -84,8 +84,16 @@ int main(int argc, const char* argv[]) {
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Reset();
     vector<unsigned char> message;
-    // TODO: Handle Exceptions
-    PubKey key(DataConversion::HexStrToUint8Vec(pubk), 0);
+
+    PubKey key;
+
+    try {
+      key = PubKey::GetPubKeyFromString(pubk);
+    } catch (std::invalid_argument& e) {
+      std::cerr << e.what() << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
     key.Serialize(message, 0);
     sha2.Update(message, 0, PUB_KEY_SIZE);
     const vector<unsigned char>& tmp2 = sha2.Finalize();

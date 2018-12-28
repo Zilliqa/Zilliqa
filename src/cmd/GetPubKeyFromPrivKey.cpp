@@ -55,7 +55,7 @@ int main(int argc, const char* argv[]) {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
-        "privk, k", po::value<string>(&privk)->required(),
+        "privk,i", po::value<string>(&privk)->required(),
         "32-byte private key");
 
     po::variables_map vm;
@@ -86,7 +86,15 @@ int main(int argc, const char* argv[]) {
     sha2.Reset();
     vector<unsigned char> message;
 
-    PrivKey privKey{DataConversion::HexStrToUint8Vec(privk), 0};
+    PrivKey privKey;
+
+    try {
+      privKey = PrivKey::GetPrivKeyFromString(privk);
+    } catch (std::invalid_argument& e) {
+      std::cerr << e.what() << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
     PubKey pubKey{privKey};
 
     cout << pubKey << endl;

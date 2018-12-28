@@ -146,15 +146,15 @@ using namespace std;
 
 int main(int argc, const char* argv[]) {
   try {
-    std::string strFileName(argv[1]);
-    std::string strResultName(argv[2]);
+    std::string strFileName;
+    std::string strResultName;
 
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
-        "l,log-file-name", po::value<string>(&strFileName),
+        "l,log-file-name", po::value<string>(&strFileName)->required(),
         "zilliqa log file name")("r,result-file-name",
-                                 po::value<string>(&strResultName),
+                                 po::value<string>(&strResultName)->required(),
                                  "grep result file name");
 
     po::variables_map vm;
