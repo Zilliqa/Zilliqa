@@ -229,6 +229,24 @@ PrivKey::PrivKey(const PrivKey& src)
 
 PrivKey::~PrivKey() {}
 
+PrivKey PrivKey::GetPrivKeyFromString(const string& key) {
+  if (key.size() != 64) {
+      throw std::invalid_argument("Error: private key - invalid number of input characters for key");
+  }
+  std::vector<unsigned char> key_v;
+
+  try {
+    key_v = DataConversion::HexStrToUint8Vec(key);
+  } catch (
+      boost::exception_detail::clone_impl<boost::algorithm::not_enough_input>&
+          e) {
+    throw std::invalid_argument(
+        "Error: private key - invalid format of input characters for key - required hexadecimal characters");
+  }
+
+  return PrivKey(key_v, 0);
+}
+
 bool PrivKey::Initialized() const { return m_initialized; }
 
 unsigned int PrivKey::Serialize(bytes& dst, unsigned int offset) const {
@@ -349,7 +367,25 @@ unsigned int PubKey::Serialize(bytes& dst, unsigned int offset) const {
   return PUB_KEY_SIZE;
 }
 
-int PubKey::Deserialize(const bytes& src, unsigned int offset) {
+PubKey PubKey::GetPubKeyFromString(const string& key) {
+  if (key.size() != 66) {
+      throw std::invalid_argument("Error: public  key - invalid number of input characters for key");
+  }
+  std::vector<unsigned char> key_v;
+
+  try {
+    key_v = DataConversion::HexStrToUint8Vec(key);
+  } catch (
+      boost::exception_detail::clone_impl<boost::algorithm::not_enough_input>&
+          e) {
+    throw std::invalid_argument(
+            "Error: public key - invalid format of input characters for key - required hexadecimal characters");
+  }
+
+  return PubKey(key_v, 0);
+}
+
+int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {

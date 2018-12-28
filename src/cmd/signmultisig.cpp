@@ -39,7 +39,7 @@ int main(int argc, const char* argv[]) {
 
     desc.add_options()("help,h", "Print help messages")(
         "message,m", po::value<string>(&message_)->required(),
-        "Command; see commands listed below")(
+        "Message string in hexadecimal format")(
         "privk,i", po::value<string>(&privk_fn)->required(),
         "Filename containing private keys each per line")(
         "pubk,u", po::value<string>(&pubk_fn)->required(),
@@ -77,17 +77,22 @@ int main(int argc, const char* argv[]) {
 
     string line;
     try {
-      {
-        fstream privFile(privk_fn, ios::in);
-        while (getline(privFile, line)) {
-          privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
+      vector<unsigned char> key_v;
+      fstream privFile(privk_fn, ios::in);
+      while (getline(privFile, line)) {
+        if (line.size() != 64) {
+          cerr << "Error: incorrect length of private key" << endl;
+          return ERROR_IN_COMMAND_LINE;
         }
+        key_v = DataConversion::HexStrToUint8Vec(line);
+        privKeys.emplace_back(key_v, 0);
       }
     } catch (std::exception& e) {
-      std::cerr << "Problem occured when reading private keys on line: "
+      std::cerr << "Problem occured when processing private keys on line: "
                 << privKeys.size() + 1 << endl;
       return ERROR_IN_COMMAND_LINE;
     }
+
     if (privKeys.size() < 1) {
       std::cerr << "No private keys loaded" << endl;
       std::cerr << "Empty or corrupted or missing file: " << privk_fn << endl;
@@ -95,17 +100,28 @@ int main(int argc, const char* argv[]) {
     }
 
     try {
-      {
-        fstream pubFile(pubk_fn, ios::in);
-        while (getline(pubFile, line)) {
-          pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
+      vector<unsigned char> key_v;
+      fstream pubFile(pubk_fn, ios::in);
+      while (getline(pubFile, line)) {
+        //        if (line.size() != 66) {
+        //          cerr << "Error: incorrect length of private key" << endl;
+        //          return ERROR_IN_COMMAND_LINE;
+        //        }
+        //        key_v = DataConversion::HexStrToUint8Vec(line);
+        //        pubKeys.emplace_back(key_v, 0);
+        try {
+          pubKeys.push_back(PubKey::GetPubKeyFromString(line));
+        } catch (std::exception& e) {
+          std::cerr << e.what() << endl;
+          return ERROR_IN_COMMAND_LINE;
         }
       }
     } catch (std::exception& e) {
-      std::cerr << "Problem occured when reading public keys on line: "
+      std::cerr << "Problem occured when processing public keys on line: "
                 << pubKeys.size() + 1 << endl;
       return ERROR_IN_COMMAND_LINE;
     }
+
     if (pubKeys.size() < 1) {
       std::cerr << "No public keys loaded" << endl;
       std::cerr << "Empty or corrupted or missing file: " << pubk_fn << endl;
@@ -124,6 +140,7 @@ int main(int argc, const char* argv[]) {
         std::cerr << "Failed to sign message" << endl;
         std::cerr << "Either private key or public key on line " << i + 1
                   << " are corrupted." << endl;
+        return ERROR_IN_COMMAND_LINE;
       }
       vector<unsigned char> result;
       sig.Serialize(result, 0);

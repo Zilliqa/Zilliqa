@@ -59,6 +59,8 @@ int main(int argc, char** argv) {
     string pubKey_string;
     string pubk_fn;
     string privk_fn;
+    vector<unsigned char> message;
+    vector<PubKey> dsComm;
 
     po::options_description desc("Options");
 
@@ -92,9 +94,45 @@ int main(int argc, char** argv) {
     }
 
     //--------------------------
+    try {
+      vector<unsigned char> key_v;
+      fstream privFile(privk_fn, ios::in);
+      while (getline(privFile, line)) {
+        if (line.size() != 64) {
+          cerr << "Error: incorrect length of private key" << endl;
+          return ERROR_IN_COMMAND_LINE;
+        }
+        key_v = DataConversion::HexStrToUint8Vec(line);
+        privKeys.emplace_back(key_v, 0);
+      }
+    } catch (exception& e) {
+      cerr << "Problem occured when reading private keys on line: "
+           << privKeys.size() + 1 << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
 
-    vector<unsigned char> message;
-    vector<PubKey> dsComm;
+    try {
+      vector<unsigned char> key_v;
+      fstream pubFile(pubk_fn, ios::in);
+      while (getline(pubFile, line)) {
+        if (line.size() != 66) {
+          cerr << "Error: incorrect length of public key" << endl;
+          return ERROR_IN_COMMAND_LINE;
+        }
+        key_v = DataConversion::HexStrToUint8Vec(line);
+        pubKey_string = line;
+        pubKeys.emplace_back(key_v, 0);
+      }
+    } catch (exception& e) {
+      cerr << "Problem occured when reading public keys on line: "
+           << pubKeys.size() + 1 << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    if (privKeys.size() != pubKeys.size()) {
+      cerr << "Private key number must equal to public key number!";
+      return -1;
+    }
 
     if (!UpgradeManager::GetInstance().LoadInitialDS(dsComm)) {
       cout << "Unable to load DS";
@@ -104,42 +142,6 @@ int main(int argc, char** argv) {
     for (auto& dsKey : dsComm) {
       dsKey.Serialize(message, curr_offset);
       curr_offset += PUB_KEY_SIZE;
-    }
-
-    try {
-      {
-        fstream privFile(privk_fn, ios::in);
-        while (getline(privFile, line)) {
-          privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
-        }
-      }
-    } catch (exception& e) {
-      cerr << "Problem occured when reading private keys on line: "
-           << privKeys.size() + 1 << endl;
-      return ERROR_IN_COMMAND_LINE;
-    }
-
-    try {
-      {
-        fstream pubFile(pubk_fn, ios::in);
-        while (getline(pubFile, line)) {
-          pubKey_string = line;
-          pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
-        }
-      }
-    } catch (exception& e) {
-      cerr << "Problem occured when reading public keys on line: "
-           << pubKeys.size() + 1 << endl;
-      return ERROR_IN_COMMAND_LINE;
-    }
-
-    if (privKeys.size() != pubKeys.size()) {
-      if (pubKeys.size() != 1) {
-        cerr << "Only one key allowed";
-        return -1;
-      }
-      cerr << "Private key number must equal to public key number!";
-      return -1;
     }
 
     string sig_str;
