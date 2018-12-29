@@ -135,6 +135,11 @@ class AccountStore
     m_accountStoreTemp->AddAccount(address, account);
   }
 
+  bool IncreaseBalanceTemp(const Address& address,
+                           const boost::multiprecision::uint128_t& delta) {
+    return m_accountStoreTemp->IncreaseBalance(address, delta);
+  }
+
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account,
                                        const bool fullCopy = false,
