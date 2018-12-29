@@ -405,4 +405,4 @@ const vector<string> GENESIS_KEYS{ReadAccountsFromConstantsFile("private_key")};
 const std::string VERIFIER_PATH{
     ReadConstantString("VERIFIER_PATH", "node.verifier.")};
 const std::string VERIFIER_PUBKEY{
-    ReadConstantString("VERIFIER_PUBKEY", "node.verifier")};
+    ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
