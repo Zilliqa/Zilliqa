@@ -105,9 +105,9 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
   m_pendingVCBlock->GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), m_pendingVCBlock->GetB1());
-  if (not Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                        m_pendingVCBlock->GetCS2(),
-                                        *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(message, 0, message.size(),
+                                              m_pendingVCBlock->GetCS2(),
+                                              *aggregatedKey)) {
     LOG_GENERAL(WARNING, "cosig verification fail");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -205,7 +205,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
         m_pendingVCBlock->GetHeader().GetCandidateLeaderNetworkInfo());
     if (candidateLeaderInfo.first == m_mediator.m_selfKey.first &&
         candidateLeaderInfo.second == m_mediator.m_selfPeer) {
-      m_consensusLeaderID = m_consensusMyID;
+      m_consensusLeaderID = m_consensusMyID.load();
     } else {
       deque<pair<PubKey, Peer>>::iterator iterConsensusLeaderID =
           find(m_mediator.m_DSCommittee->begin(),
@@ -231,8 +231,8 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
       m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
     }
-    m_mediator.m_node->m_consensusMyID = m_consensusMyID;
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+    m_mediator.m_node->m_consensusMyID = m_consensusMyID.load();
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
     if (m_mediator.m_node->m_consensusMyID ==
         m_mediator.m_node->m_consensusLeaderID) {
       m_mediator.m_node->m_isPrimary = true;
@@ -264,7 +264,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   SendDataToLookupFunc t_sendDataToLookupFunc = nullptr;
-  SendDataToShardFunc t_sendDataToShardFunc = nullptr;
   // Broadcasting vcblock to lookup nodes iff view change do not occur before ds
   // block consensus. This is to be consistent with how normal node process the
   // vc block (before ds block).
@@ -285,7 +284,6 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     }
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP: {
-      t_sendDataToShardFunc = SendDataToShardFuncDefault;
       break;
     }
     case VIEWCHANGE_CONSENSUS:
@@ -296,17 +294,25 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
           "illegal view change state. state: " << to_string(viewChangeState));
   }
 
-  if (t_sendDataToLookupFunc || t_sendDataToShardFunc) {
+  if (t_sendDataToLookupFunc) {
     auto composeVCBlockForSender =
         [this](vector<unsigned char>& vcblock_message) -> bool {
       return ComposeVCBlockForSender(vcblock_message);
     };
 
+    // Acquire shard receivers cosigs from MicroBlocks
+    unordered_map<uint32_t, BlockBase> t_microBlocks;
+    const auto& microBlocks = m_microBlocks
+        [m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()];
+    for (const auto& microBlock : microBlocks) {
+      t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
+    }
+
     DataSender::GetInstance().SendDataToOthers(
-        *m_pendingVCBlock, tmpDSCommittee, m_shards,
+        *m_pendingVCBlock, tmpDSCommittee, m_shards, t_microBlocks,
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeVCBlockForSender, t_sendDataToLookupFunc, t_sendDataToShardFunc);
+        m_consensusMyID, composeVCBlockForSender, t_sendDataToLookupFunc);
   }
 }
 

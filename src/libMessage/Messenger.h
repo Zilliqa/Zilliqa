@@ -35,8 +35,6 @@ class Messenger {
  public:
   template <class K, class V>
   static bool CopyWithSizeCheck(const K& arr, V& result) {
-    LOG_MARKER();
-
     // Fixed length copying.
     if (arr.size() != result.size()) {
       LOG_GENERAL(WARNING, "Size check while copying failed. Size expected = "
@@ -193,6 +191,13 @@ class Messenger {
                                                  FallbackBlock& fallbackblock,
                                                  DequeOfShard& shards);
 
+  static bool SetDiagnosticData(bytes& dst, const unsigned int offset,
+                                const DequeOfShard& shards,
+                                const DequeOfDSNode& dsCommittee);
+  static bool GetDiagnosticData(const bytes& src, const unsigned int offset,
+                                DequeOfShard& shards,
+                                DequeOfDSNode& dsCommittee);
+
   // ============================================================================
   // Peer Manager messages
   // ============================================================================
@@ -309,16 +314,14 @@ class Messenger {
                                        DequeOfShard& shards);
 
   static bool SetNodeFinalBlock(bytes& dst, const unsigned int offset,
-                                const uint32_t shardId,
                                 const uint64_t dsBlockNumber,
                                 const uint32_t consensusID,
                                 const TxBlock& txBlock,
                                 const bytes& stateDelta);
 
   static bool GetNodeFinalBlock(const bytes& src, const unsigned int offset,
-                                uint32_t& shardId, uint64_t& dsBlockNumber,
-                                uint32_t& consensusID, TxBlock& txBlock,
-                                bytes& stateDelta);
+                                uint64_t& dsBlockNumber, uint32_t& consensusID,
+                                TxBlock& txBlock, bytes& stateDelta);
 
   static bool SetNodeVCBlock(bytes& dst, const unsigned int offset,
                              const VCBlock& vcBlock);
@@ -638,12 +641,13 @@ class Messenger {
                                  const uint64_t blockNumber,
                                  const bytes& blockHash,
                                  const uint16_t backupID,
-                                 const CommitPoint& commit,
+                                 const CommitPoint& commitPoint,
+                                 const CommitPointHash& commitPointHash,
                                  const std::pair<PrivKey, PubKey>& backupKey);
   static bool GetConsensusCommit(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      CommitPoint& commit,
+      CommitPoint& commitPoint, CommitPointHash& commitPointHash,
       const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
 
   static bool SetConsensusChallenge(

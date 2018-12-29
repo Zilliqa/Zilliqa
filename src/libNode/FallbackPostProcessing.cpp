@@ -104,9 +104,9 @@ void Node::ProcessFallbackConsensusWhenDone() {
   m_pendingFallbackBlock->GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(),
                           m_pendingFallbackBlock->GetB1());
-  if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                     m_pendingFallbackBlock->GetCS2(),
-                                     *aggregatetdKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(message, 0, message.size(),
+                                              m_pendingFallbackBlock->GetCS2(),
+                                              *aggregatetdKey)) {
     LOG_GENERAL(WARNING, "cosig verification fail");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -220,10 +220,10 @@ void Node::ProcessFallbackConsensusWhenDone() {
 
   {
     DataSender::GetInstance().SendDataToOthers(
-        *m_microblock, *m_myShardMembers, m_mediator.m_ds->m_shards,
+        *m_microblock, *m_myShardMembers, m_mediator.m_ds->m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeFallbackBlockMessageForSender);
+        m_consensusMyID, composeFallbackBlockMessageForSender);
   }
 
   {

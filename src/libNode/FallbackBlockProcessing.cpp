@@ -108,8 +108,8 @@ bool Node::VerifyFallbackBlockCoSignature(const FallbackBlock& fallbackblock) {
   }
   fallbackblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), fallbackblock.GetB1());
-  if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                     fallbackblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(
+          message, 0, message.size(), fallbackblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed. Pubkeys");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -204,7 +204,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
     }
 
     // Check consensus leader network info and pubkey
-    uint32_t leaderConsensusId =
+    uint16_t leaderConsensusId =
         fallbackblock.GetHeader().GetLeaderConsensusId();
     if (leaderConsensusId >= m_mediator.m_ds->m_shards[shard_id].size()) {
       LOG_GENERAL(

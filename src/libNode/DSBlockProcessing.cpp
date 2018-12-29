@@ -162,8 +162,8 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
   }
   dsblock.GetCS1().Serialize(message, message.size());
   BitVector::SetBitVector(message, message.size(), dsblock.GetB1());
-  if (!Schnorr::GetInstance().Verify(message, 0, message.size(),
-                                     dsblock.GetCS2(), *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(
+          message, 0, message.size(), dsblock.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
@@ -642,6 +642,43 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
 
   BlockStorage::GetBlockStorage().PutDSCommittee(
       m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+
+  if (LOOKUP_NODE_MODE) {
+    bool canPutNewEntry = true;
+
+    // There's no quick way to get the oldest entry in leveldb
+    // Hence, we manage deleting old entries here instead
+    if ((MAX_ENTRIES_FOR_DIAGNOSTIC_DATA >
+         0) &&  // If limit is 0, skip deletion
+        (BlockStorage::GetBlockStorage().GetDiagnosticDataCount() >=
+         MAX_ENTRIES_FOR_DIAGNOSTIC_DATA) &&  // Limit reached
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() >=
+         MAX_ENTRIES_FOR_DIAGNOSTIC_DATA)) {  // DS Block number is not below
+                                              // limit
+
+      const uint64_t oldBlockNum =
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() -
+          MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
+
+      canPutNewEntry =
+          BlockStorage::GetBlockStorage().DeleteDiagnosticData(oldBlockNum);
+
+      if (canPutNewEntry) {
+        LOG_GENERAL(INFO,
+                    "Deleted old diagnostic data for DS block " << oldBlockNum);
+      } else {
+        LOG_GENERAL(WARNING,
+                    "Failed to delete old diagnostic data for DS block "
+                        << oldBlockNum);
+      }
+    }
+
+    if (canPutNewEntry) {
+      BlockStorage::GetBlockStorage().PutDiagnosticData(
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
+          m_mediator.m_ds->m_shards, *m_mediator.m_DSCommittee);
+    }
+  }
 
   return true;
 }

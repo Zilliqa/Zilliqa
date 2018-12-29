@@ -396,7 +396,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->ResetConsensusId();
 
     // Check if I am the leader or backup of the shard
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID;
+    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
 
     if (m_mediator.m_node->m_consensusMyID ==
         m_mediator.m_node->m_consensusLeaderID) {
@@ -560,6 +560,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     ClearReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
   }
 
+  m_mediator.m_node->m_myshardId = m_shards.size();
   BlockStorage::GetBlockStorage().PutShardStructure(
       m_shards, m_mediator.m_node->m_myshardId);
 
@@ -594,11 +595,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     };
 
     DataSender::GetInstance().SendDataToOthers(
-        *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards,
+        *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeDSBlockMessageForSender, sendDSBlockToLookupNodesAndNewDSMembers,
-        sendDSBlockToShardNodes);
+        m_consensusMyID, composeDSBlockMessageForSender,
+        sendDSBlockToLookupNodesAndNewDSMembers, sendDSBlockToShardNodes);
   }
 
   LOG_STATE(

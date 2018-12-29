@@ -79,6 +79,10 @@ void addBalanceToGenesisAccount() {
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);
   }
+
+  // Init account for issuing coinbase rewards
+  AccountStore::GetInstance().AddAccount(Address(),
+                                         {TOTAL_COINBASE_REWARD, nonce});
   AccountStore::GetInstance().UpdateStateTrieAll();
 }
 
@@ -131,7 +135,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
           ++m_mediator.m_ds->m_consensusMyID;
         }
 
-        m_mediator.m_node->m_consensusMyID = m_mediator.m_ds->m_consensusMyID;
+        m_consensusMyID = m_mediator.m_ds->m_consensusMyID.load();
 
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
@@ -277,8 +281,12 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     m_mediator.m_DSCommittee->clear();
   }
 
-  BlockStorage::GetBlockStorage().GetDSCommittee(
-      m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+  uint16_t ds_consensusLeaderID = 0;
+
+  BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
+                                                 ds_consensusLeaderID);
+
+  m_mediator.m_ds->m_consensusLeaderID = ds_consensusLeaderID;
 
   unordered_map<string, Peer> ipMapping;
   GetIpMapping(ipMapping);
@@ -1108,7 +1116,8 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     }
   }
 
-  if (m_mediator.m_lookup->IsLookupNode(from)) {
+  if (m_mediator.m_lookup->IsLookupNode(from) &&
+      from.GetPrintableIPAddress() != "127.0.0.1") {
     if (epochNumber < m_mediator.m_currentEpochNum) {
       LOG_GENERAL(WARNING, "Txn packet from older epoch, discard");
       return false;
@@ -1125,7 +1134,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
-                "should be from gossip neightor and process it");
+                "should be from gossip neighbor and process it");
     return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
                                           shardId, lookupPubKey, transactions);
   }

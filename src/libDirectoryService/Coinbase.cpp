@@ -33,7 +33,7 @@ template <class Container>
 bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
                                         const vector<bool>& b2,
                                         const Container& shard,
-                                        const uint32_t& shard_id,
+                                        const int32_t& shard_id,
                                         const uint64_t& epochNum) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -234,7 +234,7 @@ void DirectoryService::InitCoinbase() {
     return;
   }
 
-  Address genesisAccount(GENESIS_WALLETS[0]);
+  Address coinbaseAccount = Address();
 
   uint128_t sig_count = 0;
   uint32_t lookup_count = 0;
@@ -252,7 +252,7 @@ void DirectoryService::InitCoinbase() {
 
   uint128_t total_reward;
 
-  if (!SafeMath<uint128_t>::add(COINBASE_REWARD, m_totalTxnFees,
+  if (!SafeMath<uint128_t>::add(COINBASE_REWARD_PER_DS, m_totalTxnFees,
                                 total_reward)) {
     LOG_GENERAL(WARNING, "total_reward addition unsafe!");
     return;
@@ -279,39 +279,45 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Each reward: " << reward_each << " lookup each "
                                     << reward_each_lookup);
 
+  // Add rewards come from gas fee back to the coinbase account
+  AccountStore::GetInstance().IncreaseBalance(coinbaseAccount, m_totalTxnFees);
+
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
-  for (auto const& epochNum : m_coinbaseRewardees) {
-    LOG_GENERAL(INFO, "[CNBSE] Rewarding " << epochNum.first << " epoch");
+  const auto& myAddr =
+      Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second);
+  for (auto const& epochNumShardRewardee : m_coinbaseRewardees) {
+    LOG_GENERAL(
+        INFO, "[CNBSE] Rewarding " << epochNumShardRewardee.first << " epoch");
 
-    for (auto const& shardId : epochNum.second) {
-      LOG_GENERAL(INFO, "[CNBSE] Rewarding " << shardId.first << " shard");
-      if (shardId.first == CoinbaseReward::LOOKUP_REWARD) {
-        for (auto const& addr : shardId.second) {
+    for (auto const& shardIdRewardee : epochNumShardRewardee.second) {
+      LOG_GENERAL(INFO,
+                  "[CNBSE] Rewarding " << shardIdRewardee.first << " shard");
+      if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
+        for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, genesisAccount, reward_each_lookup)) {
+                  addr, coinbaseAccount, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             suc_lookup_counter++;
           }
         }
       } else {
-        for (auto const& addr : shardId.second) {
+        for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, genesisAccount, reward_each)) {
+                  addr, coinbaseAccount, reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
-            if (addr ==
-                Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second)) {
+            if (addr == myAddr) {
               LOG_EPOCH(INFO,
                         std::to_string(m_mediator.m_currentEpochNum).c_str(),
-                        "[REWARD]"
-                            << "Rewarded " << reward_each);
+                        "[REWARD] Rewarded " << reward_each << " for blk "
+                                             << epochNumShardRewardee.first);
               LOG_STATE("[REWARD]["
                         << setw(15) << left
                         << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                         << m_mediator.m_currentEpochNum << "][" << reward_each
-                        << "]");
+                        << "] for blk " << epochNumShardRewardee.first);
             }
             suc_counter++;
           }
@@ -336,13 +342,19 @@ void DirectoryService::InitCoinbase() {
       const Address& winnerAddr = shard.second[rdm_index];
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-              winnerAddr, genesisAccount, balance_left)) {
+              winnerAddr, coinbaseAccount, balance_left)) {
         LOG_GENERAL(WARNING, "Could not reward lucky draw!");
       }
-      LOG_STATE("[REWARD][" << setw(15) << left
-                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                            << "][" << m_mediator.m_currentEpochNum << "]["
-                            << balance_left << "]");
+
+      // Only log reward for my self so can find out the reward of mine in state
+      // log
+      if (winnerAddr == myAddr) {
+        LOG_STATE("[REWARD][" << setw(15) << left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum << "]["
+                              << balance_left << "] lucky draw");
+      }
+
       return;
     } else {
       ++count;

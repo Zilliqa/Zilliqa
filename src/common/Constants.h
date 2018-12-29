@@ -45,6 +45,7 @@ const unsigned int PUB_KEY_SIZE = 33;
 const unsigned int SIGNATURE_CHALLENGE_SIZE = 32;
 const unsigned int SIGNATURE_RESPONSE_SIZE = 32;
 const unsigned int COMMIT_SECRET_SIZE = 32;
+const unsigned int COMMIT_POINT_HASH_SIZE = 32;
 const unsigned int COMMIT_POINT_SIZE = 33;
 const unsigned int CHALLENGE_SIZE = 32;
 const unsigned int RESPONSE_SIZE = 32;
@@ -113,6 +114,7 @@ extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int MSG_VERSION;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
+extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 
 // Archival constants
 extern const bool ARCHIVAL_NODE;
@@ -191,6 +193,7 @@ extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
 extern const unsigned int NUM_GOSSIP_RECEIVERS;
 extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
+extern const unsigned int KEEP_RAWMSG_FROM_LAST_N_ROUNDS;
 
 // GPU mining constants
 extern const std::string GPU_TO_USE;
@@ -213,6 +216,8 @@ extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 // Network composition constants
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
+extern const unsigned int SHARD_SIZE_TOLERANCE_LO;
+extern const unsigned int SHARD_SIZE_TOLERANCE_HI;
 
 // P2PComm constants
 extern const unsigned int BROADCAST_INTERVAL;
@@ -223,6 +228,7 @@ extern const unsigned int MAXRETRYCONN;
 extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int SENDQUEUE_SIZE;
+extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;
@@ -274,7 +280,8 @@ extern const unsigned int FALLBACK_TEST_EPOCH;
 extern const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT;
 
 // Transaction constants
-extern const boost::multiprecision::uint128_t COINBASE_REWARD;
+extern const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD;
+extern const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS;
 extern const unsigned int LOOKUP_REWARD_IN_PERCENT;
 extern const unsigned int MAX_CODE_SIZE_IN_BYTES;
 extern const unsigned int MAX_CONTRACT_DEPTH;

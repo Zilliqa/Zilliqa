@@ -57,11 +57,16 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   const PubKey& senderPubKey = tx.GetSenderPubKey();
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
 
+  if (fromAddr == Address()) {
+    LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
+    return false;
+  }
+
   // Check if from account exists in local storage
   if (!AccountStore::GetInstance().IsAccountExist(fromAddr)) {
-    LOG_GENERAL(INFO, "fromAddr not found: " << fromAddr
-                                             << ". Transaction rejected: "
-                                             << tx.GetTranID());
+    LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
+                                                << ". Transaction rejected: "
+                                                << tx.GetTranID());
     return false;
   }
 
@@ -74,6 +79,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
                   << " Debit Amount = " << tx.GetAmount());
     return false;
   }
+
+  receipt.SetEpochNum(m_mediator.m_currentEpochNum);
 
   return AccountStore::GetInstance().UpdateAccountsTemp(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
@@ -95,6 +102,11 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
+
+  if (fromAddr == Address()) {
+    LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
+    return false;
+  }
 
   if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
     unsigned int correct_shard_from =
@@ -206,9 +218,9 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
                           block.GetB1());
-  if (!Schnorr::GetInstance().Verify(serializedHeader, 0,
-                                     serializedHeader.size(), block.GetCS2(),
-                                     *aggregatedKey)) {
+  if (!MultiSig::GetInstance().MultiSigVerify(serializedHeader, 0,
+                                              serializedHeader.size(),
+                                              block.GetCS2(), *aggregatedKey)) {
     LOG_GENERAL(WARNING, "Cosig verification failed");
     for (auto& kv : keys) {
       LOG_GENERAL(WARNING, kv);
