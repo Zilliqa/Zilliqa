@@ -256,6 +256,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
 
 bool Node::ValidateDB() {
   deque<pair<PubKey, Peer>> dsComm;
+
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
   }
@@ -269,6 +270,19 @@ bool Node::ValidateDB() {
     return std::get<BlockLinkIndex::INDEX>(a) <
            std::get<BlockLinkIndex::INDEX>(b);
   });
+
+  std::list<TxBlockSharedPtr> txblocks;
+  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txblocks)) {
+    LOG_GENERAL(WARNING, "Fail to get Tx Blocks");
+    return false;
+  }
+
+  txblocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+  });
+
+  const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
+
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
   for (const auto& blocklink : blocklinks) {
@@ -282,13 +296,20 @@ bool Node::ValidateDB() {
         LOG_GENERAL(WARNING, "Could not rertv DS Block " << blockNum);
         return false;
       }
+      if (latestTxBlockNum >= dsblock->GetHeader().GetEpochNum()) {
+        break;
+      }
       dirBlocks.emplace_back(*dsblock);
+
     } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
       auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
       VCBlockSharedPtr vcblock;
       if (!BlockStorage::GetBlockStorage().GetVCBlock(blockHash, vcblock)) {
         LOG_GENERAL(WARNING, "Could not retrv VC Block " << blockHash);
         return false;
+      }
+      if (latestTxBlockNum >= vcblock->GetHeader().GetViewChangeEpochNo()) {
+        break;
       }
       dirBlocks.emplace_back(*vcblock);
     } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::FB) {
@@ -308,19 +329,10 @@ bool Node::ValidateDB() {
     LOG_GENERAL(WARNING, "Fail to verify Dir Blocks");
     return false;
   }
-  std::list<TxBlockSharedPtr> blocks;
-  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(blocks)) {
-    LOG_GENERAL(WARNING, "Fail to get Tx Blocks");
-    return false;
-  }
-
-  blocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
-    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
-  });
 
   vector<TxBlock> txBlocks;
 
-  for (auto txblock : blocks) {
+  for (auto txblock : txblocks) {
     txBlocks.emplace_back(*txblock);
   }
 
