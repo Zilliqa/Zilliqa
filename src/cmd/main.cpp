@@ -115,10 +115,6 @@ int main(int argc, const char* argv[]) {
     return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
   };
 
-  if (atoi(argv[6]) == 8) {
-    return 0;
-  }
-
   P2PComm::GetInstance().StartMessagePump(my_network_info.m_listenPortHost,
                                           dispatcher, broadcast_list_retriever);
 
