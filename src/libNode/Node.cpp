@@ -296,7 +296,7 @@ bool Node::ValidateDB() {
         LOG_GENERAL(WARNING, "Could not rertv DS Block " << blockNum);
         return false;
       }
-      if (latestTxBlockNum >= dsblock->GetHeader().GetEpochNum()) {
+      if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
         break;
       }
       dirBlocks.emplace_back(*dsblock);
@@ -308,7 +308,7 @@ bool Node::ValidateDB() {
         LOG_GENERAL(WARNING, "Could not retrv VC Block " << blockHash);
         return false;
       }
-      if (latestTxBlockNum >= vcblock->GetHeader().GetViewChangeEpochNo()) {
+      if (latestTxBlockNum <= vcblock->GetHeader().GetViewChangeEpochNo()) {
         break;
       }
       dirBlocks.emplace_back(*vcblock);
