@@ -256,6 +256,8 @@ void Node::AddGenesisInfo(SyncType syncType) {
 
 bool Node::ValidateDB() {
   deque<pair<PubKey, Peer>> dsComm;
+  const string lookupIp = "127.0.0.1";
+  const uint port = 30303;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
@@ -383,8 +385,8 @@ bool Node::ValidateDB() {
   }
 
   struct in_addr ip_addr;
-  inet_pton(AF_INET, "127.0.0.1", &ip_addr);
-  Peer seed((uint128_t)ip_addr.s_addr, 30303);
+  inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
+  Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
 
   return true;
