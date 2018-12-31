@@ -46,6 +46,7 @@ RumorManager::RumorManager()
       m_rumorIdHashBimap(),
       m_rumorHashRawMsgBimap(),
       m_selfPeer(),
+      m_selfKey(),
       m_rumorRawMsgTimestamp(),
       m_rumorIdGenerator(0),
       m_mutex(),
@@ -115,6 +116,7 @@ void RumorManager::StopRounds() {
 // PUBLIC METHODS
 bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
                               const Peer& myself,
+                              const std::pair<PrivKey, PubKey>& myKeys,
                               std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
   {
@@ -139,6 +141,7 @@ bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
   m_rumorIdHashBimap.clear();
   m_peerIdSet.clear();
   m_selfPeer = myself;
+  m_selfKey = myKeys;
   m_rumorHashRawMsgBimap.clear();
   m_rumorRawMsgTimestamp.clear();
   m_fullNetworkKeys.clear();
@@ -188,9 +191,32 @@ void RumorManager::SpreadBufferedRumors() {
 
 bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   // verify if the pubkey is from with-in our network
+  PubKey senderPubKey;
+  senderPubKey.Deserialize(message, 0);
+
+  if (find(m_fullNetworkKeys.begin(), m_fullNetworkKeys.end(), senderPubKey) ==
+      m_fullNetworkKeys.end()) {
+    LOG_GENERAL(WARNING,
+                "Sender not from known network peer list. so ignoring message");
+    return false;
+  }
+
   // verify if signature matches the one in message.
-  // If all above check pass, add the rumor
-  return AddRumor(message);
+  Signature toVerify;
+  toVerify.Deserialize(message, PUB_KEY_SIZE);
+
+  bytes raw_message(message.begin() + PUB_KEY_SIZE + SIGNATURE_CHALLENGE_SIZE +
+                        SIGNATURE_RESPONSE_SIZE,
+                    message.end());
+
+  if (!P2PComm::GetInstance().VerifyMessage(raw_message, toVerify,
+                                            senderPubKey)) {
+    LOG_GENERAL(WARNING, "Signature verification failed. so ignoring message");
+    return false;
+  }
+
+  // All checks passed. Good to spread this rumor
+  return AddRumor(raw_message);
 }
 
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
@@ -262,6 +288,15 @@ RumorManager::RawBytes RumorManager::GenerateGossipForwardMessage(
 
   Serializable::SetNumber<uint32_t>(
       cmd, cur_offset, m_selfPeer.m_listenPortHost, sizeof(uint32_t));
+
+  // Add pubkey and signature before message body
+  RawBytes tmp;
+  m_selfKey.second.Serialize(tmp, 0);
+
+  Signature sig = P2PComm::GetInstance().SignMessage(message);
+  sig.Serialize(tmp, PUB_KEY_SIZE);
+
+  cmd.insert(cmd.end(), tmp.begin(), tmp.end());
 
   cmd.insert(cmd.end(), message.begin(), message.end());
 
