@@ -1604,6 +1604,7 @@ bool Node::CleanVariables() {
   m_proposedGasPrice = PRECISION_MIN_VALUE;
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
+  P2PComm::GetInstance().InitializeRumorManager({});
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
