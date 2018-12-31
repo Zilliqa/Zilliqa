@@ -600,6 +600,12 @@ void Node::WakeupAtDSEpoch() {
       for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
         pubKeys.emplace_back(i.first);
       }
+
+      // Get the pubKeys for lookup nodes
+      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+        pubKeys.emplace_back(i.first);
+      }
+
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
@@ -700,6 +706,12 @@ void Node::WakeupAtTxEpoch() {
       for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
         pubKeys.emplace_back(i.first);
       }
+
+      // Get the pubKeys for lookup nodes
+      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+        pubKeys.emplace_back(i.first);
+      }
+
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
     m_mediator.m_ds->SetState(
@@ -724,6 +736,11 @@ void Node::WakeupAtTxEpoch() {
 
     // Get the pubkeys for ds committee
     for (const auto& i : *m_mediator.m_DSCommittee) {
+      pubKeys.emplace_back(i.first);
+    }
+
+    // Get the pubKeys for lookup nodes
+    for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
       pubKeys.emplace_back(i.first);
     }
 

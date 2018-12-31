@@ -246,6 +246,12 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
       pubKeys.emplace_back(i.first);
     }
+
+    // Get the pubKeys for lookup nodes
+    for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+      pubKeys.emplace_back(i.first);
+    }
+
     P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
@@ -529,6 +535,12 @@ bool DirectoryService::FinishRejoinAsDS() {
       for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
         pubKeys.emplace_back(i.first);
       }
+
+      // Get the pubKeys for lookup nodes
+      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+        pubKeys.emplace_back(i.first);
+      }
+
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
   }
@@ -890,6 +902,12 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
       for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
         pubKeys.emplace_back(i.first);
       }
+
+      // Get the pubKeys for lookup nodes
+      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+        pubKeys.emplace_back(i.first);
+      }
+
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
