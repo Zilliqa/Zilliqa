@@ -400,15 +400,15 @@ void DirectoryService::InitCoinbase() {
     if (count == shardIndex) {
       uint16_t rdm_index = lastBlockHash % shard.second.size();
       if (GUARD_MODE) {
-        while (
-            Guard::GetInstance().IsNodeInDSGuardList(shard.second[rdm_index]) ||
-            Guard::GetInstance().IsNodeInShardGuardList(
-                shard.second[rdm_index])) {
+        while (Guard::GetInstance().IsNodeInDSGuardList(
+                   shard.second.at(rdm_index)) ||
+               Guard::GetInstance().IsNodeInShardGuardList(
+                   shard.second.at(rdm_index))) {
           rdm_index = (rdm_index + 1) % shard.second.size();
         }
       }
       const Address& winnerAddr =
-          Account::GetAddressFromPublicKey(shard.second[rdm_index]);
+          Account::GetAddressFromPublicKey(shard.second.at(rdm_index));
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
               winnerAddr, coinbaseAddress, balance_left)) {
