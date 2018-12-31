@@ -2221,6 +2221,8 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
   unique_lock<mutex> lk(m_mutexCVJoined);
   cv_waitJoined.wait(lk);
 
+  m_startedPoW = false;
+
   if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() >
       lastTxBlockNum) {
     if (GetSyncType() != SyncType::NO_SYNC) {
