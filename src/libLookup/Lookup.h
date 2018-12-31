@@ -332,6 +332,9 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_MutexCVSetStateDeltaFromSeed;
   std::condition_variable cv_setStateDeltaFromSeed;
 
+  std::mutex m_mutexCVJoined;
+  std::condition_variable cv_waitJoined;
+
   bool InitMining(uint32_t lookupIndex);
 
   /// Helper variables used by new node synchronization

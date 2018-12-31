@@ -1837,6 +1837,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   }
 
   cv_setTxBlockFromSeed.notify_all();
+  cv_waitJoined.notify_all();
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
@@ -2214,16 +2215,20 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
     return false;
   }
 
-  // Check whether is the new node connected to the network. Else, initiate
-  // re-sync process again.
-  this_thread::sleep_for(chrono::seconds(
-      POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
-      2 * NEW_NODE_SYNC_INTERVAL + (TX_DISTRIBUTE_TIME_IN_MS / 1000)));
-  m_startedPoW = false;
-  if (GetSyncType() != SyncType::NO_SYNC) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Not yet connected to network");
-    m_mediator.m_node->SetState(Node::SYNC);
+  uint64_t lastTxBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  unique_lock<mutex> lk(m_mutexCVJoined);
+  cv_waitJoined.wait(lk);
+
+  if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() >
+      lastTxBlockNum) {
+    if (GetSyncType() != SyncType::NO_SYNC) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Not yet connected to network");
+
+      m_mediator.m_node->SetState(Node::SYNC);
+    }
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I have successfully join the network");
