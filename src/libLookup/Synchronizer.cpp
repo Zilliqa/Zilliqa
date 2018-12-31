@@ -164,6 +164,19 @@ bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
   return true;
 }
 
+bool Synchronizer::FetchLatestTxBlockSeed(Lookup* lookup,
+                                          uint64_t currentBlockChainSize) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestTxBlocks not expected to be "
+                "called from LookUp node.");
+    return true;
+  }
+
+  lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
+  return true;
+}
+
 bool Synchronizer::FetchLatestState(Lookup* lookup) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -173,6 +186,18 @@ bool Synchronizer::FetchLatestState(Lookup* lookup) {
   }
 
   lookup->GetStateFromLookupNodes();
+  return true;
+}
+
+bool Synchronizer::FetchLatestStateSeed(Lookup* lookup) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestState not expected to be called "
+                "from LookUp node.");
+    return true;
+  }
+
+  lookup->GetStateFromSeedNodes();
   return true;
 }
 

@@ -59,8 +59,6 @@ static_assert(ARRAY_SIZE(NodeInstructionStrings) == PROPOSEGASPRICE + 1,
               "NodeInstructionStrings definition is not correct");
 
 static const std::string LookupInstructionStrings[]{
-    MAKE_LITERAL_STRING(GETSEEDPEERS),
-    MAKE_LITERAL_STRING(SETSEEDPEERS),
     MAKE_LITERAL_STRING(GETDSINFOFROMSEED),
     MAKE_LITERAL_STRING(SETDSINFOFROMSEED),
     MAKE_LITERAL_STRING(GETDSBLOCKFROMSEED),

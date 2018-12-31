@@ -46,6 +46,9 @@ class Synchronizer {
   bool FetchLatestState(Lookup* lookup);
   bool AttemptPoW(Lookup* lookup);
   bool FetchOfflineLookups(Lookup* lookup);
+
+  bool FetchLatestTxBlockSeed(Lookup* lookup, uint64_t currentBlockChainSize);
+  bool FetchLatestStateSeed(Lookup* lookup);
 };
 
 #endif  // __SYNCHRONIZER_H__

@@ -55,7 +55,8 @@ class Lookup : public Executable, public Broadcastable {
   // Info about lookup node
   VectorOfLookupNode m_lookupNodes;
   VectorOfLookupNode m_lookupNodesOffline;
-  std::vector<Peer> m_seedNodes;
+  VectorOfLookupNode m_seedNodes;
+  std::mutex mutable m_mutexSeedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
 
@@ -174,19 +175,20 @@ class Lookup : public Executable, public Broadcastable {
   // Calls P2PComm::SendMessage serially for every Seed peer
   void SendMessageToSeedNodes(const bytes& message) const;
 
+  void SendMessageToRandomSeedNode(const bytes& message) const;
+
   // TODO: move the Get and ProcessSet functions to Synchronizer
   std::vector<Peer> GetAboveLayer();
-  bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
-  bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+  bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
   bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
-
+  bool GetStateFromSeedNodes();
   bool ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
 
@@ -228,8 +230,6 @@ class Lookup : public Executable, public Broadcastable {
   void SendTxnPacketToNodes(uint32_t);
 
   bool ProcessEntireShardingStructure();
-  bool ProcessGetSeedPeersFromLookup(const bytes& message, unsigned int offset,
-                                     const Peer& from);
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);
   bool ProcessGetDSBlockFromSeed(const bytes& message, unsigned int offset,
@@ -263,8 +263,6 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
                                 const Peer& from);
 
-  bool ProcessSetSeedPeersFromLookup(const bytes& message, unsigned int offset,
-                                     const Peer& from);
   bool ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);
   bool ProcessSetDSBlockFromSeed(const bytes& message, unsigned int offset,
@@ -311,9 +309,8 @@ class Lookup : public Executable, public Broadcastable {
 
   bool ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
                               const Peer& from);
-
-  void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
-
+  void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
+                                                bool toSendSeed = true);
   static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
 

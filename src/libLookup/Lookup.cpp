@@ -180,12 +180,22 @@ void Lookup::SetAboveLayer() {
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
-      m_seedNodes.emplace_back(lookup_node);
+      PubKey pubKey(
+          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
+          0);
+      m_seedNodes.emplace_back(pubKey, lookup_node);
     }
   }
 }
 
-vector<Peer> Lookup::GetAboveLayer() { return m_seedNodes; }
+vector<Peer> Lookup::GetAboveLayer() {
+  vector<Peer> seedNodePeer;
+  lock_guard<mutex> g(m_mutexSeedNodes);
+  for (const auto& seedNode : m_seedNodes) {
+    seedNodePeer.emplace_back(seedNode.second);
+  }
+  return seedNodePeer;
+}
 
 std::once_flag generateReceiverOnce;
 
@@ -409,31 +419,19 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
 void Lookup::SendMessageToSeedNodes(const bytes& message) const {
   LOG_MARKER();
 
-  for (auto node : m_seedNodes) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Sending msg to seed node " << node.GetPrintableIPAddress() << ":"
-                                          << node.m_listenPortHost);
-    P2PComm::GetInstance().SendMessage(node, message);
+  vector<Peer> seedNodePeer;
+  {
+    lock_guard<mutex> g(m_mutexSeedNodes);
+
+    for (auto node : m_seedNodes) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Sending msg to seed node "
+                    << node.second.GetPrintableIPAddress() << ":"
+                    << node.second.m_listenPortHost);
+      seedNodePeer.emplace_back(node.second);
+    }
   }
-}
-
-bool Lookup::GetSeedPeersFromLookup() {
-  LOG_MARKER();
-
-  bytes getSeedPeersMessage = {MessageType::LOOKUP,
-                               LookupInstructionType::GETSEEDPEERS};
-
-  if (!Messenger::SetLookupGetSeedPeers(
-          getSeedPeersMessage, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetLookupGetSeedPeers failed.");
-    return false;
-  }
-
-  SendMessageToRandomLookupNode(getSeedPeersMessage);
-
-  return true;
+  P2PComm::GetInstance().SendMessage(seedNodePeer, message);
 }
 
 bytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
@@ -486,6 +484,11 @@ bool Lookup::GetStateFromLookupNodes() {
   LOG_MARKER();
   SendMessageToRandomLookupNode(ComposeGetStateMessage());
 
+  return true;
+}
+
+bool Lookup::GetStateFromSeedNodes() {
+  SendMessageToRandomSeedNode(ComposeGetStateMessage());
   return true;
 }
 
@@ -567,6 +570,16 @@ bool Lookup::GetTxBlockFromLookupNodes(uint64_t lowBlockNum,
   LOG_MARKER();
 
   SendMessageToRandomLookupNode(
+      ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
+
+  return true;
+}
+
+bool Lookup::GetTxBlockFromSeedNodes(uint64_t lowBlockNum,
+                                     uint64_t highBlockNum) {
+  LOG_MARKER();
+
+  SendMessageToRandomSeedNode(
       ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
 
   return true;
@@ -729,97 +742,6 @@ bool Lookup::ProcessEntireShardingStructure() {
   return true;
 }
 
-bool Lookup::ProcessGetSeedPeersFromLookup(const bytes& message,
-                                           unsigned int offset,
-                                           const Peer& from) {
-  LOG_MARKER();
-
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessGetSeedPeersFromLookup not expected to be "
-                "called from other than the LookUp node.");
-    return true;
-  }
-
-  uint32_t portNo = 0;
-
-  if (!Messenger::GetLookupGetSeedPeers(message, offset, portNo)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetLookupGetSeedPeers failed.");
-    return false;
-  }
-
-  uint128_t ipAddr = from.m_ipAddress;
-  Peer peer(ipAddr, portNo);
-
-  lock_guard<mutex> g(m_mutexNodesInNetwork);
-
-  uint32_t numPeersInNetwork = m_nodesInNetwork.size();
-
-  if (numPeersInNetwork < SEED_PEER_LIST_SIZE) {
-    LOG_GENERAL(WARNING,
-                "[Lookup Node] numPeersInNetwork < SEED_PEER_LIST_SIZE");
-    return false;
-  }
-
-  // Which of the following two implementations is more efficient and
-  // parallelizable?
-  // ================================================
-
-  unordered_set<uint32_t> indicesAlreadyAdded;
-
-  random_device rd;
-  mt19937 gen(rd());
-  uniform_int_distribution<> dis(0, numPeersInNetwork - 1);
-
-  vector<Peer> candidateSeeds;
-
-  for (unsigned int i = 0; i < SEED_PEER_LIST_SIZE; i++) {
-    uint32_t index = dis(gen);
-    while (indicesAlreadyAdded.find(index) != indicesAlreadyAdded.end()) {
-      index = dis(gen);
-    }
-    indicesAlreadyAdded.insert(index);
-
-    candidateSeeds.emplace_back(m_nodesInNetwork[index]);
-  }
-
-  // ================================================
-
-  // auto nodesInNetworkCopy = m_nodesInNetwork;
-  // int upperLimit = numPeersInNetwork-1;
-  // random_device rd;
-  // mt19937 gen(rd());
-
-  // for(unsigned int i = 0; i < SEED_PEER_LIST_SIZE; ++i, --upperLimit)
-  // {
-  //     uniform_int_distribution<> dis(0, upperLimit);
-  //     uint32_t index = dis(gen);
-
-  //     Peer candidateSeed = m_nodesInNetwork[index];
-  //     candidateSeed.Serialize(seedPeersMessage, curr_offset);
-  //     curr_offset += (IP_SIZE + PORT_SIZE);
-
-  //     swap(nodesInNetworkCopy[index], nodesInNetworkCopy[upperLimit]);
-  // }
-
-  // ================================================
-
-  bytes seedPeersMessage = {MessageType::LOOKUP,
-                            LookupInstructionType::SETSEEDPEERS};
-
-  if (!Messenger::SetLookupSetSeedPeers(seedPeersMessage, MessageOffset::BODY,
-                                        m_mediator.m_selfKey, candidateSeeds)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::SetLookupSetSeedPeers failed.");
-    return false;
-  }
-
-  P2PComm::GetInstance().SendMessage(peer, seedPeersMessage);
-
-  return true;
-}
-
 bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
   //#ifndef IS_LOOKUP_NODE
@@ -870,6 +792,19 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
   //#endif // IS_LOOKUP_NODE
 
   return true;
+}
+
+void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
+  LOG_MARKER();
+
+  lock_guard<mutex> lock(m_mutexSeedNodes);
+  if (0 == m_seedNodes.size()) {
+    LOG_GENERAL(WARNING, "Seed nodes are empty");
+    return;
+  }
+
+  int index = rand() % m_lookupNodes.size();
+  P2PComm::GetInstance().SendMessage(m_seedNodes[index].second, message);
 }
 
 // TODO: Refactor the code to remove the following assumption
@@ -1288,45 +1223,6 @@ bool Lookup::ProcessGetNetworkId(const bytes& message, unsigned int offset,
 
   return true;
   // #endif // IS_LOOKUP_NODE
-}
-
-bool Lookup::ProcessSetSeedPeersFromLookup(const bytes& message,
-                                           unsigned int offset,
-                                           [[gnu::unused]] const Peer& from) {
-  LOG_MARKER();
-
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Lookup::ProcessSetSeedPeersFromLookup not expected to be "
-                "called from LookUp node.");
-    return true;
-  }
-
-  std::vector<Peer> candidateSeeds;
-  PubKey lookupPubKey;
-
-  if (!Messenger::GetLookupSetSeedPeers(message, offset, lookupPubKey,
-                                        candidateSeeds)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Messenger::GetLookupSetSeedPeers failed.");
-    return false;
-  }
-
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
-    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-              "The message sender pubkey: "
-                  << lookupPubKey << " is not in my lookup node list.");
-    return false;
-  }
-
-  m_seedNodes = std::move(candidateSeeds);
-
-  unsigned int i = 0;
-  for (const auto& candidateSeed : candidateSeeds) {
-    LOG_GENERAL(INFO, "Peer " << i++ << ": " << candidateSeed);
-  }
-
-  return true;
 }
 
 bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
@@ -3048,8 +2944,8 @@ void Lookup::CheckBufferTxBlocks() {
   }
 }
 
-void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(
-    const uint64_t& index_num) {
+void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
+                                                      bool toSeedNode) {
   LOG_MARKER();
   bytes message = {MessageType::LOOKUP,
                    LookupInstructionType::GETDIRBLOCKSFROMSEED};
@@ -3061,7 +2957,11 @@ void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(
     return;
   }
 
-  SendMessageToRandomLookupNode(message);
+  if (!toSeedNode) {
+    SendMessageToRandomLookupNode(message);
+  } else {
+    SendMessageToRandomSeedNode(message);
+  }
 }
 
 bool Lookup::Execute(const bytes& message, unsigned int offset,
@@ -3074,8 +2974,6 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
                                              const Peer&);
 
   InstructionHandler ins_handlers[] = {
-      &Lookup::ProcessGetSeedPeersFromLookup,
-      &Lookup::ProcessSetSeedPeersFromLookup,
       &Lookup::ProcessGetDSInfoFromSeed,
       &Lookup::ProcessSetDSInfoFromSeed,
       &Lookup::ProcessGetDSBlockFromSeed,
