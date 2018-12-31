@@ -334,7 +334,7 @@ bool Node::ValidateDB() {
 
   vector<TxBlock> txBlocks;
 
-  for (auto txblock : txblocks) {
+  for (const auto& txblock : txblocks) {
     txBlocks.emplace_back(*txblock);
   }
 
@@ -347,7 +347,7 @@ bool Node::ValidateDB() {
 
   for (uint i = 1; i < txBlocks.size(); i++) {
     auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
-    for (auto mbInfo : microblockInfos) {
+    for (const auto& mbInfo : microblockInfos) {
       MicroBlockSharedPtr mbptr;
       LOG_GENERAL(INFO, mbInfo.m_shardId);
       /// Skip because empty microblocks are not stored
@@ -357,7 +357,7 @@ bool Node::ValidateDB() {
       if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                         mbptr)) {
         auto tranHashes = mbptr->GetTranHashes();
-        for (auto tranHash : tranHashes) {
+        for (const auto& tranHash : tranHashes) {
           TxBodySharedPtr tx;
           if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
             LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch");
