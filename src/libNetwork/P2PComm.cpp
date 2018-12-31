@@ -949,8 +949,8 @@ Signature P2PComm::SignMessage(const bytes& message) {
   LOG_MARKER();
 
   Signature signature;
-  bool result = Schnorr::GetInstance().Sign(message, 0, message.size(), m_selfKey.first,
-                                            m_selfKey.second, signature);
+  bool result = Schnorr::GetInstance().Sign(
+      message, 0, message.size(), m_selfKey.first, m_selfKey.second, signature);
   if (!result) {
     return Signature();
   }
@@ -960,8 +960,8 @@ Signature P2PComm::SignMessage(const bytes& message) {
 bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                             const PubKey& pubKey) {
   LOG_MARKER();
-  bool result =
-      Schnorr::GetInstance().Verify(message, 0, message.size(), toverify, pubKey);
+  bool result = Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                              toverify, pubKey);
 
   if (!result) {
     LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: 0x"
