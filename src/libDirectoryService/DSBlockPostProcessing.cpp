@@ -445,6 +445,11 @@ void DirectoryService::StartFirstTxEpoch() {
         pubKeys.emplace_back(i.first);
       }
 
+      // Get the pubKeys for lookup nodes
+      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+        pubKeys.emplace_back(i.first);
+      }
+
       // ReInitialize RumorManager for this epoch.
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
