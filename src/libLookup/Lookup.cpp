@@ -180,9 +180,6 @@ void Lookup::SetAboveLayer() {
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
-      PubKey pubKey(
-          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
-          0);
       m_seedNodes.emplace_back(lookup_node);
     }
   }
