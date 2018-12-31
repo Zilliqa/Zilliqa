@@ -19,20 +19,19 @@
 
 #include <iostream>
 #include <string>
+#include <map>
 
 #include "libPersistence/BlockStorage.h"
 
-// string getCsvHeader(int width) {
-//   string ret = "Node";
-//
-//   // Get the current ds epoch number.
-//   int count = currentDS / width;
-//   for (int i = 0; i <= count; ++i) {
-//     ret += ",DS epoch" + i;
-//   }
-//
-//   return ret;
-// }
+std::string getCsvHeader(uint64_t start, uint64_t stop) {
+  std::string ret = "Node";
+
+  for (uint64_t i = start; i <= stop; ++i) {
+    ret += ",DS epoch" + i;
+  }
+
+  return ret;
+}
 
 int main(int argc, char** argv) {
   if (argc < 2) {
@@ -44,18 +43,18 @@ int main(int argc, char** argv) {
 
   BlockStorage& bs = BlockStorage::GetBlockStorage();
 
-  // Read the diagnostic data from the db.
-  unsigned int diagnosticDBCounter = bs.GetDiagnosticDataCount();
-  if (diagnosticDBCounter == 0) {
-    std::cout << "Nothing in the Diagnostic DB" << std::endl;
-    return -1;
+  std::map<uint64_t, DiagnosticData>& diagnosticDataMap;
+  bs.GetDiagnosticData(diagnosticDataMap);
+  if (diagnosticDataMap.empty()) {
+    std::cout << "Nothing to read in the Diagnostic DB" << std::endl;
+    return 0;
   }
 
-  DequeOfShard shards;
-  DequeOfDSNode dsCommittee;
-  if (!bs.GetDiagnosticData(0, shards, dsCommittee)) {
-    std::cout << "Unable to get diagnostic data for dsblock 0" << std::endl;
-    return -1;
+  for (auto const& it: diagnosticDataMap) {
+    std::cout << it.first << std::endl;
+
+    DequeOfShard& shards = it.second.shards;
+    DequeOfDSNode& dsCommittee = it.second.dsCommittee;
   }
 
   return 0;

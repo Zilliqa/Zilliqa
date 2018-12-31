@@ -61,10 +61,3 @@ add_custom_command(TARGET zilliqa
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Crypto ${G3LOG_INCLUDE_DIRS})
 target_link_libraries(getpub PUBLIC Crypto)
-
-add_executable(getnetworkhistory getnetworkhistory.cpp)
-add_custom_command(TARGET zilliqa
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getnetworkhistory> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(getnetworkhistory PUBLIC ${CMAKE_SOURCE_DIR}/src ${G3LOG_INCLUDE_DIRS})
-target_link_libraries(getnetworkhistory PUBLIC Persistence)
