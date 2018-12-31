@@ -19,7 +19,9 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <map>
+#include <unordered_map>
 
 #include "libPersistence/BlockStorage.h"
 
@@ -27,10 +29,69 @@ std::string getCsvHeader(uint64_t start, uint64_t stop) {
   std::string ret = "Node";
 
   for (uint64_t i = start; i <= stop; ++i) {
-    ret += ",DS epoch" + i;
+    ret += ",DS epoch " + i;
   }
 
   return ret;
+}
+
+void processShards(const DequeOfShard& shards, std::map<std::string, std::map<uint64_t, std::string>>& results, uint64_t dsEpochNo) {
+  uint64_t shardIndex = 0;
+
+  for (auto shardItr = shards.begin(); shardItr != shards.end(); ++shardItr, ++shardIndex) {
+    for (size_t peerIndex = 0; peerIndex < shardItr->size(); ++peerIndex) {
+      // get the peer and convert to ip.
+      Peer peer = std::get<1>((*shardItr)[peerIndex]);
+      std::string ip = peer.GetPrintableIPAddress();
+
+      if (results.find(ip) == results.end()) {
+        results[ip] = std::map<uint64_t, std::string>();
+      }
+
+      results[ip][dsEpochNo] = "Shard " + std::to_string(shardIndex) + " Index " + std::to_string(peerIndex);
+    }
+  }
+}
+
+void processDSCommittee(const DequeOfDSNode& dsCommittee, std::map<std::string, std::map<uint64_t, std::string>>& results, uint64_t dsEpochNo) {
+  uint64_t dsCommitteeIndex = 0;
+
+  for (auto peerItr = dsCommittee.begin(); peerItr != dsCommittee.end(); ++peerItr, ++dsCommitteeIndex) {
+    // get the peer and convert to ip.
+    Peer peer = std::get<1>(*peerItr);
+    std::string ip = peer.GetPrintableIPAddress();
+
+    if (results.find(ip) == results.end()) {
+      results[ip] = std::map<uint64_t, std::string>();
+    }
+
+    results[ip][dsEpochNo] = "DS Index " + std::to_string(dsCommitteeIndex);
+  }
+}
+
+void processResults(std::map<std::string, std::map<uint64_t, std::string>>& results, std::string& output, uint64_t blockStart, uint64_t blockStop) {
+  output = getCsvHeader(blockStart, blockStop) + "\n";
+
+  for (auto const& it: results) {
+    std::string ip = it.first;
+
+    std::string row = "";
+    for (uint64_t block = blockStart; block < blockStop; ++block) {
+      if (results[ip].find(block) != results[ip].end()) {
+        row += results[ip][block] + ",";
+      } else {
+        row += "Not sharded,";
+      }
+    }
+    // Last block.
+    if (results[ip].find(blockStop) != results[ip].end()) {
+      row += results[ip][blockStop];
+    } else {
+      row += "Not sharded";
+    }
+
+    output += row + "\n";
+  }
 }
 
 int main(int argc, char** argv) {
@@ -43,19 +104,30 @@ int main(int argc, char** argv) {
 
   BlockStorage& bs = BlockStorage::GetBlockStorage();
 
-  std::map<uint64_t, DiagnosticData>& diagnosticDataMap;
+  std::map<uint64_t, DiagnosticData> diagnosticDataMap = std::map<uint64_t, DiagnosticData>();
   bs.GetDiagnosticData(diagnosticDataMap);
   if (diagnosticDataMap.empty()) {
     std::cout << "Nothing to read in the Diagnostic DB" << std::endl;
     return 0;
   }
 
-  for (auto const& it: diagnosticDataMap) {
-    std::cout << it.first << std::endl;
+  size_t blockCount = diagnosticDataMap.size();
+  uint64_t blockStart = diagnosticDataMap.begin()->first;
 
-    DequeOfShard& shards = it.second.shards;
-    DequeOfDSNode& dsCommittee = it.second.dsCommittee;
+  std::map<std::string, std::map<uint64_t, std::string>> results = std::map<std::string, std::map<uint64_t, std::string>>();
+  for (auto const& it: diagnosticDataMap) {
+    uint64_t dsEpochNo = it.first;
+    processShards(it.second.shards, results, dsEpochNo);
+    processDSCommittee(it.second.dsCommittee, results, dsEpochNo);
   }
+
+  std::string output;
+  processResults(results, output, blockStart, blockStart + blockCount);
+
+  // Write to csv file.
+  std::ofstream out(argv[1]);
+  out << output;
+  out.close();
 
   return 0;
 }
