@@ -563,6 +563,12 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   subset.responseMap.at(backupID) = true;
   subset.responseCounter++;
 
+  if (subset.responseCounter % 10 == 0) {
+    LOG_GENERAL(INFO, "[Subset " << subsetID << "] Received "
+                                 << subset.responseCounter << " out of "
+                                 << m_numForConsensus << ".");
+  }
+
   // Generate collective sig if sufficient responses have been obtained
   // ==================================================================
 
