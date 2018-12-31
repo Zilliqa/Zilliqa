@@ -683,7 +683,15 @@ void BlockStorage::GetDiagnosticData(
       continue;
     }
 
-    uint64_t dsBlockNum = stoul(dsBlockNumStr);
+    uint64_t dsBlockNum = 0;
+    try {
+      dsBlockNum = stoul(dsBlockNumStr);
+    } catch (...) {
+      LOG_GENERAL(WARNING,
+                  "Non-numeric key " << dsBlockNumStr << " at index " << index);
+      continue;
+    }
+
     bytes data(dataStr.begin(), dataStr.end());
 
     DiagnosticData entry;
