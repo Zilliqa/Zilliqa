@@ -595,11 +595,11 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     };
 
     DataSender::GetInstance().SendDataToOthers(
-        *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards,
+        *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        composeDSBlockMessageForSender, sendDSBlockToLookupNodesAndNewDSMembers,
-        sendDSBlockToShardNodes);
+        m_consensusMyID, composeDSBlockMessageForSender,
+        sendDSBlockToLookupNodesAndNewDSMembers, sendDSBlockToShardNodes);
   }
 
   LOG_STATE(
