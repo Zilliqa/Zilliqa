@@ -19,7 +19,7 @@
 # [MUST BE FILLED IN] User configuration settings
 aws_access_key_id=""
 aws_secret_access_key=""
-folderName="historicalDB" ##Name should match in VERIFIER_PATG
+folderName="historicalDB" ##Name should match in VERIFIER_PATH
 
 
 # Validate input argument
