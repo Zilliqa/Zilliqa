@@ -301,9 +301,10 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
 
   m_timespec = r_timer_start();
 
+  auto headerHash = POW::GenHeaderHash(rand1, rand2, submitterPeer.m_ipAddress,
+                                       submitterPubKey, lookupId, gasPrice);
   bool result = POW::GetInstance().PoWVerify(
-      blockNumber, difficultyLevel, rand1, rand2, submitterPeer.m_ipAddress,
-      submitterPubKey, lookupId, gasPrice, nonce, resultingHash, mixHash);
+      blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));

@@ -185,7 +185,8 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
   DS_Comitte_t ds_c;
   for (uint32_t i = 1; i <= size; i++) {
-    ds_c.push_front(std::make_pair(GenerateRandomPubKey(), Peer()));
+    ds_c.push_front(
+        std::make_pair(GenerateRandomPubKey(), GenerateRandomPeer()));
   }
   return ds_c;
 }

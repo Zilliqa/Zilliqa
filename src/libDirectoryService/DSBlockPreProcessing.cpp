@@ -149,7 +149,8 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
 
   // Generate the number of shards and node counts per shard
   vector<uint32_t> shardCounts;
-  ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_THRESHOLD,
+  ShardSizeCalculator::GenerateShardCounts(shardSize, SHARD_SIZE_TOLERANCE_LO,
+                                           SHARD_SIZE_TOLERANCE_HI,
                                            numNodesForSharding, shardCounts);
 
   // Abort if zero shards generated
@@ -322,11 +323,13 @@ bool DirectoryService::VerifyPoWWinner(
                                .GetDSDifficulty();
         }
 
-        bool result = POW::GetInstance().PoWVerify(
-            m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
+        auto headerHash = POW::GenHeaderHash(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
-            dsPowSoln.gasPrice, dsPowSoln.nonce,
+            dsPowSoln.gasPrice);
+        bool result = POW::GetInstance().PoWVerify(
+            m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
+            headerHash, dsPowSoln.nonce,
             DataConversion::charArrToHexStr(dsPowSoln.result),
             DataConversion::charArrToHexStr(dsPowSoln.mixhash));
         if (!result) {
@@ -557,8 +560,8 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(const MapOfPubKeyPoW& mapOfPoWs,
     const uint32_t numNodesTotal = PoWOrderSorter.size();
     const uint32_t numNodesAfterTrim =
         ShardSizeCalculator::GetTrimmedShardCount(
-            m_mediator.GetShardSize(false), SHARD_SIZE_THRESHOLD,
-            numNodesTotal);
+            m_mediator.GetShardSize(false), SHARD_SIZE_TOLERANCE_LO,
+            SHARD_SIZE_TOLERANCE_HI, numNodesTotal);
 
     LOG_GENERAL(INFO, "Trimming the solutions sorted list from "
                           << numNodesTotal << " to " << numNodesAfterTrim);

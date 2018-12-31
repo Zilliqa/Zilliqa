@@ -114,6 +114,7 @@ extern const unsigned int DEBUG_LEVEL;
 extern const unsigned int MSG_VERSION;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
+extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 
 // Archival constants
 extern const bool ARCHIVAL_NODE;
@@ -192,6 +193,7 @@ extern const unsigned int MAX_NEIGHBORS_PER_ROUND;
 extern const unsigned int NUM_GOSSIP_RECEIVERS;
 extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
+extern const unsigned int KEEP_RAWMSG_FROM_LAST_N_ROUNDS;
 
 // GPU mining constants
 extern const std::string GPU_TO_USE;
@@ -214,7 +216,8 @@ extern const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS;
 // Network composition constants
 extern const unsigned int COMM_SIZE;
 extern const unsigned int NUM_DS_ELECTION;
-extern const unsigned int SHARD_SIZE_THRESHOLD;
+extern const unsigned int SHARD_SIZE_TOLERANCE_LO;
+extern const unsigned int SHARD_SIZE_TOLERANCE_HI;
 
 // P2PComm constants
 extern const unsigned int BROADCAST_INTERVAL;

@@ -135,8 +135,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
           ++m_mediator.m_ds->m_consensusMyID;
         }
 
-        m_mediator.m_node->m_consensusMyID =
-            m_mediator.m_ds->m_consensusMyID.load();
+        m_consensusMyID = m_mediator.m_ds->m_consensusMyID.load();
 
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
@@ -1135,7 +1134,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   } else {
     LOG_GENERAL(INFO,
                 "Packet received from a non-lookup node, "
-                "should be from gossip neightor and process it");
+                "should be from gossip neighbor and process it");
     return ProcessTxnPacketFromLookupCore(message, epochNumber, dsBlockNum,
                                           shardId, lookupPubKey, transactions);
   }

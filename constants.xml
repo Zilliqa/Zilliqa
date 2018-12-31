@@ -6,6 +6,7 @@
         <MSG_VERSION>1</MSG_VERSION>
         <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
+        <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
     </general>
     <archival>
         <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
@@ -85,6 +86,7 @@
         <NUM_GOSSIP_RECEIVERS>10</NUM_GOSSIP_RECEIVERS>
         <ROUND_TIME_IN_MS>1000</ROUND_TIME_IN_MS>
         <SIMULATED_NETWORK_DELAY_IN_MS>0</SIMULATED_NETWORK_DELAY_IN_MS>
+        <KEEP_RAWMSG_FROM_LAST_N_ROUNDS>18</KEEP_RAWMSG_FROM_LAST_N_ROUNDS>
     </gossip>
     <gpu>
         <!-- Which GPU to use, can use multiple GPU, for example: "0, 2, 4" -->
@@ -114,7 +116,8 @@
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
         <COMM_SIZE>200</COMM_SIZE>
         <NUM_DS_ELECTION>5</NUM_DS_ELECTION>
-        <SHARD_SIZE_THRESHOLD>50</SHARD_SIZE_THRESHOLD>
+        <SHARD_SIZE_TOLERANCE_LO>50</SHARD_SIZE_TOLERANCE_LO>
+        <SHARD_SIZE_TOLERANCE_HI>10</SHARD_SIZE_TOLERANCE_HI>
     </network_composition>
     <p2pcomm>
         <BROADCAST_INTERVAL>60</BROADCAST_INTERVAL>

@@ -58,6 +58,12 @@ class BlockBase : public SerializableDataBlock {
   /// Default constructor.
   BlockBase();
 
+  /// Implements the Serialize function inherited from Serializable.
+  virtual bool Serialize(bytes& dst, unsigned int offset) const;
+
+  /// Implements the Deserialize function inherited from Serializable.
+  virtual bool Deserialize(const bytes& src, unsigned int offset);
+
   /// Returns the block hash
   const BlockHash& GetBlockHash() const;
 

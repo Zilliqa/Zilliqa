@@ -82,6 +82,29 @@ void prepareTestdata(ShardSizeMap& testData) {
              std::numeric_limits<uint32_t>::max()};
 }
 
+void ShardCountTestMain(const uint32_t shardSize,
+                        const uint32_t shardSizeToleranceLo,
+                        const uint32_t shardSizeToleranceHi,
+                        const uint32_t nodeCountStart,
+                        const uint32_t nodeCountEnd) {
+  LOG_GENERAL(
+      INFO, "================================================================");
+  LOG_GENERAL(INFO, "Test Range [" << shardSize - shardSizeToleranceLo << ", "
+                                   << shardSize << ", "
+                                   << shardSize + shardSizeToleranceHi << "]:");
+
+  vector<uint32_t> shardCounts;
+
+  for (uint32_t numNodesForSharding = nodeCountStart;
+       numNodesForSharding <= nodeCountEnd; numNodesForSharding++) {
+    LOG_GENERAL(INFO, "Testing node count = " << numNodesForSharding);
+    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeToleranceLo,
+                                             shardSizeToleranceHi,
+                                             numNodesForSharding, shardCounts);
+    LOG_GENERAL(INFO, "--------------------------------");
+  }
+}
+
 BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 
 #define TD_i td_i
@@ -107,15 +130,11 @@ BOOST_AUTO_TEST_CASE(test_shard_size_bounds) {
 BOOST_AUTO_TEST_CASE(test_shard_count_generation) {
   INIT_STDOUT_LOGGER();
 
-  const uint32_t shardSize = 20;
-  const uint32_t shardSizeThreshold = 10;
-  vector<uint32_t> shardCounts;
-
-  for (uint32_t numNodesForSharding = 0; numNodesForSharding <= (shardSize * 4);
-       numNodesForSharding++) {
-    ShardSizeCalculator::GenerateShardCounts(shardSize, shardSizeThreshold,
-                                             numNodesForSharding, shardCounts);
-  }
+  ShardCountTestMain(20, 10, 0, 0, 60);
+  ShardCountTestMain(20, 5, 5, 0, 60);
+  ShardCountTestMain(600, 0, 0, 590, 610);
+  ShardCountTestMain(600, 100, 0, 490, 610);
+  ShardCountTestMain(600, 50, 50, 540, 660);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
