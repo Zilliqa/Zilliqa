@@ -40,6 +40,11 @@ typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
 
+struct DiagnosticData {
+  DequeOfShard shards;
+  DequeOfDSNode dsCommittee;
+};
+
 /// Manages persistent storage of DS and Tx blocks.
 class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_metadataDB;
@@ -213,6 +218,9 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieve diagnostic data for specific block number
   bool GetDiagnosticData(const uint64_t& dsBlockNum, DequeOfShard& shards,
                          DequeOfDSNode& dsCommittee);
+
+  /// Retrieve diagnostic data
+  void GetDiagnosticData(std::map<uint64_t, DiagnosticData>& diagnosticDataMap);
 
   /// Retrieve the number of entries in the diagnostic data db
   unsigned int GetDiagnosticDataCount();
