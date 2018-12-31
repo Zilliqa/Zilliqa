@@ -190,16 +190,16 @@
         <TXN_MISORDER_TOLERANCE_IN_PERCENT>50</TXN_MISORDER_TOLERANCE_IN_PERCENT>
         <PACKET_EPOCH_LATE_ALLOW>1</PACKET_EPOCH_LATE_ALLOW>
     </transactions>
+     <verifier>
+        <VERIFIER_PATH/>
+        <VERIFIER_PUBKEY/>
+    </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>10</POST_VIEWCHANGE_BUFFER>
         <VIEWCHANGE_EXTRA_TIME>15</VIEWCHANGE_EXTRA_TIME>
         <VIEWCHANGE_PRECHECK_TIME>10</VIEWCHANGE_PRECHECK_TIME>
         <VIEWCHANGE_TIME>600</VIEWCHANGE_TIME>
     </viewchange>
-    <verifier>
-        <VERIFIER_PATH/>
-        <VERIFIER_PUBKEY/>
-    </verifier>
     <!-- These are the genesis accounts -->
     <accounts>
         <account>
