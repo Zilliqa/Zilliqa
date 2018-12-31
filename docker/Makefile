@@ -45,4 +45,3 @@ release: get-scilla
 
 release-cuda: get-scilla
 	docker build -f Dockerfile.cuda -t zilliqa/zilliqa:v$(major).$(minor).$(fix)-cuda .
-
