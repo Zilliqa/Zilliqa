@@ -432,23 +432,7 @@ void DirectoryService::StartFirstTxEpoch() {
     if (BROADCAST_GOSSIP_MODE) {
       std::vector<std::pair<PubKey, Peer>> peers;
       std::vector<PubKey> pubKeys;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second != Peer()) {
-          peers.emplace_back(i);
-        }
-        // Get the pubkeys for ds committee
-        pubKeys.emplace_back(i.first);
-      }
-
-      // Get the pubkeys for all other shard members aswell
-      for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
-        pubKeys.emplace_back(i.first);
-      }
-
-      // Get the pubKeys for lookup nodes
-      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
-        pubKeys.emplace_back(i.first);
-      }
+      GetEntireNetworkPeerInfo(peers, pubKeys);
 
       // ReInitialize RumorManager for this epoch.
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);

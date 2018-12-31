@@ -588,23 +588,7 @@ void Node::WakeupAtDSEpoch() {
     if (BROADCAST_GOSSIP_MODE) {
       std::vector<std::pair<PubKey, Peer>> peers;
       std::vector<PubKey> pubKeys;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i);
-        }
-        // Get the pubkeys for ds committee
-        pubKeys.emplace_back(i.first);
-      }
-
-      // Get the pubkeys for all other shard members aswell
-      for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
-        pubKeys.emplace_back(i.first);
-      }
-
-      // Get the pubKeys for lookup nodes
-      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
-        pubKeys.emplace_back(i.first);
-      }
+      m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
@@ -694,23 +678,7 @@ void Node::WakeupAtTxEpoch() {
     if (BROADCAST_GOSSIP_MODE) {
       std::vector<std::pair<PubKey, Peer>> peers;
       std::vector<PubKey> pubKeys;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i);
-        }
-        // Get the pubkeys for ds committee
-        pubKeys.emplace_back(i.first);
-      }
-
-      // Get the pubkeys for all other shard members aswell
-      for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
-        pubKeys.emplace_back(i.first);
-      }
-
-      // Get the pubKeys for lookup nodes
-      for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
-        pubKeys.emplace_back(i.first);
-      }
+      m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
       P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
@@ -726,23 +694,7 @@ void Node::WakeupAtTxEpoch() {
   if (BROADCAST_GOSSIP_MODE) {
     std::vector<std::pair<PubKey, Peer>> peers;
     std::vector<PubKey> pubKeys;
-    for (const auto& i : *m_myShardMembers) {
-      if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i);
-      }
-      // Get the pubkeys for my shard member
-      pubKeys.emplace_back(i.first);
-    }
-
-    // Get the pubkeys for ds committee
-    for (const auto& i : *m_mediator.m_DSCommittee) {
-      pubKeys.emplace_back(i.first);
-    }
-
-    // Get the pubKeys for lookup nodes
-    for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
-      pubKeys.emplace_back(i.first);
-    }
+    GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // Initialize every start of DS Epoch
     P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
@@ -1959,4 +1911,28 @@ std::string Node::GetActionString(Action action) const {
     return false;
   }
   return true;
+}
+
+void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+                                    std::vector<PubKey>& pubKeys) {
+  peers.clear();
+  pubKeys.clear();
+
+  for (const auto& i : *m_myShardMembers) {
+    if (i.second.m_listenPortHost != 0) {
+      peers.emplace_back(i);
+    }
+    // Get the pubkeys for my shard member
+    pubKeys.emplace_back(i.first);
+  }
+
+  // Get the pubkeys for ds committee
+  for (const auto& i : *m_mediator.m_DSCommittee) {
+    pubKeys.emplace_back(i.first);
+  }
+
+  // Get the pubKeys for lookup nodes
+  for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+    pubKeys.emplace_back(i.first);
+  }
 }
