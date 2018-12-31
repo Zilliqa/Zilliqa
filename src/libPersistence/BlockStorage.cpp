@@ -663,6 +663,53 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
   return true;
 }
 
+void BlockStorage::GetDiagnosticData(
+    map<uint64_t, DiagnosticData>& diagnosticDataMap) {
+  LOG_MARKER();
+
+  lock_guard<mutex> g(m_mutexDiagnostic);
+
+  leveldb::Iterator* it =
+      m_diagnosticDB->GetDB()->NewIterator(leveldb::ReadOptions());
+
+  unsigned int index = 0;
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    string dsBlockNumStr = it->key().ToString();
+    string dataStr = it->value().ToString();
+
+    if (dsBlockNumStr.empty() || dataStr.empty()) {
+      LOG_GENERAL(WARNING,
+                  "Failed to retrieve diagnostic data at index " << index);
+      continue;
+    }
+
+    uint64_t dsBlockNum = 0;
+    try {
+      dsBlockNum = stoul(dsBlockNumStr);
+    } catch (...) {
+      LOG_GENERAL(WARNING,
+                  "Non-numeric key " << dsBlockNumStr << " at index " << index);
+      continue;
+    }
+
+    bytes data(dataStr.begin(), dataStr.end());
+
+    DiagnosticData entry;
+
+    if (!Messenger::GetDiagnosticData(data, 0, entry.shards,
+                                      entry.dsCommittee)) {
+      LOG_GENERAL(WARNING,
+                  "Messenger::GetDiagnosticData failed for DS block number "
+                      << dsBlockNumStr << " at index " << index);
+      continue;
+    }
+
+    diagnosticDataMap.emplace(make_pair(dsBlockNum, entry));
+
+    index++;
+  }
+}
+
 unsigned int BlockStorage::GetDiagnosticDataCount() {
   lock_guard<mutex> g(m_mutexDiagnostic);
   return m_diagnosticDBCounter;
