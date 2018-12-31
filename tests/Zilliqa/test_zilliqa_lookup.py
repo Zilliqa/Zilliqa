@@ -83,12 +83,9 @@ def run_setup(numnodes, printnodes):
 		if os.path.exists(testsubdir) != True :
 			os.makedirs(testsubdir)
 		shutil.copyfile('./tests/Zilliqa/zilliqa', testsubdir + '/lzilliqa')
+
 		st = os.stat(testsubdir + '/lzilliqa')
 		os.chmod(testsubdir + '/lzilliqa', st.st_mode | stat.S_IEXEC)
-
-		shutil.copyfile('./tests/Zilliqa/getnetworkhistory', testsubdir + '/getnetworkhistory')
-		st = os.stat(testsubdir + '/getnetworkhistory')
-		os.chmod(testsubdir + '/getnetworkhistory', st.st_mode | stat.S_IEXEC)
 
 	if printnodes:
 		testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
