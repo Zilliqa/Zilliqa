@@ -470,7 +470,7 @@ bytes Lookup::ComposeGetStateMessage() {
 
 bool Lookup::GetDSInfoFromSeedNodes() {
   LOG_MARKER();
-  SendMessageToSeedNodes(ComposeGetDSInfoMessage());
+  SendMessageToRandomSeedNode(ComposeGetDSInfoMessage());
   return true;
 }
 
@@ -1722,11 +1722,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       !ARCHIVAL_NODE) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "At new DS epoch now, try getting state from lookup");
-    GetStateFromLookupNodes();
+    GetStateFromSeedNodes();
   } else if (m_syncType == SyncType::NEW_LOOKUP_SYNC) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "New lookup - always try getting state from other lookup");
-    GetStateFromLookupNodes();
+    GetStateFromSeedNodes();
   }
 
   cv_setTxBlockFromSeed.notify_all();
@@ -1818,7 +1818,7 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
         m_syncType == SyncType::NORMAL_SYNC) {
       m_dsInfoWaitingNotifying = true;
 
-      GetDSInfoFromLookupNodes();
+      GetDSInfoFromSeedNodes();
 
       {
         unique_lock<mutex> lock(m_mutexDSInfoUpdation);
@@ -1858,7 +1858,7 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
         return false;
       }
 
-      m_mediator.m_lookup->SendMessageToRandomLookupNode(
+      m_mediator.m_lookup->SendMessageToRandomSeedNode(
           getpowsubmission_message);
     } else if (m_syncType == SyncType::DS_SYNC ||
                m_syncType == SyncType::GUARD_DS_SYNC) {
