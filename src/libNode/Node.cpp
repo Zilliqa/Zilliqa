@@ -275,7 +275,7 @@ bool Node::ValidateDB() {
 
   std::list<TxBlockSharedPtr> txblocks;
   if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txblocks)) {
-    LOG_GENERAL(WARNING, "Fail to get Tx Blocks");
+    LOG_GENERAL(WARNING, "Failed to get Tx Blocks");
     return false;
   }
 
@@ -295,7 +295,7 @@ bool Node::ValidateDB() {
       }
       DSBlockSharedPtr dsblock;
       if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, dsblock)) {
-        LOG_GENERAL(WARNING, "Could not rertv DS Block " << blockNum);
+        LOG_GENERAL(WARNING, "Could not retrieve DS Block " << blockNum);
         return false;
       }
       if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
@@ -307,7 +307,7 @@ bool Node::ValidateDB() {
       auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
       VCBlockSharedPtr vcblock;
       if (!BlockStorage::GetBlockStorage().GetVCBlock(blockHash, vcblock)) {
-        LOG_GENERAL(WARNING, "Could not retrv VC Block " << blockHash);
+        LOG_GENERAL(WARNING, "Could not retrieve VC Block " << blockHash);
         return false;
       }
       if (latestTxBlockNum <= vcblock->GetHeader().GetViewChangeEpochNo()) {
@@ -320,7 +320,7 @@ bool Node::ValidateDB() {
       if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
               std::get<BlockLinkIndex::BLOCKHASH>(blocklink),
               fallbackwshardingstruct)) {
-        LOG_GENERAL(WARNING, "Could not retrv FB blocks " << blockHash);
+        LOG_GENERAL(WARNING, "Could not retrieve FB blocks " << blockHash);
         return false;
       }
       dirBlocks.emplace_back(*fallbackwshardingstruct);
@@ -328,7 +328,7 @@ bool Node::ValidateDB() {
   }
 
   if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 0, dsComm)) {
-    LOG_GENERAL(WARNING, "Fail to verify Dir Blocks");
+    LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
     return false;
   }
 
