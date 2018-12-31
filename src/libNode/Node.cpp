@@ -389,6 +389,8 @@ bool Node::ValidateDB() {
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
 
+  raise(SIGKILL);
+
   return true;
 }
 
