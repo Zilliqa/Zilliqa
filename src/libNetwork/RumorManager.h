@@ -63,6 +63,7 @@ class RumorManager {
   RumorHashRumorBiMap m_rumorHashRawMsgBimap;
   RumorHashesPeersMap m_hashesSubscriberMap;
   Peer m_selfPeer;
+  std::pair<PrivKey, PubKey> m_selfKey;
   std::vector<RawBytes> m_bufferRawMsg;
   RumorRawMsgTimestampDeque m_rumorRawMsgTimestamp;
   std::vector<PubKey> m_fullNetworkKeys;
@@ -89,7 +90,8 @@ class RumorManager {
 
   // METHODS
   bool Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
-                  const Peer& myself, std::vector<PubKey>& fullNetworkKeys);
+                  const Peer& myself, const std::pair<PrivKey, PubKey>& myKeys,
+                  std::vector<PubKey>& fullNetworkKeys);
 
   bool AddRumor(const RawBytes& message);
 

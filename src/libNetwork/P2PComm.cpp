@@ -460,10 +460,13 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
     LOG_GENERAL(INFO, "Received Gossip of type - FORWARD from Peer :" << from);
 
     if (p2p.SpreadForeignRumor(rumor_message)) {
-      std::pair<bytes, Peer>* raw_message =
-          new pair<bytes, Peer>(rumor_message, from);
+      // skip the keys and signature.
+      bytes tmp(rumor_message.begin() + PUB_KEY_SIZE +
+                    SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE,
+                rumor_message.end());
+      std::pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(tmp, from);
 
-      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+      LOG_GENERAL(INFO, "Size of rumor message: " << tmp.size());
 
       // Queue the message
       m_dispatcher(raw_message);
@@ -932,7 +935,8 @@ void P2PComm::InitializeRumorManager(
   LOG_MARKER();
 
   m_rumorManager.StopRounds();
-  if (m_rumorManager.Initialize(peers, m_selfPeer, fullNetworkKeys)) {
+  if (m_rumorManager.Initialize(peers, m_selfPeer, m_selfKey,
+                                fullNetworkKeys)) {
     if (peers.size() != 0) {
       m_rumorManager.StartRounds();
     }
@@ -941,33 +945,27 @@ void P2PComm::InitializeRumorManager(
   }
 }
 
-/*Signature P2PComm::SignMessage(const bytes& msg, unsigned int offset,
-                                       unsigned int size) {
+Signature P2PComm::SignMessage(const bytes& message) {
   LOG_MARKER();
 
   Signature signature;
-  bool result =
-      Schnorr::GetInstance().Sign(msg, offset, size, m_mediator->  m_selfKey,
-                                  GetCommitteeMember(m_myID).first, signature);
+  bool result = Schnorr::GetInstance().Sign(message, 0, message.size(), m_selfKey.first,
+                                            m_selfKey.second, signature);
   if (!result) {
     return Signature();
   }
   return signature;
 }
 
-bool P2PComm::VerifyMessage(const bytes& msg, unsigned int offset,
-                                    unsigned int size,
-                                    const Signature& toverify,
-                                    uint16_t peer_id) {
+bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
+                            const PubKey& pubKey) {
   LOG_MARKER();
-  bool result = Schnorr::GetInstance().Verify(
-      msg, offset, size, toverify, GetCommitteeMember(peer_id).first);
+  bool result =
+      Schnorr::GetInstance().Verify(message, 0, message.size(), toverify, pubKey);
 
   if (!result) {
-    LOG_GENERAL(INFO, "Peer id: " << peer_id << " pubkey: 0x"
-                                  << DataConversion::SerializableToHexStr(
-                                         GetCommitteeMember(peer_id).first));
-    LOG_GENERAL(INFO, "pubkeys size: " << m_committee.size());
+    LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: 0x"
+                          << DataConversion::SerializableToHexStr(pubKey));
   }
   return result;
-}*/
+}

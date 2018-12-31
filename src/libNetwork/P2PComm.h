@@ -188,13 +188,10 @@ class P2PComm {
   void SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
                                const bytes& message);
 
-  /*Signature SignMessage(const bytes& msg, unsigned int offset,
-                                       unsigned int size);
+  Signature SignMessage(const bytes& message);
 
-  bool VerifyMessage(const bytes& msg, unsigned int offset,
-                                    unsigned int size,
-                                    const Signature& toverify,
-                                    uint16_t peer_id);*/
+  bool VerifyMessage(const bytes& message, const Signature& toverify,
+                     const PubKey& pubKey);
 };
 
 #endif  // __P2PCOMM_H__
