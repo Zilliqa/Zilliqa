@@ -16,7 +16,9 @@
  */
 
 #include <iostream>
-#include "boost/program_options.hpp"
+
+#include <boost/program_options.hpp>
+
 #include "libCrypto/Schnorr.h"
 #include "libUtils/SWInfo.h"
 
@@ -68,7 +70,7 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    vector<unsigned char> message(message_.begin(), message_.end());
+    bytes message(message_.begin(), message_.end());
 
     vector<uint8_t> v;
     v.push_back(53);
@@ -77,7 +79,7 @@ int main(int argc, const char* argv[]) {
 
     string line;
     try {
-      vector<unsigned char> key_v;
+      bytes key_v;
       fstream privFile(privk_fn, ios::in);
       while (getline(privFile, line)) {
         try {
@@ -100,7 +102,7 @@ int main(int argc, const char* argv[]) {
     }
 
     try {
-      vector<unsigned char> key_v;
+      bytes key_v;
       fstream pubFile(pubk_fn, ios::in);
       while (getline(pubFile, line)) {
         try {
@@ -136,7 +138,7 @@ int main(int argc, const char* argv[]) {
                   << " are corrupted." << endl;
         return ERROR_IN_COMMAND_LINE;
       }
-      vector<unsigned char> result;
+      bytes result;
       sig.Serialize(result, 0);
       cout << DataConversion::Uint8VecToHexStr(result);
     }

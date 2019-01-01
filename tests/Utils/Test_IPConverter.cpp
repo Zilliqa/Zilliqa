@@ -44,7 +44,6 @@ BOOST_AUTO_TEST_CASE(test_IPStringToNumerical) {
   INIT_STDOUT_LOGGER();
 
   boost::multiprecision::uint128_t result;
-  IPConverter::ToNumericalIPFromStr("127.0.0.1", result);
   BOOST_CHECK_MESSAGE(IPConverter::ToNumericalIPFromStr("127.0.0.1", result),
                       "Conversion from IP "
                           << "127.0.0.1"

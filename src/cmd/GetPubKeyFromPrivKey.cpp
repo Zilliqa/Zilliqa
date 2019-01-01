@@ -20,11 +20,13 @@
 #include <functional>
 #include <iostream>
 #include <thread>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 #pragma GCC diagnostic pop
+
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -84,7 +86,7 @@ int main(int argc, const char* argv[]) {
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     sha2.Reset();
-    vector<unsigned char> message;
+    bytes message;
 
     PrivKey privKey;
 

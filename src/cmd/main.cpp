@@ -21,11 +21,9 @@
 #include <arpa/inet.h>
 #include <algorithm>
 #include <iostream>
-#include "boost/program_options.hpp"
 
 #include <boost/lexical_cast.hpp>
-#include <iostream>
-#include "boost/program_options.hpp"
+#include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
@@ -163,8 +161,7 @@ int main(int argc, const char* argv[]) {
 
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
                     vm.count("loadconfig"), synctype, vm.count("recovery"));
-    auto dispatcher =
-        [&zilliqa](pair<vector<unsigned char>, Peer>* message) mutable -> void {
+    auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
       zilliqa.Dispatch(message);
     };
     auto broadcast_list_retriever =

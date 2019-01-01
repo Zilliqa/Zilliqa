@@ -20,6 +20,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
+
+#include <boost/program_options.hpp>
+
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
@@ -27,8 +30,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
-
-#include "boost/program_options.hpp"
 
 namespace po = boost::program_options;
 

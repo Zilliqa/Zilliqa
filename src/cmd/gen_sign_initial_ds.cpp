@@ -17,11 +17,12 @@
 
 #include <iostream>
 #include <string>
-#include "libUtils/UpgradeManager.h"
 
+#include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-#include "boost/program_options.hpp"
+
+#include "libUtils/UpgradeManager.h"
 
 namespace po = boost::program_options;
 
@@ -59,7 +60,7 @@ int main(int argc, char** argv) {
     string pubKey_string;
     string pubk_fn;
     string privk_fn;
-    vector<unsigned char> message;
+    bytes message;
     vector<PubKey> dsComm;
 
     po::options_description desc("Options");
@@ -95,7 +96,7 @@ int main(int argc, char** argv) {
 
     //--------------------------
     try {
-      vector<unsigned char> key_v;
+      bytes key_v;
       fstream privFile(privk_fn, ios::in);
       while (getline(privFile, line)) {
         try {
@@ -112,7 +113,7 @@ int main(int argc, char** argv) {
     }
 
     try {
-      vector<unsigned char> key_v;
+      bytes key_v;
       fstream pubFile(pubk_fn, ios::in);
       while (getline(pubFile, line)) {
         try {
@@ -148,7 +149,7 @@ int main(int argc, char** argv) {
     for (unsigned int i = 0; i < privKeys.size(); ++i) {
       Signature sig;
       Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
-      vector<unsigned char> result;
+      bytes result;
       sig.Serialize(result, 0);
       sig_str = DataConversion::Uint8VecToHexStr(result);
     }

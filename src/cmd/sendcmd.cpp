@@ -19,6 +19,9 @@
 #include <cstring>
 #include <iostream>
 
+#include <boost/algorithm/string/join.hpp>
+#include <boost/program_options.hpp>
+
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
@@ -26,9 +29,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/SWInfo.h"
-
-#include <boost/algorithm/string/join.hpp>
-#include "boost/program_options.hpp"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -73,14 +73,13 @@ void process_addpeers(const char* progname, const char* cmdname,
       // Assemble an ADDNODE message
 
       // Class and Inst bytes
-      vector<unsigned char> addnode_message = {
-          MessageType::PEER, PeerManager::InstructionType::ADDPEER};
+      bytes addnode_message = {MessageType::PEER,
+                               PeerManager::InstructionType::ADDPEER};
 
       // Public key
       // Temporarily just accept the public key as an input (for use with the
       // peer store)
-      vector<unsigned char> tmp =
-          DataConversion::HexStrToUint8Vec(args[i++].c_str());
+      bytes tmp = DataConversion::HexStrToUint8Vec(args[i++].c_str());
       addnode_message.resize(MessageOffset::BODY + tmp.size());
       copy(tmp.begin(), tmp.end(),
            addnode_message.begin() + MessageOffset::BODY);
@@ -116,8 +115,7 @@ void process_broadcast(const char* progname, const char* cmdname,
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
     unsigned int numbytes = static_cast<unsigned int>(atoi(args[0].c_str()));
-    vector<unsigned char> broadcast_message(numbytes + MessageOffset::BODY,
-                                            0xAA);
+    bytes broadcast_message(numbytes + MessageOffset::BODY, 0xAA);
     broadcast_message.at(MessageOffset::TYPE) = MessageType::PEER;
     broadcast_message.at(MessageOffset::INST) =
         PeerManager::InstructionType::BROADCAST;
@@ -141,8 +139,7 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
     // Send the generic message to the local node
-    vector<unsigned char> tmp =
-        DataConversion::HexStrToUint8Vec(args[0].c_str());
+    bytes tmp = DataConversion::HexStrToUint8Vec(args[0].c_str());
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
@@ -159,8 +156,7 @@ void process_remote_cmd(const char* progname, const char* cmdname,
   } else {
     Peer my_port(remote_ip, listen_port);
 
-    vector<unsigned char> tmp =
-        DataConversion::HexStrToUint8Vec(args[0].c_str());
+    bytes tmp = DataConversion::HexStrToUint8Vec(args[0].c_str());
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
@@ -269,7 +265,9 @@ int main(int argc, const char* argv[]) {
         ip = ip_;
       }
       uint128_t remote_ip;
-      IPConverter::ToNumericalIPFromStr(ip, remote_ip);
+      if (!IPConverter::ToNumericalIPFromStr(ip, remote_ip)) {
+        return ERROR_IN_COMMAND_LINE;
+      }
       if ((port < 0) || (port > 65535)) {
         SWInfo::LogBrandBugReport();
         std::cerr << "Invalid or missing port number" << endl;

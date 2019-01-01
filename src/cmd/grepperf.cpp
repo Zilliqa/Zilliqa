@@ -23,10 +23,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/program_options.hpp>
+
 #include "common/MessageNames.h"
 #include "libUtils/SWInfo.h"
-
-#include "boost/program_options.hpp"
 
 namespace po = boost::program_options;
 
