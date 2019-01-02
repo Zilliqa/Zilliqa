@@ -98,7 +98,7 @@ bool DirectoryService::ComposeFinalBlockMessageForSender(
   bytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
-  if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY, 0,
+  if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY,
                                     dsBlockNumber, m_mediator.m_consensusID,
                                     *m_finalBlock, stateDelta)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -107,89 +107,6 @@ bool DirectoryService::ComposeFinalBlockMessageForSender(
   }
 
   return true;
-}
-
-void DirectoryService::SendFinalBlockToShardNodes(
-    [[gnu::unused]] const bytes& finalblock_message, const DequeOfShard& shards,
-    const unsigned int& my_shards_lo, const unsigned int& my_shards_hi) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::SendFinalBlockToShardNodes not expected "
-                "to be called from LookUp node.");
-    return;
-  }
-
-  LOG_MARKER();
-
-  const uint64_t dsBlockNumber =
-      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  bytes stateDelta;
-  AccountStore::GetInstance().GetSerializedDelta(stateDelta);
-
-  auto p = shards.begin();
-  advance(p, my_shards_lo);
-
-  for (unsigned int i = my_shards_lo; i < my_shards_hi; i++) {
-    uint32_t shardId =
-        m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
-
-    bytes finalblock_message = {MessageType::NODE,
-                                NodeInstructionType::FINALBLOCK};
-    if (!Messenger::SetNodeFinalBlock(
-            finalblock_message, MessageOffset::BODY, shardId, dsBlockNumber,
-            m_mediator.m_consensusID, *m_finalBlock, stateDelta)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Messenger::SetNodeFinalBlock failed.");
-      return;
-    }
-
-    SHA2<HASH_TYPE::HASH_VARIANT_256> sha256;
-    sha256.Update(finalblock_message);
-    auto this_msg_hash = sha256.Finalize();
-
-    if (BROADCAST_GOSSIP_MODE) {
-      // Choose N other Shard nodes to be recipient of final block
-      std::vector<Peer> shardFinalBlockReceivers;
-      unsigned int numOfFinalBlockReceivers =
-          std::min(NUM_GOSSIP_RECEIVERS, (uint32_t)p->size());
-
-      for (unsigned int i = 0; i < numOfFinalBlockReceivers; i++) {
-        const auto& kv = p->at(i);
-        shardFinalBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            " PubKey: " << DataConversion::SerializableToHexStr(
-                               std::get<SHARD_NODE_PUBKEY>(kv))
-                        << " IP: "
-                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                        << " Port: "
-                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
-      }
-
-      P2PComm::GetInstance().SendRumorToForeignPeers(shardFinalBlockReceivers,
-                                                     finalblock_message);
-    } else {
-      vector<Peer> shard_peers;
-
-      for (const auto& kv : *p) {
-        shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            " PubKey: " << DataConversion::SerializableToHexStr(
-                               std::get<SHARD_NODE_PUBKEY>(kv))
-                        << " IP: "
-                        << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                        << " Port: "
-                        << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
-      }
-
-      P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
-                                                  finalblock_message);
-    }
-
-    p++;
-  }
 }
 
 void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
@@ -248,19 +165,19 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     return ComposeFinalBlockMessageForSender(message);
   };
 
-  auto sendFinalBlockToShardNodes =
-      [this](const bytes& message, const DequeOfShard& shards,
-             const unsigned int& my_shards_lo,
-             const unsigned int& my_shards_hi) -> void {
-    SendFinalBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
-  };
+  // Acquire shard receivers cosigs from MicroBlocks
+  unordered_map<uint32_t, BlockBase> t_microBlocks;
+  const auto& microBlocks = m_microBlocks
+      [m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()];
+  for (const auto& microBlock : microBlocks) {
+    t_microBlocks.emplace(microBlock.GetHeader().GetShardId(), microBlock);
+  }
 
   DataSender::GetInstance().SendDataToOthers(
-      *m_finalBlock, *m_mediator.m_DSCommittee, m_shards,
+      *m_finalBlock, *m_mediator.m_DSCommittee, m_shards, t_microBlocks,
       m_mediator.m_lookup->GetLookupNodes(),
-      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-      composeFinalBlockMessageForSender, SendDataToLookupFuncDefault,
-      sendFinalBlockToShardNodes);
+      m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
+      composeFinalBlockMessageForSender);
 
   LOG_STATE(
       "[FLBLK]["
