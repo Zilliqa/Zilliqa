@@ -1414,7 +1414,6 @@ void Node::RejoinAsNormal() {
       this->m_mediator.m_ds->CleanVariables();
       this->Install(SyncType::NORMAL_SYNC);
       this->StartSynchronization();
-      this->ResetRejoinFlags();
     };
     DetachedFunction(1, func);
   }
@@ -1431,6 +1430,9 @@ void Node::ResetRejoinFlags() {
   m_doRejoinAtNextRound = false;
   m_doRejoinAtStateRoot = false;
   m_doRejoinAtFinalBlock = false;
+
+  m_mediator.m_ds->m_doRejoinAtDSConsensus = false;
+  m_mediator.m_ds->m_doRejoinAtFinalConsensus = false;
 }
 
 bool Node::CleanVariables() {
@@ -1454,6 +1456,8 @@ bool Node::CleanVariables() {
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
   P2PComm::GetInstance().InitializeRumorManager({});
+  this->ResetRejoinFlags();
+
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
@@ -1572,6 +1576,12 @@ bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
       break;
     case REJOINTYPE::ATSTATEROOT:
       m_doRejoinAtStateRoot = true;
+      break;
+    case REJOINTYPE::ATDSCONSENSUS:
+      m_mediator.m_ds->m_doRejoinAtDSConsensus = true;
+      break;
+    case REJOINTYPE::ATFINALCONSENSUS:
+      m_mediator.m_ds->m_doRejoinAtFinalConsensus = true;
       break;
     default:
       return false;
