@@ -65,18 +65,18 @@ class BlockStorage : public Singleton<BlockStorage> {
   // test and monitoring tools work with the default setting of
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
 
-  BlockStorage()
-      : m_metadataDB(std::make_shared<LevelDB>("metadata")),
-        m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
-        m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
-        m_microBlockDB(std::make_shared<LevelDB>("microBlocks")),
-        m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
-        m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
-        m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks")),
-        m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
-        m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
-        m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
-        m_diagnosticDB(std::make_shared<LevelDB>("diagnostic")),
+  BlockStorage(const std::string path = "")
+      : m_metadataDB(std::make_shared<LevelDB>("metadata", path)),
+        m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks", path)),
+        m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks", path)),
+        m_microBlockDB(std::make_shared<LevelDB>("microBlocks", path)),
+        m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee", path)),
+        m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks", path)),
+        m_fallbackBlockDB(std::make_shared<LevelDB>("fallbackBlocks", path)),
+        m_blockLinkDB(std::make_shared<LevelDB>("blockLinks", path)),
+        m_shardStructureDB(std::make_shared<LevelDB>("shardStructure", path)),
+        m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta", path)),
+        m_diagnosticDB(std::make_shared<LevelDB>("diagnostic", path)),
         m_diagnosticDBCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
@@ -105,7 +105,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   };
 
   /// Returns the singleton BlockStorage instance.
-  static BlockStorage& GetBlockStorage();
+  static BlockStorage& GetBlockStorage(const std::string path = "");
 
   /// Get the size of current TxBodyDB
   unsigned int GetTxBodyDBSize();

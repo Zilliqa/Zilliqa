@@ -107,12 +107,12 @@ void processResults(
 
 int main(int argc, char** argv) {
   if (argc < 2) {
-    std::cout << "[USAGE] " << argv[0]
-              << " <output csv filename>" << std::endl;
+    std::cout << "[USAGE] " << argv[0] << " <output csv filename> [db path]"
+              << std::endl;
     return -1;
   }
 
-  BlockStorage& bs = BlockStorage::GetBlockStorage();
+  BlockStorage& bs = BlockStorage::GetBlockStorage(argc == 2 ? "" : argv[2]);
 
   std::map<uint64_t, DiagnosticData> diagnosticDataMap =
       std::map<uint64_t, DiagnosticData>();
