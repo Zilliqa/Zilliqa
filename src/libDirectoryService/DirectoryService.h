@@ -535,6 +535,9 @@ class DirectoryService : public Executable, public Broadcastable {
       m_lookupStoreForGuardNodeUpdate;
   std::atomic_bool m_awaitingToSubmitNetworkInfoUpdate = {false};
 
+  bool m_doRejoinAtDSConsensus = false;
+  bool m_doRejoinAtFinalConsensus = false;
+
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
   DirectoryService(Mediator& mediator);
