@@ -459,11 +459,14 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
   if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
     LOG_GENERAL(INFO, "Received Gossip of type - FORWARD from Peer :" << from);
 
-    if (p2p.SpreadRumor(rumor_message)) {
-      std::pair<bytes, Peer>* raw_message =
-          new pair<bytes, Peer>(rumor_message, from);
+    if (p2p.SpreadForeignRumor(rumor_message)) {
+      // skip the keys and signature.
+      bytes tmp(rumor_message.begin() + PUB_KEY_SIZE +
+                    SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE,
+                rumor_message.end());
+      std::pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(tmp, from);
 
-      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+      LOG_GENERAL(INFO, "Size of rumor message: " << tmp.size());
 
       // Queue the message
       m_dispatcher(raw_message);
@@ -897,6 +900,11 @@ bool P2PComm::SpreadRumor(const bytes& message) {
   return m_rumorManager.AddRumor(message);
 }
 
+bool P2PComm::SpreadForeignRumor(const bytes& message) {
+  LOG_MARKER();
+  return m_rumorManager.AddForeignRumor(message);
+}
+
 void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
                                      const bytes& message) {
   LOG_MARKER();
@@ -917,15 +925,47 @@ void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
 
-void P2PComm::InitializeRumorManager(const std::vector<Peer>& peers) {
+void P2PComm::SetSelfKey(const std::pair<PrivKey, PubKey>& self) {
+  m_selfKey = self;
+}
+
+void P2PComm::InitializeRumorManager(
+    const std::vector<std::pair<PubKey, Peer>>& peers,
+    const std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
 
   m_rumorManager.StopRounds();
-  if (m_rumorManager.Initialize(peers, m_selfPeer)) {
+  if (m_rumorManager.Initialize(peers, m_selfPeer, m_selfKey,
+                                fullNetworkKeys)) {
     if (peers.size() != 0) {
       m_rumorManager.StartRounds();
     }
     // Spread the buffered rumors
     m_rumorManager.SpreadBufferedRumors();
   }
+}
+
+Signature P2PComm::SignMessage(const bytes& message) {
+  LOG_MARKER();
+
+  Signature signature;
+  bool result = Schnorr::GetInstance().Sign(
+      message, 0, message.size(), m_selfKey.first, m_selfKey.second, signature);
+  if (!result) {
+    return Signature();
+  }
+  return signature;
+}
+
+bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
+                            const PubKey& pubKey) {
+  LOG_MARKER();
+  bool result = Schnorr::GetInstance().Verify(message, 0, message.size(),
+                                              toverify, pubKey);
+
+  if (!result) {
+    LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: 0x"
+                          << DataConversion::SerializableToHexStr(pubKey));
+  }
+  return result;
 }
