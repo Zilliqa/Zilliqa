@@ -108,7 +108,7 @@ void processResults(
 int main(int argc, char** argv) {
   if (argc < 2) {
     std::cout << "[USAGE] " << argv[0]
-              << " <output csv filename> <epoch width required>" << std::endl;
+              << " <output csv filename>" << std::endl;
     return -1;
   }
 
