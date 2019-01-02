@@ -548,6 +548,10 @@ class Node : public Executable, public Broadcastable {
                               const DequeOfDSNode& dsCommittee,
                               const uint64_t epochNumber, Peer& dsLeaderPeer);
 
+  // Get entire network peer info
+  void GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+                                std::vector<PubKey>& pubKeys);
+
  private:
   static std::map<NodeState, std::string> NodeStateStrings;
   std::string GetStateString() const;

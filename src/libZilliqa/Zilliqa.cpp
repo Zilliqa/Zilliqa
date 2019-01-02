@@ -197,6 +197,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   }
 
   P2PComm::GetInstance().SetSelfPeer(peer);
+  P2PComm::GetInstance().SetSelfKey(key);
 
   if (GUARD_MODE) {
     // Setting the guard upon process launch
