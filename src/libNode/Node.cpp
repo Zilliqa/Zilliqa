@@ -589,13 +589,11 @@ void Node::WakeupAtDSEpoch() {
                                            .GetBlockNum() +
                                        1);
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     auto func = [this]() mutable -> void {
@@ -681,13 +679,11 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
     m_mediator.m_ds->SetState(
         DirectoryService::DirState::MICROBLOCK_SUBMISSION);
@@ -699,14 +695,12 @@ void Node::WakeupAtTxEpoch() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<Peer> peers;
-    for (const auto& i : *m_myShardMembers) {
-      if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i.second);
-      }
-    }
+    std::vector<std::pair<PubKey, Peer>> peers;
+    std::vector<PubKey> pubKeys;
+    GetEntireNetworkPeerInfo(peers, pubKeys);
+
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   SetState(WAITING_FINALBLOCK);
@@ -1453,7 +1447,7 @@ bool Node::CleanVariables() {
   m_proposedGasPrice = PRECISION_MIN_VALUE;
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
-  P2PComm::GetInstance().InitializeRumorManager({});
+  P2PComm::GetInstance().InitializeRumorManager({}, {});
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
@@ -1921,4 +1915,28 @@ std::string Node::GetActionString(Action action) const {
     return false;
   }
   return true;
+}
+
+void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+                                    std::vector<PubKey>& pubKeys) {
+  peers.clear();
+  pubKeys.clear();
+
+  for (const auto& i : *m_myShardMembers) {
+    if (i.second.m_listenPortHost != 0) {
+      peers.emplace_back(i);
+      // Get the pubkeys for my shard member
+      pubKeys.emplace_back(i.first);
+    }
+  }
+
+  // Get the pubkeys for ds committee
+  for (const auto& i : *m_mediator.m_DSCommittee) {
+    pubKeys.emplace_back(i.first);
+  }
+
+  // Get the pubKeys for lookup nodes
+  for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+    pubKeys.emplace_back(i.first);
+  }
 }

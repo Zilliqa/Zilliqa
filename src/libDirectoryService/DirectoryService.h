@@ -616,6 +616,10 @@ class DirectoryService : public Executable, public Broadcastable {
   // For DS guard to update it's network information while in GUARD_MODE
   bool UpdateDSGuardIdentity();
 
+  // Get entire network peer info
+  void GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+                                std::vector<PubKey>& pubKeys);
+
  private:
   static std::map<DirState, std::string> DirStateStrings;
   std::string GetStateString() const;

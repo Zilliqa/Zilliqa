@@ -232,13 +232,11 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
 
   // Lets start the gossip as earliest as possible
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<Peer> peers;
-    for (const auto& i : *m_mediator.m_DSCommittee) {
-      if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i.second);
-      }
-    }
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+    std::vector<std::pair<PubKey, Peer>> peers;
+    std::vector<PubKey> pubKeys;
+    GetEntireNetworkPeerInfo(peers, pubKeys);
+
+    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   // Now I need to find my index in the sorted list (this will be my ID for the
@@ -507,13 +505,11 @@ bool DirectoryService::FinishRejoinAsDS() {
     }
 
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
   }
 
@@ -860,13 +856,11 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     }
 
     if (foundDSGuardNode && BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     // Lookup to store the info
@@ -1087,4 +1081,28 @@ uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
 int64_t DirectoryService::GetAllPoWSize() const {
   std::lock_guard<mutex> lock(m_mutexAllPOW);
   return m_allPoWs.size();
+}
+
+void DirectoryService::GetEntireNetworkPeerInfo(
+    std::vector<std::pair<PubKey, Peer>>& peers, std::vector<PubKey>& pubKeys) {
+  peers.clear();
+  pubKeys.clear();
+
+  for (const auto& i : *m_mediator.m_DSCommittee) {
+    if (i.second.m_listenPortHost != 0) {
+      peers.emplace_back(i);
+      // Get the pubkeys for ds committee
+      pubKeys.emplace_back(i.first);
+    }
+  }
+
+  // Get the pubkeys for all other shard members aswell
+  for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
+    pubKeys.emplace_back(i.first);
+  }
+
+  // Get the pubKeys for lookup nodes
+  for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+    pubKeys.emplace_back(i.first);
+  }
 }
