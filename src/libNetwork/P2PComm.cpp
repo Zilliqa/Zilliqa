@@ -931,7 +931,7 @@ void P2PComm::SetSelfKey(const std::pair<PrivKey, PubKey>& self) {
 
 void P2PComm::InitializeRumorManager(
     const std::vector<std::pair<PubKey, Peer>>& peers,
-    std::vector<PubKey>& fullNetworkKeys) {
+    const std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
 
   m_rumorManager.StopRounds();

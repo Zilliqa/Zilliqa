@@ -117,7 +117,7 @@ void RumorManager::StopRounds() {
 bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
                               const Peer& myself,
                               const std::pair<PrivKey, PubKey>& myKeys,
-                              std::vector<PubKey>& fullNetworkKeys) {
+                              const std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
