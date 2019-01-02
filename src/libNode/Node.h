@@ -66,7 +66,7 @@ class Node : public Executable, public Broadcastable {
     ATFINALBLOCK = 0x00,
     ATNEXTROUND = 0x01,
     ATSTATEROOT = 0x02,
-    ATDSCONSENSUS = 0x03,   // For DS Rejoin
+    ATDSCONSENSUS = 0x03,     // For DS Rejoin
     ATFINALCONSENSUS = 0x04,  // For DS Rejoin
   };
 
