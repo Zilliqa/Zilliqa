@@ -1970,14 +1970,14 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
           getpowsubmission_message);
     } else if (m_syncType == SyncType::DS_SYNC ||
                m_syncType == SyncType::GUARD_DS_SYNC) {
-      if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
-                                  m_mediator.m_dsBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetBlockNum()) {
+      if (!m_currDSExpired &&
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
+              m_mediator.m_currentEpochNum) {
         m_isFirstLoop = true;
         SetSyncType(SyncType::NO_SYNC);
         m_mediator.m_ds->FinishRejoinAsDS();
       }
+
       m_currDSExpired = false;
     }
   } else if (m_syncType == SyncType::LOOKUP_SYNC) {
@@ -2569,21 +2569,7 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
   }
 
   InitMining(index);
-
-  if (m_syncType == SyncType::DS_SYNC ||
-      m_syncType == SyncType::GUARD_DS_SYNC) {
-    if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
-                                m_mediator.m_dsBlockChain.GetLastBlock()
-                                    .GetHeader()
-                                    .GetBlockNum()) {
-      m_isFirstLoop = true;
-      SetSyncType(SyncType::NO_SYNC);
-      m_mediator.m_ds->FinishRejoinAsDS();
-    }
-
-    m_currDSExpired = false;
-  }
-
+  
   return true;
 }
 
