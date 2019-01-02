@@ -1451,7 +1451,7 @@ bool Node::CleanVariables() {
   CleanMicroblockConsensusBuffer();
   P2PComm::GetInstance().InitializeRumorManager({}, {});
   this->ResetRejoinFlags();
-  
+
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
