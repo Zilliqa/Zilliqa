@@ -236,7 +236,11 @@ struct Signature : public Serializable {
 
   /// Utility std::string conversion function for signature info.
   explicit operator std::string() const {
-    return "0x" + DataConversion::SerializableToHexStr(*this);
+    std::string output; 
+    if (!DataConversion::SerializableToHexStr(*this, output)){
+      return "";
+    }
+    return "0x" + output;
   }
 };
 
