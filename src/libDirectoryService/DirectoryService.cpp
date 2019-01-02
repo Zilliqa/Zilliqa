@@ -1091,9 +1091,9 @@ void DirectoryService::GetEntireNetworkPeerInfo(
   for (const auto& i : *m_mediator.m_DSCommittee) {
     if (i.second.m_listenPortHost != 0) {
       peers.emplace_back(i);
+      // Get the pubkeys for ds committee
+      pubKeys.emplace_back(i.first);
     }
-    // Get the pubkeys for ds committee
-    pubKeys.emplace_back(i.first);
   }
 
   // Get the pubkeys for all other shard members aswell

@@ -1921,9 +1921,9 @@ void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
   for (const auto& i : *m_myShardMembers) {
     if (i.second.m_listenPortHost != 0) {
       peers.emplace_back(i);
+      // Get the pubkeys for my shard member
+      pubKeys.emplace_back(i.first);
     }
-    // Get the pubkeys for my shard member
-    pubKeys.emplace_back(i.first);
   }
 
   // Get the pubkeys for ds committee
