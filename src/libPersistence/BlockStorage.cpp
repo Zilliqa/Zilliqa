@@ -113,6 +113,27 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
   return (ret == 0);
 }
 
+bool BlockStorage::InitiateHistoricalDB(const string& path) {
+  m_historicalDB = make_shared<LevelDB>("txBodies", path, "");
+
+  return true;
+}
+
+bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
+                                          TxBodySharedPtr& body) {
+  std::string bodyString;
+
+  bodyString = m_txBodyDB->Lookup(key);
+
+  if (bodyString.empty()) {
+    return false;
+  }
+  body = make_shared<TransactionWithReceipt>(
+      bytes(bodyString.begin(), bodyString.end()), 0);
+
+  return true;
+}
+
 bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
                                  MicroBlockSharedPtr& microblock) {
   LOG_MARKER();
@@ -201,6 +222,17 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   return true;
 }
 
+bool BlockStorage::ReleaseDB() {
+  m_txBodyDB.reset();
+  m_microBlockDB.reset();
+  m_VCBlockDB.reset();
+  m_txBlockchainDB.reset();
+  m_dsBlockchainDB.reset();
+  m_fallbackBlockDB.reset();
+  m_blockLinkDB.reset();
+  return true;
+}
+
 bool BlockStorage::GetFallbackBlock(
     const BlockHash& blockhash,
     FallbackBlockSharedPtr& fallbackblockwsharding) {
@@ -256,13 +288,8 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   std::string bodyString;
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
-    return false;
-  } else  // IS_LOOKUP_NODE
-  {
-    bodyString = m_txBodyDB->Lookup(key);
-  }
+
+  bodyString = m_txBodyDB->Lookup(key);
 
   if (bodyString.empty()) {
     return false;

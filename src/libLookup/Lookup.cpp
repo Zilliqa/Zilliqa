@@ -3107,7 +3107,8 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
       &Lookup::ProcessSetStateDeltaFromSeed,
       &Lookup::ProcessVCGetLatestDSTxBlockFromSeed,
       &Lookup::ProcessForwardTxn,
-      &Lookup::ProcessGetDSGuardNetworkInfo};
+      &Lookup::ProcessGetDSGuardNetworkInfo,
+      &Lookup::ProcessSetHistoricalDB};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =
@@ -3529,5 +3530,37 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(const bytes& message,
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
   P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
+  return true;
+}
+
+bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
+                                    [[gnu::unused]] const Peer& from) {
+  string path = "";
+  uint32_t code = 0;
+  PubKey archPubkey;
+
+  if (!Messenger::GetSeedNodeHistoricalDB(message, offset, archPubkey, code,
+                                          path)) {
+    LOG_GENERAL(WARNING, "GetSeedNodeHistoricalDB failed");
+    return false;
+  }
+
+  if (!(archPubkey ==
+        PubKey(DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY), 0))) {
+    LOG_GENERAL(WARNING, "PubKey not of verifier");
+    return false;
+  }
+
+  if (code == 1) {
+    BlockStorage::GetBlockStorage().InitiateHistoricalDB(VERIFIER_PATH + "/" +
+                                                         path);
+
+    m_historicalDB = true;
+  } else {
+    LOG_GENERAL(WARNING, "Code is errored " << code);
+    return false;
+  }
+
+  LOG_GENERAL(INFO, "HistDB Success");
   return true;
 }
