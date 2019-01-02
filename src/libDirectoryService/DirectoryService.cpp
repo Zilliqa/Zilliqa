@@ -588,11 +588,12 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   // in case the recovery program is under different directory
   LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(), DS_BACKUP_MSG);
-  RunConsensusOnDSBlock(true);
+  StartNewDSEpochConsensus(false, true);
   return true;
 }
 
-void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
+void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
+                                                bool isRejoin) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartNewDSEpochConsensus not "
@@ -660,12 +661,14 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
     if (cv_DSBlockConsensus.wait_for(
-            cv_lk, std::chrono::seconds(
-                       NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                       (fromFallback ? FALLBACK_EXTRA_TIME : 0))) ==
+            cv_lk,
+            std::chrono::seconds((isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
+                                 POW_WINDOW_IN_SECONDS +
+                                 (fromFallback ? FALLBACK_EXTRA_TIME : 0))) ==
         std::cv_status::timeout) {
       LOG_GENERAL(INFO, "Woken up from the sleep of "
-                            << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                            << (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
+                                   POW_WINDOW_IN_SECONDS +
                                    (fromFallback ? FALLBACK_EXTRA_TIME : 0)
                             << " seconds");
       // if i am suppose to create pow submission packet for other DS members
@@ -696,7 +699,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
                   "run consensus.");
     }
 
-    RunConsensusOnDSBlock();
+    RunConsensusOnDSBlock(isRejoin);
 
     // now that we already run DSBlock Consensus, lets clear the buffered pow
     // solutions. why not clear it at start of new ds epoch - becoz sometimes
