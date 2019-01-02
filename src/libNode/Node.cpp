@@ -547,7 +547,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
       do {
-        m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
+        m_mediator.m_lookup->GetStateDeltaFromSeedNodes(
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
         LOG_GENERAL(INFO,
                     "Retrieve final block state delta from lookup node, please "
@@ -1223,7 +1223,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
                                 lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
@@ -1792,7 +1792,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
                                 lookupPubkey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "

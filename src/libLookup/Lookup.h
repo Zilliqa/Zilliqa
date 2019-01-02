@@ -150,6 +150,9 @@ class Lookup : public Executable, public Broadcastable {
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
 
+  // Getter for m_seedNodes
+  VectorOfLookupNode GetSeedNodes() const;
+
   std::mutex m_txnShardMapMutex;
   std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
 
@@ -186,6 +189,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
+  bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
   bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
   bool GetStateFromSeedNodes();
@@ -311,7 +315,8 @@ class Lookup : public Executable, public Broadcastable {
                               const Peer& from);
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
                                                 bool toSendSeed = true);
-  static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
+
+  static bool VerifySenderNode(const VectorOfLookupNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);

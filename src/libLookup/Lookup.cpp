@@ -173,6 +173,7 @@ void Lookup::SetAboveLayer() {
   using boost::property_tree::ptree;
   ptree pt;
   read_xml("constants.xml", pt);
+  m_seedNodes.clear();
   for (const ptree::value_type& v : pt.get_child("node.upper_seed")) {
     if (v.first == "peer") {
       struct in_addr ip_addr;
@@ -194,6 +195,12 @@ vector<Peer> Lookup::GetAboveLayer() {
     seedNodePeer.emplace_back(seedNode.second);
   }
   return seedNodePeer;
+}
+
+VectorOfLookupNode Lookup::GetSeedNodes() const {
+  lock_guard<mutex> g(m_mutexSeedNodes);
+
+  return m_seedNodes;
 }
 
 std::once_flag generateReceiverOnce;
@@ -412,6 +419,7 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
   }
 
   int index = rand() % m_lookupNodes.size();
+
   P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
 }
 
@@ -589,6 +597,14 @@ bool Lookup::GetStateDeltaFromLookupNodes(const uint64_t& blockNum) {
 
   SendMessageToRandomLookupNode(ComposeGetStateDeltaMessage(blockNum));
 
+  return true;
+}
+
+bool Lookup::GetStateDeltaFromSeedNodes(const uint64_t& blockNum)
+
+{
+  LOG_MARKER();
+  SendMessageToRandomSeedNode(ComposeGetStateDeltaMessage(blockNum));
   return true;
 }
 
@@ -802,7 +818,7 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
     return;
   }
 
-  int index = rand() % m_lookupNodes.size();
+  int index = rand() % m_seedNodes.size();
   P2PComm::GetInstance().SendMessage(m_seedNodes[index].second, message);
 }
 
@@ -1160,7 +1176,7 @@ bool Lookup::ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -1331,7 +1347,7 @@ bool Lookup::ProcessSetMicroBlockFromLookup(const bytes& message,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -1393,7 +1409,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   }
 
   if (!LOOKUP_NODE_MODE) {
-    if (!VerifyLookupNode(GetLookupNodes(), senderPubKey)) {
+    if (!VerifySenderNode(GetSeedNodes(), senderPubKey)) {
       LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
                 "The message sender pubkey: "
                     << senderPubKey << " is not in my lookup node list.");
@@ -1515,7 +1531,7 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetSeedNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -1591,7 +1607,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -1754,7 +1770,7 @@ bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetSeedNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -1795,7 +1811,7 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetSeedNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -1971,7 +1987,7 @@ bool Lookup::ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -2183,7 +2199,7 @@ bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -2281,7 +2297,7 @@ bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!VerifyLookupNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -3250,7 +3266,7 @@ bool Lookup::GetIsServer() {
   return m_isServer;
 }
 
-bool Lookup::VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
+bool Lookup::VerifySenderNode(const VectorOfLookupNode& vecLookupNodes,
                               const PubKey& pubKeyToVerify) {
   auto iter =
       std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),

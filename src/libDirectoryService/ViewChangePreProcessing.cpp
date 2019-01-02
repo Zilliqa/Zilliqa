@@ -748,8 +748,8 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
     return false;
   }
 
-  if (!m_mediator.m_lookup->VerifyLookupNode(
-          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+  if (!m_mediator.m_lookup->VerifySenderNode(
+          m_mediator.m_lookup->GetSeedNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
