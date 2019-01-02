@@ -326,7 +326,8 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   LOG_PAYLOAD(INFO, "Block 2 prevHash", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
   std::string expectedStr =
       "0D3979DA06841562C90DE5212BE5EFCF88FAEA17118945B6B49D304DE295E407";
-  bytes expectedVec = DataConversion::HexStrToUint8Vec(expectedStr);
+  bytes expectedVec;
+  DataConversion::HexStrToUint8Vec(expectedStr, expectedVec);
   bool is_prevHash_equal = std::equal(byteVec.begin(), byteVec.end(),
                                       expectedVec.begin(), expectedVec.end());
   BOOST_CHECK_MESSAGE(
