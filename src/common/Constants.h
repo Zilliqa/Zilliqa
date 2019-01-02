@@ -89,7 +89,8 @@ enum SyncType : unsigned int {
   LOOKUP_SYNC,
   RECOVERY_ALL_SYNC,
   NEW_LOOKUP_SYNC,
-  GUARD_DS_SYNC
+  GUARD_DS_SYNC,
+  DB_VERIF
 };
 
 const std::string RAND1_GENESIS =
@@ -302,4 +303,7 @@ extern const unsigned int VIEWCHANGE_TIME;
 extern const std::vector<std::string> GENESIS_WALLETS;
 extern const std::vector<std::string> GENESIS_KEYS;
 
+// DBVerifier constants
+extern const std::string VERIFIER_PATH;
+extern const std::string VERIFIER_PUBKEY;
 #endif  // __CONSTANTS_H__

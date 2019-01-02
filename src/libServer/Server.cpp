@@ -275,6 +275,15 @@ Json::Value Server::GetTransaction(const string& transactionHash) {
     }
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
     if (!isPresent) {
+      if (m_mediator.m_lookup->m_historicalDB) {
+        bool isPresentHistorical =
+            BlockStorage::GetBlockStorage().GetTxnFromHistoricalDB(tranHash,
+                                                                   tptr);
+        if (isPresentHistorical) {
+          return JSONConversion::convertTxtoJson(*tptr);
+        }
+        throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not Present");
+      }
       throw JsonRpcException(RPC_DATABASE_ERROR, "Txn Hash not Present");
     }
     return JSONConversion::convertTxtoJson(*tptr);
