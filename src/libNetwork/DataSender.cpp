@@ -157,14 +157,14 @@ void DataSender::DetermineNodesToSendDataTo(
         unsigned int node_to_send_from_cosigned = 0;
         unsigned int node_to_send_from_not_cosigned = 0;
 
-        if (nodes_cosigned.size() >= NUM_GOSSIP_RECEIVERS) {
+        if (nodes_cosigned.size() > NUM_GOSSIP_RECEIVERS) {
           // pick from index based on consensusMyId
           node_to_send_from_cosigned =
               consensusMyId % (nodes_cosigned.size() - NUM_GOSSIP_RECEIVERS);
         } else {
           // if nodes_cosigned is not enough to meet NUM_GOSSIP_RECEIVERS, try
           // to get node from not_cosigned
-          if (nodes_not_cosigned.size() >=
+          if (nodes_not_cosigned.size() >
               NUM_GOSSIP_RECEIVERS - nodes_cosigned.size()) {
             node_to_send_from_cosigned =
                 consensusMyId % (nodes_not_cosigned.size() -
@@ -190,7 +190,7 @@ void DataSender::DetermineNodesToSendDataTo(
         // No cosig found, use default order
         // pick node from index based on consensusMyId
         unsigned int node_to_send_from = 0;
-        if (p->size() >= NUM_GOSSIP_RECEIVERS) {
+        if (p->size() > NUM_GOSSIP_RECEIVERS) {
           node_to_send_from =
               consensusMyId % (p->size() - NUM_GOSSIP_RECEIVERS);
         }
