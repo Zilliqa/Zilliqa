@@ -180,8 +180,12 @@ PeerManager::PeerManager(const PairOfKey& key, const Peer& peer,
 
     BOOST_FOREACH (ptree::value_type const& v, pt.get_child("nodes")) {
       if (v.first == "peer") {
-        PubKey key(
-            DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")), 0);
+        bytes pubkeyBytes; 
+        if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"), pubkeyBytes)){
+          continue;
+        }
+
+        PubKey key(pubkeyBytes, 0);
         struct in_addr ip_addr;
         inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
         Peer peer((uint128_t)ip_addr.s_addr,

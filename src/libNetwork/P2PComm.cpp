@@ -319,11 +319,15 @@ void SendJobPeers<T>::DoSend() {
   }
   random_shuffle(indexes.begin(), indexes.end());
 
+  string hashStr; 
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
+    if(!DataConversion::Uint8VecToHexStr(m_hash, hashStr)){
+      return;
+    }
     LOG_STATE(
         "[BROAD][" << std::setw(15) << std::left
                    << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
+                   << hashStr.substr(0, 6)
                    << "] BEGN");
   }
 
@@ -346,7 +350,7 @@ void SendJobPeers<T>::DoSend() {
     LOG_STATE(
         "[BROAD][" << std::setw(15) << std::left
                    << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
+                   << hashStr.substr(0, 6)
                    << "] DONE");
   }
 }
@@ -418,9 +422,14 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
 
   p2p.ClearBroadcastHashAsync(msg_hash);
 
+  string msgHashStr;
+  if (!DataConversion::Uint8VecToHexStr(msg_hash, msgHashStr)){
+    return;
+  }
+
   LOG_STATE(
       "[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
-                 << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
+                 << msgHashStr.substr(0, 6)
                  << "] RECV");
 
   // Move the shared_ptr message to raw pointer type
