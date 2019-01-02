@@ -59,11 +59,12 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
-  std::shared_ptr<LevelDB> m_diagnosticDB;
-
   // m_diagnosticDB is needed only for LOOKUP_NODE_MODE, but to make the unit
   // test and monitoring tools work with the default setting of
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
+  std::shared_ptr<LevelDB> m_diagnosticDB;
+  /// used for historical data
+  std::shared_ptr<LevelDB> m_historicalDB;
 
   BlockStorage()
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
@@ -116,6 +117,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutFallbackBlock(const BlockHash& blockhash, const bytes& body);
   bool PutBlockLink(const uint64_t& index, const bytes& body);
 
+  bool InitiateHistoricalDB(const std::string& path);
+
   /// Adds a Tx block to storage.
   bool PutTxBlock(const uint64_t& blockNum, const bytes& body);
 
@@ -148,6 +151,8 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
+
+  bool GetTxnFromHistoricalDB(const dev::h256& key, TxBodySharedPtr& body);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);
