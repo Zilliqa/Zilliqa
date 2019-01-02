@@ -402,3 +402,9 @@ const unsigned int VIEWCHANGE_TIME{
 const vector<string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const vector<string> GENESIS_KEYS{ReadAccountsFromConstantsFile("private_key")};
+
+// Verifier
+const std::string VERIFIER_PATH{
+    ReadConstantString("VERIFIER_PATH", "node.verifier.")};
+const std::string VERIFIER_PUBKEY{
+    ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
