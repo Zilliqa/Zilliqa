@@ -571,7 +571,11 @@ ethash_hash256 POW::GenHeaderHash(
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
-  return StringToBlockhash(DataConversion::Uint8VecToHexStr(sha2_result));
+  std::string output;
+  if (!DataConversion::Uint8VecToHexStr(sha2_result, output)){
+    return StringToBlockhash("");
+  }
+  return StringToBlockhash(output);
 }
 
 ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
