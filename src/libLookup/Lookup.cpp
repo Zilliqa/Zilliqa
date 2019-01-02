@@ -56,10 +56,9 @@ using namespace boost::multiprecision;
 
 Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
   SetLookupNodes();
-
+  SetAboveLayer();
   if (LOOKUP_NODE_MODE) {
     SetDSCommitteInfo();
-    SetAboveLayer();
   }
 }
 
