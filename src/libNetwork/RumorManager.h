@@ -91,7 +91,7 @@ class RumorManager {
   // METHODS
   bool Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
                   const Peer& myself, const std::pair<PrivKey, PubKey>& myKeys,
-                  std::vector<PubKey>& fullNetworkKeys);
+                  const std::vector<PubKey>& fullNetworkKeys);
 
   bool AddRumor(const RawBytes& message);
 

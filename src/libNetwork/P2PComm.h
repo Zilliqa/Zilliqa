@@ -126,7 +126,7 @@ class P2PComm {
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
   void InitializeRumorManager(const std::vector<std::pair<PubKey, Peer>>& peers,
-                              std::vector<PubKey>& fullNetworkKeys);
+                              const std::vector<PubKey>& fullNetworkKeys);
   inline static bool IsHostHavingNetworkIssue();
 
  private:
