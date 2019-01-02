@@ -421,7 +421,7 @@ class DirectoryService : public Executable, public Broadcastable {
   void ProcessViewChangeConsensusWhenDone();
   void ProcessNextConsensus(unsigned char viewChangeState);
 
-  bool VCFetchLatestDSTxBlockFromLookupNodes();
+  bool VCFetchLatestDSTxBlockFromSeedNodes();
   bytes ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(bytes& vcblock_message);
 

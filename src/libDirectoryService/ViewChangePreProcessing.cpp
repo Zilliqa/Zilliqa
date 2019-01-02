@@ -280,11 +280,11 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   // Note: Special check as 0 and 1 have special usage when fetching ds block
   // and final block No need check for 1 as
-  // VCFetchLatestDSTxBlockFromLookupNodes always check for current block + 1
+  // VCFetchLatestDSTxBlockFromSeedNodes always check for current block + 1
   // i.e in first epoch, it will request for block 1, which means fetch latest
   // block (including block 0)
   if (dsCurBlockNum != 0 && txCurBlockNum != 0) {
-    VCFetchLatestDSTxBlockFromLookupNodes();
+    VCFetchLatestDSTxBlockFromSeedNodes();
     if (!NodeVCPrecheck()) {
       LOG_GENERAL(WARNING,
                   "[RDS]Failed the vc precheck. Node is lagging behind the "
@@ -689,9 +689,9 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
   return true;
 }
 
-bool DirectoryService::VCFetchLatestDSTxBlockFromLookupNodes() {
+bool DirectoryService::VCFetchLatestDSTxBlockFromSeedNodes() {
   LOG_MARKER();
-  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(
       ComposeVCGetDSTxBlockMessage());
   return true;
 }
