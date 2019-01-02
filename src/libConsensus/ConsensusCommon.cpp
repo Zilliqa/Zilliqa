@@ -107,9 +107,13 @@ bool ConsensusCommon::VerifyMessage(const bytes& msg, unsigned int offset,
       msg, offset, size, toverify, GetCommitteeMember(peer_id).first);
 
   if (!result) {
+    std::string output;
+    if (!DataConversion::SerializableToHexStr(GetCommitteeMember(peer_id).first, output)){
+      return false;
+    }
+
     LOG_GENERAL(INFO, "Peer id: " << peer_id << " pubkey: 0x"
-                                  << DataConversion::SerializableToHexStr(
-                                         GetCommitteeMember(peer_id).first));
+                                  << output);
     LOG_GENERAL(INFO, "pubkeys size: " << m_committee.size());
   }
   return result;

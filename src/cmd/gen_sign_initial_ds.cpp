@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
     Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
     bytes result;
     sig.Serialize(result, 0);
-    sig_str = DataConversion::Uint8VecToHexStr(result);
+    DataConversion::Uint8VecToHexStr(result, sig_str);
   }
 
   auto pt = PTree::GetInstance();
