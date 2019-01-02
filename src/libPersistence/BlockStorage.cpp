@@ -128,8 +128,8 @@ bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
   if (bodyString.empty()) {
     return false;
   }
-  body = TxBodySharedPtr(new TransactionWithReceipt(
-      bytes(bodyString.begin(), bodyString.end()), 0));
+  body = make_shared<TransactionWithReceipt>(
+      bytes(bodyString.begin(), bodyString.end()), 0);
 
   return true;
 }
