@@ -21,9 +21,13 @@
 #define __ACCOUNTSTORESC_H__
 
 #include <json/json.h>
+#include <atomic>
+#include <condition_variable>
+#include <functional>
 #include <mutex>
 
 #include "AccountStoreBase.h"
+#include "libUtils/DetachedFunction.h"
 
 template <class MAP>
 class AccountStoreSC;
@@ -61,6 +65,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   TransactionReceipt m_curTranReceipt;
 
   unsigned int m_curDepth = 0;
+
+  std::mutex m_MutexCVCallContract;
+  std::condition_variable cv_callContract;
+  std::atomic<bool> m_txnProcessTimeout;
 
   bool ParseContractCheckerOutput(const std::string& checkerPrint);
 
@@ -107,6 +115,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                  const std::string& runnerPrint = "");
   bool ParseCallContractOutput(Json::Value& jsonOutput,
                                const std::string& runnerPrint = "");
+
+  void NotifyTimeout();
 };
 
 #include "AccountStoreAtomic.tpp"
