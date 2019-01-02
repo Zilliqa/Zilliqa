@@ -386,8 +386,16 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     PubKey senderPubKey;
     senderPubKey.Deserialize(message, 0);
 
-    if (find(m_fullNetworkKeys.begin(), m_fullNetworkKeys.end(),
-             senderPubKey) == m_fullNetworkKeys.end()) {
+    // Verify if the pub key of sender (myview) is same as pubkey received in
+    // message
+    auto k = m_pubKeyPeerBiMap.right.find(from);
+    if (k == m_pubKeyPeerBiMap.right.end()) {
+      // I dont know this peer, missing in my peerlist.
+      LOG_GENERAL(DEBUG, "Received Rumor from peer : "
+                             << from
+                             << " whose pubkey does not exist in my store");
+      return {false, {}};
+    } else if (!(k->second == senderPubKey)) {
       LOG_GENERAL(WARNING,
                   "Public Key of sender does not exist in my list. so ignoring "
                   "message");

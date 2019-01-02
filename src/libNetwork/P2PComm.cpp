@@ -625,13 +625,12 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
       return;
     }
     if (messageLength <
-        GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN +
-            PUB_KEY_SIZE + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE) {
-      LOG_GENERAL(WARNING,
-                  "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR "
-                  "Port and/or Sender PubKey and/or Signature is missing "
-                  "(messageLength = "
-                      << messageLength << ")");
+        GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN) {
+      LOG_GENERAL(
+          WARNING,
+          "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR is missing "
+          "(messageLength = "
+              << messageLength << ")");
       return;
     }
 
@@ -950,7 +949,7 @@ void P2PComm::InitializeRumorManager(
 }
 
 Signature P2PComm::SignMessage(const bytes& message) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   Signature signature;
   bool result = Schnorr::GetInstance().Sign(
@@ -963,7 +962,7 @@ Signature P2PComm::SignMessage(const bytes& message) {
 
 bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                             const PubKey& pubKey) {
-  LOG_MARKER();
+  // LOG_MARKER();
   bool result = Schnorr::GetInstance().Verify(message, 0, message.size(),
                                               toverify, pubKey);
 
