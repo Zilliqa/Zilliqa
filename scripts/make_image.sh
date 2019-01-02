@@ -25,14 +25,12 @@ cmd=$0
 
 function usage() {
 cat <<EOF
-Usage: $cmd [-t TARGET] [COMMIT]
+Usage: $cmd [COMMIT]
 
 Positional arguments:
     COMMIT                  The commit used to build zilliqa binaries. If it's
                             not set, the current HEAD will be used
 Options:
-    -t,--target TARGET      TARGET can be 'zilliqa' or 'scilla'. If it's not
-                            set, 'zilliqa' is used by default
     -h,--help               Show this help message
 
 EOF
@@ -45,11 +43,7 @@ do
     opt=$1
     case $opt in
         -t|--target)
-            target=$2
-            case $target in
-                zilliqa|scilla) ;;
-                *) usage; exit 1; ;;
-            esac
+            echo "Warning: --target option has been deprecated"
             shift 2
         ;;
         -h|--help)
@@ -77,7 +71,6 @@ do
     esac
 done
 
-[ -z "$target" ] && target="zilliqa"
 [ -z "$commit" ] && commit=$(git rev-parse HEAD)
 
 # Checking running directory
@@ -119,7 +112,7 @@ then
 fi
 
 # Handling commit
-echo "Making images using commit '$commit' for target '$target'"
+echo "Making images using commit '$commit'"
 
 # Checking commit availability on Github repo
 github_commit=https://github.com/Zilliqa/Zilliqa/commit/$commit
@@ -131,7 +124,7 @@ then
 fi
 
 # Making images and checking result
-TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh $target
+TRAVIS_COMMIT=$commit ./scripts/ci_make_image.sh
 if [ "$?" -ne 0 ]
 then
     echo "Making image failed"
