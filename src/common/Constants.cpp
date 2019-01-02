@@ -67,6 +67,8 @@ const unsigned int MSG_VERSION{ReadConstantNumeric("MSG_VERSION")};
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
 const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
+const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
+    ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 
 // Archival constants
 const bool ARCHIVAL_NODE{
@@ -367,8 +369,12 @@ const unsigned int NUM_TXN_TO_SEND_PER_ACCOUNT{
     ReadConstantNumeric("NUM_TXN_TO_SEND_PER_ACCOUNT", "node.tests.")};
 
 // Transaction constants
-const boost::multiprecision::uint128_t COINBASE_REWARD{
-    ReadConstantString("COINBASE_REWARD", "node.transactions.")};
+const boost::multiprecision::uint128_t TOTAL_COINBASE_REWARD{
+    ReadConstantString("TOTAL_COINBASE_REWARD", "node.transactions.")};
+const boost::multiprecision::uint128_t COINBASE_REWARD_PER_DS{
+    ReadConstantString("COINBASE_REWARD_PER_DS", "node.transactions.")};
+const unsigned int BASE_REWARD_IN_PERCENT{
+    ReadConstantNumeric("BASE_REWARD_IN_PERCENT", "node.transactions.")};
 const unsigned int LOOKUP_REWARD_IN_PERCENT{
     ReadConstantNumeric("LOOKUP_REWARD_IN_PERCENT", "node.transactions.")};
 const unsigned int MAX_CODE_SIZE_IN_BYTES{

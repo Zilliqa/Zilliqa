@@ -79,6 +79,10 @@ void addBalanceToGenesisAccount() {
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);
   }
+
+  // Init account for issuing coinbase rewards
+  AccountStore::GetInstance().AddAccount(Address(),
+                                         {TOTAL_COINBASE_REWARD, nonce});
   AccountStore::GetInstance().UpdateStateTrieAll();
 }
 
@@ -131,8 +135,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
           ++m_mediator.m_ds->m_consensusMyID;
         }
 
-        m_mediator.m_node->m_consensusMyID =
-            m_mediator.m_ds->m_consensusMyID.load();
+        m_consensusMyID = m_mediator.m_ds->m_consensusMyID.load();
 
         if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
                 .first == m_mediator.m_selfKey.second) {
@@ -1444,6 +1447,7 @@ bool Node::CleanVariables() {
   m_proposedGasPrice = PRECISION_MIN_VALUE;
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
+  P2PComm::GetInstance().InitializeRumorManager({});
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
