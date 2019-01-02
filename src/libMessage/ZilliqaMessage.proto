@@ -898,8 +898,6 @@ message NodeSetGuardNodeNetworkInfoUpdate
     required ByteArray signature                    = 3;
 }
 
-
-
 message SeedSetHistoricalDB
 {
     message Data

@@ -6967,7 +6967,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
 }
 
 bool Messenger::SetSeedNodeHistoricalDB(
-    vector<unsigned char>& dst, const unsigned int offset,
+    bytes& dst, const unsigned int offset,
     const pair<PrivKey, PubKey>& archivalKeys, const uint32_t code,
     const string& path) {
   SeedSetHistoricalDB result;
@@ -6999,7 +6999,7 @@ bool Messenger::SetSeedNodeHistoricalDB(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetSeedNodeHistoricalDB(const vector<unsigned char>& src,
+bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
                                         const unsigned int offset,
                                         PubKey& archivalPubKey, uint32_t& code,
                                         string& path) {
