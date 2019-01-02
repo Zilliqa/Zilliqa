@@ -471,16 +471,18 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
       // Queue the message
       m_dispatcher(raw_message);
     }
-  } else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
-                                              gossipMsgRound, rumor_message,
-                                              from)) {
-    std::pair<bytes, Peer>* raw_message =
-        new pair<bytes, Peer>(rumor_message, from);
+  } else {
+    auto resp = p2p.m_rumorManager.RumorReceived(
+        (unsigned int)gossipMsgTyp, gossipMsgRound, rumor_message, from);
+    if (resp.first) {
+      std::pair<bytes, Peer>* raw_message =
+          new pair<bytes, Peer>(resp.second, from);
 
-    LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
 
-    // Queue the message
-    m_dispatcher(raw_message);
+      // Queue the message
+      m_dispatcher(raw_message);
+    }
   }
 }
 
@@ -623,10 +625,12 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
       return;
     }
     if (messageLength <
-        GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN) {
+        GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN +
+            PUB_KEY_SIZE + SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE) {
       LOG_GENERAL(WARNING,
                   "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR "
-                  "Port is missing (messageLength = "
+                  "Port and/or Sender PubKey and/or Signature is missing "
+                  "(messageLength = "
                       << messageLength << ")");
       return;
     }

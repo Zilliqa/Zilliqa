@@ -99,8 +99,9 @@ class RumorManager {
 
   void SpreadBufferedRumors();
 
-  bool RumorReceived(uint8_t type, int32_t round, const RawBytes& message,
-                     const Peer& from);
+  std::pair<bool, RawBytes> RumorReceived(uint8_t type, int32_t round,
+                                          const RawBytes& message,
+                                          const Peer& from);
 
   void StartRounds();
   void StopRounds();
