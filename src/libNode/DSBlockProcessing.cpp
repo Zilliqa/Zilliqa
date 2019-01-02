@@ -312,15 +312,12 @@ void Node::StartFirstTxEpoch() {
   m_justDidFallback = false;
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<Peer> peers;
-    for (const auto& i : *m_myShardMembers) {
-      if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i.second);
-      }
-    }
+    std::vector<std::pair<PubKey, Peer>> peers;
+    std::vector<PubKey> pubKeys;
+    GetEntireNetworkPeerInfo(peers, pubKeys);
 
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   CommitTxnPacketBuffer();
