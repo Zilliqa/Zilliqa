@@ -36,10 +36,13 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
     prevHash.asArray().at(i) = i + 1;
   }
 
-  bytes tmpprivkey = DataConversion::HexStrToUint8Vec(
-      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-  bytes tmppubkey = DataConversion::HexStrToUint8Vec(
-      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+  bytes tmpprivkey;
+  DataConversion::HexStrToUint8Vec(
+      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD", tmpprivkey);
+  bytes tmppubkey;
+  DataConversion::HexStrToUint8Vec(
+      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552", tmppubkey);
+  
   // FIXME: Handle exceptions.
   PrivKey privKey(tmpprivkey, 0);
   PubKey pubKey(tmppubkey, 0);
@@ -77,10 +80,12 @@ bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
 }
 
 TxBlock Synchronizer::ConstructGenesisTxBlock() {
-  bytes tmpprivkey = DataConversion::HexStrToUint8Vec(
-      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-  bytes tmppubkey = DataConversion::HexStrToUint8Vec(
-      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+  bytes tmpprivkey;
+  DataConversion::HexStrToUint8Vec(
+      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD", tmpprivkey);
+  bytes tmppubkey;
+  DataConversion::HexStrToUint8Vec(
+      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552", tmppubkey);
   // FIXME: Handle exceptions.
   PrivKey privKey(tmpprivkey, 0);
   PubKey pubKey(tmppubkey, 0);

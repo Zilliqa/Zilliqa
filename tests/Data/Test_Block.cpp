@@ -330,10 +330,13 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   DataConversion::HexStrToUint8Vec(expectedStr, expectedVec);
   bool is_prevHash_equal = std::equal(byteVec.begin(), byteVec.end(),
                                       expectedVec.begin(), expectedVec.end());
+  
+  std::string actualStr; 
+  DataConversion::Uint8VecToHexStr(byteVec, actualStr))
   BOOST_CHECK_MESSAGE(
       is_prevHash_equal == true,
       "expected: " << expectedStr
-                   << " actual: " << DataConversion::Uint8VecToHexStr(byteVec));
+                   << " actual: " << actualStr);
 
   LOG_GENERAL(INFO, "Block 2 blockNum: " << blockNum2);
   BOOST_CHECK_MESSAGE(blockNum2 == 1,
@@ -354,10 +357,12 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   expectedVec = DataConversion::HexStrToUint8Vec(expectedStr);
   bool is_txRootHash_equal = std::equal(byteVec.begin(), byteVec.end(),
                                         expectedVec.begin(), expectedVec.end());
+
+  DataConversion::Uint8VecToHexStr(byteVec), actualStr);
   BOOST_CHECK_MESSAGE(
       is_txRootHash_equal == true,
       "expected: " << expectedStr
-                   << " actual: " << DataConversion::Uint8VecToHexStr(byteVec));
+                   << " actual: " << actualStr);
 
   LOG_GENERAL(INFO, "Block 2 numTxs2: " << numTxs2);
   BOOST_CHECK_MESSAGE(numTxs2 == 2,
@@ -410,11 +415,15 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
 
   bytes dsBlockHeader2Vec(BLOCK_HASH_SIZE);
   copy(dsBlockHeader2.begin(), dsBlockHeader2.end(), dsBlockHeader2Vec.begin());
+
+  std::string headerhashStr, dsblockheader2str;
+  DataConversion::Uint8VecToHexStr(headerHashVec, headerhashStr);
+  DataConversion::Uint8VecToHexStr(dsBlockHeader2Vec, dsblockheader2str);
   BOOST_CHECK_MESSAGE(
       dsBlockHeader2 == headerHash,
-      "expected: " << DataConversion::Uint8VecToHexStr(headerHashVec)
+      "expected: " << headerhashStr
                    << " actual: "
-                   << DataConversion::Uint8VecToHexStr(dsBlockHeader2Vec));
+                   << dsblockheader2str);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
