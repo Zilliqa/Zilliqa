@@ -307,7 +307,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
-      LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
+      // LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
       return false;
     }
   }
