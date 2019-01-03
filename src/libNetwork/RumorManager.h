@@ -119,6 +119,10 @@ class RumorManager {
 
   void CleanUp();
 
+  std::pair<bool, RumorManager::RawBytes> VerifyMessage(
+      const RawBytes& message, const RRS::Message::Type& t, const Peer& from);
+
+  void AppendKeyAndSignature(RawBytes& result, const RawBytes& messageToSig);
   // CONST METHODS
   const RumorIdRumorBimap& rumors() const;
 };

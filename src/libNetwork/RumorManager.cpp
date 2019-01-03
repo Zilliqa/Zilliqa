@@ -350,29 +350,8 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
   P2PComm::GetInstance().SendMessage(toForeignPeer, cmd, START_BYTE_GOSSIP);
 }
 
-std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
-    uint8_t type, int32_t round, const RawBytes& message, const Peer& from) {
-  {
-    std::lock_guard<std::mutex> guard(m_continueRoundMutex);
-    if (!m_continueRound) {
-      LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
-      return {false, {}};
-    }
-  }
-
-  std::lock_guard<std::mutex> guard(m_mutex);
-
-  auto p = m_peerIdPeerBimap.right.find(from);
-  if (p == m_peerIdPeerBimap.right.end()) {
-    // I dont know this peer, missing in my peerlist.
-    LOG_GENERAL(DEBUG, "Received Rumor from peer : "
-                           << from << " which does not exist in my peerlist.");
-    return {false, {}};
-  }
-
-  int64_t recvdRumorId = -1;
-  RRS::Message::Type t = convertType(type);
-  bool toBeDispatched = false;
+std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
+    const RawBytes& message, const RRS::Message::Type& t, const Peer& from) {
   bytes message_wo_keysig;
 
   if (((RRS::Message::Type::EMPTY_PUSH == t ||
@@ -421,6 +400,38 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
   } else {
     message_wo_keysig = message;
   }
+  return {true, message_wo_keysig};
+}
+
+std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
+    uint8_t type, int32_t round, const RawBytes& message, const Peer& from) {
+  {
+    std::lock_guard<std::mutex> guard(m_continueRoundMutex);
+    if (!m_continueRound) {
+      LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
+      return {false, {}};
+    }
+  }
+
+  std::lock_guard<std::mutex> guard(m_mutex);
+
+  auto p = m_peerIdPeerBimap.right.find(from);
+  if (p == m_peerIdPeerBimap.right.end()) {
+    // I dont know this peer, missing in my peerlist.
+    LOG_GENERAL(DEBUG, "Received Rumor from peer : "
+                           << from << " which does not exist in my peerlist.");
+    return {false, {}};
+  }
+
+  int64_t recvdRumorId = -1;
+  RRS::Message::Type t = convertType(type);
+  bool toBeDispatched = false;
+
+  auto result = VerifyMessage(message, t, from);
+  if (!result.first) {
+    return {false, {}};
+  }
+  bytes message_wo_keysig(result.second);
 
   // All checks passed. Good to accept this rumor
 
@@ -553,6 +564,18 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
   return {toBeDispatched, message_wo_keysig};
 }
 
+void RumorManager::AppendKeyAndSignature(RawBytes& result,
+                                         const RawBytes& messageToSig) {
+  // Add pubkey and signature before message body
+  RawBytes tmp;
+  m_selfKey.second.Serialize(tmp, 0);
+
+  Signature sig = P2PComm::GetInstance().SignMessage(messageToSig);
+  sig.Serialize(tmp, PUB_KEY_SIZE);
+
+  result.insert(result.end(), tmp.begin(), tmp.end());
+}
+
 void RumorManager::SendMessage(const Peer& toPeer,
                                const RRS::Message& message) {
   // Add round and type to outgoing message
@@ -579,14 +602,7 @@ void RumorManager::SendMessage(const Peer& toPeer,
         if (it2 != m_rumorHashRawMsgBimap.left.end()) {
           if (SIGN_VERIFY_NONEMPTY_MSGTYP) {
             // Add pubkey and signature before message body
-            RawBytes tmp;
-            m_selfKey.second.Serialize(tmp, 0);
-
-            Signature sig = P2PComm::GetInstance().SignMessage(
-                {it2->second.begin(), it2->second.end()});
-            sig.Serialize(tmp, PUB_KEY_SIZE);
-
-            cmd.insert(cmd.end(), tmp.begin(), tmp.end());
+            AppendKeyAndSignature(cmd, it2->second);
           }
 
           // Add raw message to outgoing message
@@ -605,14 +621,7 @@ void RumorManager::SendMessage(const Peer& toPeer,
                  RRS::Message::Type::PULL == t) {
         if (SIGN_VERIFY_NONEMPTY_MSGTYP) {
           // Add pubkey and signature before message body
-          RawBytes tmp;
-          m_selfKey.second.Serialize(tmp, 0);
-
-          Signature sig = P2PComm::GetInstance().SignMessage(
-              {it1->second.begin(), it1->second.end()});
-          sig.Serialize(tmp, PUB_KEY_SIZE);
-
-          cmd.insert(cmd.end(), tmp.begin(), tmp.end());
+          AppendKeyAndSignature(cmd, it1->second);
         }
 
         // Add hash message to outgoing message for types
@@ -625,16 +634,11 @@ void RumorManager::SendMessage(const Peer& toPeer,
       }
     }
   } else {  // EMPTY_PULL/ EMPTY_PUSH
-    if (SIGN_VERIFY_NONEMPTY_MSGTYP) {
+    if (SIGN_VERIFY_EMPTY_MSGTYP) {
       // Add pubkey and signature before message body
-      RawBytes tmp;
-      m_selfKey.second.Serialize(tmp, 0);
       RawBytes dummyMsg = {'D', 'U', 'M', 'M', 'Y'};
-      Signature sig = P2PComm::GetInstance().SignMessage(dummyMsg);
-      sig.Serialize(tmp, PUB_KEY_SIZE);
-      cmd.insert(cmd.end(), tmp.begin(), tmp.end());
-
-      // Add DUMMY message to be verified for signature at receiver
+      AppendKeyAndSignature(cmd, dummyMsg);
+      // Add dummy message to outgoing message
       cmd.insert(cmd.end(), dummyMsg.begin(), dummyMsg.end());
     }
   }
