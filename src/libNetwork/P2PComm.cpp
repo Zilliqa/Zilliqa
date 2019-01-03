@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* TCP error code:
@@ -471,16 +469,18 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
       // Queue the message
       m_dispatcher(raw_message);
     }
-  } else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
-                                              gossipMsgRound, rumor_message,
-                                              from)) {
-    std::pair<bytes, Peer>* raw_message =
-        new pair<bytes, Peer>(rumor_message, from);
+  } else {
+    auto resp = p2p.m_rumorManager.RumorReceived(
+        (unsigned int)gossipMsgTyp, gossipMsgRound, rumor_message, from);
+    if (resp.first) {
+      std::pair<bytes, Peer>* raw_message =
+          new pair<bytes, Peer>(resp.second, from);
 
-    LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
 
-    // Queue the message
-    m_dispatcher(raw_message);
+      // Queue the message
+      m_dispatcher(raw_message);
+    }
   }
 }
 
@@ -624,10 +624,11 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     if (messageLength <
         GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN) {
-      LOG_GENERAL(WARNING,
-                  "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR "
-                  "Port is missing (messageLength = "
-                      << messageLength << ")");
+      LOG_GENERAL(
+          WARNING,
+          "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR is missing "
+          "(messageLength = "
+              << messageLength << ")");
       return;
     }
 
@@ -946,7 +947,7 @@ void P2PComm::InitializeRumorManager(
 }
 
 Signature P2PComm::SignMessage(const bytes& message) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   Signature signature;
   bool result = Schnorr::GetInstance().Sign(
@@ -959,7 +960,7 @@ Signature P2PComm::SignMessage(const bytes& message) {
 
 bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                             const PubKey& pubKey) {
-  LOG_MARKER();
+  // LOG_MARKER();
   bool result = Schnorr::GetInstance().Verify(message, 0, message.size(),
                                               toverify, pubKey);
 
