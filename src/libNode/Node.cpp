@@ -1753,7 +1753,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
     return;
   }
   m_requestedForDSGuardNetworkInfoUpdate = true;
-  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(
       queryLookupForDSGuardNetworkInfoUpdate);
 }
 
