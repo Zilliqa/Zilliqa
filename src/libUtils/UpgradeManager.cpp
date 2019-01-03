@@ -686,12 +686,48 @@ bool UpgradeManager::InstallScilla() {
   LOG_MARKER();
 
   if (!m_scillaPackageFileName.empty()) {
+    if (!UpgradeManager::UnconfigureScillaPackage()) {
+      return false;
+    }
+
     if (execl("/usr/bin/dpkg", "dpkg", "-i", m_scillaPackageFileName.data(),
               nullptr) < 0) {
       LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
       return false;
     }
   }
+
+  return true;
+}
+
+bool UpgradeManager::UnconfigureScillaPackage() {
+  const string dpkgStatusFileName("/var/lib/dpkg/status"),
+      tmpFileName("temp.txt");
+  ifstream dpkgStatusFile;
+  dpkgStatusFile.open(dpkgStatusFileName);
+  ofstream tempFile;
+  tempFile.open(tmpFileName);
+  string line;
+
+  while (getline(dpkgStatusFile, line)) {
+    if (line.find("scilla") != string::npos) {
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      continue;
+    }
+
+    tempFile << line << endl;
+  }
+
+  tempFile.close();
+  dpkgStatusFile.close();
+  boost::filesystem::copy_file(
+      tmpFileName, dpkgStatusFileName,
+      boost::filesystem::copy_option::overwrite_if_exists);
+  remove(tmpFileName.c_str());
 
   return true;
 }
