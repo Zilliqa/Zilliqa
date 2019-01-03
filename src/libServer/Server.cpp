@@ -379,7 +379,13 @@ Json::Value Server::GetBalance(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
+
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)){
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "invalid address");
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -415,7 +421,12 @@ Json::Value Server::GetSmartContractState(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)){
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "invalid address");
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -442,7 +453,12 @@ Json::Value Server::GetSmartContractInit(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
+
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)){
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "invalid address");
+    }
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -472,7 +488,11 @@ Json::Value Server::GetSmartContractCode(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)){
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "invalid address");
+    }
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -504,7 +524,12 @@ Json::Value Server::GetSmartContracts(const string& address) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(address);
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)){
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "address is not a hex string");
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -795,9 +820,11 @@ Json::Value Server::DSBlockListing(unsigned int page) {
       dshead.Serialize(vec, 0);
       sha2.Update(vec);
       const bytes& resVec = sha2.Finalize();
+      string resStr;
+      DataConversion::Uint8VecToHexStr(resVec,resStr);
       m_DSBlockCache.second.insert_new(
           m_DSBlockCache.second.size(),
-          DataConversion::Uint8VecToHexStr(resVec));
+          resStr);
     } catch (const char* msg) {
       throw JsonRpcException(RPC_MISC_ERROR, string(msg));
     }
@@ -823,9 +850,11 @@ Json::Value Server::DSBlockListing(unsigned int page) {
     dshead.Serialize(vec, 0);
     sha2.Update(vec);
     const bytes& resVec = sha2.Finalize();
+    string resStr;
+    DataConversion::Uint8VecToHexStr(resVec, resStr);
 
     m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(),
-                                     DataConversion::Uint8VecToHexStr(resVec));
+                                     resStr);
     m_DSBlockCache.first = currBlockNum;
   }
 
@@ -884,9 +913,11 @@ Json::Value Server::TxBlockListing(unsigned int page) {
       txhead.Serialize(vec, 0);
       sha2.Update(vec);
       const bytes& resVec = sha2.Finalize();
+      string resStr;
+      DataConversion::Uint8VecToHexStr(resVec, resStr);
       m_TxBlockCache.second.insert_new(
           m_TxBlockCache.second.size(),
-          DataConversion::Uint8VecToHexStr(resVec));
+          resStr);
     } catch (const char* msg) {
       throw JsonRpcException(RPC_MISC_ERROR, string(msg));
     }
@@ -912,9 +943,11 @@ Json::Value Server::TxBlockListing(unsigned int page) {
     txhead.Serialize(vec, 0);
     sha2.Update(vec);
     const bytes& resVec = sha2.Finalize();
+    string resStr;
+    DataConversion::Uint8VecToHexStr(resVec, resStr);
 
     m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(),
-                                     DataConversion::Uint8VecToHexStr(resVec));
+                                     resStr);
     m_TxBlockCache.first = currBlockNum;
   }
 
