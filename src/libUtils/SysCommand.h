@@ -58,8 +58,8 @@ class SysCommand {
                           // is write-only
         dup2(fd[WRITE], 1);  // Redirect stdout to pipe
       } else {
-        close(fd[WRITE]);  // Close the WRITE end of the pipe since the child's
-                           // fd is read-only
+        close(fd[WRITE]);   // Close the WRITE end of the pipe since the child's
+                            // fd is read-only
         dup2(fd[READ], 0);  // Redirect stdin to pipe
       }
 
