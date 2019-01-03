@@ -294,7 +294,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     bool ret = true;
     int pid = -1;
 
-    auto func = [this, runnerPrint, ret, gasRemained, pid]() mutable -> void {
+    auto func = [this, &runnerPrint, &ret, &pid,
+                 gasRemained]() mutable -> void {
       if (!SysCommand::ExecuteCmdWithOutputPID(
               GetCallContractCmdStr(gasRemained), runnerPrint, pid)) {
         LOG_GENERAL(WARNING, "ExecuteCmd failed: "
@@ -813,7 +814,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   std::string runnerPrint;
   bool result = true;
   int pid = -1;
-  auto func = [this, runnerPrint, result, pid, gasRemained]() mutable -> void {
+  auto func = [this, &runnerPrint, &result, &pid,
+               gasRemained]() mutable -> void {
     if (!SysCommand::ExecuteCmdWithOutputPID(GetCallContractCmdStr(gasRemained),
                                              runnerPrint, pid)) {
       LOG_GENERAL(WARNING,
