@@ -533,6 +533,9 @@ class DirectoryService : public Executable, public Broadcastable {
       m_lookupStoreForGuardNodeUpdate;
   std::atomic_bool m_awaitingToSubmitNetworkInfoUpdate = {false};
 
+  bool m_doRejoinAtDSConsensus = false;
+  bool m_doRejoinAtFinalConsensus = false;
+
   /// Constructor. Requires mediator reference to access Node and other global
   /// members.
   DirectoryService(Mediator& mediator);
@@ -586,7 +589,8 @@ class DirectoryService : public Executable, public Broadcastable {
   void StartFirstTxEpoch();
 
   /// Begin next round of DS consensus
-  void StartNewDSEpochConsensus(bool fromFallback = false);
+  void StartNewDSEpochConsensus(bool fromFallback = false,
+                                bool isRejoin = false);
 
   static uint8_t CalculateNewDifficultyCore(
       uint8_t currentDifficulty, uint8_t minDifficulty, int64_t powSubmissions,

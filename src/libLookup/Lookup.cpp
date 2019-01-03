@@ -1832,6 +1832,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   }
 
   cv_setTxBlockFromSeed.notify_all();
+  cv_waitJoined.notify_all();
 }
 
 bool Lookup::ProcessSetStateDeltaFromSeed(const bytes& message,
@@ -1964,14 +1965,14 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
           getpowsubmission_message);
     } else if (m_syncType == SyncType::DS_SYNC ||
                m_syncType == SyncType::GUARD_DS_SYNC) {
-      if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
-                                  m_mediator.m_dsBlockChain.GetLastBlock()
-                                      .GetHeader()
-                                      .GetBlockNum()) {
+      if (!m_currDSExpired &&
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() <
+              m_mediator.m_currentEpochNum) {
         m_isFirstLoop = true;
         SetSyncType(SyncType::NO_SYNC);
         m_mediator.m_ds->FinishRejoinAsDS();
       }
+
       m_currDSExpired = false;
     }
   } else if (m_syncType == SyncType::LOOKUP_SYNC) {
@@ -2209,16 +2210,22 @@ bool Lookup::InitMining(uint32_t lookupIndex) {
     return false;
   }
 
-  // Check whether is the new node connected to the network. Else, initiate
-  // re-sync process again.
-  this_thread::sleep_for(chrono::seconds(
-      POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS +
-      2 * NEW_NODE_SYNC_INTERVAL + (TX_DISTRIBUTE_TIME_IN_MS / 1000)));
+  uint64_t lastTxBlockNum =
+      m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  unique_lock<mutex> lk(m_mutexCVJoined);
+  cv_waitJoined.wait(lk);
+
   m_startedPoW = false;
-  if (GetSyncType() != SyncType::NO_SYNC) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Not yet connected to network");
-    m_mediator.m_node->SetState(Node::SYNC);
+
+  if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() >
+      lastTxBlockNum) {
+    if (GetSyncType() != SyncType::NO_SYNC) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Not yet connected to network");
+
+      m_mediator.m_node->SetState(Node::SYNC);
+    }
   } else {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "I have successfully join the network");
@@ -2557,20 +2564,6 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
   }
 
   InitMining(index);
-
-  if (m_syncType == SyncType::DS_SYNC ||
-      m_syncType == SyncType::GUARD_DS_SYNC) {
-    if (!m_currDSExpired && m_mediator.m_ds->m_latestActiveDSBlockNum <
-                                m_mediator.m_dsBlockChain.GetLastBlock()
-                                    .GetHeader()
-                                    .GetBlockNum()) {
-      m_isFirstLoop = true;
-      SetSyncType(SyncType::NO_SYNC);
-      m_mediator.m_ds->FinishRejoinAsDS();
-    }
-
-    m_currDSExpired = false;
-  }
 
   return true;
 }
