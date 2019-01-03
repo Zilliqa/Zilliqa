@@ -129,6 +129,15 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   }
 
   if (winning_result.success) {
+    string rand1Str, rand2Str;
+    if (!DataConversion::charArrToHexStr(rand1, rand1Str)){
+      LOG_GENERAL(WARNING, "rand1 is not a valid hex");
+    }
+
+    if (!DataConversion::charArrToHexStr(rand2, rand2Str)){
+      LOG_GENERAL(WARNING, "rand2 is not a valid hex");
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning nonce   = 0x" << hex << winning_result.winning_nonce);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -136,9 +145,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning mixhash = 0x" << hex << winning_result.mix_hash);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "rand1 = 0x" << DataConversion::charArrToHexStr(rand1));
+              "rand1 = 0x" << rand1Str);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "rand2 = 0x" << DataConversion::charArrToHexStr(rand2));
+              "rand2 = 0x" << rand2Str);
 
     m_stillMiningPrimary = false;
 
