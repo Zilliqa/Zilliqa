@@ -52,6 +52,9 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+const string MULTIPLIER_PUBKEY =
+    "000000000000000000000000000000000000000000000000000000000000000000";
+
 Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
   SetLookupNodes();
   SetAboveLayer();
@@ -142,13 +145,17 @@ void Lookup::SetLookupNodes() {
         inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
         Peer lookup_node((uint128_t)ip_addr.s_addr,
                          v.second.get<uint32_t>("port"));
-        PubKey pubKey(DataConversion::HexStrToUint8Vec(
-                          v.second.get<std::string>("pubkey")),
-                      0);
-        if (pubKey == m_mediator.m_selfKey.second) {
-          m_level = level;
+        if (v.second.get<std::string>("pubkey") == MULTIPLIER_PUBKEY) {
+          m_lookupNodes.emplace_back(PubKey(), lookup_node);
+        } else {
+          PubKey pubKey(DataConversion::HexStrToUint8Vec(
+                            v.second.get<std::string>("pubkey")),
+                        0);
+          if (pubKey == m_mediator.m_selfKey.second) {
+            m_level = level;
+          }
+          m_lookupNodes.emplace_back(pubKey, lookup_node);
         }
-        m_lookupNodes.emplace_back(pubKey, lookup_node);
       }
     }
     level++;
@@ -393,6 +400,9 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
+      if (!node.first.Initialized()) {  // Avoid sending to multiplier
+        continue;
+      }
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Sending msg to lookup node "
                     << node.second.GetPrintableIPAddress() << ":"
@@ -416,9 +426,18 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
     return;
   }
 
-  int index = rand() % m_lookupNodes.size();
-
-  P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
+  // To avoid sending message to multiplier
+  VectorOfLookupNode tmp;
+  std::copy_if(
+      m_lookupNodes.begin(), m_lookupNodes.end(), std::back_inserter(tmp),
+      [](const std::pair<PubKey, Peer>& node) {
+        return node.first.Initialized();  // will be uninitialized for
+                                          // multiplier with invalid pubkey
+      });
+  LOG_GENERAL(INFO, "No. of total lookups: " << tmp.size());
+  int index = rand() % tmp.size();
+  LOG_GENERAL(INFO, "Sending to Random lookup: " << tmp[index].second);
+  P2PComm::GetInstance().SendMessage(tmp[index].second, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const bytes& message) const {
