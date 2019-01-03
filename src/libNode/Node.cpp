@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <arpa/inet.h>
@@ -57,6 +55,7 @@
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -97,6 +96,16 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
 
   // m_state = IDLE;
   bool runInitializeGenesisBlocks = true;
+
+  if (syncType == SyncType::DB_VERIF) {
+    m_mediator.m_dsBlockChain.Reset();
+    m_mediator.m_txBlockChain.Reset();
+
+    m_synchronizer.InitializeGenesisBlocks(m_mediator.m_dsBlockChain,
+                                           m_mediator.m_txBlockChain);
+
+    return true;
+  }
 
   if (toRetrieveHistory) {
     bool wakeupForUpgrade = false;
@@ -241,6 +250,146 @@ void Node::AddGenesisInfo(SyncType syncType) {
     m_mediator.m_consensusID = 0;
     m_consensusLeaderID = 0;
   }
+}
+
+bool Node::ValidateDB() {
+  deque<pair<PubKey, Peer>> dsComm;
+  const string lookupIp = "127.0.0.1";
+  const uint port = 30303;
+
+  for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
+    dsComm.emplace_back(dsKey, Peer());
+  }
+  std::list<BlockLink> blocklinks;
+  if (!BlockStorage::GetBlockStorage().GetAllBlockLink(blocklinks)) {
+    LOG_GENERAL(WARNING, "BlockStorage skipped or incompleted");
+    return false;
+  }
+
+  blocklinks.sort([](const BlockLink& a, const BlockLink& b) {
+    return std::get<BlockLinkIndex::INDEX>(a) <
+           std::get<BlockLinkIndex::INDEX>(b);
+  });
+
+  std::list<TxBlockSharedPtr> txblocks;
+  if (!BlockStorage::GetBlockStorage().GetAllTxBlocks(txblocks)) {
+    LOG_GENERAL(WARNING, "Failed to get Tx Blocks");
+    return false;
+  }
+
+  txblocks.sort([](const TxBlockSharedPtr& a, const TxBlockSharedPtr& b) {
+    return a->GetHeader().GetBlockNum() < b->GetHeader().GetBlockNum();
+  });
+
+  const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
+
+  vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
+      dirBlocks;
+  for (const auto& blocklink : blocklinks) {
+    if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::DS) {
+      auto blockNum = get<BlockLinkIndex::DSINDEX>(blocklink);
+      if (blockNum == 0) {
+        continue;
+      }
+      DSBlockSharedPtr dsblock;
+      if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, dsblock)) {
+        LOG_GENERAL(WARNING, "Could not retrieve DS Block " << blockNum);
+        return false;
+      }
+      if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
+        break;
+      }
+      dirBlocks.emplace_back(*dsblock);
+
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::VC) {
+      auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+      VCBlockSharedPtr vcblock;
+      if (!BlockStorage::GetBlockStorage().GetVCBlock(blockHash, vcblock)) {
+        LOG_GENERAL(WARNING, "Could not retrieve VC Block " << blockHash);
+        return false;
+      }
+      if (latestTxBlockNum <= vcblock->GetHeader().GetViewChangeEpochNo()) {
+        break;
+      }
+      dirBlocks.emplace_back(*vcblock);
+    } else if (get<BlockLinkIndex::BLOCKTYPE>(blocklink) == BlockType::FB) {
+      auto blockHash = get<BlockLinkIndex::BLOCKHASH>(blocklink);
+      FallbackBlockSharedPtr fallbackwshardingstruct;
+      if (!BlockStorage::GetBlockStorage().GetFallbackBlock(
+              std::get<BlockLinkIndex::BLOCKHASH>(blocklink),
+              fallbackwshardingstruct)) {
+        LOG_GENERAL(WARNING, "Could not retrieve FB blocks " << blockHash);
+        return false;
+      }
+      dirBlocks.emplace_back(*fallbackwshardingstruct);
+    }
+  }
+
+  if (!m_mediator.m_validator->CheckDirBlocks(dirBlocks, dsComm, 0, dsComm)) {
+    LOG_GENERAL(WARNING, "Failed to verify Dir Blocks");
+    return false;
+  }
+
+  vector<TxBlock> txBlocks;
+
+  for (const auto& txblock : txblocks) {
+    txBlocks.emplace_back(*txblock);
+  }
+
+  if (m_mediator.m_validator->CheckTxBlocks(txBlocks, dsComm,
+                                            blocklinks.back()) !=
+      ValidatorBase::TxBlockValidationMsg::VALID) {
+    LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
+    return false;
+  }
+
+  for (uint i = 1; i < txBlocks.size(); i++) {
+    auto microblockInfos = txBlocks.at(i).GetMicroBlockInfos();
+    for (const auto& mbInfo : microblockInfos) {
+      MicroBlockSharedPtr mbptr;
+      LOG_GENERAL(INFO, mbInfo.m_shardId);
+      /// Skip because empty microblocks are not stored
+      if (mbInfo.m_txnRootHash == TxnHash()) {
+        continue;
+      }
+      if (BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                        mbptr)) {
+        auto tranHashes = mbptr->GetTranHashes();
+        for (const auto& tranHash : tranHashes) {
+          TxBodySharedPtr tx;
+          if (!BlockStorage::GetBlockStorage().GetTxBody(tranHash, tx)) {
+            LOG_GENERAL(WARNING, " " << tranHash << " failed to fetch");
+            return false;
+          }
+        }
+      } else {
+        LOG_GENERAL(WARNING, " " << mbInfo.m_microBlockHash
+                                 << "failed to fetch microblock");
+        return false;
+      }
+    }
+  }
+  LOG_GENERAL(INFO, "ValidateDB Success");
+
+  BlockStorage::GetBlockStorage().ReleaseDB();
+
+  bytes message = {MessageType::LOOKUP, LookupInstructionType::SETHISTORICALDB};
+
+  if (!Messenger::SetSeedNodeHistoricalDB(message, MessageOffset::BODY,
+                                          m_mediator.m_selfKey, 1,
+                                          PERSISTENCE_PATH)) {
+    LOG_GENERAL(WARNING, "SetSeedNodeHistoricalDB failed");
+    return false;
+  }
+
+  struct in_addr ip_addr;
+  inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
+  Peer seed((uint128_t)ip_addr.s_addr, port);
+  P2PComm::GetInstance().SendMessage(seed, message);
+
+  raise(SIGKILL);
+
+  return true;
 }
 
 void Node::Prepare(bool runInitializeGenesisBlocks) {
@@ -396,7 +545,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
       do {
-        m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
+        m_mediator.m_lookup->GetStateDeltaFromSeedNodes(
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
         LOG_GENERAL(INFO,
                     "Retrieve final block state delta from lookup node, please "
@@ -589,13 +738,11 @@ void Node::WakeupAtDSEpoch() {
                                            .GetBlockNum() +
                                        1);
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     auto func = [this]() mutable -> void {
@@ -681,13 +828,11 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
     m_mediator.m_ds->SetState(
         DirectoryService::DirState::MICROBLOCK_SUBMISSION);
@@ -699,14 +844,12 @@ void Node::WakeupAtTxEpoch() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<Peer> peers;
-    for (const auto& i : *m_myShardMembers) {
-      if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i.second);
-      }
-    }
+    std::vector<std::pair<PubKey, Peer>> peers;
+    std::vector<PubKey> pubKeys;
+    GetEntireNetworkPeerInfo(peers, pubKeys);
+
     // Initialize every start of DS Epoch
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   SetState(WAITING_FINALBLOCK);
@@ -762,7 +905,7 @@ void Node::StartSynchronization() {
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      m_synchronizer.FetchLatestTxBlocks(
+      m_synchronizer.FetchLatestTxBlockSeed(
           m_mediator.m_lookup,
           // m_mediator.m_txBlockChain.GetBlockCount());
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
@@ -889,11 +1032,6 @@ vector<Peer> Node::GetBroadcastList(
   // redundant multicasts from DS nodes to non-DS nodes
   return vector<Peer>();
 }
-
-/// Return a valid transaction from fromKeyPair to toAddr with the specified
-/// amount
-///
-/// TODO: nonce is still no valid yet
 
 bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
                        uint32_t nShard) {
@@ -1078,7 +1216,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
                                 lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
@@ -1414,7 +1552,6 @@ void Node::RejoinAsNormal() {
       this->m_mediator.m_ds->CleanVariables();
       this->Install(SyncType::NORMAL_SYNC);
       this->StartSynchronization();
-      this->ResetRejoinFlags();
     };
     DetachedFunction(1, func);
   }
@@ -1431,6 +1568,9 @@ void Node::ResetRejoinFlags() {
   m_doRejoinAtNextRound = false;
   m_doRejoinAtStateRoot = false;
   m_doRejoinAtFinalBlock = false;
+
+  m_mediator.m_ds->m_doRejoinAtDSConsensus = false;
+  m_mediator.m_ds->m_doRejoinAtFinalConsensus = false;
 }
 
 bool Node::CleanVariables() {
@@ -1453,6 +1593,9 @@ bool Node::CleanVariables() {
   m_proposedGasPrice = PRECISION_MIN_VALUE;
   CleanCreatedTransaction();
   CleanMicroblockConsensusBuffer();
+  P2PComm::GetInstance().InitializeRumorManager({}, {});
+  this->ResetRejoinFlags();
+
   {
     std::lock_guard<mutex> lock(m_mutexConsensus);
     m_consensusObject.reset();
@@ -1572,6 +1715,12 @@ bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
     case REJOINTYPE::ATSTATEROOT:
       m_doRejoinAtStateRoot = true;
       break;
+    case REJOINTYPE::ATDSCONSENSUS:
+      m_mediator.m_ds->m_doRejoinAtDSConsensus = true;
+      break;
+    case REJOINTYPE::ATFINALCONSENSUS:
+      m_mediator.m_ds->m_doRejoinAtFinalConsensus = true;
+      break;
     default:
       return false;
   }
@@ -1607,7 +1756,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
     return;
   }
   m_requestedForDSGuardNetworkInfoUpdate = true;
-  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(
       queryLookupForDSGuardNetworkInfoUpdate);
 }
 
@@ -1646,7 +1795,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetSeedNodes(),
                                 lookupPubkey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
@@ -1920,4 +2069,28 @@ std::string Node::GetActionString(Action action) const {
     return false;
   }
   return true;
+}
+
+void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+                                    std::vector<PubKey>& pubKeys) {
+  peers.clear();
+  pubKeys.clear();
+
+  for (const auto& i : *m_myShardMembers) {
+    if (i.second.m_listenPortHost != 0) {
+      peers.emplace_back(i);
+      // Get the pubkeys for my shard member
+      pubKeys.emplace_back(i.first);
+    }
+  }
+
+  // Get the pubkeys for ds committee
+  for (const auto& i : *m_mediator.m_DSCommittee) {
+    pubKeys.emplace_back(i.first);
+  }
+
+  // Get the pubKeys for lookup nodes
+  for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+    pubKeys.emplace_back(i.first);
+  }
 }

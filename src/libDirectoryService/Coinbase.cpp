@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <map>
 #include <queue>
@@ -229,12 +227,7 @@ void DirectoryService::InitCoinbase() {
                           << m_coinbaseRewardees.size());
   }
 
-  if (GENESIS_WALLETS.empty()) {
-    LOG_GENERAL(WARNING, "no genesis wallet");
-    return;
-  }
-
-  Address coinbaseAccount = Address();
+  Address coinbaseAddress = Address();
 
   uint128_t sig_count = 0;
   uint32_t lookup_count = 0;
@@ -250,7 +243,7 @@ void DirectoryService::InitCoinbase() {
   LOG_GENERAL(INFO, "Total signatures count: " << sig_count << " lookup count "
                                                << lookup_count);
 
-  uint128_t total_reward;
+  uint128_t total_reward = 0;
 
   if (!SafeMath<uint128_t>::add(COINBASE_REWARD_PER_DS, m_totalTxnFees,
                                 total_reward)) {
@@ -260,10 +253,35 @@ void DirectoryService::InitCoinbase() {
 
   LOG_GENERAL(INFO, "Total reward: " << total_reward);
 
+  uint128_t base_reward = 0;
+
+  if (!SafeMath<uint128_t>::mul(total_reward, BASE_REWARD_IN_PERCENT,
+                                base_reward)) {
+    LOG_GENERAL(WARNING, "base_reward multiplication unsafe!");
+    return;
+  }
+  base_reward /= 100;
+
+  LOG_GENERAL(INFO, "Total base reward: " << base_reward);
+
+  uint128_t base_reward_each = 0;
+  uint128_t node_count = m_mediator.m_DSCommittee->size();
+  for (const auto& shard : m_shards) {
+    node_count += shard.size();
+  }
+  LOG_GENERAL(INFO, "Total num of node: " << node_count);
+  if (!SafeMath<uint128_t>::div(base_reward, node_count, base_reward_each)) {
+    LOG_GENERAL(WARNING, "base_reward_each dividing unsafe!");
+    return;
+  }
+  LOG_GENERAL(INFO, "Base reward for each node: " << base_reward_each);
+
+  total_reward = total_reward - base_reward;
+
   uint128_t lookupReward = (total_reward / 100) * LOOKUP_REWARD_IN_PERCENT;
   uint128_t nodeReward = total_reward - lookupReward;
-  uint128_t reward_each;
-  uint128_t reward_each_lookup;
+  uint128_t reward_each = 0;
+  uint128_t reward_each_lookup = 0;
 
   if (!SafeMath<uint128_t>::div(nodeReward, sig_count, reward_each)) {
     LOG_GENERAL(WARNING, "reward_each dividing unsafe!");
@@ -280,13 +298,46 @@ void DirectoryService::InitCoinbase() {
                                     << reward_each_lookup);
 
   // Add rewards come from gas fee back to the coinbase account
-  AccountStore::GetInstance().IncreaseBalanceTemp(coinbaseAccount,
+  AccountStore::GetInstance().IncreaseBalanceTemp(coinbaseAddress,
                                                   m_totalTxnFees);
 
   uint128_t suc_counter = 0;
   uint128_t suc_lookup_counter = 0;
   const auto& myAddr =
       Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second);
+
+  // Reward to all nodes
+  // DS nodes
+  for (const auto& ds : *m_mediator.m_DSCommittee) {
+    Address addr = Account::GetAddressFromPublicKey(ds.first);
+    if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
+                                                        base_reward_each)) {
+      LOG_GENERAL(WARNING, "Could Not reward base reward  " << addr);
+    } else {
+      if (addr == myAddr) {
+        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+                  "[REWARD] Rewarded base reward " << reward_each);
+        LOG_STATE("[REWARD][" << setw(15) << left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum << "]["
+                              << reward_each << "] base reward");
+      }
+    }
+  }
+  // shard nodes
+  for (const auto& shard : m_shards) {
+    for (const auto& node : shard) {
+      Address addr =
+          Account::GetAddressFromPublicKey(std::get<SHARD_NODE_PUBKEY>(node));
+      if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
+                                                          base_reward_each)) {
+        LOG_GENERAL(WARNING, "Could Not reward base reward  " << addr);
+      }
+      // No need to log as shard node won't call InitCoinbase
+    }
+  }
+
+  // Reward based on cosigs
   for (auto const& epochNumShardRewardee : m_coinbaseRewardees) {
     LOG_GENERAL(
         INFO, "[CNBSE] Rewarding " << epochNumShardRewardee.first << " epoch");
@@ -297,7 +348,7 @@ void DirectoryService::InitCoinbase() {
       if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
         for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, coinbaseAccount, reward_each_lookup)) {
+                  addr, coinbaseAddress, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             suc_lookup_counter++;
@@ -306,7 +357,7 @@ void DirectoryService::InitCoinbase() {
       } else {
         for (auto const& addr : shardIdRewardee.second) {
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-                  addr, coinbaseAccount, reward_each)) {
+                  addr, coinbaseAddress, reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             if (addr == myAddr) {
@@ -328,7 +379,8 @@ void DirectoryService::InitCoinbase() {
   }
 
   uint128_t balance_left = total_reward - (suc_counter * reward_each) -
-                           (suc_lookup_counter * reward_each_lookup);
+                           (suc_lookup_counter * reward_each_lookup) +
+                           base_reward - (node_count * base_reward_each);
 
   LOG_GENERAL(INFO, "Left reward: " << balance_left);
 
@@ -343,7 +395,7 @@ void DirectoryService::InitCoinbase() {
       const Address& winnerAddr = shard.second[rdm_index];
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
-              winnerAddr, coinbaseAccount, balance_left)) {
+              winnerAddr, coinbaseAddress, balance_left)) {
         LOG_GENERAL(WARNING, "Could not reward lucky draw!");
       }
 

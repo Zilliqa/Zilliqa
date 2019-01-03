@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef __LOOKUP_H__
@@ -55,7 +53,8 @@ class Lookup : public Executable, public Broadcastable {
   // Info about lookup node
   VectorOfLookupNode m_lookupNodes;
   VectorOfLookupNode m_lookupNodesOffline;
-  std::vector<Peer> m_seedNodes;
+  VectorOfLookupNode m_seedNodes;
+  std::mutex mutable m_mutexSeedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
 
@@ -149,6 +148,9 @@ class Lookup : public Executable, public Broadcastable {
   // Getter for m_lookupNodes
   VectorOfLookupNode GetLookupNodes() const;
 
+  // Getter for m_seedNodes
+  VectorOfLookupNode GetSeedNodes() const;
+
   std::mutex m_txnShardMapMutex;
   std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
 
@@ -174,22 +176,24 @@ class Lookup : public Executable, public Broadcastable {
   // Calls P2PComm::SendMessage serially for every Seed peer
   void SendMessageToSeedNodes(const bytes& message) const;
 
+  void SendMessageToRandomSeedNode(const bytes& message) const;
+
   // TODO: move the Get and ProcessSet functions to Synchronizer
   std::vector<Peer> GetAboveLayer();
-  bool GetSeedPeersFromLookup();
   bool GetDSInfoFromSeedNodes();
   bool GetDSInfoLoop();
-  bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetDSInfoFromLookupNodes(bool initialDS = false);
   bool GetDSBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetTxBlockFromLookupNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
+  bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
+  bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
   bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
-
+  bool GetStateFromSeedNodes();
   bool ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
-
+  bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum);
   bool ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
   bool GetShardFromLookup();
@@ -228,8 +232,6 @@ class Lookup : public Executable, public Broadcastable {
   void SendTxnPacketToNodes(uint32_t);
 
   bool ProcessEntireShardingStructure();
-  bool ProcessGetSeedPeersFromLookup(const bytes& message, unsigned int offset,
-                                     const Peer& from);
   bool ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);
   bool ProcessGetDSBlockFromSeed(const bytes& message, unsigned int offset,
@@ -263,8 +265,6 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
                                 const Peer& from);
 
-  bool ProcessSetSeedPeersFromLookup(const bytes& message, unsigned int offset,
-                                     const Peer& from);
   bool ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                 const Peer& from);
   bool ProcessSetDSBlockFromSeed(const bytes& message, unsigned int offset,
@@ -309,9 +309,12 @@ class Lookup : public Executable, public Broadcastable {
   bool ProcessGetDSGuardNetworkInfo(const bytes& message, unsigned int offset,
                                     const Peer& from);
 
-  void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num);
+  bool ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
+                              const Peer& from);
+  void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
+                                                bool toSendSeed = true);
 
-  static bool VerifyLookupNode(const VectorOfLookupNode& vecLookupNodes,
+  static bool VerifySenderNode(const VectorOfLookupNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);
@@ -323,6 +326,8 @@ class Lookup : public Executable, public Broadcastable {
   std::mutex m_mutexOfflineLookupsUpdation;
   std::condition_variable cv_offlineLookups;
 
+  bool m_historicalDB = false;
+
   bool m_fetchedLatestDSBlock = false;
   std::mutex m_mutexLatestDSBlockUpdation;
   std::condition_variable cv_latestDSBlock;
@@ -331,6 +336,9 @@ class Lookup : public Executable, public Broadcastable {
   std::condition_variable cv_setTxBlockFromSeed;
   std::mutex m_MutexCVSetStateDeltaFromSeed;
   std::condition_variable cv_setStateDeltaFromSeed;
+
+  std::mutex m_mutexCVJoined;
+  std::condition_variable cv_waitJoined;
 
   bool InitMining(uint32_t lookupIndex);
 

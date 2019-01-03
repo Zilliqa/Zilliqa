@@ -15,8 +15,7 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 #
-ARG BASE=ubuntu:16.04
-FROM ${BASE}
+FROM zilliqa/scilla
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -61,8 +60,7 @@ RUN curl -sL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/
     && cmake --build mongo-cxx-build --target install \
     && rm -rf mongo-cxx-*
 
-# Intentionally left blank unless specific commit is provided in commandline
-ARG COMMIT=
+ARG ZILLIQA_VERSION=v3.2.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
@@ -70,9 +68,7 @@ ARG INSTALL_DIR=/usr/local
 ARG BUILD_TYPE=RelWithDebInfo
 ARG EXTRA_CMAKE_ARGS=
 
-RUN git clone ${REPO} ${SOURCE_DIR} \
-    && git -C ${SOURCE_DIR} checkout ${COMMIT} \
-    # && git -C ${SOURCE_DIR} submodule update --init --recursive \
+RUN git clone -b ${ZILLIQA_VERSION} --depth 1 ${REPO} ${SOURCE_DIR} \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \

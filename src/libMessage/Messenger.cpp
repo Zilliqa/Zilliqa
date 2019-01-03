@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "Messenger.h"
@@ -3199,14 +3197,27 @@ bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
 
 bool Messenger::SetDSPoWPacketSubmission(
     bytes& dst, const unsigned int offset,
-    const vector<DSPowSolution>& dsPowSolutions) {
+    const vector<DSPowSolution>& dsPowSolutions,
+    const pair<PrivKey, PubKey>& keys) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
 
   for (const auto& sol : dsPowSolutions) {
-    DSPowSolutionToProtobuf(sol, *result.add_dspowsubmissions());
+    DSPowSolutionToProtobuf(sol,
+                            *result.mutable_data()->add_dspowsubmissions());
   }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign DSPoWPacketSubmission");
+    return false;
+  }
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "DSPoWPacketSubmission initialization failed.");
@@ -3216,9 +3227,10 @@ bool Messenger::SetDSPoWPacketSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSPowPacketSubmission(
-    const bytes& src, const unsigned int offset,
-    vector<DSPowSolution>& dsPowSolutions) {
+bool Messenger::GetDSPowPacketSubmission(const bytes& src,
+                                         const unsigned int offset,
+                                         vector<DSPowSolution>& dsPowSolutions,
+                                         PubKey& pubKey) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
@@ -3230,7 +3242,17 @@ bool Messenger::GetDSPowPacketSubmission(
     return false;
   }
 
-  for (const auto& powSubmission : result.dspowsubmissions()) {
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature, pubKey)) {
+    LOG_GENERAL(WARNING, "DSPoWPacketSubmission signature wrong.");
+    return false;
+  }
+
+  for (const auto& powSubmission : result.data().dspowsubmissions()) {
     DSPowSolution sol;
     ProtobufToDSPowSolution(powSubmission, sol);
     dsPowSolutions.emplace_back(move(sol));
@@ -6962,6 +6984,67 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
     vecOfDSGuardUpdateStruct.emplace_back(
         DSGuardUpdateStruct(tempPubk, tempPeer, tempTimestamp));
   }
+
+  return true;
+}
+
+bool Messenger::SetSeedNodeHistoricalDB(
+    bytes& dst, const unsigned int offset,
+    const pair<PrivKey, PubKey>& archivalKeys, const uint32_t code,
+    const string& path) {
+  SeedSetHistoricalDB result;
+
+  result.mutable_data()->set_code(code);
+  result.mutable_data()->set_path(path);
+  SerializableToProtobufByteArray(archivalKeys.second,
+                                  *result.mutable_pubkey());
+
+  if (result.data().IsInitialized()) {
+    vector<unsigned char> tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, archivalKeys.first,
+                                     archivalKeys.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign SeedSetHistoricalDB");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB.Data initialization failed");
+    return false;
+  }
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB initialization failed.");
+    return false;
+  }
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
+                                        const unsigned int offset,
+                                        PubKey& archivalPubKey, uint32_t& code,
+                                        string& path) {
+  SeedSetHistoricalDB result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB initialization failed ");
+    return false;
+  }
+
+  ProtobufByteArrayToSerializable(result.pubkey(), archivalPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
+                                     archivalPubKey)) {
+    LOG_GENERAL(WARNING, "SeedSetHistoricalDB signature wrong.");
+    return false;
+  }
+  code = result.data().code();
+  path = result.data().path();
 
   return true;
 }

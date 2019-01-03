@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
@@ -232,13 +230,11 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
 
   // Lets start the gossip as earliest as possible
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<Peer> peers;
-    for (const auto& i : *m_mediator.m_DSCommittee) {
-      if (i.second.m_listenPortHost != 0) {
-        peers.emplace_back(i.second);
-      }
-    }
-    P2PComm::GetInstance().InitializeRumorManager(peers);
+    std::vector<std::pair<PubKey, Peer>> peers;
+    std::vector<PubKey> pubKeys;
+    GetEntireNetworkPeerInfo(peers, pubKeys);
+
+    P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
   }
 
   // Now I need to find my index in the sorted list (this will be my ID for the
@@ -507,13 +503,11 @@ bool DirectoryService::FinishRejoinAsDS() {
     }
 
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
   }
 
@@ -588,11 +582,12 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   // in case the recovery program is under different directory
   LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(), DS_BACKUP_MSG);
-  RunConsensusOnDSBlock(true);
+  StartNewDSEpochConsensus(false, true);
   return true;
 }
 
-void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
+void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
+                                                bool isRejoin) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::StartNewDSEpochConsensus not "
@@ -660,12 +655,14 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
     // and submit a PoW
     if (cv_DSBlockConsensus.wait_for(
-            cv_lk, std::chrono::seconds(
-                       NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
-                       (fromFallback ? FALLBACK_EXTRA_TIME : 0))) ==
+            cv_lk,
+            std::chrono::seconds((isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
+                                 POW_WINDOW_IN_SECONDS +
+                                 (fromFallback ? FALLBACK_EXTRA_TIME : 0))) ==
         std::cv_status::timeout) {
       LOG_GENERAL(INFO, "Woken up from the sleep of "
-                            << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
+                            << (isRejoin ? 0 : NEW_NODE_SYNC_INTERVAL) +
+                                   POW_WINDOW_IN_SECONDS +
                                    (fromFallback ? FALLBACK_EXTRA_TIME : 0)
                             << " seconds");
       // if i am suppose to create pow submission packet for other DS members
@@ -696,7 +693,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback) {
                   "run consensus.");
     }
 
-    RunConsensusOnDSBlock();
+    RunConsensusOnDSBlock(isRejoin);
 
     // now that we already run DSBlock Consensus, lets clear the buffered pow
     // solutions. why not clear it at start of new ds epoch - becoz sometimes
@@ -860,13 +857,11 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     }
 
     if (foundDSGuardNode && BROADCAST_GOSSIP_MODE) {
-      std::vector<Peer> peers;
-      for (const auto& i : *m_mediator.m_DSCommittee) {
-        if (i.second.m_listenPortHost != 0) {
-          peers.emplace_back(i.second);
-        }
-      }
-      P2PComm::GetInstance().InitializeRumorManager(peers);
+      std::vector<std::pair<PubKey, Peer>> peers;
+      std::vector<PubKey> pubKeys;
+      GetEntireNetworkPeerInfo(peers, pubKeys);
+
+      P2PComm::GetInstance().InitializeRumorManager(peers, pubKeys);
     }
 
     // Lookup to store the info
@@ -1087,4 +1082,28 @@ uint64_t DirectoryService::CalculateNumberOfBlocksPerYear() const {
 int64_t DirectoryService::GetAllPoWSize() const {
   std::lock_guard<mutex> lock(m_mutexAllPOW);
   return m_allPoWs.size();
+}
+
+void DirectoryService::GetEntireNetworkPeerInfo(
+    std::vector<std::pair<PubKey, Peer>>& peers, std::vector<PubKey>& pubKeys) {
+  peers.clear();
+  pubKeys.clear();
+
+  for (const auto& i : *m_mediator.m_DSCommittee) {
+    if (i.second.m_listenPortHost != 0) {
+      peers.emplace_back(i);
+      // Get the pubkeys for ds committee
+      pubKeys.emplace_back(i.first);
+    }
+  }
+
+  // Get the pubkeys for all other shard members aswell
+  for (const auto& i : m_mediator.m_ds->m_publicKeyToshardIdMap) {
+    pubKeys.emplace_back(i.first);
+  }
+
+  // Get the pubKeys for lookup nodes
+  for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
+    pubKeys.emplace_back(i.first);
+  }
 }

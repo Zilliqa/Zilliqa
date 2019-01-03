@@ -15,7 +15,8 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 #
-FROM zilliqa/scilla
+ARG BASE=zilliqa/scilla
+FROM ${BASE}
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -48,57 +49,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-pip \
     && rm -rf /var/lib/apt/lists/*
 
-############################### CUDA Installation ##############################
-# taken from https://gitlab.com/nvidia/cuda/blob/ubuntu16.04/10.0/base/Dockerfile
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates apt-transport-https gnupg-curl && \
-    rm -rf /var/lib/apt/lists/* && \
-    NVIDIA_GPGKEY_SUM=d1be581509378368edeec8c1eb2958702feedf3bc3d17011adbf24efacce4ab5 && \
-    NVIDIA_GPGKEY_FPR=ae09fe4bbd223a84b2ccfce3f60f4b3d7fa2af80 && \
-    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub && \
-    apt-key adv --export --no-emit-version -a $NVIDIA_GPGKEY_FPR | tail -n +5 > cudasign.pub && \
-    echo "$NVIDIA_GPGKEY_SUM  cudasign.pub" | sha256sum -c --strict - && rm cudasign.pub && \
-    echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/cuda.list && \
-    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
-
-ENV CUDA_VERSION 10.0.130
-
-ENV CUDA_PKG_VERSION 10-0=$CUDA_VERSION-1
-# For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        cuda-cudart-$CUDA_PKG_VERSION \
-        cuda-compat-10-0=410.48-1 && \
-    ln -s cuda-10.0 /usr/local/cuda && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV PATH /usr/local/cuda/bin:${PATH}
-
-# nvidia-container-runtime
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0 brand=tesla,driver>=384,driver<385"
-
-# taken from https://gitlab.com/nvidia/cuda/blob/ubuntu16.04/10.0/runtime/Dockerfile
-ENV NCCL_VERSION 2.3.7
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        cuda-libraries-$CUDA_PKG_VERSION \
-        cuda-nvtx-$CUDA_PKG_VERSION \
-        libnccl2=$NCCL_VERSION-1+cuda10.0 && \
-    apt-mark hold libnccl2 && \
-    rm -rf /var/lib/apt/lists/*
-
-# taken from https://gitlab.com/nvidia/cuda/blob/ubuntu16.04/10.0/devel/Dockerfile
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        cuda-libraries-dev-$CUDA_PKG_VERSION \
-        cuda-nvml-dev-$CUDA_PKG_VERSION \
-        cuda-minimal-build-$CUDA_PKG_VERSION \
-        cuda-command-line-tools-$CUDA_PKG_VERSION \
-        libnccl-dev=$NCCL_VERSION-1+cuda10.0 && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
-####################### End of CUDA Installation ###############################
-
 RUN curl -sL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/mongo-c-driver-1.13.0.tar.gz | tar -zx -C . \
     && cmake -Hmongo-c-driver-1.13.0 -Bmongo-c-build -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_INSTALL_PREFIX=/usr/local \
     && cmake --build mongo-c-build -- -j$(nproc) \
@@ -111,15 +61,17 @@ RUN curl -sL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/
     && cmake --build mongo-cxx-build --target install \
     && rm -rf mongo-cxx-*
 
-ARG ZILLIQA_VERSION=v3.2.0
+# Intentionally left blank unless specific commit is provided in commandline
+ARG COMMIT=
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
 ARG BUILD_TYPE=RelWithDebInfo
-ARG EXTRA_CMAKE_ARGS="-DCUDA_MINE=1"
+ARG EXTRA_CMAKE_ARGS=
 
-RUN git clone -b ${ZILLIQA_VERSION} --depth 1 ${REPO} ${SOURCE_DIR} \
+RUN git clone ${REPO} ${SOURCE_DIR} \
+    && git -C ${SOURCE_DIR} checkout ${COMMIT} \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \

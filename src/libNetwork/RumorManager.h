@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef __RUMORMANAGER_H__
@@ -28,6 +26,7 @@
 #include <unordered_map>
 
 #include "Peer.h"
+#include "libCrypto/Schnorr.h"
 #include "libRumorSpreading/RumorHolder.h"
 
 enum RRSMessageOffset : unsigned int {
@@ -51,17 +50,21 @@ class RumorManager {
   typedef std::deque<std::pair<RumorHashRumorBiMap::iterator,
                                std::chrono::high_resolution_clock::time_point>>
       RumorRawMsgTimestampDeque;
+  typedef boost::bimap<PubKey, Peer> PubKeyPeerBiMap;
 
   // MEMBERS
   std::shared_ptr<RRS::RumorHolder> m_rumorHolder;
   PeerIdPeerBiMap m_peerIdPeerBimap;
+  PubKeyPeerBiMap m_pubKeyPeerBiMap;
   std::unordered_set<int> m_peerIdSet;
   RumorIdRumorBimap m_rumorIdHashBimap;
   RumorHashRumorBiMap m_rumorHashRawMsgBimap;
   RumorHashesPeersMap m_hashesSubscriberMap;
   Peer m_selfPeer;
+  std::pair<PrivKey, PubKey> m_selfKey;
   std::vector<RawBytes> m_bufferRawMsg;
   RumorRawMsgTimestampDeque m_rumorRawMsgTimestamp;
+  std::vector<PubKey> m_fullNetworkKeys;
 
   int64_t m_rumorIdGenerator;
   std::mutex m_mutex;
@@ -84,14 +87,19 @@ class RumorManager {
   ~RumorManager();
 
   // METHODS
-  bool Initialize(const std::vector<Peer>& peers, const Peer& myself);
+  bool Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
+                  const Peer& myself, const std::pair<PrivKey, PubKey>& myKeys,
+                  const std::vector<PubKey>& fullNetworkKeys);
 
   bool AddRumor(const RawBytes& message);
 
+  bool AddForeignRumor(const RawBytes& message);
+
   void SpreadBufferedRumors();
 
-  bool RumorReceived(uint8_t type, int32_t round, const RawBytes& message,
-                     const Peer& from);
+  std::pair<bool, RawBytes> RumorReceived(uint8_t type, int32_t round,
+                                          const RawBytes& message,
+                                          const Peer& from);
 
   void StartRounds();
   void StopRounds();
@@ -109,6 +117,10 @@ class RumorManager {
 
   void CleanUp();
 
+  std::pair<bool, RumorManager::RawBytes> VerifyMessage(
+      const RawBytes& message, const RRS::Message::Type& t, const Peer& from);
+
+  void AppendKeyAndSignature(RawBytes& result, const RawBytes& messageToSig);
   // CONST METHODS
   const RumorIdRumorBimap& rumors() const;
 };
