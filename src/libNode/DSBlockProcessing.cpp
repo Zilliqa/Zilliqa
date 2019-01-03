@@ -463,6 +463,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     }
 
     m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
+    m_mediator.m_lookup->cv_waitJoined.notify_all();
     if (m_fromNewProcess) {
       m_fromNewProcess = false;
     }

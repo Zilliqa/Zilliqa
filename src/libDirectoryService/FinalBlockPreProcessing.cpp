@@ -1200,6 +1200,10 @@ void DirectoryService::RunConsensusOnFinalBlock(
     }
 #endif  // FALLBACK_TEST
 
+    if (m_doRejoinAtFinalConsensus) {
+      RejoinAsDS();
+    }
+
     SetState(FINALBLOCK_CONSENSUS_PREP);
 
     m_mediator.m_node->PrepareGoodStateForFinalBlock();

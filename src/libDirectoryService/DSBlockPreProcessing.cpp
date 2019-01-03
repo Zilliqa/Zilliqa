@@ -1128,6 +1128,11 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
                                     << m_allDSPoWs.size());
 
   LOG_MARKER();
+
+  if (m_doRejoinAtDSConsensus) {
+    RejoinAsDS();
+  }
+
   SetState(DSBLOCK_CONSENSUS_PREP);
 
   {
