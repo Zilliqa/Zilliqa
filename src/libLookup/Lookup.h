@@ -195,7 +195,7 @@ class Lookup : public Executable, public Broadcastable {
   bool GetStateFromSeedNodes();
   bool ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
-
+  bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum);
   bool ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
   bool GetShardFromLookup();

@@ -59,7 +59,7 @@ bool Node::GetLatestDSBlock() {
   unsigned int counter = 1;
   while (!m_mediator.m_lookup->m_fetchedLatestDSBlock &&
          counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
-    m_synchronizer.FetchLatestDSBlocks(
+    m_synchronizer.FetchLatestDSBlocksSeed(
         m_mediator.m_lookup,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 

@@ -529,6 +529,13 @@ bool Lookup::GetDSBlockFromLookupNodes(uint64_t lowBlockNum,
   return true;
 }
 
+bool Lookup::GetDSBlockFromSeedNodes(uint64_t lowBlockNum,
+                                     uint64_t highblocknum) {
+  SendMessageToRandomSeedNode(
+      ComposeGetDSBlockMessage(lowBlockNum, highblocknum));
+  return true;
+}
+
 bytes Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
                                        uint64_t highBlockNum) {
   LOG_MARKER();
