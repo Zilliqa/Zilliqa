@@ -1096,9 +1096,10 @@ bool Node::CheckMicroBlockTxnRootHash() {
   // Check transaction root
   TxnHash expectedTxRootHash = ComputeRoot(m_microblock->GetTranHashes());
 
+  string txroothashStr;
+  DataConversion::charArrToHexStr(expectedTxRootHash.asArray(), txroothashStr);
   LOG_GENERAL(INFO, "Microblock root computation done "
-                        << DataConversion::charArrToHexStr(
-                               expectedTxRootHash.asArray()));
+                        << txroothashStr);
   LOG_GENERAL(INFO, "Expected root: "
                         << m_microblock->GetHeader().GetTxRootHash().hex());
 

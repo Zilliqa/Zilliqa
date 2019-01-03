@@ -73,7 +73,11 @@ void addBalanceToGenesisAccount() {
   const uint64_t nonce{0};
 
   for (auto& walletHexStr : GENESIS_WALLETS) {
-    Address addr{DataConversion::HexStrToUint8Vec(walletHexStr)};
+    bytes addrBytes;
+    if (!DataConversion::HexStrToUint8Vec(walletHexStr, addrBytes)){
+      continue;
+    }
+    Address addr{addrBytes};
     AccountStore::GetInstance().AddAccount(addr, {bal, nonce});
     LOG_GENERAL(INFO,
                 "add genesis account " << addr << " with balance " << bal);
@@ -444,7 +448,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     string pubKey;
 
     for (auto& ds : *m_mediator.m_DSCommittee) {
-      pubKey = DataConversion::SerializableToHexStr(ds.first);
+      if (!DataConversion::SerializableToHexStr(ds.first, pubKey)){
+        return false;
+      }
 
       if (ipMapping.find(pubKey) != ipMapping.end()) {
         ds.second = ipMapping.at(pubKey);
@@ -612,8 +618,11 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 
       for (auto& shard : m_mediator.m_ds->m_shards) {
         for (auto& node : shard) {
-          pubKey = DataConversion::SerializableToHexStr(
-              get<SHARD_NODE_PUBKEY>(node));
+
+          if (!DataConversion::SerializableToHexStr(
+              get<SHARD_NODE_PUBKEY>(node), pubKey)){
+                return false;
+          }
 
           if (ipMapping.find(pubKey) != ipMapping.end()) {
             get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
@@ -1036,7 +1045,11 @@ vector<Peer> Node::GetBroadcastList(
 bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
                        uint32_t nShard) {
   for (auto& privKeyHexStr : GENESIS_KEYS) {
-    auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
+    bytes privkeyOutputBytes;
+    if (!DataConversion::HexStrToUint8Vec(privKeyHexStr, privkeyOutputBytes)){
+      return false;
+    }
+    auto privKeyBytes{privkeyOutputBytes};
     auto privKey = PrivKey{privKeyBytes, 0};
     auto pubKey = PubKey{privKey};
     auto addr = Account::GetAddressFromPublicKey(pubKey);
@@ -1063,7 +1076,12 @@ bool GetOneGenesisAddress(Address& oAddr) {
     return false;
   }
 
-  oAddr = Address{DataConversion::HexStrToUint8Vec(GENESIS_WALLETS.front())};
+  bytes oAddrBytes;
+  if (!DataConversion::HexStrToUint8Vec(GENESIS_WALLETS.front(), oAddrBytes)){
+    LOG_GENERAL(INFO, "invalid genesis key");
+    return false;
+  }
+  oAddr = Address{oAddrBytes};
   return true;
 }
 
@@ -1905,6 +1923,11 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   GetNodesToBroadCastUsingTreeBasedClustering(
       cluster_size, num_of_child_clusters, nodes_lo, nodes_hi);
 
+  string hashStr;
+  if (!DataConversion::Uint8VecToHexStr(this_msg_hash, hashStr)){
+    return;
+  }
+
   std::vector<Peer> shardBlockReceivers;
   if (nodes_lo >= m_myShardMembers->size()) {
     // I am at last level in tree.
@@ -1912,7 +1935,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
         INFO,
         "I am at last level in tree. And not supposed to broadcast "
         "message with hash: ["
-            << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+            << hashStr.substr(0, 6)
             << "] further");
     return;
   }
@@ -1922,7 +1945,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
 
   LOG_GENERAL(
       INFO, "I am broadcasting message with hash: ["
-                << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
+                << hashStr.substr(0, 6)
                 << "] further to following " << nodes_hi - nodes_lo + 1
                 << " peers."
                 << "(" << nodes_lo << "~" << nodes_hi << ")");
@@ -1932,12 +1955,9 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
     shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
     LOG_EPOCH(
         INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        " PubKey: " << DataConversion::SerializableToHexStr(
-                           std::get<SHARD_NODE_PUBKEY>(kv))
+        " PubKey: " << std::get<SHARD_NODE_PUBKEY>(kv)
                     << " IP: "
-                    << std::get<SHARD_NODE_PEER>(kv).GetPrintableIPAddress()
-                    << " Port: "
-                    << std::get<SHARD_NODE_PEER>(kv).m_listenPortHost);
+                    << std::get<SHARD_NODE_PEER>(kv));
   }
   P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
 }

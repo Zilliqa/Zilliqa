@@ -87,16 +87,20 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);
 
+  string prevHashStr;
+  if (!DataConversion::charArrToHexStr(
+                 m_mediator.m_txBlockChain.GetLastBlock()
+                     .GetHeader()
+                     .GetPrevHash()
+                     .asArray(), prevHashStr)){
+    LOG_GENERAL(WARNING, "prev hash cannot be converted to hex str");
+  }
   LOG_EPOCH(
       INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
       "Final block "
           << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
           << " received with prevhash 0x"
-          << DataConversion::charArrToHexStr(
-                 m_mediator.m_txBlockChain.GetLastBlock()
-                     .GetHeader()
-                     .GetPrevHash()
-                     .asArray()));
+          << prevHashStr);
 
   LOG_STATE(
       "[FINBK]["

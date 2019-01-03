@@ -232,12 +232,9 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
 
       LOG_EPOCH(
           INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-          " PubKey: " << DataConversion::SerializableToHexStr(
-                             m_myShardMembers->back().first)
+          " PubKey: " << m_myShardMembers->back().first
                       << " IP: "
-                      << m_myShardMembers->back().second.GetPrintableIPAddress()
-                      << " Port: "
-                      << m_myShardMembers->back().second.m_listenPortHost);
+                      << m_myShardMembers->back().second);
 
       index++;
     }
