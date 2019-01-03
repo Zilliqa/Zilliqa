@@ -146,6 +146,10 @@ Json::Value Server::CreateTransaction(const Json::Value& _json) {
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
+    if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+      throw JsonRpcException(RPC_VERIFY_REJECTED, "CHAIN_ID incorrect");
+    }
+
     if (tx.GetGasPrice() <
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
       throw JsonRpcException(RPC_VERIFY_REJECTED,
