@@ -122,7 +122,10 @@ echo -e "\n\033[0;32mMake Zilliqa deb package...\033[0m\n"
 rm -rf ${releaseDir}
 cmake -H. -B${releaseDir} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr/local/
 cmake --build ${releaseDir} --j4
-cd ${releaseDir}; make package; cp ${versionFile} .; zilliqaDebFile="$(ls *.deb)"; cd -
+cd ${releaseDir}; make package; cp ${versionFile} .
+mv ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux.deb ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux-Zilliqa.deb
+zilliqaDebFile="$(ls *.deb)"
+cd -
 echo -e "\n\033[0;32mZilliqa deb packages are generated successfully.\033[0m\n"
 
 # Write new version information into version file and make SHA-256 & multi-signature
@@ -168,7 +171,7 @@ if [ "$scillaPath" != "" ]; then
     cp -rf ${scillaPath}/* ${scillaDebFolder}/scilla/${scillaMajor}/
     sed -i "/Version: /c\Version: ${scillaMajor}.${scillaMinor}.${scillaFix}" ${scillaDebFolder}/DEBIAN/control
     echo -e "\n\033[0;32mMake Scilla deb package...\033[0m\n"
-    scillaDebFile=scilla-${packageName}-${scillaMajor}.${scillaMinor}.${scillaFix}.${scillaDS}.${scillaCommit}-Linux.deb
+    scillaDebFile=${packageName}-${scillaMajor}.${scillaMinor}.${scillaFix}.${scillaDS}.${scillaCommit}-Linux-Scilla.deb
     if [ -f "${scillaDebFile}" ]; then
         rm ${scillaDebFile}
     fi

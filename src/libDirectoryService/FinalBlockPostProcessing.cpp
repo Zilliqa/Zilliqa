@@ -212,7 +212,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
     if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      auto func = [this]() mutable -> void {
+      auto func = []() mutable -> void {
         UpgradeManager::GetInstance().InstallScilla();
       };
       DetachedFunction(1, func);

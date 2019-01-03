@@ -32,7 +32,8 @@ using namespace std;
 #define CONSTANT_LOOKUP_FILE_NAME "constants.xml_lookup"
 #define CONSTANT_ARCHIVAL_FILE_NAME "constants.xml_archival"
 #define PUBLIC_KEY_LENGTH 66
-#define PACKAGE_FILE_EXTENSION "deb"
+#define ZILLIQA_PACKAGE_FILE_EXTENSION "-Zilliqa.deb"
+#define SCILLA_PACKAGE_FILE_EXTENSION "-Scilla.deb"
 #define UPGRADE_HOST                                                      \
   string(string("https://api.github.com/repos/") + UPGRADE_HOST_ACCOUNT + \
          "/" + UPGRADE_HOST_REPO + "/releases/latest")
@@ -288,11 +289,11 @@ bool UpgradeManager::HasNewSW() {
       ++line_no;
     }
 
-    while (line_no != SCILLA_SHA_LINE && getline(versionFile, zilliqaShaStr)) {
+    while (line_no != SCILLA_SHA_LINE && getline(versionFile, scillaShaStr)) {
       ++line_no;
     }
 
-    while (line_no != SCILLA_SIG_LINE && getline(versionFile, zilliqaSigStr)) {
+    while (line_no != SCILLA_SIG_LINE && getline(versionFile, scillaSigStr)) {
       ++line_no;
     }
   }
@@ -328,12 +329,37 @@ bool UpgradeManager::HasNewSW() {
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
     if (!Schnorr::GetInstance().Verify(zilliqaSha, zilliqaMutliSig.at(i),
                                        pubKeys.at(i))) {
-      LOG_GENERAL(WARNING, "Multisig verification failed!");
+      LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
       return false;
     }
   }
 
-  return m_latestZilliqaSHA != zilliqaSha || m_latestScillaSHA != scillaSha;
+  if (0 != scillaSigStr.size()) {
+    const bytes scillaSha = DataConversion::HexStrToUint8Vec(scillaShaStr);
+    const unsigned int len = scillaSigStr.size() / pubKeys.size();
+    vector<Signature> scillaMutliSig;
+
+    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
+      scillaMutliSig.emplace_back(
+          DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len)),
+          0);
+    }
+
+    /// Multi-sig verification
+    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
+      if (!Schnorr::GetInstance().Verify(scillaSha, scillaMutliSig.at(i),
+                                         pubKeys.at(i))) {
+        LOG_GENERAL(WARNING, "Multisig verification on Scilla failed!");
+        return false;
+      }
+    }
+
+    if (m_latestScillaSHA != scillaSha) {
+      return true;
+    }
+  }
+
+  return m_latestZilliqaSHA != zilliqaSha;
 }
 
 bool UpgradeManager::DownloadSW() {
@@ -371,11 +397,17 @@ bool UpgradeManager::DownloadSW() {
 
   LOG_GENERAL(INFO, "Constant file has been downloaded successfully.");
 
-  m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
+  m_zilliqaPackageFileName = DownloadFile(ZILLIQA_PACKAGE_FILE_EXTENSION);
 
-  if (m_packageFileName.empty()) {
-    LOG_GENERAL(WARNING, "Cannot download package (.deb) file!");
+  if (m_zilliqaPackageFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download Zilliqa package (.deb) file!");
     return false;
+  }
+
+  m_scillaPackageFileName = DownloadFile(SCILLA_PACKAGE_FILE_EXTENSION);
+
+  if (m_scillaPackageFileName.empty()) {
+    LOG_GENERAL(INFO, "Cannot download Scilla package (.deb) file!");
   }
 
   LOG_GENERAL(INFO, "Package (.deb) file has been downloaded successfully.");
@@ -466,9 +498,9 @@ bool UpgradeManager::DownloadSW() {
   }
 
   /// Verify SHA-256 checksum of .deb file
-  string downloadSha;
+  string zilliqaDownloadSha;
   {
-    fstream debFile(m_packageFileName, ios::in);
+    fstream debFile(m_zilliqaPackageFileName, ios::in);
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     bytes vec((istreambuf_iterator<char>(debFile)),
@@ -476,14 +508,33 @@ bool UpgradeManager::DownloadSW() {
     sha2.Update(vec, 0, vec.size());
     bytes output = sha2.Finalize();
     // No need check bool as sha2 will return hex
-    DataConversion::Uint8VecToHexStr(output, downloadSha);
+    DataConversion::Uint8VecToHexStr(output, zilliqaDownloadSha);
   }
 
-  if (zilliqaSha != downloadSha) {
+  if (zilliqaSha != zilliqaDownloadSha) {
     LOG_GENERAL(WARNING,
                 "Zilliqa SHA-256 checksum of .deb file mismatch. Expected: "
-                    << zilliqaSha << " Actual: " << downloadSha);
+                    << zilliqaSha << " Actual: " << zilliqaDownloadSha);
     return false;
+  }
+
+  if (!m_scillaPackageFileName.empty()) {
+    fstream debFile(m_scillaPackageFileName, ios::in);
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    bytes vec((istreambuf_iterator<char>(debFile)),
+              (istreambuf_iterator<char>()));
+    sha2.Update(vec, 0, vec.size());
+    bytes output = sha2.Finalize();
+    string scillaDownloadSha = DataConversion::Uint8VecToHexStr(output);
+
+    if (scillaSha != scillaDownloadSha) {
+      LOG_GENERAL(WARNING,
+                  "Scilla SHA-256 checksum of .deb file mismatch. Expected: "
+                      << scillaSha << " Actual: " << scillaDownloadSha);
+      return false;
+    }
+
+    m_latestScillaSHA = DataConversion::HexStrToUint8Vec(scillaSha);
   }
 
   m_latestSWInfo = make_shared<SWInfo>(
@@ -549,9 +600,9 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
 
   /// TBD: The call of "dpkg" should be removed.
   /// (https://github.com/Zilliqa/Issues/issues/185)
-  if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr) <
-      0) {
-    LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
+  if (execl("/usr/bin/dpkg", "dpkg", "-i", m_zilliqaPackageFileName.data(),
+            nullptr) < 0) {
+    LOG_GENERAL(WARNING, "Cannot deploy downloaded Zilliqa software!");
     return false;
   }
 
@@ -631,4 +682,16 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
   }
 }
 
-bool UpgradeManager::InstallScilla() { return true; }
+bool UpgradeManager::InstallScilla() {
+  LOG_MARKER();
+
+  if (!m_scillaPackageFileName.empty()) {
+    if (execl("/usr/bin/dpkg", "dpkg", "-i", m_scillaPackageFileName.data(),
+              nullptr) < 0) {
+      LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+      return false;
+    }
+  }
+
+  return true;
+}
