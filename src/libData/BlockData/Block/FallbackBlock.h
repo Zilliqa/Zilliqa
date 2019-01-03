@@ -64,6 +64,15 @@ class FallbackBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const FallbackBlock& block) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const FallbackBlock& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const FallbackBlock& t) {
+  const BlockBase& blockBase(t);
+
+  os << "<FallbackBlock>" << std::endl << blockBase << std::endl << t.m_header;
+  return os;
+}
 
 #endif  // __FALLBACKBLOCK_H__

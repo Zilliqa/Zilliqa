@@ -100,6 +100,27 @@ class FallbackBlockHeader : public BlockHeaderBase {
 
   /// Greater-than comparison operator.
   bool operator>(const FallbackBlockHeader& header) const;
+
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const FallbackBlockHeader& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os,
+                                const FallbackBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<FallbackBlockHeader>" << std::endl
+     << "m_fallbackDSEpochNo : " << t.m_fallbackDSEpochNo << std::endl
+     << "m_fallbackEpochNo : " << t.m_fallbackEpochNo << std::endl
+     << "m_fallbackState : " << t.m_fallbackState << std::endl
+     << "m_leaderConsensusId : " << t.m_leaderConsensusId << std::endl
+     << "m_leaderNetworkInfo : " << t.m_leaderNetworkInfo << std::endl
+     << "m_leaderPubKey : " << t.m_leaderPubKey << std::endl
+     << "m_shardId : " << t.m_shardId << std::endl
+     << "m_prevHash : " << t.m_prevHash << std::endl
+     << t.m_hashset;
+  return os;
+}
 
 #endif  // __FALLBACKBLOCKHEADER_H__

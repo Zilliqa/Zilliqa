@@ -63,6 +63,15 @@ class DSBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const DSBlock& block) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const DSBlock& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const DSBlock& t) {
+  const BlockBase& blockBase(t);
+
+  os << "<DSBlock>" << std::endl << blockBase << std::endl << t.m_header;
+  return os;
+}
 
 #endif  // __DSBLOCK_H__

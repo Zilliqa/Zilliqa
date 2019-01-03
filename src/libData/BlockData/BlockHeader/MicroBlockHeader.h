@@ -91,6 +91,27 @@ class MicroBlockHeader : public BlockHeaderBase {
   bool operator==(const MicroBlockHeader& header) const;
   bool operator<(const MicroBlockHeader& header) const;
   bool operator>(const MicroBlockHeader& header) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<MicroBlockHeader>" << std::endl
+     << "m_type : " << t.m_type << std::endl
+     << "m_version : " << t.m_version << std::endl
+     << "m_shardId : " << t.m_shardId << std::endl
+     << "m_gasLimit : " << t.m_gasLimit << std::endl
+     << "m_rewards : " << t.m_rewards << std::endl
+     << "m_prevHash : " << t.m_prevHash << std::endl
+     << "m_epochNum : " << t.m_epochNum << std::endl
+     << "m_numTxs : " << t.m_numTxs << std::endl
+     << "m_minerPubKey : " << t.m_minerPubKey << std::endl
+     << "m_dsBlockNum : " << t.m_dsBlockNum << std::endl
+     << t.m_hashset;
+  return os;
+}
 
 #endif  // __MICROBLOCKHEADER_H__
