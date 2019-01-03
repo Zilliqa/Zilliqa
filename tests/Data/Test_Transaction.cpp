@@ -123,8 +123,8 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(tx1 == tx2, "Not serialized properly");
 
   LOG_GENERAL(INFO, "Transaction2 version: " << version2);
-  BOOST_CHECK_MESSAGE(version2 == 1,
-                      "expected: " << 1 << " actual: " << version2 << "\n");
+  BOOST_CHECK_MESSAGE(version2 == DataConversion::Pack(CHAIN_ID, 1),
+                      "expected: " << DataConversion::Pack(CHAIN_ID, 1) << " actual: " << version2 << "\n");
 
   LOG_GENERAL(INFO, "Transaction2 nonce: " << nonce2);
   BOOST_CHECK_MESSAGE(nonce2 == 5,
