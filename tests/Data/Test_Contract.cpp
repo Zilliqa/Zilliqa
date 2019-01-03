@@ -42,18 +42,17 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(contracttest)
 
-PrivKey priv1(
-    DataConversion::HexStrToUint8Vec(
-        "1658F915F3F9AE35E6B471B7670F53AD1A5BE15D7331EC7FD5E503F21D3450C8"),
-    0),
-    priv2(
-        DataConversion::HexStrToUint8Vec(
-            "0FC87BC5ACF5D1243DE7301972B9649EE31688F291F781396B0F67AD98A88147"),
-        0),
-    priv3(
-        DataConversion::HexStrToUint8Vec(
-            "0AB52CF5D3F9A1E730243DB96419729EE31688F29B0F67AD98A881471F781396"),
-        0);
+PrivKey priv1, priv2, priv3;
+
+void setup(){
+  bytes priv1bytes, priv2bytes, priv3bytes;
+  DataConversion::HexStrToUint8Vec("1658F915F3F9AE35E6B471B7670F53AD1A5BE15D7331EC7FD5E503F21D3450C8", priv1bytes);
+  DataConversion::HexStrToUint8Vec("0FC87BC5ACF5D1243DE7301972B9649EE31688F291F781396B0F67AD98A88147", priv2bytes);
+  DataConversion::HexStrToUint8Vec("0AB52CF5D3F9A1E730243DB96419729EE31688F29B0F67AD98A881471F781396", priv3bytes);
+  priv1.Deserialize(priv1bytes, 0);
+  priv2.Deserialize(priv2bytes, 0);
+  priv3.Deserialize(priv3bytes, 0);
+}
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testCrowdfunding) {
@@ -65,6 +64,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
+  setup();
 
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
@@ -283,7 +283,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
-
+  setup();
+  
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
     return;
