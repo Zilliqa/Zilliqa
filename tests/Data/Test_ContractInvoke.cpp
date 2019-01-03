@@ -76,8 +76,8 @@ bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
   LOG_MARKER();
 
   bytes icfData(icfDataStr.begin(), icfDataStr.end());
-  Transaction icfTx(1, nonce, icfAddress, sender, amount, gasPrice, gasLimit,
-                    {}, icfData);
+  Transaction icfTx(DataConversion::Pack(CHAIN_ID, 1), nonce, icfAddress,
+                    sender, amount, gasPrice, gasLimit, {}, icfData);
   TransactionReceipt icfTr;
   if (!AccountStore::GetInstance().UpdateAccounts(blockNum, 1, true, icfTx,
                                                   icfTr)) {
@@ -159,8 +159,8 @@ bool CreateContract(const int& blockNum, ResetType rType) {
 
   // LOG_GENERAL(INFO, "nonce: " << nonce);
 
-  Transaction createTx(1, nonce, dev::h160(), sender, 0, PRECISION_MIN_VALUE,
-                       50, code, initData);
+  Transaction createTx(DataConversion::Pack(CHAIN_ID, 1), nonce, dev::h160(),
+                       sender, 0, PRECISION_MIN_VALUE, 50, code, initData);
   TransactionReceipt createTr;
 
   AccountStore::GetInstance().UpdateAccounts(blockNum, 1, true, createTx,
@@ -226,9 +226,9 @@ void AutoTest(bool doResetCF, bool doResetICF,
           continue;
         }
 
-        Transaction cfTx(1, *t_nonce, cfAddress, samples[i].cfSender,
-                         samples[i].amount, samples[i].gasPrice,
-                         samples[i].gasLimit, {}, cfData);
+        Transaction cfTx(DataConversion::Pack(CHAIN_ID, 1), *t_nonce, cfAddress,
+                         samples[i].cfSender, samples[i].amount,
+                         samples[i].gasPrice, samples[i].gasLimit, {}, cfData);
         TransactionReceipt cfTr;
         if (!AccountStore::GetInstance().UpdateAccounts(samples[i].blockNum, 1,
                                                         true, cfTx, cfTr)) {
