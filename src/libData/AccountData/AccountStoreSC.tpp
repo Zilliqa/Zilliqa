@@ -316,7 +316,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           "Txn processing timeout! Interrupt current contract call, pid: "
               << pid);
       if (pid >= 0) {
-        kill(-pid, 9);
+        kill(-pid, SIGKILL);
       }
       ret = false;
     }
@@ -835,7 +835,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                 "Txn processing timeout! Interrupt current contract call, pid: "
                     << pid);
     if (pid >= 0) {
-      kill(-pid, 9);
+      kill(-pid, SIGKILL);
     }
     result = false;
   }
