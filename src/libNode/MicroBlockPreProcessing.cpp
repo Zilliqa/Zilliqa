@@ -268,6 +268,19 @@ void Node::ProcessTransactionWhenShardLeader() {
   t_processedTransactions.clear();
   m_TxnOrder.clear();
 
+  bool txnProcTimeout = false;
+
+  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+    this_thread::sleep_for(chrono::seconds(
+        MICROBLOCK_TIMEOUT -
+        (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
+        CONSENSUS_OBJECT_TIMEOUT));
+    txnProcTimeout = true;
+    AccountStore::GetInstance().NotifyTimeout();
+  };
+
+  DetachedFunction(1, txnProcTimer);
+
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
          map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap) -> bool {
@@ -299,6 +312,10 @@ void Node::ProcessTransactionWhenShardLeader() {
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+    if (txnProcTimeout) {
+      break;
+    }
+
     Transaction t;
     TransactionReceipt tr;
 
@@ -465,6 +482,19 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
 
+  bool txnProcTimeout = false;
+
+  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+    this_thread::sleep_for(chrono::seconds(
+        MICROBLOCK_TIMEOUT -
+        (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
+        CONSENSUS_OBJECT_TIMEOUT - COMMIT_WINDOW_IN_SECONDS));
+    txnProcTimeout = true;
+    AccountStore::GetInstance().NotifyTimeout();
+  };
+
+  DetachedFunction(1, txnProcTimer);
+
   auto findOneFromAddrNonceTxnMap =
       [](Transaction& t,
          std::map<Address, map<uint64_t, Transaction>>& t_addrNonceTxnMap)
@@ -498,6 +528,10 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   vector<Transaction> gasLimitExceededTxnBuffer;
 
   while (m_gasUsedTotal < MICROBLOCK_GAS_LIMIT) {
+    if (txnProcTimeout) {
+      break;
+    }
+
     Transaction t;
     TransactionReceipt tr;
 
