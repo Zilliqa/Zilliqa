@@ -972,8 +972,8 @@ bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                                               toverify, pubKey);
 
   if (!result) {
-    LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: 0x"
-                          << DataConversion::SerializableToHexStr(pubKey));
+    LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: "
+                          << pubKey);
   }
   return result;
 }
