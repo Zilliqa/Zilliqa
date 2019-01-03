@@ -2967,7 +2967,7 @@ void Lookup::CheckBufferTxBlocks() {
 }
 
 void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
-                                                      bool toSeedNode) {
+                                                      bool toSendSeed) {
   LOG_MARKER();
   bytes message = {MessageType::LOOKUP,
                    LookupInstructionType::GETDIRBLOCKSFROMSEED};
@@ -2979,7 +2979,7 @@ void Lookup::ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
     return;
   }
 
-  if (!toSeedNode) {
+  if (!toSendSeed) {
     SendMessageToRandomLookupNode(message);
   } else {
     SendMessageToRandomSeedNode(message);
