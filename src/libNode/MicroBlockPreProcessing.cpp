@@ -271,10 +271,11 @@ void Node::ProcessTransactionWhenShardLeader() {
   bool txnProcTimeout = false;
 
   auto txnProcTimer = [this, &txnProcTimeout]() -> void {
-    this_thread::sleep_for(chrono::seconds(
-        MICROBLOCK_TIMEOUT -
-        (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
-        CONSENSUS_OBJECT_TIMEOUT));
+    // this_thread::sleep_for(chrono::seconds(
+    //     MICROBLOCK_TIMEOUT -
+    //     (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
+    //     CONSENSUS_OBJECT_TIMEOUT));
+    this_thread::sleep_for(chrono::seconds(1));
     txnProcTimeout = true;
     AccountStore::GetInstance().NotifyTimeout();
   };
@@ -485,10 +486,11 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   bool txnProcTimeout = false;
 
   auto txnProcTimer = [this, &txnProcTimeout]() -> void {
-    this_thread::sleep_for(chrono::seconds(
-        MICROBLOCK_TIMEOUT -
-        (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
-        CONSENSUS_OBJECT_TIMEOUT - COMMIT_WINDOW_IN_SECONDS));
+    // this_thread::sleep_for(chrono::seconds(
+    //     MICROBLOCK_TIMEOUT -
+    //     (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
+    //     CONSENSUS_OBJECT_TIMEOUT - COMMIT_WINDOW_IN_SECONDS));
+    this_thread::sleep_for(chrono::seconds(1));  // for testing
     txnProcTimeout = true;
     AccountStore::GetInstance().NotifyTimeout();
   };
