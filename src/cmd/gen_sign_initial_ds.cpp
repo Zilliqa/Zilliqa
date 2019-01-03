@@ -117,6 +117,7 @@ int main(int argc, char** argv) {
       fstream pubFile(pubk_fn, ios::in);
       while (getline(pubFile, line)) {
         try {
+          pubKey_string = line;
           pubKeys.push_back(PubKey::GetPubKeyFromString(line));
         } catch (std::invalid_argument& e) {
           std::cerr << e.what() << endl;
@@ -129,9 +130,12 @@ int main(int argc, char** argv) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    if (privKeys.size() != pubKeys.size()) {
-      cerr << "Private key number must equal to public key number!";
-      return -1;
+    if (privKeys.size() != 1 || pubKeys.size() != 1) {
+      cerr << "Only one key pair required, " << privk_fn << " contains "
+           << privKeys.size() << " keys and " << pubk_fn << " contains "
+           << pubKeys.size() << " keys.";
+      cerr << endl;
+      return ERROR_IN_COMMAND_LINE;
     }
 
     if (!UpgradeManager::GetInstance().LoadInitialDS(dsComm)) {
@@ -146,22 +150,18 @@ int main(int argc, char** argv) {
 
     string sig_str;
 
-    for (unsigned int i = 0; i < privKeys.size(); ++i) {
-      Signature sig;
-      Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
-      bytes result;
-      sig.Serialize(result, 0);
-      sig_str = DataConversion::Uint8VecToHexStr(result);
-    }
+    Signature sig;
+    Schnorr::GetInstance().Sign(message, privKeys.at(0), pubKeys.at(0), sig);
+    bytes result;
+    sig.Serialize(result, 0);
+    sig_str = DataConversion::Uint8VecToHexStr(result);
 
     auto pt = PTree::GetInstance();
     if (!sig_str.empty()) {
       pt.push_back(ptree::value_type(signatureProp, ptree(sig_str.c_str())));
     }
-    if (!pubKey_string.empty()) {
-      pt.push_back(
-          ptree::value_type(publicKeyProp, ptree(pubKey_string.c_str())));
-    }
+    pt.push_back(
+        ptree::value_type(publicKeyProp, ptree(pubKey_string.c_str())));
 
     write_xml(dsNodeFile.c_str(), pt);
 
