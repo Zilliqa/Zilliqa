@@ -69,6 +69,14 @@ class DataConversion {
   }
 
   static uint16_t charArrTo16Bits(const bytes& hex_arr);
+
+  static uint32_t Pack(uint16_t a, uint16_t b) {
+    return (int32_t)((((uint32_t)a) << 16) + (uint32_t)b);
+  }
+
+  static uint16_t UnpackA(uint32_t x) { return (uint16_t)(x >> 16); }
+
+  static uint16_t UnpackB(uint32_t x) { return (uint16_t)(x & 0xffff); }
 };
 
 #endif  // __DATACONVERSION_H__
