@@ -409,7 +409,13 @@ message DSPoWSubmission
 
 message DSPoWPacketSubmission
 {
-    repeated DSPoWSubmission dsPowSubmissions        = 1;
+    message Data
+    {
+        repeated DSPoWSubmission dsPowSubmissions    = 1;
+    }
+    required Data data                               = 1;
+    required ByteArray pubkey                        = 2;
+    required ByteArray signature                     = 3;
 }
 
 message DSMicroBlockSubmission

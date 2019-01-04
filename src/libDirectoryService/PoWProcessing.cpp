@@ -53,8 +53,9 @@ bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
     return true;
   }
 
-  if (!Messenger::SetDSPoWPacketSubmission(
-          powpacketmessage, MessageOffset::BODY, m_powSolutions)) {
+  if (!Messenger::SetDSPoWPacketSubmission(powpacketmessage,
+                                           MessageOffset::BODY, m_powSolutions,
+                                           m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSPoWPacketSubmission failed.");
     return false;
@@ -99,9 +100,21 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   }
 
   std::vector<DSPowSolution> tmp;
-  if (!Messenger::GetDSPowPacketSubmission(message, offset, tmp)) {
+  PubKey senderPubKey;
+  if (!Messenger::GetDSPowPacketSubmission(message, offset, tmp,
+                                           senderPubKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSPowPacketSubmission failed.");
+    return false;
+  }
+
+  // check if sender pubkey is one from our expected list
+  if (CheckDSPowPacketSubmissionFromNonDSCommittee(senderPubKey)) {
+    LOG_GENERAL(WARNING,
+                "PubKey of packet sender "
+                    << from
+                    << " does not match any of the ds committee member");
+    // In future, we may want to blacklist such node - TBD
     return false;
   }
 
@@ -519,4 +532,18 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes(
   // list.
   setTopPriorityNodes.insert(m_mediator.m_DSCommittee->back().first);
   return setTopPriorityNodes;
+}
+
+bool DirectoryService::CheckDSPowPacketSubmissionFromNonDSCommittee(
+    const PubKey& submitterPubKey) {
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  for (const auto& dsMember : *m_mediator.m_DSCommittee) {
+    if (dsMember.first == submitterPubKey) {
+      // Packet is submitted by one of ds committe
+      return false;
+    }
+  }
+
+  return true;
 }
