@@ -155,7 +155,7 @@ bool Synchronizer::FetchLatestDSBlocksSeed(Lookup* lookup,
                                            uint64_t currentBlockChainSize) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Synchronizer::FetchLatestDSBlocks not expected to be "
+                "Synchronizer::FetchLatestDSBlocksSeed not expected to be "
                 "called from LookUp node.");
     return true;
   }
@@ -181,7 +181,7 @@ bool Synchronizer::FetchLatestTxBlockSeed(Lookup* lookup,
                                           uint64_t currentBlockChainSize) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Synchronizer::FetchLatestTxBlocks not expected to be "
+                "Synchronizer::FetchLatestTxBlocksSeed not expected to be "
                 "called from LookUp node.");
     return true;
   }
@@ -205,7 +205,7 @@ bool Synchronizer::FetchLatestState(Lookup* lookup) {
 bool Synchronizer::FetchLatestStateSeed(Lookup* lookup) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
-                "Synchronizer::FetchLatestState not expected to be called "
+                "Synchronizer::FetchLatestStateSeed not expected to be called "
                 "from LookUp node.");
     return true;
   }

@@ -1792,7 +1792,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetSeedNodes(),
                                 lookupPubkey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "

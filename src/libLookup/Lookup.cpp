@@ -430,7 +430,7 @@ void Lookup::SendMessageToSeedNodes(const bytes& message) const {
   {
     lock_guard<mutex> g(m_mutexSeedNodes);
 
-    for (auto node : m_seedNodes) {
+    for (const auto& node : m_seedNodes) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Sending msg to seed node "
                     << node.second.GetPrintableIPAddress() << ":"
@@ -1614,7 +1614,7 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
     return false;
   }
 
-  if (!VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+  if (!VerifySenderNode(GetSeedNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
@@ -2461,7 +2461,7 @@ bool Lookup::ProcessSetStartPoWFromSeed([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  auto vecLookupNodes = GetLookupNodes();
+  auto vecLookupNodes = GetSeedNodes();
   auto it = std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),
                          [&lookupPubKey](const std::pair<PubKey, Peer>& node) {
                            return node.first == lookupPubKey;
@@ -2531,7 +2531,7 @@ bool Lookup::GetDSInfoLoop() {
   }
 
   while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
-    GetDSInfoFromLookupNodes();
+    GetDSInfoFromSeedNodes();
     unique_lock<mutex> lk(m_mutexDSInfoUpdation);
     if (cv_dsInfoUpdate.wait_for(lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
         cv_status::timeout) {
