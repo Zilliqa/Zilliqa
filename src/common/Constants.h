@@ -193,6 +193,8 @@ extern const unsigned int NUM_GOSSIP_RECEIVERS;
 extern const unsigned int ROUND_TIME_IN_MS;
 extern const unsigned int SIMULATED_NETWORK_DELAY_IN_MS;
 extern const unsigned int KEEP_RAWMSG_FROM_LAST_N_ROUNDS;
+extern const bool SIGN_VERIFY_EMPTY_MSGTYP;
+extern const bool SIGN_VERIFY_NONEMPTY_MSGTYP;
 
 // GPU mining constants
 extern const std::string GPU_TO_USE;

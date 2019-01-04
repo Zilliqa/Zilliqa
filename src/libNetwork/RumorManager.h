@@ -97,8 +97,9 @@ class RumorManager {
 
   void SpreadBufferedRumors();
 
-  bool RumorReceived(uint8_t type, int32_t round, const RawBytes& message,
-                     const Peer& from);
+  std::pair<bool, RawBytes> RumorReceived(uint8_t type, int32_t round,
+                                          const RawBytes& message,
+                                          const Peer& from);
 
   void StartRounds();
   void StopRounds();
@@ -116,6 +117,10 @@ class RumorManager {
 
   void CleanUp();
 
+  std::pair<bool, RumorManager::RawBytes> VerifyMessage(
+      const RawBytes& message, const RRS::Message::Type& t, const Peer& from);
+
+  void AppendKeyAndSignature(RawBytes& result, const RawBytes& messageToSig);
   // CONST METHODS
   const RumorIdRumorBimap& rumors() const;
 };

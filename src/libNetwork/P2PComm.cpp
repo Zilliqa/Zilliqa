@@ -469,16 +469,18 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
       // Queue the message
       m_dispatcher(raw_message);
     }
-  } else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
-                                              gossipMsgRound, rumor_message,
-                                              from)) {
-    std::pair<bytes, Peer>* raw_message =
-        new pair<bytes, Peer>(rumor_message, from);
+  } else {
+    auto resp = p2p.m_rumorManager.RumorReceived(
+        (unsigned int)gossipMsgTyp, gossipMsgRound, rumor_message, from);
+    if (resp.first) {
+      std::pair<bytes, Peer>* raw_message =
+          new pair<bytes, Peer>(resp.second, from);
 
-    LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
 
-    // Queue the message
-    m_dispatcher(raw_message);
+      // Queue the message
+      m_dispatcher(raw_message);
+    }
   }
 }
 
@@ -622,10 +624,11 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     if (messageLength <
         GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN) {
-      LOG_GENERAL(WARNING,
-                  "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR "
-                  "Port is missing (messageLength = "
-                      << messageLength << ")");
+      LOG_GENERAL(
+          WARNING,
+          "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR is missing "
+          "(messageLength = "
+              << messageLength << ")");
       return;
     }
 
@@ -944,7 +947,7 @@ void P2PComm::InitializeRumorManager(
 }
 
 Signature P2PComm::SignMessage(const bytes& message) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   Signature signature;
   bool result = Schnorr::GetInstance().Sign(
@@ -957,7 +960,7 @@ Signature P2PComm::SignMessage(const bytes& message) {
 
 bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                             const PubKey& pubKey) {
-  LOG_MARKER();
+  // LOG_MARKER();
   bool result = Schnorr::GetInstance().Verify(message, 0, message.size(),
                                               toverify, pubKey);
 
