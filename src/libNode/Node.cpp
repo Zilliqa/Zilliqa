@@ -545,7 +545,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
       do {
-        m_mediator.m_lookup->GetStateDeltaFromLookupNodes(
+        m_mediator.m_lookup->GetStateDeltaFromSeedNodes(
             m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum());
         LOG_GENERAL(INFO,
                     "Retrieve final block state delta from lookup node, please "
@@ -905,7 +905,7 @@ void Node::StartSynchronization() {
     while (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
       m_mediator.m_lookup->ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      m_synchronizer.FetchLatestTxBlocks(
+      m_synchronizer.FetchLatestTxBlockSeed(
           m_mediator.m_lookup,
           // m_mediator.m_txBlockChain.GetBlockCount());
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
@@ -1216,7 +1216,7 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
                                 lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
@@ -1756,7 +1756,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
     return;
   }
   m_requestedForDSGuardNetworkInfoUpdate = true;
-  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(
       queryLookupForDSGuardNetworkInfoUpdate);
 }
 
@@ -1795,7 +1795,7 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
     return false;
   }
 
-  if (!Lookup::VerifyLookupNode(m_mediator.m_lookup->GetLookupNodes(),
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetSeedNodes(),
                                 lookupPubkey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
