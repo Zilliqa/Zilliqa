@@ -35,8 +35,9 @@
 
 using namespace std;
 
-BlockStorage& BlockStorage::GetBlockStorage(const std::string path) {
-  static BlockStorage bs(path);
+BlockStorage& BlockStorage::GetBlockStorage(const std::string& path,
+                                            bool diagnostic) {
+  static BlockStorage bs(path, diagnostic);
   return bs;
 }
 

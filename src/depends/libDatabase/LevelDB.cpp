@@ -70,14 +70,8 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
     m_db.reset(db);
 }
 
-LevelDB::LevelDB(const string & dbName, const string & subdirectory)
+LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bool diagnostic)
 {
-    // Remove the trailing '/' if it exists
-    if (subdirectory.back() == '/')
-    {
-        subdirectory.pop_back();
-    }
-
     this->m_subdirectory = subdirectory;
     this->m_dbName = dbName;
 
@@ -88,13 +82,13 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     leveldb::DB* db;
     leveldb::Status status;
 
-    std::string path = (m_subdirectory.empty() ? "./" : m_subdirectory + "/") + PERSISTENCE_PATH;;
-    if (!boost::filesystem::exists(path))
+    string db_path = diagnostic ? ((m_subdirectory + (m_subdirectory.back() == '/' ? "" : "/")) + PERSISTENCE_PATH) : ("./"  + PERSISTENCE_PATH + (m_subdirectory.empty() ? "" : "/" + m_subdirectory));
+    if (!boost::filesystem::exists(db_path))
     {
-        boost::filesystem::create_directories(path);
+        boost::filesystem::create_directories(db_path);
     }
 
-    status = leveldb::DB::Open(options, path + "/" + this->m_dbName, &db);
+    status = leveldb::DB::Open(options, db_path + "/" + this->m_dbName, &db);
     if(!status.ok())
     {
         // throw exception();

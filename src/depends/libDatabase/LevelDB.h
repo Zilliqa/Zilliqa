@@ -43,7 +43,7 @@ class LevelDB
 public:
 
     /// Constructor.
-    explicit LevelDB(const std::string & dbName, const std::string & subdirectory = "");
+    explicit LevelDB(const std::string & dbName, const std::string& subdirectory = "", bool diagnostic = false);
     explicit LevelDB(const std::string& dbName, const std::string& path, const std::string& subdirectory = "");
     /// Destructor.
     ~LevelDB() = default;
