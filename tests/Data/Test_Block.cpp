@@ -136,7 +136,8 @@ Transaction CreateDummyTx1() {
 
   Predicate pred(3, fromAddr, 2, 1, toAddr, fromAddr, 33, 1);
 
-  Transaction tx1(1, 5, toAddr, fromAddr, 55, signature, pred);
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), 5, toAddr, fromAddr, 55,
+                  signature, pred);
 
   return tx1;
 }
@@ -162,7 +163,8 @@ Transaction CreateDummyTx2() {
 
   Predicate pred(3, fromAddr, 2, 1, toAddr, fromAddr, 10, 2);
 
-  Transaction tx1(1, 6, toAddr, fromAddr, 10, signature, pred);
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), 6, toAddr, fromAddr, 10,
+                  signature, pred);
 
   return tx1;
 }

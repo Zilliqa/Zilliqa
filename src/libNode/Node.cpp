@@ -1033,11 +1033,6 @@ vector<Peer> Node::GetBroadcastList(
   return vector<Peer>();
 }
 
-/// Return a valid transaction from fromKeyPair to toAddr with the specified
-/// amount
-///
-/// TODO: nonce is still no valid yet
-
 bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
                        uint32_t nShard) {
   for (auto& privKeyHexStr : GENESIS_KEYS) {

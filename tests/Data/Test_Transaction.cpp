@@ -62,10 +62,11 @@ BOOST_AUTO_TEST_CASE(test1) {
       TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99()), sender.first,
       sender.second);
 
-  Transaction tx1(1, 5, toAddr, sender, 55, PRECISION_MIN_VALUE, 22, {}, {});
-  Transaction tx2 =
-      Transaction(1, 5, toAddr, sender.second, 55, PRECISION_MIN_VALUE, 22, {},
-                  {}, sig);  // Coverage increase
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), 5, toAddr, sender, 55,
+                  PRECISION_MIN_VALUE, 22, {}, {});
+  Transaction tx2 = Transaction(DataConversion::Pack(CHAIN_ID, 1), 5, toAddr,
+                                sender.second, 55, PRECISION_MIN_VALUE, 22, {},
+                                {}, sig);  // Coverage increase
 
   BOOST_CHECK_MESSAGE(tx1.GetSenderAddr() == fromCheck,
                       "Address from public key converted not properly.");
@@ -122,8 +123,9 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(tx1 == tx2, "Not serialized properly");
 
   LOG_GENERAL(INFO, "Transaction2 version: " << version2);
-  BOOST_CHECK_MESSAGE(version2 == 1,
-                      "expected: " << 1 << " actual: " << version2 << "\n");
+  BOOST_CHECK_MESSAGE(version2 == DataConversion::Pack(CHAIN_ID, 1),
+                      "expected: " << DataConversion::Pack(CHAIN_ID, 1)
+                                   << " actual: " << version2 << "\n");
 
   LOG_GENERAL(INFO, "Transaction2 nonce: " << nonce2);
   BOOST_CHECK_MESSAGE(nonce2 == 5,

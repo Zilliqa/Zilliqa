@@ -154,7 +154,7 @@ decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
   std::vector<Transaction> txns;
 
   // Generate to account
-  uint32_t version = 1;
+  uint32_t version = DataConversion::Pack(CHAIN_ID, 1);
   uint64_t nonce = 0;
   Address toAddr = Account::GetAddressFromPublicKey(receiver.second);
   uint128_t amount = 123;

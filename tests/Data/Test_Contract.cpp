@@ -104,8 +104,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   // Transaction to deploy contract.
   std::string initStr = JSONUtils::convertJsontoStr(t1.init);
   bytes data(initStr.begin(), initStr.end());
-  Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
-                  t1.code, data);
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, t1.code, data);
   TransactionReceipt tr0;
   AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
   Account* account = AccountStore::GetInstance().GetAccount(contrAddr);
@@ -120,8 +120,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   bytes dataDonate;
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataDonate);
 
-  Transaction tx1(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE,
-                  5000, {}, dataDonate);
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
+                  amount, PRECISION_MIN_VALUE, 5000, {}, dataDonate);
   TransactionReceipt tr1;
   if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1)) {
     nonce++;
@@ -156,8 +156,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   uint64_t amount2 =
       ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
 
-  Transaction tx2(1, nonce, contrAddr, donor2, amount2, PRECISION_MIN_VALUE,
-                  5000, {}, dataDonate2);
+  Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor2,
+                  amount2, PRECISION_MIN_VALUE, 5000, {}, dataDonate2);
   TransactionReceipt tr2;
   if (AccountStore::GetInstance().UpdateAccounts(bnum2, 1, true, tx2, tr2)) {
     nonce++;
@@ -181,8 +181,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   // Let's try donor1 donating again, it shouldn't have an impact.
   // Execute message_3, the unsuccessful Donate transaction.
-  Transaction tx3(1, nonce, contrAddr, donor1, amount, PRECISION_MIN_VALUE,
-                  5000, {}, dataDonate);
+  Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
+                  amount, PRECISION_MIN_VALUE, 5000, {}, dataDonate);
   TransactionReceipt tr3;
   if (AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx3, tr3)) {
     nonce++;
@@ -215,8 +215,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   bytes data4;
   uint64_t amount4 = ScillaTestUtil::PrepareMessageData(t4.message, data4);
 
-  Transaction tx4(1, nonce, contrAddr, owner, amount4, PRECISION_MIN_VALUE,
-                  5000, {}, data4);
+  Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, owner,
+                  amount4, PRECISION_MIN_VALUE, 5000, {}, data4);
   TransactionReceipt tr4;
   if (AccountStore::GetInstance().UpdateAccounts(bnum4, 1, true, tx4, tr4)) {
     nonce++;
@@ -250,8 +250,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   bytes data5;
   uint64_t amount5 = ScillaTestUtil::PrepareMessageData(t5.message, data5);
 
-  Transaction tx5(1, nonce, contrAddr, donor1, amount5, PRECISION_MIN_VALUE,
-                  5000, {}, data5);
+  Transaction tx5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
+                  amount5, PRECISION_MIN_VALUE, 5000, {}, data5);
   TransactionReceipt tr5;
   if (AccountStore::GetInstance().UpdateAccounts(bnum5, 1, true, tx5, tr5)) {
     nonce++;
@@ -314,8 +314,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Transaction to deploy ping.
   std::string initStrPing = JSONUtils::convertJsontoStr(t0ping.init);
   bytes dataPing(initStrPing.begin(), initStrPing.end());
-  Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
-                  t0ping.code, dataPing);
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, t0ping.code, dataPing);
   TransactionReceipt tr0;
   AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx0, tr0);
   Account* accountPing = AccountStore::GetInstance().GetAccount(pingAddr);
@@ -337,8 +337,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Transaction to deploy pong.
   std::string initStrPong = JSONUtils::convertJsontoStr(t0pong.init);
   bytes dataPong(initStrPong.begin(), initStrPong.end());
-  Transaction tx1(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE, 5000,
-                  t0pong.code, dataPong);
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 5000, t0pong.code, dataPong);
   TransactionReceipt tr1;
   AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx1, tr1);
   Account* accountPong = AccountStore::GetInstance().GetAccount(pongAddr);
@@ -361,8 +361,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
     }
   }
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t0ping.message, data);
-  Transaction tx2(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
-                  {}, data);
+  Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
+                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr2;
   if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx2, tr2)) {
     nonce++;
@@ -376,8 +376,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
     }
   }
   amount = ScillaTestUtil::PrepareMessageData(t0pong.message, data);
-  Transaction tx3(1, nonce, pongAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
-                  {}, data);
+  Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, pongAddr, owner,
+                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr3;
   if (AccountStore::GetInstance().UpdateAccounts(bnumPong, 1, true, tx3, tr3)) {
     nonce++;
@@ -395,8 +395,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   }
 
   ScillaTestUtil::PrepareMessageData(t1ping.message, data);
-  Transaction tx4(1, nonce, pingAddr, owner, amount, PRECISION_MIN_VALUE, 5000,
-                  {}, data);
+  Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
+                  amount, PRECISION_MIN_VALUE, 5000, {}, data);
   TransactionReceipt tr4;
   if (AccountStore::GetInstance().UpdateAccounts(bnumPing, 1, true, tx4, tr4)) {
     nonce++;

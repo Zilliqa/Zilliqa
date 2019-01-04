@@ -51,6 +51,11 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
   // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
 
+  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    LOG_GENERAL(WARNING, "CHAIN_ID incorrect");
+    return false;
+  }
+
   // Check if from account is sharded here
   const PubKey& senderPubKey = tx.GetSenderPubKey();
   Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
@@ -94,6 +99,11 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   }
 
   // LOG_MARKER();
+
+  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    LOG_GENERAL(WARNING, "CHAIN_ID incorrect");
+    return false;
+  }
 
   // Check if from account is sharded here
   const PubKey& senderPubKey = tx.GetSenderPubKey();

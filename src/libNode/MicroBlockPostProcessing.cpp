@@ -209,7 +209,6 @@ bool Node::ProcessMicroblockConsensusCore(const bytes& message,
                            << m_myshardId << "] DONE");
     }
 
-    // TODO: provide interface in DataSender instead of repopulating the DS into
     // shard
     DequeOfShard ds_shards;
     Shard ds_shard;
