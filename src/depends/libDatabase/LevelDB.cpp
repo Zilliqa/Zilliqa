@@ -82,7 +82,11 @@ LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bo
     leveldb::DB* db;
     leveldb::Status status;
 
-    string db_path = diagnostic ? ((m_subdirectory + (m_subdirectory.back() == '/' ? "" : "/")) + PERSISTENCE_PATH) : ("./"  + PERSISTENCE_PATH + (m_subdirectory.empty() ? "" : "/" + m_subdirectory));
+    // Diagnostic tool provides the option to pass the persistance db_path
+    // that might not be the current directory (case when 'diagnostic' is true).
+    // Its default value is false, and the non-diagnostic path is preserved
+    // from the original code.
+    string db_path = diagnostic ? (m_subdirectory + PERSISTENCE_PATH) : ("./" + PERSISTENCE_PATH + (m_subdirectory.empty() ? "" : "/" + m_subdirectory));
     if (!boost::filesystem::exists(db_path))
     {
         boost::filesystem::create_directories(db_path);

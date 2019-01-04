@@ -110,8 +110,13 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  BlockStorage& bs =
-      BlockStorage::GetBlockStorage(argc == 2 ? "./" : argv[2], true);
+  std::string path = "./";
+  if (argc == 3) {
+    path = std::string(argv[2]);
+    path += (path.back() == '/' ? "" : "/");
+  }
+
+  BlockStorage& bs = BlockStorage::GetBlockStorage(path, true);
 
   std::map<uint64_t, DiagnosticData> diagnosticDataMap =
       std::map<uint64_t, DiagnosticData>();
