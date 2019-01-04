@@ -638,6 +638,8 @@ class DirectoryService : public Executable, public Broadcastable {
   void ClearVCBlockVector();
   bool RunConsensusOnFinalBlockWhenDSPrimary(
       const RunFinalBlockConsensusOptions& options);
+  bool CheckDSPowPacketSubmissionFromNonDSCommittee(
+      const PubKey& submitterPubKey);
 };
 
 #endif  // __DIRECTORYSERVICE_H__

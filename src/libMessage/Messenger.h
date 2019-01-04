@@ -229,11 +229,12 @@ class Messenger {
 
   static bool SetDSPoWPacketSubmission(
       bytes& dst, const unsigned int offset,
-      const std::vector<DSPowSolution>& dsPowSolutions);
+      const std::vector<DSPowSolution>& dsPowSolutions,
+      const std::pair<PrivKey, PubKey>& keys);
 
   static bool GetDSPowPacketSubmission(
       const bytes& src, const unsigned int offset,
-      std::vector<DSPowSolution>& dsPowSolutions);
+      std::vector<DSPowSolution>& dsPowSolutions, PubKey& pubKey);
 
   static bool SetDSMicroBlockSubmission(
       bytes& dst, const unsigned int offset, const unsigned char microBlockType,

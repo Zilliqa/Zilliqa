@@ -3197,14 +3197,27 @@ bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
 
 bool Messenger::SetDSPoWPacketSubmission(
     bytes& dst, const unsigned int offset,
-    const vector<DSPowSolution>& dsPowSolutions) {
+    const vector<DSPowSolution>& dsPowSolutions,
+    const pair<PrivKey, PubKey>& keys) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
 
   for (const auto& sol : dsPowSolutions) {
-    DSPowSolutionToProtobuf(sol, *result.add_dspowsubmissions());
+    DSPowSolutionToProtobuf(sol,
+                            *result.mutable_data()->add_dspowsubmissions());
   }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
+
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign DSPoWPacketSubmission");
+    return false;
+  }
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "DSPoWPacketSubmission initialization failed.");
@@ -3214,9 +3227,10 @@ bool Messenger::SetDSPoWPacketSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSPowPacketSubmission(
-    const bytes& src, const unsigned int offset,
-    vector<DSPowSolution>& dsPowSolutions) {
+bool Messenger::GetDSPowPacketSubmission(const bytes& src,
+                                         const unsigned int offset,
+                                         vector<DSPowSolution>& dsPowSolutions,
+                                         PubKey& pubKey) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
@@ -3228,7 +3242,17 @@ bool Messenger::GetDSPowPacketSubmission(
     return false;
   }
 
-  for (const auto& powSubmission : result.dspowsubmissions()) {
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+  vector<unsigned char> tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature, pubKey)) {
+    LOG_GENERAL(WARNING, "DSPoWPacketSubmission signature wrong.");
+    return false;
+  }
+
+  for (const auto& powSubmission : result.data().dspowsubmissions()) {
     DSPowSolution sol;
     ProtobufToDSPowSolution(powSubmission, sol);
     dsPowSolutions.emplace_back(move(sol));
@@ -6970,7 +6994,6 @@ bool Messenger::SetSeedNodeHistoricalDB(
     const string& path) {
   SeedSetHistoricalDB result;
 
-  Signature signature;
   result.mutable_data()->set_code(code);
   result.mutable_data()->set_path(path);
   SerializableToProtobufByteArray(archivalKeys.second,
