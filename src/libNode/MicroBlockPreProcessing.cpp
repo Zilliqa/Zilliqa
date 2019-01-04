@@ -270,7 +270,7 @@ void Node::ProcessTransactionWhenShardLeader() {
 
   bool txnProcTimeout = false;
 
-  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+  auto txnProcTimer = [&txnProcTimeout]() -> void {
     // this_thread::sleep_for(chrono::seconds(
     //     MICROBLOCK_TIMEOUT -
     //     (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
@@ -485,7 +485,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
   bool txnProcTimeout = false;
 
-  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
+  auto txnProcTimer = [&txnProcTimeout]() -> void {
     // this_thread::sleep_for(chrono::seconds(
     //     MICROBLOCK_TIMEOUT -
     //     (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
