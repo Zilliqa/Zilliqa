@@ -102,6 +102,27 @@ class VCBlockHeader : public BlockHeaderBase {
 
   /// Greater-than comparison operator.
   bool operator>(const VCBlockHeader& header) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const VCBlockHeader& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const VCBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<VCBlockHeader>" << std::endl
+     << "m_VieWChangeDSEpochNo : " << t.m_VieWChangeDSEpochNo << std::endl
+     << "m_VieWChangeEpochNo : " << t.m_VieWChangeEpochNo << std::endl
+     << "m_ViewChangeState : " << t.m_ViewChangeState << std::endl
+     << "m_CandidateLeaderNetworkInfo : " << t.m_CandidateLeaderNetworkInfo
+     << std::endl
+     << "m_CandidateLeaderPubKey : " << t.m_CandidateLeaderPubKey << std::endl
+     << "m_VCCounter : " << t.m_VCCounter << std::endl;
+  for (const auto& node : t.m_FaultyLeaders) {
+    os << "FaultyLeader: [PubKey] " << node.first << " [Peer] " << node.second
+       << std::endl;
+  }
+  return os;
+}
 
 #endif  // __VCBLOCKHEADER_H__

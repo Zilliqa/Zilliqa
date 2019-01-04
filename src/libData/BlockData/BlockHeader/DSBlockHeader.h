@@ -118,6 +118,30 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Greater-than comparison operator.
   bool operator>(const DSBlockHeader& header) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<DSBlockHeader>" << std::endl
+     << "m_dsDifficulty : " << t.m_dsDifficulty << std::endl
+     << "m_difficulty : " << t.m_difficulty << std::endl
+     << "m_prevHash : " << t.m_prevHash << std::endl
+     << "m_leaderPubKey : " << t.m_leaderPubKey << std::endl
+     << "m_blockNum : " << t.m_blockNum << std::endl
+     << "m_epochNum : " << t.m_epochNum << std::endl
+     << "m_gasPrice : " << t.m_gasPrice << std::endl
+     << t.m_hashset << std::endl
+     << t.m_swInfo << std::endl;
+  for (const auto& node : t.m_PoWDSWinners) {
+    os << "PoWDSWinner: [PubKey] " << node.first << " [Peer] " << node.second
+       << std::endl;
+  }
+
+  return os;
+}
 
 #endif  // __DSBLOCKHEADER_H__

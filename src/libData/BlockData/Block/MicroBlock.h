@@ -69,6 +69,15 @@ class MicroBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const MicroBlock& block) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const MicroBlock& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const MicroBlock& t) {
+  const BlockBase& blockBase(t);
+
+  os << "<MicroBlock>" << std::endl << blockBase << std::endl << t.m_header;
+  return os;
+}
 
 #endif  // __MICROBLOCK_H__

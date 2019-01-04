@@ -49,6 +49,15 @@ class BlockHeaderBase : public SerializableDataBlock {
   BlockHash GetMyHash() const;
 
   const CommitteeHash& GetCommitteeHash() const;
+
+  friend std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
+  os << "<BlockHeaderBase>" << std::endl
+     << "m_committeeHash : " << t.m_committeeHash;
+
+  return os;
+}
 
 #endif  // __BLOCKHEADERBASE_H__

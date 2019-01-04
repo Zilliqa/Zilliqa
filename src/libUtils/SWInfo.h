@@ -19,6 +19,7 @@
 #define __SWINFO_H__
 
 #include <stdint.h>
+#include <iostream>
 #include "common/Serializable.h"
 
 class SWInfo : public Serializable {
@@ -71,6 +72,19 @@ class SWInfo : public Serializable {
   const uint32_t& GetFixVersion() const;
   const uint64_t& GetUpgradeDS() const;
   const uint32_t& GetCommit() const;
+
+  friend std::ostream& operator<<(std::ostream& os, const SWInfo& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const SWInfo& t) {
+  os << "<SWInfo>" << std::endl
+     << "m_majorVersion : " << t.m_majorVersion << std::endl
+     << "m_minorVersion : " << t.m_minorVersion << std::endl
+     << "m_fixVersion : " << t.m_fixVersion << std::endl
+     << "m_upgradeDS : " << t.m_upgradeDS << std::endl
+     << "m_commit : " << t.m_commit;
+
+  return os;
+}
 
 #endif  // __SWINFO_H__

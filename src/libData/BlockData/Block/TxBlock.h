@@ -49,7 +49,17 @@ struct MicroBlockInfo {
            std::tie(m_microBlockHash, m_txnRootHash, m_shardId);
   }
   bool operator>(const MicroBlockInfo& mbInfo) const { return mbInfo < *this; }
+
+  friend std::ostream& operator<<(std::ostream& os, const MicroBlockInfo& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const MicroBlockInfo& t) {
+  os << "<MicroBlockInfo>" << std::endl
+     << t.m_microBlockHash << std::endl
+     << t.m_txnRootHash << std::endl
+     << t.m_shardId;
+  return os;
+}
 
 /// Stores the Tx block header and signature.
 
@@ -89,6 +99,22 @@ class TxBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const TxBlock& block) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const TxBlock& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const TxBlock& t) {
+  const BlockBase& blockBase(t);
+
+  os << "<TxBlock>" << std::endl
+     << blockBase << std::endl
+     << t.m_header << std::endl;
+
+  for (const auto& info : t.m_mbInfos) {
+    os << info << std::endl;
+  }
+
+  return os;
+}
 
 #endif  // __TXBLOCK_H__
