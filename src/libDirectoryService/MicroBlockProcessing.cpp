@@ -330,8 +330,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                          << "] FRST RECVD");
   }
 
-  // TODO: Re-request from shard leader if microblock is not received after a
-  // certain time.
   return true;
 }
 
@@ -617,7 +615,6 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     }
   }
 
-  // TODO: Check if every microblock is obtained
   bytes errorMsg;
   if (!CheckMicroBlocks(errorMsg, false, false)) {
     LOG_GENERAL(WARNING,

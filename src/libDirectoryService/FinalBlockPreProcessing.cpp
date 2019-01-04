@@ -949,14 +949,6 @@ bool DirectoryService::CheckFinalBlockValidity(bytes& errorMsg) {
          CheckMicroBlocks(errorMsg, false, true) &&
          CheckLegitimacyOfMicroBlocks() && CheckMicroBlockInfo() &&
          CheckStateRoot() && CheckStateDeltaHash();
-
-  // TODO: Check gas limit (must satisfy some equations)
-  // TODO: Check gas used (must be <= gas limit)
-  // TODO: Check pubkey (must be valid and = shard leader)
-  // TODO: Check parent DS hash (must be = digest of last DS block header in the
-  // DS blockchain)
-  // TODO: Check parent DS block number (must be = block number of last DS block
-  // header in the DS blockchain)
 }
 
 bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
@@ -1033,8 +1025,7 @@ bool DirectoryService::FinalBlockValidator(
                                   // has any mb that I don't have
     if (m_mediator.m_node->m_microblock != nullptr && m_needCheckMicroBlock) {
       if (!CheckMicroBlockValidity(errorMsg)) {
-        LOG_GENERAL(WARNING,
-                    "TODO: DS CheckMicroBlockValidity Failed, what to do?");
+        LOG_GENERAL(WARNING, "DS CheckMicroBlockValidity Failed");
         if (m_consensusObject->GetConsensusErrorCode() ==
             ConsensusCommon::MISSING_TXN) {
           errorMsg.insert(errorMsg.begin(), DSMBMISSINGTXN);
@@ -1065,15 +1056,9 @@ bool DirectoryService::FinalBlockValidator(
     } else {
       errorMsg.insert(errorMsg.begin(), CHECKFINALBLOCK);
     }
-    // throw exception();
-    // TODO: finalblock is invalid
+
     return false;
   }
-
-  // if (!isVacuousEpoch)
-  // {
-  //     LoadUnavailableMicroBlocks();
-  // }
 
   LOG_EPOCH(
       INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
