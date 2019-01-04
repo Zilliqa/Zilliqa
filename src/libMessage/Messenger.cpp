@@ -3210,7 +3210,7 @@ bool Messenger::SetDSPoWPacketSubmission(
 
   SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
 
-  vector<unsigned char> tmp(result.data().ByteSize());
+  bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
@@ -3245,7 +3245,7 @@ bool Messenger::GetDSPowPacketSubmission(const bytes& src,
   ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
-  vector<unsigned char> tmp(result.data().ByteSize());
+  bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature, pubKey)) {
     LOG_GENERAL(WARNING, "DSPoWPacketSubmission signature wrong.");
