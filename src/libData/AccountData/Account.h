@@ -52,6 +52,7 @@ class Account : public SerializableDataBlock {
   dev::h256 m_codeHash;
   // The associated code for this account.
   uint64_t m_createBlockNum = 0;
+  uint32_t m_scillaVersion = 0;
   Json::Value m_initValJson;
   bytes m_initData;
   bytes m_codeCache;
@@ -77,13 +78,15 @@ class Account : public SerializableDataBlock {
   void InitStorage();
 
   /// Parse the Immutable Data at Constract Initialization Stage
-  void InitContract(const bytes& data);
+  bool InitContract(const bytes& data);
 
   /// Set the block number when this account was created.
   void SetCreateBlockNum(const uint64_t& blockNum);
 
   /// Get the block number when this account was created.
   const uint64_t& GetCreateBlockNum() const;
+
+  const uint32_t& GetScillaVersion() const;
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -143,7 +146,7 @@ class Account : public SerializableDataBlock {
 
   void SetInitData(const bytes& initData);
 
-  void InitContract();
+  bool InitContract();
 
   std::vector<dev::h256> GetStorageKeyHashes() const;
 
