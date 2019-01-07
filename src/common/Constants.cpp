@@ -280,6 +280,12 @@ const bool FULL_DATASET_MINE{
     ReadConstantString("FULL_DATASET_MINE", "node.pow.") == "true"};
 const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
                            "true"};
+const bool REMOTE_MINE{ReadConstantString("REMOTE_MINE", "node.pow.") ==
+                       "true"};
+const std::string MINING_PROXY_URL{
+    ReadConstantString("MINING_PROXY_URL", "node.pow.")};
+const unsigned int CHECK_MINING_RESULT_INTERVAL{
+    ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
 const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{

@@ -38,7 +38,7 @@ Mediator* m;
 BOOST_AUTO_TEST_CASE(init) {
   INIT_STDOUT_LOGGER();
   rng.seed(std::random_device()());
-  KeyPair kp = TestUtils::GenerateRandomKeyPair();
+  PairOfKey kp = TestUtils::GenerateRandomKeyPair();
   Peer p = Peer();
   m = new Mediator(kp, p);
 }

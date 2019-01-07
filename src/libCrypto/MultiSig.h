@@ -297,8 +297,7 @@ class MultiSig {
 
   /// Wrapper function for signing PoW message (including public key) for
   /// Proof-of-Possession (PoP) phase
-  static bool SignKey(const bytes& messageWithPubKey,
-                      const std::pair<PrivKey, PubKey>& keyPair,
+  static bool SignKey(const bytes& messageWithPubKey, const PairOfKey& keyPair,
                       Signature& signature);
 
   /// Wrapper function for verifying PoW message (including public key) for

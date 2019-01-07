@@ -3880,8 +3880,7 @@ bool Messenger::GetNodeVCBlock(const bytes& src, const unsigned int offset,
 bool Messenger::SetNodeForwardTxnBlock(
     bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
     const uint64_t& dsBlockNum, const uint32_t& shardId,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const std::vector<Transaction>& txnsCurrent,
+    const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
     const std::vector<Transaction>& txnsGenerated) {
   LOG_MARKER();
 
@@ -4315,10 +4314,9 @@ bool Messenger::GetLookupGetSeedPeers(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetSeedPeers(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<Peer>& candidateSeeds) {
+bool Messenger::SetLookupSetSeedPeers(bytes& dst, const unsigned int offset,
+                                      const PairOfKey& lookupKey,
+                                      const vector<Peer>& candidateSeeds) {
   LOG_MARKER();
 
   LookupSetSeedPeers result;
@@ -4449,8 +4447,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const bytes& src,
 }
 
 bool Messenger::SetLookupSetDSInfoFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& senderKey,
+    bytes& dst, const unsigned int offset, const PairOfKey& senderKey,
     const deque<pair<PubKey, Peer>>& dsNodes, const bool initialDS) {
   LOG_MARKER();
 
@@ -4569,10 +4566,12 @@ bool Messenger::GetLookupGetDSBlockFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetDSBlockFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
-    const uint64_t highBlockNum, const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<DSBlock>& dsBlocks) {
+bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const PairOfKey& lookupKey,
+                                            const vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
   LookupSetDSBlockFromSeed result;
@@ -4700,10 +4699,12 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetTxBlockFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
-    const uint64_t highBlockNum, const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<TxBlock>& txBlocks) {
+bool Messenger::SetLookupSetTxBlockFromSeed(bytes& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const PairOfKey& lookupKey,
+                                            const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   LookupSetTxBlockFromSeed result;
@@ -4827,9 +4828,11 @@ bool Messenger::GetLookupGetStateDeltaFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStateDeltaFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t blockNum,
-    const std::pair<PrivKey, PubKey>& lookupKey, const bytes& stateDelta) {
+bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
+                                               const unsigned int offset,
+                                               const uint64_t blockNum,
+                                               const PairOfKey& lookupKey,
+                                               const bytes& stateDelta) {
   LOG_MARKER();
 
   LookupSetStateDeltaFromSeed result;
@@ -5048,10 +5051,9 @@ bool Messenger::GetLookupGetStateFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStateFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const AccountStore& accountStore) {
+bool Messenger::SetLookupSetStateFromSeed(bytes& dst, const unsigned int offset,
+                                          const PairOfKey& lookupKey,
+                                          const AccountStore& accountStore) {
   LOG_MARKER();
 
   LookupSetStateFromSeed result;
@@ -5224,9 +5226,10 @@ bool Messenger::GetLookupGetOfflineLookups(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetOfflineLookups(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey, const vector<Peer>& nodes) {
+bool Messenger::SetLookupSetOfflineLookups(bytes& dst,
+                                           const unsigned int offset,
+                                           const PairOfKey& lookupKey,
+                                           const vector<Peer>& nodes) {
   LOG_MARKER();
 
   LookupSetOfflineLookups result;
@@ -5338,9 +5341,10 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStartPoWFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t blockNumber,
-    const std::pair<PrivKey, PubKey>& lookupKey) {
+bool Messenger::SetLookupSetStartPoWFromSeed(bytes& dst,
+                                             const unsigned int offset,
+                                             const uint64_t blockNumber,
+                                             const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetStartPoWFromSeed result;
@@ -5433,9 +5437,10 @@ bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetShardsFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey, const DequeOfShard& shards) {
+bool Messenger::SetLookupSetShardsFromSeed(bytes& dst,
+                                           const unsigned int offset,
+                                           const PairOfKey& lookupKey,
+                                           const DequeOfShard& shards) {
   LOG_MARKER();
 
   LookupSetShardsFromSeed result;
@@ -5553,8 +5558,7 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
 }
 
 bool Messenger::SetLookupSetMicroBlockFromLookup(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
+    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const vector<MicroBlock>& mbs) {
   LOG_MARKER();
   LookupSetMicroBlockFromLookup result;
@@ -5680,8 +5684,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
 }
 
 bool Messenger::SetLookupSetTxnsFromLookup(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
+    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
@@ -6673,10 +6676,11 @@ bool Messenger::GetLookupGetDSTxBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetVCNodeSetDSTxBlockFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<DSBlock>& DSBlocks, const vector<TxBlock>& txBlocks) {
+bool Messenger::SetVCNodeSetDSTxBlockFromSeed(bytes& dst,
+                                              const unsigned int offset,
+                                              const PairOfKey& lookupKey,
+                                              const vector<DSBlock>& DSBlocks,
+                                              const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   VCNodeSetDSTxBlockFromSeed result;
@@ -6905,7 +6909,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
 bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
     bytes& dst, unsigned int offset,
     const vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
-    const std::pair<PrivKey, PubKey>& lookupKey) {
+    const PairOfKey& lookupKey) {
   LOG_MARKER();
   NodeSetGuardNodeNetworkInfoUpdate result;
 

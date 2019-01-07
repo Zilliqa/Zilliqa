@@ -20,6 +20,7 @@
 
 #include <array>
 #include <boost/algorithm/hex.hpp>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -77,6 +78,31 @@ class DataConversion {
   static uint16_t UnpackA(uint32_t x) { return (uint16_t)(x >> 16); }
 
   static uint16_t UnpackB(uint32_t x) { return (uint16_t)(x & 0xffff); }
+
+  template <typename T, size_t SIZE>
+  static std::string IntegerToHexString(T value) {
+    std::stringstream ss;
+    if (SIZE > sizeof(uint8_t)) {
+      ss << std::hex << value;
+    } else {
+      ss << std::hex << (uint32_t)value;
+    }
+    std::string strResult = ss.str();
+    auto resultSize = SIZE * 2;
+    if (strResult.length() < resultSize) {
+      strResult = std::string(resultSize - strResult.length(), '0') + strResult;
+    }
+    return strResult;
+  }
+
+  template <typename T, size_t SIZE>
+  static bytes IntegerToBytes(T value) {
+    bytes result(SIZE);
+    for (size_t i = 0; i < SIZE; i++) {
+      result[SIZE - i - 1] = (value >> (i * 8));
+    }
+    return result;
+  }
 };
 
 #endif  // __DATACONVERSION_H__

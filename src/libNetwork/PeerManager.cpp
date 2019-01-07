@@ -158,8 +158,8 @@ bool PeerManager::ProcessBroadcast(const bytes& message, unsigned int offset,
   return true;
 }
 
-PeerManager::PeerManager(const std::pair<PrivKey, PubKey>& key,
-                         const Peer& peer, bool loadConfig)
+PeerManager::PeerManager(const PairOfKey& key, const Peer& peer,
+                         bool loadConfig)
     : m_selfKey(key), m_selfPeer(peer) {
   LOG_MARKER();
   SetupLogLevel();

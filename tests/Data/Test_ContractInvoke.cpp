@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_SUITE(contractinvokingtest)
 
 Address fromAddr, fromAddr2;
 Address cfAddress, icfAddress;
-KeyPair sender, sender2;
+PairOfKey sender, sender2;
 uint128_t nonce, nonce2 = 0;
 
 struct ICFSampleInput {
@@ -62,7 +62,7 @@ struct ICFSampleInput {
 
 struct CFSampleInput {
   string cfDataStr;
-  KeyPair cfSender;
+  PairOfKey cfSender;
   uint128_t amount;
   uint128_t gasPrice;
   uint128_t gasLimit;

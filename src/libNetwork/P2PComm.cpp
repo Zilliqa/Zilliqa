@@ -926,9 +926,7 @@ void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
 
-void P2PComm::SetSelfKey(const std::pair<PrivKey, PubKey>& self) {
-  m_selfKey = self;
-}
+void P2PComm::SetSelfKey(const PairOfKey& self) { m_selfKey = self; }
 
 void P2PComm::InitializeRumorManager(
     const std::vector<std::pair<PubKey, Peer>>& peers,

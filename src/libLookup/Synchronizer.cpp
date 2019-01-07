@@ -43,7 +43,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
   // FIXME: Handle exceptions.
   PrivKey privKey(tmpprivkey, 0);
   PubKey pubKey(tmppubkey, 0);
-  std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
+  PairOfKey keypair = make_pair(privKey, pubKey);
   uint64_t genesisBlockNumer = 0;
   uint64_t genesisEpochNumer = 0;
   std::map<PubKey, Peer> powDSWinners;
@@ -85,7 +85,7 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
   PrivKey privKey(tmpprivkey, 0);
   PubKey pubKey(tmppubkey, 0);
 
-  std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
+  PairOfKey keypair = make_pair(privKey, pubKey);
 
   TxBlock txBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
                                 1, 1, BlockHash(), 0, TxBlockHashSet(), 0,

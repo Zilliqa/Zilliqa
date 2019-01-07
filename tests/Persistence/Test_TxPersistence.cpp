@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB) {
 TxBlock constructDummyTxBlock(int instanceNum) {
   // array<unsigned char, BLOCK_HASH_SIZE> emptyHash = { 0 };
 
-  std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
   return TxBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
                                1, BlockHash(), instanceNum, TxBlockHashSet(), 5,
