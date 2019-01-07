@@ -426,10 +426,7 @@ bool UpgradeManager::DownloadSW() {
 
   m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
 
-  if (DataConversion::HexStrToUint8Vec(sha, m_latestSHA)) {
-    return true;
-  }
-  return false;
+  return DataConversion::HexStrToUint8Vec(sha, m_latestSHA);
 }
 
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
