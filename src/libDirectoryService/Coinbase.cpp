@@ -309,23 +309,37 @@ void DirectoryService::InitCoinbase() {
   // DS nodes
   for (const auto& ds : *m_mediator.m_DSCommittee) {
     Address addr = Account::GetAddressFromPublicKey(ds.first);
+    if (GUARD_MODE) {
+      if (Guard::GetInstance().IsNodeInDSGuardList(ds.first) ||
+          Guard::GetInstance().IsNodeInShardGuardList(ds.first)) {
+        LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
+        continue;
+      }
+    }
     if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
                                                         base_reward_each)) {
       LOG_GENERAL(WARNING, "Could Not reward base reward  " << addr);
     } else {
       if (addr == myAddr) {
         LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "[REWARD] Rewarded base reward " << reward_each);
+                  "[REWARD] Rewarded base reward " << base_reward_each);
         LOG_STATE("[REWARD][" << setw(15) << left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
                               << "][" << m_mediator.m_currentEpochNum << "]["
-                              << reward_each << "] base reward");
+                              << base_reward_each << "] base reward");
       }
     }
   }
   // shard nodes
   for (const auto& shard : m_shards) {
     for (const auto& node : shard) {
+      if (Guard::GetInstance().IsNodeInDSGuardList(
+              std::get<SHARD_NODE_PUBKEY>(node)) ||
+          Guard::GetInstance().IsNodeInShardGuardList(
+              std::get<SHARD_NODE_PUBKEY>(node))) {
+        LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
+        continue;
+      }
       Address addr =
           Account::GetAddressFromPublicKey(std::get<SHARD_NODE_PUBKEY>(node));
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
