@@ -52,12 +52,12 @@ class DataConversion {
   template <size_t SIZE>
   static bool charArrToHexStr(const std::array<uint8_t, SIZE>& hex_arr,
                               std::string& str) {
-    // try{
-    boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
-                          std::back_inserter(str));
-    // }catch (exception& e) {
-    //     return false;
-    // }
+    try {
+      boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
+                            std::back_inserter(str));
+    } catch (std::exception& e) {
+      return false;
+    }
     return true;
   }
 
