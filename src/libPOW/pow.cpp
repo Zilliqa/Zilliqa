@@ -322,7 +322,13 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
     LOG_GENERAL(WARNING, "Failed to sign zil_requestWork json value.");
     return false;
   }
-  jsonValue[5] = "0x" + DataConversion::SerializableToHexStr(signature);
+
+  std::string sigStr;
+  if(!DataConversion::SerializableToHexStr(signature, sigStr)){
+    LOG_GENERAL(WARNING, "Failed to convert signature to hex str");
+    return false;
+  }
+  jsonValue[5] = "0x" + sigStr;
 
   LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
@@ -366,7 +372,13 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
     LOG_GENERAL(WARNING, "Failed to sign zil_checkWorkStatus json value.");
     return false;
   }
-  jsonValue[3] = "0x" + DataConversion::SerializableToHexStr(signature);
+
+  std::string sigStr;
+  if(!DataConversion::SerializableToHexStr(signature, sigStr)){
+    LOG_GENERAL(WARNING, "Failed to convert signature to hex str.");
+    return false;
+  }
+  jsonValue[3] = "0x" + sigStr;
 
   LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
@@ -469,7 +481,13 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
     LOG_GENERAL(WARNING, "Failed to sign zil_verifyResult json value.");
     return false;
   }
-  jsonValue[4] = "0x" + DataConversion::SerializableToHexStr(signature);
+
+  std::string sigStr;
+  if(!DataConversion::SerializableToHexStr(signature, sigStr)){
+    LOG_GENERAL(WARNING, "Failed to convert signature to hex str.");
+    return false;
+  }
+  jsonValue[4] = "0x" + sigStr;
 
   LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
