@@ -26,6 +26,36 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(upgradeManager)
 
+BOOST_AUTO_TEST_CASE(test_curl) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_GENERAL(INFO, "Running test_curl");
+
+  CURL *curl = curl_easy_init();
+  struct curl_slist *headers = NULL;
+  string token = "";
+  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+  curl_easy_setopt(
+      curl, CURLOPT_URL,
+      "https://api.github.com/repos/ckyang/Zilliqa/releases/latest");
+  string token_header = "Authorization: token " + token;
+  headers = curl_slist_append(headers, token_header.c_str());
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "Zilliqa");
+  CURLcode res = curl_easy_perform(curl);
+
+  if (res != CURLE_OK) {
+    LOG_GENERAL(WARNING,
+                "curl_easy_perform() failed to get latest release "
+                "information"
+                    << curl_easy_strerror(res));
+  }
+
+  curl_slist_free_all(headers);
+
+  LOG_GENERAL(INFO, "Verify test_curl completed.");
+}
+
 BOOST_AUTO_TEST_CASE(test_downloadFile_Integrity) {
   INIT_STDOUT_LOGGER();
 

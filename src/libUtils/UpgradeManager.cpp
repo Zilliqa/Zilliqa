@@ -125,6 +125,7 @@ static size_t WriteString(void* contents, size_t size, size_t nmemb,
 
 string UpgradeManager::DownloadFile(const char* fileTail,
                                     const char* releaseUrl) {
+  LOG_MARKER();
   if (!m_curl) {
     LOG_GENERAL(WARNING, "Cannot perform any curl operation!");
     return "";
@@ -132,6 +133,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
 
   string curlRes;
   curl_easy_reset(m_curl);
+  curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(m_curl, CURLOPT_URL,
                    releaseUrl ? releaseUrl : UPGRADE_HOST.c_str());
   curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
@@ -148,6 +150,8 @@ string UpgradeManager::DownloadFile(const char* fileTail,
                     << "]: " << curl_easy_strerror(res));
     return "";
   }
+
+  LOG_GENERAL(INFO, "curlRes: = " << curlRes);
 
   int find = 0;
   string cur;
