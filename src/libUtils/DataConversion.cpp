@@ -39,6 +39,7 @@ bool DataConversion::HexStrToStdArray(const string& hex_input,
     copy(v.begin(), v.begin() + min((int)v.size(), 32), d.begin());
     return true;
   }
+  LOG_GENERAL(WARNING, "Failed HexStrToStdArray conversion");
   return false;
 }
 
@@ -50,6 +51,7 @@ bool DataConversion::HexStrToStdArray64(const string& hex_input,
     copy(v.begin(), v.begin() + min((int)v.size(), 64), d.begin());
     return true;
   }
+  LOG_GENERAL(WARNING, "Failed HexStrToStdArray conversion");
   return false;
 }
 
