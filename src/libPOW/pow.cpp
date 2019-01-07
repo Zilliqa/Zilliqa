@@ -370,6 +370,8 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
 
   LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
+  const uint32_t CHECK_STATUS_RESULT_ARRAY_SIZE = 4;
+
   while (m_shouldMine) {
     std::this_thread::sleep_for(
         std::chrono::seconds(CHECK_MINING_RESULT_INTERVAL));
@@ -383,7 +385,7 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
         continue;
       }
 
-      if (ret.size() < 4) {
+      if (ret.size() < CHECK_STATUS_RESULT_ARRAY_SIZE) {
         LOG_GENERAL(WARNING,
                     "Mining proxy return invalid result, ret array size: "
                         << ret.size());
