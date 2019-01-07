@@ -42,7 +42,6 @@ int main() {
   bytes message;
   string s;
   cin >> s;
-  // TODO: Handle Exceptions
   bytes out;
   if (DataConversion::HexStrToUint8Vec(s, out)) {
     PubKey key(out, 0);
