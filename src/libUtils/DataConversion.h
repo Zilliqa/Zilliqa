@@ -20,8 +20,8 @@
 
 #include <array>
 #include <boost/algorithm/hex.hpp>
-#include <sstream>
 #include <exception>
+#include <sstream>
 #include <string>
 #include <vector>
 

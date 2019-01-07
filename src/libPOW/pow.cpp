@@ -324,7 +324,7 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
   }
 
   std::string sigStr;
-  if(!DataConversion::SerializableToHexStr(signature, sigStr)){
+  if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
     LOG_GENERAL(WARNING, "Failed to convert signature to hex str");
     return false;
   }
@@ -374,7 +374,7 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
   }
 
   std::string sigStr;
-  if(!DataConversion::SerializableToHexStr(signature, sigStr)){
+  if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
     LOG_GENERAL(WARNING, "Failed to convert signature to hex str.");
     return false;
   }
@@ -483,7 +483,7 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
   }
 
   std::string sigStr;
-  if(!DataConversion::SerializableToHexStr(signature, sigStr)){
+  if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
     LOG_GENERAL(WARNING, "Failed to convert signature to hex str.");
     return false;
   }
