@@ -86,15 +86,22 @@ class SWInfo : public Serializable {
   const uint32_t& GetScillaFixVersion() const;
   const uint64_t& GetScillaUpgradeDS() const;
   const uint32_t& GetScillaCommit() const;
+
+  friend std::ostream& operator<<(std::ostream& os, const SWInfo& t);
 };
 
 inline std::ostream& operator<<(std::ostream& os, const SWInfo& t) {
   os << "<SWInfo>" << std::endl
-     << "m_majorVersion : " << t.m_majorVersion << std::endl
-     << "m_minorVersion : " << t.m_minorVersion << std::endl
-     << "m_fixVersion : " << t.m_fixVersion << std::endl
-     << "m_upgradeDS : " << t.m_upgradeDS << std::endl
-     << "m_commit : " << t.m_commit;
+     << "m_zilliqaMajorVersion : " << t.m_zilliqaMajorVersion << std::endl
+     << "m_zilliqaMinorVersion : " << t.m_zilliqaMinorVersion << std::endl
+     << "m_zilliqaFixVersion : " << t.m_zilliqaFixVersion << std::endl
+     << "m_zilliqaUpgradeDS : " << t.m_zilliqaUpgradeDS << std::endl
+     << "m_zilliqaCommit : " << t.m_zilliqaCommit << std::endl
+     << "m_scillaMajorVersion : " << t.m_scillaMajorVersion << std::endl
+     << "m_scillaMinorVersion : " << t.m_scillaMinorVersion << std::endl
+     << "m_scillaFixVersion : " << t.m_scillaFixVersion << std::endl
+     << "m_scillaUpgradeDS : " << t.m_scillaUpgradeDS << std::endl
+     << "m_scillaCommit : " << t.m_scillaCommit;
 
   return os;
 }
