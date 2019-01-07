@@ -63,8 +63,8 @@ class Messenger {
 
   static bool SetAccountDelta(bytes& dst, const unsigned int offset,
                               Account* oldAccount, const Account& newAccount);
-  static bool GetAccountDelta(const bytes& src, const unsigned int offset,
-                              Account& account, const bool fullCopy);
+  // static bool GetAccountDelta(const bytes& src, const unsigned int offset,
+  //                             Account& account, const bool fullCopy);
 
   // These are called by AccountStoreBase template class
   template <class MAP>

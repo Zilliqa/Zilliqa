@@ -77,7 +77,7 @@ class Account : public SerializableDataBlock {
   void InitStorage();
 
   /// Parse the Immutable Data at Constract Initialization Stage
-  void InitContract(const bytes& data);
+  void InitContract(const bytes& data, const Address& addr);
 
   /// Set the block number when this account was created.
   void SetCreateBlockNum(const uint64_t& blockNum);
@@ -143,7 +143,7 @@ class Account : public SerializableDataBlock {
 
   void SetInitData(const bytes& initData);
 
-  void InitContract();
+  void InitContract(const Address& addr);
 
   std::vector<dev::h256> GetStorageKeyHashes() const;
 
@@ -163,11 +163,11 @@ class Account : public SerializableDataBlock {
   friend inline std::ostream& operator<<(std::ostream& out,
                                          Account const& account);
 
-  static bool SerializeDelta(bytes& dst, unsigned int offset,
-                             Account* oldAccount, const Account& newAccount);
+  // static bool SerializeDelta(bytes& dst, unsigned int offset,
+  //                            Account* oldAccount, const Account& newAccount);
 
-  static bool DeserializeDelta(const bytes& src, unsigned int offset,
-                               Account& account, bool fullCopy);
+  // static bool DeserializeDelta(const bytes& src, unsigned int offset,
+  //                              Account& account, bool fullCopy);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account) {
