@@ -21,6 +21,7 @@ using namespace std;
 
 bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
   try {
+    out.clear();
     boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
                             back_inserter(out));
   } catch (exception& e) {
@@ -54,6 +55,7 @@ bool DataConversion::HexStrToStdArray64(const string& hex_input,
 
 bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
   try {
+    str = "";
     boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
@@ -65,6 +67,7 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
 bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
                                       unsigned int len, string& str) {
   try {
+    str = "";
     boost::algorithm::hex(hex_vec.begin() + offset,
                           hex_vec.begin() + offset + len, back_inserter(str));
   } catch (exception& e) {
@@ -79,6 +82,7 @@ bool DataConversion::SerializableToHexStr(const Serializable& input,
   bytes tmp;
   input.Serialize(tmp, 0);
   try {
+    str = "";
     boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed SerializableToHexStr conversion");
