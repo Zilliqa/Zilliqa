@@ -287,9 +287,9 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
   tmp.insert(tmp.end(), headerHash.bytes,
              headerHash.bytes + sizeof(ethash_hash256));
 
-  auto strBlcokNumber =
+  auto strBlockNumber =
       DataConversion::IntegerToHexString<uint64_t, sizeof(uint64_t)>(blockNum);
-  jsonValue[2] = "0x" + strBlcokNumber;
+  jsonValue[2] = "0x" + strBlockNumber;
 
   auto blockNumberBytes =
       DataConversion::IntegerToBytes<uint64_t, sizeof(uint64_t)>(blockNum);
