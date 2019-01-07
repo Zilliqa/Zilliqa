@@ -445,9 +445,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   GetIpMapping(ipMapping);
 
   if (!ipMapping.empty()) {
-    string pubKey;
-
     for (auto& ds : *m_mediator.m_DSCommittee) {
+      string pubKey;
       if (!DataConversion::SerializableToHexStr(ds.first, pubKey)) {
         return false;
       }
@@ -614,10 +613,9 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
         m_mediator.m_ds->m_shards);
 
     if (!ipMapping.empty()) {
-      string pubKey;
-
       for (auto& shard : m_mediator.m_ds->m_shards) {
         for (auto& node : shard) {
+          string pubKey;
           if (!DataConversion::SerializableToHexStr(
                   get<SHARD_NODE_PUBKEY>(node), pubKey)) {
             return false;
