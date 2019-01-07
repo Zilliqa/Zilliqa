@@ -23,7 +23,9 @@
 #include <string>
 #include <vector>
 
+#include "AddressChecksum.h"
 #include "JSONConversion.h"
+#include "Server.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
@@ -135,6 +137,11 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   if (!DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
     return Transaction();
+  }
+  string lower_case_addr;
+  if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "To Address checksum does not match");
   }
   Address toAddr(toAddr_ser);
 
