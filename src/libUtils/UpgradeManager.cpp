@@ -428,9 +428,8 @@ bool UpgradeManager::DownloadSW() {
 
   if (DataConversion::HexStrToUint8Vec(sha, m_latestSHA)) {
     return true;
-  } else {
-    return false;
   }
+  return false;
 }
 
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
