@@ -134,9 +134,13 @@ bool DirectoryService::ProcessStateDelta(
     return true;
   }
 
-  LOG_GENERAL(INFO, "Received MicroBlock State Delta hash : "
-                        << DataConversion::charArrToHexStr(
-                               microBlockStateDeltaHash.asArray()));
+  string statedeltaStr;
+  if (!DataConversion::charArrToHexStr(microBlockStateDeltaHash.asArray(),
+                                       statedeltaStr)) {
+    LOG_GENERAL(WARNING, "Invalid state delta hash");
+    return false;
+  }
+  LOG_GENERAL(INFO, "Received MicroBlock State Delta hash : " << statedeltaStr);
 
   if (microBlockStateDeltaHash == StateHash()) {
     LOG_GENERAL(INFO,
@@ -234,8 +238,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
   if (minerEntry == m_publicKeyToshardIdMap.end()) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Cannot find the miner key: "
-                  << DataConversion::SerializableToHexStr(pubKey));
+              "Cannot find the miner key: " << pubKey);
     return false;
   }
   if (minerEntry->second != shardId) {
@@ -513,8 +516,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
         if (!found) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Cannot find the miner key in DS committee: "
-                        << DataConversion::SerializableToHexStr(pubKey));
+                    "Cannot find the miner key in DS committee: " << pubKey);
           continue;
         }
       } else {
@@ -522,8 +524,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
         if (minerEntry == m_publicKeyToshardIdMap.end()) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Cannot find the miner key in normal shard: "
-                        << DataConversion::SerializableToHexStr(pubKey));
+                    "Cannot find the miner key in normal shard: " << pubKey);
           continue;
         }
         if (minerEntry->second != shardId) {
