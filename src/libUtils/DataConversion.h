@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "common/Serializable.h"
+#include "libUtils/Logger.h"
 
 /// Utility class for data conversion operations.
 class DataConversion {
@@ -56,6 +57,7 @@ class DataConversion {
       boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
                             std::back_inserter(str));
     } catch (std::exception& e) {
+      LOG_GENERAL(WARNING, "Failed charArrToHexStr conversion");
       return false;
     }
     return true;

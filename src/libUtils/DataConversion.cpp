@@ -24,6 +24,7 @@ bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
     boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
                             back_inserter(out));
   } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion");
     return false;
   }
   return true;
@@ -55,6 +56,7 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
   try {
     boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
   } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
     return false;
   }
   return true;
@@ -66,6 +68,7 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
     boost::algorithm::hex(hex_vec.begin() + offset,
                           hex_vec.begin() + offset + len, back_inserter(str));
   } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
     return false;
   }
   return true;
@@ -78,6 +81,7 @@ bool DataConversion::SerializableToHexStr(const Serializable& input,
   try {
     boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
   } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed SerializableToHexStr conversion");
     return false;
   }
   return true;
