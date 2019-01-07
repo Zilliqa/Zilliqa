@@ -54,6 +54,7 @@ class DataConversion {
   static bool charArrToHexStr(const std::array<uint8_t, SIZE>& hex_arr,
                               std::string& str) {
     try {
+      str = "";
       boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
                             std::back_inserter(str));
     } catch (std::exception& e) {
