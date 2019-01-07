@@ -497,7 +497,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     if (message_wo_keysig.size() >
         0)  // if someone malaciously sends empty message, sha2 will assert fail
     {
-      hash = HashUtils::BytesToHash(message);
+      hash = HashUtils::BytesToHash(message_wo_keysig);
       std::string hashStr;
       DataConversion::Uint8VecToHexStr(hash, hashStr);
 
