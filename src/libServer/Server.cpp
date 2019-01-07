@@ -523,7 +523,7 @@ Json::Value Server::GetSmartContracts(const string& address) {
     bytes tmpaddr;
     if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "address is not a hex string");
+                             "Address is not a hex string");
     }
 
     Address addr(tmpaddr);
