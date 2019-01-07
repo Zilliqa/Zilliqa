@@ -249,7 +249,7 @@ bool UpgradeManager::HasNewSW() {
 
     while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
       bytes tempPubKeyBytes;
-      if (!DataConversion::HexStrToUint8Vec(pubKey, tempPubKeyBytes)){
+      if (!DataConversion::HexStrToUint8Vec(pubKey, tempPubKeyBytes)) {
         continue;
       }
       pubKeys.emplace_back(tempPubKeyBytes, 0);
@@ -277,23 +277,22 @@ bool UpgradeManager::HasNewSW() {
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
   bytes tempSha;
-  if (!DataConversion::HexStrToUint8Vec(shaStr, tempSha)){
+  if (!DataConversion::HexStrToUint8Vec(shaStr, tempSha)) {
     return false;
   }
 
   const bytes sha = tempSha;
 
-
   const unsigned int len = sigStr.size() / pubKeys.size();
   vector<Signature> mutliSig;
 
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    bytes tempMultisigBytes; 
-    if (!DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len), tempMultisigBytes)){
+    bytes tempMultisigBytes;
+    if (!DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len),
+                                          tempMultisigBytes)) {
       continue;
     }
-    mutliSig.emplace_back(
-        tempMultisigBytes, 0);
+    mutliSig.emplace_back(tempMultisigBytes, 0);
   }
 
   /// Multi-sig verification
@@ -427,9 +426,9 @@ bool UpgradeManager::DownloadSW() {
 
   m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
 
-  if (DataConversion::HexStrToUint8Vec(sha, m_latestSHA)){
+  if (DataConversion::HexStrToUint8Vec(sha, m_latestSHA)) {
     return true;
-  }else{
+  } else {
     return false;
   }
 }
@@ -519,12 +518,11 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
-        bytes pubkeyBytes; 
-        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)){
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
           continue;
         }
-        initialDSCommittee.push_back(
-            PubKey(pubkeyBytes, 0));
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
 
       bytes message;
@@ -537,14 +535,14 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       string sig_str = ReadDSCommFile(signatureProp);
       string pubKey_str = ReadDSCommFile(publicKeyProp);
 
-      bytes pubkeyBytes; 
-      if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubkeyBytes)){
-        return false; 
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubkeyBytes)) {
+        return false;
       }
       PubKey pubKey(pubkeyBytes, 0);
 
-      bytes sigBytes; 
-      if (!DataConversion::HexStrToUint8Vec(sig_str, sigBytes)){
+      bytes sigBytes;
+      if (!DataConversion::HexStrToUint8Vec(sig_str, sigBytes)) {
         return false;
       }
       Signature sig(sigBytes, 0);
@@ -560,11 +558,10 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
         bytes pubkeyBytes;
-        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)){
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
           return false;
         }
-        initialDSCommittee.push_back(
-            PubKey(pubkeyBytes, 0));
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
     }
 

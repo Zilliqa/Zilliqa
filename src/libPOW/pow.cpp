@@ -572,7 +572,7 @@ ethash_hash256 POW::GenHeaderHash(
 
   // Let's hash the inputs before feeding to ethash
   std::string output;
-  if (!DataConversion::Uint8VecToHexStr(sha2_result, output)){
+  if (!DataConversion::Uint8VecToHexStr(sha2_result, output)) {
     return StringToBlockhash("");
   }
   return StringToBlockhash(output);

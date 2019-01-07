@@ -77,8 +77,8 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
 
   std::string HeaderSignStr;
-  if (!DataConversion::SerializableToHexStr(txblock.GetCS2(), HeaderSignStr)){
-    return ret; // empty ret
+  if (!DataConversion::SerializableToHexStr(txblock.GetCS2(), HeaderSignStr)) {
+    return ret;  // empty ret
   }
   ret_body["HeaderSign"] = HeaderSignStr;
 
@@ -98,7 +98,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
 
   const DSBlockHeader& dshead = dsblock.GetHeader();
   string retSigstr;
-  if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retSigstr)){
+  if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retSigstr)) {
     return ret;
   }
   ret_sign = retSigstr;
@@ -132,7 +132,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string toAddr_str = _json["toAddr"].asString();
 
   bytes toAddr_ser;
-  if (DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)){
+  if (!DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
     return Transaction();
   }
@@ -148,7 +148,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
 
   string pubKey_str = _json["pubKey"].asString();
   bytes pubKey_ser;
-  if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)){
+  if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for pubkey");
     return Transaction();
   }
@@ -156,7 +156,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
 
   string sign_str = _json["signature"].asString();
   bytes sign;
-  if(!DataConversion::HexStrToUint8Vec(sign_str, sign)){
+  if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for sign");
     return Transaction();
   }

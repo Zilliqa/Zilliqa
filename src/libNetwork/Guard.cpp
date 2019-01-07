@@ -62,8 +62,8 @@ void Guard::UpdateDSGuardlist() {
 
   for (const ptree::value_type& v : pt.get_child("node.ds_guard")) {
     if (v.first == "DSPUBKEY") {
-      bytes pubkeyBytes; 
-      if (!DataConversion::HexStrToUint8Vec(v.second.data(), pubkeyBytes)){
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.data(), pubkeyBytes)) {
         continue;
       }
       PubKey pubKey(pubkeyBytes, 0);
@@ -97,8 +97,8 @@ void Guard::UpdateShardGuardlist() {
 
   for (const ptree::value_type& v : pt.get_child("node.shard_guard")) {
     if (v.first == "SHARDPUBKEY") {
-      bytes pubkeyBytes; 
-      if (!DataConversion::HexStrToUint8Vec(v.second.data(), pubkeyBytes)){
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.data(), pubkeyBytes)) {
         continue;
       }
       PubKey pubKey(pubkeyBytes, 0);

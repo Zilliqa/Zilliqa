@@ -1098,8 +1098,7 @@ bool Node::CheckMicroBlockTxnRootHash() {
 
   string txroothashStr;
   DataConversion::charArrToHexStr(expectedTxRootHash.asArray(), txroothashStr);
-  LOG_GENERAL(INFO, "Microblock root computation done "
-                        << txroothashStr);
+  LOG_GENERAL(INFO, "Microblock root computation done " << txroothashStr);
   LOG_GENERAL(INFO, "Expected root: "
                         << m_microblock->GetHeader().GetTxRootHash().hex());
 

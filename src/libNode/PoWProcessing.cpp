@@ -130,11 +130,11 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
   if (winning_result.success) {
     string rand1Str, rand2Str;
-    if (!DataConversion::charArrToHexStr(rand1, rand1Str)){
+    if (!DataConversion::charArrToHexStr(rand1, rand1Str)) {
       LOG_GENERAL(WARNING, "rand1 is not a valid hex");
     }
 
-    if (!DataConversion::charArrToHexStr(rand2, rand2Str)){
+    if (!DataConversion::charArrToHexStr(rand2, rand2Str)) {
       LOG_GENERAL(WARNING, "rand2 is not a valid hex");
     }
 

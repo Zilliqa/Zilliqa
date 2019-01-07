@@ -21,6 +21,7 @@
 #include <array>
 #include <boost/algorithm/hex.hpp>
 #include <sstream>
+#include <exception>
 #include <string>
 #include <vector>
 
@@ -30,44 +31,40 @@
 class DataConversion {
  public:
   /// Converts alphanumeric hex string to byte vector.
-  static bool HexStrToUint8Vec(
-      const std::string& hex_input, bytes& out);
+  static bool HexStrToUint8Vec(const std::string& hex_input, bytes& out);
 
   /// Converts alphanumeric hex string to 32-byte array.
-  static bool HexStrToStdArray(
-      const std::string& hex_input, std::array<uint8_t, 32>& d);
+  static bool HexStrToStdArray(const std::string& hex_input,
+                               std::array<uint8_t, 32>& d);
 
   /// Converts alphanumeric hex string to 64-byte array.
-  static bool HexStrToStdArray64(
-      const std::string& hex_input, std::array<uint8_t, 64>& d);
+  static bool HexStrToStdArray64(const std::string& hex_input,
+                                 std::array<uint8_t, 64>& d);
 
   /// Converts byte vector to alphanumeric hex string.
-  static const bool Uint8VecToHexStr(
-      const bytes& hex_vec, std::string& str);
+  static bool Uint8VecToHexStr(const bytes& hex_vec, std::string& str);
 
   /// Converts byte vector to alphanumeric hex string.
-  static bool Uint8VecToHexStr(
-      const bytes& hex_vec, unsigned int offset,
-      unsigned int len, std::string& str);
+  static bool Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
+                               unsigned int len, std::string& str);
 
   /// Converts fixed-sized byte array to alphanumeric hex string.
   template <size_t SIZE>
-  static bool charArrToHexStr(
-      const std::array<uint8_t, SIZE>& hex_arr, std::string& str) {
-    try{
-        boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
-                            std::back_inserter(str));
-    }catch (exception& e) {
-        return false;
-    }
-    return true ;
+  static bool charArrToHexStr(const std::array<uint8_t, SIZE>& hex_arr,
+                              std::string& str) {
+    // try{
+    boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
+                          std::back_inserter(str));
+    // }catch (exception& e) {
+    //     return false;
+    // }
+    return true;
   }
 
   /// Converts a serializable object to alphanumeric hex string.
   static bool SerializableToHexStr(const Serializable& input, std::string& str);
 
-  static inline const std::string CharArrayToString(
-      const bytes& v) {
+  static inline const std::string CharArrayToString(const bytes& v) {
     return std::string(v.begin(), v.end());
   }
 

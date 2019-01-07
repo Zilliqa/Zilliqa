@@ -89,12 +89,12 @@ int main(int argc, const char* argv[]) {
   bytes tmPrivkey;
   bytes tmpPubkey;
 
-  if (DataConversion::HexStrToUint8Vec(argv[1], tmPrivkey)){
+  if (!DataConversion::HexStrToUint8Vec(argv[1], tmPrivkey)) {
     LOG_GENERAL(WARNING, "Invalid hex string (PrivKey).");
     return -1;
   }
 
-  if (DataConversion::HexStrToUint8Vec(argv[2], tmpPubkey)){
+  if (!DataConversion::HexStrToUint8Vec(argv[2], tmpPubkey)) {
     LOG_GENERAL(WARNING, "Invalid hex string (PubKey).");
     return -1;
   }

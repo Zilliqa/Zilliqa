@@ -19,72 +19,69 @@
 
 using namespace std;
 
-bool DataConversion::HexStrToUint8Vec(
-    const string& hex_input, bytes& out) {
-  try{
+bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
+  try {
     boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
-                          back_inserter(out));
-  }catch (exception& e) {
-    return false; 
+                            back_inserter(out));
+  } catch (exception& e) {
+    return false;
   }
   return true;
 }
 
-bool DataConversion::HexStrToStdArray(
-    const string& hex_input, array<uint8_t, 32>& d) {
+bool DataConversion::HexStrToStdArray(const string& hex_input,
+                                      array<uint8_t, 32>& d) {
   d = {0};
   bytes v;
-  if (HexStrToUint8Vec(hex_input, v)){
+  if (HexStrToUint8Vec(hex_input, v)) {
     copy(v.begin(), v.begin() + min((int)v.size(), 32), d.begin());
     return true;
   }
   return false;
 }
 
-bool DataConversion::HexStrToStdArray64(
-    const string& hex_input, array<uint8_t, 64>& d) {
+bool DataConversion::HexStrToStdArray64(const string& hex_input,
+                                        array<uint8_t, 64>& d) {
   d = {0};
-  bytes v; 
-  if (HexStrToUint8Vec(hex_input, v)){
+  bytes v;
+  if (HexStrToUint8Vec(hex_input, v)) {
     copy(v.begin(), v.begin() + min((int)v.size(), 64), d.begin());
-    return true; 
+    return true;
   }
   return false;
 }
 
-bool DataConversion::Uint8VecToHexStr(
-    const bytes& hex_vec, string& str) {
-  try{
+bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
+  try {
     boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
-  }catch (exception& e) {
+  } catch (exception& e) {
     return false;
   }
   return true;
 }
 
-bool DataConversion::Uint8VecToHexStr(
-    const bytes& hex_vec, unsigned int offset,
-    unsigned int len, string& str) {
-  try{
+bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
+                                      unsigned int len, string& str) {
+  try {
     boost::algorithm::hex(hex_vec.begin() + offset,
-                        hex_vec.begin() + offset + len, back_inserter(str));
-  }catch (exception& e) {
+                          hex_vec.begin() + offset + len, back_inserter(str));
+  } catch (exception& e) {
     return false;
   }
   return true;
 }
 
-bool DataConversion::SerializableToHexStr(const Serializable& input, string& str) {
+bool DataConversion::SerializableToHexStr(const Serializable& input,
+                                          string& str) {
   bytes tmp;
   input.Serialize(tmp, 0);
-  try{
+  try {
     boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
-  }catch (exception& e) {
+  } catch (exception& e) {
     return false;
   }
   return true;
 }
-
 
 uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   if (hex_arr.size() == 0) {

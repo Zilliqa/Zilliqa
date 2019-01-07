@@ -53,7 +53,8 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
 
   bytes expected;
   DataConversion::HexStrToUint8Vec(
-      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C", expected);
+      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C",
+      expected);
   bool is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                              output.end());
   BOOST_CHECK_EQUAL(is_equal, true);
@@ -62,7 +63,8 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   sha2.Update(vec);
   output = sha2.Finalize();
   DataConversion::HexStrToUint8Vec(
-      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1", expected);
+      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1",
+      expected);
   is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                         output.end());
   BOOST_CHECK_EQUAL(is_equal, true);
@@ -88,7 +90,8 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
 
   bytes expected;
   DataConversion::HexStrToUint8Vec(
-      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C", expected);
+      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C",
+      expected);
   bool is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                              output.end());
   BOOST_CHECK_EQUAL(is_equal, true);
@@ -97,7 +100,8 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   sha2.Update(vec, 0, inputSize);
   output = sha2.Finalize();
   DataConversion::HexStrToUint8Vec(
-      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1", expected);
+      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1",
+      expected);
   is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                         output.end());
   BOOST_CHECK_EQUAL(is_equal, true);

@@ -45,12 +45,11 @@ int main() {
   cin >> s;
 
   bytes out;
-  if (DataConversion::HexStrToUint8Vec(s, out)){
+  if (DataConversion::HexStrToUint8Vec(s, out)) {
     PrivKey privKey{out, 0};
     PubKey pubKey{privKey};
     cout << pubKey << endl;
-  }else{
+  } else {
     cout << "invalid private key" << endl;
   }
-
 }

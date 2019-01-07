@@ -180,8 +180,9 @@ PeerManager::PeerManager(const PairOfKey& key, const Peer& peer,
 
     BOOST_FOREACH (ptree::value_type const& v, pt.get_child("nodes")) {
       if (v.first == "peer") {
-        bytes pubkeyBytes; 
-        if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"), pubkeyBytes)){
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"),
+                                              pubkeyBytes)) {
           continue;
         }
 

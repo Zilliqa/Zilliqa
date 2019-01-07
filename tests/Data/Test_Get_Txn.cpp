@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   for (auto& i : GENESIS_KEYS) {
     bytes privKeyBytes;
-    if (!DataConversion::HexStrToUint8Vec(i, privKeyBytes)){
+    if (!DataConversion::HexStrToUint8Vec(i, privKeyBytes)) {
       BOOST_CHECK_MESSAGE(false, "Failed");
     }
 

@@ -72,11 +72,10 @@ int main(int argc, char** argv) {
     fstream privFile(argv[1], ios::in);
 
     while (getline(privFile, line)) {
-
-      bytes out; 
-      if (DataConversion::HexStrToUint8Vec(line, out)){
+      bytes out;
+      if (DataConversion::HexStrToUint8Vec(line, out)) {
         privKeys.emplace_back(out, 0);
-      }else {
+      } else {
         LOG_GENERAL(WARNING, "Failed to get private key.");
       }
     }
@@ -89,10 +88,10 @@ int main(int argc, char** argv) {
 
     while (getline(pubFile, line)) {
       pubKey_string = line;
-      bytes pubOut; 
-      if (DataConversion::HexStrToUint8Vec(line, pubOut)){
+      bytes pubOut;
+      if (DataConversion::HexStrToUint8Vec(line, pubOut)) {
         pubKeys.emplace_back(pubOut, 0);
-      }else{
+      } else {
         LOG_GENERAL(WARNING, "Failed to get public key.");
       }
     }

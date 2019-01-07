@@ -143,7 +143,8 @@ void Lookup::SetLookupNodes() {
         Peer lookup_node((uint128_t)ip_addr.s_addr,
                          v.second.get<uint32_t>("port"));
         bytes pubkeyBytes;
-        if (!DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey"), pubkeyBytes)){
+        if (!DataConversion::HexStrToUint8Vec(
+                v.second.get<std::string>("pubkey"), pubkeyBytes)) {
           continue;
         }
         PubKey pubKey(pubkeyBytes, 0);
@@ -180,9 +181,13 @@ void Lookup::SetAboveLayer() {
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
-      PubKey pubKey(
-          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
-          0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey"),
+                                            pubkeyBytes)) {
+        continue;
+      }
+
+      PubKey pubKey(pubkeyBytes, 0);
       m_seedNodes.emplace_back(pubKey, lookup_node);
     }
   }
@@ -248,7 +253,7 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
 
   for (auto& addrStr : GENESIS_WALLETS) {
     bytes tempAddrBytes;
-    if (!DataConversion::HexStrToUint8Vec(addrStr, tempAddrBytes)){
+    if (!DataConversion::HexStrToUint8Vec(addrStr, tempAddrBytes)) {
       continue;
     }
     Address addr{tempAddrBytes};
@@ -311,7 +316,7 @@ bool Lookup::GenTxnToSend(size_t num_txn,
 
   for (auto& addrStr : GENESIS_WALLETS) {
     bytes addrBytes;
-    if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)){
+    if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)) {
       continue;
     }
     Address addr{addrBytes};
@@ -630,13 +635,12 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr) {
                             LookupInstructionType::GETTXBODYFROMSEED};
 
   bytes txHashBytes;
-  if (!DataConversion::HexStrToUint8Vec(txHashStr, txHashBytes)){
+  if (!DataConversion::HexStrToUint8Vec(txHashStr, txHashBytes)) {
     return false;
   }
 
   if (!Messenger::SetLookupGetTxBodyFromSeed(
-          getTxBodyMessage, MessageOffset::BODY,
-          txHashBytes,
+          getTxBodyMessage, MessageOffset::BODY, txHashBytes,
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetLookupGetTxBodyFromSeed failed.");
@@ -668,7 +672,8 @@ bool Lookup::SetDSCommitteInfo() {
   for (ptree::value_type const& v : pt.get_child("nodes")) {
     if (v.first == "peer") {
       bytes pubkeyBytes;
-      if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"), pubkeyBytes)){
+      if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"),
+                                            pubkeyBytes)) {
         continue;
       }
       PubKey key(pubkeyBytes, 0);
@@ -3475,8 +3480,8 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
   }
 
   bytes verifierPubkeyBytes;
-  if (!DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY, verifierPubkeyBytes)){
-    LOG_GENERAL(WARNING,"VERIFIER_PUBKEY is not a hex str");
+  if (!DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY, verifierPubkeyBytes)) {
+    LOG_GENERAL(WARNING, "VERIFIER_PUBKEY is not a hex str");
     return false;
   }
 

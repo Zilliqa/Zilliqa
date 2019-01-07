@@ -110,7 +110,7 @@ struct PrivKey : public Serializable {
   /// Utility std::string conversion function for private key info.
   explicit operator std::string() const {
     std::string output;
-    if (!DataConversion::SerializableToHexStr(*this, output)){
+    if (!DataConversion::SerializableToHexStr(*this, output)) {
       return "";
     }
     return "0x" + output;
@@ -121,8 +121,8 @@ struct PrivKey : public Serializable {
 };
 
 inline std::ostream& operator<<(std::ostream& os, const PrivKey& p) {
-  std::string output; 
-  if (!DataConversion::SerializableToHexStr(p, output)){
+  std::string output;
+  if (!DataConversion::SerializableToHexStr(p, output)) {
     os << "";
     return os;
   }
@@ -176,8 +176,8 @@ struct PubKey : public Serializable {
 
   /// Utility std::string conversion function for public key info.
   explicit operator std::string() const {
-    std::string output; 
-    if (!DataConversion::SerializableToHexStr(*this, output)){
+    std::string output;
+    if (!DataConversion::SerializableToHexStr(*this, output)) {
       return "";
     }
     return "0x" + output;
@@ -187,8 +187,8 @@ struct PubKey : public Serializable {
 using PairOfKey = std::pair<PrivKey, PubKey>;
 
 inline std::ostream& operator<<(std::ostream& os, const PubKey& p) {
-  std::string output; 
-  if (!DataConversion::SerializableToHexStr(p, output)){
+  std::string output;
+  if (!DataConversion::SerializableToHexStr(p, output)) {
     os << "";
     return os;
   }
@@ -236,8 +236,8 @@ struct Signature : public Serializable {
 
   /// Utility std::string conversion function for signature info.
   explicit operator std::string() const {
-    std::string output; 
-    if (!DataConversion::SerializableToHexStr(*this, output)){
+    std::string output;
+    if (!DataConversion::SerializableToHexStr(*this, output)) {
       return "";
     }
     return "0x" + output;
@@ -245,8 +245,8 @@ struct Signature : public Serializable {
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Signature& s) {
-  std::string output; 
-  if (!DataConversion::SerializableToHexStr(s, output)){
+  std::string output;
+  if (!DataConversion::SerializableToHexStr(s, output)) {
     os << "";
     return os;
   }

@@ -71,7 +71,7 @@ void process_addpeers(int numargs, const char* progname, const char* cmdname,
       // Temporarily just accept the public key as an input (for use with the
       // peer store)
       bytes tmp;
-      if (!DataConversion::HexStrToUint8Vec(args[i++], tmp)){
+      if (!DataConversion::HexStrToUint8Vec(args[i++], tmp)) {
         cout << "invalid args" << endl;
         return;
       }
@@ -137,7 +137,7 @@ void process_cmd(int numargs, const char* progname, const char* cmdname,
 
     // Send the generic message to the local node
     bytes tmp;
-    if (!DataConversion::HexStrToUint8Vec(args[0], tmp)){
+    if (!DataConversion::HexStrToUint8Vec(args[0], tmp)) {
       cout << "invalid args" << endl;
       return;
     }
@@ -160,7 +160,7 @@ void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
     bytes tmp;
-    if (!DataConversion::HexStrToUint8Vec(args[0], tmp)){
+    if (!DataConversion::HexStrToUint8Vec(args[0], tmp)) {
       cout << "invalid args" << endl;
       return;
     }

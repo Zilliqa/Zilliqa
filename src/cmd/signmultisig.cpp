@@ -28,7 +28,7 @@ int main(int argc, const char* argv[]) {
   }
 
   bytes messageBytes;
-  if (!DataConversion::HexStrToUint8Vec(string(argv[1]), messageBytes)){
+  if (!DataConversion::HexStrToUint8Vec(string(argv[1]), messageBytes)) {
     return -1;
   }
   const bytes message = messageBytes;
@@ -39,8 +39,8 @@ int main(int argc, const char* argv[]) {
     fstream privFile(argv[2], ios::in);
 
     while (getline(privFile, line)) {
-      bytes privKeyBytes; 
-      if (!DataConversion::HexStrToUint8Vec(line, privKeyBytes)){
+      bytes privKeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(line, privKeyBytes)) {
         continue;
       }
       privKeys.emplace_back(privKeyBytes, 0);
@@ -53,7 +53,7 @@ int main(int argc, const char* argv[]) {
 
     while (getline(pubFile, line)) {
       bytes pubKeyBytes;
-      if (DataConversion::HexStrToUint8Vec(line, pubKeyBytes)){
+      if (!DataConversion::HexStrToUint8Vec(line, pubKeyBytes)) {
         continue;
       }
       pubKeys.emplace_back(pubKeyBytes, 0);
@@ -71,8 +71,8 @@ int main(int argc, const char* argv[]) {
     bytes result;
     sig.Serialize(result, 0);
 
-    std::string output; 
-    if(!DataConversion::Uint8VecToHexStr(result, output)){
+    std::string output;
+    if (!DataConversion::Uint8VecToHexStr(result, output)) {
       return -1;
     }
     cout << output;

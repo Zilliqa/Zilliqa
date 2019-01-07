@@ -150,8 +150,8 @@ struct CommitPointHash : public Serializable {
 
   /// Utility std::string conversion function for signature info.
   explicit operator std::string() const {
-    std::string temp; 
-    if (!DataConversion::SerializableToHexStr(*this, temp)){
+    std::string temp;
+    if (!DataConversion::SerializableToHexStr(*this, temp)) {
       return "";
     }
     return "0x" + temp;

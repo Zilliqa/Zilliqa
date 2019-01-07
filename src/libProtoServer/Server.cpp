@@ -435,7 +435,7 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
     }
 
     bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)){
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
       ret.set_error("Address is not valid");
       return ret;
     }
@@ -484,7 +484,7 @@ GetSmartContractStateResponse Server::GetSmartContractState(
     }
 
     bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)){
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
       ret.set_error("Address is not valid");
       return ret;
     }
@@ -530,7 +530,7 @@ GetSmartContractInitResponse Server::GetSmartContractInit(
     }
 
     bytes tmpaddr;
-    if(!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)){
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
       ret.set_error("Address is not valid");
       return ret;
     }
@@ -575,7 +575,7 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
     }
 
     bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)){
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
       ret.set_error("Address is not valid");
       return ret;
     }
@@ -621,7 +621,7 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
     }
 
     bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)){
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
       ret.set_error("Address is not valid");
       return ret;
     }
@@ -932,9 +932,7 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
       string vecStr;
       const bytes& resVec = sha2.Finalize();
       DataConversion::Uint8VecToHexStr(resVec, vecStr);
-      m_DSBlockCache.second.insert_new(
-          m_DSBlockCache.second.size(),
-          vecStr);
+      m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(), vecStr);
     } catch (const char* msg) {
       ret.set_error(msg);
       return ret;
@@ -965,8 +963,7 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
     const bytes& resVec = sha2.Finalize();
     string resStr;
     DataConversion::Uint8VecToHexStr(resVec, resStr);
-    m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(),
-                                     resStr);
+    m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(), resStr);
     m_DSBlockCache.first = currBlockNum;
   }
 
@@ -1028,9 +1025,7 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
       const bytes& resVec = sha2.Finalize();
       string resStr;
       DataConversion::Uint8VecToHexStr(resVec, resStr);
-      m_TxBlockCache.second.insert_new(
-          m_TxBlockCache.second.size(),
-          resStr);
+      m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(), resStr);
     } catch (const char* msg) {
       ret.set_error(msg);
       return ret;
@@ -1061,8 +1056,7 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
     const bytes& resVec = sha2.Finalize();
     string resStr;
     DataConversion::Uint8VecToHexStr(resVec, resStr);
-    m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(),
-                                     resStr);
+    m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(), resStr);
     m_TxBlockCache.first = currBlockNum;
   }
 
