@@ -65,7 +65,10 @@ endif()
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
-find_package(CURL 7.63 REQUIRED HINTS ${CMAKE_BINARY_DIR}/curl)
+
+set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH ON)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/curl)
+pkg_check_modules(LIBCURL libcurl REQUIRED)
 
 find_package(LevelDB REQUIRED)
 
