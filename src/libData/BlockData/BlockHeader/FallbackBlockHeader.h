@@ -40,7 +40,6 @@ class FallbackBlockHeader : public BlockHeaderBase {
   Peer m_leaderNetworkInfo;
   PubKey m_leaderPubKey;
   uint32_t m_shardId;
-  BlockHash m_prevHash;
 
  public:
   /// Default constructor.
@@ -57,18 +56,15 @@ class FallbackBlockHeader : public BlockHeaderBase {
                       const FallbackBlockHashSet& hashset,
                       const uint16_t leaderConsensusId,
                       const Peer& leaderNetworkInfo, const PubKey& leaderPubKey,
-                      const uint32_t shardId, const BlockHash& prevHash,
-                      const uint32_t version = 0,
-                      const CommitteeHash& committeeHash = CommitteeHash());
+                      const uint32_t shardId, const uint32_t version = 0,
+                      const CommitteeHash& committeeHash = CommitteeHash(),
+                      const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
-
-  /// Returns the hash of prev dir block
-  const BlockHash& GetPrevHash() const { return m_prevHash; }
 
   /// Returns the DS Epoch number where view change happen
   const uint64_t& GetFallbackDSEpochNo() const;
@@ -121,7 +117,6 @@ inline std::ostream& operator<<(std::ostream& os,
      << "m_leaderNetworkInfo : " << t.m_leaderNetworkInfo << std::endl
      << "m_leaderPubKey : " << t.m_leaderPubKey << std::endl
      << "m_shardId : " << t.m_shardId << std::endl
-     << "m_prevHash : " << t.m_prevHash << std::endl
      << t.m_hashset;
   return os;
 }

@@ -179,11 +179,11 @@ bool DirectoryService::ComposeFinalBlock() {
 
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(
-          allGasLimit, allGasUsed, allRewards, prevHash, blockNum,
+          allGasLimit, allGasUsed, allRewards, blockNum,
           {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
           m_mediator.m_selfKey.second,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          version, committeeHash),
+          version, committeeHash, prevHash),
       mbInfos, CoSignatures(m_mediator.m_DSCommittee->size())));
 
   LOG_STATE(

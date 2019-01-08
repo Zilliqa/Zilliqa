@@ -31,8 +31,7 @@ FallbackBlockHeader::FallbackBlockHeader()
       m_leaderConsensusId(0),
       m_leaderNetworkInfo(),
       m_leaderPubKey(),
-      m_shardId(0),
-      m_prevHash() {}
+      m_shardId(0) {}
 
 FallbackBlockHeader::FallbackBlockHeader(const bytes& src,
                                          unsigned int offset) {
@@ -45,10 +44,9 @@ FallbackBlockHeader::FallbackBlockHeader(
     const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
     const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
     const uint16_t leaderConsensusId, const Peer& leaderNetworkInfo,
-    const PubKey& leaderPubKey, const uint32_t shardId,
-    const BlockHash& prevHash, const uint32_t version,
-    const CommitteeHash& committeeHash)
-    : BlockHeaderBase(version, committeeHash),
+    const PubKey& leaderPubKey, const uint32_t shardId, const uint32_t version,
+    const CommitteeHash& committeeHash, const BlockHash& prevHash)
+    : BlockHeaderBase(version, committeeHash, prevHash),
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
       m_fallbackState(fallbackState),
@@ -56,8 +54,7 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_leaderConsensusId(leaderConsensusId),
       m_leaderNetworkInfo(leaderNetworkInfo),
       m_leaderPubKey(leaderPubKey),
-      m_shardId(shardId),
-      m_prevHash(prevHash) {}
+      m_shardId(shardId) {}
 
 bool FallbackBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetFallbackBlockHeader(dst, offset, *this)) {
@@ -133,17 +130,5 @@ bool FallbackBlockHeader::operator<(const FallbackBlockHeader& header) const {
 }
 
 bool FallbackBlockHeader::operator>(const FallbackBlockHeader& header) const {
-  // To compare, first they must be of identical epochno and state
-  if (!(std::tie(m_version, m_fallbackEpochNo, m_fallbackDSEpochNo,
-                 m_fallbackState) ==
-        std::tie(m_version, header.m_fallbackEpochNo,
-                 header.m_fallbackDSEpochNo, header.m_fallbackState))) {
-    return false;
-  }
-
-  if (m_shardId == header.m_shardId) {
-    return m_leaderConsensusId > header.m_leaderConsensusId;
-  } else {
-    return m_shardId > header.m_shardId;
-  }
+  return header < *this;
 }

@@ -764,11 +764,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
     m_pendingDSBlock.reset(new DSBlock(
-        DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                      m_mediator.m_selfKey.second, blockNum,
-                      m_mediator.m_currentEpochNum, GetNewGasPrice(),
+        DSBlockHeader(dsDifficulty, difficulty, m_mediator.m_selfKey.second,
+                      blockNum, m_mediator.m_currentEpochNum, GetNewGasPrice(),
                       m_mediator.m_curSWInfo, powDSWinners, dsBlockHashSet,
-                      version, committeeHash),
+                      version, committeeHash, prevHash),
         CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 

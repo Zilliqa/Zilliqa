@@ -143,11 +143,10 @@ bool Node::ComposeMicroBlock() {
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(
-          shardId, gasLimit, gasUsed, rewards, prevHash,
-          m_mediator.m_currentEpochNum,
+          shardId, gasLimit, gasUsed, rewards, m_mediator.m_currentEpochNum,
           {txRootHash, stateDeltaHash, txReceiptHash}, numTxs, minerPubKey,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          version, committeeHash),
+          version, committeeHash, prevHash),
       tranHashes, CoSignatures()));
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

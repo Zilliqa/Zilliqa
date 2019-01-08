@@ -441,8 +441,8 @@ bool DirectoryService::ComputeNewCandidateLeader(
             m_mediator.m_currentEpochNum, m_viewChangestate,
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
-            m_viewChangeCounter, m_cumulativeFaultyLeaders, prevHash,
-            VCBLOCK_VERSION, committeeHash),
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, VCBLOCK_VERSION,
+            committeeHash, prevHash),
         CoSignatures()));
   }
 

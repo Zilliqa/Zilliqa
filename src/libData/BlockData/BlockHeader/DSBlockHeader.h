@@ -38,7 +38,6 @@
 class DSBlockHeader : public BlockHeaderBase {
   uint8_t m_dsDifficulty;  // Number of PoW leading zeros
   uint8_t m_difficulty;    // Number of PoW leading zeros
-  BlockHash m_prevHash;    // Hash of the previous block
   PubKey m_leaderPubKey;   // The one who proposed this DS block
   uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum;     // Tx Epoch Num when the DS block was generated
@@ -56,13 +55,14 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Constructor with specified DS block header parameters.
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
-                const BlockHash& prevHash, const PubKey& leaderPubKey,
-                const uint64_t& blockNum, const uint64_t& epochNum,
+                const PubKey& leaderPubKey, const uint64_t& blockNum,
+                const uint64_t& epochNum,
                 const boost::multiprecision::uint128_t& gasPrice,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
                 const DSBlockHashSet& hashset, const uint32_t version = 0,
-                const CommitteeHash& committeeHash = CommitteeHash());
+                const CommitteeHash& committeeHash = CommitteeHash(),
+                const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const override;
@@ -79,9 +79,6 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDifficulty() const;
-
-  /// Returns the hash of prev dir block
-  const BlockHash& GetPrevHash() const;
 
   /// Returns the public key of the leader of the DS committee that composed
   /// this block.
@@ -129,7 +126,6 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
      << "<DSBlockHeader>" << std::endl
      << "m_dsDifficulty : " << t.m_dsDifficulty << std::endl
      << "m_difficulty : " << t.m_difficulty << std::endl
-     << "m_prevHash : " << t.m_prevHash << std::endl
      << "m_leaderPubKey : " << t.m_leaderPubKey << std::endl
      << "m_blockNum : " << t.m_blockNum << std::endl
      << "m_epochNum : " << t.m_epochNum << std::endl

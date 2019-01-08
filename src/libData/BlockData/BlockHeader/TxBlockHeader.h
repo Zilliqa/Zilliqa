@@ -37,8 +37,7 @@ class TxBlockHeader : public BlockHeaderBase {
   uint64_t m_gasLimit;
   uint64_t m_gasUsed;
   boost::multiprecision::uint128_t m_rewards;
-  BlockHash m_prevHash;  // Hash of the previous block
-  uint64_t m_blockNum;   // Block index, starting from 0 in the genesis block
+  uint64_t m_blockNum;  // Block index, starting from 0 in the genesis block
   TxBlockHashSet m_hashset;
   uint32_t m_numTxs;     // Total number of txs included in the block
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
@@ -55,11 +54,11 @@ class TxBlockHeader : public BlockHeaderBase {
   /// Constructor with specified Tx block header parameters.
   TxBlockHeader(const uint64_t& gasLimit, const uint64_t& gasUsed,
                 const boost::multiprecision::uint128_t& rewards,
-                const BlockHash& prevHash, const uint64_t& blockNum,
-                const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
-                const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                const uint32_t version = 0,
-                const CommitteeHash& committeeHash = CommitteeHash());
+                const uint64_t& blockNum, const TxBlockHashSet& blockHashSet,
+                const uint32_t numTxs, const PubKey& minerPubKey,
+                const uint64_t& dsBlockNum, const uint32_t version = 0,
+                const CommitteeHash& committeeHash = CommitteeHash(),
+                const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const override;
@@ -77,9 +76,6 @@ class TxBlockHeader : public BlockHeaderBase {
   /// sum of txnFees from all microblock, if vacuous epoch, is the total rewards
   /// generated during coinbase
   const boost::multiprecision::uint128_t& GetRewards() const;
-
-  /// Returns the digest of the parent block header.
-  const BlockHash& GetPrevHash() const;
 
   /// Returns the number of ancestor blocks.
   const uint64_t& GetBlockNum() const;
@@ -126,7 +122,6 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
      << "m_gasLimit : " << t.m_gasLimit << std::endl
      << "m_gasUsed : " << t.m_gasUsed << std::endl
      << "m_rewards : " << t.m_rewards << std::endl
-     << "m_prevHash : " << t.m_prevHash << std::endl
      << "m_blockNum : " << t.m_blockNum << std::endl
      << "m_numTxs : " << t.m_numTxs << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl

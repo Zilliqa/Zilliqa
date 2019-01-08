@@ -48,6 +48,7 @@ message ProtoBlockHeaderBase
 {
     optional uint32 version      = 1;   // Added in: v1.0, Deprecated in: N/A
     optional bytes committeehash = 2;   // Added in: v1.0, Deprecated in: N/A
+    optional bytes prevhash      = 3;   // Added in: v1.0, Deprecated in: N/A
 }
 
 // Used in database "dsBlocks"

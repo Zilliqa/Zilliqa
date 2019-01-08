@@ -425,7 +425,7 @@ bool Node::ComposeFallbackBlock() {
           m_mediator.m_currentEpochNum, m_fallbackState,
           {AccountStore::GetInstance().GetStateRootHash()}, m_consensusLeaderID,
           leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
-          m_myshardId, prevHash, FALLBACKBLOCK_VERSION, committeeHash),
+          m_myshardId, FALLBACKBLOCK_VERSION, committeeHash, prevHash),
       CoSignatures()));
 
   return true;
