@@ -70,7 +70,7 @@ void Mediator::UpdateDSBlockRand(bool isGenesis) {
     // genesis block
     LOG_GENERAL(INFO, "Genesis DSBlockchain")
     array<unsigned char, UINT256_SIZE> rand1;
-    rand1 = DataConversion::HexStrToStdArray(RAND1_GENESIS);
+    DataConversion::HexStrToStdArray(RAND1_GENESIS, rand1);
     copy(rand1.begin(), rand1.end(), m_dsBlockRand.begin());
   } else {
     DSBlock lastBlock = m_dsBlockChain.GetLastBlock();
@@ -90,7 +90,7 @@ void Mediator::UpdateTxBlockRand(bool isGenesis) {
   if (isGenesis) {
     LOG_GENERAL(INFO, "Genesis txBlockchain")
     array<unsigned char, UINT256_SIZE> rand2;
-    rand2 = DataConversion::HexStrToStdArray(RAND2_GENESIS);
+    DataConversion::HexStrToStdArray(RAND2_GENESIS, rand2);
     copy(rand2.begin(), rand2.end(), m_txBlockRand.begin());
   } else {
     TxBlock lastBlock = m_txBlockChain.GetLastBlock();

@@ -198,9 +198,13 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
       }
     }
     if (DEBUG_LEVEL >= 5) {
-      LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
-                                    << DataConversion::charArrToHexStr(kv.first)
-                                    << endl);
+      string hashStr;
+      if (!DataConversion::charArrToHexStr(kv.first, hashStr)) {
+        LOG_GENERAL(WARNING, "[DSSORT] "
+                                 << " unable to convert hash to string");
+      } else {
+        LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " " << hashStr << endl);
+      }
     }
     // Put the node into the shard
     const PubKey& key = kv.second;
@@ -325,11 +329,18 @@ bool DirectoryService::VerifyPoWWinner(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
             dsPowSoln.gasPrice);
+
+        string resultStr, mixHashStr;
+        if (!DataConversion::charArrToHexStr(dsPowSoln.result, resultStr)) {
+          return false;
+        }
+        if (!DataConversion::charArrToHexStr(dsPowSoln.mixhash, mixHashStr)) {
+          return false;
+        }
+
         bool result = POW::GetInstance().PoWVerify(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
-            headerHash, dsPowSoln.nonce,
-            DataConversion::charArrToHexStr(dsPowSoln.result),
-            DataConversion::charArrToHexStr(dsPowSoln.mixhash));
+            headerHash, dsPowSoln.nonce, resultStr, mixHashStr);
         if (!result) {
           LOG_EPOCH(WARNING,
                     std::to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -407,9 +418,14 @@ bool DirectoryService::VerifyPoWOrdering(
                      m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
-      LOG_GENERAL(INFO, "[POWS]"
-                            << DataConversion::charArrToHexStr(pairPoWKey.first)
-                            << " " << pairPoWKey.second);
+      string PoWkeyStr;
+      if (!DataConversion::charArrToHexStr(pairPoWKey.first, PoWkeyStr)) {
+        LOG_GENERAL(WARNING,
+                    "[POWS]"
+                        << " cannot convert pairPoWKey.first to hex string");
+      } else {
+        LOG_GENERAL(INFO, "[POWS]" << PoWkeyStr << " " << pairPoWKey.second);
+      }
     }
   }
 
@@ -463,16 +479,30 @@ bool DirectoryService::VerifyPoWOrdering(
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
       const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+
       if (DEBUG_LEVEL >= 5) {
-        LOG_GENERAL(INFO, "[DSSORT]"
-                              << DataConversion::Uint8VecToHexStr(sortHashVec)
-                              << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        string sortHashVecStr;
+        if (!DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+          LOG_GENERAL(INFO,
+                      "[DSSORT]"
+                          << " Unable to convert sortHashVec to hex string");
+        } else {
+          LOG_GENERAL(INFO, "[DSSORT]"
+                                << sortHashVecStr << " "
+                                << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        }
       }
       if (sortHashVec < vec) {
-        LOG_GENERAL(WARNING,
-                    "Bad PoW ordering found: "
-                        << DataConversion::Uint8VecToHexStr(vec) << " "
-                        << DataConversion::Uint8VecToHexStr(sortHashVec));
+        string vecStr, sortHashVecStr;
+        if (!DataConversion::Uint8VecToHexStr(vec, vecStr) ||
+            !DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+          LOG_GENERAL(WARNING,
+                      "Unable to convert vec or sortHashVec to hex string");
+        } else {
+          LOG_GENERAL(WARNING, "Bad PoW ordering found: " << vecStr << " "
+                                                          << sortHashVecStr);
+        }
+
         ++misorderNodes;
         // If there is one PoW ordering fail, then vec is assigned to a big
         // mismatch hash already, need to revert it to previous result and
@@ -721,9 +751,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers);
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
-      LOG_GENERAL(INFO, "[POWS]"
-                            << DataConversion::charArrToHexStr(pairPoWKey.first)
-                            << " " << pairPoWKey.second);
+      string powHashStr;
+      if (!DataConversion::charArrToHexStr(pairPoWKey.first, powHashStr)) {
+        LOG_GENERAL(WARNING,
+                    "[POWS]"
+                        << " Unable to convert pairPoWKey.first to hex str");
+      } else {
+        LOG_GENERAL(INFO, "[POWS]" << powHashStr << " " << pairPoWKey.second);
+      }
     }
   }
 

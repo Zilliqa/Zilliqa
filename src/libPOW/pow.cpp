@@ -322,7 +322,13 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
     LOG_GENERAL(WARNING, "Failed to sign zil_requestWork json value.");
     return false;
   }
-  jsonValue[5] = "0x" + DataConversion::SerializableToHexStr(signature);
+
+  std::string sigStr;
+  if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
+    LOG_GENERAL(WARNING, "Failed to convert signature to hex str");
+    return false;
+  }
+  jsonValue[5] = "0x" + sigStr;
 
   LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
@@ -366,7 +372,13 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
     LOG_GENERAL(WARNING, "Failed to sign zil_checkWorkStatus json value.");
     return false;
   }
-  jsonValue[3] = "0x" + DataConversion::SerializableToHexStr(signature);
+
+  std::string sigStr;
+  if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
+    LOG_GENERAL(WARNING, "Failed to convert signature to hex str.");
+    return false;
+  }
+  jsonValue[3] = "0x" + sigStr;
 
   LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
@@ -469,7 +481,13 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
     LOG_GENERAL(WARNING, "Failed to sign zil_verifyResult json value.");
     return false;
   }
-  jsonValue[4] = "0x" + DataConversion::SerializableToHexStr(signature);
+
+  std::string sigStr;
+  if (!DataConversion::SerializableToHexStr(signature, sigStr)) {
+    LOG_GENERAL(WARNING, "Failed to convert signature to hex str.");
+    return false;
+  }
+  jsonValue[4] = "0x" + sigStr;
 
   LOG_GENERAL(INFO, "Json value send out: " << jsonValue);
 
@@ -571,7 +589,11 @@ ethash_hash256 POW::GenHeaderHash(
       ConcatAndhash(rand1, rand2, ipAddr, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash
-  return StringToBlockhash(DataConversion::Uint8VecToHexStr(sha2_result));
+  std::string output;
+  if (!DataConversion::Uint8VecToHexStr(sha2_result, output)) {
+    return StringToBlockhash("");
+  }
+  return StringToBlockhash(output);
 }
 
 ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,

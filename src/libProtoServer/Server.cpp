@@ -434,7 +434,12 @@ GetBalanceResponse Server::GetBalance(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
+      ret.set_error("Address is not valid");
+      return ret;
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -478,7 +483,12 @@ GetSmartContractStateResponse Server::GetSmartContractState(
       return ret;
     }
 
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
+      ret.set_error("Address is not valid");
+      return ret;
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -519,7 +529,12 @@ GetSmartContractInitResponse Server::GetSmartContractInit(
       return ret;
     }
 
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
+      ret.set_error("Address is not valid");
+      return ret;
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -559,7 +574,12 @@ GetSmartContractCodeResponse GetSmartContractCode(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
+      ret.set_error("Address is not valid");
+      return ret;
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -600,7 +620,12 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       return ret;
     }
 
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(protoAddress.address());
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
+      ret.set_error("Address is not valid");
+      return ret;
+    }
+
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -904,10 +929,10 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
       bytes vec;
       dshead.Serialize(vec, 0);
       sha2.Update(vec);
+      string vecStr;
       const bytes& resVec = sha2.Finalize();
-      m_DSBlockCache.second.insert_new(
-          m_DSBlockCache.second.size(),
-          DataConversion::Uint8VecToHexStr(resVec));
+      DataConversion::Uint8VecToHexStr(resVec, vecStr);
+      m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(), vecStr);
     } catch (const char* msg) {
       ret.set_error(msg);
       return ret;
@@ -936,9 +961,9 @@ ProtoBlockListing Server::DSBlockListing(ProtoPage& protoPage) {
     dshead.Serialize(vec, 0);
     sha2.Update(vec);
     const bytes& resVec = sha2.Finalize();
-
-    m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(),
-                                     DataConversion::Uint8VecToHexStr(resVec));
+    string resStr;
+    DataConversion::Uint8VecToHexStr(resVec, resStr);
+    m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(), resStr);
     m_DSBlockCache.first = currBlockNum;
   }
 
@@ -998,9 +1023,9 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
       txhead.Serialize(vec, 0);
       sha2.Update(vec);
       const bytes& resVec = sha2.Finalize();
-      m_TxBlockCache.second.insert_new(
-          m_TxBlockCache.second.size(),
-          DataConversion::Uint8VecToHexStr(resVec));
+      string resStr;
+      DataConversion::Uint8VecToHexStr(resVec, resStr);
+      m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(), resStr);
     } catch (const char* msg) {
       ret.set_error(msg);
       return ret;
@@ -1029,9 +1054,9 @@ ProtoBlockListing Server::TxBlockListing(ProtoPage& protoPage) {
     txhead.Serialize(vec, 0);
     sha2.Update(vec);
     const bytes& resVec = sha2.Finalize();
-
-    m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(),
-                                     DataConversion::Uint8VecToHexStr(resVec));
+    string resStr;
+    DataConversion::Uint8VecToHexStr(resVec, resStr);
+    m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(), resStr);
     m_TxBlockCache.first = currBlockNum;
   }
 
