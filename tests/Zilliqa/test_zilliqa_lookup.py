@@ -19,7 +19,7 @@ import os
 import sys
 import shutil
 import stat
-import time 
+import time
 
 from subprocess import Popen, PIPE
 import xml.etree.cElementTree as ET
