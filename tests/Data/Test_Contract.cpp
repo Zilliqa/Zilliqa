@@ -1087,11 +1087,11 @@ BOOST_AUTO_TEST_CASE(testDEX) {
 
     dataMakeOrderParams[2]["vname"] = "valueA";
     dataMakeOrderParams[2]["type"] = "Uint128";
-    dataMakeOrderParams[2]["value"] = "1";
+    dataMakeOrderParams[2]["value"] = "168";
 
     dataMakeOrderParams[3]["vname"] = "valueB";
     dataMakeOrderParams[3]["type"] = "Uint128";
-    dataMakeOrderParams[3]["value"] = "1";
+    dataMakeOrderParams[3]["value"] = "168";
 
     dataMakeOrderParams[4]["vname"] = "expirationBlock";
     dataMakeOrderParams[4]["type"] = "BNum";
@@ -1113,6 +1113,44 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                                                trMakeOrder);
     auto timeMakeOrder = r_timer_end(startMakeOrder);
     ownerToken1Nonce++;
+
+    // At this point:
+    // - sender's balance should have decreased, because the DEX contract will
+    // have taken custody of the token.
+    // - there should be an additional order in simple-dex.
+    Json::Value token1State = token1Account->GetStorageJson();
+    for (auto& s : token1State) {
+      if (s["vname"] == "balances") {
+        for (auto& hodl : s["value"]) {
+          if (hodl["key"] == "0x" + ownerToken1Addr.hex()) {
+            BOOST_CHECK_MESSAGE(hodl["val"] == "88888720",
+                                "Owner 1's balance did not decrease!");
+            LOG_GENERAL(INFO, "Owner 1 balance = " << hodl["val"]);
+          }
+        }
+      }
+    }
+
+    Json::Value logs = trMakeOrder.GetJsonValue();
+    std::string id = logs["event_logs"][0]["params"][0]["value"].asString();
+    LOG_GENERAL(INFO, "New order ID = " << id);
+
+    Json::Value simpleDexState = dexAccount->GetStorageJson();
+    bool hasNewOrder = false;
+
+    for (auto& s : simpleDexState) {
+      if (s["vname"] == "orderbook") {
+        for (auto& ord : s["value"]) {
+          if (ord["key"] == id) {
+            hasNewOrder = true;
+            LOG_GENERAL(INFO, "New order = " << ord["val"]);
+          }
+        }
+      }
+    }
+
+    BOOST_CHECK_MESSAGE(hasNewOrder == true,
+                        "Did not receive a new order in simple-dex!");
 
     LOG_GENERAL(
         INFO, "Size of output = " << ScillaTestUtil::GetFileSize("output.json"))
