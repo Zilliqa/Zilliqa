@@ -109,7 +109,7 @@ void Lookup::InitSync() {
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
       ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      GetTxBlockFromLookupNodes(txBlockNum, 0);
+      GetTxBlockFromSeedNodes(txBlockNum, 0);
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
@@ -150,6 +150,12 @@ void Lookup::SetLookupNodes() {
         PubKey pubKey(pubkeyBytes, 0);
         if (pubKey == m_mediator.m_selfKey.second) {
           m_level = level;
+        }
+        if (find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                    [&pubKey](const pair<PubKey, Peer>& x) {
+                      return (pubKey == x.first);
+                    }) != m_lookupNodes.end()) {
+          continue;
         }
         m_lookupNodes.emplace_back(pubKey, lookup_node);
       }

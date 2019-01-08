@@ -1,6 +1,7 @@
 add_subdirectory (cmd)
 add_subdirectory (common)
 add_subdirectory (depends)
+add_subdirectory (diagnostic)
 add_subdirectory (libConsensus)
 add_subdirectory (libCrypto)
 add_subdirectory (libData)
@@ -19,4 +20,3 @@ add_subdirectory (libServer)
 add_subdirectory (libUtils)
 add_subdirectory (libValidator)
 add_subdirectory (libZilliqa)
-
