@@ -109,7 +109,7 @@ void Lookup::InitSync() {
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
       ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      GetTxBlockFromLookupNodes(txBlockNum, 0);
+      GetTxBlockFromSeedNodes(txBlockNum, 0);
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
