@@ -279,7 +279,6 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
                       "Block1 serialized != Block2 serialized!");
 
   TxBlockHeader header2 = block2.GetHeader();
-  uint8_t type2 = header2.GetType();
   uint32_t version2 = header2.GetVersion();
   uint128_t gasLimit2 = header2.GetGasLimit();
   uint128_t gasUsed2 = header2.GetGasUsed();
