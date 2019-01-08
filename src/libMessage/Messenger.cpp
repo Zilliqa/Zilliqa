@@ -3271,7 +3271,7 @@ bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
                                           const uint64_t epochNumber,
                                           const vector<MicroBlock>& microBlocks,
                                           const vector<bytes>& stateDeltas,
-                                          const pair<PrivKey, PubKey>& keys) {
+                                          const PairOfKey& keys) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
