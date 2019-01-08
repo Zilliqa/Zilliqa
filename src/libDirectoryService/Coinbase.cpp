@@ -312,7 +312,9 @@ void DirectoryService::InitCoinbase() {
     if (GUARD_MODE) {
       if (Guard::GetInstance().IsNodeInDSGuardList(ds.first) ||
           Guard::GetInstance().IsNodeInShardGuardList(ds.first)) {
-        LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
+        if (addr == myAddr) {
+          LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
+        }
         continue;
       }
     }
@@ -337,7 +339,6 @@ void DirectoryService::InitCoinbase() {
               std::get<SHARD_NODE_PUBKEY>(node)) ||
           Guard::GetInstance().IsNodeInShardGuardList(
               std::get<SHARD_NODE_PUBKEY>(node))) {
-        LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
         continue;
       }
       Address addr =
