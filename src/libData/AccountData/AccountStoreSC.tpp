@@ -777,6 +777,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     }
   }
 
+  LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tnow));
+
   for (const auto& e : _json["events"]) {
     LogEntry entry;
     if (!entry.Install(e, m_curContractAddr)) {
@@ -790,7 +792,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     LOG_GENERAL(INFO,
                 "null message in scilla output when invoking a "
                 "contract, transaction finished");
-    LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tnow));
     return true;
   }
 
