@@ -42,12 +42,12 @@ FallbackBlockHeader::FallbackBlockHeader(const bytes& src,
 }
 
 FallbackBlockHeader::FallbackBlockHeader(
-    const uint32_t version, const uint64_t& fallbackDSEpochNo,
-    const uint64_t& fallbackEpochNo, const unsigned char fallbackState,
-    const FallbackBlockHashSet& hashset, const uint16_t leaderConsensusId,
-    const Peer& leaderNetworkInfo, const PubKey& leaderPubKey,
-    const uint32_t shardId, const CommitteeHash& committeeHash,
-    const BlockHash& prevHash)
+    const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
+    const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
+    const uint16_t leaderConsensusId, const Peer& leaderNetworkInfo,
+    const PubKey& leaderPubKey, const uint32_t shardId,
+    const BlockHash& prevHash, const uint32_t version,
+    const CommitteeHash& committeeHash)
     : BlockHeaderBase(version, committeeHash),
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),

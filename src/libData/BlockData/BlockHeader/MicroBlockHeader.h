@@ -52,13 +52,14 @@ class MicroBlockHeader : public BlockHeaderBase {
   MicroBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with predefined member values.
-  MicroBlockHeader(const uint32_t version, const uint32_t shardId,
-                   const uint64_t& gasLimit, const uint64_t& gasUsed,
+  MicroBlockHeader(const uint32_t shardId, const uint64_t& gasLimit,
+                   const uint64_t& gasUsed,
                    const boost::multiprecision::uint128_t& rewards,
                    const BlockHash& prevHash, const uint64_t& epochNum,
                    const MicroBlockHashSet& hashset, const uint32_t numTxs,
                    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                   const CommitteeHash& committeeHash);
+                   const uint32_t version = 0,
+                   const CommitteeHash& committeeHash = CommitteeHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;

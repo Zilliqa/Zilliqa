@@ -436,14 +436,13 @@ bool DirectoryService::ComputeNewCandidateLeader(
     // To-do: Handle exceptions.
     m_pendingVCBlock.reset(new VCBlock(
         VCBlockHeader(
-            VCBLOCK_VERSION,
             m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
                 1,
             m_mediator.m_currentEpochNum, m_viewChangestate,
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
-            m_viewChangeCounter, m_cumulativeFaultyLeaders, committeeHash,
-            prevHash),
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, prevHash,
+            VCBLOCK_VERSION, committeeHash),
         CoSignatures()));
   }
 

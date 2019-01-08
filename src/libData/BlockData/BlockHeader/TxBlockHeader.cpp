@@ -39,13 +39,13 @@ TxBlockHeader::TxBlockHeader(const bytes& src, unsigned int offset) {
   }
 }
 
-TxBlockHeader::TxBlockHeader(uint32_t version, const uint64_t& gasLimit,
-                             const uint64_t& gasUsed, const uint128_t& rewards,
+TxBlockHeader::TxBlockHeader(const uint64_t& gasLimit, const uint64_t& gasUsed,
+                             const uint128_t& rewards,
                              const BlockHash& prevHash,
                              const uint64_t& blockNum,
                              const TxBlockHashSet& blockHashSet,
                              uint32_t numTxs, const PubKey& minerPubKey,
-                             const uint64_t& dsBlockNum,
+                             const uint64_t& dsBlockNum, uint32_t version,
                              const CommitteeHash& committeeHash)
     : BlockHeaderBase(version, committeeHash),
       m_gasLimit(gasLimit),

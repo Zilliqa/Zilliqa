@@ -39,11 +39,11 @@ VCBlockHeader::VCBlockHeader(const bytes& src, unsigned int offset) {
 }
 
 VCBlockHeader::VCBlockHeader(
-    const uint32_t version, const uint64_t& vieWChangeDSEpochNo,
-    const uint64_t& viewChangeEpochNo, const unsigned char viewChangeState,
-    const Peer& candidateLeaderNetworkInfo, const PubKey& candidateLeaderPubKey,
-    const uint32_t vcCounter, const vector<pair<PubKey, Peer>>& faultyLeaders,
-    const CommitteeHash& committeeHash, const BlockHash& prevHash)
+    const uint64_t& vieWChangeDSEpochNo, const uint64_t& viewChangeEpochNo,
+    const unsigned char viewChangeState, const Peer& candidateLeaderNetworkInfo,
+    const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
+    const vector<pair<PubKey, Peer>>& faultyLeaders, const BlockHash& prevHash,
+    const uint32_t version, const CommitteeHash& committeeHash)
     : BlockHeaderBase(version, committeeHash),
       m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
       m_VieWChangeEpochNo(viewChangeEpochNo),

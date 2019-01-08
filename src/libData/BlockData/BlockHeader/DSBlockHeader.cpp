@@ -40,15 +40,13 @@ DSBlockHeader::DSBlockHeader(const bytes& src, unsigned int offset) {
   }
 }
 
-DSBlockHeader::DSBlockHeader(const uint32_t version, const uint8_t dsDifficulty,
-                             const uint8_t difficulty,
-                             const BlockHash& prevHash,
-                             const PubKey& leaderPubKey,
-                             const uint64_t& blockNum, const uint64_t& epochNum,
-                             const uint128_t& gasPrice, const SWInfo& swInfo,
-                             const map<PubKey, Peer>& powDSWinners,
-                             const DSBlockHashSet& hashset,
-                             const CommitteeHash& committeeHash)
+DSBlockHeader::DSBlockHeader(
+    const uint8_t dsDifficulty, const uint8_t difficulty,
+    const BlockHash& prevHash, const PubKey& leaderPubKey,
+    const uint64_t& blockNum, const uint64_t& epochNum,
+    const uint128_t& gasPrice, const SWInfo& swInfo,
+    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hashset,
+    const uint32_t version, const CommitteeHash& committeeHash)
     : BlockHeaderBase(version, committeeHash),
       m_dsDifficulty(dsDifficulty),
       m_difficulty(difficulty),

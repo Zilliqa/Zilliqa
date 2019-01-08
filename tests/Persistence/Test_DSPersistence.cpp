@@ -65,9 +65,9 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
   }
 
   return DSBlock(
-      DSBlockHeader(DSBLOCK_VERSION, 50, 20, prevHash1, pubKey1.second,
-                    blocknum, 0, PRECISION_MIN_VALUE, SWInfo(), powDSWinners,
-                    DSBlockHashSet(), CommitteeHash()),
+      DSBlockHeader(50, 20, prevHash1, pubKey1.second, blocknum, 0,
+                    PRECISION_MIN_VALUE, SWInfo(), powDSWinners,
+                    DSBlockHashSet(), DSBLOCK_VERSION, CommitteeHash()),
       CoSignatures());
 }
 

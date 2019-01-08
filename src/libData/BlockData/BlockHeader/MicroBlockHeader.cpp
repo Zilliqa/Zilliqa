@@ -41,12 +41,11 @@ MicroBlockHeader::MicroBlockHeader(const bytes& src, unsigned int offset) {
 }
 
 MicroBlockHeader::MicroBlockHeader(
-    const uint32_t version, uint32_t shardId, const uint64_t& gasLimit,
-    const uint64_t& gasUsed, const uint128_t& rewards,
-    const BlockHash& prevHash, const uint64_t& epochNum,
-    const MicroBlockHashSet& hashset, uint32_t numTxs,
+    uint32_t shardId, const uint64_t& gasLimit, const uint64_t& gasUsed,
+    const uint128_t& rewards, const BlockHash& prevHash,
+    const uint64_t& epochNum, const MicroBlockHashSet& hashset, uint32_t numTxs,
     const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-    const CommitteeHash& committeeHash)
+    const uint32_t version, const CommitteeHash& committeeHash)
     : BlockHeaderBase(version, committeeHash),
       m_shardId(shardId),
       m_gasLimit(gasLimit),

@@ -55,15 +55,14 @@ class DSBlockHeader : public BlockHeaderBase {
   DSBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified DS block header parameters.
-  DSBlockHeader(const uint32_t version, const uint8_t dsDifficulty,
-                const uint8_t difficulty, const BlockHash& prevHash,
-                const PubKey& leaderPubKey, const uint64_t& blockNum,
-                const uint64_t& epochNum,
+  DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
+                const BlockHash& prevHash, const PubKey& leaderPubKey,
+                const uint64_t& blockNum, const uint64_t& epochNum,
                 const boost::multiprecision::uint128_t& gasPrice,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
-                const DSBlockHashSet& hashset,
-                const CommitteeHash& committeeHash);
+                const DSBlockHashSet& hashset, const uint32_t version = 0,
+                const CommitteeHash& committeeHash = CommitteeHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const override;

@@ -53,13 +53,13 @@ class TxBlockHeader : public BlockHeaderBase {
   TxBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified Tx block header parameters.
-  TxBlockHeader(const uint32_t version, const uint64_t& gasLimit,
-                const uint64_t& gasUsed,
+  TxBlockHeader(const uint64_t& gasLimit, const uint64_t& gasUsed,
                 const boost::multiprecision::uint128_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
                 const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                const CommitteeHash& committeeHash);
+                const uint32_t version = 0,
+                const CommitteeHash& committeeHash = CommitteeHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const override;

@@ -420,13 +420,12 @@ bool Node::ComposeFallbackBlock() {
   // To-do: Handle exceptions.
   m_pendingFallbackBlock.reset(new FallbackBlock(
       FallbackBlockHeader(
-          FALLBACKBLOCK_VERSION,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1,
           m_mediator.m_currentEpochNum, m_fallbackState,
           {AccountStore::GetInstance().GetStateRootHash()}, m_consensusLeaderID,
           leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
-          m_myshardId, committeeHash, prevHash),
+          m_myshardId, prevHash, FALLBACKBLOCK_VERSION, committeeHash),
       CoSignatures()));
 
   return true;

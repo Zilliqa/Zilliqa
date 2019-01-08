@@ -53,13 +53,14 @@ class VCBlockHeader : public BlockHeaderBase {
   VCBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified VC block header parameters.
-  VCBlockHeader(const uint32_t version, const uint64_t& vieWChangeDSEpochNo,
+  VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
                 const uint64_t& viewChangeEpochNo,
                 const unsigned char viewChangeState,
                 const Peer& candidateLeaderNetworkInfo,
                 const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
                 const std::vector<std::pair<PubKey, Peer>>& faultyLeaders,
-                const CommitteeHash& committeeHash, const BlockHash& prevHash);
+                const BlockHash& prevHash, const uint32_t version = 0,
+                const CommitteeHash& committeeHash = CommitteeHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;

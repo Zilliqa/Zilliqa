@@ -51,15 +51,15 @@ class FallbackBlockHeader : public BlockHeaderBase {
   FallbackBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified fallback block header parameters.
-  FallbackBlockHeader(const uint32_t version, const uint64_t& fallbackDSEpochNo,
+  FallbackBlockHeader(const uint64_t& fallbackDSEpochNo,
                       const uint64_t& fallbackEpochNo,
                       const unsigned char fallbackState,
                       const FallbackBlockHashSet& hashset,
                       const uint16_t leaderConsensusId,
                       const Peer& leaderNetworkInfo, const PubKey& leaderPubKey,
-                      const uint32_t shardId,
-                      const CommitteeHash& committeeHash,
-                      const BlockHash& prevHash);
+                      const uint32_t shardId, const BlockHash& prevHash,
+                      const uint32_t version = 0,
+                      const CommitteeHash& committeeHash = CommitteeHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;

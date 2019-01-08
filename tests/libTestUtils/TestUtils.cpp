@@ -99,9 +99,9 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
     powDSWinners.emplace(GenerateRandomPubKey(), GenerateRandomPeer());
   }
 
-  return DSBlockHeader(version, dsDifficulty, difficulty, prevHash,
-                       leaderPubKey, blockNum, epochNum, gasPrice, swInfo,
-                       powDSWinners, hash, committeeHash);
+  return DSBlockHeader(dsDifficulty, difficulty, prevHash, leaderPubKey,
+                       blockNum, epochNum, gasPrice, swInfo, powDSWinners, hash,
+                       version, committeeHash);
 }
 
 MicroBlockHeader GenerateRandomMicroBlockHeader() {
@@ -118,9 +118,9 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
   uint64_t dsBlockNum = DistUint32();
   CommitteeHash committeeHash;
 
-  return MicroBlockHeader(version, shardId, gasLimit, gasUsed, rewards,
-                          prevHash, epochNum, hashset, numTxs, minerPubKey,
-                          dsBlockNum, committeeHash);
+  return MicroBlockHeader(shardId, gasLimit, gasUsed, rewards, prevHash,
+                          epochNum, hashset, numTxs, minerPubKey, dsBlockNum,
+                          version, committeeHash);
 }
 
 TxBlockHeader GenerateRandomTxBlockHeader() {
@@ -137,8 +137,8 @@ TxBlockHeader GenerateRandomTxBlockHeader() {
   BlockHash dsBlockHeader;
   CommitteeHash committeeHash;
 
-  return TxBlockHeader(version, gasLimit, gasUsed, rewards, prevHash, blockNum,
-                       blockHashSet, numTxs, minerPubKey, dsBlockNum,
+  return TxBlockHeader(gasLimit, gasUsed, rewards, prevHash, blockNum,
+                       blockHashSet, numTxs, minerPubKey, dsBlockNum, version,
                        committeeHash);
 }
 
@@ -158,10 +158,10 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
     faultyLeaders.emplace_back(GenerateRandomPubKey(), GenerateRandomPeer());
   }
 
-  return VCBlockHeader(version, vieWChangeDSEpochNo, viewChangeEpochNo,
-                       viewChangeState, candidateLeaderNetworkInfo,
-                       candidateLeaderPubKey, vcCounter, faultyLeaders,
-                       committeeHash, prevHash);
+  return VCBlockHeader(vieWChangeDSEpochNo, viewChangeEpochNo, viewChangeState,
+                       candidateLeaderNetworkInfo, candidateLeaderPubKey,
+                       vcCounter, faultyLeaders, prevHash, version,
+                       committeeHash);
 }
 
 FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
@@ -177,10 +177,10 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
   CommitteeHash committeeHash;
   BlockHash prevHash;
 
-  return FallbackBlockHeader(version, fallbackDSEpochNo, fallbackEpochNo,
-                             fallbackState, hashset, leaderConsensusId,
-                             leaderNetworkInfo, leaderPubKey, shardId,
-                             committeeHash, prevHash);
+  return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
+                             hashset, leaderConsensusId, leaderNetworkInfo,
+                             leaderPubKey, shardId, prevHash, version,
+                             committeeHash);
 }
 
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
