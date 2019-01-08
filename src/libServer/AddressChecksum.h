@@ -44,10 +44,9 @@ class AddressChecksum {
 
     bytes tmpaddr;
     if (!DataConversion::HexStrToUint8Vec(lower_case_address, tmpaddr)) {
-      LOG_GENERAL(WARNING, "Failed to convert address");
+      LOG_GENERAL(WARNING, "DataConversion::HexStrToUint8Vec Failed");
       return "";
     }
-
     bytes hash_s = HashUtils::BytesToHash(tmpaddr);
 
     boost::multiprecision::uint256_t temp_1 = 1;
@@ -55,6 +54,7 @@ class AddressChecksum {
 
     std::string hash_str;
     if (!DataConversion::Uint8VecToHexStr(hash_s, hash_str)) {
+      LOG_GENERAL(WARNING, "DataConversion::Uint8VecToHexStr Failed");
       return "";
     }
 
