@@ -62,7 +62,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
   std::shared_ptr<LevelDB> m_diagnosticDB;
   /// used for historical data
-  std::shared_ptr<LevelDB> m_historicalDB;
+  std::shared_ptr<LevelDB> m_txnHistoricalDB;
+  std::shared_ptr<LevelDB> m_MBHistoricalDB;
 
   BlockStorage(const std::string& path = "", bool diagnostic = false)
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
@@ -155,6 +156,9 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
 
   bool GetTxnFromHistoricalDB(const dev::h256& key, TxBodySharedPtr& body);
+
+  bool GetHistoricalMicroBlock(const BlockHash& blockhash,
+                               MicroBlockSharedPtr& microblock);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);
