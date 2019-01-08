@@ -56,6 +56,15 @@ bool Node::FallbackValidator(const bytes& message, unsigned int offset,
     return false;
   }
 
+  if (m_pendingFallbackBlock->GetHeader().GetVersion() !=
+      FALLBACKBLOCK_VERSION) {
+    LOG_GENERAL(WARNING,
+                "Version check failed. Expected: "
+                    << FALLBACKBLOCK_VERSION << " Actual: "
+                    << m_pendingFallbackBlock->GetHeader().GetVersion());
+    return false;
+  }
+
   BlockHash temp_blockHash = m_pendingFallbackBlock->GetHeader().GetMyHash();
   if (temp_blockHash != m_pendingFallbackBlock->GetBlockHash()) {
     LOG_GENERAL(WARNING,
@@ -411,6 +420,7 @@ bool Node::ComposeFallbackBlock() {
   // To-do: Handle exceptions.
   m_pendingFallbackBlock.reset(new FallbackBlock(
       FallbackBlockHeader(
+          FALLBACKBLOCK_VERSION,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
               1,
           m_mediator.m_currentEpochNum, m_fallbackState,

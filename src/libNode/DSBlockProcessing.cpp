@@ -369,6 +369,13 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     return false;
   }
 
+  if (dsblock.GetHeader().GetVersion() != DSBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << DSBLOCK_VERSION << " Actual: "
+                             << dsblock.GetHeader().GetVersion());
+    return false;
+  }
+
   // Check timestamp (must be greater than timestamp of last Tx block header in
   // the Tx blockchain)
   if (m_mediator.m_txBlockChain.GetBlockCount() > 0) {

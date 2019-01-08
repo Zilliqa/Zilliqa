@@ -1673,40 +1673,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
   return true;
 }
 
-void LogTxBlock(const TxBlock& txBlock, const uint64_t& epochNum) {
-  LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetType(): " << txBlock.GetHeader().GetType());
-  LOG_EPOCH(
-      INFO, to_string(epochNum).c_str(),
-      "txBlock.GetHeader().GetVersion(): " << txBlock.GetHeader().GetVersion());
-  LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetGasLimit(): "
-                << txBlock.GetHeader().GetGasLimit());
-  LOG_EPOCH(
-      INFO, to_string(epochNum).c_str(),
-      "txBlock.GetHeader().GetGasUsed(): " << txBlock.GetHeader().GetGasUsed());
-  LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetBlockNum(): "
-                << txBlock.GetHeader().GetBlockNum());
-  LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetMicroBlockInfos().size(): "
-                << txBlock.GetMicroBlockInfos().size());
-  LOG_EPOCH(
-      INFO, to_string(epochNum).c_str(),
-      "txBlock.GetHeader().GetNumTxs(): " << txBlock.GetHeader().GetNumTxs());
-  LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetMinerPubKey(): "
-                << txBlock.GetHeader().GetMinerPubKey());
-  LOG_EPOCH(INFO, to_string(epochNum).c_str(),
-            "txBlock.GetHeader().GetStateRootHash(): "
-                << txBlock.GetHeader().GetStateRootHash());
-}
-
 void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   LOG_GENERAL(INFO, "[TxBlockVerif]"
                         << "Success");
   for (const auto& txBlock : txBlocks) {
-    LogTxBlock(txBlock, m_mediator.m_currentEpochNum);
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), txBlock);
 
     m_mediator.m_node->AddBlock(txBlock);
 
