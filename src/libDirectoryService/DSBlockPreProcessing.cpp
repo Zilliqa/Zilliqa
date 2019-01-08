@@ -457,24 +457,31 @@ bool DirectoryService::VerifyPoWOrdering(
           auto difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
                                 .GetHeader()
                                 .GetDifficulty();
+          string resultStr, mixHashStr;
+          if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
+            ret = false;
+            break;
+          }
+
+          if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
+            ret = false;
+            break;
+          }
+
           if (POW::GetInstance().PoWVerify(
                   m_pendingDSBlock->GetHeader().GetBlockNum(), difficulty,
-                  headerHash, powSoln.nonce,
-                  DataConversion::charArrToHexStr(powSoln.result),
-                  DataConversion::charArrToHexStr(powSoln.mixhash))) {
+                  headerHash, powSoln.nonce, resultStr, mixHashStr)) {
             result = powSoln.result;
           } else {
             LOG_GENERAL(WARNING,
                         "Failed to verify PoW solution from leader for node: "
                             << toFind);
             ret = false;
+            break;
           }
         } else {
           LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
           ret = false;
-        }
-
-        if (!ret) {
           break;
         }
       } else {
