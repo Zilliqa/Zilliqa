@@ -516,6 +516,10 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       for (auto ds_string : tempDsComm_string) {
         bytes pubkeyBytes;
         if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+          LOG_GENERAL(WARNING,
+                      "error loading "
+                          << ds_string
+                          << " using HexStrToUint8Vec(). Not a hex str");
           continue;
         }
         initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));

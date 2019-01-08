@@ -448,7 +448,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     for (auto& ds : *m_mediator.m_DSCommittee) {
       string pubKey;
       if (!DataConversion::SerializableToHexStr(ds.first, pubKey)) {
-        return false;
+        LOG_GENERAL(WARNING, "Error converting pubkey to string");
+        continue;
       }
 
       if (ipMapping.find(pubKey) != ipMapping.end()) {
@@ -618,7 +619,8 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
           string pubKey;
           if (!DataConversion::SerializableToHexStr(
                   get<SHARD_NODE_PUBKEY>(node), pubKey)) {
-            return false;
+            LOG_GENERAL(WARNING, "Error converting pubkey to string");
+            continue;
           }
 
           if (ipMapping.find(pubKey) != ipMapping.end()) {
