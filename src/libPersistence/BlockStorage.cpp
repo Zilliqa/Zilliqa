@@ -122,7 +122,7 @@ bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
                                           TxBodySharedPtr& body) {
   std::string bodyString;
 
-  bodyString = m_txBodyDB->Lookup(key);
+  bodyString = m_historicalDB->Lookup(key);
 
   if (bodyString.empty()) {
     return false;
