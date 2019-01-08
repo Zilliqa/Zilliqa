@@ -457,16 +457,16 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     return;
   }
 
-  AccountStore::GetInstance().Init();
-
-  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
-
-  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
-  AccountStore::GetInstance().AddAccount(ownerAddr, {bal, nonce});
-
   const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
 
   for (auto hodlers : numHodlers) {
+    AccountStore::GetInstance().Init();
+
+    const uint128_t bal{std::numeric_limits<uint128_t>::max()};
+
+    ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+    AccountStore::GetInstance().AddAccount(ownerAddr, {bal, nonce});
+
     contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
     LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr.hex());
 
@@ -506,7 +506,8 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     LOG_GENERAL(INFO, "Contract size = "
                           << ScillaTestUtil::GetFileSize("input.scilla"));
     LOG_GENERAL(INFO, "Gas used (deployment) = " << tr0.GetCumGas());
-    LOG_GENERAL(INFO, "UpdateAccounts (usec) = " << timeElapsedDeployment);
+    LOG_GENERAL(INFO, "UpdateAccounts (deployment) (micro) = "
+                          << timeElapsedDeployment);
     nonce++;
 
     // 2. Pre-generate and save a large map and save it to LDB
@@ -577,7 +578,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   // 1. Bootstrap test case
   const unsigned int numOperators = 5;
-  const unsigned int numHodlers[] = {50000, 75000, 100000, 125000, 150000};
+  const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
   std::string numTokensOwned = "1";
 
   KeyPair owner(priv1, {priv1});
@@ -789,8 +790,8 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
 BOOST_AUTO_TEST_CASE(testDEX) {
   // 1. Bootstrap test case
-  // const unsigned int numHodlers[] = {50000, 75000, 100000, 125000, 150000};
-  const unsigned int numHodlers[] = {10};
+  const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
+  const unsigned int numOrders = 1000;
   std::string numTokensOwned = "1";
 
   KeyPair ownerToken1(priv1, {priv1});
@@ -827,9 +828,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
   AccountStore::GetInstance().AddAccount(ownerDex.second, {bal, ownerDexNonce});
 
   for (auto hodlers : numHodlers) {
-    // contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
-    // LOG_GENERAL(INFO, "NonFungibleToken Address: " << contrAddr.hex());
-
+    LOG_GENERAL(INFO, "\n\n===START TEST ITERATION===\n\n");
     // Seller sells Token A for Token B. Buyer buys Token A with Token B.
     // Execute makeOrder with Seller's private key
     // Execute fillOrder with Buyer's private key
@@ -842,6 +841,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
       return;
     }
 
+    ScillaTestUtil::RemoveThisAddressFromInit(fungibleTokenT5.init);
     ScillaTestUtil::RemoveCreationBlockFromInit(fungibleTokenT5.init);
     uint64_t bnum =
         ScillaTestUtil::GetBlockNumberFromJson(fungibleTokenT5.blockchain);
@@ -938,6 +938,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     }
 
     // remove _creation_block (automatic insertion later).
+    ScillaTestUtil::RemoveThisAddressFromInit(dexT1.init);
     ScillaTestUtil::RemoveCreationBlockFromInit(dexT1.init);
     for (auto& p : dexT1.init) {
       if (p["vname"].asString() == "contractOwner") {
@@ -955,12 +956,77 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                             PRECISION_MIN_VALUE, 500000, dexT1.code,
                             deployDexData);
     TransactionReceipt trDeployDex;
+    auto startTimeDeployment = r_timer_start();
     AccountStore::GetInstance().UpdateAccounts(dexBnum, 1, true, txDeployDex,
                                                trDeployDex);
+    auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     Account* dexAccount = AccountStore::GetInstance().GetAccount(dexAddr);
-    ownerDexNonce++;
     BOOST_CHECK_MESSAGE(dexAccount != nullptr,
                         "Error with creation of dex account");
+    LOG_GENERAL(INFO, "\n\n=== Deployed DEX ===\n\n");
+    LOG_GENERAL(INFO, "Contract size = "
+                          << ScillaTestUtil::GetFileSize("input.scilla"));
+    LOG_GENERAL(INFO, "Gas used (deployment) = " << trDeployDex.GetCumGas());
+    LOG_GENERAL(INFO, "UpdateAccounts (deployment) (micro) = "
+                          << timeElapsedDeployment);
+    ownerDexNonce++;
+
+    // Artificially populate the order book
+    Json::Value orderBook;
+    Json::Value orderInfo;
+    for (unsigned int i = 0; i < numOrders; i++) {
+      Json::Value info;
+
+      std::vector<unsigned char> sender(ACC_ADDR_SIZE);
+      RAND_bytes(sender.data(), ACC_ADDR_SIZE);
+
+      std::vector<unsigned char> orderId(COMMON_HASH_SIZE);
+      RAND_bytes(orderId.data(), COMMON_HASH_SIZE);
+      std::string orderIdHex = "0x" + DataConversion::Uint8VecToHexStr(orderId);
+
+      info["key"] = orderIdHex;
+      info["val"]["constructor"] = "Pair";
+      info["val"]["argtypes"][0] = "ByStr20";
+      info["val"]["argtypes"][1] = "BNum";
+      info["val"]["arguments"][0] =
+          "0x" + DataConversion::Uint8VecToHexStr(sender);
+      info["val"]["arguments"][1] = "168";
+      orderInfo[i] = info;
+
+      // Token1
+      Json::Value sell;
+      sell["constructor"] = "Pair";
+      sell["argtypes"][0] = "ByStr20";
+      sell["argtypes"][1] = "Uint128";
+      sell["arguments"][0] = "0x" + token1Addr.hex();
+      sell["arguments"][1] = "1";
+
+      // Token 2
+      Json::Value buy;
+      buy["constructor"] = "Pair";
+      buy["argtypes"][0] = "ByStr20";
+      buy["argtypes"][1] = "Uint128";
+      buy["arguments"][0] = "0x" + token2Addr.hex();
+      buy["arguments"][1] = "1";
+
+      Json::Value order;
+      order["key"] = orderIdHex;
+      order["val"]["constructor"] = "Pair";
+      order["val"]["argtypes"][0] = "Pair (ByStr20) (Uint128)";
+      order["val"]["argtypes"][1] = "Pair (ByStr20) (Uint128)";
+      order["val"]["arguments"][0] = sell;
+      order["val"]["arguments"][1] = buy;
+
+      orderBook[i] = order;
+    }
+
+    // Update the state directly.
+    dexAccount->SetStorage("orderbook",
+                           "Map (ByStr32) (Pair (Pair (ByStr20) (Uint128)) "
+                           "(Pair (ByStr20) (Uint128)))",
+                           JSONUtils::convertJsontoStr(orderBook));
+    dexAccount->SetStorage("orderInfo", "Map (ByStr32) (Pair (ByStr20) (BNum))",
+                           JSONUtils::convertJsontoStr(orderInfo));
 
     // Approve DEX on Token A and Token B respectively
     Json::Value dataApprove = fungibleTokenT5.message;
@@ -1041,31 +1107,21 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                             dataMakeOrderBytes);
     TransactionReceipt trMakeOrder;
 
+    LOG_GENERAL(INFO, "\n\n=== EXECUTING makeOrder ===\n\n");
+    auto startMakeOrder = r_timer_start();
     AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txMakeOrder,
                                                trMakeOrder);
+    auto timeMakeOrder = r_timer_end(startMakeOrder);
     ownerToken1Nonce++;
 
-    // Execute fillOrder as ownerToken2
-    // Json::Value dataFillOrder = dexT1.message;
-    // Json::Value dataFillOrderParams;
-
-    // dataMakeOrder["_tag"] = "fillOrder";
-
-    // dataMakeOrderParams[0]["vname"] = "orderId";
-    // dataMakeOrderParams[0]["type"] = "ByStr32";
-    // dataMakeOrderParams[0]["value"] = "0x" + token1Addr.hex();
-
-    // bytes dataMakeOrderBytes;
-    // uint64_t amount = ScillaTestUtil::PrepareMessageData(dataMakeOrder,
-    // dataMakeOrderBytes);
-
-    // Transaction txMakeOrder(1, ownerToken1Nonce, dexAddr, ownerToken1,
-    // amount, PRECISION_MIN_VALUE,
-    //                 88888888, {}, dataMakeOrderBytes);
-    // TransactionReceipt trMakeOrder;
-
-    // AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, txMakeOrder,
-    // trMakeOrder); ownerToken1Nonce++;
+    LOG_GENERAL(
+        INFO, "Size of output = " << ScillaTestUtil::GetFileSize("output.json"))
+    LOG_GENERAL(INFO, "Size of map (Token A) = " << hodlers);
+    LOG_GENERAL(INFO, "Size of map (Token B) = " << hodlers);
+    LOG_GENERAL(INFO, "Receipt makeOrder = " << trMakeOrder.GetString());
+    LOG_GENERAL(INFO, "Gas used (makeOrder) = " << trMakeOrder.GetCumGas());
+    LOG_GENERAL(INFO, "Time elapsed (updateAccount) = " << timeMakeOrder);
+    LOG_GENERAL(INFO, "\n\n=== END TEST ITERATION ===\n\n");
   }
 }
 
