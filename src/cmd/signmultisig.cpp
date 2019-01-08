@@ -51,8 +51,6 @@ int main(int argc, const char* argv[]) {
     try {
       po::store(po::parse_command_line(argc, argv, desc), vm);
 
-      /** --help option
-       */
       if (vm.count("help")) {
         SWInfo::LogBrandBugReport();
         cout << desc << endl;

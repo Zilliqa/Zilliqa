@@ -1,16 +1,16 @@
 /**
-* Copyright (c) 2018 Zilliqa 
-* This source code is being disclosed to you solely for the purpose of your participation in 
-* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to 
-* the protocols and algorithms that are programmed into, and intended by, the code. You may 
-* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd., 
-* including modifying or publishing the code (or any part of it), and developing or forming 
-* another public or private blockchain network. This source code is provided ‘as is’ and no 
-* warranties are given as to title or non-infringement, merchantability or fitness for purpose 
-* and, to the extent permitted by law, all liability for your use of the code is disclaimed. 
-* Some programs in this code are governed by the GNU General Public License v3.0 (available at 
-* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by 
-* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends 
+* Copyright (c) 2018 Zilliqa
+* This source code is being disclosed to you solely for the purpose of your participation in
+* testing Zilliqa. You may view, compile and run the code for that purpose and pursuant to
+* the protocols and algorithms that are programmed into, and intended by, the code. You may
+* not do anything else with the code without express permission from Zilliqa Research Pte. Ltd.,
+* including modifying or publishing the code (or any part of it), and developing or forming
+* another public or private blockchain network. This source code is provided ‘as is’ and no
+* warranties are given as to title or non-infringement, merchantability or fitness for purpose
+* and, to the extent permitted by law, all liability for your use of the code is disclaimed.
+* Some programs in this code are governed by the GNU General Public License v3.0 (available at
+* https://www.gnu.org/licenses/gpl-3.0.en.html) (‘GPLv3’). The programs that are governed by
+* GPLv3.0 are those programs that are located in the folders src/depends and tests/depends
 * and which include a reference to GPLv3 in their program files.
 **/
 
@@ -70,15 +70,10 @@ LevelDB::LevelDB(const string& dbName, const string& path, const string& subdire
     m_db.reset(db);
 }
 
-LevelDB::LevelDB(const string & dbName, const string & subdirectory)
+LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bool diagnostic)
 {
     this->m_subdirectory = subdirectory;
     this->m_dbName = dbName;
-    
-    if (!(boost::filesystem::exists("./" + PERSISTENCE_PATH)))
-    {
-        boost::filesystem::create_directories("./" + PERSISTENCE_PATH);
-    }
 
     leveldb::Options options;
     options.max_open_files = 256;
@@ -87,21 +82,17 @@ LevelDB::LevelDB(const string & dbName, const string & subdirectory)
     leveldb::DB* db;
     leveldb::Status status;
 
-    if(m_subdirectory.empty())
+    // Diagnostic tool provides the option to pass the persistance db_path
+    // that might not be the current directory (case when 'diagnostic' is true).
+    // Its default value is false, and the non-diagnostic path is preserved
+    // from the original code.
+    string db_path = diagnostic ? (m_subdirectory + PERSISTENCE_PATH) : ("./" + PERSISTENCE_PATH + (m_subdirectory.empty() ? "" : "/" + m_subdirectory));
+    if (!boost::filesystem::exists(db_path))
     {
-        status = leveldb::DB::Open(options, "./" + PERSISTENCE_PATH + "/" + this->m_dbName, &db);
-    }
-    else
-    {
-        if (!(boost::filesystem::exists("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory)))
-        {
-            boost::filesystem::create_directories("./" + PERSISTENCE_PATH + "/" + this->m_subdirectory);
-        }
-        status = leveldb::DB::Open(options, 
-            "./" + PERSISTENCE_PATH + "/" + this->m_subdirectory + "/" + this->m_dbName,
-            &db);
+        boost::filesystem::create_directories(db_path);
     }
 
+    status = leveldb::DB::Open(options, db_path + "/" + this->m_dbName, &db);
     if(!status.ok())
     {
         // throw exception();
@@ -119,7 +110,7 @@ leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
     return (leveldb::Slice)h.ref();
 }
 
-string LevelDB::GetDBName() 
+string LevelDB::GetDBName()
 {
         if (LOOKUP_NODE_MODE)
         {
@@ -127,7 +118,7 @@ string LevelDB::GetDBName()
         }
         else
         {
-            return m_dbName + (m_subdirectory.size() > 0 ? "/" : "") + m_subdirectory; 
+            return m_dbName + (m_subdirectory.size() > 0 ? "/" : "") + m_subdirectory;
         }
 }
 
@@ -140,7 +131,7 @@ string LevelDB::Lookup(const std::string & key) const
         // TODO
         return "";
     }
-    
+
     return value;
 }
 
@@ -154,7 +145,7 @@ string LevelDB::Lookup(const boost::multiprecision::uint256_t & blockNum) const
         // TODO
         return "";
     }
-    
+
     return value;
 }
 
@@ -167,21 +158,21 @@ string LevelDB::Lookup(const dev::h256 & key) const
         // TODO
         return "";
     }
-    
+
     return value;
 }
 
 string LevelDB::Lookup(const dev::bytesConstRef & key) const
 {
     string value;
-    leveldb::Status s = m_db->Get(leveldb::ReadOptions(), ldb::Slice((char const*)key.data(), 32), 
+    leveldb::Status s = m_db->Get(leveldb::ReadOptions(), ldb::Slice((char const*)key.data(), 32),
                                   &value);
     if (!s.ok())
     {
         // TODO
         return "";
     }
-    
+
     return value;
 }
 
@@ -195,34 +186,34 @@ int LevelDB::Insert(const dev::h256 & key, dev::bytesConstRef value)
     return Insert(key, value.toString());
 }
 
-int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum, 
+int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum,
                     const vector<unsigned char> & body)
 {
-    leveldb::Status s = m_db->Put(leveldb::WriteOptions(), 
-                                  leveldb::Slice(blockNum.convert_to<string>()), 
-                                  leveldb::Slice(vector_ref<const unsigned char>(&body[0], 
+    leveldb::Status s = m_db->Put(leveldb::WriteOptions(),
+                                  leveldb::Slice(blockNum.convert_to<string>()),
+                                  leveldb::Slice(vector_ref<const unsigned char>(&body[0],
                                                                                  body.size())));
 
     if (!s.ok())
     {
         return -1;
     }
-    
+
     return 0;
 }
 
-int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum, 
+int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum,
                     const std::string & body)
 {
-    leveldb::Status s = m_db->Put(leveldb::WriteOptions(), 
-                                  leveldb::Slice(blockNum.convert_to<string>()), 
+    leveldb::Status s = m_db->Put(leveldb::WriteOptions(),
+                                  leveldb::Slice(blockNum.convert_to<string>()),
                                   leveldb::Slice(body.c_str(), body.size()));
 
     if (!s.ok())
     {
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -238,33 +229,33 @@ int LevelDB::Insert(const leveldb::Slice & key, dev::bytesConstRef value)
     {
         return -1;
     }
-    
+
     return 0;
 }
 
 int LevelDB::Insert(const dev::h256 & key, const string & value)
 {
-    leveldb::Status s = m_db->Put(leveldb::WriteOptions(), 
-                                  ldb::Slice((char const*)key.data(), key.size), 
+    leveldb::Status s = m_db->Put(leveldb::WriteOptions(),
+                                  ldb::Slice((char const*)key.data(), key.size),
                                   ldb::Slice(value.data(), value.size()));
     if (!s.ok())
     {
         return -1;
     }
-    
+
     return 0;
 }
 
 int LevelDB::Insert(const dev::h256 & key, const vector<unsigned char> & body)
 {
-    leveldb::Status s = m_db->Put(leveldb::WriteOptions(), leveldb::Slice(key.hex()), 
-                                  leveldb::Slice(vector_ref<const unsigned char>(&body[0], 
+    leveldb::Status s = m_db->Put(leveldb::WriteOptions(), leveldb::Slice(key.hex()),
+                                  leveldb::Slice(vector_ref<const unsigned char>(&body[0],
                                                                                  body.size())));
     if (!s.ok())
     {
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -275,8 +266,8 @@ int LevelDB::Insert(const leveldb::Slice & key, const leveldb::Slice & value)
     {
         return -1;
     }
-    
-    return 0;    
+
+    return 0;
 }
 
 int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
@@ -288,11 +279,11 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         if (i.second.second)
         {
-            batch.Put(leveldb::Slice(i.first.hex()), 
+            batch.Put(leveldb::Slice(i.first.hex()),
                       leveldb::Slice(i.second.first.data(), i.second.first.size()));
         }
     }
-    
+
     for (const auto & i: m_aux)
     {
         if (i.second.second)
@@ -309,7 +300,7 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     {
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -391,7 +382,7 @@ bool LevelDB::ResetDB()
 int LevelDB::DeleteDBForNormalNode()
 {
     m_db.reset();
-    leveldb::Status s = leveldb::DestroyDB("./" + PERSISTENCE_PATH + 
+    leveldb::Status s = leveldb::DestroyDB("./" + PERSISTENCE_PATH +
         (this->m_subdirectory.size() ? "/" + this->m_subdirectory : "") + "/" + this->m_dbName,
         leveldb::Options());
     if (!s.ok())
@@ -441,7 +432,7 @@ bool LevelDB::ResetDBForNormalNode()
 int LevelDB::DeleteDBForLookupNode()
 {
     m_db.reset();
-    leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options()); 
+    leveldb::Status s = leveldb::DestroyDB(this->m_dbName, leveldb::Options());
     if (!s.ok())
     {
         LOG_GENERAL(INFO, "[DeleteDB] Status: " << s.ToString());

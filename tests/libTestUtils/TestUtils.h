@@ -54,7 +54,7 @@ boost::multiprecision::uint256_t DistUint256();
 
 PubKey GenerateRandomPubKey();
 PubKey GenerateRandomPubKey(PrivKey);
-KeyPair GenerateRandomKeyPair();
+PairOfKey GenerateRandomKeyPair();
 Peer GenerateRandomPeer();
 Peer GenerateRandomPeer(uint8_t, bool);
 DSBlockHeader GenerateRandomDSBlockHeader();

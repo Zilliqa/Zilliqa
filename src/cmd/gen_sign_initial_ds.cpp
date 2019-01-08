@@ -75,8 +75,6 @@ int main(int argc, char** argv) {
     try {
       po::store(po::parse_command_line(argc, argv, desc), vm);
 
-      /** --help option
-       */
       if (vm.count("help")) {
         SWInfo::LogBrandBugReport();
         cout << desc << endl;
@@ -93,8 +91,6 @@ int main(int argc, char** argv) {
       cerr << "ERROR: " << e.what() << endl << endl;
       return ERROR_IN_COMMAND_LINE;
     }
-
-    //--------------------------
     try {
       bytes key_v;
       fstream privFile(privk_fn, ios::in);

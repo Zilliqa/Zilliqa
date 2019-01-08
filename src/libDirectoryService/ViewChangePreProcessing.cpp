@@ -154,24 +154,21 @@ bool DirectoryService::ViewChangeValidator(
     LOG_GENERAL(WARNING, "View of faulty leader do not match");
     LOG_GENERAL(WARNING, "Local view of faulty leader");
     for (const auto& localFaultyLeader : cumlativeFaultyLeaders) {
-      LOG_GENERAL(WARNING, "Pubkey: " << DataConversion::SerializableToHexStr(
-                                             localFaultyLeader.first)
-                                      << " " << localFaultyLeader.second);
+      LOG_GENERAL(WARNING, "Pubkey: " << localFaultyLeader.first << " "
+                                      << localFaultyLeader.second);
     }
     LOG_GENERAL(WARNING, "Proposed view of faulty leader");
     for (const auto& proposedFaultyLeader :
          m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-      LOG_GENERAL(WARNING, "Pubkey: " << DataConversion::SerializableToHexStr(
-                                             proposedFaultyLeader.first)
-                                      << " " << proposedFaultyLeader.second);
+      LOG_GENERAL(WARNING, "Pubkey: " << proposedFaultyLeader.first << " "
+                                      << proposedFaultyLeader.second);
     }
     return false;
   }
 
   LOG_GENERAL(INFO, "candidate leader is at index " << candidateLeaderIndex);
   for (auto& i : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(
-        INFO, i.second << " " << DataConversion::SerializableToHexStr(i.first));
+    LOG_GENERAL(INFO, i.second << " " << i.first);
   }
 
   if (!(m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
@@ -179,11 +176,9 @@ bool DirectoryService::ViewChangeValidator(
     LOG_GENERAL(
         WARNING,
         "Candidate pubkey mismatched. Expected: "
-            << DataConversion::SerializableToHexStr(
-                   m_mediator.m_DSCommittee->at(candidateLeaderIndex).first)
+            << m_mediator.m_DSCommittee->at(candidateLeaderIndex).first
             << " Obtained: "
-            << DataConversion::SerializableToHexStr(
-                   m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()));
+            << m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey());
     return false;
   }
 
@@ -406,13 +401,11 @@ bool DirectoryService::ComputeNewCandidateLeader(
         m_mediator.m_DSCommittee->at(candidateLeaderIndex).second;
   }
 
-  LOG_GENERAL(
-      INFO,
-      "Composing new vc block with vc count at "
-          << m_viewChangeCounter << " and candidate leader is at index "
-          << candidateLeaderIndex << ". " << newLeaderNetworkInfo << " "
-          << DataConversion::SerializableToHexStr(
-                 m_mediator.m_DSCommittee->at(candidateLeaderIndex).first));
+  LOG_GENERAL(INFO,
+              "Composing new vc block with vc count at "
+                  << m_viewChangeCounter << " and candidate leader is at index "
+                  << candidateLeaderIndex << ". " << newLeaderNetworkInfo << " "
+                  << m_mediator.m_DSCommittee->at(candidateLeaderIndex).first);
 
   // Compute the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;

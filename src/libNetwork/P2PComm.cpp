@@ -319,12 +319,14 @@ void SendJobPeers<T>::DoSend() {
   }
   random_shuffle(indexes.begin(), indexes.end());
 
+  string hashStr;
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left
-                   << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
-                   << "] BEGN");
+    if (!DataConversion::Uint8VecToHexStr(m_hash, hashStr)) {
+      return;
+    }
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left
+                         << m_selfPeer.GetPrintableIPAddress() << "]["
+                         << hashStr.substr(0, 6) << "] BEGN");
   }
 
   for (vector<unsigned int>::const_iterator curr = indexes.begin();
@@ -343,11 +345,9 @@ void SendJobPeers<T>::DoSend() {
   }
 
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left
-                   << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
-                   << "] DONE");
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left
+                         << m_selfPeer.GetPrintableIPAddress() << "]["
+                         << hashStr.substr(0, 6) << "] DONE");
   }
 }
 
@@ -418,10 +418,13 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
 
   p2p.ClearBroadcastHashAsync(msg_hash);
 
-  LOG_STATE(
-      "[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
-                 << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
-                 << "] RECV");
+  string msgHashStr;
+  if (!DataConversion::Uint8VecToHexStr(msg_hash, msgHashStr)) {
+    return;
+  }
+
+  LOG_STATE("[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
+                       << msgHashStr.substr(0, 6) << "] RECV");
 
   // Move the shared_ptr message to raw pointer type
   pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(
@@ -926,9 +929,7 @@ void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
 
-void P2PComm::SetSelfKey(const std::pair<PrivKey, PubKey>& self) {
-  m_selfKey = self;
-}
+void P2PComm::SetSelfKey(const PairOfKey& self) { m_selfKey = self; }
 
 void P2PComm::InitializeRumorManager(
     const std::vector<std::pair<PubKey, Peer>>& peers,
@@ -965,8 +966,8 @@ bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                                               toverify, pubKey);
 
   if (!result) {
-    LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: 0x"
-                          << DataConversion::SerializableToHexStr(pubKey));
+    LOG_GENERAL(INFO,
+                "Failed to verify message from peer with pubkey: " << pubKey);
   }
   return result;
 }

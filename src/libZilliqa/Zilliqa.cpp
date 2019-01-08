@@ -36,8 +36,7 @@
 using namespace std;
 using namespace jsonrpc;
 
-void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
-                              const Peer& peer) {
+void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
   bytes tmp1;
   bytes tmp2;
 
@@ -129,8 +128,8 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
   delete message;
 }
 
-Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                 bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
+Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
+                 unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig),
       m_mediator(key, peer),
       m_ds(m_mediator),

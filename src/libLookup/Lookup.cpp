@@ -109,7 +109,7 @@ void Lookup::InitSync() {
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
       ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      GetTxBlockFromLookupNodes(txBlockNum, 0);
+      GetTxBlockFromSeedNodes(txBlockNum, 0);
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
@@ -142,11 +142,20 @@ void Lookup::SetLookupNodes() {
         inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
         Peer lookup_node((uint128_t)ip_addr.s_addr,
                          v.second.get<uint32_t>("port"));
-        PubKey pubKey(DataConversion::HexStrToUint8Vec(
-                          v.second.get<std::string>("pubkey")),
-                      0);
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(
+                v.second.get<std::string>("pubkey"), pubkeyBytes)) {
+          continue;
+        }
+        PubKey pubKey(pubkeyBytes, 0);
         if (pubKey == m_mediator.m_selfKey.second) {
           m_level = level;
+        }
+        if (find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                    [&pubKey](const pair<PubKey, Peer>& x) {
+                      return (pubKey == x.first);
+                    }) != m_lookupNodes.end()) {
+          continue;
         }
         m_lookupNodes.emplace_back(pubKey, lookup_node);
       }
@@ -178,9 +187,13 @@ void Lookup::SetAboveLayer() {
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
-      PubKey pubKey(
-          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
-          0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey"),
+                                            pubkeyBytes)) {
+        continue;
+      }
+
+      PubKey pubKey(pubkeyBytes, 0);
       m_seedNodes.emplace_back(pubKey, lookup_node);
     }
   }
@@ -245,7 +258,11 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
   for (auto& addrStr : GENESIS_WALLETS) {
-    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
+    bytes tempAddrBytes;
+    if (!DataConversion::HexStrToUint8Vec(addrStr, tempAddrBytes)) {
+      continue;
+    }
+    Address addr{tempAddrBytes};
 
     txns.clear();
 
@@ -304,7 +321,11 @@ bool Lookup::GenTxnToSend(size_t num_txn,
   }
 
   for (auto& addrStr : GENESIS_WALLETS) {
-    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
+    bytes addrBytes;
+    if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)) {
+      continue;
+    }
+    Address addr{addrBytes};
 
     auto txnShard = Transaction::GetShardIndex(addr, numShards);
     txns.clear();
@@ -619,9 +640,13 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr) {
   bytes getTxBodyMessage = {MessageType::LOOKUP,
                             LookupInstructionType::GETTXBODYFROMSEED};
 
+  bytes txHashBytes;
+  if (!DataConversion::HexStrToUint8Vec(txHashStr, txHashBytes)) {
+    return false;
+  }
+
   if (!Messenger::SetLookupGetTxBodyFromSeed(
-          getTxBodyMessage, MessageOffset::BODY,
-          DataConversion::HexStrToUint8Vec(txHashStr),
+          getTxBodyMessage, MessageOffset::BODY, txHashBytes,
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetLookupGetTxBodyFromSeed failed.");
@@ -652,8 +677,12 @@ bool Lookup::SetDSCommitteInfo() {
 
   for (ptree::value_type const& v : pt.get_child("nodes")) {
     if (v.first == "peer") {
-      PubKey key(DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
-                 0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"),
+                                            pubkeyBytes)) {
+        continue;
+      }
+      PubKey key(pubkeyBytes, 0);
 
       struct in_addr ip_addr;
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
@@ -3456,8 +3485,13 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!(archPubkey ==
-        PubKey(DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY), 0))) {
+  bytes verifierPubkeyBytes;
+  if (!DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY, verifierPubkeyBytes)) {
+    LOG_GENERAL(WARNING, "VERIFIER_PUBKEY is not a hex str");
+    return false;
+  }
+
+  if (!(archPubkey == PubKey(verifierPubkeyBytes, 0))) {
     LOG_GENERAL(WARNING, "PubKey not of verifier");
     return false;
   }

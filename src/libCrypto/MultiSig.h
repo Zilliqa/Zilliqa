@@ -150,7 +150,11 @@ struct CommitPointHash : public Serializable {
 
   /// Utility std::string conversion function for signature info.
   explicit operator std::string() const {
-    return "0x" + DataConversion::SerializableToHexStr(*this);
+    std::string temp;
+    if (!DataConversion::SerializableToHexStr(*this, temp)) {
+      return "";
+    }
+    return "0x" + temp;
   }
 };
 
@@ -297,8 +301,7 @@ class MultiSig {
 
   /// Wrapper function for signing PoW message (including public key) for
   /// Proof-of-Possession (PoP) phase
-  static bool SignKey(const bytes& messageWithPubKey,
-                      const std::pair<PrivKey, PubKey>& keyPair,
+  static bool SignKey(const bytes& messageWithPubKey, const PairOfKey& keyPair,
                       Signature& signature);
 
   /// Wrapper function for verifying PoW message (including public key) for

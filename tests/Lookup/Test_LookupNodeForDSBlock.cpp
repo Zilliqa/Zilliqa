@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
     prevHash1.asArray().at(i) = i + 1;
   }
 
-  std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
   std::map<PubKey, Peer> powDSWinners;
   DSBlock dsblock(
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
 
 //     // std::array<unsigned char, TRAN_HASH_SIZE> emptyHash = {0};
 
-//     std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+//     PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
 //     TxBlockHeader header(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1, 1,
 //     BlockHash(), 0,

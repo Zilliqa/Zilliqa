@@ -262,8 +262,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
 
   // Log all values
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Winner Public_key             = 0x"
-                << DataConversion::SerializableToHexStr(submitterPubKey));
+            "Winner Public_key             = " << submitterPubKey);
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Winner Peer ip addr           = " << submitterPeer);
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -335,20 +334,23 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
 
-      PoWSolution soln(nonce, DataConversion::HexStrToStdArray(resultingHash),
-                       DataConversion::HexStrToStdArray(mixHash), lookupId,
-                       gasPrice);
+      array<uint8_t, 32> resultingHashArr, mixHashArr;
+      DataConversion::HexStrToStdArray(resultingHash, resultingHashArr);
+      DataConversion::HexStrToStdArray(mixHash, mixHashArr);
+      PoWSolution soln(nonce, resultingHashArr, mixHashArr, lookupId, gasPrice);
 
       m_allPoWConns.emplace(submitterPubKey, submitterPeer);
       if (m_allPoWs.find(submitterPubKey) == m_allPoWs.end()) {
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result > soln.result) {
-        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "Harder PoW result: "
-                      << DataConversion::charArrToHexStr(soln.result)
-                      << " overwrite the old PoW: "
-                      << DataConversion::charArrToHexStr(
-                             m_allPoWs[submitterPubKey].result));
+        string harderSolnStr, oldSolnStr;
+        DataConversion::charArrToHexStr(soln.result, harderSolnStr);
+        DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
+                                        oldSolnStr);
+        LOG_EPOCH(
+            INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Harder PoW result: " << harderSolnStr
+                                  << " overwrite the old PoW: " << oldSolnStr);
         m_allPoWs[submitterPubKey] = soln;
       } else if (m_allPoWs[submitterPubKey].result == soln.result) {
         LOG_GENERAL(INFO,
@@ -371,14 +373,16 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
       UpdatePoWSubmissionCounterforNode(submitterPubKey);
     }
   } else {
+    string rand1Str, rand2Str;
+    DataConversion::charArrToHexStr(rand1, rand1Str);
+    DataConversion::charArrToHexStr(rand2, rand2Str);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Invalid PoW submission"
                   << "\n"
                   << "blockNum: " << blockNumber
                   << " Difficulty: " << to_string(difficultyLevel)
                   << " nonce: " << nonce << " ip: " << submitterPeer
-                  << " rand1: " << DataConversion::charArrToHexStr(rand1)
-                  << " rand2: " << DataConversion::charArrToHexStr(rand2));
+                  << " rand1: " << rand1Str << " rand2: " << rand2Str);
   }
 
   return result;
