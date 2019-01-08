@@ -310,8 +310,7 @@ void DirectoryService::InitCoinbase() {
   for (const auto& ds : *m_mediator.m_DSCommittee) {
     Address addr = Account::GetAddressFromPublicKey(ds.first);
     if (GUARD_MODE) {
-      if (Guard::GetInstance().IsNodeInDSGuardList(ds.first) ||
-          Guard::GetInstance().IsNodeInShardGuardList(ds.first)) {
+      if (Guard::GetInstance().IsNodeInDSGuardList(ds.first)) {
         if (addr == myAddr) {
           LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
         }
@@ -335,9 +334,7 @@ void DirectoryService::InitCoinbase() {
   // shard nodes
   for (const auto& shard : m_shards) {
     for (const auto& node : shard) {
-      if (Guard::GetInstance().IsNodeInDSGuardList(
-              std::get<SHARD_NODE_PUBKEY>(node)) ||
-          Guard::GetInstance().IsNodeInShardGuardList(
+      if (Guard::GetInstance().IsNodeInShardGuardList(
               std::get<SHARD_NODE_PUBKEY>(node))) {
         continue;
       }
@@ -411,17 +408,28 @@ void DirectoryService::InitCoinbase() {
   uint16_t shardIndex =
       lastBlockHash % m_coinbaseRewardees[m_mediator.m_currentEpochNum].size();
   uint16_t count = 0;
+  bool breakLoop = false;
   for (const auto& shard : m_coinbaseRewardees[m_mediator.m_currentEpochNum]) {
     if (count == shardIndex) {
       uint16_t rdm_index = lastBlockHash % shard.second.size();
+      uint16_t rdm_index_copy = rdm_index;
       if (GUARD_MODE) {
         while (Guard::GetInstance().IsNodeInDSGuardList(
                    shard.second.at(rdm_index)) ||
                Guard::GetInstance().IsNodeInShardGuardList(
                    shard.second.at(rdm_index))) {
           rdm_index = (rdm_index + 1) % shard.second.size();
+          if (rdm_index == rdm_index_copy) {
+            LOG_GENERAL(WARNING, "Going into infinite loop");
+            breakLoop = true;
+            break;
+          }
         }
       }
+      if (breakLoop) {
+        break;
+      }
+
       const Address& winnerAddr =
           Account::GetAddressFromPublicKey(shard.second.at(rdm_index));
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);

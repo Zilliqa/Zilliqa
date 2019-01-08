@@ -209,6 +209,7 @@ class DirectoryService : public Executable, public Broadcastable {
   Mediator& m_mediator;
 
   // Coinbase
+  // Map<EpochNumber, Map<shard-id, vector <Public keys to be rewarded>>
   std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
