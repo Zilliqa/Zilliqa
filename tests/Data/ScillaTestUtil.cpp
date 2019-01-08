@@ -134,6 +134,25 @@ uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, bytes &data) {
   return amount;
 }
 
+// Remove _this_address field from init JSON.
+bool ScillaTestUtil::RemoveThisAddressFromInit(Json::Value &init) {
+  int this_address_index = -1;
+  for (auto it = init.begin(); it != init.end(); it++) {
+    if ((*it)["vname"] == "_this_address") {
+      this_address_index = it - init.begin();
+    }
+  }
+  // Remove _creation_block from init.json as it will be inserted
+  // automatically.
+  if (this_address_index >= 0) {
+    Json::Value dummy;
+    init.removeIndex(Json::ArrayIndex(this_address_index), &dummy);
+    return true;
+  }
+
+  return false;
+}
+
 // Remove _creation_block field from init JSON.
 bool ScillaTestUtil::RemoveCreationBlockFromInit(Json::Value &init) {
   int creation_block_index = -1;
