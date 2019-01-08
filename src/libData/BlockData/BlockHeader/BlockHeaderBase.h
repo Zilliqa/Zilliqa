@@ -38,23 +38,40 @@ const uint64_t INIT_BLOCK_NUMBER = (uint64_t)-1;
 class BlockHeaderBase : public SerializableDataBlock {
  protected:
   // TODO: pull out all common code from ds, micro and tx block header
+  uint32_t m_version;
   CommitteeHash m_committeeHash;
 
  public:
   // Constructors
   BlockHeaderBase();
-  BlockHeaderBase(const CommitteeHash& committeeHash);
+  BlockHeaderBase(const uint32_t& version, const CommitteeHash& committeeHash);
 
   /// Calculate my hash
   BlockHash GetMyHash() const;
 
+  /// Returns the hash of the committee where the block was generated
   const CommitteeHash& GetCommitteeHash() const;
+
+  /// Returns the current version of this block.
+  const uint32_t& GetVersion() const;
+
+  /// Sets the current version of this block.
+  void SetVersion(const uint32_t& version);
+
+  /// Sets the hash of the committee where the block was generated
+  void SetCommitteeHash(const CommitteeHash& committeeHash);
+
+  // Operators
+  bool operator==(const BlockHeaderBase& header) const;
+  bool operator<(const BlockHeaderBase& header) const;
+  bool operator>(const BlockHeaderBase& header) const;
 
   friend std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t);
 };
 
 inline std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
   os << "<BlockHeaderBase>" << std::endl
+     << "m_version : " << t.m_version
      << "m_committeeHash : " << t.m_committeeHash;
 
   return os;

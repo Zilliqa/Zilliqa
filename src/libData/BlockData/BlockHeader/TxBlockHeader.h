@@ -53,8 +53,8 @@ class TxBlockHeader : public BlockHeaderBase {
   TxBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified Tx block header parameters.
-  TxBlockHeader(const uint8_t type, const uint32_t version,
-                const uint64_t& gasLimit, const uint64_t& gasUsed,
+  TxBlockHeader(const uint32_t version, const uint64_t& gasLimit,
+                const uint64_t& gasUsed,
                 const boost::multiprecision::uint128_t& rewards,
                 const BlockHash& prevHash, const uint64_t& blockNum,
                 const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
@@ -66,12 +66,6 @@ class TxBlockHeader : public BlockHeaderBase {
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset) override;
-
-  /// Returns the type of the block.
-  const uint8_t& GetType() const;
-
-  /// Returns the current version.
-  const uint32_t& GetVersion() const;
 
   /// Returns the current limit for gas expenditure per block.
   const uint64_t& GetGasLimit() const;
@@ -129,8 +123,6 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
 
   os << blockHeaderBase << std::endl
      << "<TxBlockHeader>" << std::endl
-     << "m_type : " << t.m_type << std::endl
-     << "m_version : " << t.m_version << std::endl
      << "m_gasLimit : " << t.m_gasLimit << std::endl
      << "m_gasUsed : " << t.m_gasUsed << std::endl
      << "m_rewards : " << t.m_rewards << std::endl

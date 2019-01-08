@@ -53,7 +53,7 @@ class VCBlockHeader : public BlockHeaderBase {
   VCBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified VC block header parameters.
-  VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
+  VCBlockHeader(const uint32_t version, const uint64_t& vieWChangeDSEpochNo,
                 const uint64_t& viewChangeEpochNo,
                 const unsigned char viewChangeState,
                 const Peer& candidateLeaderNetworkInfo,

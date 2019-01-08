@@ -42,12 +42,13 @@ FallbackBlockHeader::FallbackBlockHeader(const bytes& src,
 }
 
 FallbackBlockHeader::FallbackBlockHeader(
-    const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
-    const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
-    const uint16_t leaderConsensusId, const Peer& leaderNetworkInfo,
-    const PubKey& leaderPubKey, const uint32_t shardId,
-    const CommitteeHash& committeeHash, const BlockHash& prevHash)
-    : BlockHeaderBase(committeeHash),
+    const uint32_t version, const uint64_t& fallbackDSEpochNo,
+    const uint64_t& fallbackEpochNo, const unsigned char fallbackState,
+    const FallbackBlockHashSet& hashset, const uint16_t leaderConsensusId,
+    const Peer& leaderNetworkInfo, const PubKey& leaderPubKey,
+    const uint32_t shardId, const CommitteeHash& committeeHash,
+    const BlockHash& prevHash)
+    : BlockHeaderBase(version, committeeHash),
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
       m_fallbackState(fallbackState),
@@ -107,21 +108,42 @@ const PubKey& FallbackBlockHeader::GetLeaderPubKey() const {
 uint32_t FallbackBlockHeader::GetShardId() const { return m_shardId; }
 
 bool FallbackBlockHeader::operator==(const FallbackBlockHeader& header) const {
-  return std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
-                  m_hashset, m_leaderConsensusId, m_shardId) ==
-         std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
-                  header.m_fallbackState, header.m_hashset,
-                  header.m_leaderConsensusId, header.m_shardId);
+  return BlockHeaderBase::operator==(header) &&
+         (std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
+                   m_hashset, m_leaderConsensusId, m_shardId) ==
+          std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
+                   header.m_fallbackState, header.m_hashset,
+                   header.m_leaderConsensusId, header.m_shardId));
 }
 
 bool FallbackBlockHeader::operator<(const FallbackBlockHeader& header) const {
-  return std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
-                  header.m_fallbackState, header.m_hashset,
-                  header.m_leaderConsensusId, header.m_shardId) >
-         std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
-                  m_hashset, m_leaderConsensusId, m_shardId);
+  // To compare, first they must be of identical epochno and state
+  if (!(std::tie(m_version, m_fallbackEpochNo, m_fallbackDSEpochNo,
+                 m_fallbackState) ==
+        std::tie(m_version, header.m_fallbackEpochNo,
+                 header.m_fallbackDSEpochNo, header.m_fallbackState))) {
+    return false;
+  }
+
+  if (m_shardId == header.m_shardId) {
+    return m_leaderConsensusId < header.m_leaderConsensusId;
+  } else {
+    return m_shardId < header.m_shardId;
+  }
 }
 
 bool FallbackBlockHeader::operator>(const FallbackBlockHeader& header) const {
-  return header < *this;
+  // To compare, first they must be of identical epochno and state
+  if (!(std::tie(m_version, m_fallbackEpochNo, m_fallbackDSEpochNo,
+                 m_fallbackState) ==
+        std::tie(m_version, header.m_fallbackEpochNo,
+                 header.m_fallbackDSEpochNo, header.m_fallbackState))) {
+    return false;
+  }
+
+  if (m_shardId == header.m_shardId) {
+    return m_leaderConsensusId > header.m_leaderConsensusId;
+  } else {
+    return m_shardId > header.m_shardId;
+  }
 }

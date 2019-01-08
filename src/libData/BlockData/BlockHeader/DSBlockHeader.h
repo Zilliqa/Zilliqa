@@ -55,9 +55,10 @@ class DSBlockHeader : public BlockHeaderBase {
   DSBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with specified DS block header parameters.
-  DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
-                const BlockHash& prevHash, const PubKey& leaderPubKey,
-                const uint64_t& blockNum, const uint64_t& epochNum,
+  DSBlockHeader(const uint32_t version, const uint8_t dsDifficulty,
+                const uint8_t difficulty, const BlockHash& prevHash,
+                const PubKey& leaderPubKey, const uint64_t& blockNum,
+                const uint64_t& epochNum,
                 const boost::multiprecision::uint128_t& gasPrice,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,

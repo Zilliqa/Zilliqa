@@ -22,10 +22,11 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BlockHeaderBase::BlockHeaderBase() {}
+BlockHeaderBase::BlockHeaderBase() : m_version(0) {}
 
-BlockHeaderBase::BlockHeaderBase(const CommitteeHash& committeeHash)
-    : m_committeeHash(committeeHash) {}
+BlockHeaderBase::BlockHeaderBase(const uint32_t& version,
+                                 const CommitteeHash& committeeHash)
+    : m_version(version), m_committeeHash(committeeHash) {}
 
 BlockHash BlockHeaderBase::GetMyHash() const {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
@@ -38,6 +39,30 @@ BlockHash BlockHeaderBase::GetMyHash() const {
   return blockHash;
 }
 
+const uint32_t& BlockHeaderBase::GetVersion() const { return m_version; }
+
+void BlockHeaderBase::SetVersion(const uint32_t& version) {
+  m_version = version;
+}
+
 const CommitteeHash& BlockHeaderBase::GetCommitteeHash() const {
   return m_committeeHash;
+}
+
+void BlockHeaderBase::SetCommitteeHash(const CommitteeHash& committeeHash) {
+  m_committeeHash = committeeHash;
+}
+
+bool BlockHeaderBase::operator==(const BlockHeaderBase& header) const {
+  return std::tie(m_version, m_committeeHash) ==
+         std::tie(header.m_version, header.m_committeeHash);
+}
+
+bool BlockHeaderBase::operator<(const BlockHeaderBase& header) const {
+  return std::tie(m_version, m_committeeHash) >
+         std::tie(header.m_version, header.m_committeeHash);
+}
+
+bool BlockHeaderBase::operator>(const BlockHeaderBase& header) const {
+  return header < *this;
 }
