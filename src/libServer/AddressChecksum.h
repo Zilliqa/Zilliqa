@@ -42,13 +42,21 @@ class AddressChecksum {
 
     std::string lower_case_address = boost::to_lower_copy(origAddress);
 
-    bytes tmpaddr = DataConversion::HexStrToUint8Vec(lower_case_address);
+    bytes tmpaddr;
+    if (!DataConversion::HexStrToUint8Vec(lower_case_address, tmpaddr)) {
+      LOG_GENERAL(WARNING, "DataConversion::HexStrToUint8Vec Failed");
+      return "";
+    }
     bytes hash_s = HashUtils::BytesToHash(tmpaddr);
 
     boost::multiprecision::uint256_t temp_1 = 1;
     std::string ret = "";
 
-    const std::string hash_str = DataConversion::Uint8VecToHexStr(hash_s);
+    std::string hash_str;
+    if (!DataConversion::Uint8VecToHexStr(hash_s, hash_str)) {
+      LOG_GENERAL(WARNING, "DataConversion::Uint8VecToHexStr Failed");
+      return "";
+    }
 
     boost::multiprecision::uint256_t v("0x" + hash_str);
 
