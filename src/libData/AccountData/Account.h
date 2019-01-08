@@ -162,12 +162,6 @@ class Account : public SerializableDataBlock {
 
   friend inline std::ostream& operator<<(std::ostream& out,
                                          Account const& account);
-
-  // static bool SerializeDelta(bytes& dst, unsigned int offset,
-  //                            Account* oldAccount, const Account& newAccount);
-
-  // static bool DeserializeDelta(const bytes& src, unsigned int offset,
-  //                              Account& account, bool fullCopy);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account) {

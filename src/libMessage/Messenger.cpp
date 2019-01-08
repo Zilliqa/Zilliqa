@@ -2069,25 +2069,6 @@ bool Messenger::SetAccountDelta(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-// bool Messenger::GetAccountDelta(const bytes& src, const unsigned int offset,
-//                                 Account& account, const bool fullCopy) {
-//   ProtoAccount result;
-
-//   result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-//   if (!result.IsInitialized()) {
-//     LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
-//     return false;
-//   }
-
-//   if (!ProtobufToAccountDelta(result, account, addr, fullCopy)) {
-//     LOG_GENERAL(WARNING, "ProtobufToAccountDelta failed.");
-//     return false;
-//   }
-
-//   return true;
-// }
-
 template <class MAP>
 bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
                                 const MAP& addressToAccount) {

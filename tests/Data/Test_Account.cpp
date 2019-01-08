@@ -213,10 +213,6 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   BOOST_CHECK_MESSAGE(
       acc2.GetCodeHash() == hash,
       "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
-
-  // bytes dst;
-  // BOOST_CHECK_EQUAL(true, acc2.SerializeDelta(dst, 0, &acc1, acc2));
-  // BOOST_CHECK_EQUAL(true, acc2.DeserializeDelta(dst, 0, acc1, true));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -147,27 +147,6 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
-// bool Account::SerializeDelta(bytes& dst, unsigned int offset,
-//                              Account* oldAccount, const Account& newAccount)
-//                              {
-//   if (!Messenger::SetAccountDelta(dst, offset, oldAccount, newAccount)) {
-//     LOG_GENERAL(WARNING, "Messenger::SetAccountDelta failed.");
-//     return false;
-//   }
-
-//   return true;
-// }
-
-// bool Account::DeserializeDelta(const bytes& src, unsigned int offset,
-//                                Account& account, bool fullCopy) {
-//   if (!Messenger::GetAccountDelta(src, offset, account, fullCopy)) {
-//     LOG_GENERAL(WARNING, "Messenger::GetAccountDelta failed.");
-//     return false;
-//   }
-
-//   return true;
-// }
-
 bool Account::IncreaseBalance(const uint128_t& delta) {
   return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
 }
