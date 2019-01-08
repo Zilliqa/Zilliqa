@@ -89,6 +89,8 @@ class SWInfo : public Serializable {
     LogBrand();
     LogBugReport();
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const SWInfo& t);
 };
 
 inline std::ostream& operator<<(std::ostream& os, const SWInfo& t) {

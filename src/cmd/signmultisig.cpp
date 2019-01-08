@@ -138,7 +138,14 @@ int main(int argc, const char* argv[]) {
       }
       bytes result;
       sig.Serialize(result, 0);
-      cout << DataConversion::Uint8VecToHexStr(result);
+
+      std::string output;
+      if (DataConversion::Uint8VecToHexStr(result, output)) {
+        SWInfo::LogBrandBugReport();
+        std::cerr << "Failed signature conversion" << endl;
+        return -1;
+      }
+      cout << output;
     }
 
   } catch (std::exception& e) {

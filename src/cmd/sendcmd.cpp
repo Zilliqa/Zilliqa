@@ -79,7 +79,9 @@ void process_addpeers(const char* progname, const char* cmdname,
       // Public key
       // Temporarily just accept the public key as an input (for use with the
       // peer store)
-      bytes tmp = DataConversion::HexStrToUint8Vec(args[i++].c_str());
+      bytes tmp;
+      DataConversion::HexStrToUint8Vec(args[i++].c_str(), tmp);
+
       addnode_message.resize(MessageOffset::BODY + tmp.size());
       copy(tmp.begin(), tmp.end(),
            addnode_message.begin() + MessageOffset::BODY);
@@ -139,7 +141,8 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
     // Send the generic message to the local node
-    bytes tmp = DataConversion::HexStrToUint8Vec(args[0].c_str());
+    bytes tmp;
+    DataConversion::HexStrToUint8Vec(args[0].c_str(), tmp);
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
@@ -155,8 +158,8 @@ void process_remote_cmd(const char* progname, const char* cmdname,
          << " <hex string message>" << endl;
   } else {
     Peer my_port(remote_ip, listen_port);
-
-    bytes tmp = DataConversion::HexStrToUint8Vec(args[0].c_str());
+    bytes tmp;
+    DataConversion::HexStrToUint8Vec(args[0].c_str(), tmp);
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }

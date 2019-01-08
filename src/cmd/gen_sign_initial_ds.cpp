@@ -150,7 +150,12 @@ int main(int argc, char** argv) {
     Schnorr::GetInstance().Sign(message, privKeys.at(0), pubKeys.at(0), sig);
     bytes result;
     sig.Serialize(result, 0);
-    sig_str = DataConversion::Uint8VecToHexStr(result);
+
+    if (DataConversion::Uint8VecToHexStr(result, sig_str)) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "Failed signature conversion" << endl;
+      return -1;
+    }
 
     auto pt = PTree::GetInstance();
     if (!sig_str.empty()) {

@@ -234,10 +234,13 @@ PrivKey PrivKey::GetPrivKeyFromString(const string& key) {
     throw std::invalid_argument(
         "Error: private key - invalid number of input characters for key");
   }
-  std::vector<unsigned char> key_v;
+  bytes key_v;
 
   try {
-    key_v = DataConversion::HexStrToUint8Vec(key);
+    if (!DataConversion::HexStrToUint8Vec(key, key_v)) {
+      throw std::invalid_argument(
+          "Error: public  key - invalid number of input characters for key");
+    }
   } catch (std::exception& e) {
     throw std::invalid_argument(
         "Error: private key - invalid format of input characters for key - "
@@ -372,10 +375,13 @@ PubKey PubKey::GetPubKeyFromString(const string& key) {
     throw std::invalid_argument(
         "Error: public  key - invalid number of input characters for key");
   }
-  std::vector<unsigned char> key_v;
+  bytes key_v;
 
   try {
-    key_v = DataConversion::HexStrToUint8Vec(key);
+    if (!DataConversion::HexStrToUint8Vec(key, key_v)) {
+      throw std::invalid_argument(
+          "Error: public  key - invalid number of input characters for key");
+    }
   } catch (std::exception& e) {
     throw std::invalid_argument(
         "Error: public key - invalid format of input characters for key - "
@@ -385,7 +391,7 @@ PubKey PubKey::GetPubKeyFromString(const string& key) {
   return PubKey(key_v, 0);
 }
 
-int PubKey::Deserialize(const vector<unsigned char>& src, unsigned int offset) {
+int PubKey::Deserialize(const bytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   try {
