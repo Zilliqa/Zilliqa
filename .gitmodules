@@ -10,3 +10,6 @@
 [submodule "src/depends/openssl"]
 	path = src/depends/openssl
 	url = https://github.com/openssl/openssl.git
+[submodule "src/depends/curl"]
+	path = src/depends/curl
+	url = https://github.com/curl/curl.git
