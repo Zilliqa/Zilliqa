@@ -748,7 +748,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
   if (!Messenger::SetDSMicroBlockSubmission(
           mb_message, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, epochNum,
-          microBlocksSent, stateDeltasSent)) {
+          microBlocksSent, stateDeltasSent, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return false;

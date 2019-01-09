@@ -443,18 +443,37 @@ bool DirectoryService::ProcessMicroblockSubmission(
   vector<MicroBlock> microBlocks;
   vector<bytes> stateDeltas;
 
+  PubKey senderPubKey;
   if (!Messenger::GetDSMicroBlockSubmission(message, offset, submitMBType,
                                             epochNumber, microBlocks,
-                                            stateDeltas)) {
+                                            stateDeltas, senderPubKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSMicroBlockSubmission failed.");
     return false;
   }
 
   if (submitMBType == SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK) {
+    // check if sender pubkey is one from our expected list
+    if (!CheckIfShardNode(senderPubKey)) {
+      LOG_GENERAL(WARNING, "PubKey of microblock sender "
+                               << from
+                               << " does not match any of the shard members");
+      // In future, we may want to blacklist such node - TBD
+      return false;
+    }
+
     return ProcessMicroblockSubmissionFromShard(epochNumber, microBlocks,
                                                 stateDeltas);
   } else if (submitMBType == SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK) {
+    // check if sender pubkey is one from our expected list
+    if (!CheckIfDSNode(senderPubKey)) {
+      LOG_GENERAL(WARNING, "PubKey of microblock sender "
+                               << from
+                               << " does not match any of the DS members");
+      // In future, we may want to blacklist such node - TBD
+      return false;
+    }
+
     return ProcessMissingMicroblockSubmission(epochNumber, microBlocks,
                                               stateDeltas);
   } else {
