@@ -51,6 +51,10 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce)
 bool Account::isContract() const { return m_codeHash != dev::h256(); }
 
 void Account::InitStorage() {
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return;
+  }
+
   // LOG_MARKER();
   m_storage = AccountTrieDB<dev::h256, OverlayDB>(
       &(ContractStorage::GetContractStorage().GetStateDB()));
@@ -95,6 +99,8 @@ void Account::InitContract() {
     m_initValJson.append(createBlockNumObj);
   }
 
+  std::vector<StateEntry> state_entries; 
+
   for (auto& v : root) {
     if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
       LOG_GENERAL(WARNING,
@@ -110,7 +116,14 @@ void Account::InitContract() {
     writer->write(v["value"], &oss);
     string value = oss.str();
 
-    SetStorage(vname, type, value, false);
+    if (!HASHMAP_CONTRACT_STATE_DB) {
+      SetStorage(vname, type, value, false);
+    }
+    state_entries.push_back(std::make_tuple(vname, false, type, value));
+  }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    ContractStorage::GetContractStorage().PutContractState(state_entries)
   }
 }
 
