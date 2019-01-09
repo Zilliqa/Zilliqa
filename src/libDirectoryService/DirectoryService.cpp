@@ -1111,3 +1111,29 @@ void DirectoryService::GetEntireNetworkPeerInfo(
     pubKeys.emplace_back(i.first);
   }
 }
+
+bool DirectoryService::CheckIfDSNode(const PubKey& submitterPubKey) {
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  for (const auto& dsMember : *m_mediator.m_DSCommittee) {
+    if (dsMember.first == submitterPubKey) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
+  lock_guard<mutex> g(m_mutexShards);
+
+  for (const auto& shard : m_shards) {
+    for (const auto& node : shard) {
+      if (std::get<SHARD_NODE_PUBKEY>(node) == submitterPubKey) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
