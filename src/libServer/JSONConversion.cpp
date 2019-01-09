@@ -131,17 +131,18 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string nonce_str = _json["nonce"].asString();
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
-  string toAddr_str = boost::to_lower_copy(_json["toAddr"].asString());
-  bytes toAddr_ser;
-  if (!DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)) {
-    LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
-    return Transaction();
-  }
+  string toAddr_str = _json["toAddr"].asString();
   string lower_case_addr;
   if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "To Address checksum does not match");
   }
+  bytes toAddr_ser;
+  if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
+    LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
+    return Transaction();
+  }
+
   Address toAddr(toAddr_ser);
 
   string amount_str = _json["amount"].asString();
