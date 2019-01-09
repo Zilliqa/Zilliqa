@@ -15,7 +15,7 @@
 # src/depends and tests/depends and which include a reference to GPLv3 in their
 # program files.
 #
-ARG BASE=zilliqa/scilla
+ARG BASE=zilliqa/scilla@sha256:094d63cf1a7247598ea9af7ede0023c96738600e0163f8f30a278209cb588251
 FROM ${BASE}
 
 # Format guideline: one package per line and keep them alphabetically sorted
