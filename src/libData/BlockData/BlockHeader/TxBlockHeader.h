@@ -32,8 +32,6 @@
 
 /// Stores information on the header part of the Tx block.
 class TxBlockHeader : public BlockHeaderBase {
-  uint8_t m_type;  // 0: microblock proposed by a committee, 1: final tx block
-  uint32_t m_version;
   uint64_t m_gasLimit;
   uint64_t m_gasUsed;
   boost::multiprecision::uint128_t m_rewards;
