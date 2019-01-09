@@ -72,7 +72,8 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
   if (!Messenger::SetDSMicroBlockSubmission(
           microblock_message, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
-          m_mediator.m_currentEpochNum, {*m_microblock}, {stateDelta})) {
+          m_mediator.m_currentEpochNum, {*m_microblock}, {stateDelta},
+          m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return false;

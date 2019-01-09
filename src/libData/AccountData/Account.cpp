@@ -65,12 +65,12 @@ void Account::InitStorage() {
   }
 }
 
-void Account::InitContract(const bytes& data) {
+void Account::InitContract(const bytes& data, const Address& addr) {
   SetInitData(data);
-  InitContract();
+  InitContract(addr);
 }
 
-void Account::InitContract() {
+void Account::InitContract(const Address& addr) {
   // LOG_MARKER();
   if (m_initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
@@ -99,6 +99,15 @@ void Account::InitContract() {
     m_initValJson.append(createBlockNumObj);
   }
 
+  // Append _this_address
+  {
+    Json::Value createBlockNumObj;
+    createBlockNumObj["vname"] = "_this_address";
+    createBlockNumObj["type"] = "ByStr20";
+    createBlockNumObj["value"] = "0x" + addr.hex();
+    m_initValJson.append(createBlockNumObj);
+  }
+  
   std::vector<StateEntry> state_entries; 
 
   for (auto& v : root) {
@@ -147,26 +156,6 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
 
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
-    return false;
-  }
-
-  return true;
-}
-
-bool Account::SerializeDelta(bytes& dst, unsigned int offset,
-                             Account* oldAccount, const Account& newAccount) {
-  if (!Messenger::SetAccountDelta(dst, offset, oldAccount, newAccount)) {
-    LOG_GENERAL(WARNING, "Messenger::SetAccountDelta failed.");
-    return false;
-  }
-
-  return true;
-}
-
-bool Account::DeserializeDelta(const bytes& src, unsigned int offset,
-                               Account& account, bool fullCopy) {
-  if (!Messenger::GetAccountDelta(src, offset, account, fullCopy)) {
-    LOG_GENERAL(WARNING, "Messenger::GetAccountDelta failed.");
     return false;
   }
 

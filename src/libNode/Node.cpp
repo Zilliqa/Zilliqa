@@ -524,7 +524,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
 
       do {
-        m_mediator.m_lookup->GetTxBlockFromLookupNodes(
+        m_mediator.m_lookup->GetTxBlockFromSeedNodes(
             m_mediator.m_txBlockChain.GetBlockCount(), 0);
         LOG_GENERAL(INFO,
                     "Retrieve final block from lookup node, please wait...");
