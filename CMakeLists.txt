@@ -69,6 +69,7 @@ include_directories(${OPENSSL_INCLUDE_DIR})
 set(PKG_CONFIG_USE_CMAKE_PREFIX_PATH ON)
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/curl)
 pkg_check_modules(LIBCURL libcurl REQUIRED)
+include_directories(${CURL_INSTALL_DIR}/include)
 
 find_package(LevelDB REQUIRED)
 

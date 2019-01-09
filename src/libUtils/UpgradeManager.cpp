@@ -311,12 +311,6 @@ bool UpgradeManager::HasNewSW() {
   }
 
   const bytes zilliqaSha = tempSha;
-
-  if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
-    return false;
-  }
-
-  const bytes scillaSha = tempSha;
   const unsigned int len = zilliqaSigStr.size() / pubKeys.size();
   vector<Signature> zilliqaMutliSig;
 
@@ -339,14 +333,21 @@ bool UpgradeManager::HasNewSW() {
   }
 
   if (0 != scillaSigStr.size()) {
-    const bytes scillaSha = DataConversion::HexStrToUint8Vec(scillaShaStr);
+      if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
+          return false;
+      }
+
+      const bytes scillaSha = tempSha;
     const unsigned int len = scillaSigStr.size() / pubKeys.size();
     vector<Signature> scillaMutliSig;
 
     for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      scillaMutliSig.emplace_back(
-          DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len)),
-          0);
+        bytes tempMultisigBytes;
+        if (!DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len),
+                                              tempMultisigBytes)) {
+            continue;
+        }
+        scillaMutliSig.emplace_back(tempMultisigBytes, 0);
     }
 
     /// Multi-sig verification
@@ -529,7 +530,8 @@ bool UpgradeManager::DownloadSW() {
               (istreambuf_iterator<char>()));
     sha2.Update(vec, 0, vec.size());
     bytes output = sha2.Finalize();
-    string scillaDownloadSha = DataConversion::Uint8VecToHexStr(output);
+    string scillaDownloadSha;
+    DataConversion::Uint8VecToHexStr(output, scillaDownloadSha);
 
     if (scillaSha != scillaDownloadSha) {
       LOG_GENERAL(WARNING,
@@ -538,7 +540,7 @@ bool UpgradeManager::DownloadSW() {
       return false;
     }
 
-    m_latestScillaSHA = DataConversion::HexStrToUint8Vec(scillaSha);
+    DataConversion::HexStrToUint8Vec(scillaSha, m_latestScillaSHA);
   }
 
   m_latestSWInfo = make_shared<SWInfo>(

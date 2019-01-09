@@ -27,7 +27,7 @@ endif()
 # generate build directory
 execute_process(
     #TODO: add no-shared to avoid build dynamic libraries
-    COMMAND bash -c "./buildconf; CPPFLAGS=-I${CMAKE_BINARY_DIR}/openssl/include LDFLAGS=-L${CMAKE_BINARY_DIR}/openssl/lib ${CURL_SOURCE_DIR}/configure --prefix=${CURL_INSTALL_DIR}"
+    COMMAND bash -c "./buildconf; LDFLAGS=-Wl,-R${CMAKE_BINARY_DIR}/openssl/lib ${CURL_SOURCE_DIR}/configure --prefix=${CURL_INSTALL_DIR}"
     WORKING_DIRECTORY ${CURL_BINARY_DIR}
     RESULT_VARIABLE CURL_INSTALL_RET
     OUTPUT_FILE ${CURL_INSTALL_LOG}
