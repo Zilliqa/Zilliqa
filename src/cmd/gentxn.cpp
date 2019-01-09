@@ -141,7 +141,7 @@ void description() {
 int main(int argc, char** argv) {
   try {
     const unsigned long delta = 10000;
-    unsigned long begin = 0, end = delta;
+    unsigned long begin = 0, end;
 
     po::options_description desc("Options");
 
@@ -155,21 +155,19 @@ int main(int argc, char** argv) {
     po::variables_map vm;
     try {
       po::store(po::parse_command_line(argc, argv, desc), vm);
+      po::notify(vm);
 
-      /** --help option
-       */
       if (vm.count("help")) {
         SWInfo::LogBrandBugReport();
         description();
         cout << desc << endl;
         return SUCCESS;
       }
-      po::notify(vm);
-
-      if (begin != ULONG_MAX && end == delta) {
-        end = begin + delta;
+      if (!vm.count("end")) {
+        if (begin != ULONG_MAX) {
+          end = begin + delta;
+        }
       }
-
       if (begin == ULONG_MAX || end == ULONG_MAX || begin > end) {
         description();
         return 1;
