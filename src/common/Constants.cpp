@@ -366,6 +366,8 @@ const string OUTPUT_JSON{
 const string INPUT_CODE{
     SCILLA_FILES + '/' +
     ReadConstantString("INPUT_CODE", "node.smart_contract.")};
+const bool HASHMAP_CONTRACT_STATE_DB{
+    ReadConstantString("HASHMAP_CONTRACT_STATE_DB", "node.smart_contract.") == "true"};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{

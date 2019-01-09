@@ -276,6 +276,7 @@ extern const std::string INPUT_BLOCKCHAIN_JSON;
 extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
+extern const bool HASHMAP_CONTRACT_STATE_DB;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
