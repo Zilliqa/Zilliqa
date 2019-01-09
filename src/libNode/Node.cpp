@@ -286,6 +286,7 @@ bool Node::ValidateDB() {
   });
 
   const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
+  const auto& latestDSIndex = txblocks.back()->GetHeader().GetDSBlockNum();
 
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
@@ -301,6 +302,7 @@ bool Node::ValidateDB() {
         return false;
       }
       if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
+        LOG_GENERAL(INFO,"Break off at "<<latestTxBlockNum<<" "<<latestDSIndex<<" "<<dsblock->GetHeader().GetBlockNum()<<" "<<dsblock->GetHeader().GetEpochNum());
         break;
       }
       dirBlocks.emplace_back(*dsblock);
@@ -341,7 +343,7 @@ bool Node::ValidateDB() {
   }
 
   if (m_mediator.m_validator->CheckTxBlocks(txBlocks, dsComm,
-                                            blocklinks.back()) !=
+                                            m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
       ValidatorBase::TxBlockValidationMsg::VALID) {
     LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
     return false;
@@ -391,7 +393,6 @@ bool Node::ValidateDB() {
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
 
-  raise(SIGKILL);
 
   return true;
 }
