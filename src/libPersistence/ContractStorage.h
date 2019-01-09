@@ -18,6 +18,7 @@
 #ifndef CONTRACTSTORAGE_H
 #define CONTRACTSTORAGE_H
 
+#include <json/json.h>
 #include <leveldb/db.h>
 
 #include "common/Singleton.h"
@@ -30,11 +31,42 @@
 
 #include "depends/libTrie/TrieDB.h"
 
+namespace Contract {
+
+using VName = std::string;
+using Mutable = bool;
+using Type = std::string;
+using Value = std::string;
+using StateEntry = std::tuple<VName, Mutable, Type, Value>;
+using Index = dev::h256;
+
+enum Data : unsigned int { VNAME = 0, MUTABLE, TYPE, VALUE, ITEMS_NUM };
+
+dev::h256 GetKeyHash(const std::string& key);
+
 class ContractStorage : public Singleton<ContractStorage> {
-  dev::OverlayDB m_stateDB;
   LevelDB m_codeDB;
 
-  ContractStorage() : m_stateDB("contractState"), m_codeDB("contractCode"){};
+  dev::OverlayDB m_stateDB;
+
+  LevelDB m_stateIndexDB;
+  LevelDB m_stateDataDB;
+
+  /// Set the indexes of all the states of an contract account
+  bool SetContractStateIndexes(const dev::h160& address,
+                               const std::vector<Index>& indexes);
+
+  /// Get the indexes of all the states of an contract account
+  std::vector<Index> GetContractStateIndexes(const dev::h160& address);
+
+  /// Get the raw rlp string of the states of an account
+  std::vector<std::string> GetContractStateData(const dev::h160& address);
+
+  ContractStorage()
+      : m_codeDB("contractCode"),
+        m_stateDB("contractState"),
+        m_stateIndexDB("stateIndex"),
+        m_stateDataDB("stateData"){};
 
   ~ContractStorage() = default;
 
@@ -52,6 +84,19 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /// Get the desired code from persistence
   const bytes GetContractCode(const dev::h160& address);
+
+  /// Put one's contract states in database
+  bool PutContractState(const dev::h160& address,
+                        const std::vector<StateEntry>& states,
+                        dev::h256& stateHash);
+
+  /// Get the json formatted data of the states for a contract account
+  Json::Value GetContractStateJson(const dev::h160& address);
+
+  /// Get the state hash of a contract account
+  dev::h256 GetContractStateHash(const dev::h160& address);
 };
+
+}  // namespace Contract
 
 #endif  // CONTRACTSTORAGE_H
