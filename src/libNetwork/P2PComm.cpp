@@ -685,6 +685,8 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     return;
   }
 
+  bufferevent_setwatermark(bev, EV_READ, MIN_READ_WATERMARK_IN_BYTES,
+                           MIN_READ_WATERMARK_IN_BYTES);
   bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
