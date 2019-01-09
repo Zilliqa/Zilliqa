@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
       }
       po::notify(vm);
 
-      if (begin != ULONG_MAX) {
+      if (begin != ULONG_MAX && end == delta) {
         end = begin + delta;
       }
 
