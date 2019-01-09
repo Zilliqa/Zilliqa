@@ -117,7 +117,7 @@ bool FallbackBlockHeader::operator<(const FallbackBlockHeader& header) const {
   // To compare, first they must be of identical epochno and state
   if (!(std::tie(m_version, m_fallbackEpochNo, m_fallbackDSEpochNo,
                  m_fallbackState) ==
-        std::tie(m_version, header.m_fallbackEpochNo,
+        std::tie(header.m_version, header.m_fallbackEpochNo,
                  header.m_fallbackDSEpochNo, header.m_fallbackState))) {
     return false;
   }
