@@ -31,7 +31,7 @@ Index GetIndex(const h160& address, const string& key, unsigned int counter) {
   sha2.Update(address.asBytes());
   sha2.Update(DataConversion::StringToCharArray(key));
   if (counter != 0) {
-	sha2.Update(DataConversion::StringToCharArray(to_string(counter)));
+    sha2.Update(DataConversion::StringToCharArray(to_string(counter)));
   }
   return h256(sha2.Finalize());
 }
@@ -40,37 +40,46 @@ bool ContractStorage::PutContractCode(const h160& address, const bytes& code) {
   return m_codeDB.Insert(address.hex(), code) == 0;
 }
 
+bool ContractStorage::PutContractCodeBatch(
+    const unordered_map<string, string>& batch) {
+  return m_codeDB.BatchInsert(batch);
+}
+
 const bytes ContractStorage::GetContractCode(const h160& address) {
   return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
 }
 
+bool ContractStorage::DeleteContractCode(const h160& address) {
+  return m_codeDB.DeleteKey(address.hex()) == 0;
+}
+
 bool ContractStorage::CheckIndexExists(const Index& index) {
-	return m_stateDataDB.Exists(index.hex());
+  return m_stateDataDB.Exists(index.hex()) || t_stateDataDB.Exists(index.hex());
 }
 
 Index ContractStorage::GetNewIndex(const h160& address, const string& key) {
-	Index index;
-	unsigned int counter = 0;
-	do {
-	  index = GetIndex(address, key, counter);
-	  counter++;
-	} while (CheckIndexExists(index));
+  Index index;
+  unsigned int counter = 0;
+  do {
+    index = GetIndex(address, key, counter);
+    counter++;
+  } while (CheckIndexExists(index));
 
-	return index;
+  return index;
 }
 
 bool ContractStorage::PutContractState(const h160& address,
                                        const vector<StateEntry>& states,
                                        h256& stateHash) {
-  vector<pair<Index, string>> entries;
+  vector<pair<Index, bytes>> entries;
   RLPStream rlpStream(ITEMS_NUM);
   for (const auto& state : states) {
-  	// Generate new index = hash(addr + vname)
-  	Index index = GetNewIndex(address, std::get<VNAME>(state));
+    // Generate new index = hash(addr + vname)
+    Index index = GetNewIndex(address, std::get<VNAME>(state));
 
-  	// Check if index exists
+    // Check if index exists
 
-  	// Serialize with rlp
+    // Serialize with rlp
     rlpStream << std::get<VNAME>(state)
               << (std::get<MUTABLE>(state) ? "True" : "False")
               << std::get<TYPE>(state) << std::get<VALUE>(state);
@@ -80,41 +89,35 @@ bool ContractStorage::PutContractState(const h160& address,
   return PutContractState(address, entries, stateHash);
 }
 
-bool ContractStorage::PutContractState(const h160& address,
-                    const vector<pair<Index, bytes>>& entries,
-                    h256& stateHash) {
+bool ContractStorage::PutContractState(
+    const h160& address, const vector<pair<Index, bytes>>& entries,
+    h256& stateHash) {
   // Get all the indexes from this account
   vector<Index> indexes = GetContractStateIndexes(address);
 
   vector<Index> new_entry_indexes;
 
-  bool ret = true;
+  unordered_map<string, string> batch;
 
   for (const auto& entry : entries) {
-  	// Append the new index to the existing indexes
-  	indexes.emplace_back(entry.first());
+    // Append the new index to the existing indexes
+    indexes.emplace_back(entry.first);
 
-  	// Add new entry in stateDataDB
-  	if (!m_stateDataDB.Insert(entry.first().hex(), entry.second())) {
-  		ret = false;
-  		break;
-  	}
+    batch.insert(
+        {entry.first.hex(), DataConversion::CharArrayToString(entry.second)});
 
-  	new_entry_indexes.emplace_back(entry.first());
+    new_entry_indexes.emplace_back(entry.first);
   }
 
-  if (!ret) {
-    for (const auto& index : new_entry_indexes) {
-      m_stateDataDB.DeleteKey(index.hex());
-    }
-
+  if (!t_stateDataDB.BatchInsert(batch)) {
+    LOG_GENERAL(WARNING, "BatchInsert t_stateDataDB failed");
     return false;
   }
 
   // Update the stateIndexDB
   if (!SetContractStateIndexes(address, indexes)) {
     for (const auto& index : new_entry_indexes) {
-      m_stateDataDB.DeleteKey(index.hex());
+      t_stateDataDB.DeleteKey(index.hex());
     }
     return false;
   }
@@ -130,14 +133,24 @@ bool ContractStorage::SetContractStateIndexes(
   for (const auto& index : indexes) {
     rlpStream << index.hex();
   }
-  return m_stateIndexDB.Insert(address.hex(), rlpStream.out());
+  return t_stateIndexDB.Insert(address.hex(), rlpStream.out()) == 0;
 }
 
 vector<Index> ContractStorage::GetContractStateIndexes(const h160& address) {
   // get from stateIndexDB
   // return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
   std::vector<Index> indexes;
-  RLP rlps(m_stateIndexDB.Lookup(address.hex()));
+
+  RLP rlps;
+
+  if (t_stateIndexDB.Exists(address.hex())) {
+    rlps = RLP(t_stateIndexDB.Lookup(address.hex()));
+  } else if (m_stateIndexDB.Exists(address.hex())) {
+    rlps = RLP(m_stateIndexDB.Lookup(address.hex()));
+  } else {
+    return {};
+  }
+
   for (const auto& rlp : rlps) {
     indexes.push_back(Index(rlp.toBytes()));
   }
@@ -153,6 +166,10 @@ vector<string> ContractStorage::GetContractStatesData(const h160& address) {
 
   // return vector of raw rlp string
   for (const auto& index : indexes) {
+    if (t_stateDataDB.Exists(index.hex())) {
+      rawStates.push_back(t_stateDataDB.Lookup(index.hex()));
+      continue;
+    }
     rawStates.push_back(m_stateDataDB.Lookup(index.hex()));
   }
 
@@ -160,7 +177,60 @@ vector<string> ContractStorage::GetContractStatesData(const h160& address) {
 }
 
 string ContractStorage::GetContractStateData(const Index& index) {
-	return m_stateDataDB.Lookup(index.hex());
+  if (t_stateDataDB.Exists(index.hex())) {
+    return t_stateDataDB.Lookup(index.hex());
+  }
+  return m_stateDataDB.Lookup(index.hex());
+}
+
+bool ContractStorage::CommitTempStateDB() {
+  // copy everything into m_stateXXDB;
+  // Index
+  unordered_map<string, std::string> batch;
+  unordered_map<string, std::string> reset_buffer;
+  leveldb::Iterator* it =
+      t_stateIndexDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    batch.insert({it->key().ToString(), it->value().ToString()});
+    reset_buffer.insert(
+        {it->key().ToString(), m_stateIndexDB.Lookup(it->key().ToString())});
+  }
+  if (!m_stateIndexDB.BatchInsert(batch)) {
+    LOG_GENERAL(WARNING, "BatchInsert t_stateIndexDB failed");
+    return false;
+  }
+  batch.clear();
+  // Data
+  it = t_stateDataDB.GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    batch.insert({it->key().ToString(), it->value().ToString()});
+  }
+  if (!m_stateDataDB.BatchInsert(batch)) {
+    LOG_GENERAL(WARNING, "BatchInsert t_stateDataDB failed");
+    // Reset the values in m_stateIndexDB
+    for (const auto& it : reset_buffer) {
+      if (it.second.empty()) {
+        if (m_stateIndexDB.DeleteKey(it.first) != 0) {
+          LOG_GENERAL(WARNING,
+                      "Something terrible happened, unable to clean the key in "
+                      "m_stateIndexDB");
+        }
+      } else {
+        if (m_stateIndexDB.Insert(
+                it.first, DataConversion::StringToCharArray(it.second)) != 0) {
+          LOG_GENERAL(WARNING,
+                      "Something terrible happened, unable to reset the key in "
+                      "m_stateIndexDB");
+        }
+      }
+    }
+    return false;
+  }
+
+  t_stateIndexDB.ResetDB();
+  t_stateDataDB.ResetDB();
+
+  return true;
 }
 
 Json::Value ContractStorage::GetContractStateJson(const h160& address) {

@@ -265,7 +265,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     m_curBlockNum = blockNum;
-    if (!ExportCallContractFiles(*toAccount, transaction, toAddr)) {
+    if (!ExportCallContractFiles(*toAccount, transaction)) {
       return false;
     }
 
@@ -385,7 +385,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract, const Account& addr) {
+void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -405,7 +405,7 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract, const Acc
   JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
   // State Json
-  JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson(addr));
+  JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
 
   // Block Json
   JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
@@ -414,10 +414,10 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract, const Acc
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Transaction& transaction, const Address& contractAddr) {
+    const Account& contract, const Transaction& transaction) {
   LOG_MARKER();
 
-  ExportContractFiles(contract, contractAddr);
+  ExportContractFiles(contract);
 
   // Message Json
   std::string dataStr(transaction.GetData().begin(),
@@ -439,10 +439,10 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 void AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Json::Value& contractData, const Address& contractAddr) {
+    const Account& contract, const Json::Value& contractData) {
   LOG_MARKER();
 
-  ExportContractFiles(contract, contractAddr);
+  ExportContractFiles(contract);
 
   JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 }
@@ -775,7 +775,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   input_message["_tag"] = _json["message"]["_tag"];
   input_message["params"] = _json["message"]["params"];
 
-  ExportCallContractFiles(*account, input_message, m_curContractAddr);
+  ExportCallContractFiles(*account, input_message);
 
   if (!TransferBalanceAtomic(
           m_curContractAddr, recipient,

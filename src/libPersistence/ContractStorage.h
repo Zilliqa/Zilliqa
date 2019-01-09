@@ -49,6 +49,9 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   dev::OverlayDB m_stateDB;
 
+  LevelDB t_stateIndexDB;
+  LevelDB t_stateDataDB;
+
   LevelDB m_stateIndexDB;
   LevelDB m_stateDataDB;
 
@@ -62,12 +65,16 @@ class ContractStorage : public Singleton<ContractStorage> {
   ContractStorage()
       : m_codeDB("contractCode"),
         m_stateDB("contractState"),
+        t_stateIndexDB("stateIndexTemp"),
+        t_stateDataDB("stateDataTemp"),
         m_stateIndexDB("stateIndex"),
         m_stateDataDB("stateData"){};
 
   ~ContractStorage() = default;
 
   Index GetNewIndex(const dev::h160& address, const std::string& key);
+
+  bool CheckIndexExists(const Index& index);
 
  public:
   /// Returns the singleton ContractStorage instance.
@@ -81,8 +88,14 @@ class ContractStorage : public Singleton<ContractStorage> {
   /// Adds a contract code to persistence
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
+  bool PutContractCodeBatch(
+      const std::unordered_map<std::string, std::string>& batch);
+
   /// Get the desired code from persistence
   const bytes GetContractCode(const dev::h160& address);
+
+  /// Delete the contract code in persistence
+  bool DeleteContractCode(const dev::h160& address);
 
   /// Get the indexes of all the states of an contract account
   std::vector<Index> GetContractStateIndexes(const dev::h160& address);
@@ -98,6 +111,8 @@ class ContractStorage : public Singleton<ContractStorage> {
   bool PutContractState(const dev::h160& address,
                         const std::vector<std::pair<Index, bytes>>& states,
                         dev::h256& stateHash);
+
+  bool CommitTempStateDB();
 
   /// Get the json formatted data of the states for a contract account
   Json::Value GetContractStateJson(const dev::h160& address);

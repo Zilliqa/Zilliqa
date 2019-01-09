@@ -304,6 +304,28 @@ int LevelDB::BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, un
     return 0;
 }
 
+bool LevelDB::BatchInsert(const std::unordered_map<std::string, std::string>& kv_map)
+{
+    ldb::WriteBatch batch;
+
+    for (const auto & i: kv_map)
+    {
+        if (!i.second.empty()) {
+            batch.Put(leveldb::Slice(i.first),
+                      leveldb::Slice(i.second));
+        }
+    }
+
+    ldb::Status s = m_db->Write(leveldb::WriteOptions(), &batch);
+
+    if (!s.ok())
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool LevelDB::Exists(const dev::h256 & key) const
 {
     auto ret = Lookup(key);

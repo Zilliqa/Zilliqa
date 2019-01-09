@@ -55,7 +55,7 @@ class Account : public SerializableDataBlock {
   Json::Value m_initValJson;
   bytes m_initData;
   bytes m_codeCache;
-
+  Address m_address;  // used by contract account only
 
   // TODO: remove if choose HASHMAP_CONTRACT_STATE_DB finally
   const dev::h256 GetKeyHash(const std::string& key) const;
@@ -135,7 +135,8 @@ class Account : public SerializableDataBlock {
   void SetStorage(std::string k, std::string type, std::string v,
                   bool is_mutable = true);
 
-  bool SetStorage(const Address& addr, const vector<pair<dev::h256, bytes>>& entries);
+  bool SetStorage(const Address& addr,
+                  const std::vector<std::pair<dev::h256, bytes>>& entries);
 
   std::string GetRawStorage(const dev::h256& k_hash) const;
 
@@ -147,7 +148,7 @@ class Account : public SerializableDataBlock {
 
   std::vector<dev::h256> GetStorageKeyHashes() const;
 
-  Json::Value GetStorageJson(const Address& addr) const;
+  Json::Value GetStorageJson() const;
 
   void Commit();
 

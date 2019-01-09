@@ -362,7 +362,8 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       if (!HASHMAP_CONTRACT_STATE_DB) {
         account.SetStorage(tmpHash, entry.data());
       } else {
-        entries.emplace_back(tmpHash, DataConversion::StringToCharArray(entry.data()));
+        entries.emplace_back(tmpHash,
+                             DataConversion::StringToCharArray(entry.data()));
       }
     }
 
@@ -516,7 +517,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         if (!HASHMAP_CONTRACT_STATE_DB) {
           account.SetStorage(tmpHash, entry.data());
         } else {
-          entries.emplace_back(tmpHash, DataConversion::StringToCharArray(entry.data()));
+          entries.emplace_back(tmpHash,
+                               DataConversion::StringToCharArray(entry.data()));
         }
       }
 

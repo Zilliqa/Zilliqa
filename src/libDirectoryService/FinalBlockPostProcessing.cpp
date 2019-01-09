@@ -146,7 +146,10 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   StoreFinalBlockToDisk();
 
   if (isVacuousEpoch) {
-    AccountStore::GetInstance().MoveUpdatesToDisk();
+    if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {
+      LOG_GENERAL(WARNING, "MoveUpdatesToDisk failed, what to do?");
+      return;
+    }
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   } else {
     // Coinbase

@@ -67,6 +67,7 @@ void Account::InitStorage() {
 
 bool Account::InitContract(const bytes& data, const Address& addr) {
   SetInitData(data);
+  m_address = addr;
   if (!InitContract(addr)) {
     LOG_GENERAL(WARNING, "Account " << addr.hex() << " InitContract failed");
     return false;
@@ -112,7 +113,7 @@ bool Account::InitContract(const Address& addr) {
     m_initValJson.append(createBlockNumObj);
   }
 
-  std::vector<StateEntry> state_entries; 
+  std::vector<StateEntry> state_entries;
 
   for (auto& v : root) {
     if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
@@ -136,7 +137,8 @@ bool Account::InitContract(const Address& addr) {
   }
 
   if (HASHMAP_CONTRACT_STATE_DB) {
-    return ContractStorage::GetContractStorage().PutContractState(addr, state_entries, m_storageRoot);
+    return ContractStorage::GetContractStorage().PutContractState(
+        addr, state_entries, m_storageRoot);
   }
 
   return true;
@@ -243,8 +245,10 @@ void Account::SetStorage(const h256& k_hash, const string& rlpStr) {
   m_storageRoot = m_storage.root();
 }
 
-bool Account::SetStorage(const Address& addr, const vector<pair<dev::h256, bytes>>& entries) {
-  if (!ContractStorage::GetContractStorage().PutContractState(addr, entries, m_storageRoot)) {
+bool Account::SetStorage(const Address& addr,
+                         const vector<pair<dev::h256, bytes>>& entries) {
+  if (!ContractStorage::GetContractStorage().PutContractState(addr, entries,
+                                                              m_storageRoot)) {
     LOG_GENERAL(WARNING, "PutContractState failed");
     return false;
   }
@@ -273,7 +277,8 @@ void Account::SetInitData(const bytes& initData) { m_initData = initData; }
 
 vector<h256> Account::GetStorageKeyHashes() const {
   if (HASHMAP_CONTRACT_STATE_DB) {
-    return ContractStorage::GetContractStorage().GetContractStateIndexes();
+    return ContractStorage::GetContractStorage().GetContractStateIndexes(
+        m_address);
   }
 
   vector<h256> keyHashes;
@@ -283,7 +288,7 @@ vector<h256> Account::GetStorageKeyHashes() const {
   return keyHashes;
 }
 
-Json::Value Account::GetStorageJson(const Address& addr) const {
+Json::Value Account::GetStorageJson() const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,
                 "Not contract account, why call Account::GetStorageJson!");
@@ -293,7 +298,8 @@ Json::Value Account::GetStorageJson(const Address& addr) const {
   Json::Value root;
 
   if (HASHMAP_CONTRACT_STATE_DB) {
-    root = ContractStorage::GetContractStorage().GetContractStateJson(addr);
+    root =
+        ContractStorage::GetContractStorage().GetContractStateJson(m_address);
   } else {
     for (auto const& i : m_storage) {
       dev::RLP rlp(i.second);

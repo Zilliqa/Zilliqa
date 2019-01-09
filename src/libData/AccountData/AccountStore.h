@@ -119,7 +119,7 @@ class AccountStore
 
   void InitSoft();
 
-  void MoveUpdatesToDisk();
+  bool MoveUpdatesToDisk();
   void DiscardUnsavedUpdates();
 
   bool RetrieveFromDisk();

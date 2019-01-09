@@ -96,6 +96,8 @@ public:
     int BatchInsert(std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
                     std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux);
 
+    bool BatchInsert(const std::unordered_map<std::string, std::string>& kv_map);
+
     /// Returns true if value corresponding to specified key exists.
     bool Exists(const dev::h256 & key) const;
     bool Exists(const boost::multiprecision::uint256_t & blockNum) const;
