@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  * Test cases obtained from https://www.di-mgt.com.au/sha_testvectors.html
  */
@@ -54,8 +52,9 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   bytes output = sha2.Finalize();
 
   bytes expected;
-  expected = DataConversion::HexStrToUint8Vec(
-      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C");
+  DataConversion::HexStrToUint8Vec(
+      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C",
+      expected);
   bool is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                              output.end());
   BOOST_CHECK_EQUAL(is_equal, true);
@@ -63,8 +62,9 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   sha2.Reset();
   sha2.Update(vec);
   output = sha2.Finalize();
-  expected = DataConversion::HexStrToUint8Vec(
-      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1");
+  DataConversion::HexStrToUint8Vec(
+      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1",
+      expected);
   is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                         output.end());
   BOOST_CHECK_EQUAL(is_equal, true);
@@ -89,8 +89,9 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   bytes output = sha2.Finalize();
 
   bytes expected;
-  expected = DataConversion::HexStrToUint8Vec(
-      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C");
+  DataConversion::HexStrToUint8Vec(
+      "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C",
+      expected);
   bool is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                              output.end());
   BOOST_CHECK_EQUAL(is_equal, true);
@@ -98,8 +99,9 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   sha2.Reset();
   sha2.Update(vec, 0, inputSize);
   output = sha2.Finalize();
-  expected = DataConversion::HexStrToUint8Vec(
-      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1");
+  DataConversion::HexStrToUint8Vec(
+      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1",
+      expected);
   is_equal = std::equal(expected.begin(), expected.end(), output.begin(),
                         output.end());
   BOOST_CHECK_EQUAL(is_equal, true);

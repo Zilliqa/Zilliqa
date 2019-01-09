@@ -409,7 +409,13 @@ message DSPoWSubmission
 
 message DSPoWPacketSubmission
 {
-    repeated DSPoWSubmission dsPowSubmissions        = 1;
+    message Data
+    {
+        repeated DSPoWSubmission dsPowSubmissions    = 1;
+    }
+    required Data data                               = 1;
+    required ByteArray pubkey                        = 2;
+    required ByteArray signature                     = 3;
 }
 
 message DSMicroBlockSubmission
@@ -896,4 +902,17 @@ message NodeSetGuardNodeNetworkInfoUpdate
     required Data data                              = 1;
     required ByteArray lookuppubkey                 = 2;
     required ByteArray signature                    = 3;
+}
+
+message SeedSetHistoricalDB
+{
+    message Data
+    {
+        required uint32 code            = 1;
+        optional string path            = 2;
+    }
+    required Data data                  = 1;
+    required ByteArray pubkey           = 2;
+    required ByteArray signature        = 3;
+
 }

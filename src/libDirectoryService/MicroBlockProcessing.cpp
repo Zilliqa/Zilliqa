@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
@@ -136,9 +134,13 @@ bool DirectoryService::ProcessStateDelta(
     return true;
   }
 
-  LOG_GENERAL(INFO, "Received MicroBlock State Delta hash : "
-                        << DataConversion::charArrToHexStr(
-                               microBlockStateDeltaHash.asArray()));
+  string statedeltaStr;
+  if (!DataConversion::charArrToHexStr(microBlockStateDeltaHash.asArray(),
+                                       statedeltaStr)) {
+    LOG_GENERAL(WARNING, "Invalid state delta hash");
+    return false;
+  }
+  LOG_GENERAL(INFO, "Received MicroBlock State Delta hash : " << statedeltaStr);
 
   if (microBlockStateDeltaHash == StateHash()) {
     LOG_GENERAL(INFO,
@@ -236,8 +238,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
   if (minerEntry == m_publicKeyToshardIdMap.end()) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Cannot find the miner key: "
-                  << DataConversion::SerializableToHexStr(pubKey));
+              "Cannot find the miner key: " << pubKey);
     return false;
   }
   if (minerEntry->second != shardId) {
@@ -332,8 +333,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
                          << "] FRST RECVD");
   }
 
-  // TODO: Re-request from shard leader if microblock is not received after a
-  // certain time.
   return true;
 }
 
@@ -517,8 +516,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
         if (!found) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Cannot find the miner key in DS committee: "
-                        << DataConversion::SerializableToHexStr(pubKey));
+                    "Cannot find the miner key in DS committee: " << pubKey);
           continue;
         }
       } else {
@@ -526,8 +524,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
         if (minerEntry == m_publicKeyToshardIdMap.end()) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Cannot find the miner key in normal shard: "
-                        << DataConversion::SerializableToHexStr(pubKey));
+                    "Cannot find the miner key in normal shard: " << pubKey);
           continue;
         }
         if (minerEntry->second != shardId) {
@@ -619,7 +616,6 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     }
   }
 
-  // TODO: Check if every microblock is obtained
   bytes errorMsg;
   if (!CheckMicroBlocks(errorMsg, false, false)) {
     LOG_GENERAL(WARNING,

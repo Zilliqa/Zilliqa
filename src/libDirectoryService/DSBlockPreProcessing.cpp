@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
@@ -200,9 +198,13 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
       }
     }
     if (DEBUG_LEVEL >= 5) {
-      LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
-                                    << DataConversion::charArrToHexStr(kv.first)
-                                    << endl);
+      string hashStr;
+      if (!DataConversion::charArrToHexStr(kv.first, hashStr)) {
+        LOG_GENERAL(WARNING, "[DSSORT] "
+                                 << " unable to convert hash to string");
+      } else {
+        LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " " << hashStr << endl);
+      }
     }
     // Put the node into the shard
     const PubKey& key = kv.second;
@@ -327,11 +329,18 @@ bool DirectoryService::VerifyPoWWinner(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
             dsPowSoln.gasPrice);
+
+        string resultStr, mixHashStr;
+        if (!DataConversion::charArrToHexStr(dsPowSoln.result, resultStr)) {
+          return false;
+        }
+        if (!DataConversion::charArrToHexStr(dsPowSoln.mixhash, mixHashStr)) {
+          return false;
+        }
+
         bool result = POW::GetInstance().PoWVerify(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
-            headerHash, dsPowSoln.nonce,
-            DataConversion::charArrToHexStr(dsPowSoln.result),
-            DataConversion::charArrToHexStr(dsPowSoln.mixhash));
+            headerHash, dsPowSoln.nonce, resultStr, mixHashStr);
         if (!result) {
           LOG_EPOCH(WARNING,
                     std::to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -409,9 +418,14 @@ bool DirectoryService::VerifyPoWOrdering(
                      m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
-      LOG_GENERAL(INFO, "[POWS]"
-                            << DataConversion::charArrToHexStr(pairPoWKey.first)
-                            << " " << pairPoWKey.second);
+      string PoWkeyStr;
+      if (!DataConversion::charArrToHexStr(pairPoWKey.first, PoWkeyStr)) {
+        LOG_GENERAL(WARNING,
+                    "[POWS]"
+                        << " cannot convert pairPoWKey.first to hex string");
+      } else {
+        LOG_GENERAL(INFO, "[POWS]" << PoWkeyStr << " " << pairPoWKey.second);
+      }
     }
   }
 
@@ -465,16 +479,30 @@ bool DirectoryService::VerifyPoWOrdering(
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
       const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+
       if (DEBUG_LEVEL >= 5) {
-        LOG_GENERAL(INFO, "[DSSORT]"
-                              << DataConversion::Uint8VecToHexStr(sortHashVec)
-                              << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        string sortHashVecStr;
+        if (!DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+          LOG_GENERAL(INFO,
+                      "[DSSORT]"
+                          << " Unable to convert sortHashVec to hex string");
+        } else {
+          LOG_GENERAL(INFO, "[DSSORT]"
+                                << sortHashVecStr << " "
+                                << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        }
       }
       if (sortHashVec < vec) {
-        LOG_GENERAL(WARNING,
-                    "Bad PoW ordering found: "
-                        << DataConversion::Uint8VecToHexStr(vec) << " "
-                        << DataConversion::Uint8VecToHexStr(sortHashVec));
+        string vecStr, sortHashVecStr;
+        if (!DataConversion::Uint8VecToHexStr(vec, vecStr) ||
+            !DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+          LOG_GENERAL(WARNING,
+                      "Unable to convert vec or sortHashVec to hex string");
+        } else {
+          LOG_GENERAL(WARNING, "Bad PoW ordering found: " << vecStr << " "
+                                                          << sortHashVecStr);
+        }
+
         ++misorderNodes;
         // If there is one PoW ordering fail, then vec is assigned to a big
         // mismatch hash already, need to revert it to previous result and
@@ -723,9 +751,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers);
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
-      LOG_GENERAL(INFO, "[POWS]"
-                            << DataConversion::charArrToHexStr(pairPoWKey.first)
-                            << " " << pairPoWKey.second);
+      string powHashStr;
+      if (!DataConversion::charArrToHexStr(pairPoWKey.first, powHashStr)) {
+        LOG_GENERAL(WARNING,
+                    "[POWS]"
+                        << " Unable to convert pairPoWKey.first to hex str");
+      } else {
+        LOG_GENERAL(INFO, "[POWS]" << powHashStr << " " << pairPoWKey.second);
+      }
     }
   }
 
@@ -1130,6 +1163,11 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
                                     << m_allDSPoWs.size());
 
   LOG_MARKER();
+
+  if (m_doRejoinAtDSConsensus) {
+    RejoinAsDS();
+  }
+
   SetState(DSBLOCK_CONSENSUS_PREP);
 
   {
