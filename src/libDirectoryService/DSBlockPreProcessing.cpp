@@ -234,8 +234,6 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
   for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
     // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)
     // to act as the PoW soln
-    // TODO: To determine how to include kicked out ds member (who did not do
-    // PoW) back into the shardding strcture
     PubKey nodePubKey =
         m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
             .first;
@@ -315,15 +313,11 @@ bool DirectoryService::VerifyPoWWinner(
                       << ". Will continue look for it in PoW from leader.");
       if (dsWinnerPoWsFromLeader.find(DSPowWinner.first) !=
           dsWinnerPoWsFromLeader.end()) {
-        uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
+        uint8_t expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDSDifficulty();
         const auto& peer = m_allPoWConns.at(DSPowWinner.first);
         const auto& dsPowSoln = dsWinnerPoWsFromLeader.at(DSPowWinner.first);
-        // Non-genesis block
-        if (m_mediator.m_currentEpochNum > 1) {
-          expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
-                               .GetHeader()
-                               .GetDSDifficulty();
-        }
 
         auto headerHash = POW::GenHeaderHash(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
@@ -452,17 +446,42 @@ bool DirectoryService::VerifyPoWOrdering(
         LOG_GENERAL(INFO,
                     "Checking for the key and PoW in the announcement...");
 
-        auto itLeaderMap = allPoWsFromTheLeader.find(toFind);
-        if (itLeaderMap != allPoWsFromTheLeader.end()) {
-          LOG_GENERAL(INFO,
-                      "TODO: Verify the PoW submission for this unknown node.");
-          result = itLeaderMap->second.result;
+        auto pubKeyToPoW = allPoWsFromTheLeader.find(toFind);
+        if (pubKeyToPoW != allPoWsFromTheLeader.end()) {
+          const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
+          const auto& powSoln = pubKeyToPoW->second;
+          auto headerHash = POW::GenHeaderHash(
+              m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
+              peer.m_ipAddress, toFind, powSoln.lookupId, powSoln.gasPrice);
+
+          auto difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
+                                .GetHeader()
+                                .GetDifficulty();
+          string resultStr, mixHashStr;
+          if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
+            ret = false;
+            break;
+          }
+
+          if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
+            ret = false;
+            break;
+          }
+
+          if (POW::GetInstance().PoWVerify(
+                  m_pendingDSBlock->GetHeader().GetBlockNum(), difficulty,
+                  headerHash, powSoln.nonce, resultStr, mixHashStr)) {
+            result = powSoln.result;
+          } else {
+            LOG_GENERAL(WARNING,
+                        "Failed to verify PoW solution from leader for node: "
+                            << toFind);
+            ret = false;
+            break;
+          }
         } else {
           LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
           ret = false;
-        }
-
-        if (!ret) {
           break;
         }
       } else {
