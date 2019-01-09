@@ -201,6 +201,7 @@
     <verifier>
         <VERIFIER_PATH/>
         <VERIFIER_PUBKEY/>
+        <SEED_PORT>30303</SEED_PORT>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>5</POST_VIEWCHANGE_BUFFER>

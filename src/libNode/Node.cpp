@@ -259,7 +259,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
 bool Node::ValidateDB() {
   deque<pair<PubKey, Peer>> dsComm;
   const string lookupIp = "127.0.0.1";
-  const uint port = 30303;
+  const unsigned int port = SEED_PORT;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
