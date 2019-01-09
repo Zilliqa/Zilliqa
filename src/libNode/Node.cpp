@@ -302,7 +302,10 @@ bool Node::ValidateDB() {
         return false;
       }
       if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
-        LOG_GENERAL(INFO,"Break off at "<<latestTxBlockNum<<" "<<latestDSIndex<<" "<<dsblock->GetHeader().GetBlockNum()<<" "<<dsblock->GetHeader().GetEpochNum());
+        LOG_GENERAL(INFO, "Break off at "
+                              << latestTxBlockNum << " " << latestDSIndex << " "
+                              << dsblock->GetHeader().GetBlockNum() << " "
+                              << dsblock->GetHeader().GetEpochNum());
         break;
       }
       dirBlocks.emplace_back(*dsblock);
@@ -342,8 +345,8 @@ bool Node::ValidateDB() {
     txBlocks.emplace_back(*txblock);
   }
 
-  if (m_mediator.m_validator->CheckTxBlocks(txBlocks, dsComm,
-                                            m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
+  if (m_mediator.m_validator->CheckTxBlocks(
+          txBlocks, dsComm, m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
       ValidatorBase::TxBlockValidationMsg::VALID) {
     LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
     return false;
@@ -392,7 +395,6 @@ bool Node::ValidateDB() {
   inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
-
 
   return true;
 }
