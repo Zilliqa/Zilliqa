@@ -26,9 +26,13 @@ using namespace std;
 
 namespace Contract {
 
-h256 GetKeyHash(const string& key) {
+Index GetIndex(const h160& address, const string& key, unsigned int counter) {
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(address.asBytes());
   sha2.Update(DataConversion::StringToCharArray(key));
+  if (counter != 0) {
+	sha2.Update(DataConversion::StringToCharArray(to_string(counter)));
+  }
   return h256(sha2.Finalize());
 }
 
@@ -40,38 +44,63 @@ const bytes ContractStorage::GetContractCode(const h160& address) {
   return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
 }
 
+bool ContractStorage::CheckIndexExists(const Index& index) {
+	return m_stateDataDB.Exists(index.hex());
+}
+
+Index ContractStorage::GetNewIndex(const h160& address, const string& key) {
+	Index index;
+	unsigned int counter = 0;
+	do {
+	  index = GetIndex(address, key, counter);
+	  counter++;
+	} while (CheckIndexExists(index));
+
+	return index;
+}
+
 bool ContractStorage::PutContractState(const h160& address,
                                        const vector<StateEntry>& states,
                                        h256& stateHash) {
-  // Get all the indexes from this account
-  vector<Index> indexes = GetContractStateIndexes(address);
-
+  vector<pair<Index, string>> entries;
   RLPStream rlpStream(ITEMS_NUM);
-
-  bool ret = true;
-
-  vector<Index> new_entry_indexes;
-
   for (const auto& state : states) {
-    // Generate new index = hash(addr + vname)
-    Index index = GetKeyHash(std::get<VNAME>(state));
+  	// Generate new index = hash(addr + vname)
+  	Index index = GetNewIndex(address, std::get<VNAME>(state));
 
-    // Append the new index to the existing indexes
-    indexes.emplace_back(index);
+  	// Check if index exists
 
-    // Serialize with rlp
+  	// Serialize with rlp
     rlpStream << std::get<VNAME>(state)
               << (std::get<MUTABLE>(state) ? "True" : "False")
               << std::get<TYPE>(state) << std::get<VALUE>(state);
-    // Add new entry in stateDataDB
-    if (!m_stateDataDB.Insert(index.hex(), rlpStream.out())) {
-      ret = false;
-      break;
-    }
+    entries.emplace_back(index, rlpStream.out());
+  }
 
-    new_entry_indexes.emplace_back(index);
+  return PutContractState(address, entries, stateHash);
+}
 
-    rlpStream.clear();
+bool ContractStorage::PutContractState(const h160& address,
+                    const vector<pair<Index, bytes>>& entries,
+                    h256& stateHash) {
+  // Get all the indexes from this account
+  vector<Index> indexes = GetContractStateIndexes(address);
+
+  vector<Index> new_entry_indexes;
+
+  bool ret = true;
+
+  for (const auto& entry : entries) {
+  	// Append the new index to the existing indexes
+  	indexes.emplace_back(entry.first());
+
+  	// Add new entry in stateDataDB
+  	if (!m_stateDataDB.Insert(entry.first().hex(), entry.second())) {
+  		ret = false;
+  		break;
+  	}
+
+  	new_entry_indexes.emplace_back(entry.first());
   }
 
   if (!ret) {
@@ -116,7 +145,7 @@ vector<Index> ContractStorage::GetContractStateIndexes(const h160& address) {
   return indexes;
 }
 
-vector<string> ContractStorage::GetContractStateData(const h160& address) {
+vector<string> ContractStorage::GetContractStatesData(const h160& address) {
   // get indexes
   vector<Index> indexes = GetContractStateIndexes(address);
 
@@ -130,9 +159,13 @@ vector<string> ContractStorage::GetContractStateData(const h160& address) {
   return rawStates;
 }
 
+string ContractStorage::GetContractStateData(const Index& index) {
+	return m_stateDataDB.Lookup(index.hex());
+}
+
 Json::Value ContractStorage::GetContractStateJson(const h160& address) {
   // iterate and deserialize the vector of raw rlp string
-  vector<string> rawStates = GetContractStateData(address);
+  vector<string> rawStates = GetContractStatesData(address);
 
   Json::Value root;
   for (const auto& rawState : rawStates) {
@@ -173,7 +206,7 @@ Json::Value ContractStorage::GetContractStateJson(const h160& address) {
 
 h256 ContractStorage::GetContractStateHash(const h160& address) {
   // iterate the raw rlp string and hash
-  vector<string> rawStates = GetContractStateData(address);
+  vector<string> rawStates = GetContractStatesData(address);
   SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
   for (const auto& rawState : rawStates) {
     sha2.Update(DataConversion::StringToCharArray(rawState));

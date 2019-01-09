@@ -136,10 +136,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       validToTransferBalance = false;
     }
 
-    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
-      return false;
-    }
-
     toAddr = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
     this->AddAccount(toAddr, {0, 0});
     Account* toAccount = this->GetAccount(toAddr);
@@ -149,11 +145,17 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
     toAccount->SetCode(transaction.GetCode());
     // Store the immutable states
-    toAccount->InitContract(transaction.GetData(), toAddr);
+    if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
+      this->RemoveAccount(toAddr);
+      return false;
+    }
     // Set the blockNumber when the account was created
     toAccount->SetCreateBlockNum(blockNum);
-
     m_curBlockNum = blockNum;
+
+    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+      return false;
+    }
 
     ExportCreateContractFiles(*toAccount);
 
@@ -263,7 +265,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     m_curBlockNum = blockNum;
-    if (!ExportCallContractFiles(*toAccount, transaction)) {
+    if (!ExportCallContractFiles(*toAccount, transaction, toAddr)) {
       return false;
     }
 
@@ -383,7 +385,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
+void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract, const Account& addr) {
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -403,7 +405,7 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
 
   // State Json
-  JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
+  JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson(addr));
 
   // Block Json
   JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
@@ -412,10 +414,10 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Transaction& transaction) {
+    const Account& contract, const Transaction& transaction, const Address& contractAddr) {
   LOG_MARKER();
 
-  ExportContractFiles(contract);
+  ExportContractFiles(contract, contractAddr);
 
   // Message Json
   std::string dataStr(transaction.GetData().begin(),
@@ -437,10 +439,10 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 void AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Json::Value& contractData) {
+    const Account& contract, const Json::Value& contractData, const Address& contractAddr) {
   LOG_MARKER();
 
-  ExportContractFiles(contract);
+  ExportContractFiles(contract, contractAddr);
 
   JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
 }
@@ -773,7 +775,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   input_message["_tag"] = _json["message"]["_tag"];
   input_message["params"] = _json["message"]["params"];
 
-  ExportCallContractFiles(*account, input_message);
+  ExportCallContractFiles(*account, input_message, m_curContractAddr);
 
   if (!TransferBalanceAtomic(
           m_curContractAddr, recipient,

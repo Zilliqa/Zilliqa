@@ -502,7 +502,7 @@ GetSmartContractStateResponse Server::GetSmartContractState(
       return ret;
     }
 
-    ret.set_storagejson(account->GetStorageJson().toStyledString());
+    ret.set_storagejson(account->GetStorageJson(addr).toStyledString());
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());
@@ -654,7 +654,7 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       auto protoContractAccount = ret.add_address();
       protoContractAccount->set_address(contractAddr.hex());
       protoContractAccount->set_state(
-          contractAccount->GetStorageJson().toStyledString());
+          contractAccount->GetStorageJson(contractAddr).toStyledString());
     }
 
   } catch (exception& e) {

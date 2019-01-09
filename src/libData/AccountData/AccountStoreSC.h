@@ -80,11 +80,13 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Generate input for interpreter to check the correctness of contract
   void ExportCreateContractFiles(const Account& contract);
 
-  void ExportContractFiles(const Account& contract);
+  void ExportContractFiles(const Account& contract, const Address& addr);
   bool ExportCallContractFiles(const Account& contract,
-                               const Transaction& transaction);
+                               const Transaction& transaction,
+                               const Address& contractAddr);
   void ExportCallContractFiles(const Account& contract,
-                               const Json::Value& contractData);
+                               const Json::Value& contractData,
+                               const Address& contractAddr);
 
   bool TransferBalanceAtomic(const Address& from, const Address& to,
                              const boost::multiprecision::uint128_t& delta);

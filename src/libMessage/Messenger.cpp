@@ -348,15 +348,28 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       tmpVec.resize(protoAccount.initdata().size());
       copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
            tmpVec.begin());
-      account.InitContract(tmpVec, addr);
+      if (!account.InitContract(tmpVec, addr)) {
+        return false;
+      }
     }
 
+    vector<pair<dev::h256, bytes>> entries;
     for (const auto& entry : protoAccount.storage()) {
       if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
         return false;
       }
 
-      account.SetStorage(tmpHash, entry.data());
+      if (!HASHMAP_CONTRACT_STATE_DB) {
+        account.SetStorage(tmpHash, entry.data());
+      } else {
+        entries.emplace_back(tmpHash, DataConversion::StringToCharArray(entry.data()));
+      }
+    }
+
+    if (HASHMAP_CONTRACT_STATE_DB) {
+      if (!account.SetStorage(addr, entries)) {
+        return false;
+      }
     }
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
@@ -487,17 +500,30 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
     if (tmpStorageRoot != account.GetStorageRoot()) {
       if (doInitContract) {
-        account.InitContract(addr);
+        if (!account.InitContract(addr)) {
+          return false;
+        }
       }
 
       dev::h256 tmpHash;
 
+      vector<pair<dev::h256, bytes>> entries;
       for (const auto& entry : protoAccount.storage()) {
         if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
           return false;
         }
 
-        account.SetStorage(tmpHash, entry.data());
+        if (!HASHMAP_CONTRACT_STATE_DB) {
+          account.SetStorage(tmpHash, entry.data());
+        } else {
+          entries.emplace_back(tmpHash, DataConversion::StringToCharArray(entry.data()));
+        }
+      }
+
+      if (HASHMAP_CONTRACT_STATE_DB) {
+        if (!account.SetStorage(addr, entries)) {
+          return false;
+        }
       }
 
       if (tmpStorageRoot != account.GetStorageRoot()) {

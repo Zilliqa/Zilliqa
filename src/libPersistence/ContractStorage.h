@@ -42,7 +42,7 @@ using Index = dev::h256;
 
 enum Data : unsigned int { VNAME = 0, MUTABLE, TYPE, VALUE, ITEMS_NUM };
 
-dev::h256 GetKeyHash(const std::string& key);
+Index GetIndex(const dev::h160& address, const std::string& key);
 
 class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_codeDB;
@@ -56,11 +56,8 @@ class ContractStorage : public Singleton<ContractStorage> {
   bool SetContractStateIndexes(const dev::h160& address,
                                const std::vector<Index>& indexes);
 
-  /// Get the indexes of all the states of an contract account
-  std::vector<Index> GetContractStateIndexes(const dev::h160& address);
-
   /// Get the raw rlp string of the states of an account
-  std::vector<std::string> GetContractStateData(const dev::h160& address);
+  std::vector<std::string> GetContractStatesData(const dev::h160& address);
 
   ContractStorage()
       : m_codeDB("contractCode"),
@@ -69,6 +66,8 @@ class ContractStorage : public Singleton<ContractStorage> {
         m_stateDataDB("stateData"){};
 
   ~ContractStorage() = default;
+
+  Index GetNewIndex(const dev::h160& address, const std::string& key);
 
  public:
   /// Returns the singleton ContractStorage instance.
@@ -85,9 +84,19 @@ class ContractStorage : public Singleton<ContractStorage> {
   /// Get the desired code from persistence
   const bytes GetContractCode(const dev::h160& address);
 
+  /// Get the indexes of all the states of an contract account
+  std::vector<Index> GetContractStateIndexes(const dev::h160& address);
+
+  /// Get the raw rlp string of the state by a index
+  std::string GetContractStateData(const Index& index);
+
   /// Put one's contract states in database
   bool PutContractState(const dev::h160& address,
                         const std::vector<StateEntry>& states,
+                        dev::h256& stateHash);
+
+  bool PutContractState(const dev::h160& address,
+                        const std::vector<std::pair<Index, bytes>>& states,
                         dev::h256& stateHash);
 
   /// Get the json formatted data of the states for a contract account
