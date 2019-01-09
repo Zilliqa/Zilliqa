@@ -281,6 +281,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
       case SyncType::DB_VERIF:
         LOG_GENERAL(INFO, "Intitialize DB verification");
         m_n.ValidateDB();
+        std::this_thread::sleep_for(std::chrono::seconds(10));
         raise(SIGKILL);
         break;
       default:
