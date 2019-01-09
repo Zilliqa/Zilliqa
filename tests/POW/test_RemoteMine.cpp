@@ -26,10 +26,20 @@
 #include <iostream>
 #include <vector>
 
+static std::array<uint8_t, 32> generateRandomArray() {
+  std::array<uint8_t, 32> randResult;
+  std::srand(
+      std::time(nullptr));  // use current time as seed for random generator
+  for (int i = 0; i < 32; ++i) {
+    randResult[i] = std::rand() % std::numeric_limits<uint8_t>::max();
+  }
+  return randResult;
+}
+
 void TestRemoteMineCase_1() {
   POW& POWClient = POW::GetInstance();
-  std::array<unsigned char, 32> rand1 = {{'0', '1'}};
-  std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+  std::array<unsigned char, 32> rand1 = generateRandomArray();
+  std::array<unsigned char, 32> rand2 = generateRandomArray();
   boost::multiprecision::uint128_t ipAddr = 2307193356;
   PrivKey privKey(
       DataConversion::StringToCharArray(

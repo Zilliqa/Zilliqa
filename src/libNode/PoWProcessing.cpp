@@ -261,6 +261,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     "requirement");
       }
     }
+  } else {
+    // If failed to do PoW, try to rejoin in next DS block
+    RejoinAsNormal();
+    return false;
   }
 
   if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
