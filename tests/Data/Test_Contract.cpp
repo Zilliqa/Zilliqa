@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
 BOOST_AUTO_TEST_CASE(testFungibleToken) {
   // 1. Bootstrap our test case.
-  KeyPair owner(priv1, {priv1});
+  PairOfKey owner(priv1, {priv1});
   Address ownerAddr, contrAddr;
   uint64_t nonce = 0;
 
@@ -513,11 +513,13 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     // 2. Pre-generate and save a large map and save it to LDB
     for (unsigned int i = 0; i < hodlers; i++) {
       std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
+      std::string hodler_str;
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
+      DataConversion::Uint8VecToHexStr(hodler, hodler_str);
       std::string hodlerNumTokens = "1";
 
       Json::Value kvPair;
-      kvPair["key"] = "0x" + DataConversion::Uint8VecToHexStr(hodler);
+      kvPair["key"] = "0x" + hodler_str;
       kvPair["val"] = hodlerNumTokens;
 
       for (auto& it : t2.state) {
@@ -525,8 +527,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
           // we have to artifically insert the owner here
           if (i == 0) {
             Json::Value ownerBal;
-            ownerBal["key"] =
-                "0x" + DataConversion::Uint8VecToHexStr(ownerAddr.asBytes());
+            ownerBal["key"] = "0x" + ownerAddr.hex();
             ownerBal["val"] = "88888888";
             it["value"][i] = ownerBal;
             continue;
@@ -581,19 +582,19 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
   std::string numTokensOwned = "1";
 
-  KeyPair owner(priv1, {priv1});
-  KeyPair sender;  // also an operator, assigned later.
+  PairOfKey owner(priv1, {priv1});
+  PairOfKey sender;  // also an operator, assigned later.
   Address ownerAddr, senderAddr, contrAddr;
 
-  vector<KeyPair> operators;
+  vector<PairOfKey> operators;
   vector<Address> operatorAddrs;
 
   uint64_t ownerNonce = 0;
   uint64_t senderNonce = 0;
 
-  // generate operator keypairs
+  // generate operator PairOfKeys
   for (unsigned int i = 0; i < numOperators; i++) {
-    KeyPair oprtr = Schnorr::GetInstance().GenKeyPair();
+    PairOfKey oprtr = Schnorr::GetInstance().GenKeyPair();
     Address operatorAddr = Account::GetAddressFromPublicKey(oprtr.second);
     operators.emplace_back(oprtr);
     operatorAddrs.emplace_back(operatorAddr);
@@ -794,9 +795,9 @@ BOOST_AUTO_TEST_CASE(testDEX) {
   const unsigned int numOrders = 1000;
   std::string numTokensOwned = "1";
 
-  KeyPair ownerToken1(priv1, {priv1});
-  KeyPair ownerToken2(priv2, {priv2});
-  KeyPair ownerDex(priv3, {priv3});
+  PairOfKey ownerToken1(priv1, {priv1});
+  PairOfKey ownerToken2(priv2, {priv2});
+  PairOfKey ownerDex(priv3, {priv3});
 
   Address ownerToken1Addr, ownerToken2Addr, ownerDexAddr, token1Addr,
       token2Addr, dexAddr;
@@ -880,11 +881,13 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     // Insert hodlers artifically
     for (unsigned int i = 0; i < hodlers; i++) {
       std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
+      std::string hodlerAddr;
+      DataConversion::Uint8VecToHexStr(hodler, hodlerAddr);
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
       std::string hodlerNumTokens = "1";
 
       Json::Value kvPair;
-      kvPair["key"] = "0x" + DataConversion::Uint8VecToHexStr(hodler);
+      kvPair["key"] = "0x" + hodlerAddr;
       kvPair["val"] = hodlerNumTokens;
 
       for (auto& it : fungibleTokenT5.state) {
@@ -978,18 +981,21 @@ BOOST_AUTO_TEST_CASE(testDEX) {
       Json::Value info;
 
       std::vector<unsigned char> sender(ACC_ADDR_SIZE);
+      std::string sender_str;
+      DataConversion::Uint8VecToHexStr(sender, sender_str);
       RAND_bytes(sender.data(), ACC_ADDR_SIZE);
 
       std::vector<unsigned char> orderId(COMMON_HASH_SIZE);
+      std::string orderId_str;
+      DataConversion::Uint8VecToHexStr(orderId, orderId_str);
       RAND_bytes(orderId.data(), COMMON_HASH_SIZE);
-      std::string orderIdHex = "0x" + DataConversion::Uint8VecToHexStr(orderId);
+      std::string orderIdHex = "0x" + orderId_str;
 
       info["key"] = orderIdHex;
       info["val"]["constructor"] = "Pair";
       info["val"]["argtypes"][0] = "ByStr20";
       info["val"]["argtypes"][1] = "BNum";
-      info["val"]["arguments"][0] =
-          "0x" + DataConversion::Uint8VecToHexStr(sender);
+      info["val"]["arguments"][0] = "0x" + sender_str;
       info["val"]["arguments"][1] = "168";
       orderInfo[i] = info;
 
