@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef __POW_H__
@@ -26,6 +24,8 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
+#include <jsonrpccpp/client.h>
+#include <jsonrpccpp/client/connectors/httpclient.h>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -50,8 +50,7 @@ typedef struct ethash_mining_result {
 class POW {
   static std::string BytesToHexString(const uint8_t* str, const uint64_t s);
   static int FromHex(char _i);
-  static std::vector<uint8_t> HexStringToBytes(std::string const& _s);
-  static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
+  static bytes HexStringToBytes(std::string const& _s);
   std::mutex m_mutexLightClientConfigure;
   std::mutex m_mutexPoWMine;
 
@@ -81,6 +80,7 @@ class POW {
 
   /// Triggers the proof-of-work mining.
   ethash_mining_result_t PoWMine(uint64_t blockNum, uint8_t difficulty,
+                                 const PairOfKey& pairOfKey,
                                  const ethash_hash256& headerHash,
                                  bool fullDataset, uint64_t startNonce);
 
@@ -97,13 +97,35 @@ class POW {
       const std::array<unsigned char, UINT256_SIZE>& rand2,
       const boost::multiprecision::uint128_t& ipAddr, const PubKey& pubKey,
       uint32_t lookupId, const boost::multiprecision::uint128_t& gasPrice);
-  ethash::result LightHash(uint64_t blockNum, ethash_hash256 const& header_hash,
+  static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
+  ethash::result LightHash(uint64_t blockNum, ethash_hash256 const& headerHash,
                            uint64_t nonce);
   bool CheckSolnAgainstsTargetedDifficulty(const ethash_hash256& result,
                                            uint8_t difficulty);
   bool CheckSolnAgainstsTargetedDifficulty(const std::string& result,
                                            uint8_t difficulty);
   static std::set<unsigned int> GetGpuToUse();
+
+  // Put it to public function so can directly test with it
+  ethash_mining_result_t RemoteMine(const PairOfKey& pairOfKey,
+                                    uint64_t blockNum,
+                                    ethash_hash256 const& headerHash,
+                                    ethash_hash256 const& boundary);
+
+  bool SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
+                       ethash_hash256 const& headerHash,
+                       ethash_hash256 const& boundary);
+  bool CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
+                         ethash_hash256 const& headerHash,
+                         ethash_hash256 const& boundary,
+                         ethash_mining_result_t& miningResult);
+  bool VerifyRemoteSoln(uint64_t blockNum, ethash_hash256 const& boundary,
+                        uint64_t nonce, const ethash_hash256& headerHash,
+                        const ethash_hash256& mixHash,
+                        ethash_hash256& hashResult);
+  bool SendVerifyResult(const PairOfKey& pairOfKey,
+                        const ethash_hash256& headerHash,
+                        ethash_hash256 const& boundary, bool verifyResult);
 
  private:
   std::shared_ptr<ethash::epoch_context> m_epochContextLight = nullptr;
@@ -115,20 +137,21 @@ class POW {
   std::atomic<int> m_minerIndex;
   std::condition_variable m_cvMiningResult;
   std::mutex m_mutexMiningResult;
+  std::unique_ptr<jsonrpc::HttpClient> m_httpClient;
 
-  ethash_mining_result_t MineLight(ethash_hash256 const& header_hash,
+  ethash_mining_result_t MineLight(ethash_hash256 const& headerHash,
                                    ethash_hash256 const& boundary,
                                    uint64_t startNonce);
-  ethash_mining_result_t MineFull(ethash_hash256 const& header_hash,
+  ethash_mining_result_t MineFull(ethash_hash256 const& headerHash,
                                   ethash_hash256 const& boundary,
                                   uint64_t startNonce);
   ethash_mining_result_t MineGetWork(uint64_t blockNum,
-                                     ethash_hash256 const& header_hash,
+                                     ethash_hash256 const& headerHash,
                                      uint8_t difficulty);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
-                                     ethash_hash256 const& header_hash,
+                                     ethash_hash256 const& headerHash,
                                      uint8_t difficulty, uint64_t startNonce);
-  void MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& header_hash,
+  void MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
                          uint8_t difficulty, uint64_t nonce);
   void InitOpenCL();
   void InitCUDA();

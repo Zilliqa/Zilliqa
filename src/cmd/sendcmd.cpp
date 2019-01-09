@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <arpa/inet.h>
@@ -72,7 +70,12 @@ void process_addpeers(int numargs, const char* progname, const char* cmdname,
       // Public key
       // Temporarily just accept the public key as an input (for use with the
       // peer store)
-      vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[i++]);
+      bytes tmp;
+      if (!DataConversion::HexStrToUint8Vec(args[i++], tmp)) {
+        cout << "invalid args" << endl;
+        return;
+      }
+
       addnode_message.resize(MessageOffset::BODY + tmp.size());
       copy(tmp.begin(), tmp.end(),
            addnode_message.begin() + MessageOffset::BODY);
@@ -133,7 +136,11 @@ void process_cmd(int numargs, const char* progname, const char* cmdname,
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
     // Send the generic message to the local node
-    vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
+    bytes tmp;
+    if (!DataConversion::HexStrToUint8Vec(args[0], tmp)) {
+      cout << "invalid args" << endl;
+      return;
+    }
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }
@@ -152,7 +159,11 @@ void process_remote_cmd(int numargs, const char* progname, const char* cmdname,
     inet_pton(AF_INET, remote_ip, &ip_addr);
     Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
 
-    vector<unsigned char> tmp = DataConversion::HexStrToUint8Vec(args[0]);
+    bytes tmp;
+    if (!DataConversion::HexStrToUint8Vec(args[0], tmp)) {
+      cout << "invalid args" << endl;
+      return;
+    }
     P2PComm::GetInstance().SendMessageNoQueue(my_port, tmp);
   }
 }

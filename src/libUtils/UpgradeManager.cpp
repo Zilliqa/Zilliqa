@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "UpgradeManager.h"
@@ -250,7 +248,11 @@ bool UpgradeManager::HasNewSW() {
     string pubKey;
 
     while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
-      pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(pubKey), 0);
+      bytes tempPubKeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(pubKey, tempPubKeyBytes)) {
+        continue;
+      }
+      pubKeys.emplace_back(tempPubKeyBytes, 0);
     }
   }
 
@@ -274,13 +276,23 @@ bool UpgradeManager::HasNewSW() {
 
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
-  const bytes sha = DataConversion::HexStrToUint8Vec(shaStr);
+  bytes tempSha;
+  if (!DataConversion::HexStrToUint8Vec(shaStr, tempSha)) {
+    return false;
+  }
+
+  const bytes sha = tempSha;
+
   const unsigned int len = sigStr.size() / pubKeys.size();
   vector<Signature> mutliSig;
 
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    mutliSig.emplace_back(
-        DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len)), 0);
+    bytes tempMultisigBytes;
+    if (!DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len),
+                                          tempMultisigBytes)) {
+      continue;
+    }
+    mutliSig.emplace_back(tempMultisigBytes, 0);
   }
 
   /// Multi-sig verification
@@ -402,7 +414,8 @@ bool UpgradeManager::DownloadSW() {
               (istreambuf_iterator<char>()));
     sha2.Update(vec, 0, vec.size());
     bytes output = sha2.Finalize();
-    downloadSha = DataConversion::Uint8VecToHexStr(output);
+    // No need check bool as sha2 will return hex
+    DataConversion::Uint8VecToHexStr(output, downloadSha);
   }
 
   if (sha != downloadSha) {
@@ -412,8 +425,8 @@ bool UpgradeManager::DownloadSW() {
   }
 
   m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
-  m_latestSHA = DataConversion::HexStrToUint8Vec(sha);
-  return true;
+
+  return DataConversion::HexStrToUint8Vec(sha, m_latestSHA);
 }
 
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
@@ -501,12 +514,18 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
-        initialDSCommittee.push_back(
-            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+          LOG_GENERAL(WARNING,
+                      "error loading "
+                          << ds_string
+                          << " using HexStrToUint8Vec(). Not a hex str");
+          continue;
+        }
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
 
       bytes message;
-
       unsigned int curr_offset = 0;
       for (auto& dsKey : initialDSCommittee) {
         dsKey.Serialize(message, curr_offset);
@@ -516,8 +535,17 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       string sig_str = ReadDSCommFile(signatureProp);
       string pubKey_str = ReadDSCommFile(publicKeyProp);
 
-      PubKey pubKey(DataConversion::HexStrToUint8Vec(pubKey_str), 0);
-      Signature sig(DataConversion::HexStrToUint8Vec(sig_str), 0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubkeyBytes)) {
+        return false;
+      }
+      PubKey pubKey(pubkeyBytes, 0);
+
+      bytes sigBytes;
+      if (!DataConversion::HexStrToUint8Vec(sig_str, sigBytes)) {
+        return false;
+      }
+      Signature sig(sigBytes, 0);
 
       if (!Schnorr::GetInstance().Verify(message, sig, pubKey)) {
         LOG_GENERAL(WARNING, "Unable to verify file");
@@ -529,8 +557,11 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
-        initialDSCommittee.push_back(
-            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+          return false;
+        }
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
     }
 

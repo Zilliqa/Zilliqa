@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <array>
@@ -78,8 +76,11 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
   ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
 
-  ret_body["HeaderSign"] =
-      DataConversion::SerializableToHexStr(txblock.GetCS2());
+  std::string HeaderSignStr;
+  if (!DataConversion::SerializableToHexStr(txblock.GetCS2(), HeaderSignStr)) {
+    return ret;  // empty ret
+  }
+  ret_body["HeaderSign"] = HeaderSignStr;
 
   ret_body["MicroBlockInfos"] =
       convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
@@ -96,8 +97,11 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   Json::Value ret_sign;
 
   const DSBlockHeader& dshead = dsblock.GetHeader();
-
-  ret_sign = DataConversion::SerializableToHexStr(dsblock.GetCS2());
+  string retSigstr;
+  if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retSigstr)) {
+    return ret;
+  }
+  ret_sign = retSigstr;
 
   ret_header["Difficulty"] = dshead.GetDifficulty();
   ret_header["PrevHash"] = dshead.GetPrevHash().hex();
@@ -126,7 +130,12 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
-  bytes toAddr_ser = DataConversion::HexStrToUint8Vec(toAddr_str);
+
+  bytes toAddr_ser;
+  if (!DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)) {
+    LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
+    return Transaction();
+  }
   Address toAddr(toAddr_ser);
 
   string amount_str = _json["amount"].asString();
@@ -138,11 +147,19 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
   string pubKey_str = _json["pubKey"].asString();
-  bytes pubKey_ser = DataConversion::HexStrToUint8Vec(pubKey_str);
+  bytes pubKey_ser;
+  if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)) {
+    LOG_GENERAL(WARNING, "json cointaining invalid hex str for pubkey");
+    return Transaction();
+  }
   PubKey pubKey(pubKey_ser, 0);
 
   string sign_str = _json["signature"].asString();
-  bytes sign = DataConversion::HexStrToUint8Vec(sign_str);
+  bytes sign;
+  if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
+    LOG_GENERAL(WARNING, "json cointaining invalid hex str for sign");
+    return Transaction();
+  }
 
   bytes code, data;
 
