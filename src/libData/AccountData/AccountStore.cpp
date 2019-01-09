@@ -28,6 +28,7 @@
 using namespace std;
 using namespace dev;
 using namespace boost::multiprecision;
+using namespace Contract;
 
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);

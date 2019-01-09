@@ -17,6 +17,8 @@
 
 #include "libPersistence/ContractStorage.h"
 
+using namespace Contract;
+
 #define RLP_ITEM_COUNT 4
 
 template <class DB, class MAP>

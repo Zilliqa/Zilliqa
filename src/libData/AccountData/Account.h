@@ -56,8 +56,6 @@ class Account : public SerializableDataBlock {
   bytes m_initData;
   bytes m_codeCache;
 
-  const dev::h256 GetKeyHash(const std::string& key) const;
-
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
  public:

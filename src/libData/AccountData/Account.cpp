@@ -32,6 +32,8 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace dev;
 
+using namespace Contract;
+
 Account::Account() {}
 
 Account::Account(const bytes& src, unsigned int offset) {
@@ -216,7 +218,7 @@ void Account::SetStorage(string k, string type, string v, bool is_mutable) {
   RLPStream rlpStream(4);
   rlpStream << k << (is_mutable ? "True" : "False") << type << v;
 
-  m_storage.insert(GetKeyHash(k), rlpStream.out());
+  m_storage.insert(Contract::GetKeyHash(k), rlpStream.out());
 
   m_storageRoot = m_storage.root();
 }
@@ -236,7 +238,7 @@ vector<string> Account::GetStorage(const string& _k) const {
     return {};
   }
 
-  dev::RLP rlp(m_storage.at(GetKeyHash(_k)));
+  dev::RLP rlp(m_storage.at(Contract::GetKeyHash(_k)));
   // mutable, type, value
   return {rlp[1].toString(), rlp[2].toString(), rlp[3].toString()};
 }
@@ -397,9 +399,3 @@ void Account::SetCode(const bytes& code) {
 const bytes& Account::GetCode() const { return m_codeCache; }
 
 const dev::h256& Account::GetCodeHash() const { return m_codeHash; }
-
-const h256 Account::GetKeyHash(const string& key) const {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(DataConversion::StringToCharArray(key));
-  return h256(sha2.Finalize());
-}
