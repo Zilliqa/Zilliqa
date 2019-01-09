@@ -131,8 +131,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string nonce_str = _json["nonce"].asString();
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
-  string toAddr_str = _json["toAddr"].asString();
-
+  string toAddr_str = boost::to_lower_copy(_json["toAddr"].asString());
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
@@ -224,9 +223,11 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
                             << _json["signature"].asString().size());
       return false;
     }
-    if (_json["toAddr"].asString().size() != ACC_ADDR_SIZE * 2) {
-      LOG_GENERAL(
-          INFO, "To Address size wrong " << _json["toAddr"].asString().size());
+    string lower_case_addr;
+    if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
+                                                lower_case_addr)) {
+      LOG_GENERAL(INFO,
+                  "To Address checksum wrong " << _json["toAddr"].asString());
       return false;
     }
   } else {
