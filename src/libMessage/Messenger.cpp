@@ -297,7 +297,8 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   }
 }
 
-bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
+bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
+                       const Address& addr) {
   uint128_t tmpNumber;
 
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
@@ -347,7 +348,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
       tmpVec.resize(protoAccount.initdata().size());
       copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
            tmpVec.begin());
-      account.InitContract(tmpVec);
+      account.InitContract(tmpVec, addr);
     }
 
     for (const auto& entry : protoAccount.storage()) {
@@ -434,7 +435,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 }
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
-                            const bool fullCopy) {
+                            const Address& addr, const bool fullCopy) {
   uint128_t tmpNumber;
 
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
@@ -486,7 +487,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
     if (tmpStorageRoot != account.GetStorageRoot()) {
       if (doInitContract) {
-        account.InitContract();
+        account.InitContract(addr);
       }
 
       dev::h256 tmpHash;
@@ -2063,9 +2064,8 @@ bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-[[gnu::unused]] bool Messenger::GetAccount(const bytes& src,
-                                           const unsigned int offset,
-                                           Account& account) {
+bool Messenger::GetAccount(const bytes& src, const unsigned int offset,
+                           Account& account) {
   ProtoAccount result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2075,7 +2075,9 @@ bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
     return false;
   }
 
-  if (!ProtobufToAccount(result, account)) {
+  Address address;
+
+  if (!ProtobufToAccount(result, account, address)) {
     LOG_GENERAL(WARNING, "ProtobufToAccount failed.");
     return false;
   }
@@ -2096,25 +2098,6 @@ bool Messenger::SetAccountDelta(bytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetAccountDelta(const bytes& src, const unsigned int offset,
-                                Account& account, const bool fullCopy) {
-  ProtoAccount result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
-    return false;
-  }
-
-  if (!ProtobufToAccountDelta(result, account, fullCopy)) {
-    LOG_GENERAL(WARNING, "ProtobufToAccountDelta failed.");
-    return false;
-  }
-
-  return true;
 }
 
 template <class MAP>
@@ -2167,7 +2150,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
          address.asArray().begin());
-    if (!ProtobufToAccount(entry.account(), account)) {
+    if (!ProtobufToAccount(entry.account(), account, address)) {
       LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
                                << entry.address());
       return false;
@@ -2201,7 +2184,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
          address.asArray().begin());
-    if (!ProtobufToAccount(entry.account(), account)) {
+    if (!ProtobufToAccount(entry.account(), account, address)) {
       LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
                                << entry.address());
       return false;
@@ -2317,7 +2300,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     }
 
     account = *oriAccount;
-    if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
@@ -2373,7 +2356,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
     account = *oriAccount;
 
-    if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
