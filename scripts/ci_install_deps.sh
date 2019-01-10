@@ -83,9 +83,8 @@ apt-get install -y \
     libminiupnpc-dev \
     libevent-dev \
     libprotobuf-dev \
-    protobuf-compiler \
-    autoconf \
-    libtool-bin
+    libcurl4-openssl-dev \
+    protobuf-compiler
 
 # install development dependencies
 apt-get install -y \
