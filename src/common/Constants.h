@@ -307,4 +307,5 @@ extern const std::vector<std::string> GENESIS_KEYS;
 // DBVerifier constants
 extern const std::string VERIFIER_PATH;
 extern const std::string VERIFIER_PUBKEY;
+extern const unsigned int SEED_PORT;
 #endif  // __CONSTANTS_H__
