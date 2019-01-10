@@ -52,9 +52,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-const string MULTIPLIER_PUBKEY =
-    "000000000000000000000000000000000000000000000000000000000000000000";
-
 Lookup::Lookup(Mediator& mediator) : m_mediator(mediator) {
   SetLookupNodes();
   SetAboveLayer();

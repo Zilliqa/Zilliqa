@@ -2109,8 +2109,6 @@ void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
 
   // Get the pubKeys for lookup nodes
   for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
-    if (i.first.Initialized()) {
-      pubKeys.emplace_back(i.first);
-    }
+    pubKeys.emplace_back(i.first);
   }
 }
