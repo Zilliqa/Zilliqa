@@ -1130,16 +1130,19 @@ Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum,
   for (auto const& mbInfo : microBlockInfos) {
     MicroBlockSharedPtr mbptr;
     if (mbInfo.m_txnRootHash == TxnHash() && mbInfo.m_shardId == shardID) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER, "Shard has no txns empty");
+      throw JsonRpcException(RPC_DATABASE_ERROR,
+                             "Shard microblock has no transactions");
     }
     if (mbInfo.m_shardId == shardID) {
       if (!BlockStorage::GetBlockStorage().GetMicroBlock(
               mbInfo.m_microBlockHash, mbptr)) {
         if (!m_mediator.m_lookup->m_historicalDB) {
-          throw JsonRpcException(RPC_MISC_ERROR, "Failed to get Microblock");
+          throw JsonRpcException(RPC_DATABASE_ERROR,
+                                 "Failed to get Microblock");
         } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
                        mbInfo.m_microBlockHash, mbptr)) {
-          throw JsonRpcException(RPC_MISC_ERROR, "Failed to get Microblock");
+          throw JsonRpcException(RPC_DATABASE_ERROR,
+                                 "Failed to get Microblock");
         }
       }
       auto tranHashes = mbptr->GetTranHashes();
