@@ -1583,6 +1583,11 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
         continue;
       }
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
+      // Store DS Block to disk
+      bytes serializedDSBlock;
+      dsblock.Serialize(serializedDSBlock, 0);
+      BlockStorage::GetBlockStorage().PutDSBlock(
+          dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
     }
 
     if (m_syncType == SyncType::DS_SYNC ||
@@ -1720,6 +1725,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     LogTxBlock(txBlock, m_mediator.m_currentEpochNum);
 
     m_mediator.m_node->AddBlock(txBlock);
+    // Store Tx Block to disk
+    bytes serializedTxBlock;
+    txBlock.Serialize(serializedTxBlock, 0);
+    BlockStorage::GetBlockStorage().PutTxBlock(
+        txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
   }
 
   m_mediator.m_currentEpochNum =
