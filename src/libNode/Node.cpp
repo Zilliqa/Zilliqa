@@ -482,7 +482,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     Blacklist::GetInstance().Enable(false);
   }
 
-  if (!LOOKUP_NODE_MODE  &&
+  if (!LOOKUP_NODE_MODE &&
       (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
                           << WAIT_LOOKUP_WAKEUP_IN_SECONDS
