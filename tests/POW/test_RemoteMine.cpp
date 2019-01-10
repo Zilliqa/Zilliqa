@@ -54,7 +54,7 @@ void TestRemoteMineCase_1() {
   PairOfKey keyPair(privKey, pubKey);
 
   // Light client mine and verify
-  uint8_t difficultyToUse = 3;
+  uint8_t difficultyToUse = POW_DIFFICULTY;
   uint64_t blockToUse = 1000;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   auto boundary = POW::DifficultyLevelInInt(difficultyToUse);
@@ -67,7 +67,7 @@ void TestRemoteMineCase_1() {
   std::cout << "Verify difficulty " << std::to_string(difficultyToUse)
             << " result " << verifyLight << std::endl;
 
-  difficultyToUse = 5;
+  difficultyToUse = DS_POW_DIFFICULTY;
   boundary = POW::DifficultyLevelInInt(difficultyToUse);
 
   winning_result =
