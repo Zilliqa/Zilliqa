@@ -239,6 +239,8 @@ const bool EXCLUDE_PRIV_IP{
     ReadConstantString("EXCLUDE_PRIV_IP", "node.guard_mode.") == "true"};
 const unsigned int WINDOW_FOR_DS_NETWORK_INFO_UPDATE{ReadConstantNumeric(
     "WINDOW_FOR_DS_NETWORK_INFO_UPDATE", "node.guard_mode.")};
+const unsigned int GUARD_NODE_DIFFICULTY{
+    ReadConstantNumeric("GUARD_NODE_DIFFICULTY", "node.guard_mode.")};
 
 // Heartbeat constants
 const unsigned int HEARTBEAT_INTERVAL_IN_SECONDS{

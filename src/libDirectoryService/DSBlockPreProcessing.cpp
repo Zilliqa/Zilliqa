@@ -454,10 +454,11 @@ bool DirectoryService::VerifyPoWOrdering(
               m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
               peer.m_ipAddress, toFind, powSoln.lookupId, powSoln.gasPrice);
 
-          // If it's a shard guard, use difficulty=1 only
+          // If it's a shard guard, use difficulty=GUARD_NODE_DIFFICULTY
           auto difficulty =
-              (Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
-                  ? 1
+              (GUARD_MODE &&
+               Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
+                  ? GUARD_NODE_DIFFICULTY
                   : m_mediator.m_dsBlockChain.GetLastBlock()
                         .GetHeader()
                         .GetDifficulty();
