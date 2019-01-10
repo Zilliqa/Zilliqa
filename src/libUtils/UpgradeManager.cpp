@@ -333,21 +333,21 @@ bool UpgradeManager::HasNewSW() {
   }
 
   if (0 != scillaSigStr.size()) {
-      if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
-          return false;
-      }
+    if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
+      return false;
+    }
 
-      const bytes scillaSha = tempSha;
+    const bytes scillaSha = tempSha;
     const unsigned int len = scillaSigStr.size() / pubKeys.size();
     vector<Signature> scillaMutliSig;
 
     for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-        bytes tempMultisigBytes;
-        if (!DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len),
-                                              tempMultisigBytes)) {
-            continue;
-        }
-        scillaMutliSig.emplace_back(tempMultisigBytes, 0);
+      bytes tempMultisigBytes;
+      if (!DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len),
+                                            tempMultisigBytes)) {
+        continue;
+      }
+      scillaMutliSig.emplace_back(tempMultisigBytes, 0);
     }
 
     /// Multi-sig verification

@@ -43,6 +43,8 @@ class UpgradeManager {
   UpgradeManager(UpgradeManager const&) = delete;
   void operator=(UpgradeManager const&) = delete;
 
+  static bool UnconfigureScillaPackage();
+
  public:
   /// Returns the singleton UpgradeManager instance.
   static UpgradeManager& GetInstance();
@@ -59,8 +61,6 @@ class UpgradeManager {
 
   /// Install downloaded scilla to /scilla/majorVersion/
   bool InstallScilla();
-
-  static bool UnconfigureScillaPackage();
 
   const std::shared_ptr<SWInfo> GetLatestSWInfo() { return m_latestSWInfo; }
 
