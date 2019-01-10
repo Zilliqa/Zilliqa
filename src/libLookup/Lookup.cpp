@@ -2421,12 +2421,11 @@ bool Lookup::ProcessRaiseStartPoW([[gnu::unused]] const bytes& message,
   }
 
   PubKey expectedDSLeadePubkey;
-  if (Node::GetDSLeaderPubkey(
+  if (!Node::GetDSLeaderPubkey(
           m_mediator.m_blocklinkchain.GetLatestBlockLink(),
           m_mediator.m_dsBlockChain.GetLastBlock(), *m_mediator.m_DSCommittee,
           m_mediator.m_currentEpochNum, expectedDSLeadePubkey)) {
     LOG_GENERAL(WARNING, "Does not know expected ds leader");
-
     return false;
   }
 
