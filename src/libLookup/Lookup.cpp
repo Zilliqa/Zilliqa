@@ -460,7 +460,6 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
                                 }) == m_multipliers.end();
                });
 
-  LOG_GENERAL(INFO, "No. of total lookups: " << tmp.size());
   int index = rand() % tmp.size();
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmp[index].second);
   P2PComm::GetInstance().SendMessage(tmp[index].second, message);
