@@ -393,13 +393,6 @@ bool UpgradeManager::DownloadSW() {
     return false;
   }
 
-  m_constantArchivalFileName = DownloadFile(CONSTANT_ARCHIVAL_FILE_NAME);
-
-  if (m_constantArchivalFileName.empty()) {
-    LOG_GENERAL(WARNING, "Cannot download constant archival file!");
-    return false;
-  }
-
   LOG_GENERAL(INFO, "Constant file has been downloaded successfully.");
 
   m_zilliqaPackageFileName = DownloadFile(ZILLIQA_PACKAGE_FILE_EXTENSION);

@@ -32,7 +32,6 @@ class UpgradeManager {
   CURL* m_curl;
   std::string m_constantFileName;
   std::string m_constantLookupFileName;
-  std::string m_constantArchivalFileName;
   std::string m_zilliqaPackageFileName, m_scillaPackageFileName;
   std::mutex m_downloadMutex;
 
