@@ -2089,6 +2089,46 @@ std::string Node::GetActionString(Action action) const {
   return true;
 }
 
+/*static*/ bool Node::GetDSLeaderPubkey(const BlockLink& lastBlockLink,
+                                        const DSBlock& latestDSBlock,
+                                        const DequeOfDSNode& dsCommittee,
+                                        const uint64_t epochNumber,
+                                        PubKey& dsLeaderPubkey) {
+  const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
+  if (blocktype == BlockType::DS) {
+    uint16_t lastBlockHash = 0;
+    // To cater for boostrap of blockchain. The zero and first epoch the DS
+    // leader is at index0
+    if (latestDSBlock.GetHeader().GetBlockNum() > 1) {
+      lastBlockHash = DataConversion::charArrTo16Bits(
+          latestDSBlock.GetHeader().GetHashForRandom().asBytes());
+    }
+
+    uint32_t leader_id = 0;
+    if (!GUARD_MODE) {
+      leader_id = lastBlockHash % dsCommittee.size();
+    } else {
+      leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+    }
+    dsLeaderPubkey = dsCommittee.at(leader_id).first;
+    LOG_EPOCH(INFO, to_string(epochNumber).c_str(),
+              "lastBlockHash " << lastBlockHash << ", current ds leader id "
+                               << leader_id << ", Pubkey " << dsLeaderPubkey);
+  } else if (blocktype == BlockType::VC) {
+    VCBlockSharedPtr VCBlockptr;
+    if (!BlockStorage::GetBlockStorage().GetVCBlock(
+            get<BlockLinkIndex::BLOCKHASH>(lastBlockLink), VCBlockptr)) {
+      LOG_GENERAL(WARNING, "Failed to get VC block");
+      return false;
+    } else {
+      dsLeaderPubkey = VCBlockptr->GetHeader().GetCandidateLeaderPubKey();
+    }
+  } else {
+    return false;
+  }
+  return true;
+}
+
 void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
                                     std::vector<PubKey>& pubKeys) {
   peers.clear();
