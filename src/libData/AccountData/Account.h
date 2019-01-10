@@ -30,6 +30,7 @@
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libPersistence/ContractStorage.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -137,6 +138,8 @@ class Account : public SerializableDataBlock {
 
   bool SetStorage(const Address& addr,
                   const std::vector<std::pair<dev::h256, bytes>>& entries);
+
+  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries);
 
   std::string GetRawStorage(const dev::h256& k_hash) const;
 

@@ -224,6 +224,8 @@ bool AccountStore::MoveUpdatesToDisk() {
     return false;
   }
 
+  m_addressToAccount->clear();
+
   return true;
 }
 

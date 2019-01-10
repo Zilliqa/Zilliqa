@@ -22,7 +22,6 @@
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
-#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -234,6 +233,11 @@ void Account::SetStorage(string k, string type, string v, bool is_mutable) {
   m_storage.insert(GetKeyHash(k), rlpStream.out());
 
   m_storageRoot = m_storage.root();
+}
+
+bool Account::SetStorage(const vector<StateEntry>& state_entries) {
+  return ContractStorage::GetContractStorage().PutContractState(
+      m_address, state_entries, m_storageRoot);
 }
 
 void Account::SetStorage(const h256& k_hash, const string& rlpStr) {
