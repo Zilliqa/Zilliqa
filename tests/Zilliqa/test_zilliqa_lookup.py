@@ -102,6 +102,7 @@ def run_setup(numnodes, printnodes):
 	keypairs.sort()
 
 	patch_lookup_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
+	patch_seed_pubkey(LOCAL_FOLDER + "/constants_local.xml", keypairs, count)
 	nodes = ET.Element("nodes")
 
 	# Store sorted keys list in text file
@@ -161,6 +162,17 @@ def patch_lookup_pubkey(filepath, keypairs, count):
             elems[x].text = keypair[0]
         tree = ET.ElementTree(root)
         tree.write(filepath)
+
+def patch_seed_pubkey(filepath, keypairs, count):
+    root = ET.parse(filepath).getroot()
+    td = root.find('upper_seed')
+    elems = td.findall('peer/pubkey')
+    for x in range(0, count):
+        keypair = keypairs[x].split(" ")
+        elems[x].text = keypair[0]
+    tree = ET.ElementTree(root)
+    tree.write(filepath)
+
 
 def run_start():
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)

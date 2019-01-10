@@ -223,13 +223,11 @@
         </peer>
     </lookups>
     <upper_seed>
-        <!--
         <peer>
-            <ip></ip>
-            <port>30303</port>
-            <pubkey></pubkey>
+            <ip>127.0.0.1</ip>
+            <port>4001</port>
+            <pubkey/>
         </peer>
-        -->
     </upper_seed>
     <lower_seed>
         <!--
