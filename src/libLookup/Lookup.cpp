@@ -1392,15 +1392,6 @@ bool Lookup::ProcessSetMicroBlockFromLookup(const bytes& message,
     LOG_GENERAL(INFO, "[SendMB]"
                           << " Recvd " << mb.GetHeader().GetEpochNum()
                           << " MBHash:" << mb.GetBlockHash());
-
-    if (ARCHIVAL_NODE) {
-      if (!m_mediator.m_archival->RemoveFromFetchMicroBlockInfo(
-              mb.GetBlockHash())) {
-        LOG_GENERAL(WARNING, "Error in remove fetch micro block");
-        continue;
-      }
-      m_mediator.m_archival->AddToUnFetchedTxn(mb.GetTranHashes());
-    }
   }
 
   return true;
@@ -1593,14 +1584,10 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
       }
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
       // Store DS Block to disk
-      if (!ARCHIVAL_NODE) {
-        bytes serializedDSBlock;
-        dsblock.Serialize(serializedDSBlock, 0);
-        BlockStorage::GetBlockStorage().PutDSBlock(
-            dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
-      } else {
-        m_mediator.m_archDB->InsertDSBlock(dsblock);
-      }
+      bytes serializedDSBlock;
+      dsblock.Serialize(serializedDSBlock, 0);
+      BlockStorage::GetBlockStorage().PutDSBlock(
+          dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
     }
 
     if (m_syncType == SyncType::DS_SYNC ||
@@ -1738,25 +1725,11 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     LogTxBlock(txBlock, m_mediator.m_currentEpochNum);
 
     m_mediator.m_node->AddBlock(txBlock);
-
     // Store Tx Block to disk
-    if (!ARCHIVAL_NODE) {
-      bytes serializedTxBlock;
-      txBlock.Serialize(serializedTxBlock, 0);
-      BlockStorage::GetBlockStorage().PutTxBlock(
-          txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
-    } else {
-      for (const auto& info : txBlock.GetMicroBlockInfos()) {
-        if (info.m_txnRootHash != TxnHash()) {
-          m_mediator.m_archival->AddToFetchMicroBlockInfo(
-              info.m_microBlockHash);
-        } else {
-          LOG_GENERAL(INFO, "MicroBlock of hash " << info.m_microBlockHash.hex()
-                                                  << " empty");
-        }
-      }
-      m_mediator.m_archDB->InsertTxBlock(txBlock);
-    }
+    bytes serializedTxBlock;
+    txBlock.Serialize(serializedTxBlock, 0);
+    BlockStorage::GetBlockStorage().PutTxBlock(
+        txBlock.GetHeader().GetBlockNum(), serializedTxBlock);
   }
 
   m_mediator.m_currentEpochNum =
@@ -1767,8 +1740,7 @@ void Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
 
   m_mediator.UpdateTxBlockRand();
 
-  if ((m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) &&
-      !ARCHIVAL_NODE) {
+  if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW == 0) {
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "At new DS epoch now, try getting state from lookup");
     GetStateFromSeedNodes();
@@ -1856,11 +1828,6 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
   if (!AccountStore::GetInstance().Deserialize(accountStoreBytes, 0)) {
     LOG_GENERAL(WARNING, "Deserialize AccountStore Failed");
     return false;
-  }
-
-  if (ARCHIVAL_NODE) {
-    LOG_GENERAL(INFO, "Succesfull state change");
-    return true;
   }
 
   if (!LOOKUP_NODE_MODE) {
@@ -2029,9 +1996,6 @@ bool Lookup::ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (ARCHIVAL_NODE) {
-    m_mediator.m_archival->AddTxnToDB(txns, *m_mediator.m_archDB);
-  }
   return true;
 }
 
@@ -3077,12 +3041,7 @@ bool Lookup::Execute(const bytes& message, unsigned int offset,
   return result;
 }
 
-bool Lookup::AlreadyJoinedNetwork() {
-  if (ARCHIVAL_NODE) {
-    return false;
-  }
-  return m_syncType == SyncType::NO_SYNC;
-}
+bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
 
 bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId) {
   if (!LOOKUP_NODE_MODE) {

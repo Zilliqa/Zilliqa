@@ -69,11 +69,6 @@ const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
 
-// Archival constants
-const bool ARCHIVAL_NODE{
-    ReadConstantString("ARCHIVAL_NODE", "node.archival.") == "true"};
-const string DB_HOST{ReadConstantString("DB_HOST", "node.archival.")};
-
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};

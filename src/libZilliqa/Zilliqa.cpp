@@ -23,7 +23,6 @@
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "libArchival/Archival.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
@@ -135,10 +134,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
       m_ds(m_mediator),
       m_lookup(m_mediator),
       m_n(m_mediator, syncType, toRetrieveHistory),
-      m_db("archiveDB", "txn", "txBlock", "dsBlock", "accountState"),
-      m_arch(m_mediator)
-      //    , m_cu(key, peer)
-      ,
       m_msgQueue(MSGQUEUE_SIZE),
       m_httpserver(SERVER_PORT),
       m_server(m_mediator, m_httpserver)
@@ -162,22 +157,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
   DetachedFunction(1, funcCheckMsgQueue);
 
   m_validator = make_shared<Validator>(m_mediator);
-  if (ARCHIVAL_NODE) {
-    if (SyncType::RECOVERY_ALL_SYNC == syncType) {
-      LOG_GENERAL(INFO, "Archival node, wait "
-                            << WAIT_LOOKUP_WAKEUP_IN_SECONDS
-                            << " seconds for lookup wakeup...");
-      this_thread::sleep_for(chrono::seconds(WAIT_LOOKUP_WAKEUP_IN_SECONDS));
-    }
-
-    m_db.Init();
-    m_arch.Init();
-    m_arch.InitSync();
-    m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get(),
-                                  &m_db, &m_arch);
-  } else {
-    m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
-  }
+  m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
   {
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);

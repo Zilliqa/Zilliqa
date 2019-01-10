@@ -482,7 +482,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     Blacklist::GetInstance().Enable(false);
   }
 
-  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE &&
+  if (!LOOKUP_NODE_MODE &&
       (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
                           << WAIT_LOOKUP_WAKEUP_IN_SECONDS
@@ -508,8 +508,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes
-  if (!ARCHIVAL_NODE &&
-      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
+  if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
       !(LOOKUP_NODE_MODE && wakeupForUpgrade) &&
       SyncType::RECOVERY_ALL_SYNC != syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
@@ -614,23 +613,20 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve sharding structure and setup relative variables
-  if (!ARCHIVAL_NODE) {
-    BlockStorage::GetBlockStorage().GetShardStructure(
-        m_mediator.m_ds->m_shards);
+  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
 
-    if (!ipMapping.empty()) {
-      for (auto& shard : m_mediator.m_ds->m_shards) {
-        for (auto& node : shard) {
-          string pubKey;
-          if (!DataConversion::SerializableToHexStr(
-                  get<SHARD_NODE_PUBKEY>(node), pubKey)) {
-            LOG_GENERAL(WARNING, "Error converting pubkey to string");
-            continue;
-          }
+  if (!ipMapping.empty()) {
+    for (auto& shard : m_mediator.m_ds->m_shards) {
+      for (auto& node : shard) {
+        string pubKey;
+        if (!DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node),
+                                                  pubKey)) {
+          LOG_GENERAL(WARNING, "Error converting pubkey to string");
+          continue;
+        }
 
-          if (ipMapping.find(pubKey) != ipMapping.end()) {
-            get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
-          }
+        if (ipMapping.find(pubKey) != ipMapping.end()) {
+          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
         }
       }
     }

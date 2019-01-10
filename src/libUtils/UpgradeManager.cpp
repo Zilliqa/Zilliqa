@@ -478,10 +478,6 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
     boost::filesystem::copy_file(
         m_constantLookupFileName, CONSTANT_FILE_NAME,
         boost::filesystem::copy_option::overwrite_if_exists);
-  } else if (ARCHIVAL_NODE) {
-    boost::filesystem::copy_file(
-        m_constantArchivalFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
   } else {
     boost::filesystem::copy_file(
         m_constantFileName, CONSTANT_FILE_NAME,

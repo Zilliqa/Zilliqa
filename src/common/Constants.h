@@ -116,10 +116,6 @@ extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 
-// Archival constants
-extern const bool ARCHIVAL_NODE;
-extern const std::string DB_HOST;
-
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
