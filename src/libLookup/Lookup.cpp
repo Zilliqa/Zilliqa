@@ -418,7 +418,7 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
       if (find_if(m_multipliers.begin(), m_multipliers.end(),
-                  [node](const std::pair<PubKey, Peer>& mult) {
+                  [&node](const std::pair<PubKey, Peer>& mult) {
                     return node.second == mult.second;
                   }) != m_multipliers.end()) {
         continue;
@@ -452,7 +452,7 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
                std::back_inserter(tmp),
                [this](const std::pair<PubKey, Peer>& node) {
                  return find_if(m_multipliers.begin(), m_multipliers.end(),
-                                [node](const std::pair<PubKey, Peer>& mult) {
+                                [&node](const std::pair<PubKey, Peer>& mult) {
                                   return node.second == mult.second;
                                 }) == m_multipliers.end();
                });
