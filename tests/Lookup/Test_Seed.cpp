@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
     signature1.at(i) = i + 8;
   }
 
-  std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
   DSBlockHeader header1(20, prevHash1, 12344, pubKey1.first, pubKey1.second, 8,
                         789);

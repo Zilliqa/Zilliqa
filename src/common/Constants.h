@@ -231,11 +231,16 @@ extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
+extern const unsigned int MIN_READ_WATERMARK_IN_BYTES;
+extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
+extern const bool REMOTE_MINE;
+extern const std::string MINING_PROXY_URL;
+extern const unsigned int CHECK_MINING_RESULT_INTERVAL;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
@@ -259,6 +264,7 @@ extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
 extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
+extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 
 // Smart contract constants
 extern const std::string SCILLA_ROOT;

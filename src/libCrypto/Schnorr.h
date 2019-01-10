@@ -24,6 +24,7 @@
 #include <array>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "common/Constants.h"
@@ -106,19 +107,9 @@ struct PrivKey : public Serializable {
   /// Assignment operator.
   PrivKey& operator=(const PrivKey&);
 
-  /// Utility std::string conversion function for private key info.
-  explicit operator std::string() const {
-    return "0x" + DataConversion::SerializableToHexStr(*this);
-  }
-
   /// Equality comparison operator.
   bool operator==(const PrivKey& r) const;
 };
-
-inline std::ostream& operator<<(std::ostream& os, const PrivKey& p) {
-  os << "0x" << DataConversion::SerializableToHexStr(p);
-  return os;
-}
 
 /// Stores information on an EC-Schnorr public key.
 struct PubKey : public Serializable {
@@ -166,12 +157,23 @@ struct PubKey : public Serializable {
 
   /// Utility std::string conversion function for public key info.
   explicit operator std::string() const {
-    return "0x" + DataConversion::SerializableToHexStr(*this);
+    std::string output;
+    if (!DataConversion::SerializableToHexStr(*this, output)) {
+      return "";
+    }
+    return "0x" + output;
   }
 };
 
+using PairOfKey = std::pair<PrivKey, PubKey>;
+
 inline std::ostream& operator<<(std::ostream& os, const PubKey& p) {
-  os << "0x" << DataConversion::SerializableToHexStr(p);
+  std::string output;
+  if (!DataConversion::SerializableToHexStr(p, output)) {
+    os << "";
+    return os;
+  }
+  os << "0x" << output;
   return os;
 }
 
@@ -215,12 +217,21 @@ struct Signature : public Serializable {
 
   /// Utility std::string conversion function for signature info.
   explicit operator std::string() const {
-    return "0x" + DataConversion::SerializableToHexStr(*this);
+    std::string output;
+    if (!DataConversion::SerializableToHexStr(*this, output)) {
+      return "";
+    }
+    return "0x" + output;
   }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Signature& s) {
-  os << "0x" << DataConversion::SerializableToHexStr(s);
+  std::string output;
+  if (!DataConversion::SerializableToHexStr(s, output)) {
+    os << "";
+    return os;
+  }
+  os << "0x" << output;
   return os;
 }
 
@@ -250,7 +261,7 @@ class Schnorr {
   const Curve& GetCurve() const;
 
   /// Generates a new PrivKey and PubKey pair.
-  std::pair<PrivKey, PubKey> GenKeyPair();
+  PairOfKey GenKeyPair();
 
   /// Signs a message using the EC curve parameters and the specified key pair.
   bool Sign(const bytes& message, const PrivKey& privkey, const PubKey& pubkey,

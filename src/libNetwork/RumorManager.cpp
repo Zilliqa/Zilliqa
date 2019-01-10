@@ -18,6 +18,7 @@
 #include "RumorManager.h"
 
 #include <chrono>
+#include <string>
 #include <thread>
 
 #include "P2PComm.h"
@@ -113,8 +114,7 @@ void RumorManager::StopRounds() {
 
 // PUBLIC METHODS
 bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
-                              const Peer& myself,
-                              const std::pair<PrivKey, PubKey>& myKeys,
+                              const Peer& myself, const PairOfKey& myKeys,
                               const std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
   {
@@ -144,6 +144,7 @@ bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
   m_rumorRawMsgTimestamp.clear();
   m_fullNetworkKeys.clear();
   m_pubKeyPeerBiMap.clear();
+  m_hashesSubscriberMap.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {
@@ -221,6 +222,10 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
   if (message.size() > 0) {
     RawBytes hash = HashUtils::BytesToHash(message);
+    std::string output;
+    if (!DataConversion::Uint8VecToHexStr(hash, output)) {
+      return false;
+    }
 
     {
       std::lock_guard<std::mutex> guard(m_continueRoundMutex);
@@ -229,8 +234,7 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
                     "Round is not running. So won't initiate the rumor. "
                     "Instead will buffer it. MyIP:"
                         << m_selfPeer << ". [Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]");
+                        << output.substr(0, 6) << " ]");
 
         m_bufferRawMsg.push_back(message);
         return false;
@@ -256,12 +260,15 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
         m_rumorRawMsgTimestamp.push_back(std::make_pair(
             result.first, std::chrono::high_resolution_clock::now()));
 
+        std::string output;
+        if (!DataConversion::Uint8VecToHexStr(hash, output)) {
+          return false;
+        }
         LOG_PAYLOAD(INFO,
                     "New Gossip message initiated by me ("
                         << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
                         << ", Current Round: 0, Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]",
+                        << output.substr(0, 6) << " ]",
                     message, Logger::MAX_BYTES_TO_DISPLAY);
 
         return m_rumorHolder->addRumor(m_rumorIdGenerator);
@@ -492,6 +499,8 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
         0)  // if someone malaciously sends empty message, sha2 will assert fail
     {
       hash = HashUtils::BytesToHash(message_wo_keysig);
+      std::string hashStr;
+      DataConversion::Uint8VecToHexStr(hash, hashStr);
 
       auto it1 = m_rumorIdHashBimap.right.find(hash);
       if (it1 != m_rumorIdHashBimap.right.end()) {
@@ -508,8 +517,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
         LOG_PAYLOAD(INFO,
                     "New Gossip Raw message received from Peer: "
                         << from << ", Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]",
+                        << hashStr.substr(0, 6) << " ]",
                     message_wo_keysig, Logger::MAX_BYTES_TO_DISPLAY);
         toBeDispatched = true;
         // add the timestamp for this raw rumor message
@@ -519,8 +527,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
         LOG_PAYLOAD(DEBUG,
                     "Old Gossip Raw message received from Peer: "
                         << from << ", Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]",
+                        << hashStr.substr(0, 6) << " ]",
                     message_wo_keysig, Logger::MAX_BYTES_TO_DISPLAY);
       }
 
@@ -531,7 +538,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
         LOG_GENERAL(
             DEBUG,
             "Sending Gossip Raw Message to subscribers of Gossip_Message_Hash: "
-                << DataConversion::Uint8VecToHexStr(hash).substr(0, 6));
+                << hashStr.substr(0, 6));
         for (auto& p : it2->second) {
           // avoid un-neccessarily sending again back to sender itself
           if (p == from) {
@@ -605,11 +612,14 @@ void RumorManager::SendMessage(const Peer& toPeer,
 
           // Add raw message to outgoing message
           cmd.insert(cmd.end(), it2->second.begin(), it2->second.end());
-          LOG_GENERAL(
-              INFO,
-              "Sending Gossip Raw Message of Gossip_Message_Hash : ["
-                  << DataConversion::Uint8VecToHexStr(it1->second).substr(0, 6)
-                  << "] To Peer : " << toPeer);
+          std::string gossipHashStr;
+          if (!DataConversion::Uint8VecToHexStr(it1->second, gossipHashStr)) {
+            return;
+          }
+          LOG_GENERAL(INFO,
+                      "Sending Gossip Raw Message of Gossip_Message_Hash : ["
+                          << gossipHashStr.substr(0, 6)
+                          << "] To Peer : " << toPeer);
         } else {
           // Nothing to send.
           return;
@@ -671,11 +681,13 @@ void RumorManager::PrintStatistics() {
     if (it != m_rumorIdHashBimap.left.end()) {
       bytes this_msg_hash = HashUtils::BytesToHash(it->second);
       const RRS::RumorStateMachine& state = i.second;
-      LOG_GENERAL(
-          INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: "
-                              << DataConversion::Uint8VecToHexStr(this_msg_hash)
-                                     .substr(0, 6)
-                              << " ], " << state);
+      std::string gossipHashStr;
+      if (!DataConversion::Uint8VecToHexStr(this_msg_hash, gossipHashStr)) {
+        continue;
+      }
+      LOG_GENERAL(INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: "
+                                      << gossipHashStr.substr(0, 6) << " ], "
+                                      << state);
     }
   }
 }

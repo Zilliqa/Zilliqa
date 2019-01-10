@@ -76,8 +76,11 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
   ret_head["MinerPubKey"] = static_cast<string>(txheader.GetMinerPubKey());
   ret_head["DSBlockNum"] = to_string(txheader.GetDSBlockNum());
 
-  ret_body["HeaderSign"] =
-      DataConversion::SerializableToHexStr(txblock.GetCS2());
+  std::string HeaderSignStr;
+  if (!DataConversion::SerializableToHexStr(txblock.GetCS2(), HeaderSignStr)) {
+    return ret;  // empty ret
+  }
+  ret_body["HeaderSign"] = HeaderSignStr;
 
   ret_body["MicroBlockInfos"] =
       convertMicroBlockInfoArraytoJson(txblock.GetMicroBlockInfos());
@@ -94,8 +97,11 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock) {
   Json::Value ret_sign;
 
   const DSBlockHeader& dshead = dsblock.GetHeader();
-
-  ret_sign = DataConversion::SerializableToHexStr(dsblock.GetCS2());
+  string retSigstr;
+  if (!DataConversion::SerializableToHexStr(dsblock.GetCS2(), retSigstr)) {
+    return ret;
+  }
+  ret_sign = retSigstr;
 
   ret_header["Difficulty"] = dshead.GetDifficulty();
   ret_header["PrevHash"] = dshead.GetPrevHash().hex();
@@ -124,7 +130,12 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
-  bytes toAddr_ser = DataConversion::HexStrToUint8Vec(toAddr_str);
+
+  bytes toAddr_ser;
+  if (!DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)) {
+    LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
+    return Transaction();
+  }
   Address toAddr(toAddr_ser);
 
   string amount_str = _json["amount"].asString();
@@ -136,11 +147,19 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
   string pubKey_str = _json["pubKey"].asString();
-  bytes pubKey_ser = DataConversion::HexStrToUint8Vec(pubKey_str);
+  bytes pubKey_ser;
+  if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)) {
+    LOG_GENERAL(WARNING, "json cointaining invalid hex str for pubkey");
+    return Transaction();
+  }
   PubKey pubKey(pubKey_ser, 0);
 
   string sign_str = _json["signature"].asString();
-  bytes sign = DataConversion::HexStrToUint8Vec(sign_str);
+  bytes sign;
+  if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
+    LOG_GENERAL(WARNING, "json cointaining invalid hex str for sign");
+    return Transaction();
+  }
 
   bytes code, data;
 

@@ -57,14 +57,14 @@ class Zilliqa {
 
  public:
   /// Constructor.
-  Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-          bool loadConfig, unsigned int syncType = SyncType::NO_SYNC,
+  Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
+          unsigned int syncType = SyncType::NO_SYNC,
           bool toRetrieveHistory = false);
 
   /// Destructor.
   ~Zilliqa();
 
-  void LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
+  void LogSelfNodeInfo(const PairOfKey& key, const Peer& peer);
 
   /// Forwards an incoming message for processing by the appropriate subclass.
   void Dispatch(std::pair<bytes, Peer>* message);

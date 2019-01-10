@@ -319,12 +319,14 @@ void SendJobPeers<T>::DoSend() {
   }
   random_shuffle(indexes.begin(), indexes.end());
 
+  string hashStr;
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left
-                   << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
-                   << "] BEGN");
+    if (!DataConversion::Uint8VecToHexStr(m_hash, hashStr)) {
+      return;
+    }
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left
+                         << m_selfPeer.GetPrintableIPAddress() << "]["
+                         << hashStr.substr(0, 6) << "] BEGN");
   }
 
   for (vector<unsigned int>::const_iterator curr = indexes.begin();
@@ -343,11 +345,9 @@ void SendJobPeers<T>::DoSend() {
   }
 
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left
-                   << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
-                   << "] DONE");
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left
+                         << m_selfPeer.GetPrintableIPAddress() << "]["
+                         << hashStr.substr(0, 6) << "] DONE");
   }
 }
 
@@ -418,10 +418,13 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
 
   p2p.ClearBroadcastHashAsync(msg_hash);
 
-  LOG_STATE(
-      "[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
-                 << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
-                 << "] RECV");
+  string msgHashStr;
+  if (!DataConversion::Uint8VecToHexStr(msg_hash, msgHashStr)) {
+    return;
+  }
+
+  LOG_STATE("[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
+                       << msgHashStr.substr(0, 6) << "] RECV");
 
   // Move the shared_ptr message to raw pointer type
   pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(
@@ -639,6 +642,27 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   }
 }
 
+void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
+  struct evbuffer* input = bufferevent_get_input(bev);
+
+  size_t len = evbuffer_get_length(input);
+  if (len >= MAX_READ_WATERMARK_IN_BYTES) {
+    // Get the IP info
+    int fd = bufferevent_getfd(bev);
+    struct sockaddr_in cli_addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
+    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
+    LOG_GENERAL(WARNING, "[blacklist] Encountered data of size: "
+                             << len << " being received."
+                             << " Adding sending node "
+                             << from.GetPrintableIPAddress()
+                             << " to blacklist");
+    Blacklist::GetInstance().Add(from.m_ipAddress);
+    bufferevent_free(bev);
+  }
+}
+
 void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
                                        evutil_socket_t cli_sock,
                                        struct sockaddr* cli_addr,
@@ -682,7 +706,9 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     return;
   }
 
-  bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
+  bufferevent_setwatermark(bev, EV_READ, MIN_READ_WATERMARK_IN_BYTES,
+                           MAX_READ_WATERMARK_IN_BYTES);
+  bufferevent_setcb(bev, ReadCallback, NULL, EventCallback, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
@@ -926,9 +952,7 @@ void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
 
-void P2PComm::SetSelfKey(const std::pair<PrivKey, PubKey>& self) {
-  m_selfKey = self;
-}
+void P2PComm::SetSelfKey(const PairOfKey& self) { m_selfKey = self; }
 
 void P2PComm::InitializeRumorManager(
     const std::vector<std::pair<PubKey, Peer>>& peers,
@@ -965,8 +989,8 @@ bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                                               toverify, pubKey);
 
   if (!result) {
-    LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: 0x"
-                          << DataConversion::SerializableToHexStr(pubKey));
+    LOG_GENERAL(INFO,
+                "Failed to verify message from peer with pubkey: " << pubKey);
   }
   return result;
 }

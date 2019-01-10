@@ -35,7 +35,7 @@
 class Mediator {
  public:
   /// The Zilliqa instance's key pair.
-  std::pair<PrivKey, PubKey> m_selfKey;
+  PairOfKey m_selfKey;
 
   /// The Zilliqa instance's IP information.
   Peer m_selfPeer;
@@ -102,7 +102,7 @@ class Mediator {
   std::mutex m_mutexCurSWInfo;
 
   /// Constructor.
-  Mediator(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
+  Mediator(const PairOfKey& key, const Peer& peer);
 
   /// Destructor.
   ~Mediator();

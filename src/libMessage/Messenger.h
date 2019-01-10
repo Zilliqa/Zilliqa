@@ -63,8 +63,6 @@ class Messenger {
 
   static bool SetAccountDelta(bytes& dst, const unsigned int offset,
                               Account* oldAccount, const Account& newAccount);
-  static bool GetAccountDelta(const bytes& src, const unsigned int offset,
-                              Account& account, const bool fullCopy);
 
   // These are called by AccountStoreBase template class
   template <class MAP>
@@ -201,8 +199,7 @@ class Messenger {
   // ============================================================================
 
   static bool SetPMHello(bytes& dst, const unsigned int offset,
-                         const std::pair<PrivKey, PubKey>& key,
-                         const uint32_t listenPort);
+                         const PairOfKey& key, const uint32_t listenPort);
   static bool GetPMHello(const bytes& src, const unsigned int offset,
                          PubKey& pubKey, uint32_t& listenPort);
 
@@ -213,7 +210,7 @@ class Messenger {
   static bool SetDSPoWSubmission(
       bytes& dst, const unsigned int offset, const uint64_t blockNumber,
       const uint8_t difficultyLevel, const Peer& submitterPeer,
-      const std::pair<PrivKey, PubKey>& submitterKey, const uint64_t nonce,
+      const PairOfKey& submitterKey, const uint64_t nonce,
       const std::string& resultingHash, const std::string& mixHash,
       const uint32_t& lookupId,
       const boost::multiprecision::uint128_t& gasPrice);
@@ -239,18 +236,19 @@ class Messenger {
   static bool SetDSMicroBlockSubmission(
       bytes& dst, const unsigned int offset, const unsigned char microBlockType,
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<bytes>& stateDeltas);
+      const std::vector<bytes>& stateDeltas, const PairOfKey& keys);
   static bool GetDSMicroBlockSubmission(const bytes& src,
                                         const unsigned int offset,
                                         unsigned char& microBlockType,
                                         uint64_t& epochNumber,
                                         std::vector<MicroBlock>& microBlocks,
-                                        std::vector<bytes>& stateDeltas);
+                                        std::vector<bytes>& stateDeltas,
+                                        PubKey& pubKey);
 
   static bool SetDSDSBlockAnnouncement(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+      const uint16_t leaderID, const PairOfKey& leaderKey,
       const DSBlock& dsBlock, const DequeOfShard& shards,
       const MapOfPubKeyPoW& allPoWs, const MapOfPubKeyPoW& dsWinnerPoWs,
       bytes& messageToCosign);
@@ -265,7 +263,7 @@ class Messenger {
   static bool SetDSFinalBlockAnnouncement(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+      const uint16_t leaderID, const PairOfKey& leaderKey,
       const TxBlock& txBlock, const std::shared_ptr<MicroBlock>& microBlock,
       bytes& messageToCosign);
 
@@ -278,7 +276,7 @@ class Messenger {
   static bool SetDSVCBlockAnnouncement(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+      const uint16_t leaderID, const PairOfKey& leaderKey,
       const VCBlock& vcBlock, bytes& messageToCosign);
 
   static bool GetDSVCBlockAnnouncement(
@@ -337,8 +335,7 @@ class Messenger {
   static bool SetNodeForwardTxnBlock(
       bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
       const uint64_t& dsBlockNum, const uint32_t& shardId,
-      const std::pair<PrivKey, PubKey>& lookupKey,
-      const std::vector<Transaction>& txnsCurrent,
+      const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
       const std::vector<Transaction>& txnsGenerated);
   static bool GetNodeForwardTxnBlock(const bytes& src,
                                      const unsigned int offset,
@@ -350,7 +347,7 @@ class Messenger {
   static bool SetNodeMicroBlockAnnouncement(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+      const uint16_t leaderID, const PairOfKey& leaderKey,
       const MicroBlock& microBlock, bytes& messageToCosign);
 
   static bool GetNodeMicroBlockAnnouncement(
@@ -362,7 +359,7 @@ class Messenger {
   static bool SetNodeFallbackBlockAnnouncement(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey,
+      const uint16_t leaderID, const PairOfKey& leaderKey,
       const FallbackBlock& fallbackBlock, bytes& messageToCosign);
 
   static bool GetNodeFallbackBlockAnnouncement(
@@ -400,7 +397,7 @@ class Messenger {
   static bool GetLookupGetSeedPeers(const bytes& src, const unsigned int offset,
                                     uint32_t& listenPort);
   static bool SetLookupSetSeedPeers(bytes& dst, const unsigned int offset,
-                                    const std::pair<PrivKey, PubKey>& lookupKey,
+                                    const PairOfKey& lookupKey,
                                     const std::vector<Peer>& candidateSeeds);
   static bool GetLookupSetSeedPeers(const bytes& src, const unsigned int offset,
                                     PubKey& lookupPubKey,
@@ -412,8 +409,7 @@ class Messenger {
                                          const unsigned int offset,
                                          uint32_t& listenPort, bool& initialDS);
   static bool SetLookupSetDSInfoFromSeed(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& senderKey,
+      bytes& dst, const unsigned int offset, const PairOfKey& senderKey,
       const std::deque<std::pair<PubKey, Peer>>& dsNodes, const bool initialDS);
   static bool GetLookupSetDSInfoFromSeed(
       const bytes& src, const unsigned int offset, PubKey& senderPubKey,
@@ -427,10 +423,11 @@ class Messenger {
                                           uint64_t& lowBlockNum,
                                           uint64_t& highBlockNum,
                                           uint32_t& listenPort);
-  static bool SetLookupSetDSBlockFromSeed(
-      bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
-      const uint64_t highBlockNum, const std::pair<PrivKey, PubKey>& lookupKey,
-      const std::vector<DSBlock>& dsBlocks);
+  static bool SetLookupSetDSBlockFromSeed(bytes& dst, const unsigned int offset,
+                                          const uint64_t lowBlockNum,
+                                          const uint64_t highBlockNum,
+                                          const PairOfKey& lookupKey,
+                                          const std::vector<DSBlock>& dsBlocks);
   static bool GetLookupSetDSBlockFromSeed(const bytes& src,
                                           const unsigned int offset,
                                           uint64_t& lowBlockNum,
@@ -446,10 +443,11 @@ class Messenger {
                                           uint64_t& lowBlockNum,
                                           uint64_t& highBlockNum,
                                           uint32_t& listenPort);
-  static bool SetLookupSetTxBlockFromSeed(
-      bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
-      const uint64_t highBlockNum, const std::pair<PrivKey, PubKey>& lookupKey,
-      const std::vector<TxBlock>& txBlocks);
+  static bool SetLookupSetTxBlockFromSeed(bytes& dst, const unsigned int offset,
+                                          const uint64_t lowBlockNum,
+                                          const uint64_t highBlockNum,
+                                          const PairOfKey& lookupKey,
+                                          const std::vector<TxBlock>& txBlocks);
   static bool GetLookupSetTxBlockFromSeed(const bytes& src,
                                           const unsigned int offset,
                                           uint64_t& lowBlockNum,
@@ -464,9 +462,11 @@ class Messenger {
                                              const unsigned int offset,
                                              uint64_t& blockNum,
                                              uint32_t& listenPort);
-  static bool SetLookupSetStateDeltaFromSeed(
-      bytes& dst, const unsigned int offset, const uint64_t blockNum,
-      const std::pair<PrivKey, PubKey>& lookupKey, const bytes& stateDelta);
+  static bool SetLookupSetStateDeltaFromSeed(bytes& dst,
+                                             const unsigned int offset,
+                                             const uint64_t blockNum,
+                                             const PairOfKey& lookupKey,
+                                             const bytes& stateDelta);
   static bool GetLookupSetStateDeltaFromSeed(const bytes& src,
                                              const unsigned int offset,
                                              uint64_t& blockNum,
@@ -496,10 +496,9 @@ class Messenger {
   static bool GetLookupGetStateFromSeed(const bytes& src,
                                         const unsigned int offset,
                                         uint32_t& listenPort);
-  static bool SetLookupSetStateFromSeed(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& lookupKey,
-      const AccountStore& accountStore);
+  static bool SetLookupSetStateFromSeed(bytes& dst, const unsigned int offset,
+                                        const PairOfKey& lookupKey,
+                                        const AccountStore& accountStore);
   static bool GetLookupSetStateFromSeed(const bytes& src,
                                         const unsigned int offset,
                                         PubKey& lookupPubKey,
@@ -520,10 +519,9 @@ class Messenger {
   static bool GetLookupGetOfflineLookups(const bytes& src,
                                          const unsigned int offset,
                                          uint32_t& listenPort);
-  static bool SetLookupSetOfflineLookups(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& lookupKey,
-      const std::vector<Peer>& nodes);
+  static bool SetLookupSetOfflineLookups(bytes& dst, const unsigned int offset,
+                                         const PairOfKey& lookupKey,
+                                         const std::vector<Peer>& nodes);
   static bool GetLookupSetOfflineLookups(const bytes& src,
                                          const unsigned int offset,
                                          PubKey& lookupPubKey,
@@ -534,9 +532,10 @@ class Messenger {
   static bool GetLookupGetStartPoWFromSeed(const bytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort);
-  static bool SetLookupSetStartPoWFromSeed(
-      bytes& dst, const unsigned int offset, const uint64_t blockNumber,
-      const std::pair<PrivKey, PubKey>& lookupKey);
+  static bool SetLookupSetStartPoWFromSeed(bytes& dst,
+                                           const unsigned int offset,
+                                           const uint64_t blockNumber,
+                                           const PairOfKey& lookupKey);
   static bool GetLookupSetStartPoWFromSeed(const bytes& src,
                                            const unsigned int offset,
                                            PubKey& lookupPubKey);
@@ -548,9 +547,9 @@ class Messenger {
                                          const unsigned int offset,
                                          uint32_t& listenPort);
 
-  static bool SetLookupSetShardsFromSeed(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& lookupKey, const DequeOfShard& shards);
+  static bool SetLookupSetShardsFromSeed(bytes& dst, const unsigned int offset,
+                                         const PairOfKey& lookupKey,
+                                         const DequeOfShard& shards);
 
   static bool GetLookupSetShardsFromSeed(const bytes& src,
                                          const unsigned int offset,
@@ -566,8 +565,7 @@ class Messenger {
       std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
 
   static bool SetLookupSetMicroBlockFromLookup(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& lookupKey,
+      bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
       const std::vector<MicroBlock>& mbs);
 
   static bool GetLookupSetMicroBlockFromLookup(const bytes& src,
@@ -583,8 +581,7 @@ class Messenger {
                                          std::vector<TxnHash>& txnhashes,
                                          uint32_t& portNo);
   static bool SetLookupSetTxnsFromLookup(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& lookupKey,
+      bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
       const std::vector<TransactionWithReceipt>& txns);
   static bool GetLookupSetTxnsFromLookup(
       const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
@@ -635,14 +632,11 @@ class Messenger {
     return true;
   }
 
-  static bool SetConsensusCommit(bytes& dst, const unsigned int offset,
-                                 const uint32_t consensusID,
-                                 const uint64_t blockNumber,
-                                 const bytes& blockHash,
-                                 const uint16_t backupID,
-                                 const CommitPoint& commitPoint,
-                                 const CommitPointHash& commitPointHash,
-                                 const std::pair<PrivKey, PubKey>& backupKey);
+  static bool SetConsensusCommit(
+      bytes& dst, const unsigned int offset, const uint32_t consensusID,
+      const uint64_t blockNumber, const bytes& blockHash,
+      const uint16_t backupID, const CommitPoint& commitPoint,
+      const CommitPointHash& commitPointHash, const PairOfKey& backupKey);
   static bool GetConsensusCommit(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
@@ -654,7 +648,7 @@ class Messenger {
       const uint64_t blockNumber, const uint16_t subsetID,
       const bytes& blockHash, const uint16_t leaderID,
       const CommitPoint& aggregatedCommit, const PubKey& aggregatedKey,
-      const Challenge& challenge, const std::pair<PrivKey, PubKey>& leaderKey);
+      const Challenge& challenge, const PairOfKey& leaderKey);
   static bool GetConsensusChallenge(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, uint16_t& subsetID, const bytes& blockHash,
@@ -665,7 +659,7 @@ class Messenger {
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const uint16_t subsetID,
       const bytes& blockHash, const uint16_t backupID, const Response& response,
-      const std::pair<PrivKey, PubKey>& backupKey);
+      const PairOfKey& backupKey);
   static bool GetConsensusResponse(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
@@ -676,19 +670,20 @@ class Messenger {
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
       const uint16_t leaderID, const Signature& collectiveSig,
-      const std::vector<bool>& bitmap,
-      const std::pair<PrivKey, PubKey>& leaderKey);
+      const std::vector<bool>& bitmap, const PairOfKey& leaderKey);
   static bool GetConsensusCollectiveSig(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
       const uint16_t leaderID, std::vector<bool>& bitmap,
       Signature& collectiveSig, const PubKey& leaderKey);
 
-  static bool SetConsensusCommitFailure(
-      bytes& dst, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t backupID, const bytes& errorMsg,
-      const std::pair<PrivKey, PubKey>& backupKey);
+  static bool SetConsensusCommitFailure(bytes& dst, const unsigned int offset,
+                                        const uint32_t consensusID,
+                                        const uint64_t blockNumber,
+                                        const bytes& blockHash,
+                                        const uint16_t backupID,
+                                        const bytes& errorMsg,
+                                        const PairOfKey& backupKey);
   static bool GetConsensusCommitFailure(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
@@ -698,7 +693,7 @@ class Messenger {
   static bool SetConsensusConsensusFailure(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash,
-      const uint16_t leaderID, const std::pair<PrivKey, PubKey>& leaderKey);
+      const uint16_t leaderID, const PairOfKey& leaderKey);
   static bool GetConsensusConsensusFailure(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& leaderID,
@@ -718,8 +713,7 @@ class Messenger {
       uint64_t& dsHighBlockNum, uint64_t& txLowBlockNum,
       uint64_t& txHighBlockNum, uint32_t& listenPort);
   static bool SetVCNodeSetDSTxBlockFromSeed(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& lookupKey,
+      bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
       const std::vector<DSBlock>& DSBlocks,
       const std::vector<TxBlock>& txBlocks);
   static bool GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
@@ -735,7 +729,7 @@ class Messenger {
   static bool SetDSLookupNewDSGuardNetworkInfo(
       bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
       const Peer& dsGuardNewNetworkInfo, const uint64_t timestamp,
-      const std::pair<PrivKey, PubKey>& dsguardkey);
+      const PairOfKey& dsguardkey);
 
   static bool GetDSLookupNewDSGuardNetworkInfo(
       const bytes& src, const unsigned int offset, uint64_t& dsEpochNumber,
@@ -752,17 +746,17 @@ class Messenger {
   static bool SetNodeSetNewDSGuardNetworkInfo(
       bytes& dst, unsigned int offset,
       const std::vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
-      const std::pair<PrivKey, PubKey>& lookupKey);
+      const PairOfKey& lookupKey);
 
   static bool SetNodeGetNewDSGuardNetworkInfo(
       const bytes& src, const unsigned int offset,
       std::vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
       PubKey& lookupPubKey);
 
-  static bool SetSeedNodeHistoricalDB(
-      bytes& dst, const unsigned int offset,
-      const std::pair<PrivKey, PubKey>& archivalKeys, const uint32_t code,
-      const std::string& path);
+  static bool SetSeedNodeHistoricalDB(bytes& dst, const unsigned int offset,
+                                      const PairOfKey& archivalKeys,
+                                      const uint32_t code,
+                                      const std::string& path);
   static bool GetSeedNodeHistoricalDB(const bytes& src,
                                       const unsigned int offset,
                                       PubKey& archivalPubKey, uint32_t& code,

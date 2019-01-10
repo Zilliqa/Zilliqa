@@ -248,7 +248,11 @@ bool UpgradeManager::HasNewSW() {
     string pubKey;
 
     while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
-      pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(pubKey), 0);
+      bytes tempPubKeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(pubKey, tempPubKeyBytes)) {
+        continue;
+      }
+      pubKeys.emplace_back(tempPubKeyBytes, 0);
     }
   }
 
@@ -272,13 +276,23 @@ bool UpgradeManager::HasNewSW() {
 
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
-  const bytes sha = DataConversion::HexStrToUint8Vec(shaStr);
+  bytes tempSha;
+  if (!DataConversion::HexStrToUint8Vec(shaStr, tempSha)) {
+    return false;
+  }
+
+  const bytes sha = tempSha;
+
   const unsigned int len = sigStr.size() / pubKeys.size();
   vector<Signature> mutliSig;
 
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    mutliSig.emplace_back(
-        DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len)), 0);
+    bytes tempMultisigBytes;
+    if (!DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len),
+                                          tempMultisigBytes)) {
+      continue;
+    }
+    mutliSig.emplace_back(tempMultisigBytes, 0);
   }
 
   /// Multi-sig verification
@@ -400,7 +414,8 @@ bool UpgradeManager::DownloadSW() {
               (istreambuf_iterator<char>()));
     sha2.Update(vec, 0, vec.size());
     bytes output = sha2.Finalize();
-    downloadSha = DataConversion::Uint8VecToHexStr(output);
+    // No need check bool as sha2 will return hex
+    DataConversion::Uint8VecToHexStr(output, downloadSha);
   }
 
   if (sha != downloadSha) {
@@ -410,8 +425,8 @@ bool UpgradeManager::DownloadSW() {
   }
 
   m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
-  m_latestSHA = DataConversion::HexStrToUint8Vec(sha);
-  return true;
+
+  return DataConversion::HexStrToUint8Vec(sha, m_latestSHA);
 }
 
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
@@ -499,12 +514,18 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
-        initialDSCommittee.push_back(
-            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+          LOG_GENERAL(WARNING,
+                      "error loading "
+                          << ds_string
+                          << " using HexStrToUint8Vec(). Not a hex str");
+          continue;
+        }
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
 
       bytes message;
-
       unsigned int curr_offset = 0;
       for (auto& dsKey : initialDSCommittee) {
         dsKey.Serialize(message, curr_offset);
@@ -514,8 +535,17 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       string sig_str = ReadDSCommFile(signatureProp);
       string pubKey_str = ReadDSCommFile(publicKeyProp);
 
-      PubKey pubKey(DataConversion::HexStrToUint8Vec(pubKey_str), 0);
-      Signature sig(DataConversion::HexStrToUint8Vec(sig_str), 0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubkeyBytes)) {
+        return false;
+      }
+      PubKey pubKey(pubkeyBytes, 0);
+
+      bytes sigBytes;
+      if (!DataConversion::HexStrToUint8Vec(sig_str, sigBytes)) {
+        return false;
+      }
+      Signature sig(sigBytes, 0);
 
       if (!Schnorr::GetInstance().Verify(message, sig, pubKey)) {
         LOG_GENERAL(WARNING, "Unable to verify file");
@@ -527,8 +557,11 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
-        initialDSCommittee.push_back(
-            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+          return false;
+        }
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
     }
 

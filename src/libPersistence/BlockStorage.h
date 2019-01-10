@@ -64,7 +64,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// used for historical data
   std::shared_ptr<LevelDB> m_historicalDB;
 
-  BlockStorage()
+  BlockStorage(const std::string& path = "", bool diagnostic = false)
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
@@ -75,7 +75,8 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
-        m_diagnosticDB(std::make_shared<LevelDB>("diagnostic")),
+        m_diagnosticDB(
+            std::make_shared<LevelDB>("diagnostic", path, diagnostic)),
         m_diagnosticDBCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
@@ -104,7 +105,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   };
 
   /// Returns the singleton BlockStorage instance.
-  static BlockStorage& GetBlockStorage();
+  static BlockStorage& GetBlockStorage(const std::string& path = "",
+                                       bool diagnostic = false);
 
   /// Get the size of current TxBodyDB
   unsigned int GetTxBodyDBSize();

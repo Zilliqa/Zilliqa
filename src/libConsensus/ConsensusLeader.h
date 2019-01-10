@@ -36,7 +36,7 @@ typedef std::function<bool(std::map<unsigned int, bytes>)>
 typedef std::function<bool(
     bytes& dst, unsigned int offset, const uint32_t consensusID,
     const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const std::pair<PrivKey, PubKey>& leaderKey, bytes& messageToCosign)>
+    const PairOfKey& leaderKey, bytes& messageToCosign)>
     AnnouncementGeneratorFunc;
 
 /// Implements the functionality for the consensus committee leader.

@@ -132,11 +132,17 @@
         <PUMPMESSAGE_MILLISECONDS>1</PUMPMESSAGE_MILLISECONDS>
         <SENDQUEUE_SIZE>128</SENDQUEUE_SIZE>
         <MAX_GOSSIP_MSG_SIZE_IN_BYTES>5000000</MAX_GOSSIP_MSG_SIZE_IN_BYTES>
+        <MIN_READ_WATERMARK_IN_BYTES>0</MIN_READ_WATERMARK_IN_BYTES>
+        <MAX_READ_WATERMARK_IN_BYTES>20000000</MAX_READ_WATERMARK_IN_BYTES>
     </p2pcomm>
     <pow>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <FULL_DATASET_MINE>false</FULL_DATASET_MINE>
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
+        <REMOTE_MINE>false</REMOTE_MINE>
+        <MINING_PROXY_URL>http://127.0.0.1:4202/api</MINING_PROXY_URL>
+        <!-- Every interval seconds to check if mining proxy has the PoW result -->
+        <CHECK_MINING_RESULT_INTERVAL>5</CHECK_MINING_RESULT_INTERVAL>
         <DS_POW_DIFFICULTY>5</DS_POW_DIFFICULTY>
         <POW_DIFFICULTY>3</POW_DIFFICULTY>
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
@@ -163,6 +169,7 @@
         <UPGRADE_HOST_REPO>Zilliqa</UPGRADE_HOST_REPO>
         <RECOVERY_TRIM_INCOMPLETED_BLOCK>false</RECOVERY_TRIM_INCOMPLETED_BLOCK>
         <REJOIN_NODE_NOT_IN_NETWORK>true</REJOIN_NODE_NOT_IN_NETWORK>
+        <RESUME_BLACKLIST_DELAY_IN_SECONDS>30</RESUME_BLACKLIST_DELAY_IN_SECONDS>
     </recovery>
     <smart_contract>
         <SCILLA_ROOT/>
@@ -219,13 +226,11 @@
         </peer>
     </lookups>
     <upper_seed>
-        <!--
         <peer>
-            <ip></ip>
-            <port>30303</port>
-            <pubkey></pubkey>
+            <ip>127.0.0.1</ip>
+            <port>4001</port>
+            <pubkey/>
         </peer>
-        -->
     </upper_seed>
     <lower_seed>
         <!--

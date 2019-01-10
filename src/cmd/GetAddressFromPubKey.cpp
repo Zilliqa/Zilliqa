@@ -42,12 +42,16 @@ int main() {
   bytes message;
   string s;
   cin >> s;
-  // TODO: Handle Exceptions
-  PubKey key(DataConversion::HexStrToUint8Vec(s), 0);
-  key.Serialize(message, 0);
-  sha2.Update(message, 0, PUB_KEY_SIZE);
-  const bytes& tmp2 = sha2.Finalize();
-  Address toAddr;
-  copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
-  cout << toAddr << endl;
+  bytes out;
+  if (DataConversion::HexStrToUint8Vec(s, out)) {
+    PubKey key(out, 0);
+    key.Serialize(message, 0);
+    sha2.Update(message, 0, PUB_KEY_SIZE);
+    const bytes& tmp2 = sha2.Finalize();
+    Address toAddr;
+    copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
+    cout << toAddr << endl;
+  } else {
+    cout << "Invalid pubkey" << endl;
+  }
 }
