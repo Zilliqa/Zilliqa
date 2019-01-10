@@ -45,7 +45,6 @@ The current release has the following features implemented:
 * Gossip protocol for network message broadcasting
 * Protocol upgrade mechanism
 * Node recovery mechanism
-* Archival nodes
 * Gas rewards and pricer
 * Coinbase rewards
 

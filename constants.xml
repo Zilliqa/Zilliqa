@@ -9,10 +9,6 @@
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>62</CHAIN_ID>
     </general>
-    <archival>
-        <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
-        <DB_HOST/>
-    </archival>
     <seed>
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
         <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
