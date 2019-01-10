@@ -327,8 +327,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                    runnerPrint)) {
       ret = false;
     }
-    LOG_GENERAL(DEBUG,
-                "Exec scilla-runner (microseconds) = " << r_timer_end(tnow));
+    LOG_GENERAL(DEBUG, "Executed root transition in " << r_timer_end(tnow)
+                                                      << " microseconds");
 
     if (ret && !ParseCallContract(gasRemained, runnerPrint)) {
       ret = false;
@@ -713,6 +713,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     }
     return false;
   }
+  uint64_t startGas(gasRemained);
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
   if (!_json.isMember("_accepted")) {
@@ -778,6 +779,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
 
   LOG_GENERAL(DEBUG, "LDB Write (microseconds) = " << r_timer_end(tnow));
+  LOG_GENERAL(DEBUG, "Gas used = " << (startGas - gasRemained));
 
   for (const auto& e : _json["events"]) {
     LogEntry entry;
@@ -875,6 +877,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
           GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint)) {
     return false;
   }
+  LOG_GENERAL(DEBUG, "Executed " << input_message["_tag"] << " in "
+                                 << r_timer_end(start_time) << " microseconds");
   Address t_address = m_curContractAddr;
   m_curContractAddr = recipient;
   if (!ParseCallContract(gasRemained, runnerPrint)) {
