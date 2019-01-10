@@ -622,7 +622,8 @@ bool Schnorr::Sign(const bytes& message, unsigned int offset, unsigned int size,
 
       // 1. Generate a random k from [1,..., order-1]
       do {
-        err = (BN_rand(k.get(), BN_num_bits(m_curve.m_order.get()), -1, 0) == 0);
+        err =
+            (BN_rand(k.get(), BN_num_bits(m_curve.m_order.get()), -1, 0) == 0);
         if (err) {
           LOG_GENERAL(WARNING, "Random generation failed");
           return false;
