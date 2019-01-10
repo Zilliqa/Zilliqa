@@ -662,7 +662,10 @@ message LookupSetOfflineLookups
 
 message LookupRaiseStartPoW
 {
-    // Empty
+    required uint32 msgtype      = 1; // Only LSB used
+    required uint64 blocknumber  = 2;
+    required ByteArray pubkey    = 3;
+    required ByteArray signature = 4;
 }
 
 message LookupGetStartPoWFromSeed

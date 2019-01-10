@@ -5350,6 +5350,73 @@ bool Messenger::GetLookupSetOfflineLookups(const bytes& src,
   return true;
 }
 
+bool Messenger::GetLookupSetRaiseStartPoW(const bytes& src,
+                                          const unsigned int offset,
+                                          uint8_t& msgType,
+                                          uint64_t& blockNumber,
+                                          PubKey& dsPubKey) {
+  LOG_MARKER();
+
+  LookupRaiseStartPoW result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
+    return false;
+  }
+
+  msgType = result.msgtype();
+  blockNumber = result.blocknumber();
+
+  bytes tmp;
+  NumberToArray<uint8_t, sizeof(uint8_t)>(msgType, tmp, 0);
+  NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, sizeof(uint8_t));
+
+  ProtobufByteArrayToSerializable(result.pubkey(), dsPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, dsPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in raise start PoW message.");
+    return false;
+  }
+
+  return true;
+}
+
+bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
+                                          const uint8_t msgType,
+                                          const uint64_t blockNumber,
+                                          const PairOfKey& dsKey) {
+  LOG_MARKER();
+
+  LookupRaiseStartPoW result;
+
+  result.set_msgtype(msgType);
+  result.set_blocknumber(blockNumber);
+  SerializableToProtobufByteArray(dsKey.second, *result.mutable_pubkey());
+
+  bytes tmp;
+  NumberToArray<uint8_t, sizeof(uint8_t)>(blockNumber, tmp, 0);
+  NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, sizeof(uint8_t));
+
+  Signature signature;
+  if (!Schnorr::GetInstance().Sign(tmp, dsKey.first, dsKey.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign start PoW message.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupSetStartPoWFromSeed initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
 bool Messenger::SetLookupGetStartPoWFromSeed(bytes& dst,
                                              const unsigned int offset,
                                              const uint32_t listenPort) {
