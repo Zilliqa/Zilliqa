@@ -417,13 +417,10 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
-      if (find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                  [this](const std::pair<PubKey, Peer>& node) {
-                    return find_if(m_multipliers.begin(), m_multipliers.end(),
+      if (find_if(m_multipliers.begin(), m_multipliers.end(),
                                    [node](const std::pair<PubKey, Peer>& mult) {
                                      return node.second == mult.second;
-                                   }) != m_multipliers.end();
-                  }) != m_lookupNodes.end()) {  // Avoid sending to multiplier
+                                   }) != m_multipliers.end()){
         continue;
       }
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
