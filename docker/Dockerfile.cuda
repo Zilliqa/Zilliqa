@@ -97,18 +97,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 ####################### End of CUDA Installation ###############################
 
-RUN curl -sL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/mongo-c-driver-1.13.0.tar.gz | tar -zx -C . \
-    && cmake -Hmongo-c-driver-1.13.0 -Bmongo-c-build -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_INSTALL_PREFIX=/usr/local \
-    && cmake --build mongo-c-build -- -j$(nproc) \
-    && cmake --build mongo-c-build --target install \
-    && rm -rf mongo-c-* \
-    && curl -sL https://github.com/mongodb/mongo-cxx-driver/archive/r3.3.1.tar.gz | tar -zx -C . \
-    && cmake -Hmongo-cxx-driver-r3.3.1 -Bmongo-cxx-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
-    && cmake --build mongo-cxx-build --target EP_mnmlstc_core \
-    && cmake --build mongo-cxx-build -- -j$(nproc) \
-    && cmake --build mongo-cxx-build --target install \
-    && rm -rf mongo-cxx-*
-
 ARG ZILLIQA_VERSION=v3.2.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
