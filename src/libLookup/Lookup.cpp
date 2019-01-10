@@ -2413,10 +2413,9 @@ bool Lookup::ProcessRaiseStartPoW([[gnu::unused]] const bytes& message,
     return false;
   }
 
-  if (blockNumber != m_mediator.m_currentEpochNum) {
-    LOG_GENERAL(WARNING,
-                "Current message does not belong to this instrunction handler. "
-                "There might be replay attack.");
+  if (blockNumber != m_mediator.m_currentEpochNum &&
+      blockNumber != m_mediator.m_currentEpochNum + 1) {
+    LOG_GENERAL(WARNING, "block num is not within the current epoch.");
     return false;
   }
 
