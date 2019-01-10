@@ -622,6 +622,16 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     // Notify lookup that it's time to do PoW
     bytes startpow_message = {MessageType::LOOKUP,
                               LookupInstructionType::RAISESTARTPOW};
+
+    if (!Messenger::SetLookupSetRaiseStartPoW(
+            startpow_message, MessageOffset::BODY,
+            (uint8_t)LookupInstructionType::RAISESTARTPOW,
+            m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::SetLookupSetRaiseStartPoW failed.");
+      return;
+    }
+
     m_mediator.m_lookup->SendMessageToLookupNodesSerial(startpow_message);
 
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL

@@ -2391,6 +2391,50 @@ bool Lookup::ProcessRaiseStartPoW([[gnu::unused]] const bytes& message,
     return true;
   }
 
+  if (m_receivedRaiseStartPoW) {
+    LOG_GENERAL(WARNING, "Already raised start pow");
+    return false;
+  }
+
+  uint8_t msgType;
+  uint64_t blockNumber;
+  PubKey dspubkey;
+  if (!Messenger::GetLookupSetRaiseStartPoW(message, offset, msgType,
+                                            blockNumber, dspubkey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupSetRaiseStartPoW failed.");
+    return false;
+  }
+
+  if ((unsigned char)msgType != LookupInstructionType::RAISESTARTPOW) {
+    LOG_GENERAL(WARNING,
+                "Current message does not belong to this instrunction handler. "
+                "There might be replay attack.");
+    return false;
+  }
+
+  if (blockNumber != m_mediator.m_currentEpochNum) {
+    LOG_GENERAL(WARNING,
+                "Current message does not belong to this instrunction handler. "
+                "There might be replay attack.");
+    return false;
+  }
+
+  PubKey expectedDSLeadePubkey;
+  if (Node::GetDSLeaderPubkey(
+          m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+          m_mediator.m_dsBlockChain.GetLastBlock(), *m_mediator.m_DSCommittee,
+          m_mediator.m_currentEpochNum, expectedDSLeadePubkey)) {
+    LOG_GENERAL(WARNING, "Does not know expected ds leader");
+
+    return false;
+  }
+
+  if (!(expectedDSLeadePubkey == dspubkey)) {
+    LOG_GENERAL(WARNING, "Message does not comes from DS leader");
+    return false;
+  }
+
   // DS leader has informed me that it's time to start PoW
   m_receivedRaiseStartPoW = true;
   cv_startPoWSubmission.notify_all();
