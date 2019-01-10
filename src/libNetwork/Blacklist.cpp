@@ -20,7 +20,7 @@
 
 using namespace std;
 
-Blacklist::Blacklist() {}
+Blacklist::Blacklist() : m_enabled(true) {}
 
 Blacklist::~Blacklist() {}
 
@@ -31,18 +31,30 @@ Blacklist& Blacklist::GetInstance() {
 
 /// P2PComm may use this function
 bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip) {
+  if (!m_enabled) {
+    return false;
+  }
+
   lock_guard<mutex> g(m_mutexBlacklistIP);
   return (m_blacklistIP.end() != m_blacklistIP.find(ip));
 }
 
 /// Reputation Manager may use this function
 void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
+  if (!m_enabled) {
+    return;
+  }
+
   lock_guard<mutex> g(m_mutexBlacklistIP);
   m_blacklistIP.emplace(ip, true);
 }
 
 /// Reputation Manager may use this function
 void Blacklist::Remove(const boost::multiprecision::uint128_t& ip) {
+  if (!m_enabled) {
+    return;
+  }
+
   lock_guard<mutex> g(m_mutexBlacklistIP);
   m_blacklistIP.erase(ip);
 }
@@ -52,4 +64,12 @@ void Blacklist::Clear() {
   lock_guard<mutex> g(m_mutexBlacklistIP);
   m_blacklistIP.clear();
   LOG_GENERAL(INFO, "[blacklist] Blacklist cleared.");
+}
+
+void Blacklist::Enable(const bool enable) {
+  if (!enable) {
+    Clear();
+  }
+
+  m_enabled = enable;
 }
