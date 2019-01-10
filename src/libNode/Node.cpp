@@ -46,6 +46,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
@@ -475,6 +476,10 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
                                                   {'0'});
     }
+  }
+
+  if (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType) {
+    Blacklist::GetInstance().Enable(false);
   }
 
   if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE &&

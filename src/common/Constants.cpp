@@ -336,6 +336,8 @@ const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
 const bool REJOIN_NODE_NOT_IN_NETWORK{
     ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};
+const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
+    ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 
 // Smart contract constants
 const string SCILLA_ROOT{
