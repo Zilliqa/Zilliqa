@@ -70,7 +70,6 @@ int BN_generate_dsa_nonce(BIGNUM *out, const BIGNUM *range,
     unsigned char *k_bytes;
     int ret = 0;
 
-    //FIXME: should remove this conversion from (void *) to (unsiged char *)
     k_bytes = (unsigned char *)OPENSSL_malloc(num_k_bytes);
     if (k_bytes == NULL)
         goto err;
