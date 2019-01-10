@@ -5398,7 +5398,7 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
   SerializableToProtobufByteArray(dsKey.second, *result.mutable_pubkey());
 
   bytes tmp;
-  NumberToArray<uint8_t, sizeof(uint8_t)>(blockNumber, tmp, 0);
+  NumberToArray<uint8_t, sizeof(uint8_t)>(msgType, tmp, 0);
   NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, sizeof(uint8_t));
 
   Signature signature;
