@@ -483,6 +483,8 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
         it["value"] = "0x" + ownerAddr.hex();
       }
     }
+
+    ScillaTestUtil::RemoveThisAddressFromInit(t2.init);
     // and remove _creation_block (automatic insertion later).
     ScillaTestUtil::RemoveCreationBlockFromInit(t2.init);
 
@@ -642,6 +644,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     }
     // and remove _creation_block (automatic insertion later).
     ScillaTestUtil::RemoveCreationBlockFromInit(t10.init);
+    ScillaTestUtil::RemoveThisAddressFromInit(t10.init);
 
     uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t10.blockchain);
 
@@ -882,8 +885,8 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     for (unsigned int i = 0; i < hodlers; i++) {
       std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
       std::string hodlerAddr;
-      DataConversion::Uint8VecToHexStr(hodler, hodlerAddr);
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
+      DataConversion::Uint8VecToHexStr(hodler, hodlerAddr);
       std::string hodlerNumTokens = "1";
 
       Json::Value kvPair;
