@@ -28,6 +28,7 @@ privKeyFile=""
 pubKeyFile=""
 constantFile=""
 constantLookupFile=""
+constantArchivalLookupFile=""
 
 # [OPTIONAL] User configuration settings
 # If you want to release Scilla, please define this variable
@@ -62,7 +63,7 @@ if [ "$#" -ne 0 ]; then
     return 1
 fi
 
-if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ]; then
+if [ "$GitHubToken" = "" ] || [ "$packageName" = "" ] || [ "$releaseTitle" = "" ] || [ "$releaseDescription" = "" ] || [ "$privKeyFile" = "" ] || [ "$pubKeyFile" = "" ] || [ "$constantFile" = "" ] || [ "$constantLookupFile" = "" ] || [ "$constantArchivalLookupFile" = "" ]; then
     echo -e "\n\033[0;31m*ERROR* Please input ALL [MUST BE FILLED IN] fields in release.sh!\033[0m\n"
     return 1
 fi
@@ -87,6 +88,11 @@ if [ ! -f "${constantLookupFile}" ]; then
     return 1
 fi
 
+if [ ! -f "${constantArchivalLookupFile}" ]; then
+    echo -e "\n\033[0;31m*ERROR* Archival lookup constant file : ${constantArchivalLookupFile} not found, please confirm constantArchivalLookupFile field in release.sh!\033[0m\n"
+    return 1
+fi
+
 if [ -d "${scillaPath}" ]; then
     echo -e "\n\033[0;32m*INFO* Scilla will be released.\033[0m\n"
     scillaPath="$(realpath ${scillaPath})"
@@ -98,6 +104,7 @@ fi
 # Read information from files
 constantFile="$(realpath ${constantFile})"
 constantLookupFile="$(realpath ${constantLookupFile})"
+constantArchivalLookupFile="$(realpath ${constantArchivalLookupFile})"
 versionFile="$(realpath ${versionFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
@@ -236,6 +243,11 @@ curl -v -s  \
   -H "Content-Type:application/octet-stream"  \
   --data-binary @"${constantLookupFile}" \
   "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantLookupFile##*/}_lookup"
+curl -v -s  \
+  -H "Authorization: token ${GitHubToken}" \
+  -H "Content-Type:application/octet-stream"  \
+  --data-binary @"${constantArchivalLookupFile}" \
+  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${constantArchivalLookupFile##*/}_archivallookup"
 if [ "$scillaPath" != "" ]; then
     curl -v -s \
       -H "Authorization: token ${GitHubToken}" \

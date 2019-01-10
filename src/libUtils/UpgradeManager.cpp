@@ -30,7 +30,7 @@ using namespace std;
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
 #define CONSTANT_FILE_NAME "constants.xml"
 #define CONSTANT_LOOKUP_FILE_NAME "constants.xml_lookup"
-#define CONSTANT_ARCHIVAL_FILE_NAME "constants.xml_archival"
+#define CONSTANT_SEED_FILE_NAME "constants.xml_archivallookup"
 #define PUBLIC_KEY_LENGTH 66
 #define ZILLIQA_PACKAGE_FILE_EXTENSION "-Zilliqa.deb"
 #define SCILLA_PACKAGE_FILE_EXTENSION "-Scilla.deb"
@@ -393,6 +393,12 @@ bool UpgradeManager::DownloadSW() {
     return false;
   }
 
+  m_constantArchivalLookupFileName = DownloadFile(CONSTANT_SEED_FILE_NAME);
+
+  if (m_constantArchivalLookupFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download constant archival lookup seed file!");
+  }
+
   LOG_GENERAL(INFO, "Constant file has been downloaded successfully.");
 
   m_zilliqaPackageFileName = DownloadFile(ZILLIQA_PACKAGE_FILE_EXTENSION);
@@ -587,7 +593,11 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
                                               {'1'});
 
   /// Deploy downloaded software
-  if (LOOKUP_NODE_MODE) {
+  if (ARCHIVAL_LOOKUP) {
+    boost::filesystem::copy_file(
+        m_constantArchivalLookupFileName, CONSTANT_FILE_NAME,
+        boost::filesystem::copy_option::overwrite_if_exists);
+  } else if (LOOKUP_NODE_MODE) {
     boost::filesystem::copy_file(
         m_constantLookupFileName, CONSTANT_FILE_NAME,
         boost::filesystem::copy_option::overwrite_if_exists);
@@ -689,6 +699,8 @@ bool UpgradeManager::InstallScilla() {
       return false;
     }
 
+    LOG_GENERAL(INFO, "Start to install Scilla...");
+
     if (execl("/usr/bin/dpkg", "dpkg", "-i", m_scillaPackageFileName.data(),
               nullptr) < 0) {
       LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
@@ -700,6 +712,7 @@ bool UpgradeManager::InstallScilla() {
 }
 
 bool UpgradeManager::UnconfigureScillaPackage() {
+  LOG_MARKER();
   const string dpkgStatusFileName("/var/lib/dpkg/status"),
       tmpFileName("temp.txt");
   ifstream dpkgStatusFile;

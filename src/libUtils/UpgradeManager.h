@@ -30,8 +30,8 @@ class UpgradeManager {
   std::shared_ptr<SWInfo> m_latestSWInfo;
   bytes m_latestZilliqaSHA, m_latestScillaSHA;
   CURL* m_curl;
-  std::string m_constantFileName;
-  std::string m_constantLookupFileName;
+  std::string m_constantFileName, m_constantLookupFileName,
+      m_constantArchivalLookupFileName;
   std::string m_zilliqaPackageFileName, m_scillaPackageFileName;
   std::mutex m_downloadMutex;
 
