@@ -256,10 +256,25 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
     return miningResult;
   }
 
-  bool verifyResult = CheckMiningResult(pairOfKey, blockNum, headerHash,
-                                        boundary, miningResult);
-  if (!verifyResult) {
+  uint64_t nonce = 0;
+  ethash_hash256 mixHash;
+  bool checkResult =
+      CheckMiningResult(pairOfKey, headerHash, boundary, nonce, mixHash);
+  if (!checkResult) {
     LOG_GENERAL(WARNING, "Failed to check pow result from mining proxy.");
+    return miningResult;
+  }
+
+  ethash_hash256 hashResult;
+  auto verifyResult = VerifyRemoteSoln(blockNum, boundary, nonce, headerHash,
+                                       mixHash, hashResult);
+  if (verifyResult) {
+    miningResult =
+        ethash_mining_result_t{BlockhashToHexString(hashResult),
+                               BlockhashToHexString(mixHash), nonce, true};
+
+  } else {
+    LOG_GENERAL(WARNING, "Failed to verify PoW result from proxy.");
   }
 
   if (!SendVerifyResult(pairOfKey, headerHash, boundary, verifyResult)) {
@@ -345,10 +360,10 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
   }
 }
 
-bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
+bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
                             ethash_hash256 const& headerHash,
-                            ethash_hash256 const& boundary,
-                            ethash_mining_result_t& miningResult) {
+                            ethash_hash256 const& boundary, uint64_t& nonce,
+                            ethash_hash256& mixHash) {
   Json::Value jsonValue;
 
   bytes tmp;
@@ -384,7 +399,20 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
 
   const uint32_t CHECK_STATUS_RESULT_ARRAY_SIZE = 4;
 
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   while (m_shouldMine) {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    auto timePassedInSeconds = static_cast<uint32_t>(
+        std::chrono::duration<double>(currentTime - startTime).count());
+    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+      LOG_GENERAL(WARNING,
+                  "Waiting mining proxy return PoW result timeout, time "
+                  "passed in seconds "
+                      << timePassedInSeconds);
+      return false;
+    }
+
     std::this_thread::sleep_for(
         std::chrono::seconds(CHECK_MINING_RESULT_INTERVAL));
 
@@ -392,10 +420,6 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
       jsonrpc::Client client(*m_httpClient);
       Json::Value ret = client.CallMethod("zil_checkWorkStatus", jsonValue);
       LOG_GENERAL(INFO, "zil_checkWorkStatus return: " << ret);
-      bool workDone = ret[0].asBool();
-      if (!workDone) {
-        continue;
-      }
 
       if (ret.size() < CHECK_STATUS_RESULT_ARRAY_SIZE) {
         LOG_GENERAL(WARNING,
@@ -404,23 +428,16 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
         return false;
       }
 
-      uint64_t nonce = std::strtoull(ret[1].asCString(), NULL, 16);
-      ethash_hash256 headerHash = StringToBlockhash(ret[2].asString());
-      ethash_hash256 mixHash = StringToBlockhash(ret[3].asString());
-      LOG_GENERAL(INFO, "PoW result from proxy, Nonce: "
-                            << nonce << ", headerHash: " << ret[2].asString()
-                            << "mix hash: " << ret[3].asString());
-
-      ethash_hash256 hashResult;
-      if (!VerifyRemoteSoln(blockNum, boundary, nonce, headerHash, mixHash,
-                            hashResult)) {
-        LOG_GENERAL(WARNING, "Failed to verify PoW result from proxy.");
-        return false;
+      bool workDone = ret[0].asBool();
+      if (!workDone) {
+        continue;
       }
 
-      miningResult =
-          ethash_mining_result_t{BlockhashToHexString(hashResult),
-                                 BlockhashToHexString(mixHash), nonce, true};
+      nonce = std::strtoull(ret[1].asCString(), NULL, 16);
+      mixHash = StringToBlockhash(ret[3].asString());
+      LOG_GENERAL(INFO, "PoW result from proxy, nonce: "
+                            << nonce << ", headerHash: " << ret[2].asString()
+                            << " mix hash: " << ret[3].asString());
 
       return true;
     } catch (std::exception& e) {

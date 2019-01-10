@@ -115,10 +115,10 @@ class POW {
   bool SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                        ethash_hash256 const& headerHash,
                        ethash_hash256 const& boundary);
-  bool CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
+  bool CheckMiningResult(const PairOfKey& pairOfKey,
                          ethash_hash256 const& headerHash,
-                         ethash_hash256 const& boundary,
-                         ethash_mining_result_t& miningResult);
+                         ethash_hash256 const& boundary, uint64_t& nonce,
+                         ethash_hash256& mixHash);
   bool VerifyRemoteSoln(uint64_t blockNum, ethash_hash256 const& boundary,
                         uint64_t nonce, const ethash_hash256& headerHash,
                         const ethash_hash256& mixHash,
