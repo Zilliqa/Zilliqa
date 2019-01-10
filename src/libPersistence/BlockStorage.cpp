@@ -113,8 +113,9 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
 }
 
 bool BlockStorage::InitiateHistoricalDB(const string& path) {
-  m_txnHistoricalDB = make_shared<LevelDB>("txBodies", path, "");
-  m_MBHistoricalDB = make_shared<LevelDB>("microBlocks", path, "");
+  // If not explicitly convert to string, calls the other constructor
+  m_txnHistoricalDB = make_shared<LevelDB>("txBodies", path, (string) "");
+  m_MBHistoricalDB = make_shared<LevelDB>("microBlocks", path, (string) "");
 
   return true;
 }
