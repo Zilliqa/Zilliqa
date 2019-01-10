@@ -25,17 +25,18 @@ import tarfile
 from boto3.s3.transfer import S3Transfer
 from multiprocessing import Process
 
-BUCKET_NAME = ''
+BUCKET_NAME = 'zilliqa-historical-data'
 STATE_LOG_FILENAME = "state-00001-log.txt"
 KEYWORD_DSBLK = '[DSBLK]'
-SOURCE = ''
+SOURCE = './'
+TEST_NET_NAME = ""
 
-def UploadToS3():
-	transfer = S3Transfer(boto3.client('s3','us-west-2',aws_access_key_id="",aws_secret_access_key=""))
-	key = "test1"
-	with tarfile.open(key+'.tar.gz', mode='w:gz') as archive:
+def UploadToS3(dsEpochNum):
+	transfer = boto3.client('s3')
+	key = str(dsEpochNum) + '.tar.gz'
+	with tarfile.open(key, mode='w:gz') as archive:
 		archive.add(SOURCE+'persistence',arcname='persistence')
-	transfer.upload_file(key+'.tar.gz', BUCKET_NAME, key+'.tar.gz',extra_args={'ACL': 'public-read'})
+	transfer.upload_file(key, BUCKET_NAME, TEST_NET_NAME+"/"+key,ExtraArgs={'ACL':'public-read'})
 	print("Uploaded")
 
 def get_block_number(line):
@@ -47,7 +48,6 @@ def get_block_number(line):
 	return int(blockNumber)
 
 def QueryLatestDSEpoch(lastBlockNum):
-	s3 = boto3.resource('s3')
 	while True:
 		with open(SOURCE+STATE_LOG_FILENAME,'r') as f:
 			m = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
@@ -56,7 +56,7 @@ def QueryLatestDSEpoch(lastBlockNum):
 			line = m.readline()
 			blockNum = get_block_number(line)
 			if(lastBlockNum < blockNum):
-				p = Process(target=UploadToS3)
+				p = Process(target=UploadToS3,args=(blockNum,))
 				p.daemon = True
 				p.start()
 				lastBlockNum = blockNum
