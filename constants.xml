@@ -247,6 +247,15 @@
         </peer>
     -->
     </lookups>
+    <multipliers>
+        <!--IP to be provided after public testnet launch.
+        <peer>
+            <ip></ip>
+            <port>30303</port>
+            <pubkey></pubkey>
+        </peer>
+        -->
+    </multipliers>
     <upper_seed>
         <!--
         <peer>

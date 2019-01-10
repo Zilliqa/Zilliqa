@@ -112,7 +112,7 @@ void Lookup::InitSync() {
                   "TxBlockNum " << txBlockNum << " DSBlockNum: " << dsBlockNum);
       ComposeAndSendGetDirectoryBlocksFromSeed(
           m_mediator.m_blocklinkchain.GetLatestIndex() + 1);
-      GetTxBlockFromLookupNodes(txBlockNum, 0);
+      GetTxBlockFromSeedNodes(txBlockNum, 0);
 
       this_thread::sleep_for(chrono::seconds(NEW_NODE_SYNC_INTERVAL));
     }
@@ -133,7 +133,7 @@ void Lookup::SetLookupNodes() {
   ptree pt;
   read_xml("constants.xml", pt);
 
-  const vector<string> lookupTypes = {"node.lookups", "node.upper_seed",
+  const vector<string> lookupTypes = {"node.lookups", "node.multipliers",
                                       "node.lower_seed"};
 
   uint8_t level = 0;
@@ -145,17 +145,25 @@ void Lookup::SetLookupNodes() {
         inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
         Peer lookup_node((uint128_t)ip_addr.s_addr,
                          v.second.get<uint32_t>("port"));
-        if (v.second.get<std::string>("pubkey") == MULTIPLIER_PUBKEY) {
-          m_lookupNodes.emplace_back(PubKey(), lookup_node);
-        } else {
-          PubKey pubKey(DataConversion::HexStrToUint8Vec(
-                            v.second.get<std::string>("pubkey")),
-                        0);
-          if (pubKey == m_mediator.m_selfKey.second) {
-            m_level = level;
-          }
-          m_lookupNodes.emplace_back(pubKey, lookup_node);
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(
+                v.second.get<std::string>("pubkey"), pubkeyBytes)) {
+          continue;
         }
+        PubKey pubKey(pubkeyBytes, 0);
+        if (pubKey == m_mediator.m_selfKey.second) {
+          m_level = level;
+        }
+        if (find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                    [&pubKey](const pair<PubKey, Peer>& x) {
+                      return (pubKey == x.first);
+                    }) != m_lookupNodes.end()) {
+          continue;
+        }
+        if (lookupType == "node.multipliers") {
+          m_multipliers.emplace_back(pubKey, lookup_node);
+        }
+        m_lookupNodes.emplace_back(pubKey, lookup_node);
       }
     }
     level++;
@@ -185,9 +193,13 @@ void Lookup::SetAboveLayer() {
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
       Peer lookup_node((uint128_t)ip_addr.s_addr,
                        v.second.get<uint32_t>("port"));
-      PubKey pubKey(
-          DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey")),
-          0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.get<std::string>("pubkey"),
+                                            pubkeyBytes)) {
+        continue;
+      }
+
+      PubKey pubKey(pubkeyBytes, 0);
       m_seedNodes.emplace_back(pubKey, lookup_node);
     }
   }
@@ -252,7 +264,11 @@ bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& txn) {
   unsigned int NUM_TXN_TO_DS = num_txn / GENESIS_WALLETS.size();
 
   for (auto& addrStr : GENESIS_WALLETS) {
-    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
+    bytes tempAddrBytes;
+    if (!DataConversion::HexStrToUint8Vec(addrStr, tempAddrBytes)) {
+      continue;
+    }
+    Address addr{tempAddrBytes};
 
     txns.clear();
 
@@ -311,7 +327,11 @@ bool Lookup::GenTxnToSend(size_t num_txn,
   }
 
   for (auto& addrStr : GENESIS_WALLETS) {
-    Address addr{DataConversion::HexStrToUint8Vec(addrStr)};
+    bytes addrBytes;
+    if (!DataConversion::HexStrToUint8Vec(addrStr, addrBytes)) {
+      continue;
+    }
+    Address addr{addrBytes};
 
     auto txnShard = Transaction::GetShardIndex(addr, numShards);
     txns.clear();
@@ -400,7 +420,13 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
-      if (!node.first.Initialized()) {  // Avoid sending to multiplier
+      if (find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+                  [this](const std::pair<PubKey, Peer>& node) {
+                    return find_if(m_multipliers.begin(), m_multipliers.end(),
+                                   [node](const std::pair<PubKey, Peer>& mult) {
+                                     return node.second == mult.second;
+                                   }) != m_multipliers.end();
+                  }) != m_lookupNodes.end()) {  // Avoid sending to multiplier
         continue;
       }
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -428,12 +454,15 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
 
   // To avoid sending message to multiplier
   VectorOfLookupNode tmp;
-  std::copy_if(
-      m_lookupNodes.begin(), m_lookupNodes.end(), std::back_inserter(tmp),
-      [](const std::pair<PubKey, Peer>& node) {
-        return node.first.Initialized();  // will be uninitialized for
-                                          // multiplier with invalid pubkey
-      });
+  std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+               std::back_inserter(tmp),
+               [this](const std::pair<PubKey, Peer>& node) {
+                 return find_if(m_multipliers.begin(), m_multipliers.end(),
+                                [node](const std::pair<PubKey, Peer>& mult) {
+                                  return node.second == mult.second;
+                                }) == m_multipliers.end();
+               });
+
   LOG_GENERAL(INFO, "No. of total lookups: " << tmp.size());
   int index = rand() % tmp.size();
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmp[index].second);
@@ -638,9 +667,13 @@ bool Lookup::GetTxBodyFromSeedNodes(string txHashStr) {
   bytes getTxBodyMessage = {MessageType::LOOKUP,
                             LookupInstructionType::GETTXBODYFROMSEED};
 
+  bytes txHashBytes;
+  if (!DataConversion::HexStrToUint8Vec(txHashStr, txHashBytes)) {
+    return false;
+  }
+
   if (!Messenger::SetLookupGetTxBodyFromSeed(
-          getTxBodyMessage, MessageOffset::BODY,
-          DataConversion::HexStrToUint8Vec(txHashStr),
+          getTxBodyMessage, MessageOffset::BODY, txHashBytes,
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetLookupGetTxBodyFromSeed failed.");
@@ -671,8 +704,12 @@ bool Lookup::SetDSCommitteInfo() {
 
   for (ptree::value_type const& v : pt.get_child("nodes")) {
     if (v.first == "peer") {
-      PubKey key(DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk")),
-                 0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(v.second.get<string>("pubk"),
+                                            pubkeyBytes)) {
+        continue;
+      }
+      PubKey key(pubkeyBytes, 0);
 
       struct in_addr ip_addr;
       inet_pton(AF_INET, v.second.get<string>("ip").c_str(), &ip_addr);
@@ -3475,8 +3512,13 @@ bool Lookup::ProcessSetHistoricalDB(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (!(archPubkey ==
-        PubKey(DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY), 0))) {
+  bytes verifierPubkeyBytes;
+  if (!DataConversion::HexStrToUint8Vec(VERIFIER_PUBKEY, verifierPubkeyBytes)) {
+    LOG_GENERAL(WARNING, "VERIFIER_PUBKEY is not a hex str");
+    return false;
+  }
+
+  if (!(archPubkey == PubKey(verifierPubkeyBytes, 0))) {
     LOG_GENERAL(WARNING, "PubKey not of verifier");
     return false;
   }
