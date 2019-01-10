@@ -378,7 +378,7 @@ def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 	keypairs = [x.strip() for x in keypairs]
 
 	# Assemble the STARTPOW message
-	startpow_cmd = 'tests/Zilliqa/sendcmd' + ' --port ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' --cmd ' + 'cmd' + ' --cmdarg 0200' + ' --cmdarg ' + blocknum + ' --cmdarg ' + dsdiff + ' --cmdarg ' + diff + ' --cmdarg ' + rand1 + ' --cmdarg ' + rand2
+	startpow_cmd = 'tests/Zilliqa/sendcmd' + ' --port ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' --cmd ' + 'cmd' + ' --cmdarg 0200' + blocknum  + dsdiff + diff + rand1 + rand2
 	for x in range(0, dscount):
 		keypair = keypairs[x].split(" ")
 		startpow_cmd = startpow_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
