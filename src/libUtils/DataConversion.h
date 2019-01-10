@@ -31,6 +31,9 @@
 /// Utility class for data conversion operations.
 class DataConversion {
  public:
+  /// Converts alphanumeric hex string to Uint64.
+  static bool HexStringToUint64(const std::string& s, uint64_t* res);
+
   /// Converts alphanumeric hex string to byte vector.
   static bool HexStrToUint8Vec(const std::string& hex_input, bytes& out);
 
@@ -110,6 +113,9 @@ class DataConversion {
     }
     return result;
   }
+
+  /// Normalize alphanumeric hex string to lower and remove prefix "0x"
+  static bool NormalizeHexString(std::string& s);
 };
 
 #endif  // __DATACONVERSION_H__

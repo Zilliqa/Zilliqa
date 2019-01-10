@@ -97,10 +97,6 @@ struct PoWWorkPackage {
   uint8_t difficulty;
 };
 
-// helper functions
-extern bool HexStringToUint64(const std::string &s, uint64_t *res);
-extern bool NormalizeHexString(std::string &s);  // change in-place
-
 // Implement AbstractStubServer
 class GetWorkServer : public AbstractStubServer {
   // Constructor

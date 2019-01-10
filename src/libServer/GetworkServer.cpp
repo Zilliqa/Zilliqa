@@ -23,6 +23,7 @@
 #include "GetworkServer.h"
 #include "common/Constants.h"
 #include "libPOW/pow.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 using namespace jsonrpc;
@@ -32,49 +33,6 @@ using namespace jsonrpc;
 //////////////////////////////////////////////////
 
 static ethash_mining_result_t FAIL_RESULT = {"", "", 0, false};
-
-bool HexStringToUint64(const std::string& s, uint64_t* res) {
-  if (s.size() > 18) {
-    return false;
-  }
-  try {
-    *res = std::stoul(s, nullptr, 16);
-  } catch (const std::invalid_argument& e) {
-    LOG_GENERAL(WARNING, "Convert failed, invalid input: " << s);
-    return false;
-  } catch (const std::out_of_range& e) {
-    LOG_GENERAL(WARNING, "Convert failed, out of range: " << s);
-    return false;
-  }
-  return true;
-}
-
-bool NormalizeHexString(std::string& s) {
-  if (s.size() < 2) {
-    return false;
-  }
-
-  unsigned pos = 0;
-  unsigned prefix_size = 0;
-
-  for (char& c : s) {
-    pos++;
-    c = tolower(c);
-
-    if (std::isdigit(c) || (('a' <= c) && (c <= 'f'))) {
-      continue;
-    }
-    if ((c == 'x') && (pos == 2)) {
-      prefix_size = 2;
-      continue;
-    }
-    return false;
-  }
-  // remove prefix "0x"
-  s.erase(0, prefix_size);
-
-  return s.size() > 0;
-}
 
 // GetInstance returns the singleton instance
 GetWorkServer& GetWorkServer::GetInstance() {
@@ -166,14 +124,15 @@ ethash_mining_result_t GetWorkServer::GetResult(const int& wait_ms) {
 
   // wait_ms < 0
   // wait until the first accept result
-  std::unique_lock<std::mutex> lk(m_mutexResult);
-  while (m_isMining && !m_curResult.success) {
-    m_cvGotResult.wait(lk);
+  if (!m_isMining || m_curResult.success) {
+    return m_curResult;
+  }
 
-    // wait for a while miner is working
-    lk.unlock();
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    lk.lock();
+  std::unique_lock<std::mutex> lk(m_mutexResult);
+
+  if (m_cvGotResult.wait_for(lk, chrono::seconds(POW_WINDOW_IN_SECONDS)) ==
+      std::cv_status::timeout) {
+    LOG_GENERAL(WARNING, "GetResult Timeout...");
   }
 
   return m_curResult;
@@ -187,42 +146,38 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
   uint64_t winning_nonce = {0};
 
   // convert
-  if (HexStringToUint64(nonce, &winning_nonce)) {
-    lock_guard<mutex> g(m_mutexWork);
-
-    // check the header and boundary is same with current work
-    if (header != m_curWork.header) {
-      LOG_GENERAL(WARNING, "Submit header diff with current work");
-      LOG_GENERAL(WARNING, "Current header: " << m_curWork.header);
-      LOG_GENERAL(WARNING, "Submit header: " << header);
-      return FAIL_RESULT;
-    }
-    if (boundary != m_curWork.boundary) {
-      LOG_GENERAL(WARNING, "Submit boundary diff with current work");
-      LOG_GENERAL(WARNING, "Current boundary: " << m_curWork.boundary);
-      LOG_GENERAL(WARNING, "Submit boundary: " << boundary);
-      return FAIL_RESULT;
-    }
-
-    auto header_hash = POW::StringToBlockhash(header);
-
-    auto ethash_result = POW::GetInstance().LightHash(
-        m_curWork.blocknum, header_hash, winning_nonce);
-
-    auto final_result = POW::BlockhashToHexString(ethash_result.final_hash);
-
-    auto success = POW::GetInstance().PoWVerify(
-        m_curWork.blocknum, m_curWork.difficulty, header_hash, winning_nonce,
-        final_result, mixdigest);
-    if (!success) {
-      LOG_GENERAL(WARNING, "PoW Verify Failed!");
-      return FAIL_RESULT;
-    }
-
-    return ethash_mining_result_t{final_result, mixdigest, winning_nonce, true};
+  if (!DataConversion::HexStringToUint64(nonce, &winning_nonce)) {
+    LOG_GENERAL(WARNING, "Invalid nonce: " << nonce);
+    return FAIL_RESULT;
   }
-  LOG_GENERAL(WARNING, "Invalid nonce: " << nonce);
-  return FAIL_RESULT;
+
+  lock_guard<mutex> g(m_mutexWork);
+
+  // check the header and boundary is same with current work
+  if (header != m_curWork.header) {
+    LOG_GENERAL(WARNING, "Submit header diff with current work");
+    LOG_GENERAL(WARNING, "Current header: " << m_curWork.header);
+    LOG_GENERAL(WARNING, "Submit header: " << header);
+    return FAIL_RESULT;
+  }
+  if (boundary != m_curWork.boundary) {
+    LOG_GENERAL(WARNING, "Submit boundary diff with current work");
+    LOG_GENERAL(WARNING, "Current boundary: " << m_curWork.boundary);
+    LOG_GENERAL(WARNING, "Submit boundary: " << boundary);
+    return FAIL_RESULT;
+  }
+
+  ethash_hash256 final_result;
+  if (!POW::GetInstance().VerifyRemoteSoln(
+          m_curWork.blocknum, POW::StringToBlockhash(boundary), winning_nonce,
+          POW::StringToBlockhash(header), POW::StringToBlockhash(mixdigest),
+          final_result)) {
+    LOG_GENERAL(WARNING, "Failed to verify PoW result from miner.");
+    return FAIL_RESULT;
+  }
+
+  return ethash_mining_result_t{POW::BlockhashToHexString(final_result),
+                                mixdigest, winning_nonce, true};
 }
 
 // UpdateCurrentResult check and update new result
@@ -305,8 +260,10 @@ bool GetWorkServer::submitWork(const string& _nonce, const string& _header,
   LOG_GENERAL(INFO, "    mixdigest: " << mixdigest);
   LOG_GENERAL(INFO, "    boundary: " << boundary);
 
-  if (!NormalizeHexString(nonce) || !NormalizeHexString(header) ||
-      !NormalizeHexString(mixdigest) || !NormalizeHexString(boundary)) {
+  if (!DataConversion::NormalizeHexString(nonce) ||
+      !DataConversion::NormalizeHexString(header) ||
+      !DataConversion::NormalizeHexString(mixdigest) ||
+      !DataConversion::NormalizeHexString(boundary)) {
     LOG_GENERAL(WARNING, "Invalid input parameters");
     return false;
   }
