@@ -215,7 +215,8 @@ class AbstractZServer : public jsonrpc::AbstractServer<AbstractZServer> {
     this->bindAndAddMethod(
         jsonrpc::Procedure("GetTransactionsForTxBlock",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
-                           "param01", jsonrpc::JSON_STRING, NULL),
+                           "param01", jsonrpc::JSON_STRING, "param02",
+                           jsonrpc::JSON_INTEGER, NULL),
         &AbstractZServer::GetTransactionsForTxBlockI);
   }
 

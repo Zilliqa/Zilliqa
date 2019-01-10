@@ -1109,6 +1109,8 @@ string Server::GetNumTxnsDSEpoch() {
 
 Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum,
                                               unsigned int shardID) {
+  LOG_MARKER();
+  LOG_GENERAL(INFO, txBlockNum << " " << shardID);
   uint64_t txNum;
   Json::Value _json = Json::arrayValue;
   try {
