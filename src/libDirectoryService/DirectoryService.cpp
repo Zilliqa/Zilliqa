@@ -632,7 +632,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
       return;
     }
 
-    m_mediator.m_lookup->SendMessageToLookupNodesSerial(startpow_message);
+    m_mediator.m_lookup->SendMessageToLookupNodes(startpow_message);
 
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
