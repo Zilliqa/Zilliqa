@@ -5366,12 +5366,11 @@ bool Messenger::GetLookupSetRaiseStartPoW(const bytes& src,
     return false;
   }
 
-  msgType = result.msgtype();
-  blockNumber = result.blocknumber();
+  msgType = result.data().msgtype();
+  blockNumber = result.data().blocknumber();
 
-  bytes tmp;
-  NumberToArray<uint8_t, sizeof(uint8_t)>(msgType, tmp, 0);
-  NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, sizeof(uint8_t));
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
   ProtobufByteArrayToSerializable(result.pubkey(), dsPubKey);
   Signature signature;
@@ -5393,17 +5392,23 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
 
   LookupRaiseStartPoW result;
 
-  result.set_msgtype(msgType);
-  result.set_blocknumber(blockNumber);
+  result.mutable_data()->set_msgtype(msgType);
+  result.mutable_data()->set_blocknumber(blockNumber);
   SerializableToProtobufByteArray(dsKey.second, *result.mutable_pubkey());
 
-  bytes tmp;
-  NumberToArray<uint8_t, sizeof(uint8_t)>(msgType, tmp, 0);
-  NumberToArray<uint64_t, sizeof(uint64_t)>(blockNumber, tmp, sizeof(uint8_t));
-
   Signature signature;
-  if (!Schnorr::GetInstance().Sign(tmp, dsKey.first, dsKey.second, signature)) {
-    LOG_GENERAL(WARNING, "Failed to sign start PoW message.");
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, dsKey.first, dsKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign raise start PoW message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "LookupRaiseStartPoW.Data initialization failed.");
     return false;
   }
 
