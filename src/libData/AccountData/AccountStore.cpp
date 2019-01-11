@@ -45,7 +45,7 @@ void AccountStore::Init() {
 
   lock_guard<mutex> g(m_mutexDB);
 
-  ContractStorage::GetContractStorage().GetStateDB().ResetDB();
+  ContractStorage::GetContractStorage().Reset();
   m_db.ResetDB();
 }
 

@@ -146,10 +146,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
     toAccount->SetCode(transaction.GetCode());
     // Store the immutable states
-    if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
-      this->RemoveAccount(toAddr);
+    try {
+      if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
+        this->RemoveAccount(toAddr);
+        return false;
+      }
+    } catch (const std::bad_alloc& e) {
+      LOG_GENERAL(WARNING, "found bad_alloc!");
       return false;
     }
+
     // Set the blockNumber when the account was created
     toAccount->SetCreateBlockNum(blockNum);
     m_curBlockNum = blockNum;

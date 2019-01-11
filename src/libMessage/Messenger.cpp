@@ -620,6 +620,40 @@ void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
   }
 }
 
+void StateIndexToProtobuf(const vector<Contract::Index>& indexes,
+                          ProtoStateIndex& protoStateIndex) {
+  for (const auto& index : indexes) {
+    protoStateIndex.add_index(index.data(), index.size);
+  }
+}
+
+bool ProtobufToStateIndex(const ProtoStateIndex& protoStateIndex,
+                          vector<Contract::Index>& indexes) {
+  for (const auto& index : protoStateIndex.index()) {
+    indexes.emplace_back();
+    unsigned int size =
+        min((unsigned int)index.size(), (unsigned int)indexes.back().size);
+    copy(index.begin(), index.begin() + size, indexes.back().asArray().begin());
+  }
+
+  return true;
+}
+
+void StateDataToProtobuf(const Contract::StateEntry& entry,
+                         ProtoStateData& protoStateData) {
+  protoStateData.set_vname(std::get<Contract::VNAME>(entry));
+  protoStateData.set_ismutable(std::get<Contract::MUTABLE>(entry));
+  protoStateData.set_type(std::get<Contract::TYPE>(entry));
+  protoStateData.set_value(std::get<Contract::VALUE>(entry));
+}
+
+bool ProtobufToStateData(const ProtoStateData& protoStateData,
+                         Contract::StateEntry& indexes) {
+  indexes = std::make_tuple(protoStateData.vname(), protoStateData.ismutable(),
+                            protoStateData.type(), protoStateData.value());
+  return true;
+}
+
 void BlockBaseToProtobuf(const BlockBase& base,
                          ProtoBlockBase& protoBlockBase) {
   // Block hash
@@ -2896,6 +2930,62 @@ bool Messenger::GetTransactionWithReceipt(
   ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
 
   return true;
+}
+
+bool Messenger::SetStateIndex(bytes& dst, const unsigned int offset,
+                              const vector<Contract::Index>& indexes) {
+  ProtoStateIndex result;
+
+  StateIndexToProtobuf(indexes, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateIndex initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetStateIndex(const bytes& src, const unsigned int offset,
+                              vector<Contract::Index>& indexes) {
+  ProtoStateIndex result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateIndex initialization failed");
+    return false;
+  }
+
+  return ProtobufToStateIndex(result, indexes);
+}
+
+bool Messenger::SetStateData(bytes& dst, const unsigned int offset,
+                             const Contract::StateEntry& entry) {
+  ProtoStateData result;
+
+  StateDataToProtobuf(entry, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateData initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetStateData(const bytes& src, const unsigned int offset,
+                             Contract::StateEntry& entry) {
+  ProtoStateData result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateData initialization failed");
+    return false;
+  }
+
+  return ProtobufToStateData(result, entry);
 }
 
 bool Messenger::SetPeer(bytes& dst, const unsigned int offset,

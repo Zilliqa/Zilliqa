@@ -21,6 +21,7 @@
 #include <json/json.h>
 #include <leveldb/db.h>
 
+#include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 
@@ -32,15 +33,6 @@
 #include "depends/libTrie/TrieDB.h"
 
 namespace Contract {
-
-using VName = std::string;
-using Mutable = bool;
-using Type = std::string;
-using Value = std::string;
-using StateEntry = std::tuple<VName, Mutable, Type, Value>;
-using Index = dev::h256;
-
-enum Data : unsigned int { VNAME = 0, MUTABLE, TYPE, VALUE, ITEMS_NUM };
 
 Index GetIndex(const dev::h160& address, const std::string& key);
 
@@ -65,8 +57,8 @@ class ContractStorage : public Singleton<ContractStorage> {
   ContractStorage()
       : m_codeDB("contractCode"),
         m_stateDB("contractState"),
-        t_stateIndexDB("stateIndexTemp"),
-        t_stateDataDB("stateDataTemp"),
+        t_stateIndexDB("tempStateIndex"),
+        t_stateDataDB("tempStateData"),
         m_stateIndexDB("stateIndex"),
         m_stateDataDB("stateData"){};
 
@@ -119,6 +111,8 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /// Get the state hash of a contract account
   dev::h256 GetContractStateHash(const dev::h160& address);
+
+  void Reset();
 };
 
 }  // namespace Contract
