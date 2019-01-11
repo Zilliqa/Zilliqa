@@ -16,7 +16,10 @@
 FROM zilliqa/scilla@sha256:094d63cf1a7247598ea9af7ede0023c96738600e0163f8f30a278209cb588251
 
 # Format guideline: one package per line and keep them alphabetically sorted
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update \
+    && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:tah83/secp256k1 -y \
+    && apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
     build-essential \
     ca-certificates \
@@ -44,6 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     python \
     python-pip \
+    libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ############################### CUDA Installation ##############################
