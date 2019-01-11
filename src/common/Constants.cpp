@@ -285,6 +285,10 @@ const std::string MINING_PROXY_URL{
     ReadConstantString("MINING_PROXY_URL", "node.pow.")};
 const unsigned int CHECK_MINING_RESULT_INTERVAL{
     ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
+const bool GETWORK_SERVER_MINE{
+    ReadConstantString("GETWORK_SERVER_MINE", "node.pow.") == "true"};
+const unsigned int GETWORK_SERVER_PORT{
+    ReadConstantNumeric("GETWORK_SERVER_PORT", "node.pow.")};
 const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{

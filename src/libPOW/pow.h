@@ -145,6 +145,9 @@ class POW {
   ethash_mining_result_t MineFull(ethash_hash256 const& headerHash,
                                   ethash_hash256 const& boundary,
                                   uint64_t startNonce);
+  ethash_mining_result_t MineGetWork(uint64_t blockNum,
+                                     ethash_hash256 const& headerHash,
+                                     uint8_t difficulty);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
                                      uint8_t difficulty, uint64_t startNonce);
