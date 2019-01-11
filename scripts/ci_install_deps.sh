@@ -64,6 +64,8 @@ rm -rf openssl-1.1.1 openssl-1.1.1.tar.gz
 # presently a docker version ubuntu 16.04 is used
 function on_sudoless_ubuntu() {
 
+apt-get install -y software-properties-common
+add-apt-repository ppa:tah83/secp256k1 -y
 apt-get -qq update
 
 # install build dependencies
@@ -84,7 +86,8 @@ apt-get install -y \
     libevent-dev \
     libprotobuf-dev \
     libcurl4-openssl-dev \
-    protobuf-compiler
+    protobuf-compiler \
+    libsecp256k1-dev
 
 # install development dependencies
 apt-get install -y \
