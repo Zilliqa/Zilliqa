@@ -285,6 +285,10 @@ const std::string MINING_PROXY_URL{
     ReadConstantString("MINING_PROXY_URL", "node.pow.")};
 const unsigned int CHECK_MINING_RESULT_INTERVAL{
     ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
+const bool GETWORK_SERVER_MINE{
+    ReadConstantString("GETWORK_SERVER_MINE", "node.pow.") == "true"};
+const unsigned int GETWORK_SERVER_PORT{
+    ReadConstantNumeric("GETWORK_SERVER_PORT", "node.pow.")};
 const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{
@@ -338,17 +342,14 @@ const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
 const string SCILLA_ROOT{
     ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
 const string SCILLA_CHECKER{
-    SCILLA_ROOT + '/' +
     ReadConstantString("SCILLA_CHECKER", "node.smart_contract.")};
 const string SCILLA_BINARY{
-    SCILLA_ROOT + '/' +
     ReadConstantString("SCILLA_BINARY", "node.smart_contract.")};
 const string SCILLA_FILES{
     ReadConstantString("SCILLA_FILES", "node.smart_contract.")};
 const string SCILLA_LOG{
     ReadConstantString("SCILLA_LOG", "node.smart_contract.")};
 const string SCILLA_LIB{
-    SCILLA_ROOT + '/' +
     ReadConstantString("SCILLA_LIB", "node.smart_contract.")};
 const string INIT_JSON{SCILLA_FILES + '/' +
                        ReadConstantString("INIT_JSON", "node.smart_contract.")};
@@ -419,3 +420,5 @@ const std::string VERIFIER_PATH{
     ReadConstantString("VERIFIER_PATH", "node.verifier.")};
 const std::string VERIFIER_PUBKEY{
     ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
+const unsigned int SEED_PORT{
+    ReadConstantNumeric("SEED_PORT", "node.verifier.")};

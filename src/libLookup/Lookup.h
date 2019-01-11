@@ -54,6 +54,7 @@ class Lookup : public Executable, public Broadcastable {
   VectorOfLookupNode m_lookupNodes;
   VectorOfLookupNode m_lookupNodesOffline;
   VectorOfLookupNode m_seedNodes;
+  VectorOfLookupNode m_multipliers;
   std::mutex mutable m_mutexSeedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;

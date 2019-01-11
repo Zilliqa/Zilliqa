@@ -454,9 +454,14 @@ bool DirectoryService::VerifyPoWOrdering(
               m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
               peer.m_ipAddress, toFind, powSoln.lookupId, powSoln.gasPrice);
 
-          auto difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
-                                .GetHeader()
-                                .GetDifficulty();
+          auto difficulty =
+              (GUARD_MODE &&
+               Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
+                  ? (POW_DIFFICULTY / POW_DIFFICULTY)
+                  : m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetDifficulty();
+
           string resultStr, mixHashStr;
           if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
             ret = false;

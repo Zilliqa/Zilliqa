@@ -43,6 +43,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
+#include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
@@ -130,7 +131,7 @@ void Lookup::SetLookupNodes() {
   ptree pt;
   read_xml("constants.xml", pt);
 
-  const vector<string> lookupTypes = {"node.lookups", "node.upper_seed",
+  const vector<string> lookupTypes = {"node.lookups", "node.multipliers",
                                       "node.lower_seed"};
 
   uint8_t level = 0;
@@ -156,6 +157,9 @@ void Lookup::SetLookupNodes() {
                       return (pubKey == x.first);
                     }) != m_lookupNodes.end()) {
           continue;
+        }
+        if (lookupType == "node.multipliers") {
+          m_multipliers.emplace_back(pubKey, lookup_node);
         }
         m_lookupNodes.emplace_back(pubKey, lookup_node);
       }
@@ -414,6 +418,12 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
+      if (find_if(m_multipliers.begin(), m_multipliers.end(),
+                  [&node](const std::pair<PubKey, Peer>& mult) {
+                    return node.second == mult.second;
+                  }) != m_multipliers.end()) {
+        continue;
+      }
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Sending msg to lookup node "
                     << node.second.GetPrintableIPAddress() << ":"
@@ -437,9 +447,20 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
     return;
   }
 
-  int index = rand() % m_lookupNodes.size();
+  // To avoid sending message to multiplier
+  VectorOfLookupNode tmp;
+  std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
+               std::back_inserter(tmp),
+               [this](const std::pair<PubKey, Peer>& node) {
+                 return find_if(m_multipliers.begin(), m_multipliers.end(),
+                                [&node](const std::pair<PubKey, Peer>& mult) {
+                                  return node.second == mult.second;
+                                }) == m_multipliers.end();
+               });
 
-  P2PComm::GetInstance().SendMessage(m_lookupNodes[index].second, message);
+  int index = rand() % tmp.size();
+  LOG_GENERAL(INFO, "Sending to Random lookup: " << tmp[index].second);
+  P2PComm::GetInstance().SendMessage(tmp[index].second, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const bytes& message) const {
@@ -1639,6 +1660,21 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
             "ProcessSetTxBlockFromSeed sent by " << from << " for blocks "
                                                  << lowBlockNum << " to "
                                                  << highBlockNum);
+
+  // Update GetWork Server info for new nodes not in shards
+  if (GETWORK_SERVER_MINE) {
+    // roughly calc how many seconds to next PoW
+    auto cur_block = std::max(lowBlockNum, highBlockNum);
+    auto num_block =
+        NUM_FINAL_BLOCK_PER_POW - (cur_block % NUM_FINAL_BLOCK_PER_POW);
+    num_block = num_block % NUM_FINAL_BLOCK_PER_POW;
+    auto now = std::chrono::system_clock::now();
+    auto wait_seconds = chrono::seconds(
+        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000) *
+        num_block);
+
+    GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
+  }
 
   if (lowBlockNum > highBlockNum) {
     LOG_GENERAL(

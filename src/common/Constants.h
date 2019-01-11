@@ -237,6 +237,8 @@ extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;
 extern const std::string MINING_PROXY_URL;
 extern const unsigned int CHECK_MINING_RESULT_INTERVAL;
+extern const bool GETWORK_SERVER_MINE;
+extern const unsigned int GETWORK_SERVER_PORT;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
@@ -307,4 +309,5 @@ extern const std::vector<std::string> GENESIS_KEYS;
 // DBVerifier constants
 extern const std::string VERIFIER_PATH;
 extern const std::string VERIFIER_PUBKEY;
+extern const unsigned int SEED_PORT;
 #endif  // __CONSTANTS_H__

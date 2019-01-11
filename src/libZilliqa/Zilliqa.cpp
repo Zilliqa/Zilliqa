@@ -27,6 +27,7 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Guard.h"
+#include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -261,6 +262,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
       case SyncType::DB_VERIF:
         LOG_GENERAL(INFO, "Intitialize DB verification");
         m_n.ValidateDB();
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+        raise(SIGKILL);
         break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
@@ -270,6 +273,21 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
     if (!LOOKUP_NODE_MODE) {
       LOG_GENERAL(INFO, "I am a normal node.");
 
+      if (GETWORK_SERVER_MINE) {
+        LOG_GENERAL(INFO, "Starting GetWork Mining Server at http://"
+                              << peer.GetPrintableIPAddress() << ":"
+                              << GETWORK_SERVER_PORT);
+
+        // start message loop
+        if (GetWorkServer::GetInstance().StartServer()) {
+          LOG_GENERAL(INFO, "GetWork Mining Server started successfully");
+        } else {
+          LOG_GENERAL(WARNING, "GetWork Mining Server couldn't start");
+        }
+
+      } else {
+        LOG_GENERAL(INFO, "GetWork Mining Server not enable")
+      }
       // m_mediator.HeartBeatLaunch();
     } else {
       LOG_GENERAL(INFO, "I am a lookup node.");

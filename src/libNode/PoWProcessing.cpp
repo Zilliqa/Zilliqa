@@ -112,7 +112,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
   ethash_mining_result winning_result;
 
-  uint32_t shardGuardDiff = 1;
+  uint32_t shardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
   auto headerHash = POW::GenHeaderHash(
       rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
       m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice);
@@ -170,6 +170,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                   fixedDSBlockDistributionDelayTime +
                                   extraWaitTime)) == cv_status::timeout) {
         lock_guard<mutex> g(m_mutexDSBlock);
+
+        POW::GetInstance().StopMining();
+
         if (m_mediator.m_currentEpochNum ==
             m_mediator.m_dsBlockChain.GetLastBlock()
                 .GetHeader()
@@ -180,8 +183,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Time out while waiting for DS Block");
-
-        POW::GetInstance().StopMining();
 
         if (GetLatestDSBlock()) {
           LOG_GENERAL(INFO, "DS block created, means I lost PoW");
@@ -261,6 +262,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     "requirement");
       }
     }
+  } else {
+    // If failed to do PoW, try to rejoin in next DS block
+    RejoinAsNormal();
+    return false;
   }
 
   if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {

@@ -22,7 +22,10 @@
 #include <iostream>
 
 #include "common/Serializable.h"
+#include "depends/libethash/include/ethash/ethash.hpp"
+#include "depends/libethash/lib/ethash/ethash-internal.hpp"
 #include "libCrypto/Sha2.h"
+#include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "pow.h"
 
@@ -43,7 +46,8 @@ POW::POW() {
     m_httpClient = std::make_unique<jsonrpc::HttpClient>(MINING_PROXY_URL);
   }
 
-  if (FULL_DATASET_MINE && !CUDA_GPU_MINE && !OPENCL_GPU_MINE) {
+  if (!GETWORK_SERVER_MINE && FULL_DATASET_MINE && !CUDA_GPU_MINE &&
+      !OPENCL_GPU_MINE && !REMOTE_MINE) {
     m_epochContextFull = ethash::create_epoch_context_full(
         ethash::get_epoch_number(m_currentBlockNum));
   }
@@ -64,7 +68,12 @@ POW& POW::GetInstance() {
   return pow;
 }
 
-void POW::StopMining() { m_shouldMine = false; }
+void POW::StopMining() {
+  m_shouldMine = false;
+  if (GETWORK_SERVER_MINE) {
+    GetWorkServer::GetInstance().StopMining();
+  }
+}
 
 std::string POW::BytesToHexString(const uint8_t* str, const uint64_t s) {
   std::ostringstream ret;
@@ -157,7 +166,8 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
     m_epochContextLight = ethash::create_epoch_context(epochNumber);
   }
 
-  bool isMineFullCpu = fullDataset && !CUDA_GPU_MINE && !OPENCL_GPU_MINE;
+  bool isMineFullCpu = fullDataset && !CUDA_GPU_MINE && !OPENCL_GPU_MINE &&
+                       !GETWORK_SERVER_MINE && !REMOTE_MINE;
 
   if (isMineFullCpu && (m_epochContextFull == nullptr ||
                         ethash::get_epoch_number(block_number) !=
@@ -169,6 +179,24 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
   m_currentBlockNum = block_number;
 
   return true;
+}
+
+ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
+                                        ethash_hash256 const& headerHash,
+                                        uint8_t difficulty) {
+  LOG_MARKER();
+  int ethash_epoch = ethash::get_epoch_number(blockNum);
+  std::string seed = BlockhashToHexString(ethash::calculate_seed(ethash_epoch));
+  std::string boundary = BlockhashToHexString(DifficultyLevelInInt(difficulty));
+  std::string headerStr = BlockhashToHexString(headerHash);
+
+  PoWWorkPackage work = {headerStr, seed, boundary, blockNum, difficulty};
+
+  GetWorkServer::GetInstance().StartMining(work);
+  // -1: wait for the 1st accept result
+  auto result = GetWorkServer::GetInstance().GetResult(-1);
+  GetWorkServer::GetInstance().StopMining();
+  return result;
 }
 
 ethash_mining_result_t POW::MineLight(ethash_hash256 const& headerHash,
@@ -256,10 +284,25 @@ ethash_mining_result_t POW::RemoteMine(const PairOfKey& pairOfKey,
     return miningResult;
   }
 
-  bool verifyResult = CheckMiningResult(pairOfKey, blockNum, headerHash,
-                                        boundary, miningResult);
-  if (!verifyResult) {
+  uint64_t nonce = 0;
+  ethash_hash256 mixHash;
+  bool checkResult =
+      CheckMiningResult(pairOfKey, headerHash, boundary, nonce, mixHash);
+  if (!checkResult) {
     LOG_GENERAL(WARNING, "Failed to check pow result from mining proxy.");
+    return miningResult;
+  }
+
+  ethash_hash256 hashResult;
+  auto verifyResult = VerifyRemoteSoln(blockNum, boundary, nonce, headerHash,
+                                       mixHash, hashResult);
+  if (verifyResult) {
+    miningResult =
+        ethash_mining_result_t{BlockhashToHexString(hashResult),
+                               BlockhashToHexString(mixHash), nonce, true};
+
+  } else {
+    LOG_GENERAL(WARNING, "Failed to verify PoW result from proxy.");
   }
 
   if (!SendVerifyResult(pairOfKey, headerHash, boundary, verifyResult)) {
@@ -345,10 +388,10 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
   }
 }
 
-bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
+bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
                             ethash_hash256 const& headerHash,
-                            ethash_hash256 const& boundary,
-                            ethash_mining_result_t& miningResult) {
+                            ethash_hash256 const& boundary, uint64_t& nonce,
+                            ethash_hash256& mixHash) {
   Json::Value jsonValue;
 
   bytes tmp;
@@ -384,7 +427,20 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
 
   const uint32_t CHECK_STATUS_RESULT_ARRAY_SIZE = 4;
 
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   while (m_shouldMine) {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    auto timePassedInSeconds = static_cast<uint32_t>(
+        std::chrono::duration<double>(currentTime - startTime).count());
+    if (timePassedInSeconds > POW_WINDOW_IN_SECONDS) {
+      LOG_GENERAL(WARNING,
+                  "Waiting mining proxy return PoW result timeout, time "
+                  "passed in seconds "
+                      << timePassedInSeconds);
+      return false;
+    }
+
     std::this_thread::sleep_for(
         std::chrono::seconds(CHECK_MINING_RESULT_INTERVAL));
 
@@ -392,10 +448,6 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
       jsonrpc::Client client(*m_httpClient);
       Json::Value ret = client.CallMethod("zil_checkWorkStatus", jsonValue);
       LOG_GENERAL(INFO, "zil_checkWorkStatus return: " << ret);
-      bool workDone = ret[0].asBool();
-      if (!workDone) {
-        continue;
-      }
 
       if (ret.size() < CHECK_STATUS_RESULT_ARRAY_SIZE) {
         LOG_GENERAL(WARNING,
@@ -404,23 +456,16 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
         return false;
       }
 
-      uint64_t nonce = std::strtoull(ret[1].asCString(), NULL, 16);
-      ethash_hash256 headerHash = StringToBlockhash(ret[2].asString());
-      ethash_hash256 mixHash = StringToBlockhash(ret[3].asString());
-      LOG_GENERAL(INFO, "PoW result from proxy, Nonce: "
-                            << nonce << ", headerHash: " << ret[2].asString()
-                            << "mix hash: " << ret[3].asString());
-
-      ethash_hash256 hashResult;
-      if (!VerifyRemoteSoln(blockNum, boundary, nonce, headerHash, mixHash,
-                            hashResult)) {
-        LOG_GENERAL(WARNING, "Failed to verify PoW result from proxy.");
-        return false;
+      bool workDone = ret[0].asBool();
+      if (!workDone) {
+        continue;
       }
 
-      miningResult =
-          ethash_mining_result_t{BlockhashToHexString(hashResult),
-                                 BlockhashToHexString(mixHash), nonce, true};
+      nonce = std::strtoull(ret[1].asCString(), NULL, 16);
+      mixHash = StringToBlockhash(ret[3].asString());
+      LOG_GENERAL(INFO, "PoW result from proxy, nonce: "
+                            << nonce << ", headerHash: " << ret[2].asString()
+                            << " mix hash: " << ret[3].asString());
 
       return true;
     } catch (std::exception& e) {
@@ -614,6 +659,8 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
 
   if (REMOTE_MINE) {
     result = RemoteMine(pairOfKey, blockNum, headerHash, boundary);
+  } else if (GETWORK_SERVER_MINE) {
+    result = MineGetWork(blockNum, headerHash, difficulty);
   } else if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
     result = MineFullGPU(blockNum, headerHash, difficulty, startNonce);
   } else if (fullDataset) {

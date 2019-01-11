@@ -277,7 +277,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
-  uint8_t expectedShardGuardDiff = 1;
+  uint8_t expectedShardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
 
   // Non-genesis block
   if (blockNumber > 1) {

@@ -128,9 +128,6 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                            const uint64_t& blocknum,
                                            bool& toSendTxnToLookup) {
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Unavailable microblock hashes in final block : ")
-
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
@@ -140,6 +137,10 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
       if (info.m_txnRootHash != TxnHash()) {
+        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
+                              << info.m_microBlockHash << " [TxnRootHash] "
+                              << info.m_txnRootHash << " shardID "
+                              << info.m_shardId);
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
       }
@@ -545,6 +546,13 @@ void Node::LogReceivedFinalBlockDetails([
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "txblock.GetHeader().GetMinerPubKey(): "
                   << txblock.GetHeader().GetMinerPubKey());
+    for (const auto& mbinfo : txblock.GetMicroBlockInfos()) {
+      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "MicroBlockInfo blockHash: "
+                    << mbinfo.m_microBlockHash
+                    << " txrootHash: " << mbinfo.m_txnRootHash
+                    << " shardId: " << mbinfo.m_shardId);
+    }
   }
 }
 

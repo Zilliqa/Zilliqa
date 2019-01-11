@@ -58,6 +58,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool m_curIsDS;
   TransactionReceipt m_curTranReceipt;
 
+  std::string m_root_w_version;
+
   unsigned int m_curDepth = 0;
 
   bool ParseContractCheckerOutput(const std::string& checkerPrint);
@@ -73,9 +75,14 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   Json::Value GetBlockStateJson(const uint64_t& BlockNum) const;
 
-  std::string GetContractCheckerCmdStr();
-  std::string GetCreateContractCmdStr(const uint64_t& available_gas);
-  std::string GetCallContractCmdStr(const uint64_t& available_gas);
+  std::string GetContractCheckerCmdStr(const std::string& root_w_version);
+  std::string GetCreateContractCmdStr(const std::string& root_w_version,
+                                      const uint64_t& available_gas);
+  std::string GetCallContractCmdStr(const std::string& root_w_version,
+                                    const uint64_t& available_gas);
+
+  bool PrepareRootPathWVersion(std::string& root_w_version,
+                               const uint32_t& scilla_version);
 
   // Generate input for interpreter to check the correctness of contract
   void ExportCreateContractFiles(const Account& contract);
