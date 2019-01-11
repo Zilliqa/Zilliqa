@@ -209,7 +209,8 @@ class DirectoryService : public Executable, public Broadcastable {
   Mediator& m_mediator;
 
   // Coinbase
-  std::map<uint64_t, std::map<int32_t, std::vector<Address>>>
+  // Map<EpochNumber, Map<shard-id, vector <Public keys to be rewarded>>
+  std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>
       m_coinbaseRewardees;
   std::mutex m_mutexCoinbaseRewardees;
 
@@ -638,8 +639,8 @@ class DirectoryService : public Executable, public Broadcastable {
   void ClearVCBlockVector();
   bool RunConsensusOnFinalBlockWhenDSPrimary(
       const RunFinalBlockConsensusOptions& options);
-  bool CheckDSPowPacketSubmissionFromNonDSCommittee(
-      const PubKey& submitterPubKey);
+  bool CheckIfDSNode(const PubKey& submitterPubKey);
+  bool CheckIfShardNode(const PubKey& submitterPubKey);
 };
 
 #endif  // __DIRECTORYSERVICE_H__

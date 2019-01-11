@@ -272,14 +272,15 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, false, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, false, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -313,14 +314,15 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 34567;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, false, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, false, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -354,14 +356,15 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -411,14 +414,15 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -468,14 +472,15 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 20;
   uint64_t blockToUse = 1234567;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);

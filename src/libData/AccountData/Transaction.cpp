@@ -46,7 +46,7 @@ Transaction::Transaction(const bytes& src, unsigned int offset) {
 }
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
-                         const Address& toAddr, const KeyPair& senderKeyPair,
+                         const Address& toAddr, const PairOfKey& senderKeyPair,
                          const uint128_t& amount, const uint128_t& gasPrice,
                          const uint64_t& gasLimit, const bytes& code,
                          const bytes& data)

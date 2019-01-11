@@ -27,12 +27,14 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     find_package(libjson-rpc-cpp REQUIRED COMPONENTS jsonrpccommon jsonrpcserver)
     set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
     set(JSONRPCCPP_LINK_TARGETS "libjson-rpc-cpp::jsonrpccommon;libjson-rpc-cpp::jsonrpcserver")
+    set(JSONRPCCPP_CLIENT_LINK_TARGETS "libjson-rpc-cpp::jsonrpccommon;libjson-rpc-cpp::jsonrpcclient")
 else()
     pkg_check_modules(JSONCPP REQUIRED jsoncpp)
     include_directories(${JSONCPP_INCLUDE_DIRS})
     link_directories(${JSONCPP_LIBRARY_DIRS})
     set(JSONCPP_LINK_TARGETS "jsoncpp")
     set(JSONRPCCPP_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-server")
+    set(JSONRPCCPP_CLIENT_LINK_TARGETS "jsonrpccpp-common;jsonrpccpp-client")
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -41,30 +43,26 @@ find_package(Threads REQUIRED)
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
-find_package(libmongocxx QUIET)
-if (NOT ${libmongocxx_FOUND})
-    include(InstallMongo)
-    find_package(libmongocxx REQUIRED)
-endif()
-include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
-
 find_package(Boost COMPONENTS filesystem system unit_test_framework)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
     execute_process(
-        COMMAND ${HOMEBREW} --prefix openssl@1.1
+        #TODO: upgrade to OpenSSL 1.1.1a
+        COMMAND ${HOMEBREW} --prefix openssl
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    include(InstallOpenSSL)
-    set(OPENSSL_USE_STATIC_LIBS TRUE)
-    set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
+    #TODO: upgrade to OpenSSL 1.1.1a
+    # include(InstallOpenSSL)
+    # set(OPENSSL_USE_STATIC_LIBS TRUE)
+    # set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
 endif()
 
-find_package(OpenSSL 1.1 REQUIRED)
+#TODO: upgrade to OpenSSL 1.1.1a
+find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)

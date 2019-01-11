@@ -57,7 +57,7 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
     prevHash1.asArray().at(i) = i + 1;
   }
 
-  std::pair<PrivKey, PubKey> pubKey1 = Schnorr::GetInstance().GenKeyPair();
+  PairOfKey pubKey1 = Schnorr::GetInstance().GenKeyPair();
 
   std::map<PubKey, Peer> powDSWinners;
   for (int i = 0; i < 3; i++) {
@@ -166,12 +166,14 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
   LOG_PAYLOAD(WARNING, "serializedDSBlock2", serializedDSBlock2,
               serializedDSBlock2.size());
 
+  std::string cs1, cs2;
+  DataConversion::SerializableToHexStr(block1.GetCS2(), cs1);
+  DataConversion::SerializableToHexStr((*block2).GetCS2(), cs2);
   BOOST_CHECK_MESSAGE(
       block1.GetCS2() == (*block2).GetCS2(),
       "Signature shouldn't change after writing to/ reading from disk. Orig: "
-      "0x" << DataConversion::SerializableToHexStr(block1.GetCS2())
-           << " out: 0x"
-           << DataConversion::SerializableToHexStr((*block2).GetCS2()));
+      "0x" << cs1
+           << " out: 0x" << cs2);
 }
 
 BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {

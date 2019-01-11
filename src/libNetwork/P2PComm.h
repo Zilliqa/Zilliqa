@@ -97,7 +97,7 @@ class P2PComm {
   static ShaMessage shaMessage(const bytes& message);
 
   Peer m_selfPeer;
-  std::pair<PrivKey, PubKey> m_selfKey;
+  PairOfKey m_selfKey;
 
   ThreadPool m_SendPool{MAXMESSAGE, "SendPool"};
 
@@ -109,6 +109,7 @@ class P2PComm {
   static void ProcessGossipMsg(bytes& message, Peer& from);
 
   static void EventCallback(struct bufferevent* bev, short events, void* ctx);
+  static void ReadCallback(struct bufferevent* bev, void* ctx);
   static void AcceptConnectionCallback(evconnlistener* listener,
                                        evutil_socket_t cli_sock,
                                        struct sockaddr* cli_addr, int socklen,
@@ -172,7 +173,7 @@ class P2PComm {
 
   void SetSelfPeer(const Peer& self);
 
-  void SetSelfKey(const std::pair<PrivKey, PubKey>& self);
+  void SetSelfKey(const PairOfKey& self);
 
   bool SpreadRumor(const bytes& message);
 

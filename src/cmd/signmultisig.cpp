@@ -27,7 +27,11 @@ int main(int argc, const char* argv[]) {
     return -1;
   }
 
-  const bytes message = DataConversion::HexStrToUint8Vec(string(argv[1]));
+  bytes messageBytes;
+  if (!DataConversion::HexStrToUint8Vec(string(argv[1]), messageBytes)) {
+    return -1;
+  }
+  const bytes message = messageBytes;
 
   string line;
   vector<PrivKey> privKeys;
@@ -35,7 +39,11 @@ int main(int argc, const char* argv[]) {
     fstream privFile(argv[2], ios::in);
 
     while (getline(privFile, line)) {
-      privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
+      bytes privKeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(line, privKeyBytes)) {
+        continue;
+      }
+      privKeys.emplace_back(privKeyBytes, 0);
     }
   }
 
@@ -44,7 +52,11 @@ int main(int argc, const char* argv[]) {
     fstream pubFile(argv[3], ios::in);
 
     while (getline(pubFile, line)) {
-      pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
+      bytes pubKeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(line, pubKeyBytes)) {
+        continue;
+      }
+      pubKeys.emplace_back(pubKeyBytes, 0);
     }
   }
 
@@ -58,7 +70,12 @@ int main(int argc, const char* argv[]) {
     Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
     bytes result;
     sig.Serialize(result, 0);
-    cout << DataConversion::Uint8VecToHexStr(result);
+
+    std::string output;
+    if (!DataConversion::Uint8VecToHexStr(result, output)) {
+      return -1;
+    }
+    cout << output;
   }
 
   return 0;

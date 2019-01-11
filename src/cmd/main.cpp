@@ -86,8 +86,18 @@ int main(int argc, const char* argv[]) {
     my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
   }
 
-  bytes tmPrivkey = DataConversion::HexStrToUint8Vec(argv[1]);
-  bytes tmpPubkey = DataConversion::HexStrToUint8Vec(argv[2]);
+  bytes tmPrivkey;
+  bytes tmpPubkey;
+
+  if (!DataConversion::HexStrToUint8Vec(argv[1], tmPrivkey)) {
+    LOG_GENERAL(WARNING, "Invalid hex string (PrivKey).");
+    return -1;
+  }
+
+  if (!DataConversion::HexStrToUint8Vec(argv[2], tmpPubkey)) {
+    LOG_GENERAL(WARNING, "Invalid hex string (PubKey).");
+    return -1;
+  }
 
   PrivKey privkey;
   if (privkey.Deserialize(tmPrivkey, 0) != 0) {
