@@ -797,7 +797,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   // Compute the DSBlockHashSet member of the DSBlockHeader
   DSBlockHashSet dsBlockHashSet;
-  if (!Messenger::GetShardingStructureHash(m_shards,
+  if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION, m_shards,
                                            dsBlockHashSet.m_shardingHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetShardingStructureHash failed.");
@@ -962,7 +962,8 @@ bool DirectoryService::DSBlockValidator(
 
   // Verify the DSBlockHashSet member of the DSBlockHeader
   ShardingHash shardingHash;
-  if (!Messenger::GetShardingStructureHash(m_tempShards, shardingHash)) {
+  if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION,
+                                           m_tempShards, shardingHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetShardingStructureHash failed.");
     return false;

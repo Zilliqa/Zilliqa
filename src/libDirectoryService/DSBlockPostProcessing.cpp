@@ -97,9 +97,9 @@ bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
 
   dsblock_message.clear();
   dsblock_message = {MessageType::NODE, NodeInstructionType::DSBLOCK};
-  if (!Messenger::SetNodeVCDSBlocksMessage(dsblock_message, MessageOffset::BODY,
-                                           0, *m_pendingDSBlock,
-                                           m_VCBlockVector, m_shards)) {
+  if (!Messenger::SetNodeVCDSBlocksMessage(
+          dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
+          m_VCBlockVector, SHARDINGSTRUCTURE_VERSION, m_shards)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetNodeVCDSBlocksMessage failed.");
     return false;
@@ -158,7 +158,8 @@ void DirectoryService::SendDSBlockToShardNodes(
                                       NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeVCDSBlocksMessage(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
-            *m_pendingDSBlock, m_VCBlockVector, m_shards)) {
+            *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
+            m_shards)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetNodeVCDSBlocksMessage failed.");
       continue;

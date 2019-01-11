@@ -97,7 +97,8 @@ message ProtoDSNode
 // Used in database "dsCommittee"
 message ProtoDSCommittee
 {
-    repeated ProtoDSNode dsnodes = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version      = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated ProtoDSNode dsnodes = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -142,7 +143,8 @@ message ProtoShardingStructure
         repeated Member members     = 1; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    repeated Shard shards           = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version         = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated Shard shards           = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 

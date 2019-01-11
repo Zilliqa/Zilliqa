@@ -848,7 +848,7 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
 
     if (!Messenger::SetLookupSetDSInfoFromSeed(
             dsInfoMessage, MessageOffset::BODY, m_mediator.m_selfKey,
-            *m_mediator.m_DSCommittee, false)) {
+            DSCOMMITTEE_VERSION, *m_mediator.m_DSCommittee, false)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -1205,9 +1205,9 @@ bool Lookup::ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
 
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
-  if (!Messenger::SetLookupSetShardsFromSeed(msg, MessageOffset::BODY,
-                                             m_mediator.m_selfKey,
-                                             m_mediator.m_ds->m_shards)) {
+  if (!Messenger::SetLookupSetShardsFromSeed(
+          msg, MessageOffset::BODY, m_mediator.m_selfKey,
+          SHARDINGSTRUCTURE_VERSION, m_mediator.m_ds->m_shards)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetLookupSetShardsFromSeed failed.");
     return false;
@@ -1224,10 +1224,18 @@ bool Lookup::ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
 
   DequeOfShard shards;
   PubKey lookupPubKey;
-  if (!Messenger::GetLookupSetShardsFromSeed(message, offset, lookupPubKey,
-                                             shards)) {
+  uint32_t shardingStructureVersion = 0;
+  if (!Messenger::GetLookupSetShardsFromSeed(
+          message, offset, lookupPubKey, shardingStructureVersion, shards)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetLookupSetShardsFromSeed failed.");
+    return false;
+  }
+
+  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
+                             << SHARDINGSTRUCTURE_VERSION
+                             << " Actual: " << shardingStructureVersion);
     return false;
   }
 
@@ -1447,10 +1455,19 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
 
   PubKey senderPubKey;
   std::deque<std::pair<PubKey, Peer>> dsNodes;
+  uint32_t dsCommitteeVersion = 0;
   if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
-                                             dsNodes, initialDS)) {
+                                             dsCommitteeVersion, dsNodes,
+                                             initialDS)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetLookupSetDSInfoFromSeed failed.");
+    return false;
+  }
+
+  if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
+    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
+                             << DSCOMMITTEE_VERSION
+                             << " Actual: " << dsCommitteeVersion);
     return false;
   }
 
@@ -2880,6 +2897,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   Peer peer(ipAddr, portNo);
 
   if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(msg, MessageOffset::BODY,
+                                                      SHARDINGSTRUCTURE_VERSION,
                                                       dirBlocks, index_num)) {
     LOG_GENERAL(WARNING,
                 "Messenger::SetLookupSetDirectoryBlocksFromSeed failed");
@@ -2897,11 +2915,18 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
   uint64_t index_num;
-
-  if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(message, offset,
-                                                      dirBlocks, index_num)) {
+  uint32_t shardingStructureVersion = 0;
+  if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(
+          message, offset, shardingStructureVersion, dirBlocks, index_num)) {
     LOG_GENERAL(WARNING,
                 "Messenger::GetLookupSetDirectoryBlocksFromSeed failed");
+    return false;
+  }
+
+  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
+                             << SHARDINGSTRUCTURE_VERSION
+                             << " Actual: " << shardingStructureVersion);
     return false;
   }
 

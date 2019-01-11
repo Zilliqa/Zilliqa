@@ -73,7 +73,8 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
     }
   }
 
-  BOOST_CHECK(Messenger::GetShardingStructureHash(shards, dst));
+  BOOST_CHECK(Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION,
+                                                  shards, dst));
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {

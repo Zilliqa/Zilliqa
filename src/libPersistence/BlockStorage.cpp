@@ -592,7 +592,8 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
 
   bytes shardStructure;
 
-  if (!Messenger::ShardStructureToArray(shardStructure, 0, shards)) {
+  if (!Messenger::ShardStructureToArray(shardStructure, 0,
+                                        SHARDINGSTRUCTURE_VERSION, shards)) {
     LOG_GENERAL(WARNING, "Failed to serialize sharding structure");
     return false;
   }
@@ -617,8 +618,17 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
     dataStr = m_shardStructureDB->Lookup(index++);
   }
 
+  uint32_t version = 0;
   Messenger::ArrayToShardStructure(bytes(dataStr.begin(), dataStr.end()), 0,
-                                   shards);
+                                   version, shards);
+
+  if (version != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING,
+                "Version check failed. Expected: " << SHARDINGSTRUCTURE_VERSION
+                                                   << " Actual: " << version);
+    return false;
+  }
+
   LOG_GENERAL(INFO, "Retrieved sharding structure");
   return true;
 }
@@ -657,7 +667,8 @@ bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
 
   bytes data;
 
-  if (!Messenger::SetDiagnosticData(data, 0, shards, dsCommittee)) {
+  if (!Messenger::SetDiagnosticData(data, 0, SHARDINGSTRUCTURE_VERSION, shards,
+                                    DSCOMMITTEE_VERSION, dsCommittee)) {
     LOG_GENERAL(WARNING, "Messenger::SetDiagnosticData failed");
     return false;
   }
@@ -695,8 +706,25 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
 
   bytes data(dataStr.begin(), dataStr.end());
 
-  if (!Messenger::GetDiagnosticData(data, 0, shards, dsCommittee)) {
+  uint32_t shardingStructureVersion = 0;
+  uint32_t dsCommitteeVersion = 0;
+  if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion, shards,
+                                    dsCommitteeVersion, dsCommittee)) {
     LOG_GENERAL(WARNING, "Messenger::GetDiagnosticData failed");
+    return false;
+  }
+
+  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
+                             << SHARDINGSTRUCTURE_VERSION
+                             << " Actual: " << shardingStructureVersion);
+    return false;
+  }
+
+  if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
+    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
+                             << DSCOMMITTEE_VERSION
+                             << " Actual: " << dsCommitteeVersion);
     return false;
   }
 
@@ -735,12 +763,33 @@ void BlockStorage::GetDiagnosticData(
     bytes data(dataStr.begin(), dataStr.end());
 
     DiagnosticData entry;
+    uint32_t shardingStructureVersion = 0;
+    uint32_t dsCommitteeVersion = 0;
 
-    if (!Messenger::GetDiagnosticData(data, 0, entry.shards,
+    if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion,
+                                      entry.shards, dsCommitteeVersion,
                                       entry.dsCommittee)) {
       LOG_GENERAL(WARNING,
                   "Messenger::GetDiagnosticData failed for DS block number "
                       << dsBlockNumStr << " at index " << index);
+      continue;
+    }
+
+    if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+      LOG_GENERAL(WARNING,
+                  "Sharding structure version check failed for DS block number "
+                      << dsBlockNumStr << " at index " << index
+                      << ". Expected: " << SHARDINGSTRUCTURE_VERSION
+                      << " Actual: " << shardingStructureVersion);
+      continue;
+    }
+
+    if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
+      LOG_GENERAL(WARNING,
+                  "DS committee version check failed for DS block number "
+                      << dsBlockNumStr << " at index " << index
+                      << ". Expected: " << DSCOMMITTEE_VERSION
+                      << " Actual: " << dsCommitteeVersion);
       continue;
     }
 

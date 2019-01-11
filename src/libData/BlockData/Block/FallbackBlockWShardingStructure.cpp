@@ -34,7 +34,7 @@ FallbackBlockWShardingStructure::FallbackBlockWShardingStructure(
 bool FallbackBlockWShardingStructure::Serialize(bytes& dst,
                                                 unsigned int offset) const {
   if (!Messenger::SetFallbackBlockWShardingStructure(
-          dst, offset, m_fallbackblock, m_shards)) {
+          dst, offset, m_fallbackblock, SHARDINGSTRUCTURE_VERSION, m_shards)) {
     LOG_GENERAL(WARNING, "Unable to serialize");
     return false;
   }
@@ -43,10 +43,20 @@ bool FallbackBlockWShardingStructure::Serialize(bytes& dst,
 
 bool FallbackBlockWShardingStructure::Deserialize(const bytes& src,
                                                   unsigned int offset) {
+  uint32_t shardingStructureVersion = 0;
+
   if (!Messenger::GetFallbackBlockWShardingStructure(
-          src, offset, m_fallbackblock, m_shards)) {
+          src, offset, m_fallbackblock, shardingStructureVersion, m_shards)) {
     LOG_GENERAL(WARNING, "Unable to Deserialize");
     return false;
   }
+
+  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
+                             << SHARDINGSTRUCTURE_VERSION
+                             << " Actual: " << shardingStructureVersion);
+    return false;
+  }
+
   return true;
 }
