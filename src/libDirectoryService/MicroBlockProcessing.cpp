@@ -281,6 +281,17 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
+  auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
+
+  // Check if we already received a validated microblock with the same shard id
+  if (find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
+              [this, shardId](const MicroBlock& mb) -> bool {
+                return mb.GetHeader().GetShardId() == shardId;
+              }) != microBlocksAtEpoch.end()) {
+    LOG_GENERAL(WARNING, "Duplicate microblock received for shard " << shardId);
+    return false;
+  }
+
   if (!SaveCoinbase(microBlock.GetB1(), microBlock.GetB2(),
                     microBlock.GetHeader().GetShardId(),
                     m_mediator.m_currentEpochNum)) {
@@ -303,7 +314,6 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     }
   }
 
-  auto& microBlocksAtEpoch = m_microBlocks[m_mediator.m_currentEpochNum];
   microBlocksAtEpoch.emplace(microBlock);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),

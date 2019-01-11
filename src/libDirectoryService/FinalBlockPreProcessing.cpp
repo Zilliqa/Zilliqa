@@ -1247,8 +1247,25 @@ void DirectoryService::RunConsensusOnFinalBlock(
             cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
         std::cv_status::timeout) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Initiated final block view change. ");
-      auto func2 = [this]() -> void { RunConsensusOnViewChange(); };
+                "Initiated final block view change.");
+      auto func2 = [this]() -> void {
+        // Remove DS microblock from my list of microblocks
+        {
+          lock_guard<mutex> g(m_mutexMicroBlocks);
+          auto& microBlocksAtEpoch =
+              m_microBlocks[m_mediator.m_currentEpochNum];
+          auto dsmb =
+              find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
+                      [this](const MicroBlock& mb) -> bool {
+                        return mb.GetHeader().GetShardId() == m_shards.size();
+                      });
+          if (dsmb != microBlocksAtEpoch.end()) {
+            LOG_GENERAL(INFO, "Removed DS microblock from list of microblocks");
+            microBlocksAtEpoch.erase(dsmb);
+          }
+        }
+        RunConsensusOnViewChange();
+      };
       DetachedFunction(1, func2);
     }
   };
