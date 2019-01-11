@@ -66,11 +66,11 @@ void Account::InitStorage() {
 
 bool Account::InitContract(const bytes& data, const Address& addr) {
   SetInitData(data);
-  m_address = addr;
   if (!InitContract(addr)) {
     LOG_GENERAL(WARNING, "Account " << addr.hex() << " InitContract failed");
     return false;
   }
+  m_address = addr;
   return true;
 }
 

@@ -101,7 +101,7 @@ class ContractStorage : public Singleton<ContractStorage> {
                         dev::h256& stateHash);
 
   bool PutContractState(const dev::h160& address,
-                        const std::vector<std::pair<Index, bytes>>& states,
+                        const std::vector<std::pair<Index, bytes>>& entries,
                         dev::h256& stateHash);
 
   bool CommitTempStateDB();
