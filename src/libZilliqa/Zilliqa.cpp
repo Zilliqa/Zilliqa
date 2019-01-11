@@ -293,7 +293,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
 
       if (GETWORK_SERVER_MINE) {
         LOG_GENERAL(INFO, "Starting GetWork Mining Server at http://"
-                              << string(peer.GetPrintableIPAddress()) << ":"
+                              << peer.GetPrintableIPAddress() << ":"
                               << GETWORK_SERVER_PORT);
 
         // start message loop

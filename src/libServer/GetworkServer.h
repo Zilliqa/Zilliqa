@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __POW_GETWORK_SERVER_H__
-#define __POW_GETWORK_SERVER_H__
+#ifndef __GETWORK_SERVER_H__
+#define __GETWORK_SERVER_H__
 
 #include <chrono>
 
@@ -163,4 +163,4 @@ class GetWorkServer : public AbstractStubServer {
                           const std::string &worker);
 };
 
-#endif  // __POW_GETWORK_SERVER_H__
+#endif  // __GETWORK_SERVER_H__

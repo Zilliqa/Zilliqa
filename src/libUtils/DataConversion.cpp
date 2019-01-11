@@ -20,9 +20,6 @@
 using namespace std;
 
 bool DataConversion::HexStringToUint64(const std::string& s, uint64_t* res) {
-  if (s.size() > 18) {
-    return false;
-  }
   try {
     *res = std::stoull(s, nullptr, 16);
   } catch (const std::invalid_argument& e) {

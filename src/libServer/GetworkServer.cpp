@@ -237,11 +237,8 @@ Json::Value GetWorkServer::getWork() {
 bool GetWorkServer::submitWork(const string& _nonce, const string& _header,
                                const string& _mixdigest,
                                const string& _boundary,
-                               const string& _miner_wallet,
-                               const string& _worker) {
-  (void)_miner_wallet;
-  (void)_worker;
-
+                               [[gnu::unused]] const string& _miner_wallet,
+                               [[gnu::unused]] const string& _worker) {
   LOG_MARKER();
 
   if (!m_isMining) {
@@ -270,17 +267,12 @@ bool GetWorkServer::submitWork(const string& _nonce, const string& _header,
 
   auto result = VerifySubmit(nonce, header, mixdigest, boundary);
 
-  bool accepted = UpdateCurrentResult(result);
-
-  return accepted;
+  return UpdateCurrentResult(result);
+  ;
 }
 
-bool GetWorkServer::submitHashrate(const string& hashrate,
-                                   const string& miner_wallet,
-                                   const string& worker) {
-  (void)hashrate;
-  (void)miner_wallet;
-  (void)worker;
-
+bool GetWorkServer::submitHashrate([[gnu::unused]] const string& hashrate,
+                                   [[gnu::unused]] const string& miner_wallet,
+                                   [[gnu::unused]] const string& worker) {
   return true;
 }
