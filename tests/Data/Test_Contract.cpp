@@ -1178,14 +1178,10 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                         "Map (ByStr32) (Pair (Pair (ByStr20) (Uint128)) "
                         "(Pair (ByStr20) (Uint128)))",
                         JSONUtils::convertJsontoStr(orderBook)));
-
     dex_state_entries.push_back(std::make_tuple(
-        "orderbook", true, "Map (ByStr32) (Pair (ByStr20) (BNum))",
+        "orderInfo", true, "Map (ByStr32) (Pair (ByStr20) (BNum))",
         JSONUtils::convertJsontoStr(orderInfo)));
     dexAccount->SetStorage(dex_state_entries);
-    // dexAccount->SetStorage("orderInfo", "Map (ByStr32) (Pair (ByStr20)
-    // (BNum))",
-    //                        JSONUtils::convertJsontoStr(orderInfo));
 
     // Approve DEX on Token A and Token B respectively
     Json::Value dataApprove = fungibleTokenT5.message;
