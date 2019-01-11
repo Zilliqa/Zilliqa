@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python-pip \
     && rm -rf /var/lib/apt/lists/*
 
-ARG ZILLIQA_VERSION=v3.2.0
+ARG ZILLIQA_VERSION=v3.2.2
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
