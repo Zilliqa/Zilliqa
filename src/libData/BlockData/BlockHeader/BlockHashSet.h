@@ -45,10 +45,14 @@ struct DSBlockHashSet {
 };
 
 inline std::ostream& operator<<(std::ostream& os, const DSBlockHashSet& t) {
+  std::string reservedFieldStr;
+  if (!DataConversion::charArrToHexStr(t.m_reservedField, reservedFieldStr)) {
+    os << "";
+    return os;
+  }
   os << "<DSBlockHashSet>" << std::endl
      << "m_shardingHash : " << t.m_shardingHash.hex() << std::endl
-     << "m_reservedField : "
-     << DataConversion::charArrToHexStr(t.m_reservedField);
+     << "m_reservedField : " << reservedFieldStr;
   return os;
 }
 
@@ -58,10 +62,13 @@ template <>
 struct hash<DSBlockHashSet> {
   size_t operator()(DSBlockHashSet const& hashSet) const noexcept {
     std::size_t seed = 0;
+    std::string reservedFieldStr;
+    if (!DataConversion::charArrToHexStr(hashSet.m_reservedField,
+                                         reservedFieldStr)) {
+      return seed;
+    }
     boost::hash_combine(seed, hashSet.m_shardingHash.hex());
-    boost::hash_combine(
-        seed, DataConversion::charArrToHexStr(hashSet.m_reservedField));
-
+    boost::hash_combine(seed, reservedFieldStr);
     return seed;
   }
 };

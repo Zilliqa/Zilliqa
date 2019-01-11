@@ -90,3 +90,8 @@ build_lookup
 
 # CMake files
 compile_commands.json
+
+# IDE
+.idea
+.vscode
+.history

@@ -181,27 +181,22 @@ void DirectoryService::SendDSBlockToShardNodes(
                     "constant.xml next time.");
         numOfDSBlockReceivers = NUM_DS_ELECTION + 1;
       }
-      LOG_GENERAL(
-          INFO,
-          "Sending message with hash: ["
-              << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-              << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
-              << numOfDSBlockReceivers << " shard peers");
+
+      string msgHash;
+      DataConversion::Uint8VecToHexStr(this_msg_hash, msgHash);
+      LOG_GENERAL(INFO, "Sending message with hash: ["
+                            << msgHash.substr(0, 6)
+                            << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
+                            << numOfDSBlockReceivers << " shard peers");
 
       numOfDSBlockReceivers =
           std::min(numOfDSBlockReceivers, (uint32_t)p->size());
 
       for (unsigned int i = 0; i < numOfDSBlockReceivers; i++) {
         shardDSBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(p->at(i)));
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            " PubKey: "
-                << DataConversion::SerializableToHexStr(
-                       std::get<SHARD_NODE_PUBKEY>(p->at(i)))
-                << " IP: "
-                << std::get<SHARD_NODE_PEER>(p->at(i)).GetPrintableIPAddress()
-                << " Port: "
-                << std::get<SHARD_NODE_PEER>(p->at(i)).m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " PubKey: " << std::get<SHARD_NODE_PUBKEY>(p->at(i))
+                              << std::get<SHARD_NODE_PEER>(p->at(i)));
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
@@ -384,9 +379,7 @@ void DirectoryService::StartFirstTxEpoch() {
       }
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                " PubKey: " << DataConversion::SerializableToHexStr(i.first)
-                            << " IP: " << i.second.GetPrintableIPAddress()
-                            << " Port: " << i.second.m_listenPortHost);
+                " PubKey: " << i.first << " IP: " << i.second);
 
       index++;
     }

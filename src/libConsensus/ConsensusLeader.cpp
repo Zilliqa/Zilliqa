@@ -204,7 +204,11 @@ void ConsensusLeader::StartConsensusSubsets() {
       subset.responseMap.at(m_myID) = true;
       subset.responseCounter = 1;
 
-      if (BROADCAST_GOSSIP_MODE) {
+      // If we only have one subset, let's avoid using gossip to send the
+      // challenge Gossip causes all the backups (including those who did not
+      // send commits) to send out a response, and this can cause the leader to
+      // miss valid responses (e.g., if the message queue is filled)
+      if ((BROADCAST_GOSSIP_MODE) && (NUM_CONSENSUS_SUBSETS > 1)) {
         // Gossip challenge within my all peers
         P2PComm::GetInstance().SpreadRumor(challenge);
       } else {

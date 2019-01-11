@@ -148,13 +148,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       LOG_GENERAL(WARNING, "toAccount is null ptr");
       return false;
     }
+
     toAccount->SetCode(transaction.GetCode());
     // Set the blockNumber when the account was created
     toAccount->SetCreateBlockNum(blockNum);
 
     bool ret = true;
     // Store the immutable states
-    if (!toAccount->InitContract(transaction.GetData())) {
+    if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
       LOG_GENERAL(WARNING, "InitContract failed");
       // TODO: return the gas
       ret = false;

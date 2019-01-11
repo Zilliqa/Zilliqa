@@ -41,6 +41,7 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libPOW/pow.h"
 #include "libServer/Server.h"
 #include "libUtils/BitVector.h"
@@ -87,16 +88,19 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);
 
+  string prevHashStr;
+  if (!DataConversion::charArrToHexStr(m_mediator.m_txBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetPrevHash()
+                                           .asArray(),
+                                       prevHashStr)) {
+    LOG_GENERAL(WARNING, "prev hash cannot be converted to hex str");
+  }
   LOG_EPOCH(
       INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
       "Final block "
           << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-          << " received with prevhash 0x"
-          << DataConversion::charArrToHexStr(
-                 m_mediator.m_txBlockChain.GetLastBlock()
-                     .GetHeader()
-                     .GetPrevHash()
-                     .asArray()));
+          << " received with prevhash 0x" << prevHashStr);
 
   LOG_STATE(
       "[FINBK]["
@@ -793,6 +797,13 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     StoreFinalBlock(txBlock);
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   }
+
+  auto resumeBlackList = []() mutable -> void {
+    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
+    Blacklist::GetInstance().Enable(true);
+  };
+
+  DetachedFunction(1, resumeBlackList);
 
   // m_mediator.HeartBeatPulse();
 

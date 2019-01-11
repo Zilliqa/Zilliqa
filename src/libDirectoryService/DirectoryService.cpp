@@ -334,6 +334,11 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
             "Starting consensus on ds block");
   RunConsensusOnDSBlock();
 
+  {
+    lock_guard<mutex> g(m_mutexPowSolution);
+    m_powSolutions.clear();
+  }
+
   return true;
 }
 
@@ -694,15 +699,14 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     }
 
     RunConsensusOnDSBlock(isRejoin);
-
-    // now that we already run DSBlock Consensus, lets clear the buffered pow
-    // solutions. why not clear it at start of new ds epoch - becoz sometimes
-    // node is too late to start new ds epoch and and it already receives pow
-    // solution for next ds epoch. so we buffer them instead.
-    {
-      lock_guard<mutex> g(m_mutexPowSolution);
-      m_powSolutions.clear();
-    }
+  }
+  // now that we already run DSBlock Consensus, lets clear the buffered pow
+  // solutions. why not clear it at start of new ds epoch - becoz sometimes
+  // node is too late to start new ds epoch and and it already receives pow
+  // solution for next ds epoch. so we buffer them instead.
+  {
+    lock_guard<mutex> g(m_mutexPowSolution);
+    m_powSolutions.clear();
   }
 }
 
@@ -1106,4 +1110,30 @@ void DirectoryService::GetEntireNetworkPeerInfo(
   for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
     pubKeys.emplace_back(i.first);
   }
+}
+
+bool DirectoryService::CheckIfDSNode(const PubKey& submitterPubKey) {
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  for (const auto& dsMember : *m_mediator.m_DSCommittee) {
+    if (dsMember.first == submitterPubKey) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
+  lock_guard<mutex> g(m_mutexShards);
+
+  for (const auto& shard : m_shards) {
+    for (const auto& node : shard) {
+      if (std::get<SHARD_NODE_PUBKEY>(node) == submitterPubKey) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
