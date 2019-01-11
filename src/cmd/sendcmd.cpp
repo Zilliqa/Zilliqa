@@ -211,7 +211,7 @@ int main(int argc, const char* argv[]) {
       /** --help option
        */
       string cmd_help = string("Commands supported:\n") + "\t" +
-                        string(boost::algorithm::join(cmd_v, "\n"));
+                        string(boost::algorithm::join(cmd_v, "\n\t"));
       if (vm.count("help")) {
         SWInfo::LogBrandBugReport();
         cout << desc << endl;
