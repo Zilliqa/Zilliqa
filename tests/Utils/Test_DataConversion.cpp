@@ -64,8 +64,6 @@ BOOST_AUTO_TEST_CASE(test_uint8_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_hexstr) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test HexString Conversion start...");
 
   {

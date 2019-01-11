@@ -20,7 +20,7 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include "depends/libethash/include/ethash/ethash.hpp"
 
-#include "GetworkServer.h"
+#include "GetWorkServer.h"
 #include "common/Constants.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"

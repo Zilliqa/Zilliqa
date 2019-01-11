@@ -20,7 +20,7 @@
 #include "Mediator.h"
 #include "common/Constants.h"
 #include "libCrypto/Sha2.h"
-#include "libServer/GetworkServer.h"
+#include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/ShardSizeCalculator.h"

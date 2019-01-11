@@ -25,7 +25,7 @@
 #include "depends/libethash/include/ethash/ethash.hpp"
 #include "depends/libethash/lib/ethash/ethash-internal.hpp"
 #include "libCrypto/Sha2.h"
-#include "libServer/GetworkServer.h"
+#include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "pow.h"
 
