@@ -99,20 +99,20 @@ bool Account::InitContract(const Address& addr) {
 
   // Append createBlockNum
   {
-      Json::Value createBlockNumObj;
-      createBlockNumObj["vname"] = "_creation_block";
-      createBlockNumObj["type"] = "BNum";
-      createBlockNumObj["value"] = to_string(GetCreateBlockNum());
-      m_initValJson.append(createBlockNumObj);
+    Json::Value createBlockNumObj;
+    createBlockNumObj["vname"] = "_creation_block";
+    createBlockNumObj["type"] = "BNum";
+    createBlockNumObj["value"] = to_string(GetCreateBlockNum());
+    m_initValJson.append(createBlockNumObj);
   }
 
   // Append _this_address
   {
-      Json::Value createBlockNumObj;
-      createBlockNumObj["vname"] = "_this_address";
-      createBlockNumObj["type"] = "ByStr20";
-      createBlockNumObj["value"] = "0x" + addr.hex();
-      m_initValJson.append(createBlockNumObj);
+    Json::Value createBlockNumObj;
+    createBlockNumObj["vname"] = "_this_address";
+    createBlockNumObj["type"] = "ByStr20";
+    createBlockNumObj["value"] = "0x" + addr.hex();
+    m_initValJson.append(createBlockNumObj);
   }
 
   bool hasScillaVersion = false;
