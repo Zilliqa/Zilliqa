@@ -16,6 +16,8 @@
  */
 
 #include <array>
+#include <fstream>
+#include <iostream>
 #include <regex>
 #include <string>
 #include <vector>
@@ -442,6 +444,136 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   /* ------------------------------------------------------------------- */
 }
 
+BOOST_AUTO_TEST_CASE(testStoragePerf) {
+  PairOfKey ownerKeyPair(priv1, {priv1});
+  Address ownerAddr = Account::GetAddressFromPublicKey(ownerKeyPair.second);
+  const uint128_t bal{std::numeric_limits<uint128_t>::max()};
+  uint64_t nonce = 0;
+  const unsigned int numDeployments = 10000;
+  const unsigned int numMapEntries = 1000;
+
+  ofstream report;
+  report.open("perf_report.csv");
+  report << "deployment_microsec,deployment_gas,invoke_microsec,invoke_gas\n";
+
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  if (SCILLA_ROOT.empty()) {
+    LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
+    return;
+  }
+
+  AccountStore::GetInstance().Init();
+  AccountStore::GetInstance().AddAccount(ownerAddr, {bal, nonce});
+
+  for (unsigned int i = 0; i < numDeployments; i++) {
+    Address contractAddr = Account::GetAddressForContract(ownerAddr, nonce);
+
+    // Deploy the contract using data from the 2nd Scilla test.
+    ScillaTestUtil::ScillaTest t2;
+    if (!ScillaTestUtil::GetScillaTest(t2, "fungible-token", 2)) {
+      LOG_GENERAL(WARNING, "Unable to fetch test fungible-token_2.");
+      return;
+    }
+
+    // Replace owner address in init.json.
+    for (auto& it : t2.init) {
+      if (it["vname"] == "owner") {
+        it["value"] = "0x" + ownerAddr.hex();
+      }
+    }
+
+    ScillaTestUtil::RemoveThisAddressFromInit(t2.init);
+    ScillaTestUtil::RemoveCreationBlockFromInit(t2.init);
+
+    uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
+
+    // Transaction to deploy contract.
+    std::string initStr = JSONUtils::convertJsontoStr(t2.init);
+    bytes data(initStr.begin(), initStr.end());
+    Transaction tx0(1, nonce, NullAddress, ownerKeyPair, 0, PRECISION_MIN_VALUE,
+                    500000, t2.code, data);
+    TransactionReceipt tr0;
+    auto startTimeDeployment = r_timer_start();
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx0, tr0);
+    auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
+    nonce++;
+
+    Account* account = AccountStore::GetInstance().GetAccount(contractAddr);
+
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(account != nullptr,
+                        "Error with creation of contract account");
+
+    report << timeElapsedDeployment << "," << tr0.GetCumGas() << ",";
+
+    for (unsigned int i = 0; i < numMapEntries; i++) {
+      std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
+      std::string hodler_str;
+      RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
+      DataConversion::Uint8VecToHexStr(hodler, hodler_str);
+      std::string hodlerNumTokens = "168";
+
+      Json::Value kvPair;
+      kvPair["key"] = "0x" + hodler_str;
+      kvPair["val"] = hodlerNumTokens;
+
+      for (auto& it : t2.state) {
+        if (it["vname"] == "balances") {
+          // we have to artifically insert the owner here
+          if (i == 0) {
+            Json::Value ownerBal;
+            ownerBal["key"] = "0x" + ownerAddr.hex();
+            ownerBal["val"] = "88888888";
+            it["value"][i] = ownerBal;
+            continue;
+          }
+
+          it["value"][i] = kvPair;
+        }
+      }
+    }
+
+    std::vector<Contract::StateEntry> state_entries;
+    // save the state
+    for (auto& s : t2.state) {
+      // skip _balance
+      if (s["vname"].asString() == "_balance") {
+        continue;
+      }
+
+      std::string vname = s["vname"].asString();
+      std::string type = s["type"].asString();
+      std::string value = s["value"].isString()
+                              ? s["value"].asString()
+                              : JSONUtils::convertJsontoStr(s["value"]);
+
+      state_entries.push_back(std::make_tuple(vname, true, type, value));
+    }
+
+    account->SetStorage(state_entries);
+
+    bytes dataTransfer;
+    uint64_t amount =
+        ScillaTestUtil::PrepareMessageData(t2.message, dataTransfer);
+
+    Transaction tx1(1, nonce, contractAddr, ownerKeyPair, amount,
+                    PRECISION_MIN_VALUE, 500000, {}, dataTransfer);
+    TransactionReceipt tr1;
+
+    auto startTimeCall = r_timer_start();
+    AccountStore::GetInstance().UpdateAccounts(bnum, 1, true, tx1, tr1);
+    auto timeElapsedCall = r_timer_end(startTimeCall);
+    nonce++;
+
+    report << timeElapsedCall << "," << tr1.GetCumGas() << "\n";
+  }
+
+  report.close();
+}
+
 BOOST_AUTO_TEST_CASE(testFungibleToken) {
   // 1. Bootstrap our test case.
   PairOfKey owner(priv1, {priv1});
@@ -540,6 +672,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
       }
     }
 
+    std::vector<Contract::StateEntry> state_entries;
     // save the state
     for (auto& s : t2.state) {
       // skip _balance
@@ -553,8 +686,10 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
                               ? s["value"].asString()
                               : JSONUtils::convertJsontoStr(s["value"]);
 
-      account->SetStorage(vname, type, value);
+      state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
+
+    account->SetStorage(state_entries);
 
     // 3. Create a call to Transfer from one account to another
     bytes dataTransfer;
@@ -735,6 +870,8 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       }
     }
 
+    std::vector<Contract::StateEntry> state_entries;
+    // save the state
     for (auto& s : t10.state) {
       // skip _balance
       if (s["vname"].asString() == "_balance") {
@@ -747,8 +884,10 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
                               ? s["value"].asString()
                               : JSONUtils::convertJsontoStr(s["value"]);
 
-      account->SetStorage(vname, type, value);
+      state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
+
+    account->SetStorage(state_entries);
 
     // 3. Execute transferFrom as an operator
     boost::random::mt19937 rng;
@@ -918,6 +1057,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     }
 
     // save the state
+    std::vector<Contract::StateEntry> token_state_entries;
     for (auto& s : fungibleTokenT5.state) {
       // skip _balance
       if (s["vname"].asString() == "_balance") {
@@ -930,9 +1070,11 @@ BOOST_AUTO_TEST_CASE(testDEX) {
                               ? s["value"].asString()
                               : JSONUtils::convertJsontoStr(s["value"]);
 
-      token1Account->SetStorage(vname, type, value);
-      token2Account->SetStorage(vname, type, value);
+      token_state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
+
+    token1Account->SetStorage(token_state_entries);
+    token2Account->SetStorage(token_state_entries);
 
     // Deploy DEX
     // Deploy the DEX contract with the 0th test case, but use custom messages
@@ -980,6 +1122,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     // Artificially populate the order book
     Json::Value orderBook;
     Json::Value orderInfo;
+    std::vector<Contract::StateEntry> dex_state_entries;
     for (unsigned int i = 0; i < numOrders; i++) {
       Json::Value info;
 
@@ -1030,12 +1173,19 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     }
 
     // Update the state directly.
-    dexAccount->SetStorage("orderbook",
-                           "Map (ByStr32) (Pair (Pair (ByStr20) (Uint128)) "
-                           "(Pair (ByStr20) (Uint128)))",
-                           JSONUtils::convertJsontoStr(orderBook));
-    dexAccount->SetStorage("orderInfo", "Map (ByStr32) (Pair (ByStr20) (BNum))",
-                           JSONUtils::convertJsontoStr(orderInfo));
+    dex_state_entries.push_back(
+        std::make_tuple("orderbook", true,
+                        "Map (ByStr32) (Pair (Pair (ByStr20) (Uint128)) "
+                        "(Pair (ByStr20) (Uint128)))",
+                        JSONUtils::convertJsontoStr(orderBook)));
+
+    dex_state_entries.push_back(std::make_tuple(
+        "orderbook", true, "Map (ByStr32) (Pair (ByStr20) (BNum))",
+        JSONUtils::convertJsontoStr(orderInfo)));
+    dexAccount->SetStorage(dex_state_entries);
+    // dexAccount->SetStorage("orderInfo", "Map (ByStr32) (Pair (ByStr20)
+    // (BNum))",
+    //                        JSONUtils::convertJsontoStr(orderInfo));
 
     // Approve DEX on Token A and Token B respectively
     Json::Value dataApprove = fungibleTokenT5.message;
