@@ -85,6 +85,10 @@ const unsigned int FALLBACKBLOCK_VERSION{
     ReadConstantNumeric("FALLBACKBLOCK_VERSION", "node.version.")};
 const unsigned int BLOCKLINK_VERSION{
     ReadConstantNumeric("BLOCKLINK_VERSION", "node.version.")};
+const unsigned int DSCOMMITTEE_VERSION{
+    ReadConstantNumeric("DSCOMMITTEE_VERSION", "node.version.")};
+const unsigned int SHARDINGSTRUCTURE_VERSION{
+    ReadConstantNumeric("SHARDINGSTRUCTURE_VERSION", "node.version.")};
 
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
@@ -388,6 +392,9 @@ const string OUTPUT_JSON{
 const string INPUT_CODE{
     SCILLA_FILES + '/' +
     ReadConstantString("INPUT_CODE", "node.smart_contract.")};
+const bool HASHMAP_CONTRACT_STATE_DB{
+    ReadConstantString("HASHMAP_CONTRACT_STATE_DB", "node.smart_contract.") ==
+    "true"};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{

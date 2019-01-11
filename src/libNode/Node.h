@@ -193,7 +193,7 @@ class Node : public Executable, public Broadcastable {
   bool IsMicroBlockTxRootHashInFinalBlock(const MBnForwardedTxnEntry& entry,
                                           bool& isEveryMicroBlockAvailable);
 
-  void StoreState();
+  bool StoreState();
   // void StoreMicroBlocks();
   void StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();

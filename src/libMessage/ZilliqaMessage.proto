@@ -98,7 +98,8 @@ message ProtoDSNode
 // Used in database "dsCommittee"
 message ProtoDSCommittee
 {
-    repeated ProtoDSNode dsnodes = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version      = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated ProtoDSNode dsnodes = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -143,7 +144,8 @@ message ProtoShardingStructure
         repeated Member members     = 1; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    repeated Shard shards           = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version         = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated Shard shards           = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -254,6 +256,19 @@ message ProtoAccount
     optional bytes initdata        = 7;
     optional bytes code            = 8;
     repeated StorageData storage   = 9;
+}
+
+message ProtoStateIndex
+{
+    repeated bytes index = 1;
+}
+
+message ProtoStateData
+{
+    optional string vname = 1; // Added in: v1.0, Deprecated in: N/A
+    optional bool ismutable = 2; // Added in: v1.0, Deprecated in: N/A
+    optional string type  = 3; // Added in: v1.0, Deprecated in: N/A
+    optional string value = 4; // Added in: v1.0, Deprecated in: N/A 
 }
 
 message ProtoAccountStore
