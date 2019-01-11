@@ -332,7 +332,8 @@ bool Validator::CheckDirBlocks(
       }
 
       ShardingHash shardinghash;
-      if (!Messenger::GetShardingStructureHash(shards, shardinghash)) {
+      if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION,
+                                               shards, shardinghash)) {
         LOG_GENERAL(WARNING, "GetShardingStructureHash failed");
         ret = false;
         break;
