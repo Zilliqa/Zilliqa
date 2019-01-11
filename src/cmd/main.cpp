@@ -59,7 +59,8 @@ int main(int argc, const char* argv[]) {
     uint128_t ip;
     uint8_t synctype = 0;
     const char* synctype_descr =
-        "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup";
+        "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
+        "for node recovery, 6 for new lookup and 7 for ds guard node sync";
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
@@ -102,7 +103,7 @@ int main(int argc, const char* argv[]) {
         return ERROR_IN_COMMAND_LINE;
       }
 
-      if (synctype > 4) {
+      if (synctype > 7) {
         SWInfo::LogBrandBugReport();
         std::cerr << "Invalid synctype, please select: " << synctype_descr
                   << "." << endl;
