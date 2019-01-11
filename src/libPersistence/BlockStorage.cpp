@@ -30,6 +30,7 @@
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
 
@@ -281,6 +282,14 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
     LOG_GENERAL(WARNING, "Serialization of blockLink failed");
     return false;
   }
+
+  if (get<BlockLinkIndex::VERSION>(blnk) != BLOCKLINK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << BLOCKLINK_VERSION << " Actual: "
+                             << get<BlockLinkIndex::VERSION>(blnk));
+    return false;
+  }
+
   block = make_shared<BlockLink>(blnk);
   return true;
 }
@@ -466,6 +475,13 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
     if (!Messenger::GetBlockLink(bytes(blockString.begin(), blockString.end()),
                                  0, blcklink)) {
       LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
+      delete it;
+      return false;
+    }
+    if (get<BlockLinkIndex::VERSION>(blcklink) != BLOCKLINK_VERSION) {
+      LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                               << BLOCKLINK_VERSION << " Actual: "
+                               << get<BlockLinkIndex::VERSION>(blcklink));
       delete it;
       return false;
     }

@@ -182,12 +182,12 @@ class Messenger {
       const bytes& src, const unsigned int offset,
       std::unordered_map<Address, boost::multiprecision::int256_t>& accountMap);
 
-  static bool SetBlockLink(
-      bytes& dst, const unsigned int offset,
-      const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
-  static bool GetBlockLink(
-      const bytes& src, const unsigned int offset,
-      std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink);
+  static bool SetBlockLink(bytes& dst, const unsigned int offset,
+                           const std::tuple<uint32_t, uint64_t, uint64_t,
+                                            BlockType, BlockHash>& blocklink);
+  static bool GetBlockLink(const bytes& src, const unsigned int offset,
+                           std::tuple<uint32_t, uint64_t, uint64_t, BlockType,
+                                      BlockHash>& blocklink);
 
   static bool SetFallbackBlockWShardingStructure(
       bytes& dst, const unsigned int offset, const FallbackBlock& fallbackblock,

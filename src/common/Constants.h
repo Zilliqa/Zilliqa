@@ -134,6 +134,7 @@ extern const unsigned int TXBLOCK_VERSION;
 extern const unsigned int MICROBLOCK_VERSION;
 extern const unsigned int VCBLOCK_VERSION;
 extern const unsigned int FALLBACKBLOCK_VERSION;
+extern const unsigned int BLOCKLINK_VERSION;
 extern const unsigned int DSCOMMITTEE_VERSION;
 extern const unsigned int SHARDINGSTRUCTURE_VERSION;
 

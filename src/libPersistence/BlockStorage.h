@@ -28,7 +28,8 @@
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 
-typedef std::tuple<uint64_t, uint64_t, BlockType, BlockHash> BlockLink;
+typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
+    BlockLink;
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;

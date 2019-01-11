@@ -83,6 +83,8 @@ const unsigned int VCBLOCK_VERSION{
     ReadConstantNumeric("VCBLOCK_VERSION", "node.version.")};
 const unsigned int FALLBACKBLOCK_VERSION{
     ReadConstantNumeric("FALLBACKBLOCK_VERSION", "node.version.")};
+const unsigned int BLOCKLINK_VERSION{
+    ReadConstantNumeric("BLOCKLINK_VERSION", "node.version.")};
 const unsigned int DSCOMMITTEE_VERSION{
     ReadConstantNumeric("DSCOMMITTEE_VERSION", "node.version.")};
 const unsigned int SHARDINGSTRUCTURE_VERSION{
