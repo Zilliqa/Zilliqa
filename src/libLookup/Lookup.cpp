@@ -2377,8 +2377,7 @@ bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
   return true;
 }
 
-bool Lookup::ProcessRaiseStartPoW([[gnu::unused]] const bytes& message,
-                                  [[gnu::unused]] unsigned int offset,
+bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
                                   [[gnu::unused]] const Peer& from) {
   // Message = empty
 
