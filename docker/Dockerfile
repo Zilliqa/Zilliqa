@@ -28,9 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     golang \
     libboost-filesystem-dev \
+    libboost-program-options-dev \
     libboost-system-dev \
     libboost-test-dev \
-    libboost-program-options-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
