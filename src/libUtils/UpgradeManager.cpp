@@ -16,12 +16,14 @@
  */
 
 #include "UpgradeManager.h"
+#include <sys/wait.h>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
+
 using namespace std;
 
 #define USER_AGENT "Zilliqa"
@@ -34,6 +36,8 @@ using namespace std;
 #define PUBLIC_KEY_LENGTH 66
 #define ZILLIQA_PACKAGE_FILE_EXTENSION "-Zilliqa.deb"
 #define SCILLA_PACKAGE_FILE_EXTENSION "-Scilla.deb"
+#define DPKG_BINARY_PATH "/usr/bin/dpkg"
+#define DPKG_CONFIG_PATH "/var/lib/dpkg/status"
 #define UPGRADE_HOST                                                      \
   string(string("https://api.github.com/repos/") + UPGRADE_HOST_ACCOUNT + \
          "/" + UPGRADE_HOST_REPO + "/releases/latest")
@@ -609,7 +613,7 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
 
   /// TBD: The call of "dpkg" should be removed.
   /// (https://github.com/Zilliqa/Issues/issues/185)
-  if (execl("/usr/bin/dpkg", "dpkg", "-i", m_zilliqaPackageFileName.data(),
+  if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_zilliqaPackageFileName.data(),
             nullptr) < 0) {
     LOG_GENERAL(WARNING, "Cannot deploy downloaded Zilliqa software!");
     return false;
@@ -701,10 +705,39 @@ bool UpgradeManager::InstallScilla() {
 
     LOG_GENERAL(INFO, "Start to install Scilla...");
 
-    if (execl("/usr/bin/dpkg", "dpkg", "-i", m_scillaPackageFileName.data(),
-              nullptr) < 0) {
-      LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+    pid_t pid = fork();
+
+    if (pid == -1) {
+      LOG_GENERAL(WARNING, "Cannot fork a process for installing scilla!");
       return false;
+    }
+
+    if (pid > 0) {
+      int status;
+      do {
+        if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
+          perror("wait() error");
+        } else if (pid == 0) {
+          LOG_GENERAL(WARNING, "Still under installing scilla...");
+          this_thread::sleep_for(chrono::seconds(1));
+        } else {
+          if (WIFEXITED(status)) {
+            LOG_GENERAL(INFO,
+                        "Scilla has been installed successfully with status "
+                            << WEXITSTATUS(status));
+          } else {
+            LOG_GENERAL(WARNING, "Failed to install scilla!");
+            return false;
+          }
+        }
+      } while (pid == 0);
+    } else {
+      if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_scillaPackageFileName.data(),
+                nullptr) < 0) {
+        LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+      }
+
+      exit(0);
     }
   }
 
@@ -713,8 +746,7 @@ bool UpgradeManager::InstallScilla() {
 
 bool UpgradeManager::UnconfigureScillaPackage() {
   LOG_MARKER();
-  const string dpkgStatusFileName("/var/lib/dpkg/status"),
-      tmpFileName("temp.txt");
+  const string dpkgStatusFileName(DPKG_CONFIG_PATH), tmpFileName("temp.txt");
   ifstream dpkgStatusFile;
   dpkgStatusFile.open(dpkgStatusFileName);
   ofstream tempFile;
