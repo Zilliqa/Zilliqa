@@ -285,7 +285,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
   // Check if we already received a validated microblock with the same shard id
   if (find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
-              [this, shardId](const MicroBlock& mb) -> bool {
+              [shardId](const MicroBlock& mb) -> bool {
                 return mb.GetHeader().GetShardId() == shardId;
               }) != microBlocksAtEpoch.end()) {
     LOG_GENERAL(WARNING, "Duplicate microblock received for shard " << shardId);
