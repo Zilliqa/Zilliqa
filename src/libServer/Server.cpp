@@ -384,7 +384,6 @@ Json::Value Server::GetBalance(const string& address) {
     if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
     }
-
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
