@@ -290,6 +290,12 @@ inline bool CheckRequiredFieldsProtoBlockHeaderBase(
          protoBlockHeaderBase.has_prevhash();
 }
 
+inline bool CheckRequiredFieldsProtoStateData(
+    const ProtoStateData& protoStateData) {
+  return protoStateData.has_vname() && protoStateData.has_ismutable() &&
+         protoStateData.has_type() && protoStateData.has_value();
+}
+
 // ============================================================================
 // Protobuf <-> Primitives conversion functions
 // ============================================================================
@@ -368,15 +374,29 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       tmpVec.resize(protoAccount.initdata().size());
       copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
            tmpVec.begin());
-      account.InitContract(tmpVec, addr);
+      if (!account.InitContract(tmpVec, addr)) {
+        return false;
+      }
     }
 
+    vector<pair<dev::h256, bytes>> entries;
     for (const auto& entry : protoAccount.storage()) {
       if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
         return false;
       }
 
-      account.SetStorage(tmpHash, entry.data());
+      if (!HASHMAP_CONTRACT_STATE_DB) {
+        account.SetStorage(tmpHash, entry.data());
+      } else {
+        entries.emplace_back(tmpHash,
+                             DataConversion::StringToCharArray(entry.data()));
+      }
+    }
+
+    if (HASHMAP_CONTRACT_STATE_DB) {
+      if (!account.SetStorage(addr, entries)) {
+        return false;
+      }
     }
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
@@ -507,17 +527,31 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
     if (tmpStorageRoot != account.GetStorageRoot()) {
       if (doInitContract) {
-        account.InitContract(addr);
+        if (!account.InitContract(addr)) {
+          return false;
+        }
       }
 
       dev::h256 tmpHash;
 
+      vector<pair<dev::h256, bytes>> entries;
       for (const auto& entry : protoAccount.storage()) {
         if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
           return false;
         }
 
-        account.SetStorage(tmpHash, entry.data());
+        if (!HASHMAP_CONTRACT_STATE_DB) {
+          account.SetStorage(tmpHash, entry.data());
+        } else {
+          entries.emplace_back(tmpHash,
+                               DataConversion::StringToCharArray(entry.data()));
+        }
+      }
+
+      if (HASHMAP_CONTRACT_STATE_DB) {
+        if (!account.SetStorage(addr, entries)) {
+          return false;
+        }
       }
 
       if (tmpStorageRoot != account.GetStorageRoot()) {
@@ -610,6 +644,45 @@ void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
     SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                     *protoCommittee.add_members());
   }
+}
+
+void StateIndexToProtobuf(const vector<Contract::Index>& indexes,
+                          ProtoStateIndex& protoStateIndex) {
+  for (const auto& index : indexes) {
+    protoStateIndex.add_index(index.data(), index.size);
+  }
+}
+
+bool ProtobufToStateIndex(const ProtoStateIndex& protoStateIndex,
+                          vector<Contract::Index>& indexes) {
+  for (const auto& index : protoStateIndex.index()) {
+    indexes.emplace_back();
+    unsigned int size =
+        min((unsigned int)index.size(), (unsigned int)indexes.back().size);
+    copy(index.begin(), index.begin() + size, indexes.back().asArray().begin());
+  }
+
+  return true;
+}
+
+void StateDataToProtobuf(const Contract::StateEntry& entry,
+                         ProtoStateData& protoStateData) {
+  protoStateData.set_vname(std::get<Contract::VNAME>(entry));
+  protoStateData.set_ismutable(std::get<Contract::MUTABLE>(entry));
+  protoStateData.set_type(std::get<Contract::TYPE>(entry));
+  protoStateData.set_value(std::get<Contract::VALUE>(entry));
+}
+
+bool ProtobufToStateData(const ProtoStateData& protoStateData,
+                         Contract::StateEntry& indexes) {
+  if (!CheckRequiredFieldsProtoStateData(protoStateData)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoStateData failed.");
+    return false;
+  }
+
+  indexes = std::make_tuple(protoStateData.vname(), protoStateData.ismutable(),
+                            protoStateData.type(), protoStateData.value());
+  return true;
 }
 
 void BlockBaseToProtobuf(const BlockBase& base,
@@ -2885,6 +2958,62 @@ bool Messenger::GetTransactionWithReceipt(
   ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
 
   return true;
+}
+
+bool Messenger::SetStateIndex(bytes& dst, const unsigned int offset,
+                              const vector<Contract::Index>& indexes) {
+  ProtoStateIndex result;
+
+  StateIndexToProtobuf(indexes, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateIndex initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetStateIndex(const bytes& src, const unsigned int offset,
+                              vector<Contract::Index>& indexes) {
+  ProtoStateIndex result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateIndex initialization failed");
+    return false;
+  }
+
+  return ProtobufToStateIndex(result, indexes);
+}
+
+bool Messenger::SetStateData(bytes& dst, const unsigned int offset,
+                             const Contract::StateEntry& entry) {
+  ProtoStateData result;
+
+  StateDataToProtobuf(entry, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateData initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetStateData(const bytes& src, const unsigned int offset,
+                             Contract::StateEntry& entry) {
+  ProtoStateData result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "StateData initialization failed");
+    return false;
+  }
+
+  return ProtobufToStateData(result, entry);
 }
 
 bool Messenger::SetPeer(bytes& dst, const unsigned int offset,

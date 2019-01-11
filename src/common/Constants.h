@@ -91,6 +91,17 @@ enum SyncType : unsigned int {
   DB_VERIF
 };
 
+namespace Contract {
+using VName = std::string;
+using Mutable = bool;
+using Type = std::string;
+using Value = std::string;
+using StateEntry = std::tuple<VName, Mutable, Type, Value>;
+using Index = dev::h256;
+
+enum Data : unsigned int { VNAME = 0, MUTABLE, TYPE, VALUE, ITEMS_NUM };
+}  // namespace Contract
+
 const std::string RAND1_GENESIS =
     "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS =
@@ -285,6 +296,7 @@ extern const std::string INPUT_BLOCKCHAIN_JSON;
 extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
+extern const bool HASHMAP_CONTRACT_STATE_DB;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
