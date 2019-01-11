@@ -270,6 +270,11 @@ inline bool CheckRequiredFieldsProtoBlockBase(
          CheckRequiredFieldsProtoBlockBaseCoSignatures(protoBlockBase.cosigs());
 }
 
+inline bool CheckRequiredFieldsProtoStateData(
+  const ProtoStateData& protoStateData) {
+  return protoStateData.has_vname() && protoStateData.has_ismutable() && protoStateData.has_type() && protoStateData.has_value();
+}
+
 // ============================================================================
 // Protobuf <-> Primitives conversion functions
 // ============================================================================
@@ -649,6 +654,11 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
 
 bool ProtobufToStateData(const ProtoStateData& protoStateData,
                          Contract::StateEntry& indexes) {
+  if (!CheckRequiredFieldsProtoStateData(protoStateData)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoStateData failed.");
+    return false;
+  }
+
   indexes = std::make_tuple(protoStateData.vname(), protoStateData.ismutable(),
                             protoStateData.type(), protoStateData.value());
   return true;
