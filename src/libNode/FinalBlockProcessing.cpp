@@ -124,9 +124,6 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                            const uint64_t& blocknum,
                                            bool& toSendTxnToLookup) {
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Unavailable microblock hashes in final block : ")
-
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
@@ -136,6 +133,10 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
       if (info.m_txnRootHash != TxnHash()) {
+        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
+                              << info.m_microBlockHash << " [TxnRootHash] "
+                              << info.m_txnRootHash << " shardID "
+                              << info.m_shardId);
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
       }
@@ -766,16 +767,22 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 
-  {
+  if (isVacuousEpoch) {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (isVacuousEpoch && m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
-                              m_mediator.m_dsBlockChain.GetLastBlock()
-                                  .GetHeader()
-                                  .GetBlockNum()) {
+    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
       auto func = [this]() mutable -> void {
         UpgradeManager::GetInstance().ReplaceNode(m_mediator);
       };
 
+      DetachedFunction(1, func);
+    }
+
+    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      auto func = []() mutable -> void {
+        UpgradeManager::GetInstance().InstallScilla();
+      };
       DetachedFunction(1, func);
     }
   }

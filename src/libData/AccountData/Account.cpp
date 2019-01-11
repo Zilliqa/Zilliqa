@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/lexical_cast.hpp>
+
 #include "Account.h"
 #include "common/Messages.h"
 #include "depends/common/CommonIO.h"
@@ -79,7 +81,7 @@ bool Account::InitContract(const Address& addr) {
   if (m_initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     m_initValJson = Json::arrayValue;
-    return true;
+    return false;
   }
   Json::CharReaderBuilder builder;
   unique_ptr<Json::CharReader> reader(builder.newCharReader());
@@ -92,6 +94,7 @@ bool Account::InitContract(const Address& addr) {
                 "Failed to parse initialization contract json: " << errors);
     return false;
   }
+
   m_initValJson = root;
 
   // Append createBlockNum
@@ -112,16 +115,29 @@ bool Account::InitContract(const Address& addr) {
     m_initValJson.append(createBlockNumObj);
   }
 
+  bool hasScillaVersion = false;
   std::vector<StateEntry> state_entries;
 
   for (auto& v : root) {
     if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
       LOG_GENERAL(WARNING,
                   "This variable in initialization of contract is corrupted");
-      continue;
+      return false;
     }
+
     string vname = v["vname"].asString();
     string type = v["type"].asString();
+
+    if (!hasScillaVersion && vname == "_scilla_version" && type == "Uint32") {
+      try {
+        m_scillaVersion = boost::lexical_cast<uint32_t>(v["value"].asString());
+      } catch (...) {
+        LOG_GENERAL(WARNING, "_scilla_version is not a number");
+        return false;
+      }
+
+      hasScillaVersion = true;
+    }
 
     Json::StreamWriterBuilder writeBuilder;
     std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
@@ -140,6 +156,11 @@ bool Account::InitContract(const Address& addr) {
         addr, state_entries, m_storageRoot);
   }
 
+  if (!hasScillaVersion) {
+    LOG_GENERAL(WARNING, "No _scilla_version indicated");
+    return false;
+  }
+
   return true;
 }
 
@@ -148,6 +169,8 @@ void Account::SetCreateBlockNum(const uint64_t& blockNum) {
 }
 
 const uint64_t& Account::GetCreateBlockNum() const { return m_createBlockNum; }
+
+const uint32_t& Account::GetScillaVersion() const { return m_scillaVersion; }
 
 bool Account::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccount(dst, offset, *this)) {

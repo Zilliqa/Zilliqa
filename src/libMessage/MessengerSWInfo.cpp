@@ -35,17 +35,25 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
 }
 
 void SWInfoToProtobuf(const SWInfo& swInfo, ProtoSWInfo& protoSWInfo) {
-  protoSWInfo.set_majorversion(swInfo.GetMajorVersion());
-  protoSWInfo.set_minorversion(swInfo.GetMinorVersion());
-  protoSWInfo.set_fixversion(swInfo.GetFixVersion());
-  protoSWInfo.set_upgradeds(swInfo.GetUpgradeDS());
-  protoSWInfo.set_commit(swInfo.GetCommit());
+  protoSWInfo.set_zilliqamajorversion(swInfo.GetZilliqaMajorVersion());
+  protoSWInfo.set_zilliqaminorversion(swInfo.GetZilliqaMinorVersion());
+  protoSWInfo.set_zilliqafixversion(swInfo.GetZilliqaFixVersion());
+  protoSWInfo.set_zilliqaupgradeds(swInfo.GetZilliqaUpgradeDS());
+  protoSWInfo.set_zilliqacommit(swInfo.GetZilliqaCommit());
+  protoSWInfo.set_scillamajorversion(swInfo.GetScillaMajorVersion());
+  protoSWInfo.set_scillaminorversion(swInfo.GetScillaMinorVersion());
+  protoSWInfo.set_scillafixversion(swInfo.GetScillaFixVersion());
+  protoSWInfo.set_scillaupgradeds(swInfo.GetScillaUpgradeDS());
+  protoSWInfo.set_scillacommit(swInfo.GetScillaCommit());
 }
 
 void ProtobufToSWInfo(const ProtoSWInfo& protoSWInfo, SWInfo& swInfo) {
-  swInfo = SWInfo(protoSWInfo.majorversion(), protoSWInfo.minorversion(),
-                  protoSWInfo.fixversion(), protoSWInfo.upgradeds(),
-                  protoSWInfo.commit());
+  swInfo = SWInfo(
+      protoSWInfo.zilliqamajorversion(), protoSWInfo.zilliqaminorversion(),
+      protoSWInfo.zilliqafixversion(), protoSWInfo.zilliqaupgradeds(),
+      protoSWInfo.zilliqacommit(), protoSWInfo.scillamajorversion(),
+      protoSWInfo.scillaminorversion(), protoSWInfo.scillafixversion(),
+      protoSWInfo.scillaupgradeds(), protoSWInfo.scillacommit());
 }
 
 bool MessengerSWInfo::SetSWInfo(bytes& dst, const unsigned int offset,

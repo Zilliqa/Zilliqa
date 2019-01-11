@@ -28,12 +28,11 @@
 class UpgradeManager {
  private:
   std::shared_ptr<SWInfo> m_latestSWInfo;
-  bytes m_latestSHA;
+  bytes m_latestZilliqaSHA, m_latestScillaSHA;
   CURL* m_curl;
-  std::string m_constantFileName;
-  std::string m_constantLookupFileName;
-  std::string m_constantArchivalFileName;
-  std::string m_packageFileName;
+  std::string m_constantFileName, m_constantLookupFileName,
+      m_constantArchivalLookupFileName;
+  std::string m_zilliqaPackageFileName, m_scillaPackageFileName;
   std::mutex m_downloadMutex;
 
   UpgradeManager();
@@ -42,6 +41,8 @@ class UpgradeManager {
   // Singleton should not implement these
   UpgradeManager(UpgradeManager const&) = delete;
   void operator=(UpgradeManager const&) = delete;
+
+  static bool UnconfigureScillaPackage();
 
  public:
   /// Returns the singleton UpgradeManager instance.
@@ -56,6 +57,9 @@ class UpgradeManager {
   /// Store all the useful states into metadata, create a new node with loading
   /// the metadata, and kill current node
   bool ReplaceNode(Mediator& mediator);
+
+  /// Install downloaded scilla to /scilla/majorVersion/
+  bool InstallScilla();
 
   const std::shared_ptr<SWInfo> GetLatestSWInfo() { return m_latestSWInfo; }
 

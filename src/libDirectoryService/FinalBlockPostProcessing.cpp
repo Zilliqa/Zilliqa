@@ -199,14 +199,20 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     }
   }
 
-  {
+  if (isVacuousEpoch) {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (isVacuousEpoch && m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
-                              m_mediator.m_dsBlockChain.GetLastBlock()
-                                  .GetHeader()
-                                  .GetBlockNum()) {
+    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
       auto func = [this]() mutable -> void {
         UpgradeManager::GetInstance().ReplaceNode(m_mediator);
+      };
+      DetachedFunction(1, func);
+    }
+
+    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      auto func = []() mutable -> void {
+        UpgradeManager::GetInstance().InstallScilla();
       };
       DetachedFunction(1, func);
     }
