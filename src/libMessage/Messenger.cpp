@@ -5362,7 +5362,7 @@ bool Messenger::GetLookupSetRaiseStartPoW(const bytes& src,
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
+    LOG_GENERAL(WARNING, "LookupRaiseStartPoW initialization failed.");
     return false;
   }
 
@@ -5410,7 +5410,7 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
   SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetStartPoWFromSeed initialization failed.");
+    LOG_GENERAL(WARNING, "LookupRaiseStartPoW initialization failed.");
     return false;
   }
 
@@ -5494,7 +5494,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
+    LOG_GENERAL(WARNING, "LookupSetStartPoWFromSeed initialization failed.");
     return false;
   }
 
