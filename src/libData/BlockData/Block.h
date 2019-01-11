@@ -32,8 +32,4 @@
 
 enum BlockType : unsigned int { DS = 0, Tx = 1, VC = 2, FB = 3 };
 
-enum TXBLOCKTYPE : unsigned char { MICRO = 0x00, FINAL = 0x01 };
-
-enum BLOCKVERSION : unsigned char { VERSION1 = 0x00 };
-
 #endif  // __BLOCK_H__

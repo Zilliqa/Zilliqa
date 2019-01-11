@@ -38,24 +38,49 @@ const uint64_t INIT_BLOCK_NUMBER = (uint64_t)-1;
 class BlockHeaderBase : public SerializableDataBlock {
  protected:
   // TODO: pull out all common code from ds, micro and tx block header
+  uint32_t m_version;
   CommitteeHash m_committeeHash;
+  BlockHash m_prevHash;
 
  public:
   // Constructors
   BlockHeaderBase();
-  BlockHeaderBase(const CommitteeHash& committeeHash);
+  BlockHeaderBase(const uint32_t& version, const CommitteeHash& committeeHash,
+                  const BlockHash& prevHash);
 
   /// Calculate my hash
   BlockHash GetMyHash() const;
 
+  /// Returns the current version of this block.
+  const uint32_t& GetVersion() const;
+
+  /// Returns the hash of the committee where the block was generated
   const CommitteeHash& GetCommitteeHash() const;
+
+  const BlockHash& GetPrevHash() const;
+
+  /// Sets the current version of this block.
+  void SetVersion(const uint32_t& version);
+
+  /// Sets the hash of the committee where the block was generated
+  void SetCommitteeHash(const CommitteeHash& committeeHash);
+
+  /// Sets the hash of the previous block (DirBlock or TxBlock)
+  void SetPrevHash(const BlockHash& prevHash);
+
+  // Operators
+  bool operator==(const BlockHeaderBase& header) const;
+  bool operator<(const BlockHeaderBase& header) const;
+  bool operator>(const BlockHeaderBase& header) const;
 
   friend std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t);
 };
 
 inline std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
   os << "<BlockHeaderBase>" << std::endl
-     << "m_committeeHash : " << t.m_committeeHash;
+     << "m_version : " << t.m_version
+     << "m_committeeHash : " << t.m_committeeHash
+     << "m_prevHash : " << t.m_prevHash;
 
   return os;
 }

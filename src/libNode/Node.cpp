@@ -1045,34 +1045,6 @@ vector<Peer> Node::GetBroadcastList(
   return vector<Peer>();
 }
 
-bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
-                       uint32_t nShard) {
-  for (auto& privKeyHexStr : GENESIS_KEYS) {
-    bytes privkeyOutputBytes;
-    if (!DataConversion::HexStrToUint8Vec(privKeyHexStr, privkeyOutputBytes)) {
-      return false;
-    }
-    auto privKeyBytes{privkeyOutputBytes};
-    auto privKey = PrivKey{privKeyBytes, 0};
-    auto pubKey = PubKey{privKey};
-    auto addr = Account::GetAddressFromPublicKey(pubKey);
-    auto txnShard = Transaction::GetShardIndex(addr, nShard);
-
-    LOG_GENERAL(INFO, "Genesis Priv Key Str "
-                          << privKeyHexStr << " / Priv Key " << privKey
-                          << " / Pub Key " << pubKey << " / Addr " << addr
-                          << " / txnShard " << txnShard << " / myShard "
-                          << myShard << " / nShard " << nShard);
-    if (txnShard == myShard) {
-      oPrivKey = privKey;
-      oPubKey = pubKey;
-      return true;
-    }
-  }
-
-  return false;
-}
-
 bool GetOneGenesisAddress(Address& oAddr) {
   if (GENESIS_WALLETS.empty()) {
     LOG_GENERAL(INFO, "could not get one genensis address");
@@ -2048,11 +2020,11 @@ std::string Node::GetActionString(Action action) const {
              : ActionStrings.at(action);
 }
 
-/*static*/ bool Node::GetDSLeaderPeer(const BlockLink& lastBlockLink,
-                                      const DSBlock& latestDSBlock,
-                                      const DequeOfDSNode& dsCommittee,
-                                      const uint64_t epochNumber,
-                                      Peer& dsLeaderPeer) {
+/*static*/ bool Node::GetDSLeader(const BlockLink& lastBlockLink,
+                                  const DSBlock& latestDSBlock,
+                                  const DequeOfDSNode& dsCommittee,
+                                  const uint64_t epochNumber,
+                                  pair<PubKey, Peer>& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
   if (blocktype == BlockType::DS) {
     uint16_t lastBlockHash = 0;
@@ -2069,10 +2041,12 @@ std::string Node::GetActionString(Action action) const {
     } else {
       leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
     }
-    dsLeaderPeer = dsCommittee.at(leader_id).second;
+    dsLeader = make_pair(dsCommittee.at(leader_id).first,
+                         dsCommittee.at(leader_id).second);
     LOG_EPOCH(INFO, to_string(epochNumber).c_str(),
               "lastBlockHash " << lastBlockHash << ", current ds leader id "
-                               << leader_id << ", Peer " << dsLeaderPeer);
+                               << leader_id << ", Peer " << dsLeader.second
+                               << " pubkey " << dsLeader.first);
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(
@@ -2080,7 +2054,9 @@ std::string Node::GetActionString(Action action) const {
       LOG_GENERAL(WARNING, "Failed to get VC block");
       return false;
     } else {
-      dsLeaderPeer = VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo();
+      dsLeader =
+          make_pair(VCBlockptr->GetHeader().GetCandidateLeaderPubKey(),
+                    VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo());
     }
   } else {
     return false;

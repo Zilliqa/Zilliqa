@@ -110,11 +110,19 @@ const float ONE_HUNDRED_PERCENT = 100.f;
 
 // General constants
 extern const unsigned int DEBUG_LEVEL;
-extern const unsigned int MSG_VERSION;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
+
+// Version constants
+extern const unsigned int MSG_VERSION;
+extern const unsigned int TRANSACTION_VERSION;
+extern const unsigned int DSBLOCK_VERSION;
+extern const unsigned int TXBLOCK_VERSION;
+extern const unsigned int MICROBLOCK_VERSION;
+extern const unsigned int VCBLOCK_VERSION;
+extern const unsigned int FALLBACKBLOCK_VERSION;
 
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;

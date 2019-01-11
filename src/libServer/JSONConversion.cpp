@@ -59,7 +59,6 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
 
   const TxBlockHeader& txheader = txblock.GetHeader();
 
-  ret_head["Type"] = txheader.GetType();
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
   ret_head["GasUsed"] = to_string(txheader.GetGasUsed());

@@ -25,7 +25,6 @@ using namespace boost::multiprecision;
 DSBlockHeader::DSBlockHeader()
     : m_dsDifficulty(0),
       m_difficulty(0),
-      m_prevHash(),
       m_leaderPubKey(),
       m_blockNum(INIT_BLOCK_NUMBER),
       m_epochNum((uint64_t)-1),
@@ -40,19 +39,16 @@ DSBlockHeader::DSBlockHeader(const bytes& src, unsigned int offset) {
   }
 }
 
-DSBlockHeader::DSBlockHeader(const uint8_t dsDifficulty,
-                             const uint8_t difficulty,
-                             const BlockHash& prevHash,
-                             const PubKey& leaderPubKey,
-                             const uint64_t& blockNum, const uint64_t& epochNum,
-                             const uint128_t& gasPrice, const SWInfo& swInfo,
-                             const map<PubKey, Peer>& powDSWinners,
-                             const DSBlockHashSet& hashset,
-                             const CommitteeHash& committeeHash)
-    : BlockHeaderBase(committeeHash),
+DSBlockHeader::DSBlockHeader(
+    const uint8_t dsDifficulty, const uint8_t difficulty,
+    const PubKey& leaderPubKey, const uint64_t& blockNum,
+    const uint64_t& epochNum, const uint128_t& gasPrice, const SWInfo& swInfo,
+    const map<PubKey, Peer>& powDSWinners, const DSBlockHashSet& hashset,
+    const uint32_t version, const CommitteeHash& committeeHash,
+    const BlockHash& prevHash)
+    : BlockHeaderBase(version, committeeHash, prevHash),
       m_dsDifficulty(dsDifficulty),
       m_difficulty(difficulty),
-      m_prevHash(prevHash),
       m_leaderPubKey(leaderPubKey),
       m_blockNum(blockNum),
       m_epochNum(epochNum),
@@ -99,8 +95,6 @@ const uint8_t& DSBlockHeader::GetDSDifficulty() const { return m_dsDifficulty; }
 
 const uint8_t& DSBlockHeader::GetDifficulty() const { return m_difficulty; }
 
-const BlockHash& DSBlockHeader::GetPrevHash() const { return m_prevHash; }
-
 const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
 
 const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
@@ -125,11 +119,12 @@ DSBlockHeader::GetHashSetReservedField() const {
 }
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const {
-  return tie(m_dsDifficulty, m_difficulty, m_prevHash, m_leaderPubKey,
-             m_blockNum, m_gasPrice, m_swInfo, m_PoWDSWinners) ==
-         tie(header.m_dsDifficulty, header.m_difficulty, header.m_prevHash,
-             header.m_leaderPubKey, header.m_blockNum, header.m_gasPrice,
-             header.m_swInfo, header.m_PoWDSWinners);
+  return BlockHeaderBase::operator==(header) &&
+         (std::tie(m_dsDifficulty, m_difficulty, m_leaderPubKey, m_blockNum,
+                   m_gasPrice, m_swInfo, m_PoWDSWinners) ==
+          std::tie(header.m_dsDifficulty, header.m_difficulty,
+                   header.m_leaderPubKey, header.m_blockNum, header.m_gasPrice,
+                   header.m_swInfo, header.m_PoWDSWinners));
 }
 
 bool DSBlockHeader::operator<(const DSBlockHeader& header) const {

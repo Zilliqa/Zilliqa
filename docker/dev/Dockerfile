@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-ARG BASE=zilliqa/scilla@sha256:094d63cf1a7247598ea9af7ede0023c96738600e0163f8f30a278209cb588251
+ARG BASE=zilliqa/scilla:v0.0.3
 FROM ${BASE}
 
 # Format guideline: one package per line and keep them alphabetically sorted

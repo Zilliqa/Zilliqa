@@ -152,8 +152,6 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
 
             PrivKey[id] = privKey;
 
-            log << privKey << " ";
-
             fullLine = fullLine.substr(privkey_pos_end + 1);
             size_t ip_end = fullLine.find('\0');
             string ip = fullLine.substr(0, ip_end);

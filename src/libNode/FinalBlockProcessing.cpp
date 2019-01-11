@@ -75,12 +75,8 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   // erase. EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Storing Tx Block Number: "
-                << txBlock.GetHeader().GetBlockNum()
-                << " with Type: " << to_string(txBlock.GetHeader().GetType())
-                << ", Version: " << txBlock.GetHeader().GetVersion()
-                << ", Timestamp: " << txBlock.GetTimestamp()
-                << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());
+            "Storing Tx Block" << endl
+                               << txBlock);
 
   // Store Tx Block to disk
   bytes serializedTxBlock;
@@ -513,41 +509,6 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
   return true;
 }
 
-void Node::LogReceivedFinalBlockDetails([
-    [gnu::unused]] const TxBlock& txblock) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the lookup node have deserialized the TxBlock");
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "txblock.GetHeader().GetType(): " << txblock.GetHeader().GetType());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetVersion(): "
-                  << txblock.GetHeader().GetVersion());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetGasLimit(): "
-                  << txblock.GetHeader().GetGasLimit());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetGasUsed(): "
-                  << txblock.GetHeader().GetGasUsed());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetBlockNum(): "
-                  << txblock.GetHeader().GetBlockNum());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetMicroBlockInfos().size(): "
-                  << txblock.GetMicroBlockInfos().size());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetStateRootHash(): "
-                  << txblock.GetHeader().GetStateRootHash());
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "txblock.GetHeader().GetNumTxs(): " << txblock.GetHeader().GetNumTxs());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetMinerPubKey(): "
-                  << txblock.GetHeader().GetMinerPubKey());
-  }
-}
-
 bool Node::CheckStateRoot(const TxBlock& finalBlock) {
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
@@ -567,27 +528,6 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 
   return true;
 }
-
-// void Node::StoreMicroBlocksToDisk()
-// {
-//     LOG_MARKER();
-//     for(auto microBlock : m_microblocks)
-//     {
-
-//         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " <<
-//         microBlock.GetHeader().GetTxRootHash() <<
-//             " with Type: " << microBlock.GetHeader().GetType() <<
-//             ", Version: " << microBlock.GetHeader().GetVersion() <<
-//             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
-//             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
-
-//         bytes serializedMicroBlock;
-//         microBlock.Serialize(serializedMicroBlock, 0);
-//         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(),
-//                                                serializedMicroBlock);
-//     }
-//     m_microblocks.clear();
-// }
 
 void Node::PrepareGoodStateForFinalBlock() {
   if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP) {
@@ -616,6 +556,13 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   }
 
   lock_guard<mutex> g(m_mutexFinalBlock);
+
+  if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << TXBLOCK_VERSION << " Actual: "
+                             << txBlock.GetHeader().GetVersion());
+    return false;
+  }
 
   BlockHash temp_blockHash = txBlock.GetHeader().GetMyHash();
   if (temp_blockHash != txBlock.GetBlockHash()) {
@@ -660,7 +607,11 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     return false;
   }
 
-  LogReceivedFinalBlockDetails(txBlock);
+  if (LOOKUP_NODE_MODE) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I the lookup node have deserialized the TxBlock" << endl
+                                                                << txBlock);
+  }
 
   LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["

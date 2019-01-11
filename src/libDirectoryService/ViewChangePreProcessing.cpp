@@ -66,6 +66,13 @@ bool DirectoryService::ViewChangeValidator(
     return false;
   }
 
+  if (m_pendingVCBlock->GetHeader().GetVersion() != VCBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << VCBLOCK_VERSION << " Actual: "
+                             << m_pendingVCBlock->GetHeader().GetVersion());
+    return false;
+  }
+
   if (!m_mediator.CheckWhetherBlockIsLatest(
           m_pendingVCBlock->GetHeader().GetVieWChangeDSEpochNo(),
           m_pendingVCBlock->GetHeader().GetViewChangeEpochNo())) {
@@ -427,8 +434,8 @@ bool DirectoryService::ComputeNewCandidateLeader(
             m_mediator.m_currentEpochNum, m_viewChangestate,
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
-            m_viewChangeCounter, m_cumulativeFaultyLeaders, committeeHash,
-            prevHash),
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, VCBLOCK_VERSION,
+            committeeHash, prevHash),
         CoSignatures()));
   }
 
