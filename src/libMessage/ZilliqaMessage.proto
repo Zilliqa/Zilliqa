@@ -19,10 +19,11 @@ message ByteArray
 // Used in database "blockLinks"
 message ProtoBlockLink
 {
-    optional uint64 index     = 1; // Added in: v1.0, Deprecated in: N/A
-    optional uint64 dsindex   = 2; // Added in: v1.0, Deprecated in: N/A
-    optional uint32 blocktype = 3; // Added in: v1.0, Deprecated in: N/A
-    optional bytes blockhash  = 4; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version   = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint64 index     = 2; // Added in: v1.0, Deprecated in: N/A
+    optional uint64 dsindex   = 3; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 blocktype = 4; // Added in: v1.0, Deprecated in: N/A
+    optional bytes blockhash  = 5; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 

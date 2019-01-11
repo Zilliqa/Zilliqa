@@ -123,6 +123,7 @@ extern const unsigned int TXBLOCK_VERSION;
 extern const unsigned int MICROBLOCK_VERSION;
 extern const unsigned int VCBLOCK_VERSION;
 extern const unsigned int FALLBACKBLOCK_VERSION;
+extern const unsigned int BLOCKLINK_VERSION;
 
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;

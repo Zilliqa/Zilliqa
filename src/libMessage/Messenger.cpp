@@ -121,8 +121,9 @@ void NumberToArray(const T& number, bytes& dst, const unsigned int offset) {
 
 inline bool CheckRequiredFieldsProtoBlockLink(
     const ProtoBlockLink& protoBlockLink) {
-  return protoBlockLink.has_index() && protoBlockLink.has_dsindex() &&
-         protoBlockLink.has_blocktype() && protoBlockLink.has_blockhash();
+  return protoBlockLink.has_version() && protoBlockLink.has_index() &&
+         protoBlockLink.has_dsindex() && protoBlockLink.has_blocktype() &&
+         protoBlockLink.has_blockhash();
 }
 
 inline bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
@@ -2919,9 +2920,11 @@ bool Messenger::GetPeer(const bytes& src, const unsigned int offset,
 
 bool Messenger::SetBlockLink(
     bytes& dst, const unsigned int offset,
-    const std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
+    const std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>&
+        blocklink) {
   ProtoBlockLink result;
 
+  result.set_version(get<BlockLinkIndex::VERSION>(blocklink));
   result.set_index(get<BlockLinkIndex::INDEX>(blocklink));
   result.set_dsindex(get<BlockLinkIndex::DSINDEX>(blocklink));
   result.set_blocktype(get<BlockLinkIndex::BLOCKTYPE>(blocklink));
@@ -2937,7 +2940,7 @@ bool Messenger::SetBlockLink(
 
 bool Messenger::GetBlockLink(
     const bytes& src, const unsigned int offset,
-    std::tuple<uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
+    std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
   ProtoBlockLink result;
   BlockHash blkhash;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2952,6 +2955,7 @@ bool Messenger::GetBlockLink(
     return false;
   }
 
+  get<BlockLinkIndex::VERSION>(blocklink) = result.version();
   get<BlockLinkIndex::INDEX>(blocklink) = result.index();
   get<BlockLinkIndex::DSINDEX>(blocklink) = result.dsindex();
 
