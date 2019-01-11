@@ -276,15 +276,10 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_blocklinkchain.AddBlockLink(
           totalIndex, prevdsblocknum, BlockType::DS, dsblock.GetBlockHash());
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
-      // Store DS Block to disk
-      if (!ARCHIVAL_NODE) {
-        bytes serializedDSBlock;
-        dsblock.Serialize(serializedDSBlock, 0);
-        BlockStorage::GetBlockStorage().PutDSBlock(
-            dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
-      } else {
-        m_mediator.m_archDB->InsertDSBlock(dsblock);
-      }
+      bytes serializedDSBlock;
+      dsblock.Serialize(serializedDSBlock, 0);
+      BlockStorage::GetBlockStorage().PutDSBlock(
+          dsblock.GetHeader().GetBlockNum(), serializedDSBlock);
       m_mediator.m_node->UpdateDSCommiteeComposition(mutable_ds_comm, dsblock);
       totalIndex++;
 
@@ -398,7 +393,9 @@ ValidatorBase::TxBlockValidationMsg Validator::CheckTxBlocks(
 
   if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
     if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
-      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale ");
+      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale "
+                               << latestDSIndex << " "
+                               << latestTxBlock.GetHeader().GetDSBlockNum());
       return TxBlockValidationMsg::INVALID;
     }
 

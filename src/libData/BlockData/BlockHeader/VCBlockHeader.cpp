@@ -29,8 +29,7 @@ VCBlockHeader::VCBlockHeader()
       m_CandidateLeaderNetworkInfo(),
       m_CandidateLeaderPubKey(),
       m_VCCounter(0),
-      m_FaultyLeaders(),
-      m_prevHash() {}
+      m_FaultyLeaders() {}
 
 VCBlockHeader::VCBlockHeader(const bytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
@@ -42,17 +41,16 @@ VCBlockHeader::VCBlockHeader(
     const uint64_t& vieWChangeDSEpochNo, const uint64_t& viewChangeEpochNo,
     const unsigned char viewChangeState, const Peer& candidateLeaderNetworkInfo,
     const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
-    const vector<pair<PubKey, Peer>>& faultyLeaders,
+    const vector<pair<PubKey, Peer>>& faultyLeaders, const uint32_t version,
     const CommitteeHash& committeeHash, const BlockHash& prevHash)
-    : BlockHeaderBase(committeeHash),
+    : BlockHeaderBase(version, committeeHash, prevHash),
       m_VieWChangeDSEpochNo(vieWChangeDSEpochNo),
       m_VieWChangeEpochNo(viewChangeEpochNo),
       m_ViewChangeState(viewChangeState),
       m_CandidateLeaderNetworkInfo(candidateLeaderNetworkInfo),
       m_CandidateLeaderPubKey(candidateLeaderPubKey),
       m_VCCounter(vcCounter),
-      m_FaultyLeaders(faultyLeaders),
-      m_prevHash(prevHash) {}
+      m_FaultyLeaders(faultyLeaders) {}
 
 bool VCBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetVCBlockHeader(dst, offset, *this)) {
@@ -99,28 +97,27 @@ const vector<pair<PubKey, Peer>>& VCBlockHeader::GetFaultyLeaders() const {
 };
 
 bool VCBlockHeader::operator==(const VCBlockHeader& header) const {
-  return (
-      (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
-      (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
-      (m_ViewChangeState == header.m_ViewChangeState) &&
-      (m_CandidateLeaderNetworkInfo == header.m_CandidateLeaderNetworkInfo) &&
-      (m_CandidateLeaderPubKey == header.m_CandidateLeaderPubKey) &&
-      (m_VCCounter == header.m_VCCounter) &&
-      (m_FaultyLeaders == header.m_FaultyLeaders));
+  return BlockHeaderBase::operator==(header) &&
+         (std::tie(m_VieWChangeDSEpochNo, m_VieWChangeEpochNo,
+                   m_ViewChangeState, m_CandidateLeaderNetworkInfo,
+                   m_CandidateLeaderPubKey, m_VCCounter, m_FaultyLeaders) ==
+          std::tie(header.m_VieWChangeDSEpochNo, header.m_VieWChangeEpochNo,
+                   header.m_ViewChangeState,
+                   header.m_CandidateLeaderNetworkInfo,
+                   header.m_CandidateLeaderPubKey, header.m_VCCounter,
+                   header.m_FaultyLeaders));
 }
 
 bool VCBlockHeader::operator<(const VCBlockHeader& header) const {
   // To compare, first they must be of identical epochno and state
-  return (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
-         (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
-         (m_ViewChangeState == header.m_ViewChangeState) &&
+  return BlockHeaderBase::operator==(header) &&
+         (std::tie(m_VieWChangeDSEpochNo, m_VieWChangeEpochNo,
+                   m_ViewChangeState) == std::tie(header.m_VieWChangeDSEpochNo,
+                                                  header.m_VieWChangeEpochNo,
+                                                  header.m_ViewChangeState)) &&
          (m_VCCounter < header.m_VCCounter);
 }
 
 bool VCBlockHeader::operator>(const VCBlockHeader& header) const {
-  // To compare, first they must be of identical epochno and state
-  return (m_VieWChangeDSEpochNo == header.m_VieWChangeDSEpochNo) &&
-         (m_VieWChangeEpochNo == header.m_VieWChangeEpochNo) &&
-         (m_ViewChangeState == header.m_ViewChangeState) &&
-         (m_VCCounter > header.m_VCCounter);
+  return header < *this;
 }

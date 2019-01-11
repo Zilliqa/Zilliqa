@@ -535,6 +535,14 @@ class Messenger {
                                          const unsigned int offset,
                                          PubKey& lookupPubKey,
                                          std::vector<Peer>& nodes);
+  static bool GetLookupSetRaiseStartPoW(const bytes& src,
+                                        const unsigned int offset,
+                                        uint8_t& msgType, uint64_t& blockNumber,
+                                        PubKey& dsPubKey);
+  static bool SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
+                                        const uint8_t msgType,
+                                        const uint64_t blockNumber,
+                                        const PairOfKey& dsKey);
   static bool SetLookupGetStartPoWFromSeed(bytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort);

@@ -117,6 +117,13 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
     return false;
   }
 
+  if (vcblock.GetHeader().GetVersion() != VCBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << VCBLOCK_VERSION << " Actual: "
+                             << vcblock.GetHeader().GetVersion());
+    return false;
+  }
+
   // Check whether is this function called before ds block. VC block before ds
   // block should be processed seperately.
   if (m_mediator.m_ds->IsDSBlockVCState(

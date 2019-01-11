@@ -55,9 +55,10 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
 
   // FIXME: Handle exceptions.
   DSBlock dsBlock(
-      DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
+      DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, keypair.second,
                     genesisBlockNumer, genesisEpochNumer, PRECISION_MIN_VALUE,
-                    SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
+                    SWInfo(), powDSWinners, DSBlockHashSet(), DSBLOCK_VERSION,
+                    CommitteeHash(), prevHash),
       CoSignatures());
   return dsBlock;
 }
@@ -96,10 +97,10 @@ TxBlock Synchronizer::ConstructGenesisTxBlock() {
 
   PairOfKey keypair = make_pair(privKey, pubKey);
 
-  TxBlock txBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
-                                1, 1, BlockHash(), 0, TxBlockHashSet(), 0,
-                                keypair.second, 0, CommitteeHash()),
-                  vector<MicroBlockInfo>(), CoSignatures());
+  TxBlock txBlock(
+      TxBlockHeader(1, 1, 1, 0, TxBlockHashSet(), 0, keypair.second, 0,
+                    TXBLOCK_VERSION, CommitteeHash(), BlockHash()),
+      vector<MicroBlockInfo>(), CoSignatures());
   return txBlock;
 }
 

@@ -113,7 +113,9 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
 }
 
 bool BlockStorage::InitiateHistoricalDB(const string& path) {
-  m_historicalDB = make_shared<LevelDB>("txBodies", path, "");
+  // If not explicitly convert to string, calls the other constructor
+  m_txnHistoricalDB = make_shared<LevelDB>("txBodies", path, (string) "");
+  m_MBHistoricalDB = make_shared<LevelDB>("microBlocks", path, (string) "");
 
   return true;
 }
@@ -121,14 +123,26 @@ bool BlockStorage::InitiateHistoricalDB(const string& path) {
 bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
                                           TxBodySharedPtr& body) {
   std::string bodyString;
-
-  bodyString = m_txBodyDB->Lookup(key);
-
+  bodyString = m_txnHistoricalDB->Lookup(key);
   if (bodyString.empty()) {
     return false;
   }
   body = make_shared<TransactionWithReceipt>(
       bytes(bodyString.begin(), bodyString.end()), 0);
+
+  return true;
+}
+
+bool BlockStorage::GetHistoricalMicroBlock(const BlockHash& blockhash,
+                                           MicroBlockSharedPtr& microblock) {
+  string blockString = m_MBHistoricalDB->Lookup(blockhash);
+
+  if (blockString.empty()) {
+    return false;
+  }
+
+  microblock =
+      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }

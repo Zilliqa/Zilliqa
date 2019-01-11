@@ -384,7 +384,6 @@ Json::Value Server::GetBalance(const string& address) {
     if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
     }
-
     Address addr(tmpaddr);
     const Account* account = AccountStore::GetInstance().GetAccount(addr);
 
@@ -1105,4 +1104,53 @@ string Server::GetNumTxnsDSEpoch() {
     LOG_GENERAL(WARNING, e.what());
     return "0";
   }
+}
+
+Json::Value Server::GetTransactionsForTxBlock(const string& txBlockNum,
+                                              unsigned int shardID) {
+  LOG_MARKER();
+  LOG_GENERAL(INFO, txBlockNum << " " << shardID);
+  uint64_t txNum;
+  Json::Value _json = Json::arrayValue;
+  try {
+    txNum = strtoull(txBlockNum.c_str(), NULL, 0);
+  } catch (exception& e) {
+    throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
+  }
+
+  auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
+
+  if (txBlock == TxBlock()) {
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Tx Block does not exist");
+  }
+
+  auto microBlockInfos = txBlock.GetMicroBlockInfos();
+
+  for (auto const& mbInfo : microBlockInfos) {
+    MicroBlockSharedPtr mbptr;
+    if (mbInfo.m_txnRootHash == TxnHash() && mbInfo.m_shardId == shardID) {
+      throw JsonRpcException(RPC_DATABASE_ERROR,
+                             "Shard microblock has no transactions");
+    }
+    if (mbInfo.m_shardId == shardID) {
+      if (!BlockStorage::GetBlockStorage().GetMicroBlock(
+              mbInfo.m_microBlockHash, mbptr)) {
+        if (!m_mediator.m_lookup->m_historicalDB) {
+          throw JsonRpcException(RPC_DATABASE_ERROR,
+                                 "Failed to get Microblock");
+        } else if (!BlockStorage::GetBlockStorage().GetHistoricalMicroBlock(
+                       mbInfo.m_microBlockHash, mbptr)) {
+          throw JsonRpcException(RPC_DATABASE_ERROR,
+                                 "Failed to get Microblock");
+        }
+      }
+      auto tranHashes = mbptr->GetTranHashes();
+
+      for (const auto& tranHash : tranHashes) {
+        _json.append(tranHash.hex());
+      }
+    }
+  }
+
+  return _json;
 }

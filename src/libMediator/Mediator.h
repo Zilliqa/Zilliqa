@@ -20,8 +20,6 @@
 
 #include <deque>
 
-#include "libArchival/Archival.h"
-#include "libArchival/BaseDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
@@ -52,11 +50,6 @@ class Mediator {
   /// Pointer to the Validator instance.
   ValidatorBase* m_validator;
 
-  // Archive DB pointer
-  BaseDB* m_archDB;
-
-  // Archival Node pointer
-  Archival* m_archival;
   /// The transient DS blockchain.
   DSBlockChain m_dsBlockChain;
 
@@ -109,8 +102,7 @@ class Mediator {
 
   /// Sets the references to the subclass instances.
   void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup,
-                          ValidatorBase* validator, BaseDB* archDB = nullptr,
-                          Archival* arch = nullptr);
+                          ValidatorBase* validator);
 
   /// Updates the DS blockchain random for PoW.
   void UpdateDSBlockRand(bool isGenesis = false);

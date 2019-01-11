@@ -115,10 +115,10 @@ class POW {
   bool SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                        ethash_hash256 const& headerHash,
                        ethash_hash256 const& boundary);
-  bool CheckMiningResult(const PairOfKey& pairOfKey, uint64_t blockNum,
+  bool CheckMiningResult(const PairOfKey& pairOfKey,
                          ethash_hash256 const& headerHash,
-                         ethash_hash256 const& boundary,
-                         ethash_mining_result_t& miningResult);
+                         ethash_hash256 const& boundary, uint64_t& nonce,
+                         ethash_hash256& mixHash);
   bool VerifyRemoteSoln(uint64_t blockNum, ethash_hash256 const& boundary,
                         uint64_t nonce, const ethash_hash256& headerHash,
                         const ethash_hash256& mixHash,
@@ -145,6 +145,9 @@ class POW {
   ethash_mining_result_t MineFull(ethash_hash256 const& headerHash,
                                   ethash_hash256 const& boundary,
                                   uint64_t startNonce);
+  ethash_mining_result_t MineGetWork(uint64_t blockNum,
+                                     ethash_hash256 const& headerHash,
+                                     uint8_t difficulty);
   ethash_mining_result_t MineFullGPU(uint64_t blockNum,
                                      ethash_hash256 const& headerHash,
                                      uint8_t difficulty, uint64_t startNonce);

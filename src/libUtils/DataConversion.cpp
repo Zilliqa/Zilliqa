@@ -19,6 +19,19 @@
 
 using namespace std;
 
+bool DataConversion::HexStringToUint64(const std::string& s, uint64_t* res) {
+  try {
+    *res = std::stoull(s, nullptr, 16);
+  } catch (const std::invalid_argument& e) {
+    LOG_GENERAL(WARNING, "Convert failed, invalid input: " << s);
+    return false;
+  } catch (const std::out_of_range& e) {
+    LOG_GENERAL(WARNING, "Convert failed, out of range: " << s);
+    return false;
+  }
+  return true;
+}
+
 bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
   try {
     out.clear();
@@ -100,4 +113,31 @@ uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   uint32_t lsb = hex_arr.size() - 1;
 
   return (hex_arr.at(lsb - 1) << 8) | hex_arr.at(lsb);
+}
+
+bool DataConversion::NormalizeHexString(std::string& s) {
+  if (s.size() < 2) {
+    return false;
+  }
+
+  unsigned pos = 0;
+  unsigned prefix_size = 0;
+
+  for (char& c : s) {
+    pos++;
+    c = tolower(c);
+
+    if (std::isdigit(c) || (('a' <= c) && (c <= 'f'))) {
+      continue;
+    }
+    if ((c == 'x') && (pos == 2)) {
+      prefix_size = 2;
+      continue;
+    }
+    return false;
+  }
+  // remove prefix "0x"
+  s.erase(0, prefix_size);
+
+  return s.size() > 0;
 }

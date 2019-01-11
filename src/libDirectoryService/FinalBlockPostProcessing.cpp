@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -58,12 +59,8 @@ void DirectoryService::StoreFinalBlockToDisk() {
   //                                               - 2);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Storing Tx Block Number: "
-                << m_finalBlock->GetHeader().GetBlockNum() << " with Type: "
-                << to_string(m_finalBlock->GetHeader().GetType())
-                << ", Version: " << m_finalBlock->GetHeader().GetVersion()
-                << ", Timestamp: " << m_finalBlock->GetTimestamp()
-                << ", NumTxs: " << m_finalBlock->GetHeader().GetNumTxs());
+            "Storing Tx Block" << endl
+                               << *m_finalBlock);
 
   bytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
@@ -144,6 +141,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   // StoreMicroBlocksToDisk();
   StoreFinalBlockToDisk();
+
+  auto resumeBlackList = []() mutable -> void {
+    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
+    Blacklist::GetInstance().Enable(true);
+  };
+
+  DetachedFunction(1, resumeBlackList);
 
   if (isVacuousEpoch) {
     if (!AccountStore::GetInstance().MoveUpdatesToDisk()) {

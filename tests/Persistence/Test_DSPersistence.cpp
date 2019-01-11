@@ -64,10 +64,11 @@ DSBlock constructDummyDSBlock(uint64_t blocknum) {
     powDSWinners[Schnorr::GetInstance().GenKeyPair().second] = Peer();
   }
 
-  return DSBlock(DSBlockHeader(50, 20, prevHash1, pubKey1.second, blocknum, 0,
-                               PRECISION_MIN_VALUE, SWInfo(), powDSWinners,
-                               DSBlockHashSet(), CommitteeHash()),
-                 CoSignatures());
+  return DSBlock(
+      DSBlockHeader(50, 20, pubKey1.second, blocknum, 0, PRECISION_MIN_VALUE,
+                    SWInfo(), powDSWinners, DSBlockHashSet(), DSBLOCK_VERSION,
+                    CommitteeHash(), prevHash1),
+      CoSignatures());
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {

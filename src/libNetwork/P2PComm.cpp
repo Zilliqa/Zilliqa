@@ -642,6 +642,27 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   }
 }
 
+void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
+  struct evbuffer* input = bufferevent_get_input(bev);
+
+  size_t len = evbuffer_get_length(input);
+  if (len >= MAX_READ_WATERMARK_IN_BYTES) {
+    // Get the IP info
+    int fd = bufferevent_getfd(bev);
+    struct sockaddr_in cli_addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
+    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
+    LOG_GENERAL(WARNING, "[blacklist] Encountered data of size: "
+                             << len << " being received."
+                             << " Adding sending node "
+                             << from.GetPrintableIPAddress()
+                             << " to blacklist");
+    Blacklist::GetInstance().Add(from.m_ipAddress);
+    bufferevent_free(bev);
+  }
+}
+
 void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
                                        evutil_socket_t cli_sock,
                                        struct sockaddr* cli_addr,
@@ -685,7 +706,9 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     return;
   }
 
-  bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
+  bufferevent_setwatermark(bev, EV_READ, MIN_READ_WATERMARK_IN_BYTES,
+                           MAX_READ_WATERMARK_IN_BYTES);
+  bufferevent_setcb(bev, ReadCallback, NULL, EventCallback, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 

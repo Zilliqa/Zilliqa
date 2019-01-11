@@ -454,9 +454,14 @@ bool DirectoryService::VerifyPoWOrdering(
               m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
               peer.m_ipAddress, toFind, powSoln.lookupId, powSoln.gasPrice);
 
-          auto difficulty = m_mediator.m_dsBlockChain.GetLastBlock()
-                                .GetHeader()
-                                .GetDifficulty();
+          auto difficulty =
+              (GUARD_MODE &&
+               Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
+                  ? (POW_DIFFICULTY / POW_DIFFICULTY)
+                  : m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetDifficulty();
+
           string resultStr, mixHashStr;
           if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
             ret = false;
@@ -758,6 +763,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   map<PubKey, Peer> powDSWinners;
   MapOfPubKeyPoW dsWinnerPoWs;
+  uint32_t version = DSBLOCK_VERSION;
   uint8_t dsDifficulty = 0;
   uint8_t difficulty = 0;
   uint64_t blockNum = 0;
@@ -816,13 +822,12 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  m_mediator.m_currentEpochNum,
-                                  GetNewGasPrice(), m_mediator.m_curSWInfo,
-                                  powDSWinners, dsBlockHashSet, committeeHash),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, m_mediator.m_selfKey.second,
+                      blockNum, m_mediator.m_currentEpochNum, GetNewGasPrice(),
+                      m_mediator.m_curSWInfo, powDSWinners, dsBlockHashSet,
+                      version, committeeHash, prevHash),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -922,6 +927,13 @@ bool DirectoryService::DSBlockValidator(
           dsWinnerPoWsFromLeader, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSDSBlockAnnouncement failed.");
+    return false;
+  }
+
+  if (m_pendingDSBlock->GetHeader().GetVersion() != DSBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << DSBLOCK_VERSION << " Actual: "
+                             << m_pendingDSBlock->GetHeader().GetVersion());
     return false;
   }
 

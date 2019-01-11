@@ -61,7 +61,6 @@ const vector<string> ReadAccountsFromConstantsFile(string propName) {
 }
 
 // General constants
-const unsigned int MSG_VERSION{ReadConstantNumeric("MSG_VERSION")};
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
 const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
@@ -69,10 +68,21 @@ const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
 
-// Archival constants
-const bool ARCHIVAL_NODE{
-    ReadConstantString("ARCHIVAL_NODE", "node.archival.") == "true"};
-const string DB_HOST{ReadConstantString("DB_HOST", "node.archival.")};
+// Version constants
+const unsigned int MSG_VERSION{
+    ReadConstantNumeric("MSG_VERSION", "node.version.")};
+const unsigned int TRANSACTION_VERSION{
+    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
+const unsigned int DSBLOCK_VERSION{
+    ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
+const unsigned int TXBLOCK_VERSION{
+    ReadConstantNumeric("TXBLOCK_VERSION", "node.version.")};
+const unsigned int MICROBLOCK_VERSION{
+    ReadConstantNumeric("MICROBLOCK_VERSION", "node.version.")};
+const unsigned int VCBLOCK_VERSION{
+    ReadConstantNumeric("VCBLOCK_VERSION", "node.version.")};
+const unsigned int FALLBACKBLOCK_VERSION{
+    ReadConstantNumeric("FALLBACKBLOCK_VERSION", "node.version.")};
 
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
@@ -272,6 +282,10 @@ const unsigned int SENDQUEUE_SIZE{
     ReadConstantNumeric("SENDQUEUE_SIZE", "node.p2pcomm.")};
 const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES{
     ReadConstantNumeric("MAX_GOSSIP_MSG_SIZE_IN_BYTES", "node.p2pcomm.")};
+const unsigned int MIN_READ_WATERMARK_IN_BYTES{
+    ReadConstantNumeric("MIN_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
+const unsigned int MAX_READ_WATERMARK_IN_BYTES{
+    ReadConstantNumeric("MAX_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
@@ -286,6 +300,10 @@ const std::string MINING_PROXY_URL{
     ReadConstantString("MINING_PROXY_URL", "node.pow.")};
 const unsigned int CHECK_MINING_RESULT_INTERVAL{
     ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
+const bool GETWORK_SERVER_MINE{
+    ReadConstantString("GETWORK_SERVER_MINE", "node.pow.") == "true"};
+const unsigned int GETWORK_SERVER_PORT{
+    ReadConstantNumeric("GETWORK_SERVER_PORT", "node.pow.")};
 const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{
@@ -332,6 +350,8 @@ const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
 const bool REJOIN_NODE_NOT_IN_NETWORK{
     ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};
+const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
+    ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 
 // Smart contract constants
 const string SCILLA_ROOT{
@@ -421,3 +441,5 @@ const std::string VERIFIER_PATH{
     ReadConstantString("VERIFIER_PATH", "node.verifier.")};
 const std::string VERIFIER_PUBKEY{
     ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
+const unsigned int SEED_PORT{
+    ReadConstantNumeric("SEED_PORT", "node.verifier.")};

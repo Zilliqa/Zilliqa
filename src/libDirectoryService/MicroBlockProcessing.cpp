@@ -213,6 +213,13 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
     return false;
   }
 
+  if (microBlock.GetHeader().GetVersion() != MICROBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << MICROBLOCK_VERSION << " Actual: "
+                             << microBlock.GetHeader().GetVersion());
+    return false;
+  }
+
   if (!m_mediator.CheckWhetherBlockIsLatest(
           microBlock.GetHeader().GetDSBlockNum() + 1,
           microBlock.GetHeader().GetEpochNum())) {

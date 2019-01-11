@@ -1,21 +1,19 @@
-# Copyright (c) 2018 Zilliqa
-# This source code is being disclosed to you solely for the purpose of your
-# participation in testing Zilliqa. You may view, compile and run the code for
-# that purpose and pursuant to the protocols and algorithms that are programmed
-# into, and intended by, the code. You may not do anything else with the code
-# without express permission from Zilliqa Research Pte. Ltd., including
-# modifying or publishing the code (or any part of it), and developing or
-# forming another public or private blockchain network. This source code is
-# provided 'as is' and no warranties are given as to title or non-infringement,
-# merchantability or fitness for purpose and, to the extent permitted by law,
-# all liability for your use of the code is disclaimed. Some programs in this
-# code are governed by the GNU General Public License v3.0 (available at
-# https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
-# are governed by GPLv3.0 are those programs that are located in the folders
-# src/depends and tests/depends and which include a reference to GPLv3 in their
-# program files.
+# Copyright (C) 2019 Zilliqa
 #
-FROM zilliqa/scilla
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+FROM zilliqa/scilla@sha256:094d63cf1a7247598ea9af7ede0023c96738600e0163f8f30a278209cb588251
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -47,18 +45,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python \
     python-pip \
     && rm -rf /var/lib/apt/lists/*
-
-RUN curl -sL https://github.com/mongodb/mongo-c-driver/releases/download/1.13.0/mongo-c-driver-1.13.0.tar.gz | tar -zx -C . \
-    && cmake -Hmongo-c-driver-1.13.0 -Bmongo-c-build -DENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -DCMAKE_INSTALL_PREFIX=/usr/local \
-    && cmake --build mongo-c-build -- -j$(nproc) \
-    && cmake --build mongo-c-build --target install \
-    && rm -rf mongo-c-* \
-    && curl -sL https://github.com/mongodb/mongo-cxx-driver/archive/r3.3.1.tar.gz | tar -zx -C . \
-    && cmake -Hmongo-cxx-driver-r3.3.1 -Bmongo-cxx-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
-    && cmake --build mongo-cxx-build --target EP_mnmlstc_core \
-    && cmake --build mongo-cxx-build -- -j$(nproc) \
-    && cmake --build mongo-cxx-build --target install \
-    && rm -rf mongo-cxx-*
 
 ARG ZILLIQA_VERSION=v3.2.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
