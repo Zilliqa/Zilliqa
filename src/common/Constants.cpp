@@ -61,13 +61,28 @@ const vector<string> ReadAccountsFromConstantsFile(string propName) {
 }
 
 // General constants
-const unsigned int MSG_VERSION{ReadConstantNumeric("MSG_VERSION")};
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
 const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
+
+// Version constants
+const unsigned int MSG_VERSION{
+    ReadConstantNumeric("MSG_VERSION", "node.version.")};
+const unsigned int TRANSACTION_VERSION{
+    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
+const unsigned int DSBLOCK_VERSION{
+    ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
+const unsigned int TXBLOCK_VERSION{
+    ReadConstantNumeric("TXBLOCK_VERSION", "node.version.")};
+const unsigned int MICROBLOCK_VERSION{
+    ReadConstantNumeric("MICROBLOCK_VERSION", "node.version.")};
+const unsigned int VCBLOCK_VERSION{
+    ReadConstantNumeric("VCBLOCK_VERSION", "node.version.")};
+const unsigned int FALLBACKBLOCK_VERSION{
+    ReadConstantNumeric("FALLBACKBLOCK_VERSION", "node.version.")};
 
 // Seed constans
 const bool ARCHIVAL_LOOKUP{

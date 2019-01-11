@@ -42,7 +42,6 @@ class VCBlockHeader : public BlockHeaderBase {
   PubKey m_CandidateLeaderPubKey;
   uint32_t m_VCCounter;
   std::vector<std::pair<PubKey, Peer>> m_FaultyLeaders;
-  BlockHash m_prevHash;
 
  public:
   /// Default constructor.
@@ -59,7 +58,9 @@ class VCBlockHeader : public BlockHeaderBase {
                 const Peer& candidateLeaderNetworkInfo,
                 const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
                 const std::vector<std::pair<PubKey, Peer>>& faultyLeaders,
-                const CommitteeHash& committeeHash, const BlockHash& prevHash);
+                const uint32_t version = 0,
+                const CommitteeHash& committeeHash = CommitteeHash(),
+                const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -69,9 +70,6 @@ class VCBlockHeader : public BlockHeaderBase {
 
   /// Returns the DS Epoch number where view change happen
   const uint64_t& GetVieWChangeDSEpochNo() const;
-
-  /// Returns the hash of prev dir block
-  const BlockHash& GetPrevHash() const { return m_prevHash; }
 
   /// Returns the Epoch number (Total nums of final block) where view change
   /// happen

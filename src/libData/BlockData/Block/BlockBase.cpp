@@ -24,7 +24,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BlockBase::BlockBase() {}
+BlockBase::BlockBase() : m_timestamp(0) {}
 
 bool BlockBase::Serialize([[gnu::unused]] bytes& dst,
                           [[gnu::unused]] unsigned int offset) const {

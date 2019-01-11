@@ -67,8 +67,7 @@ bool Node::ComposeMicroBlock() {
   LOG_MARKER();
 
   // TxBlockHeader
-  uint8_t type = TXBLOCKTYPE::MICRO;
-  uint32_t version = BLOCKVERSION::VERSION1;
+  uint32_t version = MICROBLOCK_VERSION;
   uint32_t shardId = m_myshardId;
   uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
   uint64_t gasUsed = m_gasUsedTotal;
@@ -144,11 +143,10 @@ bool Node::ComposeMicroBlock() {
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(
-          type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
-          m_mediator.m_currentEpochNum,
+          shardId, gasLimit, gasUsed, rewards, m_mediator.m_currentEpochNum,
           {txRootHash, stateDeltaHash, txReceiptHash}, numTxs, minerPubKey,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          committeeHash),
+          version, committeeHash, prevHash),
       tranHashes, CoSignatures()));
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -825,32 +823,6 @@ bool Node::RunConsensusOnMicroBlock() {
   return true;
 }
 
-bool Node::CheckBlockTypeIsMicro() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::CheckBlockTypeIsMicro not expected to be called "
-                "from LookUp node.");
-    return true;
-  }
-
-  // Check type (must be micro block type)
-  if (m_microblock->GetHeader().GetType() != TXBLOCKTYPE::MICRO) {
-    LOG_GENERAL(WARNING,
-                "Type check failed. Expected: "
-                    << (unsigned int)TXBLOCKTYPE::MICRO << " Actual: "
-                    << (unsigned int)m_microblock->GetHeader().GetType());
-
-    m_consensusObject->SetConsensusErrorCode(
-        ConsensusCommon::INVALID_MICROBLOCK);
-
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Type check passed");
-
-  return true;
-}
-
 bool Node::CheckMicroBlockVersion() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -860,11 +832,10 @@ bool Node::CheckMicroBlockVersion() {
   }
 
   // Check version (must be most current version)
-  if (m_microblock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1) {
-    LOG_GENERAL(WARNING,
-                "Version check failed. Expected: "
-                    << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
-                    << (unsigned int)m_microblock->GetHeader().GetVersion());
+  if (m_microblock->GetHeader().GetVersion() != MICROBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << MICROBLOCK_VERSION << " Actual: "
+                             << m_microblock->GetHeader().GetVersion());
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_VERSION);
@@ -1184,10 +1155,10 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg) {
 
   LOG_MARKER();
 
-  return CheckBlockTypeIsMicro() && CheckMicroBlockVersion() &&
-         CheckMicroBlockshardId() && CheckMicroBlockTimestamp() &&
-         CheckMicroBlockHashes(errorMsg) && CheckMicroBlockTxnRootHash() &&
-         CheckMicroBlockStateDeltaHash() && CheckMicroBlockTranReceiptHash();
+  return CheckMicroBlockVersion() && CheckMicroBlockshardId() &&
+         CheckMicroBlockTimestamp() && CheckMicroBlockHashes(errorMsg) &&
+         CheckMicroBlockTxnRootHash() && CheckMicroBlockStateDeltaHash() &&
+         CheckMicroBlockTranReceiptHash();
 
   // Check gas limit (must satisfy some equations)
   // Check gas used (must be <= gas limit)

@@ -141,12 +141,11 @@ inline bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
   // Don't need to enforce check on repeated member dswinners
   // Don't need to enforce check on optional members dsdifficulty, difficulty,
   // and gasprice
-  return protoDSBlockHeader.has_prevhash() &&
-         protoDSBlockHeader.has_leaderpubkey() &&
+  return protoDSBlockHeader.has_leaderpubkey() &&
          protoDSBlockHeader.has_blocknum() &&
          protoDSBlockHeader.has_epochnum() && protoDSBlockHeader.has_swinfo() &&
          protoDSBlockHeader.has_hash() &&
-         protoDSBlockHeader.has_committeehash() &&
+         protoDSBlockHeader.has_blockheaderbase() &&
          CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
              protoDSBlockHeader.hash());
 }
@@ -167,13 +166,10 @@ inline bool CheckRequiredFieldsProtoDSCommittee(
 
 inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
     const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
-  return protoMicroBlockHeader.has_type() &&
-         protoMicroBlockHeader.has_version() &&
-         protoMicroBlockHeader.has_shardid() &&
+  return protoMicroBlockHeader.has_shardid() &&
          protoMicroBlockHeader.has_gaslimit() &&
          protoMicroBlockHeader.has_gasused() &&
          protoMicroBlockHeader.has_rewards() &&
-         protoMicroBlockHeader.has_prevhash() &&
          protoMicroBlockHeader.has_epochnum() &&
          protoMicroBlockHeader.has_txroothash() &&
          protoMicroBlockHeader.has_numtxs() &&
@@ -181,7 +177,7 @@ inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
          protoMicroBlockHeader.has_dsblocknum() &&
          protoMicroBlockHeader.has_statedeltahash() &&
          protoMicroBlockHeader.has_tranreceipthash() &&
-         protoMicroBlockHeader.has_committeehash();
+         protoMicroBlockHeader.has_blockheaderbase();
 }
 
 inline bool CheckRequiredFieldsProtoMicroBlock(
@@ -222,15 +218,13 @@ inline bool CheckRequiredFieldsProtoMbInfo(const ProtoMbInfo& protoMbInfo) {
 
 inline bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
     const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
-  return protoTxBlockHeader.has_type() && protoTxBlockHeader.has_version() &&
-         protoTxBlockHeader.has_gaslimit() &&
+  return protoTxBlockHeader.has_gaslimit() &&
          protoTxBlockHeader.has_gasused() && protoTxBlockHeader.has_rewards() &&
-         protoTxBlockHeader.has_prevhash() &&
          protoTxBlockHeader.has_blocknum() && protoTxBlockHeader.has_hash() &&
          protoTxBlockHeader.has_numtxs() &&
          protoTxBlockHeader.has_minerpubkey() &&
          protoTxBlockHeader.has_dsblocknum() &&
-         protoTxBlockHeader.has_committeehash() &&
+         protoTxBlockHeader.has_blockheaderbase() &&
          CheckRequiredFieldsProtoTxBlockTxBlockHashSet(
              protoTxBlockHeader.hash());
 }
@@ -249,12 +243,31 @@ inline bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
          protoVCBlockHeader.has_candidateleadernetworkinfo() &&
          protoVCBlockHeader.has_candidateleaderpubkey() &&
          protoVCBlockHeader.has_vccounter() &&
-         protoVCBlockHeader.has_committeehash() &&
-         protoVCBlockHeader.has_prevhash();
+         protoVCBlockHeader.has_blockheaderbase();
 }
 
 inline bool CheckRequiredFieldsProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
   return protoVCBlock.has_header() && protoVCBlock.has_blockbase();
+}
+
+inline bool CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader(
+    const ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader) {
+  // Don't need to enforce check on repeated member faultyleaders
+  return protoFallbackBlockHeader.has_fallbackdsepochno() &&
+         protoFallbackBlockHeader.has_fallbackepochno() &&
+         protoFallbackBlockHeader.has_fallbackstate() &&
+         protoFallbackBlockHeader.has_stateroothash() &&
+         protoFallbackBlockHeader.has_leaderconsensusid() &&
+         protoFallbackBlockHeader.has_leadernetworkinfo() &&
+         protoFallbackBlockHeader.has_leaderpubkey() &&
+         protoFallbackBlockHeader.has_blockheaderbase() &&
+         protoFallbackBlockHeader.has_shardid();
+}
+
+inline bool CheckRequiredFieldsProtoFallbackBlock(
+    const ProtoFallbackBlock& protoFallbackBlock) {
+  // Don't need to enforce check on repeated member mbinfos
+  return protoFallbackBlock.has_header() && protoFallbackBlock.has_blockbase();
 }
 
 inline bool CheckRequiredFieldsProtoBlockBaseCoSignatures(
@@ -268,6 +281,13 @@ inline bool CheckRequiredFieldsProtoBlockBase(
   return protoBlockBase.has_blockhash() && protoBlockBase.has_cosigs() &&
          protoBlockBase.has_timestamp() &&
          CheckRequiredFieldsProtoBlockBaseCoSignatures(protoBlockBase.cosigs());
+}
+
+inline bool CheckRequiredFieldsProtoBlockHeaderBase(
+    const ProtoBlockHeaderBase& protoBlockHeaderBase) {
+  return protoBlockHeaderBase.has_version() &&
+         protoBlockHeaderBase.has_committeehash() &&
+         protoBlockHeaderBase.has_prevhash();
 }
 
 // ============================================================================
@@ -655,6 +675,49 @@ bool ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
   return true;
 }
 
+void BlockHeaderBaseToProtobuf(const BlockHeaderBase& base,
+                               ProtoBlockHeaderBase& protoBlockHeaderBase) {
+  // version
+  protoBlockHeaderBase.set_version(base.GetVersion());
+  // committee hash
+  protoBlockHeaderBase.set_committeehash(base.GetCommitteeHash().data(),
+                                         base.GetCommitteeHash().size);
+  protoBlockHeaderBase.set_prevhash(base.GetPrevHash().data(),
+                                    base.GetPrevHash().size);
+}
+
+bool ProtobufToBlockHeaderBase(const ProtoBlockHeaderBase& protoBlockHeaderBase,
+                               BlockHeaderBase& base) {
+  if (!CheckRequiredFieldsProtoBlockHeaderBase(protoBlockHeaderBase)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoBlockHeaderBase failed.");
+    return false;
+  }
+
+  // Deserialize the version
+  uint32_t version;
+  version = protoBlockHeaderBase.version();
+
+  base.SetVersion(version);
+
+  // Deserialize committee hash
+  CommitteeHash committeeHash;
+  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.committeehash(),
+                                    committeeHash.asArray())) {
+    return false;
+  }
+  base.SetCommitteeHash(committeeHash);
+
+  // Deserialize prev hash
+  BlockHash prevHash;
+  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.prevhash(),
+                                    prevHash.asArray())) {
+    return false;
+  }
+  base.SetPrevHash(prevHash);
+
+  return true;
+}
+
 void ShardingStructureToProtobuf(
     const DequeOfShard& shards,
     ProtoShardingStructure& protoShardingStructure) {
@@ -974,6 +1037,10 @@ void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
 void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
                              ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
                              bool concreteVarsOnly = false) {
+  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
+      protoDSBlockHeader.mutable_blockheaderbase();
+  BlockHeaderBaseToProtobuf(dsBlockHeader, *protoBlockHeaderBase);
+
   if (!concreteVarsOnly) {
     protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
     protoDSBlockHeader.set_difficulty(dsBlockHeader.GetDifficulty());
@@ -990,8 +1057,6 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
     }
   }
 
-  protoDSBlockHeader.set_prevhash(dsBlockHeader.GetPrevHash().data(),
-                                  dsBlockHeader.GetPrevHash().size);
   SerializableToProtobufByteArray(dsBlockHeader.GetLeaderPubKey(),
                                   *protoDSBlockHeader.mutable_leaderpubkey());
 
@@ -1007,9 +1072,6 @@ void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
   protoHeaderHash->set_reservedfield(
       dsBlockHeader.GetHashSetReservedField().data(),
       dsBlockHeader.GetHashSetReservedField().size());
-
-  protoDSBlockHeader.set_committeehash(dsBlockHeader.GetCommitteeHash().data(),
-                                       dsBlockHeader.GetCommitteeHash().size);
 }
 
 void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
@@ -1037,15 +1099,8 @@ bool ProtobufToDSBlockHeader(
     return false;
   }
 
-  BlockHash prevHash;
   PubKey leaderPubKey;
   SWInfo swInfo;
-  CommitteeHash committeeHash;
-
-  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.prevhash(),
-                                    prevHash.asArray())) {
-    return false;
-  }
 
   ProtobufByteArrayToSerializable(protoDSBlockHeader.leaderpubkey(),
                                   leaderPubKey);
@@ -1076,11 +1131,6 @@ bool ProtobufToDSBlockHeader(
     return false;
   }
 
-  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeader.committeehash(),
-                                    committeeHash.asArray())) {
-    return false;
-  }
-
   copy(protoDSBlockHeaderHash.reservedfield().begin(),
        protoDSBlockHeaderHash.reservedfield().begin() +
            min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
@@ -1101,12 +1151,14 @@ bool ProtobufToDSBlockHeader(
         protoDSBlockHeader.gasprice(), gasprice);
   }
 
-  dsBlockHeader = DSBlockHeader(dsdifficulty, difficulty, prevHash,
-                                leaderPubKey, protoDSBlockHeader.blocknum(),
-                                protoDSBlockHeader.epochnum(), gasprice, swInfo,
-                                powDSWinners, hash, committeeHash);
+  dsBlockHeader = DSBlockHeader(
+      dsdifficulty, difficulty, leaderPubKey, protoDSBlockHeader.blocknum(),
+      protoDSBlockHeader.epochnum(), gasprice, swInfo, powDSWinners, hash);
 
-  return true;
+  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
+      protoDSBlockHeader.blockheaderbase();
+
+  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, dsBlockHeader);
 }
 
 bool ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
@@ -1137,15 +1189,15 @@ bool ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
 void MicroBlockHeaderToProtobuf(
     const MicroBlockHeader& microBlockHeader,
     ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
-  protoMicroBlockHeader.set_type(microBlockHeader.GetType());
-  protoMicroBlockHeader.set_version(microBlockHeader.GetVersion());
+  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
+      protoMicroBlockHeader.mutable_blockheaderbase();
+  BlockHeaderBaseToProtobuf(microBlockHeader, *protoBlockHeaderBase);
+
   protoMicroBlockHeader.set_shardid(microBlockHeader.GetShardId());
   protoMicroBlockHeader.set_gaslimit(microBlockHeader.GetGasLimit());
   protoMicroBlockHeader.set_gasused(microBlockHeader.GetGasUsed());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       microBlockHeader.GetRewards(), *protoMicroBlockHeader.mutable_rewards());
-  protoMicroBlockHeader.set_prevhash(microBlockHeader.GetPrevHash().data(),
-                                     microBlockHeader.GetPrevHash().size);
   protoMicroBlockHeader.set_epochnum(microBlockHeader.GetEpochNum());
   protoMicroBlockHeader.set_txroothash(microBlockHeader.GetTxRootHash().data(),
                                        microBlockHeader.GetTxRootHash().size);
@@ -1159,10 +1211,6 @@ void MicroBlockHeaderToProtobuf(
   protoMicroBlockHeader.set_tranreceipthash(
       microBlockHeader.GetTranReceiptHash().data(),
       microBlockHeader.GetTranReceiptHash().size);
-
-  protoMicroBlockHeader.set_committeehash(
-      microBlockHeader.GetCommitteeHash().data(),
-      microBlockHeader.GetCommitteeHash().size);
 }
 
 void DSPowSolutionToProtobuf(const DSPowSolution& powSolution,
@@ -1255,23 +1303,16 @@ bool ProtobufToMicroBlockHeader(
   uint64_t gasLimit;
   uint64_t gasUsed;
   uint128_t rewards;
-  BlockHash prevHash;
   TxnHash txRootHash;
   PubKey minerPubKey;
   BlockHash dsBlockHash;
   StateHash stateDeltaHash;
   TxnHash tranReceiptHash;
-  CommitteeHash committeeHash;
 
   gasLimit = protoMicroBlockHeader.gaslimit();
   gasUsed = protoMicroBlockHeader.gasused();
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoMicroBlockHeader.rewards(), rewards);
-
-  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.prevhash(),
-                                    prevHash.asArray())) {
-    return false;
-  }
 
   if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.txroothash(),
                                     txRootHash.asArray())) {
@@ -1291,20 +1332,17 @@ bool ProtobufToMicroBlockHeader(
     return false;
   }
 
-  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.committeehash(),
-                                    committeeHash.asArray())) {
-    return false;
-  }
+  microBlockHeader =
+      MicroBlockHeader(protoMicroBlockHeader.shardid(), gasLimit, gasUsed,
+                       rewards, protoMicroBlockHeader.epochnum(),
+                       {txRootHash, stateDeltaHash, tranReceiptHash},
+                       protoMicroBlockHeader.numtxs(), minerPubKey,
+                       protoMicroBlockHeader.dsblocknum());
 
-  microBlockHeader = MicroBlockHeader(
-      protoMicroBlockHeader.type(), protoMicroBlockHeader.version(),
-      protoMicroBlockHeader.shardid(), gasLimit, gasUsed, rewards, prevHash,
-      protoMicroBlockHeader.epochnum(),
-      {txRootHash, stateDeltaHash, tranReceiptHash},
-      protoMicroBlockHeader.numtxs(), minerPubKey,
-      protoMicroBlockHeader.dsblocknum(), committeeHash);
+  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
+      protoMicroBlockHeader.blockheaderbase();
 
-  return true;
+  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, microBlockHeader);
 }
 
 bool ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
@@ -1375,14 +1413,14 @@ bool ProtobufToMbInfo(const ProtoMbInfo& ProtoMbInfo, MicroBlockInfo& mbInfo) {
 
 void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
                              ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
-  protoTxBlockHeader.set_type(txBlockHeader.GetType());
-  protoTxBlockHeader.set_version(txBlockHeader.GetVersion());
+  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
+      protoTxBlockHeader.mutable_blockheaderbase();
+  BlockHeaderBaseToProtobuf(txBlockHeader, *protoBlockHeaderBase);
+
   protoTxBlockHeader.set_gaslimit(txBlockHeader.GetGasLimit());
   protoTxBlockHeader.set_gasused(txBlockHeader.GetGasUsed());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       txBlockHeader.GetRewards(), *protoTxBlockHeader.mutable_rewards());
-  protoTxBlockHeader.set_prevhash(txBlockHeader.GetPrevHash().data(),
-                                  txBlockHeader.GetPrevHash().size);
   protoTxBlockHeader.set_blocknum(txBlockHeader.GetBlockNum());
 
   ZilliqaMessage::ProtoTxBlock::TxBlockHashSet* protoHeaderHash =
@@ -1398,9 +1436,6 @@ void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
   SerializableToProtobufByteArray(txBlockHeader.GetMinerPubKey(),
                                   *protoTxBlockHeader.mutable_minerpubkey());
   protoTxBlockHeader.set_dsblocknum(txBlockHeader.GetDSBlockNum());
-
-  protoTxBlockHeader.set_committeehash(txBlockHeader.GetCommitteeHash().data(),
-                                       txBlockHeader.GetCommitteeHash().size);
 }
 
 void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
@@ -1436,20 +1471,13 @@ bool ProtobufToTxBlockHeader(
   uint64_t gasLimit;
   uint64_t gasUsed;
   uint128_t rewards;
-  BlockHash prevHash;
   TxBlockHashSet hash;
   PubKey minerPubKey;
-  CommitteeHash committeeHash;
 
   gasLimit = protoTxBlockHeader.gaslimit();
   gasUsed = protoTxBlockHeader.gasused();
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       protoTxBlockHeader.rewards(), rewards);
-  copy(protoTxBlockHeader.prevhash().begin(),
-       protoTxBlockHeader.prevhash().begin() +
-           min((unsigned int)protoTxBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
 
   const ZilliqaMessage::ProtoTxBlock::TxBlockHashSet& protoTxBlockHeaderHash =
       protoTxBlockHeader.hash();
@@ -1472,19 +1500,15 @@ bool ProtobufToTxBlockHeader(
   ProtobufByteArrayToSerializable(protoTxBlockHeader.minerpubkey(),
                                   minerPubKey);
 
-  copy(protoTxBlockHeader.committeehash().begin(),
-       protoTxBlockHeader.committeehash().begin() +
-           min((unsigned int)protoTxBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
+  txBlockHeader =
+      TxBlockHeader(gasLimit, gasUsed, rewards, protoTxBlockHeader.blocknum(),
+                    hash, protoTxBlockHeader.numtxs(), minerPubKey,
+                    protoTxBlockHeader.dsblocknum());
 
-  txBlockHeader = TxBlockHeader(
-      protoTxBlockHeader.type(), protoTxBlockHeader.version(), gasLimit,
-      gasUsed, rewards, prevHash, protoTxBlockHeader.blocknum(), hash,
-      protoTxBlockHeader.numtxs(), minerPubKey, protoTxBlockHeader.dsblocknum(),
-      committeeHash);
+  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
+      protoTxBlockHeader.blockheaderbase();
 
-  return true;
+  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, txBlockHeader);
 }
 
 bool ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
@@ -1525,8 +1549,10 @@ bool ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
 
 void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
                              ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
-  protoVCBlockHeader.set_prevhash(vcBlockHeader.GetPrevHash().data(),
-                                  vcBlockHeader.GetPrevHash().size);
+  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
+      protoVCBlockHeader.mutable_blockheaderbase();
+  BlockHeaderBaseToProtobuf(vcBlockHeader, *protoBlockHeaderBase);
+
   protoVCBlockHeader.set_viewchangedsepochno(
       vcBlockHeader.GetVieWChangeDSEpochNo());
   protoVCBlockHeader.set_viewchangeepochno(
@@ -1540,8 +1566,6 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
       *protoVCBlockHeader.mutable_candidateleaderpubkey());
   protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
   FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
-  protoVCBlockHeader.set_committeehash(vcBlockHeader.GetCommitteeHash().data(),
-                                       vcBlockHeader.GetCommitteeHash().size);
 }
 
 void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
@@ -1572,7 +1596,6 @@ bool ProtobufToVCBlockHeader(
   Peer candidateLeaderNetworkInfo;
   PubKey candidateLeaderPubKey;
   CommitteeHash committeeHash;
-  BlockHash prevHash;
   vector<pair<PubKey, Peer>> faultyLeaders;
 
   ProtobufByteArrayToSerializable(
@@ -1583,25 +1606,16 @@ bool ProtobufToVCBlockHeader(
 
   ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders);
 
-  copy(protoVCBlockHeader.prevhash().begin(),
-       protoVCBlockHeader.prevhash().begin() +
-           min((unsigned int)protoVCBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
-  copy(protoVCBlockHeader.committeehash().begin(),
-       protoVCBlockHeader.committeehash().begin() +
-           min((unsigned int)protoVCBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
-
   vcBlockHeader = VCBlockHeader(
       protoVCBlockHeader.viewchangedsepochno(),
       protoVCBlockHeader.viewchangeepochno(),
       protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
-      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
-      committeeHash, prevHash);
+      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders);
 
-  return true;
+  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
+      protoVCBlockHeader.blockheaderbase();
+
+  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, vcBlockHeader);
 }
 
 bool ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
@@ -1632,9 +1646,10 @@ bool ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 void FallbackBlockHeaderToProtobuf(
     const FallbackBlockHeader& fallbackBlockHeader,
     ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader) {
-  protoFallbackBlockHeader.set_prevhash(
-      fallbackBlockHeader.GetPrevHash().data(),
-      fallbackBlockHeader.GetPrevHash().size);
+  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
+      protoFallbackBlockHeader.mutable_blockheaderbase();
+  BlockHeaderBaseToProtobuf(fallbackBlockHeader, *protoBlockHeaderBase);
+
   protoFallbackBlockHeader.set_fallbackdsepochno(
       fallbackBlockHeader.GetFallbackDSEpochNo());
   protoFallbackBlockHeader.set_fallbackepochno(
@@ -1653,10 +1668,6 @@ void FallbackBlockHeaderToProtobuf(
       fallbackBlockHeader.GetLeaderPubKey(),
       *protoFallbackBlockHeader.mutable_leaderpubkey());
   protoFallbackBlockHeader.set_shardid(fallbackBlockHeader.GetShardId());
-
-  protoFallbackBlockHeader.set_committeehash(
-      fallbackBlockHeader.GetCommitteeHash().data(),
-      fallbackBlockHeader.GetCommitteeHash().size);
 }
 
 void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
@@ -1676,25 +1687,26 @@ void FallbackBlockToProtobuf(const FallbackBlock& fallbackBlock,
   BlockBaseToProtobuf(fallbackBlock, *protoBlockBase);
 }
 
-void ProtobufToFallbackBlockHeader(
+bool ProtobufToFallbackBlockHeader(
     const ProtoFallbackBlock::FallbackBlockHeader& protoFallbackBlockHeader,
     FallbackBlockHeader& fallbackBlockHeader) {
+  if (!CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader(
+          protoFallbackBlockHeader)) {
+    LOG_GENERAL(
+        WARNING,
+        "CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader failed.");
+    return false;
+  }
+
   Peer leaderNetworkInfo;
   PubKey leaderPubKey;
   StateHash stateRootHash;
   CommitteeHash committeeHash;
-  BlockHash prevHash;
 
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leadernetworkinfo(),
                                   leaderNetworkInfo);
   ProtobufByteArrayToSerializable(protoFallbackBlockHeader.leaderpubkey(),
                                   leaderPubKey);
-
-  copy(protoFallbackBlockHeader.prevhash().begin(),
-       protoFallbackBlockHeader.prevhash().begin() +
-           min((unsigned int)protoFallbackBlockHeader.prevhash().size(),
-               (unsigned int)prevHash.size),
-       prevHash.asArray().begin());
 
   copy(protoFallbackBlockHeader.stateroothash().begin(),
        protoFallbackBlockHeader.stateroothash().begin() +
@@ -1702,30 +1714,35 @@ void ProtobufToFallbackBlockHeader(
                (unsigned int)stateRootHash.size),
        stateRootHash.asArray().begin());
 
-  copy(protoFallbackBlockHeader.committeehash().begin(),
-       protoFallbackBlockHeader.committeehash().begin() +
-           min((unsigned int)protoFallbackBlockHeader.committeehash().size(),
-               (unsigned int)committeeHash.size),
-       committeeHash.asArray().begin());
-
   fallbackBlockHeader = FallbackBlockHeader(
       protoFallbackBlockHeader.fallbackdsepochno(),
       protoFallbackBlockHeader.fallbackepochno(),
       protoFallbackBlockHeader.fallbackstate(), {stateRootHash},
       protoFallbackBlockHeader.leaderconsensusid(), leaderNetworkInfo,
-      leaderPubKey, protoFallbackBlockHeader.shardid(), committeeHash,
-      prevHash);
+      leaderPubKey, protoFallbackBlockHeader.shardid());
+
+  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
+      protoFallbackBlockHeader.blockheaderbase();
+
+  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, fallbackBlockHeader);
 }
 
 bool ProtobufToFallbackBlock(const ProtoFallbackBlock& protoFallbackBlock,
                              FallbackBlock& fallbackBlock) {
+  if (!CheckRequiredFieldsProtoFallbackBlock(protoFallbackBlock)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoFallbackBlock failed.");
+    return false;
+  }
+
   // Deserialize header
   const ZilliqaMessage::ProtoFallbackBlock::FallbackBlockHeader& protoHeader =
       protoFallbackBlock.header();
 
   FallbackBlockHeader header;
 
-  ProtobufToFallbackBlockHeader(protoHeader, header);
+  if (!ProtobufToFallbackBlockHeader(protoHeader, header)) {
+    return false;
+  }
 
   fallbackBlock = FallbackBlock(header, CoSignatures());
 
@@ -5350,6 +5367,78 @@ bool Messenger::GetLookupSetOfflineLookups(const bytes& src,
   return true;
 }
 
+bool Messenger::GetLookupSetRaiseStartPoW(const bytes& src,
+                                          const unsigned int offset,
+                                          uint8_t& msgType,
+                                          uint64_t& blockNumber,
+                                          PubKey& dsPubKey) {
+  LOG_MARKER();
+
+  LookupRaiseStartPoW result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupRaiseStartPoW initialization failed.");
+    return false;
+  }
+
+  msgType = result.data().msgtype();
+  blockNumber = result.data().blocknumber();
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  ProtobufByteArrayToSerializable(result.pubkey(), dsPubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, dsPubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in raise start PoW message.");
+    return false;
+  }
+
+  return true;
+}
+
+bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
+                                          const uint8_t msgType,
+                                          const uint64_t blockNumber,
+                                          const PairOfKey& dsKey) {
+  LOG_MARKER();
+
+  LookupRaiseStartPoW result;
+
+  result.mutable_data()->set_msgtype(msgType);
+  result.mutable_data()->set_blocknumber(blockNumber);
+  SerializableToProtobufByteArray(dsKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, dsKey.first, dsKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign raise start PoW message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "LookupRaiseStartPoW.Data initialization failed.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "LookupRaiseStartPoW initialization failed.");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
 bool Messenger::SetLookupGetStartPoWFromSeed(bytes& dst,
                                              const unsigned int offset,
                                              const uint32_t listenPort) {
@@ -5427,7 +5516,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
   if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
+    LOG_GENERAL(WARNING, "LookupSetStartPoWFromSeed initialization failed.");
     return false;
   }
 
