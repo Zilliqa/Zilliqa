@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-FROM zilliqa/scilla@sha256:094d63cf1a7247598ea9af7ede0023c96738600e0163f8f30a278209cb588251
+FROM zilliqa/scilla:v0.0.3
 
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
@@ -101,7 +101,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 ####################### End of CUDA Installation ###############################
 
-ARG ZILLIQA_VERSION=v3.2.0
+ARG ZILLIQA_VERSION=v3.2.2
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

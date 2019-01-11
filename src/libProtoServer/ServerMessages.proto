@@ -2,9 +2,6 @@ syntax = "proto2";
 
 package ZilliqaMessage;
 
-import "ZilliqaMessage.proto";
-
-
 message ProtoTxId
 {
     required string txid = 1;

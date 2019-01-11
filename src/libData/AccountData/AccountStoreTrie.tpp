@@ -61,7 +61,8 @@ Account* AccountStoreTrie<DB, MAP>::GetAccount(const Address& address) {
   if (accountDataRLP[3].toHash<dev::h256>() != dev::h256()) {
     // Extract Code Content
     it2.first->second.SetCode(
-        ContractStorage::GetContractStorage().GetContractCode(address));
+        Contract::ContractStorage::GetContractStorage().GetContractCode(
+            address));
     if (accountDataRLP[3].toHash<dev::h256>() !=
         it2.first->second.GetCodeHash()) {
       LOG_GENERAL(WARNING, "Account Code Content doesn't match Code Hash")

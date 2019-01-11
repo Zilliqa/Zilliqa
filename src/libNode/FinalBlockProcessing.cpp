@@ -59,9 +59,9 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::StoreState() {
+bool Node::StoreState() {
   LOG_MARKER();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
+  return AccountStore::GetInstance().MoveUpdatesToDisk();
 }
 
 void Node::StoreFinalBlock(const TxBlock& txBlock) {
@@ -737,7 +737,10 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     // Remove because shard nodes will be shuffled in next epoch.
     CleanMicroblockConsensusBuffer();
 
-    StoreState();
+    if (!StoreState()) {
+      LOG_GENERAL(WARNING, "StoreState failed, what to do?");
+      return false;
+    }
     StoreFinalBlock(txBlock);
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   }

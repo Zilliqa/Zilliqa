@@ -105,6 +105,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   }
   // and remove _creation_block (automatic insertion later).
   ScillaTestUtil::RemoveCreationBlockFromInit(t1.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(t1.init);
 
   uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(t1.blockchain);
 
@@ -318,6 +319,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   uint64_t bnumPing = ScillaTestUtil::GetBlockNumberFromJson(t0ping.blockchain);
   ScillaTestUtil::RemoveCreationBlockFromInit(t0ping.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(t0ping.init);
 
   // Transaction to deploy ping.
   std::string initStrPing = JSONUtils::convertJsontoStr(t0ping.init);
@@ -341,6 +343,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 
   uint64_t bnumPong = ScillaTestUtil::GetBlockNumberFromJson(t0pong.blockchain);
   ScillaTestUtil::RemoveCreationBlockFromInit(t0pong.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(t0pong.init);
 
   // Transaction to deploy pong.
   std::string initStrPong = JSONUtils::convertJsontoStr(t0pong.init);

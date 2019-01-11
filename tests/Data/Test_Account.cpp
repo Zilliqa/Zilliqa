@@ -105,7 +105,6 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   acc1.SetStorage(hash, rlpStr);
   acc1.SetStorageRoot(hash);
 
-  BOOST_CHECK_EQUAL(0, acc1.GetStorage("").size());
   acc1.GetRawStorage(hash);
 
   size_t CODE_LEN = TestUtils::DistUint16() + 1;
@@ -128,7 +127,6 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   acc1.SetStorage(hash, rlpStr);
   acc1.SetStorageRoot(hash);
 
-  acc1.GetStorage("");
   acc1.GetRawStorage(hash);
   std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes();
   Json::Value storage = acc1.GetStorageJson();

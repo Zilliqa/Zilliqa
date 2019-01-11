@@ -45,7 +45,8 @@ uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
 uint64_t PrepareMessageData(Json::Value &message, bytes &data);
 // Remove _creation_block field from init JSON.
 bool RemoveCreationBlockFromInit(Json::Value &init);
-
+// Remove _creation_block field from init JSON.
+bool RemoveThisAddressFromInit(Json::Value &init);
 }  // end namespace ScillaTestUtil
 
 #endif  // __SCILLATESTUTIL_H__

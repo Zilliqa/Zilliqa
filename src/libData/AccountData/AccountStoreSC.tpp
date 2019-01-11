@@ -17,6 +17,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
@@ -44,7 +45,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const bool& isDS,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt) {
-  // LOG_MARKER();
+  LOG_MARKER();
   m_curIsDS = isDS;
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
@@ -137,10 +138,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       validToTransferBalance = false;
     }
 
-    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
-      return false;
-    }
-
     toAddr = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
     this->AddAccount(toAddr, {0, 0});
     Account* toAccount = this->GetAccount(toAddr);
@@ -150,6 +147,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     toAccount->SetCode(transaction.GetCode());
+
+    // Store the immutable states
+    try {
+      if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
+        this->RemoveAccount(toAddr);
+        return false;
+      }
+    } catch (const std::bad_alloc& e) {
+      LOG_GENERAL(WARNING, "found bad_alloc!");
+      return false;
+    }
+
     // Set the blockNumber when the account was created
     toAccount->SetCreateBlockNum(blockNum);
 
@@ -167,6 +176,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     m_curBlockNum = blockNum;
+
+    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+      return false;
+    }
 
     ExportCreateContractFiles(*toAccount);
 
@@ -711,6 +724,13 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     LOG_GENERAL(WARNING, "Contract refuse amount transfer");
   }
 
+  Account* contractAccount = this->GetAccount(m_curContractAddr);
+  if (contractAccount == nullptr) {
+    LOG_GENERAL(WARNING, "contractAccount is null ptr");
+    return false;
+  }
+
+  std::vector<Contract::StateEntry> state_entries;
   for (const auto& s : _json["states"]) {
     if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value")) {
       LOG_GENERAL(WARNING,
@@ -724,13 +744,18 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                             ? s["value"].asString()
                             : JSONUtils::convertJsontoStr(s["value"]);
 
-    Account* contractAccount = this->GetAccount(m_curContractAddr);
-    if (contractAccount == nullptr) {
-      LOG_GENERAL(WARNING, "contractAccount is null ptr");
-      return false;
-    }
     if (vname != "_balance") {
-      contractAccount->SetStorage(vname, type, value);
+      if (!HASHMAP_CONTRACT_STATE_DB) {
+        contractAccount->SetStorage(vname, type, value);
+      } else {
+        state_entries.push_back(std::make_tuple(vname, true, type, value));
+      }
+    }
+  }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    if (!contractAccount->SetStorage(state_entries)) {
+      LOG_GENERAL(WARNING, "SetStorage failed");
     }
   }
 
