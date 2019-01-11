@@ -713,25 +713,26 @@ bool UpgradeManager::InstallScilla() {
     }
 
     if (pid > 0) {
+      /// Parent process
       int status;
       do {
         if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
           perror("wait() error");
         } else if (pid == 0) {
-          LOG_GENERAL(WARNING, "Still under installing scilla...");
+          LOG_GENERAL(INFO, "Still under installing scilla...");
           this_thread::sleep_for(chrono::seconds(1));
         } else {
           if (WIFEXITED(status)) {
-            LOG_GENERAL(INFO,
-                        "Scilla has been installed successfully with status "
-                            << WEXITSTATUS(status));
+            LOG_GENERAL(INFO, "Scilla has been installed successfully.");
           } else {
-            LOG_GENERAL(WARNING, "Failed to install scilla!");
+            LOG_GENERAL(WARNING, "Failed to install scilla with status "
+                                     << WEXITSTATUS(status));
             return false;
           }
         }
       } while (pid == 0);
     } else {
+      /// Child process
       if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_scillaPackageFileName.data(),
                 nullptr) < 0) {
         LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
