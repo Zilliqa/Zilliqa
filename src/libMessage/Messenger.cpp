@@ -294,6 +294,7 @@ inline bool CheckRequiredFieldsProtoStateData(
     const ProtoStateData& protoStateData) {
   return protoStateData.has_vname() && protoStateData.has_ismutable() &&
          protoStateData.has_type() && protoStateData.has_value();
+}
 
 // ============================================================================
 // Protobuf <-> Primitives conversion functions
