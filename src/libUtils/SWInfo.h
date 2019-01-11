@@ -74,7 +74,7 @@ class SWInfo : public Serializable {
   const uint32_t& GetCommit() const;
 
   static void LogBrand() {
-    std::cout << "Copyright (C) Zilliqa. Version 3.0 (Durian - Mao Shan Wang). "
+    std::cout << "Copyright (C) Zilliqa. Version 3.2.2 (Durian - Mao Shan Wang). "
                  "<https://www.zilliqa.com/> "
               << std::endl;
   }
