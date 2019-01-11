@@ -109,7 +109,7 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   }
 
   // check if sender pubkey is one from our expected list
-  if (CheckDSPowPacketSubmissionFromNonDSCommittee(senderPubKey)) {
+  if (!CheckIfDSNode(senderPubKey)) {
     LOG_GENERAL(WARNING,
                 "PubKey of packet sender "
                     << from
@@ -277,7 +277,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
   uint8_t expectedDiff = POW_DIFFICULTY;
-  uint8_t expectedShardGuardDiff = 1;
+  uint8_t expectedShardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
 
   // Non-genesis block
   if (blockNumber > 1) {
@@ -536,18 +536,4 @@ std::set<PubKey> DirectoryService::FindTopPriorityNodes(
   // list.
   setTopPriorityNodes.insert(m_mediator.m_DSCommittee->back().first);
   return setTopPriorityNodes;
-}
-
-bool DirectoryService::CheckDSPowPacketSubmissionFromNonDSCommittee(
-    const PubKey& submitterPubKey) {
-  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-
-  for (const auto& dsMember : *m_mediator.m_DSCommittee) {
-    if (dsMember.first == submitterPubKey) {
-      // Packet is submitted by one of ds committe
-      return false;
-    }
-  }
-
-  return true;
 }

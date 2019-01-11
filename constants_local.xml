@@ -9,10 +9,6 @@
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>63</CHAIN_ID>
     </general>
-    <archival>
-        <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
-        <DB_HOST>localhost</DB_HOST>
-    </archival>
     <seed>
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
         <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
@@ -132,6 +128,8 @@
         <PUMPMESSAGE_MILLISECONDS>1</PUMPMESSAGE_MILLISECONDS>
         <SENDQUEUE_SIZE>128</SENDQUEUE_SIZE>
         <MAX_GOSSIP_MSG_SIZE_IN_BYTES>5000000</MAX_GOSSIP_MSG_SIZE_IN_BYTES>
+        <MIN_READ_WATERMARK_IN_BYTES>0</MIN_READ_WATERMARK_IN_BYTES>
+        <MAX_READ_WATERMARK_IN_BYTES>20000000</MAX_READ_WATERMARK_IN_BYTES>
     </p2pcomm>
     <pow>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
@@ -141,6 +139,9 @@
         <MINING_PROXY_URL>http://127.0.0.1:4202/api</MINING_PROXY_URL>
         <!-- Every interval seconds to check if mining proxy has the PoW result -->
         <CHECK_MINING_RESULT_INTERVAL>5</CHECK_MINING_RESULT_INTERVAL>
+        <!-- Make zilliqa node as an getWork server -->
+        <GETWORK_SERVER_MINE>false</GETWORK_SERVER_MINE>
+        <GETWORK_SERVER_PORT>4202</GETWORK_SERVER_PORT>
         <DS_POW_DIFFICULTY>5</DS_POW_DIFFICULTY>
         <POW_DIFFICULTY>3</POW_DIFFICULTY>
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
@@ -167,6 +168,7 @@
         <UPGRADE_HOST_REPO>Zilliqa</UPGRADE_HOST_REPO>
         <RECOVERY_TRIM_INCOMPLETED_BLOCK>false</RECOVERY_TRIM_INCOMPLETED_BLOCK>
         <REJOIN_NODE_NOT_IN_NETWORK>true</REJOIN_NODE_NOT_IN_NETWORK>
+        <RESUME_BLACKLIST_DELAY_IN_SECONDS>30</RESUME_BLACKLIST_DELAY_IN_SECONDS>
     </recovery>
     <smart_contract>
         <SCILLA_ROOT/>
@@ -201,6 +203,7 @@
     <verifier>
         <VERIFIER_PATH/>
         <VERIFIER_PUBKEY/>
+        <SEED_PORT>30303</SEED_PORT>
     </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>5</POST_VIEWCHANGE_BUFFER>
@@ -222,14 +225,21 @@
             <pubkey/>
         </peer>
     </lookups>
-    <upper_seed>
-        <!--
+    <multipliers>
+        <!--IP to be provided after public testnet launch.
         <peer>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
         -->
+    </multipliers>
+    <upper_seed>
+        <peer>
+            <ip>127.0.0.1</ip>
+            <port>4001</port>
+            <pubkey/>
+        </peer>
     </upper_seed>
     <lower_seed>
         <!--

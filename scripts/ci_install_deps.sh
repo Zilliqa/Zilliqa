@@ -71,6 +71,7 @@ apt-get install -y \
     cmake \
     build-essential \
     pkg-config \
+    libssl-dev \
     libboost-system-dev \
     libboost-filesystem-dev \
     libboost-test-dev \

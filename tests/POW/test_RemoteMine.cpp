@@ -26,10 +26,20 @@
 #include <iostream>
 #include <vector>
 
+static std::array<uint8_t, 32> generateRandomArray() {
+  std::array<uint8_t, 32> randResult;
+  std::srand(
+      std::time(nullptr));  // use current time as seed for random generator
+  for (int i = 0; i < 32; ++i) {
+    randResult[i] = std::rand() % std::numeric_limits<uint8_t>::max();
+  }
+  return randResult;
+}
+
 void TestRemoteMineCase_1() {
   POW& POWClient = POW::GetInstance();
-  std::array<unsigned char, 32> rand1 = {{'0', '1'}};
-  std::array<unsigned char, 32> rand2 = {{'0', '2'}};
+  std::array<unsigned char, 32> rand1 = generateRandomArray();
+  std::array<unsigned char, 32> rand2 = generateRandomArray();
   boost::multiprecision::uint128_t ipAddr = 2307193356;
   PrivKey privKey(
       DataConversion::StringToCharArray(
@@ -44,7 +54,7 @@ void TestRemoteMineCase_1() {
   PairOfKey keyPair(privKey, pubKey);
 
   // Light client mine and verify
-  uint8_t difficultyToUse = 3;
+  uint8_t difficultyToUse = POW_DIFFICULTY;
   uint64_t blockToUse = 1000;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   auto boundary = POW::DifficultyLevelInInt(difficultyToUse);
@@ -57,7 +67,7 @@ void TestRemoteMineCase_1() {
   std::cout << "Verify difficulty " << std::to_string(difficultyToUse)
             << " result " << verifyLight << std::endl;
 
-  difficultyToUse = 5;
+  difficultyToUse = DS_POW_DIFFICULTY;
   boundary = POW::DifficultyLevelInInt(difficultyToUse);
 
   winning_result =

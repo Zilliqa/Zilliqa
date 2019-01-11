@@ -35,13 +35,13 @@ ubuntu-1804: check-commit
 	docker build -f dev/Dockerfile --build-arg COMMIT=$(commit) --build-arg BASE=ubuntu:18.04 .
 
 # build zilliqa docker image for Kubernetes usage
-k8s: check-commit get-scilla
+k8s: check-commit
 	cat dev/Dockerfile dev/Dockerfile.k8s | docker build -t zilliqa:$(commit) \
 		--build-arg COMMIT=$(commit) -
 
 # build release version docker image for public usage
-release: get-scilla
+release:
 	docker build -f Dockerfile -t zilliqa/zilliqa:v$(major).$(minor).$(fix) .
 
-release-cuda: get-scilla
+release-cuda:
 	docker build -f Dockerfile.cuda -t zilliqa/zilliqa:v$(major).$(minor).$(fix)-cuda .
