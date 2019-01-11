@@ -1046,34 +1046,6 @@ vector<Peer> Node::GetBroadcastList(
   return vector<Peer>();
 }
 
-bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
-                       uint32_t nShard) {
-  for (auto& privKeyHexStr : GENESIS_KEYS) {
-    bytes privkeyOutputBytes;
-    if (!DataConversion::HexStrToUint8Vec(privKeyHexStr, privkeyOutputBytes)) {
-      return false;
-    }
-    auto privKeyBytes{privkeyOutputBytes};
-    auto privKey = PrivKey{privKeyBytes, 0};
-    auto pubKey = PubKey{privKey};
-    auto addr = Account::GetAddressFromPublicKey(pubKey);
-    auto txnShard = Transaction::GetShardIndex(addr, nShard);
-
-    LOG_GENERAL(INFO, "Genesis Priv Key Str "
-                          << privKeyHexStr << " / Priv Key " << privKey
-                          << " / Pub Key " << pubKey << " / Addr " << addr
-                          << " / txnShard " << txnShard << " / myShard "
-                          << myShard << " / nShard " << nShard);
-    if (txnShard == myShard) {
-      oPrivKey = privKey;
-      oPubKey = pubKey;
-      return true;
-    }
-  }
-
-  return false;
-}
-
 bool GetOneGenesisAddress(Address& oAddr) {
   if (GENESIS_WALLETS.empty()) {
     LOG_GENERAL(INFO, "could not get one genensis address");
