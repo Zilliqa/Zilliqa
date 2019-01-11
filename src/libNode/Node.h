@@ -545,16 +545,12 @@ class Node : public Executable, public Broadcastable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
-  static bool GetDSLeaderPeer(const BlockLink& lastBlockLink,
-                              const DSBlock& latestDSBlock,
-                              const DequeOfDSNode& dsCommittee,
-                              const uint64_t epochNumber, Peer& dsLeaderPeer);
+  static bool GetDSLeader(const BlockLink& lastBlockLink,
+                          const DSBlock& latestDSBlock,
+                          const DequeOfDSNode& dsCommittee,
+                          const uint64_t epochNumber,
+                          std::pair<PubKey, Peer>& dsLeader);
 
-  static bool GetDSLeaderPubkey(const BlockLink& lastBlockLink,
-                                const DSBlock& latestDSBlock,
-                                const DequeOfDSNode& dsCommittee,
-                                const uint64_t epochNumber,
-                                PubKey& dsLeaderPubkey);
   // Get entire network peer info
   void GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
                                 std::vector<PubKey>& pubKeys);

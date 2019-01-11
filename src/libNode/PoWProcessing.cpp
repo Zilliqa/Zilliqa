@@ -293,18 +293,18 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   vector<Peer> peerList;
 
   // Send to PoW PACKET_SENDERS which including DS leader
-  Peer dsLeaderPeer;
+  pair<PubKey, Peer> dsLeader;
   if (!m_mediator.m_DSCommittee->empty()) {
-    if (Node::GetDSLeaderPeer(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
-                              m_mediator.m_dsBlockChain.GetLastBlock(),
-                              *m_mediator.m_DSCommittee,
-                              m_mediator.m_currentEpochNum, dsLeaderPeer)) {
-      peerList.push_back(dsLeaderPeer);
+    if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                          m_mediator.m_dsBlockChain.GetLastBlock(),
+                          *m_mediator.m_DSCommittee,
+                          m_mediator.m_currentEpochNum, dsLeader)) {
+      peerList.push_back(dsLeader.second);
     }
   }
 
   for (auto const& i : *m_mediator.m_DSCommittee) {
-    if (peerList.size() < POW_PACKET_SENDERS && i.second != dsLeaderPeer) {
+    if (peerList.size() < POW_PACKET_SENDERS && i.second != dsLeader.second) {
       peerList.push_back(i.second);
     }
 

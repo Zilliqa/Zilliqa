@@ -539,14 +539,13 @@ bool DirectoryService::FinishRejoinAsDS() {
   m_consensusLeaderID = 0;
 
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-  Peer dsLeaderPeer;
-  if (Node::GetDSLeaderPeer(bl, m_mediator.m_dsBlockChain.GetLastBlock(),
-                            dsComm, m_mediator.m_currentEpochNum,
-                            dsLeaderPeer)) {
+  pair<PubKey, Peer> dsLeader;
+  if (Node::GetDSLeader(bl, m_mediator.m_dsBlockChain.GetLastBlock(), dsComm,
+                        m_mediator.m_currentEpochNum, dsLeader)) {
     auto iterDSLeader =
         std::find_if(dsComm.begin(), dsComm.end(),
-                     [dsLeaderPeer](const std::pair<PubKey, Peer>& pubKeyPeer) {
-                       return pubKeyPeer.second == dsLeaderPeer;
+                     [dsLeader](const std::pair<PubKey, Peer>& pubKeyPeer) {
+                       return pubKeyPeer.second == dsLeader.second;
                      });
     if (iterDSLeader != dsComm.end()) {
       m_consensusLeaderID = iterDSLeader - dsComm.begin();

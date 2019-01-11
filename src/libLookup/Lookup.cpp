@@ -2418,16 +2418,16 @@ bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
     return false;
   }
 
-  PubKey expectedDSLeadePubkey;
-  if (!Node::GetDSLeaderPubkey(
-          m_mediator.m_blocklinkchain.GetLatestBlockLink(),
-          m_mediator.m_dsBlockChain.GetLastBlock(), *m_mediator.m_DSCommittee,
-          m_mediator.m_currentEpochNum, expectedDSLeadePubkey)) {
+  pair<PubKey, Peer> expectedDSLeader;
+  if (!Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                         m_mediator.m_dsBlockChain.GetLastBlock(),
+                         *m_mediator.m_DSCommittee,
+                         m_mediator.m_currentEpochNum, expectedDSLeader)) {
     LOG_GENERAL(WARNING, "Does not know expected ds leader");
     return false;
   }
 
-  if (!(expectedDSLeadePubkey == dspubkey)) {
+  if (!(expectedDSLeader.first == dspubkey)) {
     LOG_GENERAL(WARNING, "Message does not comes from DS leader");
     return false;
   }
@@ -3281,18 +3281,17 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
 
         // Send to NUM_NODES_TO_SEND_LOOKUP which including DS leader
-        Peer dsLeaderPeer;
-        if (Node::GetDSLeaderPeer(
-                m_mediator.m_blocklinkchain.GetLatestBlockLink(),
-                m_mediator.m_dsBlockChain.GetLastBlock(),
-                *m_mediator.m_DSCommittee, m_mediator.m_currentEpochNum,
-                dsLeaderPeer)) {
-          toSend.push_back(dsLeaderPeer);
+        pair<PubKey, Peer> dsLeader;
+        if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                              m_mediator.m_dsBlockChain.GetLastBlock(),
+                              *m_mediator.m_DSCommittee,
+                              m_mediator.m_currentEpochNum, dsLeader)) {
+          toSend.push_back(dsLeader.second);
         }
 
         for (auto const& i : *m_mediator.m_DSCommittee) {
           if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
-              i.second != dsLeaderPeer) {
+              i.second != dsLeader.second) {
             toSend.push_back(i.second);
           }
 
