@@ -720,7 +720,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
   if (!Messenger::SetDSMicroBlockSubmission(
           mb_message, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, epochNum,
-          microBlocksSent, stateDeltasSent)) {
+          microBlocksSent, stateDeltasSent, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return false;
@@ -1032,12 +1032,16 @@ bool DirectoryService::FinalBlockValidator(
     return false;
   }
 
-  LOG_EPOCH(
-      INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-      "Final block " << m_finalBlock->GetHeader().GetBlockNum()
-                     << " received with prevhash 0x"
-                     << DataConversion::charArrToHexStr(
-                            m_finalBlock->GetHeader().GetPrevHash().asArray()));
+  string finalblockPrevHashStr;
+  if (!DataConversion::charArrToHexStr(
+          m_finalBlock->GetHeader().GetPrevHash().asArray(),
+          finalblockPrevHashStr)) {
+    return false;
+  }
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Final block " << m_finalBlock->GetHeader().GetBlockNum()
+                           << " received with prevhash 0x"
+                           << finalblockPrevHashStr);
 
   return true;
 }

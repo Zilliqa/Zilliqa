@@ -84,11 +84,6 @@ const unsigned int VCBLOCK_VERSION{
 const unsigned int FALLBACKBLOCK_VERSION{
     ReadConstantNumeric("FALLBACKBLOCK_VERSION", "node.version.")};
 
-// Archival constants
-const bool ARCHIVAL_NODE{
-    ReadConstantString("ARCHIVAL_NODE", "node.archival.") == "true"};
-const string DB_HOST{ReadConstantString("DB_HOST", "node.archival.")};
-
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
@@ -287,6 +282,10 @@ const unsigned int SENDQUEUE_SIZE{
     ReadConstantNumeric("SENDQUEUE_SIZE", "node.p2pcomm.")};
 const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES{
     ReadConstantNumeric("MAX_GOSSIP_MSG_SIZE_IN_BYTES", "node.p2pcomm.")};
+const unsigned int MIN_READ_WATERMARK_IN_BYTES{
+    ReadConstantNumeric("MIN_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
+const unsigned int MAX_READ_WATERMARK_IN_BYTES{
+    ReadConstantNumeric("MAX_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
@@ -295,6 +294,16 @@ const bool FULL_DATASET_MINE{
     ReadConstantString("FULL_DATASET_MINE", "node.pow.") == "true"};
 const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
                            "true"};
+const bool REMOTE_MINE{ReadConstantString("REMOTE_MINE", "node.pow.") ==
+                       "true"};
+const std::string MINING_PROXY_URL{
+    ReadConstantString("MINING_PROXY_URL", "node.pow.")};
+const unsigned int CHECK_MINING_RESULT_INTERVAL{
+    ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
+const bool GETWORK_SERVER_MINE{
+    ReadConstantString("GETWORK_SERVER_MINE", "node.pow.") == "true"};
+const unsigned int GETWORK_SERVER_PORT{
+    ReadConstantNumeric("GETWORK_SERVER_PORT", "node.pow.")};
 const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{
@@ -341,6 +350,8 @@ const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
 const bool REJOIN_NODE_NOT_IN_NETWORK{
     ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};
+const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
+    ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 
 // Smart contract constants
 const string SCILLA_ROOT{
@@ -427,3 +438,5 @@ const std::string VERIFIER_PATH{
     ReadConstantString("VERIFIER_PATH", "node.verifier.")};
 const std::string VERIFIER_PUBKEY{
     ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
+const unsigned int SEED_PORT{
+    ReadConstantNumeric("SEED_PORT", "node.verifier.")};

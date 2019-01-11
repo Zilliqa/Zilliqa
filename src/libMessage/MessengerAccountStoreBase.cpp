@@ -33,7 +33,8 @@ template <class T = ProtoAccountStore>
 bool SerializeToArray(const T& protoMessage, bytes& dst,
                       const unsigned int offset);
 void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
-bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account);
+bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
+                       const Address& addr);
 
 template bool
 MessengerAccountStoreBase::SetAccountStore<unordered_map<Address, Account>>(
@@ -103,7 +104,7 @@ bool MessengerAccountStoreBase::GetAccountStore(const bytes& src,
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
          address.asArray().begin());
-    if (!ProtobufToAccount(entry.account(), account)) {
+    if (!ProtobufToAccount(entry.account(), account, address)) {
       LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
                                << entry.address());
       return false;

@@ -424,10 +424,16 @@ message DSPoWPacketSubmission
 
 message DSMicroBlockSubmission
 {
-    required uint32 microblocktype       = 1; // only LSB used
-    required uint64 epochnumber          = 2;
-    repeated ProtoMicroBlock microblocks = 3;
-    repeated bytes statedeltas           = 4;
+    message Data
+    {
+        required uint32 microblocktype       = 1; // only LSB used
+        required uint64 epochnumber          = 2;
+        repeated ProtoMicroBlock microblocks = 3;
+        repeated bytes statedeltas           = 4;
+    }
+    required Data data                       = 1;
+    required ByteArray pubkey                = 2;
+    required ByteArray signature             = 3;
 }
 
 message DSDSBlockAnnouncement

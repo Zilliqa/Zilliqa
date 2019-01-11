@@ -21,8 +21,6 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <vector>
 
-#include "libArchival/Archival.h"
-#include "libArchival/ArchiveDB.h"
 #include "libConsensus/ConsensusUser.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
@@ -42,8 +40,6 @@ class Zilliqa {
   Lookup m_lookup;
   std::shared_ptr<ValidatorBase> m_validator;
   Node m_n;
-  ArchiveDB m_db;
-  Archival m_arch;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;
@@ -57,14 +53,14 @@ class Zilliqa {
 
  public:
   /// Constructor.
-  Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-          bool loadConfig, unsigned int syncType = SyncType::NO_SYNC,
+  Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
+          unsigned int syncType = SyncType::NO_SYNC,
           bool toRetrieveHistory = false);
 
   /// Destructor.
   ~Zilliqa();
 
-  void LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
+  void LogSelfNodeInfo(const PairOfKey& key, const Peer& peer);
 
   /// Forwards an incoming message for processing by the appropriate subclass.
   void Dispatch(std::pair<bytes, Peer>* message);

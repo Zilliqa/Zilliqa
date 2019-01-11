@@ -29,6 +29,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -140,6 +141,13 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 
   // StoreMicroBlocksToDisk();
   StoreFinalBlockToDisk();
+
+  auto resumeBlackList = []() mutable -> void {
+    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
+    Blacklist::GetInstance().Enable(true);
+  };
+
+  DetachedFunction(1, resumeBlackList);
 
   if (isVacuousEpoch) {
     AccountStore::GetInstance().MoveUpdatesToDisk();

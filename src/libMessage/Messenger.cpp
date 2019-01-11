@@ -141,8 +141,7 @@ inline bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
   // Don't need to enforce check on repeated member dswinners
   // Don't need to enforce check on optional members dsdifficulty, difficulty,
   // and gasprice
-  return protoDSBlockHeader.has_prevhash() &&
-         protoDSBlockHeader.has_leaderpubkey() &&
+  return protoDSBlockHeader.has_leaderpubkey() &&
          protoDSBlockHeader.has_blocknum() &&
          protoDSBlockHeader.has_epochnum() && protoDSBlockHeader.has_swinfo() &&
          protoDSBlockHeader.has_hash() &&
@@ -171,7 +170,6 @@ inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
          protoMicroBlockHeader.has_gaslimit() &&
          protoMicroBlockHeader.has_gasused() &&
          protoMicroBlockHeader.has_rewards() &&
-         protoMicroBlockHeader.has_prevhash() &&
          protoMicroBlockHeader.has_epochnum() &&
          protoMicroBlockHeader.has_txroothash() &&
          protoMicroBlockHeader.has_numtxs() &&
@@ -222,7 +220,6 @@ inline bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
     const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
   return protoTxBlockHeader.has_gaslimit() &&
          protoTxBlockHeader.has_gasused() && protoTxBlockHeader.has_rewards() &&
-         protoTxBlockHeader.has_prevhash() &&
          protoTxBlockHeader.has_blocknum() && protoTxBlockHeader.has_hash() &&
          protoTxBlockHeader.has_numtxs() &&
          protoTxBlockHeader.has_minerpubkey() &&
@@ -246,8 +243,7 @@ inline bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
          protoVCBlockHeader.has_candidateleadernetworkinfo() &&
          protoVCBlockHeader.has_candidateleaderpubkey() &&
          protoVCBlockHeader.has_vccounter() &&
-         protoVCBlockHeader.has_blockheaderbase() &&
-         protoVCBlockHeader.has_prevhash();
+         protoVCBlockHeader.has_blockheaderbase();
 }
 
 inline bool CheckRequiredFieldsProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
@@ -264,7 +260,6 @@ inline bool CheckRequiredFieldsProtoFallbackBlockFallbackBlockHeader(
          protoFallbackBlockHeader.has_leaderconsensusid() &&
          protoFallbackBlockHeader.has_leadernetworkinfo() &&
          protoFallbackBlockHeader.has_leaderpubkey() &&
-         protoFallbackBlockHeader.has_prevhash() &&
          protoFallbackBlockHeader.has_blockheaderbase() &&
          protoFallbackBlockHeader.has_shardid();
 }
@@ -291,7 +286,8 @@ inline bool CheckRequiredFieldsProtoBlockBase(
 inline bool CheckRequiredFieldsProtoBlockHeaderBase(
     const ProtoBlockHeaderBase& protoBlockHeaderBase) {
   return protoBlockHeaderBase.has_version() &&
-         protoBlockHeaderBase.has_committeehash();
+         protoBlockHeaderBase.has_committeehash() &&
+         protoBlockHeaderBase.has_prevhash();
 }
 
 // ============================================================================
@@ -321,7 +317,8 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   }
 }
 
-bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
+bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
+                       const Address& addr) {
   uint128_t tmpNumber;
 
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
@@ -350,12 +347,18 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     }
 
     if (account.GetCodeHash() != tmpHash) {
-      LOG_GENERAL(WARNING,
-                  "Code hash mismatch. Expected: "
-                      << DataConversion::charArrToHexStr(
-                             account.GetCodeHash().asArray())
-                      << " Actual: "
-                      << DataConversion::charArrToHexStr(tmpHash.asArray()));
+      std::string codehashStr, tmphashStr;
+      if (!DataConversion::charArrToHexStr(account.GetCodeHash().asArray(),
+                                           codehashStr)) {
+        return false;
+      }
+
+      if (!DataConversion::charArrToHexStr(tmpHash.asArray(), tmphashStr)) {
+        return false;
+      }
+
+      LOG_GENERAL(WARNING, "Code hash mismatch. Expected: "
+                               << codehashStr << " Actual: " << tmphashStr);
       return false;
     }
 
@@ -365,7 +368,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
       tmpVec.resize(protoAccount.initdata().size());
       copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
            tmpVec.begin());
-      account.InitContract(tmpVec);
+      account.InitContract(tmpVec, addr);
     }
 
     for (const auto& entry : protoAccount.storage()) {
@@ -377,12 +380,20 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account) {
     }
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
+      std::string storagerootStr, tempstoragerootStr;
+      if (!DataConversion::charArrToHexStr(account.GetStorageRoot().asArray(),
+                                           storagerootStr)) {
+        return false;
+      }
+
+      if (!DataConversion::charArrToHexStr(tmpStorageRoot.asArray(),
+                                           tempstoragerootStr)) {
+        return false;
+      }
+
       LOG_GENERAL(WARNING, "Storage root mismatch. Expected: "
-                               << DataConversion::charArrToHexStr(
-                                      account.GetStorageRoot().asArray())
-                               << " Actual: "
-                               << DataConversion::charArrToHexStr(
-                                      tmpStorageRoot.asArray()));
+                               << storagerootStr
+                               << " Actual: " << tempstoragerootStr);
       return false;
     }
   }
@@ -444,7 +455,7 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 }
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
-                            const bool fullCopy) {
+                            const Address& addr, const bool fullCopy) {
   uint128_t tmpNumber;
 
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
@@ -496,7 +507,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
     if (tmpStorageRoot != account.GetStorageRoot()) {
       if (doInitContract) {
-        account.InitContract();
+        account.InitContract(addr);
       }
 
       dev::h256 tmpHash;
@@ -510,12 +521,20 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       }
 
       if (tmpStorageRoot != account.GetStorageRoot()) {
+        std::string storagerootStr, tempstoragerootStr;
+        if (!DataConversion::charArrToHexStr(account.GetStorageRoot().asArray(),
+                                             storagerootStr)) {
+          return false;
+        }
+
+        if (!DataConversion::charArrToHexStr(tmpStorageRoot.asArray(),
+                                             tempstoragerootStr)) {
+          return false;
+        }
+
         LOG_GENERAL(WARNING, "Storage root mismatch. Expected: "
-                                 << DataConversion::charArrToHexStr(
-                                        account.GetStorageRoot().asArray())
-                                 << " Actual: "
-                                 << DataConversion::charArrToHexStr(
-                                        tmpStorageRoot.asArray()));
+                                 << storagerootStr
+                                 << " Actual: " << tempstoragerootStr);
         return false;
       }
     }
@@ -1875,11 +1894,20 @@ bool GetConsensusAnnouncementCore(
     bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
-    LOG_GENERAL(WARNING,
-                "Block hash mismatch. Expected: "
-                    << DataConversion::Uint8VecToHexStr(blockHash)
-                    << " Actual: "
-                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+
+    std::string blockhashStr, remoteblockhashStr;
+    if (!DataConversion::Uint8VecToHexStr(blockHash, blockhashStr)) {
+      return false;
+    }
+
+    if (!DataConversion::Uint8VecToHexStr(remoteBlockHash,
+                                          remoteblockhashStr)) {
+      return false;
+    }
+
+    LOG_GENERAL(WARNING, "Block hash mismatch. Expected: "
+                             << blockhashStr
+                             << " Actual: " << remoteblockhashStr);
     return false;
   }
 
@@ -2053,9 +2081,8 @@ bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-[[gnu::unused]] bool Messenger::GetAccount(const bytes& src,
-                                           const unsigned int offset,
-                                           Account& account) {
+bool Messenger::GetAccount(const bytes& src, const unsigned int offset,
+                           Account& account) {
   ProtoAccount result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -2065,7 +2092,9 @@ bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
     return false;
   }
 
-  if (!ProtobufToAccount(result, account)) {
+  Address address;
+
+  if (!ProtobufToAccount(result, account, address)) {
     LOG_GENERAL(WARNING, "ProtobufToAccount failed.");
     return false;
   }
@@ -2086,25 +2115,6 @@ bool Messenger::SetAccountDelta(bytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetAccountDelta(const bytes& src, const unsigned int offset,
-                                Account& account, const bool fullCopy) {
-  ProtoAccount result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoAccount initialization failed.");
-    return false;
-  }
-
-  if (!ProtobufToAccountDelta(result, account, fullCopy)) {
-    LOG_GENERAL(WARNING, "ProtobufToAccountDelta failed.");
-    return false;
-  }
-
-  return true;
 }
 
 template <class MAP>
@@ -2157,7 +2167,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
          address.asArray().begin());
-    if (!ProtobufToAccount(entry.account(), account)) {
+    if (!ProtobufToAccount(entry.account(), account, address)) {
       LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
                                << entry.address());
       return false;
@@ -2191,7 +2201,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
          entry.address().begin() + min((unsigned int)entry.address().size(),
                                        (unsigned int)address.size),
          address.asArray().begin());
-    if (!ProtobufToAccount(entry.account(), account)) {
+    if (!ProtobufToAccount(entry.account(), account, address)) {
       LOG_GENERAL(WARNING, "ProtobufToAccount failed for account at address "
                                << entry.address());
       return false;
@@ -2307,7 +2317,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
     }
 
     account = *oriAccount;
-    if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
@@ -2363,7 +2373,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
     account = *oriAccount;
 
-    if (!ProtobufToAccountDelta(entry.account(), account, fullCopy)) {
+    if (!ProtobufToAccountDelta(entry.account(), account, address, fullCopy)) {
       LOG_GENERAL(WARNING,
                   "ProtobufToAccountDelta failed for account at address "
                       << entry.address());
@@ -3190,32 +3200,6 @@ bool Messenger::GetDSPoWSubmission(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
-                                          const unsigned char microBlockType,
-                                          const uint64_t epochNumber,
-                                          const vector<MicroBlock>& microBlocks,
-                                          const vector<bytes>& stateDeltas) {
-  LOG_MARKER();
-
-  DSMicroBlockSubmission result;
-
-  result.set_microblocktype(microBlockType);
-  result.set_epochnumber(epochNumber);
-  for (const auto& microBlock : microBlocks) {
-    MicroBlockToProtobuf(microBlock, *result.add_microblocks());
-  }
-  for (const auto& stateDelta : stateDeltas) {
-    result.add_statedeltas(stateDelta.data(), stateDelta.size());
-  }
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "DSMicroBlockSubmission initialization failed.");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
 bool Messenger::SetDSPoWPacketSubmission(
     bytes& dst, const unsigned int offset,
     const vector<DSPowSolution>& dsPowSolutions,
@@ -3282,31 +3266,88 @@ bool Messenger::GetDSPowPacketSubmission(const bytes& src,
   return true;
 }
 
-bool Messenger::GetDSMicroBlockSubmission(const bytes& src,
-                                          const unsigned int offset,
-                                          unsigned char& microBlockType,
-                                          uint64_t& epochNumber,
-                                          vector<MicroBlock>& microBlocks,
-                                          vector<bytes>& stateDeltas) {
+bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
+                                          const unsigned char microBlockType,
+                                          const uint64_t epochNumber,
+                                          const vector<MicroBlock>& microBlocks,
+                                          const vector<bytes>& stateDeltas,
+                                          const PairOfKey& keys) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
 
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
+  result.mutable_data()->set_microblocktype(microBlockType);
+  result.mutable_data()->set_epochnumber(epochNumber);
+  for (const auto& microBlock : microBlocks) {
+    MicroBlockToProtobuf(microBlock, *result.mutable_data()->add_microblocks());
+  }
+  for (const auto& stateDelta : stateDeltas) {
+    result.mutable_data()->add_statedeltas(stateDelta.data(),
+                                           stateDelta.size());
+  }
+
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.mutable_data()->ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+    if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign DSMicroBlockSubmission.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "DSMicroBlockSubmission.Data initialization failed.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission initialization failed.");
     return false;
   }
 
-  microBlockType = result.microblocktype();
-  epochNumber = result.epochnumber();
-  for (const auto& proto_mb : result.microblocks()) {
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetDSMicroBlockSubmission(
+    const bytes& src, const unsigned int offset, unsigned char& microBlockType,
+    uint64_t& epochNumber, vector<MicroBlock>& microBlocks,
+    vector<bytes>& stateDeltas, PubKey& pubKey) {
+  LOG_MARKER();
+
+  DSMicroBlockSubmission result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "DSMicroBlockSubmission initialization failed.");
+    return false;
+  }
+
+  // First deserialize the fields needed just for signature check
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  // Check signature
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature, pubKey)) {
+    LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong.");
+    return false;
+  }
+
+  // Deserialize the remaining fields
+  microBlockType = result.data().microblocktype();
+  epochNumber = result.data().epochnumber();
+  for (const auto& proto_mb : result.data().microblocks()) {
     MicroBlock microBlock;
     ProtobufToMicroBlock(proto_mb, microBlock);
     microBlocks.emplace_back(move(microBlock));
   }
-  for (const auto& proto_delta : result.statedeltas()) {
+  for (const auto& proto_delta : result.data().statedeltas()) {
     stateDeltas.emplace_back();
     copy(proto_delta.begin(), proto_delta.end(),
          std::back_inserter(stateDeltas.back()));
@@ -3901,8 +3942,7 @@ bool Messenger::GetNodeVCBlock(const bytes& src, const unsigned int offset,
 bool Messenger::SetNodeForwardTxnBlock(
     bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
     const uint64_t& dsBlockNum, const uint32_t& shardId,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const std::vector<Transaction>& txnsCurrent,
+    const PairOfKey& lookupKey, const std::vector<Transaction>& txnsCurrent,
     const std::vector<Transaction>& txnsGenerated) {
   LOG_MARKER();
 
@@ -4336,10 +4376,9 @@ bool Messenger::GetLookupGetSeedPeers(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetSeedPeers(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<Peer>& candidateSeeds) {
+bool Messenger::SetLookupSetSeedPeers(bytes& dst, const unsigned int offset,
+                                      const PairOfKey& lookupKey,
+                                      const vector<Peer>& candidateSeeds) {
   LOG_MARKER();
 
   LookupSetSeedPeers result;
@@ -4470,8 +4509,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const bytes& src,
 }
 
 bool Messenger::SetLookupSetDSInfoFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& senderKey,
+    bytes& dst, const unsigned int offset, const PairOfKey& senderKey,
     const deque<pair<PubKey, Peer>>& dsNodes, const bool initialDS) {
   LOG_MARKER();
 
@@ -4590,10 +4628,12 @@ bool Messenger::GetLookupGetDSBlockFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetDSBlockFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
-    const uint64_t highBlockNum, const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<DSBlock>& dsBlocks) {
+bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const PairOfKey& lookupKey,
+                                            const vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
   LookupSetDSBlockFromSeed result;
@@ -4721,10 +4761,12 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetTxBlockFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
-    const uint64_t highBlockNum, const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<TxBlock>& txBlocks) {
+bool Messenger::SetLookupSetTxBlockFromSeed(bytes& dst,
+                                            const unsigned int offset,
+                                            const uint64_t lowBlockNum,
+                                            const uint64_t highBlockNum,
+                                            const PairOfKey& lookupKey,
+                                            const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   LookupSetTxBlockFromSeed result;
@@ -4848,9 +4890,11 @@ bool Messenger::GetLookupGetStateDeltaFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStateDeltaFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t blockNum,
-    const std::pair<PrivKey, PubKey>& lookupKey, const bytes& stateDelta) {
+bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
+                                               const unsigned int offset,
+                                               const uint64_t blockNum,
+                                               const PairOfKey& lookupKey,
+                                               const bytes& stateDelta) {
   LOG_MARKER();
 
   LookupSetStateDeltaFromSeed result;
@@ -5069,10 +5113,9 @@ bool Messenger::GetLookupGetStateFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStateFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const AccountStore& accountStore) {
+bool Messenger::SetLookupSetStateFromSeed(bytes& dst, const unsigned int offset,
+                                          const PairOfKey& lookupKey,
+                                          const AccountStore& accountStore) {
   LOG_MARKER();
 
   LookupSetStateFromSeed result;
@@ -5245,9 +5288,10 @@ bool Messenger::GetLookupGetOfflineLookups(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetOfflineLookups(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey, const vector<Peer>& nodes) {
+bool Messenger::SetLookupSetOfflineLookups(bytes& dst,
+                                           const unsigned int offset,
+                                           const PairOfKey& lookupKey,
+                                           const vector<Peer>& nodes) {
   LOG_MARKER();
 
   LookupSetOfflineLookups result;
@@ -5359,9 +5403,10 @@ bool Messenger::GetLookupGetStartPoWFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStartPoWFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t blockNumber,
-    const std::pair<PrivKey, PubKey>& lookupKey) {
+bool Messenger::SetLookupSetStartPoWFromSeed(bytes& dst,
+                                             const unsigned int offset,
+                                             const uint64_t blockNumber,
+                                             const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetStartPoWFromSeed result;
@@ -5454,9 +5499,10 @@ bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetShardsFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey, const DequeOfShard& shards) {
+bool Messenger::SetLookupSetShardsFromSeed(bytes& dst,
+                                           const unsigned int offset,
+                                           const PairOfKey& lookupKey,
+                                           const DequeOfShard& shards) {
   LOG_MARKER();
 
   LookupSetShardsFromSeed result;
@@ -5574,8 +5620,7 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
 }
 
 bool Messenger::SetLookupSetMicroBlockFromLookup(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
+    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const vector<MicroBlock>& mbs) {
   LOG_MARKER();
   LookupSetMicroBlockFromLookup result;
@@ -5701,8 +5746,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
 }
 
 bool Messenger::SetLookupSetTxnsFromLookup(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
+    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
@@ -6011,11 +6055,20 @@ bool Messenger::GetConsensusCommit(
     bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
-    LOG_GENERAL(WARNING,
-                "Block hash mismatch. Expected: "
-                    << DataConversion::Uint8VecToHexStr(blockHash)
-                    << " Actual: "
-                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+
+    std::string blockhashStr, remoteblockhashStr;
+    if (!DataConversion::Uint8VecToHexStr(blockHash, blockhashStr)) {
+      return false;
+    }
+
+    if (!DataConversion::Uint8VecToHexStr(remoteBlockHash,
+                                          remoteblockhashStr)) {
+      return false;
+    }
+
+    LOG_GENERAL(WARNING, "Block hash mismatch. Expected: "
+                             << blockhashStr
+                             << " Actual: " << remoteblockhashStr);
     return false;
   }
 
@@ -6138,11 +6191,19 @@ bool Messenger::GetConsensusChallenge(
     bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
-    LOG_GENERAL(WARNING,
-                "Block hash mismatch. Expected: "
-                    << DataConversion::Uint8VecToHexStr(blockHash)
-                    << " Actual: "
-                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+
+    std::string blockhashStr, remoteblockhashStr;
+    if (!DataConversion::Uint8VecToHexStr(blockHash, blockhashStr)) {
+      return false;
+    }
+
+    if (!DataConversion::Uint8VecToHexStr(remoteBlockHash,
+                                          remoteblockhashStr)) {
+      return false;
+    }
+    LOG_GENERAL(WARNING, "Block hash mismatch. Expected: "
+                             << blockhashStr
+                             << " Actual: " << remoteblockhashStr);
     return false;
   }
 
@@ -6260,11 +6321,20 @@ bool Messenger::GetConsensusResponse(
     bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
-    LOG_GENERAL(WARNING,
-                "Block hash mismatch. Expected: "
-                    << DataConversion::Uint8VecToHexStr(blockHash)
-                    << " Actual: "
-                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+
+    std::string blockhashStr, remoteblockhashStr;
+    if (!DataConversion::Uint8VecToHexStr(blockHash, blockhashStr)) {
+      return false;
+    }
+
+    if (!DataConversion::Uint8VecToHexStr(remoteBlockHash,
+                                          remoteblockhashStr)) {
+      return false;
+    }
+
+    LOG_GENERAL(WARNING, "Block hash mismatch. Expected: "
+                             << blockhashStr
+                             << " Actual: " << remoteblockhashStr);
     return false;
   }
 
@@ -6381,11 +6451,20 @@ bool Messenger::GetConsensusCollectiveSig(
     bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
-    LOG_GENERAL(WARNING,
-                "Block hash mismatch. Expected: "
-                    << DataConversion::Uint8VecToHexStr(blockHash)
-                    << " Actual: "
-                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+
+    std::string blockhashStr, remoteblockhashStr;
+    if (!DataConversion::Uint8VecToHexStr(blockHash, blockhashStr)) {
+      return false;
+    }
+
+    if (!DataConversion::Uint8VecToHexStr(remoteBlockHash,
+                                          remoteblockhashStr)) {
+      return false;
+    }
+
+    LOG_GENERAL(WARNING, "Block hash mismatch. Expected: "
+                             << blockhashStr
+                             << " Actual: " << remoteblockhashStr);
     return false;
   }
 
@@ -6498,11 +6577,20 @@ bool Messenger::GetConsensusCommitFailure(
     bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
-    LOG_GENERAL(WARNING,
-                "Block hash mismatch. Expected: "
-                    << DataConversion::Uint8VecToHexStr(blockHash)
-                    << " Actual: "
-                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+
+    std::string blockhashStr, remoteblockhashStr;
+    if (!DataConversion::Uint8VecToHexStr(blockHash, blockhashStr)) {
+      return false;
+    }
+
+    if (!DataConversion::Uint8VecToHexStr(remoteBlockHash,
+                                          remoteblockhashStr)) {
+      return false;
+    }
+
+    LOG_GENERAL(WARNING, "Block hash mismatch. Expected: "
+                             << blockhashStr
+                             << " Actual: " << remoteblockhashStr);
     return false;
   }
 
@@ -6614,11 +6702,20 @@ bool Messenger::GetConsensusConsensusFailure(
     bytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
-    LOG_GENERAL(WARNING,
-                "Block hash mismatch. Expected: "
-                    << DataConversion::Uint8VecToHexStr(blockHash)
-                    << " Actual: "
-                    << DataConversion::Uint8VecToHexStr(remoteBlockHash));
+
+    std::string blockhashStr, remoteblockhashStr;
+    if (!DataConversion::Uint8VecToHexStr(blockHash, blockhashStr)) {
+      return false;
+    }
+
+    if (!DataConversion::Uint8VecToHexStr(remoteBlockHash,
+                                          remoteblockhashStr)) {
+      return false;
+    }
+
+    LOG_GENERAL(WARNING, "Block hash mismatch. Expected: "
+                             << blockhashStr
+                             << " Actual: " << remoteblockhashStr);
     return false;
   }
 
@@ -6694,10 +6791,11 @@ bool Messenger::GetLookupGetDSTxBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetVCNodeSetDSTxBlockFromSeed(
-    bytes& dst, const unsigned int offset,
-    const std::pair<PrivKey, PubKey>& lookupKey,
-    const vector<DSBlock>& DSBlocks, const vector<TxBlock>& txBlocks) {
+bool Messenger::SetVCNodeSetDSTxBlockFromSeed(bytes& dst,
+                                              const unsigned int offset,
+                                              const PairOfKey& lookupKey,
+                                              const vector<DSBlock>& DSBlocks,
+                                              const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   VCNodeSetDSTxBlockFromSeed result;
@@ -6926,7 +7024,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
 bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
     bytes& dst, unsigned int offset,
     const vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
-    const std::pair<PrivKey, PubKey>& lookupKey) {
+    const PairOfKey& lookupKey) {
   LOG_MARKER();
   NodeSetGuardNodeNetworkInfoUpdate result;
 

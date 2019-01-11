@@ -32,12 +32,10 @@
 using namespace boost::multiprecision;
 using namespace std;
 
-using KeyPair = std::pair<PrivKey, PubKey>;
-
 BOOST_AUTO_TEST_SUITE(TxnOrderVerifying)
 
-decltype(auto) GenWithDummyValue(const KeyPair& sender, const KeyPair& receiver,
-                                 size_t n) {
+decltype(auto) GenWithDummyValue(const PairOfKey& sender,
+                                 const PairOfKey& receiver, size_t n) {
   LOG_MARKER();
   std::vector<Transaction> txns;
 

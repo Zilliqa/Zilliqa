@@ -20,6 +20,7 @@
 #include "Mediator.h"
 #include "common/Constants.h"
 #include "libCrypto/Sha2.h"
+#include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/ShardSizeCalculator.h"
@@ -34,8 +35,6 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
       m_node(nullptr),
       m_lookup(nullptr),
       m_validator(nullptr),
-      m_archDB(nullptr),
-      m_archival(nullptr),
       m_dsBlockChain(),
       m_txBlockChain(),
       m_blocklinkchain(),
@@ -51,16 +50,11 @@ Mediator::Mediator(const pair<PrivKey, PubKey>& key, const Peer& peer)
 Mediator::~Mediator() {}
 
 void Mediator::RegisterColleagues(DirectoryService* ds, Node* node,
-                                  Lookup* lookup, ValidatorBase* validator,
-                                  BaseDB* archDB, Archival* arch) {
+                                  Lookup* lookup, ValidatorBase* validator) {
   m_ds = ds;
   m_node = node;
   m_lookup = lookup;
   m_validator = validator;
-  if (ARCHIVAL_NODE) {
-    m_archDB = archDB;
-    m_archival = arch;
-  }
 }
 
 void Mediator::UpdateDSBlockRand(bool isGenesis) {
@@ -70,7 +64,7 @@ void Mediator::UpdateDSBlockRand(bool isGenesis) {
     // genesis block
     LOG_GENERAL(INFO, "Genesis DSBlockchain")
     array<unsigned char, UINT256_SIZE> rand1;
-    rand1 = DataConversion::HexStrToStdArray(RAND1_GENESIS);
+    DataConversion::HexStrToStdArray(RAND1_GENESIS, rand1);
     copy(rand1.begin(), rand1.end(), m_dsBlockRand.begin());
   } else {
     DSBlock lastBlock = m_dsBlockChain.GetLastBlock();
@@ -90,7 +84,7 @@ void Mediator::UpdateTxBlockRand(bool isGenesis) {
   if (isGenesis) {
     LOG_GENERAL(INFO, "Genesis txBlockchain")
     array<unsigned char, UINT256_SIZE> rand2;
-    rand2 = DataConversion::HexStrToStdArray(RAND2_GENESIS);
+    DataConversion::HexStrToStdArray(RAND2_GENESIS, rand2);
     copy(rand2.begin(), rand2.end(), m_txBlockRand.begin());
   } else {
     TxBlock lastBlock = m_txBlockChain.GetLastBlock();
@@ -133,6 +127,21 @@ void Mediator::IncreaseEpochNum() {
     m_isVacuousEpoch = true;
   } else {
     m_isVacuousEpoch = false;
+  }
+
+  // Update GetWork Server info for nodes in shard
+  if (GETWORK_SERVER_MINE) {
+    // roughly calc how many seconds to next PoW
+    auto num_block =
+        NUM_FINAL_BLOCK_PER_POW - (m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW);
+
+    num_block = num_block % NUM_FINAL_BLOCK_PER_POW;
+    auto now = std::chrono::system_clock::now();
+    auto wait_seconds = chrono::seconds(
+        ((TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000) *
+        num_block);
+
+    GetWorkServer::GetInstance().SetNextPoWTime(now + wait_seconds);
   }
 }
 

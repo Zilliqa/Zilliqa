@@ -17,8 +17,6 @@
 
 #include <limits>
 #include <random>
-#include "libDB/Archival.h"
-#include "libDB/ArchiveDB.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libTestUtils/TestUtils.h"
@@ -38,7 +36,7 @@ Mediator* m;
 BOOST_AUTO_TEST_CASE(init) {
   INIT_STDOUT_LOGGER();
   rng.seed(std::random_device()());
-  KeyPair kp = TestUtils::GenerateRandomKeyPair();
+  PairOfKey kp = TestUtils::GenerateRandomKeyPair();
   Peer p = Peer();
   m = new Mediator(kp, p);
 }
@@ -48,10 +46,8 @@ BOOST_AUTO_TEST_CASE(RegisterColleagues) {
   Node node(*m, 0, false);
   Lookup lookup(*m);
   Validator validator(*m);
-  ArchiveDB archDB("name", "txn", "txBlock", "dsBlock", "accountState");
-  Archival arch(*m);
 
-  m->RegisterColleagues(&ds, &node, &lookup, &validator, &archDB, &arch);
+  m->RegisterColleagues(&ds, &node, &lookup, &validator);
 }
 
 BOOST_AUTO_TEST_CASE(UpdateDSBlockRand) {

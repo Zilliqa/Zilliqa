@@ -134,9 +134,13 @@ bool DirectoryService::ProcessStateDelta(
     return true;
   }
 
-  LOG_GENERAL(INFO, "Received MicroBlock State Delta hash : "
-                        << DataConversion::charArrToHexStr(
-                               microBlockStateDeltaHash.asArray()));
+  string statedeltaStr;
+  if (!DataConversion::charArrToHexStr(microBlockStateDeltaHash.asArray(),
+                                       statedeltaStr)) {
+    LOG_GENERAL(WARNING, "Invalid state delta hash");
+    return false;
+  }
+  LOG_GENERAL(INFO, "Received MicroBlock State Delta hash : " << statedeltaStr);
 
   if (microBlockStateDeltaHash == StateHash()) {
     LOG_GENERAL(INFO,
@@ -241,8 +245,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
   if (minerEntry == m_publicKeyToshardIdMap.end()) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Cannot find the miner key: "
-                  << DataConversion::SerializableToHexStr(pubKey));
+              "Cannot find the miner key: " << pubKey);
     return false;
   }
   if (minerEntry->second != shardId) {
@@ -447,18 +450,37 @@ bool DirectoryService::ProcessMicroblockSubmission(
   vector<MicroBlock> microBlocks;
   vector<bytes> stateDeltas;
 
+  PubKey senderPubKey;
   if (!Messenger::GetDSMicroBlockSubmission(message, offset, submitMBType,
                                             epochNumber, microBlocks,
-                                            stateDeltas)) {
+                                            stateDeltas, senderPubKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSMicroBlockSubmission failed.");
     return false;
   }
 
   if (submitMBType == SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK) {
+    // check if sender pubkey is one from our expected list
+    if (!CheckIfShardNode(senderPubKey)) {
+      LOG_GENERAL(WARNING, "PubKey of microblock sender "
+                               << from
+                               << " does not match any of the shard members");
+      // In future, we may want to blacklist such node - TBD
+      return false;
+    }
+
     return ProcessMicroblockSubmissionFromShard(epochNumber, microBlocks,
                                                 stateDeltas);
   } else if (submitMBType == SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK) {
+    // check if sender pubkey is one from our expected list
+    if (!CheckIfDSNode(senderPubKey)) {
+      LOG_GENERAL(WARNING, "PubKey of microblock sender "
+                               << from
+                               << " does not match any of the DS members");
+      // In future, we may want to blacklist such node - TBD
+      return false;
+    }
+
     return ProcessMissingMicroblockSubmission(epochNumber, microBlocks,
                                               stateDeltas);
   } else {
@@ -520,8 +542,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
         if (!found) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Cannot find the miner key in DS committee: "
-                        << DataConversion::SerializableToHexStr(pubKey));
+                    "Cannot find the miner key in DS committee: " << pubKey);
           continue;
         }
       } else {
@@ -529,8 +550,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
         if (minerEntry == m_publicKeyToshardIdMap.end()) {
           LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-                    "Cannot find the miner key in normal shard: "
-                        << DataConversion::SerializableToHexStr(pubKey));
+                    "Cannot find the miner key in normal shard: " << pubKey);
           continue;
         }
         if (minerEntry->second != shardId) {

@@ -76,9 +76,9 @@ Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
 
 PubKey GenerateRandomPubKey(PrivKey privK) { return PubKey(privK); }
 
-KeyPair GenerateRandomKeyPair() {
+PairOfKey GenerateRandomKeyPair() {
   PrivKey privk;
-  return KeyPair(privk, GenerateRandomPubKey(privk));
+  return PairOfKey(privk, GenerateRandomPubKey(privk));
 }
 
 DSBlockHeader GenerateRandomDSBlockHeader() {
@@ -241,7 +241,7 @@ Signature GetSignature(const bytes& data, const PrivKey& privkey,
 }
 
 Signature GenerateRandomSignature() {
-  KeyPair kp = GenerateRandomKeyPair();
+  PairOfKey kp = GenerateRandomKeyPair();
   return GetSignature(GenerateRandomCharVector(Dist1to99()), kp.first,
                       kp.second);
 }

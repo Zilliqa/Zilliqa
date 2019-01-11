@@ -33,7 +33,6 @@
 #include "libCrypto/Schnorr.h"
 
 using TxnHash = dev::h256;
-using KeyPair = std::pair<PrivKey, PubKey>;
 
 struct TransactionCoreInfo {
   TransactionCoreInfo() = default;
@@ -80,7 +79,7 @@ class Transaction : public SerializableDataBlock {
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
-              const Address& toAddr, const KeyPair& senderKeyPair,
+              const Address& toAddr, const PairOfKey& senderKeyPair,
               const boost::multiprecision::uint128_t& amount,
               const boost::multiprecision::uint128_t& gasPrice,
               const uint64_t& gasLimit, const bytes& code = {},

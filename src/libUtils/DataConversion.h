@@ -20,51 +20,62 @@
 
 #include <array>
 #include <boost/algorithm/hex.hpp>
+#include <exception>
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "common/Serializable.h"
+#include "libUtils/Logger.h"
 
 /// Utility class for data conversion operations.
 class DataConversion {
  public:
+  /// Converts alphanumeric hex string to Uint64.
+  static bool HexStringToUint64(const std::string& s, uint64_t* res);
+
   /// Converts alphanumeric hex string to byte vector.
-  static const bytes HexStrToUint8Vec(const std::string& hex_input);
+  static bool HexStrToUint8Vec(const std::string& hex_input, bytes& out);
 
   /// Converts alphanumeric hex string to 32-byte array.
-  static const std::array<unsigned char, 32> HexStrToStdArray(
-      const std::string& hex_input);
+  static bool HexStrToStdArray(const std::string& hex_input,
+                               std::array<uint8_t, 32>& d);
 
   /// Converts alphanumeric hex string to 64-byte array.
-  static const std::array<unsigned char, 64> HexStrToStdArray64(
-      const std::string& hex_input);
+  static bool HexStrToStdArray64(const std::string& hex_input,
+                                 std::array<uint8_t, 64>& d);
 
   /// Converts byte vector to alphanumeric hex string.
-  static const std::string Uint8VecToHexStr(const bytes& hex_vec);
+  static bool Uint8VecToHexStr(const bytes& hex_vec, std::string& str);
 
   /// Converts byte vector to alphanumeric hex string.
-  static const std::string Uint8VecToHexStr(const bytes& hex_vec,
-                                            unsigned int offset,
-                                            unsigned int len);
+  static bool Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
+                               unsigned int len, std::string& str);
 
   /// Converts fixed-sized byte array to alphanumeric hex string.
   template <size_t SIZE>
-  static std::string charArrToHexStr(
-      const std::array<unsigned char, SIZE>& hex_arr) {
-    std::string str;
-    boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
-                          std::back_inserter(str));
-    return str;
+  static bool charArrToHexStr(const std::array<uint8_t, SIZE>& hex_arr,
+                              std::string& str) {
+    try {
+      str = "";
+      boost::algorithm::hex(hex_arr.begin(), hex_arr.end(),
+                            std::back_inserter(str));
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING, "Failed charArrToHexStr conversion");
+      return false;
+    }
+    return true;
   }
 
   /// Converts a serializable object to alphanumeric hex string.
-  static std::string SerializableToHexStr(const Serializable& input);
+  static bool SerializableToHexStr(const Serializable& input, std::string& str);
 
   static inline const std::string CharArrayToString(const bytes& v) {
     return std::string(v.begin(), v.end());
   }
 
-  static inline const bytes StringToCharArray(const std::string& input) {
+  static inline const std::vector<uint8_t> StringToCharArray(
+      const std::string& input) {
     return bytes(input.begin(), input.end());
   }
 
@@ -77,6 +88,34 @@ class DataConversion {
   static uint16_t UnpackA(uint32_t x) { return (uint16_t)(x >> 16); }
 
   static uint16_t UnpackB(uint32_t x) { return (uint16_t)(x & 0xffff); }
+
+  template <typename T, size_t SIZE>
+  static std::string IntegerToHexString(T value) {
+    std::stringstream ss;
+    if (SIZE > sizeof(uint8_t)) {
+      ss << std::hex << value;
+    } else {
+      ss << std::hex << (uint32_t)value;
+    }
+    std::string strResult = ss.str();
+    auto resultSize = SIZE * 2;
+    if (strResult.length() < resultSize) {
+      strResult = std::string(resultSize - strResult.length(), '0') + strResult;
+    }
+    return strResult;
+  }
+
+  template <typename T, size_t SIZE>
+  static bytes IntegerToBytes(T value) {
+    bytes result(SIZE);
+    for (size_t i = 0; i < SIZE; i++) {
+      result[SIZE - i - 1] = (value >> (i * 8));
+    }
+    return result;
+  }
+
+  /// Normalize alphanumeric hex string to lower and remove prefix "0x"
+  static bool NormalizeHexString(std::string& s);
 };
 
 #endif  // __DATACONVERSION_H__

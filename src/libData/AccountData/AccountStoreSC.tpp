@@ -149,7 +149,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
     toAccount->SetCode(transaction.GetCode());
     // Store the immutable states
-    toAccount->InitContract(transaction.GetData());
+    toAccount->InitContract(transaction.GetData(), toAddr);
     // Set the blockNumber when the account was created
     toAccount->SetCreateBlockNum(blockNum);
 

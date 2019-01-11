@@ -20,8 +20,6 @@
 
 #include <deque>
 
-#include "libArchival/Archival.h"
-#include "libArchival/BaseDB.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
@@ -35,7 +33,7 @@
 class Mediator {
  public:
   /// The Zilliqa instance's key pair.
-  std::pair<PrivKey, PubKey> m_selfKey;
+  PairOfKey m_selfKey;
 
   /// The Zilliqa instance's IP information.
   Peer m_selfPeer;
@@ -52,11 +50,6 @@ class Mediator {
   /// Pointer to the Validator instance.
   ValidatorBase* m_validator;
 
-  // Archive DB pointer
-  BaseDB* m_archDB;
-
-  // Archival Node pointer
-  Archival* m_archival;
   /// The transient DS blockchain.
   DSBlockChain m_dsBlockChain;
 
@@ -102,15 +95,14 @@ class Mediator {
   std::mutex m_mutexCurSWInfo;
 
   /// Constructor.
-  Mediator(const std::pair<PrivKey, PubKey>& key, const Peer& peer);
+  Mediator(const PairOfKey& key, const Peer& peer);
 
   /// Destructor.
   ~Mediator();
 
   /// Sets the references to the subclass instances.
   void RegisterColleagues(DirectoryService* ds, Node* node, Lookup* lookup,
-                          ValidatorBase* validator, BaseDB* archDB = nullptr,
-                          Archival* arch = nullptr);
+                          ValidatorBase* validator);
 
   /// Updates the DS blockchain random for PoW.
   void UpdateDSBlockRand(bool isGenesis = false);
