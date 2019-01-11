@@ -208,6 +208,7 @@ void Account::SetStorageRoot(const h256& root) {
   if (!isContract()) {
     return;
   }
+
   m_storageRoot = root;
 
   if (m_storageRoot == h256()) {
@@ -227,6 +228,11 @@ void Account::SetStorage(string k, string type, string v, bool is_mutable) {
   if (!isContract()) {
     return;
   }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return;
+  }
+
   RLPStream rlpStream(4);
   rlpStream << k << (is_mutable ? "True" : "False") << type << v;
 
@@ -245,6 +251,11 @@ void Account::SetStorage(const h256& k_hash, const string& rlpStr) {
     LOG_GENERAL(WARNING, "Not contract account, why call Account::SetStorage!");
     return;
   }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return;
+  }
+
   m_storage.insert(k_hash, rlpStr);
   m_storageRoot = m_storage.root();
 }
