@@ -539,14 +539,13 @@ bool DirectoryService::FinishRejoinAsDS() {
   m_consensusLeaderID = 0;
 
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-  Peer dsLeaderPeer;
-  if (Node::GetDSLeaderPeer(bl, m_mediator.m_dsBlockChain.GetLastBlock(),
-                            dsComm, m_mediator.m_currentEpochNum,
-                            dsLeaderPeer)) {
+  pair<PubKey, Peer> dsLeader;
+  if (Node::GetDSLeader(bl, m_mediator.m_dsBlockChain.GetLastBlock(), dsComm,
+                        m_mediator.m_currentEpochNum, dsLeader)) {
     auto iterDSLeader =
         std::find_if(dsComm.begin(), dsComm.end(),
-                     [dsLeaderPeer](const std::pair<PubKey, Peer>& pubKeyPeer) {
-                       return pubKeyPeer.second == dsLeaderPeer;
+                     [dsLeader](const std::pair<PubKey, Peer>& pubKeyPeer) {
+                       return pubKeyPeer.second == dsLeader.second;
                      });
     if (iterDSLeader != dsComm.end()) {
       m_consensusLeaderID = iterDSLeader - dsComm.begin();
@@ -622,6 +621,16 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     // Notify lookup that it's time to do PoW
     bytes startpow_message = {MessageType::LOOKUP,
                               LookupInstructionType::RAISESTARTPOW};
+
+    if (!Messenger::SetLookupSetRaiseStartPoW(
+            startpow_message, MessageOffset::BODY,
+            (uint8_t)LookupInstructionType::RAISESTARTPOW,
+            m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::SetLookupSetRaiseStartPoW failed.");
+      return;
+    }
+
     m_mediator.m_lookup->SendMessageToLookupNodesSerial(startpow_message);
 
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL

@@ -2377,8 +2377,7 @@ bool Lookup::ProcessSetOfflineLookups(const bytes& message, unsigned int offset,
   return true;
 }
 
-bool Lookup::ProcessRaiseStartPoW([[gnu::unused]] const bytes& message,
-                                  [[gnu::unused]] unsigned int offset,
+bool Lookup::ProcessRaiseStartPoW(const bytes& message, unsigned int offset,
                                   [[gnu::unused]] const Peer& from) {
   // Message = empty
 
@@ -2389,6 +2388,48 @@ bool Lookup::ProcessRaiseStartPoW([[gnu::unused]] const bytes& message,
                 "Lookup::ProcessRaiseStartPoW not expected to be called "
                 "from other than the LookUp node.");
     return true;
+  }
+
+  if (m_receivedRaiseStartPoW) {
+    LOG_GENERAL(WARNING, "Already raised start pow");
+    return false;
+  }
+
+  uint8_t msgType;
+  uint64_t blockNumber;
+  PubKey dspubkey;
+  if (!Messenger::GetLookupSetRaiseStartPoW(message, offset, msgType,
+                                            blockNumber, dspubkey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "Messenger::GetLookupSetRaiseStartPoW failed.");
+    return false;
+  }
+
+  if ((unsigned char)msgType != LookupInstructionType::RAISESTARTPOW) {
+    LOG_GENERAL(WARNING,
+                "Current message does not belong to this instrunction handler. "
+                "There might be replay attack.");
+    return false;
+  }
+
+  if (blockNumber != m_mediator.m_currentEpochNum &&
+      blockNumber != m_mediator.m_currentEpochNum + 1) {
+    LOG_GENERAL(WARNING, "block num is not within the current epoch.");
+    return false;
+  }
+
+  pair<PubKey, Peer> expectedDSLeader;
+  if (!Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                         m_mediator.m_dsBlockChain.GetLastBlock(),
+                         *m_mediator.m_DSCommittee,
+                         m_mediator.m_currentEpochNum, expectedDSLeader)) {
+    LOG_GENERAL(WARNING, "Does not know expected ds leader");
+    return false;
+  }
+
+  if (!(expectedDSLeader.first == dspubkey)) {
+    LOG_GENERAL(WARNING, "Message does not comes from DS leader");
+    return false;
   }
 
   // DS leader has informed me that it's time to start PoW
@@ -3235,18 +3276,17 @@ void Lookup::SendTxnPacketToNodes(uint32_t numShards) {
         }
 
         // Send to NUM_NODES_TO_SEND_LOOKUP which including DS leader
-        Peer dsLeaderPeer;
-        if (Node::GetDSLeaderPeer(
-                m_mediator.m_blocklinkchain.GetLatestBlockLink(),
-                m_mediator.m_dsBlockChain.GetLastBlock(),
-                *m_mediator.m_DSCommittee, m_mediator.m_currentEpochNum,
-                dsLeaderPeer)) {
-          toSend.push_back(dsLeaderPeer);
+        pair<PubKey, Peer> dsLeader;
+        if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                              m_mediator.m_dsBlockChain.GetLastBlock(),
+                              *m_mediator.m_DSCommittee,
+                              m_mediator.m_currentEpochNum, dsLeader)) {
+          toSend.push_back(dsLeader.second);
         }
 
         for (auto const& i : *m_mediator.m_DSCommittee) {
           if (toSend.size() < NUM_NODES_TO_SEND_LOOKUP &&
-              i.second != dsLeaderPeer) {
+              i.second != dsLeader.second) {
             toSend.push_back(i.second);
           }
 
