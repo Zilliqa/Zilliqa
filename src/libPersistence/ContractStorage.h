@@ -57,10 +57,10 @@ class ContractStorage : public Singleton<ContractStorage> {
   ContractStorage()
       : m_codeDB("contractCode"),
         m_stateDB("contractState"),
-        t_stateIndexDB("tempStateIndex"),
-        t_stateDataDB("tempStateData"),
-        m_stateIndexDB("stateIndex"),
-        m_stateDataDB("stateData"){};
+        t_stateIndexDB("tempContractStateIndex"),
+        t_stateDataDB("tempContractStateData"),
+        m_stateIndexDB("sontractStateIndex"),
+        m_stateDataDB("contractStateData"){};
 
   ~ContractStorage() = default;
 
