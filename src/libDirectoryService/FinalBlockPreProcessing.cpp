@@ -119,8 +119,7 @@ bool DirectoryService::ComposeFinalBlock() {
 
   std::vector<MicroBlockInfo> mbInfos;
   std::vector<uint32_t> shardIds;
-  uint8_t type = TXBLOCKTYPE::FINAL;
-  uint32_t version = BLOCKVERSION::VERSION1;
+  uint32_t version = TXBLOCK_VERSION;
   uint64_t allGasLimit = 0;
   uint64_t allGasUsed = 0;
   uint128_t allRewards = 0;
@@ -180,11 +179,11 @@ bool DirectoryService::ComposeFinalBlock() {
 
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(
-          type, version, allGasLimit, allGasUsed, allRewards, prevHash,
-          blockNum, {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
+          allGasLimit, allGasUsed, allRewards, blockNum,
+          {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
           m_mediator.m_selfKey.second,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          committeeHash),
+          version, committeeHash, prevHash),
       mbInfos, CoSignatures(m_mediator.m_DSCommittee->size())));
 
   LOG_STATE(
@@ -311,32 +310,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
   return true;
 }
 
-// Check type (must be final block type)
-bool DirectoryService::CheckBlockTypeIsFinal() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::CheckBlockTypeIsFinal not expected to "
-                "be called from LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  if (m_finalBlock->GetHeader().GetType() != TXBLOCKTYPE::FINAL) {
-    LOG_GENERAL(WARNING,
-                "Type check failed. Expected: "
-                    << (unsigned int)TXBLOCKTYPE::FINAL << " Actual: "
-                    << (unsigned int)m_finalBlock->GetHeader().GetType());
-
-    m_consensusObject->SetConsensusErrorCode(
-        ConsensusCommon::INVALID_FINALBLOCK);
-
-    return false;
-  }
-
-  return true;
-}
-
 // Check version (must be most current version)
 bool DirectoryService::CheckFinalBlockVersion() {
   if (LOOKUP_NODE_MODE) {
@@ -348,11 +321,10 @@ bool DirectoryService::CheckFinalBlockVersion() {
 
   LOG_MARKER();
 
-  if (m_finalBlock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1) {
-    LOG_GENERAL(WARNING,
-                "Version check failed. Expected: "
-                    << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
-                    << (unsigned int)m_finalBlock->GetHeader().GetVersion());
+  if (m_finalBlock->GetHeader().GetVersion() != TXBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << TXBLOCK_VERSION << " Actual: "
+                             << m_finalBlock->GetHeader().GetVersion());
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_FINALBLOCK_VERSION);
@@ -943,9 +915,9 @@ bool DirectoryService::CheckFinalBlockValidity(bytes& errorMsg) {
     return true;
   }
 
-  return CheckBlockHash() && CheckBlockTypeIsFinal() &&
-         CheckFinalBlockVersion() && CheckFinalBlockNumber() &&
-         CheckPreviousFinalBlockHash() && CheckFinalBlockTimestamp() &&
+  return CheckBlockHash() && CheckFinalBlockVersion() &&
+         CheckFinalBlockNumber() && CheckPreviousFinalBlockHash() &&
+         CheckFinalBlockTimestamp() &&
          CheckMicroBlocks(errorMsg, false, true) &&
          CheckLegitimacyOfMicroBlocks() && CheckMicroBlockInfo() &&
          CheckStateRoot() && CheckStateDeltaHash();

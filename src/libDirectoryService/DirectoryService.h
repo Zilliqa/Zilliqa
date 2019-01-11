@@ -352,7 +352,6 @@ class DirectoryService : public Executable, public Broadcastable {
   bool CheckBlockHash();
   bool CheckFinalBlockValidity(bytes& errorMsg);
   bool CheckMicroBlockValidity(bytes& errorMsg);
-  bool CheckBlockTypeIsFinal();
   bool CheckFinalBlockVersion();
   bool CheckPreviousFinalBlockHash();
   bool CheckFinalBlockNumber();

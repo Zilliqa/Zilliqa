@@ -204,7 +204,6 @@ class Node : public Executable, public Broadcastable {
 
   void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
       const uint64_t& blocknum);
-  void LogReceivedFinalBlockDetails(const TxBlock& txblock);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
@@ -274,7 +273,6 @@ class Node : public Executable, public Broadcastable {
                            const uint16_t leaderID, const PubKey& leaderKey,
                            bytes& messageToCosign);
   unsigned char CheckLegitimacyOfTxnHashes(bytes& errorMsg);
-  bool CheckBlockTypeIsMicro();
   bool CheckMicroBlockVersion();
   bool CheckMicroBlockshardId();
   bool CheckMicroBlockTimestamp();
