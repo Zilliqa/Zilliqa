@@ -2923,12 +2923,15 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
-    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
-                             << SHARDINGSTRUCTURE_VERSION
-                             << " Actual: " << shardingStructureVersion);
-    return false;
-  }
+  // Not all calls to GetLookupSetDirectoryBlocksFromSeed set
+  // shardingStructureVersion if (shardingStructureVersion !=
+  // SHARDINGSTRUCTURE_VERSION) {
+  //   LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected:
+  //   "
+  //                            << SHARDINGSTRUCTURE_VERSION
+  //                            << " Actual: " << shardingStructureVersion);
+  //   return false;
+  // }
 
   if (dirBlocks.empty()) {
     LOG_GENERAL(WARNING, "No Directory blocks sent/ I have the latest blocks");
