@@ -376,7 +376,7 @@ void DirectoryService::StartFirstTxEpoch() {
     for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
       if (i.second == Peer()) {
         LOG_GENERAL(INFO, "m_consensusMyID = " << index);
-        m_mediator.m_node->m_consensusMyID = index;
+        m_mediator.m_node->SetConsensusMyID(index);
       }
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -388,10 +388,10 @@ void DirectoryService::StartFirstTxEpoch() {
     m_mediator.m_node->ResetConsensusId();
 
     // Check if I am the leader or backup of the shard
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
+    m_mediator.m_node->SetConsensusLeaderID(m_consensusLeaderID.load());
 
-    if (m_mediator.m_node->m_consensusMyID ==
-        m_mediator.m_node->m_consensusLeaderID) {
+    if (m_mediator.m_node->GetConsensusMyID() ==
+        m_mediator.m_node->GetConsensusLeaderID()) {
       m_mediator.m_node->m_isPrimary = true;
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "I am leader of the DS shard");

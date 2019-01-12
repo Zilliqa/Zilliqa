@@ -136,22 +136,23 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
 
     for (const auto& ds : *m_mediator.m_DSCommittee) {
       if (ds.first == m_mediator.m_selfKey.second) {
-        m_mediator.m_ds->m_consensusMyID = 0;
+        m_mediator.m_ds->SetConsensusMyID(0);
 
         for (auto const& i : *m_mediator.m_DSCommittee) {
           if (i.first == m_mediator.m_selfKey.second) {
             LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                       "My node ID for this PoW consensus is "
-                          << m_mediator.m_ds->m_consensusMyID);
+                          << m_mediator.m_ds->GetConsensusMyID());
             break;
           }
 
-          ++m_mediator.m_ds->m_consensusMyID;
+          m_mediator.m_ds->IncrementConsensusMyID();
         }
 
-        m_consensusMyID = m_mediator.m_ds->m_consensusMyID.load();
+        m_consensusMyID = m_mediator.m_ds->GetConsensusMyID();
 
-        if (m_mediator.m_DSCommittee->at(m_mediator.m_ds->m_consensusLeaderID)
+        if (m_mediator.m_DSCommittee
+                ->at(m_mediator.m_ds->GetConsensusLeaderID())
                 .first == m_mediator.m_selfKey.second) {
           m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
           LOG_GENERAL(INFO, "Set as DS leader: "
@@ -171,7 +172,8 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
           LOG_STATE("[IDENT][" << std::setw(15) << std::left
                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                << "][" << std::setw(6) << std::left
-                               << m_mediator.m_ds->m_consensusMyID << "] DSBK");
+                               << m_mediator.m_ds->GetConsensusMyID()
+                               << "] DSBK");
         }
 
         break;
@@ -443,7 +445,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   BlockStorage::GetBlockStorage().GetDSCommittee(m_mediator.m_DSCommittee,
                                                  ds_consensusLeaderID);
 
-  m_mediator.m_ds->m_consensusLeaderID = ds_consensusLeaderID;
+  m_mediator.m_ds->SetConsensusLeaderID(ds_consensusLeaderID);
 
   unordered_map<string, Peer> ipMapping;
   GetIpMapping(ipMapping);
@@ -1353,11 +1355,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
-  uint32_t dm_test_id = (m_mediator.m_ds->m_consensusLeaderID + 1) %
+  uint32_t dm_test_id = (m_mediator.m_ds->GetConsensusLeaderID() + 1) %
                         m_mediator.m_DSCommittee->size();
   LOG_GENERAL(WARNING, "Consensus ID for DM1 test is " << dm_test_id);
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
-      m_mediator.m_ds->m_consensusMyID == dm_test_id) {
+      m_mediator.m_ds->GetConsensusMyID() == dm_test_id) {
     LOG_GENERAL(WARNING,
                 "Letting one of the backups accept less txns from lookup "
                 "comparing to the others (DM_TEST_DM_LESSTXN_ONE)");
@@ -1524,6 +1526,18 @@ void Node::SetState(NodeState state) {
             "Node State is now " << GetStateString() << " at epoch "
                                  << m_mediator.m_currentEpochNum);
 }
+
+// Set m_consensusMyID
+void Node::SetConsensusMyID(uint16_t id) { m_consensusMyID = id; }
+
+// Get m_consensusMyID
+uint16_t Node::GetConsensusMyID() { return m_consensusMyID.load(); }
+
+// Set m_consensusLeaderID
+void Node::SetConsensusLeaderID(uint16_t id) { m_consensusLeaderID = id; }
+
+// Get m_consensusLeaderID
+uint16_t Node::GetConsensusLeaderID() { return m_consensusLeaderID.load(); }
 
 void Node::AddBlock(const TxBlock& block) {
   m_mediator.m_txBlockChain.AddBlock(block);

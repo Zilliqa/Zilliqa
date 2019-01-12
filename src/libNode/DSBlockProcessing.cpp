@@ -546,11 +546,11 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     for (const auto& newDSMember : dsPoWWinners) {
       if (m_mediator.m_selfKey.second == newDSMember.first) {
         isNewDSMember = true;
-        m_mediator.m_ds->m_consensusMyID = newDSMemberIndex;
+        m_mediator.m_ds->SetConsensusMyID(newDSMemberIndex);
         LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "I won DS PoW. Currently, one of the new ds "
                   "committee member with id "
-                      << m_mediator.m_ds->m_consensusMyID);
+                      << m_mediator.m_ds->GetConsensusMyID());
       }
       newDSMemberIndex--;
     }
@@ -565,15 +565,15 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
     }
 
     if (!GUARD_MODE) {
-      m_mediator.m_ds->m_consensusLeaderID = lastBlockHash % ds_size;
+      m_mediator.m_ds->SetConsensusLeaderID(lastBlockHash % ds_size);
     } else {
-      m_mediator.m_ds->m_consensusLeaderID =
-          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
+      m_mediator.m_ds->SetConsensusLeaderID(
+          lastBlockHash % Guard::GetInstance().GetNumOfDSGuard());
     }
 
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "lastBlockHash " << lastBlockHash << ", new DS leader Id "
-                               << m_mediator.m_ds->m_consensusLeaderID);
+                               << m_mediator.m_ds->GetConsensusLeaderID());
 
     // If I am the next DS leader -> need to set myself up as a DS node
     if (isNewDSMember) {
@@ -588,9 +588,9 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       {
         lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
         LOG_GENERAL(INFO, "New DS leader is at "
-                              << m_mediator.m_ds->m_consensusLeaderID);
-        if (m_mediator.m_ds->m_consensusLeaderID ==
-            m_mediator.m_ds->m_consensusMyID) {
+                              << m_mediator.m_ds->GetConsensusLeaderID());
+        if (m_mediator.m_ds->GetConsensusLeaderID() ==
+            m_mediator.m_ds->GetConsensusMyID()) {
           // I am the new DS committee leader
           m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
           LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -649,7 +649,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   }
 
   BlockStorage::GetBlockStorage().PutDSCommittee(
-      m_mediator.m_DSCommittee, m_mediator.m_ds->m_consensusLeaderID);
+      m_mediator.m_DSCommittee, m_mediator.m_ds->GetConsensusLeaderID());
 
   if (LOOKUP_NODE_MODE) {
     bool canPutNewEntry = true;

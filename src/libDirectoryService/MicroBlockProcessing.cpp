@@ -381,7 +381,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
   LOG_MARKER();
 
 #ifdef DM_TEST_DM_LESSMB_ONE
-  uint32_t dm_test_id = (m_mediator.m_ds->m_consensusLeaderID + 1) %
+  uint32_t dm_test_id = (m_mediator.m_ds->GetConsensusLeaderID() + 1) %
                         m_mediator.m_DSCommittee->size();
   LOG_GENERAL(WARNING, "Consensus ID for DM3 test is " << dm_test_id);
   if (m_consensusMyID == dm_test_id) {
