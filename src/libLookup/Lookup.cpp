@@ -2924,8 +2924,9 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
   }
 
   // Not all calls to GetLookupSetDirectoryBlocksFromSeed set
-  // shardingStructureVersion if (shardingStructureVersion !=
-  // SHARDINGSTRUCTURE_VERSION) {
+  // shardingStructureVersion
+
+  // if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
   //   LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected:
   //   "
   //                            << SHARDINGSTRUCTURE_VERSION
