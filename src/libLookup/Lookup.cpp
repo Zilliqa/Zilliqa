@@ -2175,11 +2175,27 @@ bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
     return true;
   }
 
+  uint8_t msgType = 0;
   uint32_t portNo = 0;
-
-  if (!Messenger::GetLookupSetLookupOffline(message, offset, portNo)) {
+  uint64_t blockNumber = 0;
+  PubKey lookuppubkey;
+  if (!Messenger::GetLookupSetLookupOffline(message, offset, msgType, portNo,
+                                            blockNumber, lookuppubkey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupSetLookupOffline failed.");
+    return false;
+  }
+
+  if ((unsigned char)msgType != LookupInstructionType::SETLOOKUPOFFLINE) {
+    LOG_GENERAL(WARNING,
+                "Current message does not belong to this instrunction handler. "
+                "There might be replay attack.");
+    return false;
+  }
+
+  if (blockNumber != m_mediator.m_currentEpochNum &&
+      blockNumber != m_mediator.m_currentEpochNum + 1) {
+    LOG_GENERAL(WARNING, "block num is not within the current epoch.");
     return false;
   }
 
@@ -2188,16 +2204,16 @@ bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
 
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
-    auto iter =
-        std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                     [&requestingNode](const std::pair<PubKey, Peer>& node) {
-                       return node.second == requestingNode;
-                     });
+    auto iter = std::find_if(
+        m_lookupNodes.begin(), m_lookupNodes.end(),
+        [&lookuppubkey, &requestingNode](const std::pair<PubKey, Peer>& node) {
+          return (node.first == lookuppubkey && node.second == requestingNode);
+        });
     if (iter != m_lookupNodes.end()) {
       m_lookupNodesOffline.emplace_back(*iter);
       m_lookupNodes.erase(iter);
     } else {
-      LOG_GENERAL(WARNING, "The Peer Info is not in m_lookupNodes");
+      LOG_GENERAL(WARNING, "The Peer Info or pubkey is not in m_lookupNodes");
       return false;
     }
   }
@@ -2616,8 +2632,15 @@ bytes Lookup::ComposeGetLookupOfflineMessage() {
 
   if (!Messenger::SetLookupSetLookupOffline(
           getLookupOfflineMessage, MessageOffset::BODY,
+<<<<<<< 622508b273eda6e2364f0a8adac10edbbee4f9e4
           m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+=======
+          (uint8_t)LookupInstructionType::SETLOOKUPOFFLINE,
+          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_currentEpochNum,
+          m_mediator.m_selfKey)) {
+    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+>>>>>>> Add sig check and anti-replay to set lookup offline
               "Messenger::SetLookupSetLookupOffline failed.");
     return {};
   }
