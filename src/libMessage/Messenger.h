@@ -532,11 +532,14 @@ class Messenger {
                                         uint64_t& blockNumber,
                                         PubKey& lookupPubkey);
   static bool SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
+                                       const uint8_t msgType,
                                        const uint32_t listenPort,
-                                       const PubKey& pubKey);
+                                       const uint64_t blockNumber,
+                                       const PairOfKey& lookupKey);
   static bool GetLookupSetLookupOnline(const bytes& src,
                                        const unsigned int offset,
-                                       uint32_t& listenPort, PubKey& pubKey);
+                                       uint8_t& msgType, uint32_t& listenPort,
+                                       uint64_t& blockNumber, PubKey& pubKey);
   static bool SetLookupGetOfflineLookups(bytes& dst, const unsigned int offset,
                                          const uint32_t listenPort);
   static bool GetLookupGetOfflineLookups(const bytes& src,
