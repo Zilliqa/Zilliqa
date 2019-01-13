@@ -56,7 +56,7 @@ bool DirectoryService::ProcessAndSendPoWPacketSubmissionToOtherDSComm() {
   if (!Messenger::SetDSPoWPacketSubmission(powpacketmessage,
                                            MessageOffset::BODY, m_powSolutions,
                                            m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetDSPoWPacketSubmission failed.");
     return false;
   }
@@ -103,7 +103,7 @@ bool DirectoryService::ProcessPoWPacketSubmission(
   PubKey senderPubKey;
   if (!Messenger::GetDSPowPacketSubmission(message, offset, tmp,
                                            senderPubKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSPowPacketSubmission failed.");
     return false;
   }
@@ -158,13 +158,13 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
                                      difficultyLevel, submitterPeer,
                                      submitterKey, nonce, resultingHash,
                                      mixHash, signature, lookupId, gasPrice)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DirectoryService::ProcessPowSubmission failed.");
     return false;
   }
 
   if (resultingHash.size() != 64) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Wrong resultingHash size "
                   << resultingHash.size() << " submitted by "
                   << submitterPeer.GetPrintableIPAddress());
@@ -172,7 +172,7 @@ bool DirectoryService::ProcessPoWSubmission(const bytes& message,
   }
 
   if (mixHash.size() != 64) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Wrong mixHash size " << mixHash.size() << " submitted by "
                                     << submitterPeer.GetPrintableIPAddress());
     return false;
@@ -206,16 +206,16 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     if (cv_POWSubmission.wait_for(
             cv_lk, std::chrono::seconds(POW_SUBMISSION_TIMEOUT)) ==
         std::cv_status::timeout) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Time out while waiting for state transition ");
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "State transition is completed. (check for timeout)");
   }
 
   if (!CheckState(PROCESS_POWSUBMISSION)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Not at POW_SUBMISSION. Current state is " << m_state);
     return false;
   }
@@ -241,7 +241,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   }
 
   if (!CheckState(VERIFYPOW)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Too late - current state is "
                   << m_state
                   << ". Don't verify cause I have other work to do. "
@@ -261,18 +261,18 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   }
 
   // Log all values
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Winner Public_key             = " << submitterPubKey);
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Winner Peer ip addr           = " << submitterPeer);
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Difficulty                    = " << to_string(difficultyLevel));
 
   // Define the PoW parameters
   array<unsigned char, 32> rand1 = m_mediator.m_dsBlockRand;
   array<unsigned char, 32> rand2 = m_mediator.m_txBlockRand;
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "dsblock_num                  = " << blockNumber);
 
   uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
@@ -316,7 +316,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
   bool result = POW::GetInstance().PoWVerify(
       blockNumber, difficultyLevel, headerHash, nonce, resultingHash, mixHash);
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "[POWSTAT] pow verify (microsec): " << r_timer_end(m_timespec));
 
   if (result) {
@@ -325,11 +325,10 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     // everyone if ((m_state != POW_SUBMISSION) && (m_state !=
     // DSBLOCK_CONSENSUS_PREP))
     if (!CheckState(VERIFYPOW)) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Too late - current state is " << m_state);
     } else {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "POW verification passed");
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "POW verification passed");
       lock(m_mutexAllPOW, m_mutexAllPoWConns);
       lock_guard<mutex> g(m_mutexAllPOW, adopt_lock);
       lock_guard<mutex> g2(m_mutexAllPoWConns, adopt_lock);
@@ -348,7 +347,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
         DataConversion::charArrToHexStr(m_allPoWs[submitterPubKey].result,
                                         oldSolnStr);
         LOG_EPOCH(
-            INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+            INFO, m_mediator.m_currentEpochNum,
             "Harder PoW result: " << harderSolnStr
                                   << " overwrite the old PoW: " << oldSolnStr);
         m_allPoWs[submitterPubKey] = soln;
@@ -376,7 +375,7 @@ bool DirectoryService::ProcessPoWSubmissionFromPacket(
     string rand1Str, rand2Str;
     DataConversion::charArrToHexStr(rand1, rand1Str);
     DataConversion::charArrToHexStr(rand2, rand2Str);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Invalid PoW submission"
                   << "\n"
                   << "blockNum: " << blockNumber

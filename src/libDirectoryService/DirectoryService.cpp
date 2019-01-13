@@ -103,7 +103,7 @@ bool DirectoryService::CheckState(Action action) {
   }
 
   if (m_mode == Mode::IDLE) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "I am a non-DS node now. Why am I getting this message?");
     return false;
   }
@@ -127,7 +127,7 @@ bool DirectoryService::CheckState(Action action) {
   }
 
   if (!found) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Action " << GetActionString(action) << " not allowed in state "
                         << GetStateString());
     return false;
@@ -168,22 +168,20 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   }
 
   if (primary == m_mediator.m_selfPeer) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am the DS committee leader");
-    LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                  DS_LEADER_MSG);
+    LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_LEADER_MSG);
     m_mode = PRIMARY_DS;
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am a DS committee backup. "
                   << m_mediator.m_selfPeer.GetPrintableIPAddress() << ":"
                   << m_mediator.m_selfPeer.m_listenPortHost);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Current DS committee leader is "
                   << primary.GetPrintableIPAddress() << " at port "
                   << primary.m_listenPortHost)
-    LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                  DS_BACKUP_MSG);
+    LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
     m_mode = BACKUP_DS;
   }
 
@@ -212,7 +210,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
             setDSBootstrapNodeMessage, MessageOffset::BODY,
             m_mediator.m_selfKey, DSCOMMITTEE_VERSION,
             *m_mediator.m_DSCommittee, false)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
     }
@@ -265,7 +263,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
 
   for (auto const& i : *m_mediator.m_DSCommittee) {
     if (i.first == m_mediator.m_selfKey.second) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "My node ID for this PoW consensus is " << m_consensusMyID);
       break;
     }
@@ -284,7 +282,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
         m_mediator.m_DSCommittee->size();
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
                                          .GetHeader()
                                          .GetBlockNum() +
@@ -304,7 +302,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   if ((m_consensusMyID < POW_PACKET_SENDERS) ||
       (primary == m_mediator.m_selfPeer)) {
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POW_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions...");
     this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
@@ -315,7 +313,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
     };
     DetachedFunction(1, func);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions packet from "
                             "other DS member...");
@@ -323,7 +321,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
         chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
   } else {
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POW_WINDOW_IN_SECONDS +
                                 POWPACKETSUBMISSION_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions packets...");
@@ -331,7 +329,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
         POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Starting consensus on ds block");
   RunConsensusOnDSBlock();
 
@@ -357,11 +355,11 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
   if (dsblock_num < latest_block_num_in_blockchain + 1) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "We are processing duplicated blocks");
     return false;
   } else if (dsblock_num > latest_block_num_in_blockchain + 1) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Warning: We are missing of some DS blocks. Cur: "
                   << dsblock_num
                   << ". New: " << latest_block_num_in_blockchain);
@@ -380,7 +378,7 @@ void DirectoryService::SetState(DirState state) {
   }
 
   m_state = state;
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "DS State is now " << GetStateString());
 }
 
@@ -569,7 +567,7 @@ bool DirectoryService::FinishRejoinAsDS() {
 
   for (auto const& i : dsComm) {
     if (i.first == m_mediator.m_selfKey.second) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "My node ID for this PoW consensus is " << m_consensusMyID);
       found = true;
       break;
@@ -586,7 +584,7 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   // in case the recovery program is under different directory
-  LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(), DS_BACKUP_MSG);
+  LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
   StartNewDSEpochConsensus(false, true);
   return true;
 }
@@ -627,7 +625,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
             startpow_message, MessageOffset::BODY,
             (uint8_t)LookupInstructionType::RAISESTARTPOW,
             m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::SetLookupSetRaiseStartPoW failed.");
       return;
     }
@@ -639,7 +637,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     // and submit a PoW
 
     LOG_GENERAL(INFO, "m_consensusMyID: " << m_consensusMyID);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << NEW_NODE_SYNC_INTERVAL + POW_WINDOW_IN_SECONDS +
                                 (fromFallback ? FALLBACK_EXTRA_TIME : 0)
                          << " seconds, accepting PoW submissions...");
@@ -654,7 +652,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     };
     DetachedFunction(1, func);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Waiting " << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
                          << " seconds, accepting PoW submissions packet from "
                             "other DS member...");
@@ -750,7 +748,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   if (!Messenger::SetDSLookupNewDSGuardNetworkInfo(
           updatedsguardidentitymessage, MessageOffset::BODY, curDSEpochNo,
           m_mediator.m_selfPeer, get_time_as_int(), m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetDSLookupNewDSGuardNetworkInfo failed.");
     return false;
   }
@@ -780,7 +778,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     for (unsigned int i = 0; i < numOfNetworkInfoReceivers; i++) {
       networkInfoUpdateReceivers.emplace_back(peerInfo.at(i));
 
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "networkInfoUpdateReceivers: " << peerInfo.at(i));
     }
 
@@ -815,7 +813,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
   if (!Messenger::GetDSLookupNewDSGuardNetworkInfo(
           message, offset, dsEpochNumber, dsGuardNewNetworkInfo, timestamp,
           dsGuardPubkey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSLookupNewDSGuardNetworkInfo failed.");
     return false;
   }
@@ -888,14 +886,14 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
         vector<DSGuardUpdateStruct> temp = {dsGuardNodeIden};
         m_lookupStoreForGuardNodeUpdate.emplace(dsEpochNumber, temp);
         LOG_EPOCH(
-            WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            WARNING, m_mediator.m_currentEpochNum,
             "[update ds guard] No existing record found for dsEpochNumber "
                 << dsEpochNumber << ". Adding a new record");
 
       } else {
         m_lookupStoreForGuardNodeUpdate.at(dsEpochNumber)
             .emplace_back(dsGuardNodeIden);
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "[update ds guard] Adding new record for dsEpochNumber "
                       << dsEpochNumber);
       }
@@ -931,8 +929,7 @@ bool DirectoryService::Execute(const bytes& message, unsigned int offset,
   const unsigned int ins_handlers_count = ins_handlers.size();
 
   if (ToBlockMessage(ins_byte)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Ignore DS message");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "Ignore DS message");
     return false;
   }
 
@@ -943,7 +940,7 @@ bool DirectoryService::Execute(const bytes& message, unsigned int offset,
       // To-do: Error recovery
     }
   } else {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Unknown instruction byte " << hex << (unsigned int)ins_byte
                                           << " from " << from);
     LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
@@ -996,7 +993,7 @@ uint8_t DirectoryService::CalculateNewDifficulty(
     powSubmissions = m_allPoWs.size();
   }
 
-  LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "currentDifficulty "
                 << std::to_string(currentDifficulty) << ", expectedNodes "
                 << EXPECTED_SHARD_NODE_NUM << ", powSubmissions "
@@ -1014,7 +1011,7 @@ uint8_t DirectoryService::CalculateNewDSDifficulty(
   int64_t currentDSNodes = m_mediator.m_DSCommittee->size();
   int64_t dsPowSubmissions = GetNumberOfDSPoWSolns();
 
-  LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "dsDifficulty " << std::to_string(dsDifficulty)
                             << ", currentDSNodes " << currentDSNodes
                             << ", dsPowSubmissions " << dsPowSubmissions);

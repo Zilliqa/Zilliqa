@@ -50,7 +50,7 @@ bool Node::ComposeFallbackBlockMessageForSender(
   if (!Messenger::SetNodeFallbackBlock(fallbackblock_message,
                                        MessageOffset::BODY,
                                        *m_pendingFallbackBlock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeFallbackBlock failed.");
     return false;
   }
@@ -66,7 +66,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
     return;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Fallback consensus is DONE!!!");
 
   lock(m_mutexPendingFallbackBlock, m_mutexShardMember);
@@ -146,7 +146,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
     m_mediator.m_DSCommittee->clear();
 
     if (leaderNetworkInfo == m_mediator.m_selfPeer) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "After fallback, I am the ds leader!");
       m_mediator.m_ds->m_mode = DirectoryService::PRIMARY_DS;
 
@@ -159,7 +159,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
       }
       m_mediator.m_ds->m_consensusMyID = 0;
     } else {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "After fallback, I am a ds backup");
       m_mediator.m_ds->m_mode = DirectoryService::BACKUP_DS;
 
@@ -264,11 +264,11 @@ bool Node::ProcessFallbackConsensus(const bytes& message, unsigned int offset,
       if (cv_fallbackConsensusObj.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
               [this] { return CheckState(PROCESS_FALLBACKCONSENSUS); })) {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Successfully transit to fallback consensus or I am in the "
                   "correct state.");
       } else {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Time out while waiting for state transition to fallback "
                   "consensus and "
                   "consensus object creation. Most likely fallback didn't "
@@ -319,19 +319,19 @@ bool Node::ProcessFallbackConsensus(const bytes& message, unsigned int offset,
   }
 
   ConsensusCommon::State state = m_consensusObject->GetState();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Consensus state = " << m_consensusObject->GetStateString());
 
   if (state == ConsensusCommon::State::DONE) {
     ProcessFallbackConsensusWhenDone();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Fallback consensus is DONE!!!");
   } else if (state == ConsensusCommon::State::ERROR) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "No consensus reached. Will attempt to do fallback again");
     return false;
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Consensus state = " << state);
     cv_processConsensusMessage.notify_all();
   }

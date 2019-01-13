@@ -322,7 +322,7 @@ void DirectoryService::InitCoinbase() {
       LOG_GENERAL(WARNING, "Could Not reward base reward  " << addr);
     } else {
       if (addr == myAddr) {
-        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "[REWARD] Rewarded base reward " << base_reward_each);
         LOG_STATE("[REWARD][" << setw(15) << left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -380,8 +380,7 @@ void DirectoryService::InitCoinbase() {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
           } else {
             if (addr == myAddr) {
-              LOG_EPOCH(INFO,
-                        std::to_string(m_mediator.m_currentEpochNum).c_str(),
+              LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                         "[REWARD] Rewarded " << reward_each << " for blk "
                                              << epochNumShardRewardee.first);
               LOG_STATE("[REWARD]["

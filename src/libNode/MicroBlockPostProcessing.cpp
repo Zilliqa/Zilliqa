@@ -74,7 +74,7 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
           DirectoryService::SUBMITMICROBLOCKTYPE::SHARDMICROBLOCK,
           m_mediator.m_currentEpochNum, {*m_microblock}, {stateDelta},
           m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetDSMicroBlockSubmission failed.");
     return false;
   }
@@ -96,8 +96,7 @@ bool Node::ProcessMicroblockConsensus(const bytes& message, unsigned int offset,
   uint32_t consensus_id = 0;
 
   if (!m_consensusObject->GetConsensusID(message, offset, consensus_id)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "GetConsensusID failed.");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
     return false;
   }
 
@@ -107,7 +106,7 @@ bool Node::ProcessMicroblockConsensus(const bytes& message, unsigned int offset,
     m_microBlockConsensusBuffer[consensus_id].push_back(
         make_pair(from, message));
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process micro block arrived early, saved to buffer");
   } else {
     if (consensus_id < m_mediator.m_consensusID) {
@@ -116,7 +115,7 @@ bool Node::ProcessMicroblockConsensus(const bytes& message, unsigned int offset,
                                << m_mediator.m_consensusID << ")");
       return false;
     } else if (consensus_id > m_mediator.m_consensusID) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Buffer microblock with larger consensus ID ("
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
@@ -155,7 +154,7 @@ bool Node::ProcessMicroblockConsensusCore(const bytes& message,
   LOG_MARKER();
 
   if (!CheckState(PROCESS_MICROBLOCKCONSENSUS)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Not in MICROBLOCK_CONSENSUS state");
     return false;
   }
@@ -261,7 +260,7 @@ bool Node::ProcessMicroblockConsensusCore(const bytes& message,
     lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
     cv_FBWaitMB.notify_all();
   } else if (state == ConsensusCommon::State::ERROR) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Oops, no consensus reached - consensus error. "
               "error number: "
                   << to_string(m_consensusObject->GetConsensusErrorCode())
@@ -280,7 +279,7 @@ bool Node::ProcessMicroblockConsensusCore(const bytes& message,
       if (cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "fetching missing txn timeout");
       } else {
         // Re-run consensus
@@ -301,14 +300,14 @@ bool Node::ProcessMicroblockConsensusCore(const bytes& message,
     LOG_GENERAL(WARNING, "ConsensusCommon::State::ERROR here, but we move on.");
 
     SetState(WAITING_FINALBLOCK);  // Move on to next Epoch.
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "If I received a new Finalblock from DS committee. I will "
               "still process it");
 
     lock_guard<mutex> cv_lk(m_MutexCVFBWaitMB);
     cv_FBWaitMB.notify_all();
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Consensus state = " << m_consensusObject->GetStateString());
 
     cv_processConsensusMessage.notify_all();
