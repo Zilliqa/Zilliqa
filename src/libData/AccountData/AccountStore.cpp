@@ -28,6 +28,7 @@
 using namespace std;
 using namespace dev;
 using namespace boost::multiprecision;
+using namespace Contract;
 
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
@@ -44,7 +45,7 @@ void AccountStore::Init() {
 
   lock_guard<mutex> g(m_mutexDB);
 
-  ContractStorage::GetContractStorage().GetStateDB().ResetDB();
+  ContractStorage::GetContractStorage().Reset();
   m_db.ResetDB();
 }
 
@@ -167,21 +168,50 @@ void AccountStore::MoveRootToDisk(const h256& root) {
     LOG_GENERAL(INFO, "FAIL: Put metadata failed");
 }
 
-void AccountStore::MoveUpdatesToDisk() {
+bool AccountStore::MoveUpdatesToDisk() {
   LOG_MARKER();
 
   lock(m_mutexPrimary, m_mutexDB);
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
 
-  ContractStorage::GetContractStorage().GetStateDB().commit();
+  unordered_map<string, string> batch;
+
   for (auto i : *m_addressToAccount) {
-    if (!ContractStorage::GetContractStorage().PutContractCode(
-            i.first, i.second.GetCode())) {
-      LOG_GENERAL(WARNING, "Write Contract Code to Disk Failed");
-      continue;
+    if (i.second.isContract()) {
+      if (ContractStorage::GetContractStorage()
+              .GetContractCode(i.first)
+              .empty()) {
+        batch.insert({i.first.hex(),
+                      DataConversion::CharArrayToString(i.second.GetCode())});
+      }
     }
-    i.second.Commit();
+  }
+
+  if (!ContractStorage::GetContractStorage().PutContractCodeBatch(batch)) {
+    LOG_GENERAL(WARNING, "PutContractCodeBatch failed");
+    return false;
+  }
+
+  if (!HASHMAP_CONTRACT_STATE_DB) {
+    ContractStorage::GetContractStorage().GetStateDB().commit();
+
+    for (auto i : *m_addressToAccount) {
+      i.second.Commit();
+    }
+  } else {
+    if (!ContractStorage::GetContractStorage().CommitTempStateDB()) {
+      LOG_GENERAL(
+          WARNING,
+          "CommitTempStateDB failed. need to rever the change on ContractCode");
+      for (const auto& it : batch) {
+        if (!ContractStorage::GetContractStorage().DeleteContractCode(
+                h160(it.first))) {
+          LOG_GENERAL(WARNING,
+                      "Failed to delete contract code for " << it.first);
+        }
+      }
+    }
   }
 
   try {
@@ -191,7 +221,17 @@ void AccountStore::MoveUpdatesToDisk() {
   } catch (const boost::exception& e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk. "
                              << boost::diagnostic_information(e));
+    return false;
   }
+
+  // TODO: If the accountstore is cleared here, lookup is unable to serialize
+  // accountstore in ProcessGetStateFromSeed. We need to first change
+  // serialization to get from database, so that we can avoid keeping
+  // accountstore in memory.
+
+  // m_addressToAccount->clear();
+
+  return true;
 }
 
 void AccountStore::DiscardUnsavedUpdates() {

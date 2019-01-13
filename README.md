@@ -45,7 +45,6 @@ The current release has the following features implemented:
 * Gossip protocol for network message broadcasting
 * Protocol upgrade mechanism
 * Node recovery mechanism
-* Archival nodes
 * Gas rewards and pricer
 * Coinbase rewards
 
@@ -83,7 +82,7 @@ To run Zilliqa, we recommend the following minimum system requirements:
 * macOS:
 
     ```bash
-    brew install boost pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf openssl@1.1
+    brew install boost pkg-config jsoncpp leveldb libjson-rpc-cpp libevent miniupnpc protobuf
     ```
 
 ## Running Zilliqa locally

@@ -32,14 +32,11 @@
 
 /// Stores information on the header part of the microblock.
 class MicroBlockHeader : public BlockHeaderBase {
-  uint8_t m_type;  // 0: microblock proposed by a committee, 1: final tx block
-  uint32_t m_version;
   uint32_t m_shardId;
   uint64_t m_gasLimit;
   uint64_t m_gasUsed;
   boost::multiprecision::uint128_t m_rewards;
-  BlockHash m_prevHash;  // Hash of the previous block
-  uint64_t m_epochNum;   // Epoch Num
+  uint64_t m_epochNum;  // Epoch Num
   MicroBlockHashSet m_hashset;
   uint32_t m_numTxs;     // Total number of txs included in the block
   PubKey m_minerPubKey;  // Leader of the committee who proposed this block
@@ -54,14 +51,14 @@ class MicroBlockHeader : public BlockHeaderBase {
   MicroBlockHeader(const bytes& src, unsigned int offset);
 
   /// Constructor with predefined member values.
-  MicroBlockHeader(const uint8_t type, const uint32_t version,
-                   const uint32_t shardId, const uint64_t& gasLimit,
+  MicroBlockHeader(const uint32_t shardId, const uint64_t& gasLimit,
                    const uint64_t& gasUsed,
                    const boost::multiprecision::uint128_t& rewards,
-                   const BlockHash& prevHash, const uint64_t& epochNum,
-                   const MicroBlockHashSet& hashset, const uint32_t numTxs,
-                   const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                   const CommitteeHash& committeeHash);
+                   const uint64_t& epochNum, const MicroBlockHashSet& hashset,
+                   const uint32_t numTxs, const PubKey& minerPubKey,
+                   const uint64_t& dsBlockNum, const uint32_t version = 0,
+                   const CommitteeHash& committeeHash = CommitteeHash(),
+                   const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -71,13 +68,10 @@ class MicroBlockHeader : public BlockHeaderBase {
 
   // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so
   // no need to add Doxygen tags for now
-  const uint8_t& GetType() const;
-  const uint32_t& GetVersion() const;
   const uint32_t& GetShardId() const;
   const uint64_t& GetGasLimit() const;
   const uint64_t& GetGasUsed() const;
   const boost::multiprecision::uint128_t& GetRewards() const;
-  const BlockHash& GetPrevHash() const;
   const uint64_t& GetEpochNum() const;
   const uint32_t& GetNumTxs() const;
   const PubKey& GetMinerPubKey() const;
@@ -100,12 +94,9 @@ inline std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t) {
 
   os << blockHeaderBase << std::endl
      << "<MicroBlockHeader>" << std::endl
-     << "m_type : " << t.m_type << std::endl
-     << "m_version : " << t.m_version << std::endl
      << "m_shardId : " << t.m_shardId << std::endl
      << "m_gasLimit : " << t.m_gasLimit << std::endl
      << "m_rewards : " << t.m_rewards << std::endl
-     << "m_prevHash : " << t.m_prevHash << std::endl
      << "m_epochNum : " << t.m_epochNum << std::endl
      << "m_numTxs : " << t.m_numTxs << std::endl
      << "m_minerPubKey : " << t.m_minerPubKey << std::endl

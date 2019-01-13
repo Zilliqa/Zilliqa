@@ -37,16 +37,21 @@ BOOST_AUTO_TEST_SUITE(SWInfoTest)
 
 /// SW Info test of constructors and getters
 BOOST_AUTO_TEST_CASE(swinfo_copy_constructor) {
-  SWInfo swInfo(1, 2, 3, 4, 5);
+  SWInfo swInfo(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   SWInfo swInfoCopy(swInfo);
   BOOST_CHECK(!(swInfo > swInfoCopy));
   BOOST_CHECK(!(swInfo < swInfoCopy));
   BOOST_CHECK(!(swInfo != swInfoCopy));
-  BOOST_CHECK_EQUAL(1, swInfo.GetMajorVersion());
-  BOOST_CHECK_EQUAL(2, swInfo.GetMinorVersion());
-  BOOST_CHECK_EQUAL(3, swInfo.GetFixVersion());
-  BOOST_CHECK_EQUAL(4, swInfo.GetUpgradeDS());
-  BOOST_CHECK_EQUAL(5, swInfo.GetCommit());
+  BOOST_CHECK_EQUAL(1, swInfo.GetZilliqaMajorVersion());
+  BOOST_CHECK_EQUAL(2, swInfo.GetZilliqaMinorVersion());
+  BOOST_CHECK_EQUAL(3, swInfo.GetZilliqaFixVersion());
+  BOOST_CHECK_EQUAL(4, swInfo.GetZilliqaUpgradeDS());
+  BOOST_CHECK_EQUAL(5, swInfo.GetZilliqaCommit());
+  BOOST_CHECK_EQUAL(6, swInfo.GetScillaMajorVersion());
+  BOOST_CHECK_EQUAL(7, swInfo.GetScillaMinorVersion());
+  BOOST_CHECK_EQUAL(8, swInfo.GetScillaFixVersion());
+  BOOST_CHECK_EQUAL(9, swInfo.GetScillaUpgradeDS());
+  BOOST_CHECK_EQUAL(10, swInfo.GetScillaCommit());
 }
 
 /// SysCommand test

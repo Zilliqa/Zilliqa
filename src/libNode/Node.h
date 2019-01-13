@@ -193,7 +193,7 @@ class Node : public Executable, public Broadcastable {
   bool IsMicroBlockTxRootHashInFinalBlock(const MBnForwardedTxnEntry& entry,
                                           bool& isEveryMicroBlockAvailable);
 
-  void StoreState();
+  bool StoreState();
   // void StoreMicroBlocks();
   void StoreFinalBlock(const TxBlock& txBlock);
   void InitiatePoW();
@@ -204,7 +204,6 @@ class Node : public Executable, public Broadcastable {
 
   void DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
       const uint64_t& blocknum);
-  void LogReceivedFinalBlockDetails(const TxBlock& txblock);
 
   // internal calls from ProcessVCDSBlocksMessage
   void LogReceivedDSBlockDetails(const DSBlock& dsblock);
@@ -274,7 +273,6 @@ class Node : public Executable, public Broadcastable {
                            const uint16_t leaderID, const PubKey& leaderKey,
                            bytes& messageToCosign);
   unsigned char CheckLegitimacyOfTxnHashes(bytes& errorMsg);
-  bool CheckBlockTypeIsMicro();
   bool CheckMicroBlockVersion();
   bool CheckMicroBlockshardId();
   bool CheckMicroBlockTimestamp();
@@ -545,10 +543,11 @@ class Node : public Executable, public Broadcastable {
   bool IsShardNode(const PubKey& pubKey);
   bool IsShardNode(const Peer& peerInfo);
 
-  static bool GetDSLeaderPeer(const BlockLink& lastBlockLink,
-                              const DSBlock& latestDSBlock,
-                              const DequeOfDSNode& dsCommittee,
-                              const uint64_t epochNumber, Peer& dsLeaderPeer);
+  static bool GetDSLeader(const BlockLink& lastBlockLink,
+                          const DSBlock& latestDSBlock,
+                          const DequeOfDSNode& dsCommittee,
+                          const uint64_t epochNumber,
+                          std::pair<PubKey, Peer>& dsLeader);
 
   // Get entire network peer info
   void GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,

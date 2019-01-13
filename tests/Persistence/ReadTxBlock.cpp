@@ -42,14 +42,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
   TxBlockSharedPtr block2;
   BlockStorage::GetBlockStorage().GetTxBlock(blocknumber, block2);
 
-  LOG_GENERAL(
-      INFO, "Block type value retrieved: " << (*block2).GetHeader().GetType());
-  LOG_GENERAL(INFO, "Block version value retrieved: "
-                        << (*block2).GetHeader().GetVersion());
-  LOG_GENERAL(INFO,
-              "Block timestamp value retrieved: " << (*block2).GetTimestamp());
-  LOG_GENERAL(INFO, "Block num txs value retrieved: "
-                        << (*block2).GetHeader().GetNumTxs());
+  LOG_GENERAL(INFO, "Block retrieved:" << std::endl << *block2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

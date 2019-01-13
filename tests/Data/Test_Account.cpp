@@ -39,11 +39,13 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
   LOG_MARKER();
 
   Account acc1(TestUtils::DistUint64(), 0);
+
   bytes data;
-  acc1.InitContract(data);
+  acc1.InitContract(data, Address());
   acc1.SetInitData(data);
 
   Account acc2(data, 0);
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(data, Address()));
   BOOST_CHECK_EQUAL(false, acc2.isContract());
 }
 
@@ -59,16 +61,25 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   std::string invalidmessage = "[{\"vname\"]";
   bytes data(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract(data);
+  acc1.InitContract(data, Address());
 
   invalidmessage = "[{\"vname\":\"name\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract(data);
+  acc1.InitContract(data, Address());
+
+  invalidmessage = "[{\"vname\":\"name\"}]";
+  data = bytes(invalidmessage.begin(), invalidmessage.end());
+  acc1.InitContract(data, Address());
+
+  invalidmessage =
+      "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
+  data = bytes(invalidmessage.begin(), invalidmessage.end());
+  acc1.InitContract(data, Address());
 
   std::string message =
-      "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
+      "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
   data = bytes(message.begin(), message.end());
-  acc1.InitContract(data);
+  acc1.InitContract(data, Address());
 
   BOOST_CHECK_EQUAL(true, data == acc1.GetInitData());
 
@@ -94,7 +105,6 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   acc1.SetStorage(hash, rlpStr);
   acc1.SetStorageRoot(hash);
 
-  BOOST_CHECK_EQUAL(0, acc1.GetStorage("").size());
   acc1.GetRawStorage(hash);
 
   size_t CODE_LEN = TestUtils::DistUint16() + 1;
@@ -117,7 +127,6 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   acc1.SetStorage(hash, rlpStr);
   acc1.SetStorageRoot(hash);
 
-  acc1.GetStorage("");
   acc1.GetRawStorage(hash);
   std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes();
   Json::Value storage = acc1.GetStorageJson();
@@ -213,10 +222,6 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   BOOST_CHECK_MESSAGE(
       acc2.GetCodeHash() == hash,
       "expected: " << hash << " actual: " << acc2.GetCodeHash() << "\n");
-
-  bytes dst;
-  BOOST_CHECK_EQUAL(true, acc2.SerializeDelta(dst, 0, &acc1, acc2));
-  BOOST_CHECK_EQUAL(true, acc2.DeserializeDelta(dst, 0, acc1, true));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

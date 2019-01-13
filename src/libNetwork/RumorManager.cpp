@@ -144,6 +144,7 @@ bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
   m_rumorRawMsgTimestamp.clear();
   m_fullNetworkKeys.clear();
   m_pubKeyPeerBiMap.clear();
+  m_hashesSubscriberMap.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {

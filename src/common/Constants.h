@@ -91,6 +91,17 @@ enum SyncType : unsigned int {
   DB_VERIF
 };
 
+namespace Contract {
+using VName = std::string;
+using Mutable = bool;
+using Type = std::string;
+using Value = std::string;
+using StateEntry = std::tuple<VName, Mutable, Type, Value>;
+using Index = dev::h256;
+
+enum Data : unsigned int { VNAME = 0, MUTABLE, TYPE, VALUE, ITEMS_NUM };
+}  // namespace Contract
+
 const std::string RAND1_GENESIS =
     "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
 const std::string RAND2_GENESIS =
@@ -110,15 +121,22 @@ const float ONE_HUNDRED_PERCENT = 100.f;
 
 // General constants
 extern const unsigned int DEBUG_LEVEL;
-extern const unsigned int MSG_VERSION;
 extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 
-// Archival constants
-extern const bool ARCHIVAL_NODE;
-extern const std::string DB_HOST;
+// Version constants
+extern const unsigned int MSG_VERSION;
+extern const unsigned int TRANSACTION_VERSION;
+extern const unsigned int DSBLOCK_VERSION;
+extern const unsigned int TXBLOCK_VERSION;
+extern const unsigned int MICROBLOCK_VERSION;
+extern const unsigned int VCBLOCK_VERSION;
+extern const unsigned int FALLBACKBLOCK_VERSION;
+extern const unsigned int BLOCKLINK_VERSION;
+extern const unsigned int DSCOMMITTEE_VERSION;
+extern const unsigned int SHARDINGSTRUCTURE_VERSION;
 
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
@@ -231,6 +249,8 @@ extern const unsigned int MSGQUEUE_SIZE;
 extern const unsigned int PUMPMESSAGE_MILLISECONDS;
 extern const unsigned int SENDQUEUE_SIZE;
 extern const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES;
+extern const unsigned int MIN_READ_WATERMARK_IN_BYTES;
+extern const unsigned int MAX_READ_WATERMARK_IN_BYTES;
 
 // PoW constants
 extern const bool CUDA_GPU_MINE;
@@ -239,6 +259,8 @@ extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;
 extern const std::string MINING_PROXY_URL;
 extern const unsigned int CHECK_MINING_RESULT_INTERVAL;
+extern const bool GETWORK_SERVER_MINE;
+extern const unsigned int GETWORK_SERVER_PORT;
 extern const unsigned int DS_POW_DIFFICULTY;
 extern const unsigned int POW_DIFFICULTY;
 extern const unsigned int POW_SUBMISSION_LIMIT;
@@ -262,6 +284,7 @@ extern const std::string UPGRADE_HOST_ACCOUNT;
 extern const std::string UPGRADE_HOST_REPO;
 extern const bool RECOVERY_TRIM_INCOMPLETED_BLOCK;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
+extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 
 // Smart contract constants
 extern const std::string SCILLA_ROOT;
@@ -276,6 +299,7 @@ extern const std::string INPUT_BLOCKCHAIN_JSON;
 extern const std::string INPUT_MESSAGE_JSON;
 extern const std::string OUTPUT_JSON;
 extern const std::string INPUT_CODE;
+extern const bool HASHMAP_CONTRACT_STATE_DB;
 
 // Test constants
 extern const bool ENABLE_CHECK_PERFORMANCE_LOG;
@@ -308,4 +332,5 @@ extern const std::vector<std::string> GENESIS_KEYS;
 // DBVerifier constants
 extern const std::string VERIFIER_PATH;
 extern const std::string VERIFIER_PUBKEY;
+extern const unsigned int SEED_PORT;
 #endif  // __CONSTANTS_H__

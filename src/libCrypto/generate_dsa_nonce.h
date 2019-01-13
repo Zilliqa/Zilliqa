@@ -15,19 +15,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <json/json.h>
-#include <vector>
-#include "BaseDB.h"
+/*
+ * Copyright 1995-2018 The OpenSSL Project Authors. All Rights Reserved.
+ *
+ * Licensed under the Apache License 2.0 (the "License").  You may not use
+ * this file except in compliance with the License.  You can obtain a copy
+ * in the file LICENSE in the source distribution or at
+ * https://www.openssl.org/source/license.html
+ */
+#ifndef _GENERATE_DSA_NONCE_H_
+#define _GENERATE_DSA_NONCE_H_
 
-class ExplorerDB : public BaseDB {
- public:
-  ExplorerDB(std::string dbname, std::string txn, std::string txBlock,
-             std::string dsBlock, std::string accountState)
-      : BaseDB(dbname, txn, txBlock, dsBlock, accountState) {}
-  bool InsertTxn(const TransactionWithReceipt& txn) override;
-  bool InsertTxBlock(const TxBlock& txblock) override;
-  bool InsertDSBlock(const DSBlock& dsblock) override;
-  bool InsertJson(const Json::Value& _json, const std::string& collectionName);
-  bool InsertAccount(const Address& addr, const Account& acc) override;
-  void Init(unsigned int port = 27017) override;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int BN_generate_dsa_nonce(BIGNUM *out, const BIGNUM *range, const BIGNUM *priv,
+                          const unsigned char *message, size_t message_len,
+                          BN_CTX *ctx);
+#ifdef __cplusplus
+}
+#endif
+#endif

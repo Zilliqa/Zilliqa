@@ -210,7 +210,8 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
 
     if (!Messenger::SetLookupSetDSInfoFromSeed(
             setDSBootstrapNodeMessage, MessageOffset::BODY,
-            m_mediator.m_selfKey, *m_mediator.m_DSCommittee, false)) {
+            m_mediator.m_selfKey, DSCOMMITTEE_VERSION,
+            *m_mediator.m_DSCommittee, false)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetLookupSetDSInfoFromSeed failed.");
       return false;
@@ -333,6 +334,11 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
             "Starting consensus on ds block");
   RunConsensusOnDSBlock();
+
+  {
+    lock_guard<mutex> g(m_mutexPowSolution);
+    m_powSolutions.clear();
+  }
 
   return true;
 }
@@ -534,14 +540,13 @@ bool DirectoryService::FinishRejoinAsDS() {
   m_consensusLeaderID = 0;
 
   const auto& bl = m_mediator.m_blocklinkchain.GetLatestBlockLink();
-  Peer dsLeaderPeer;
-  if (Node::GetDSLeaderPeer(bl, m_mediator.m_dsBlockChain.GetLastBlock(),
-                            dsComm, m_mediator.m_currentEpochNum,
-                            dsLeaderPeer)) {
+  pair<PubKey, Peer> dsLeader;
+  if (Node::GetDSLeader(bl, m_mediator.m_dsBlockChain.GetLastBlock(), dsComm,
+                        m_mediator.m_currentEpochNum, dsLeader)) {
     auto iterDSLeader =
         std::find_if(dsComm.begin(), dsComm.end(),
-                     [dsLeaderPeer](const std::pair<PubKey, Peer>& pubKeyPeer) {
-                       return pubKeyPeer.second == dsLeaderPeer;
+                     [dsLeader](const std::pair<PubKey, Peer>& pubKeyPeer) {
+                       return pubKeyPeer.second == dsLeader.second;
                      });
     if (iterDSLeader != dsComm.end()) {
       m_consensusLeaderID = iterDSLeader - dsComm.begin();
@@ -617,7 +622,17 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     // Notify lookup that it's time to do PoW
     bytes startpow_message = {MessageType::LOOKUP,
                               LookupInstructionType::RAISESTARTPOW};
-    m_mediator.m_lookup->SendMessageToLookupNodesSerial(startpow_message);
+
+    if (!Messenger::SetLookupSetRaiseStartPoW(
+            startpow_message, MessageOffset::BODY,
+            (uint8_t)LookupInstructionType::RAISESTARTPOW,
+            m_mediator.m_currentEpochNum, m_mediator.m_selfKey)) {
+      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+                "Messenger::SetLookupSetRaiseStartPoW failed.");
+      return;
+    }
+
+    m_mediator.m_lookup->SendMessageToLookupNodes(startpow_message);
 
     // New nodes poll DSInfo from the lookups every NEW_NODE_SYNC_INTERVAL
     // So let's add that to our wait time to allow new nodes to get SETSTARTPOW
@@ -694,15 +709,14 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
     }
 
     RunConsensusOnDSBlock(isRejoin);
-
-    // now that we already run DSBlock Consensus, lets clear the buffered pow
-    // solutions. why not clear it at start of new ds epoch - becoz sometimes
-    // node is too late to start new ds epoch and and it already receives pow
-    // solution for next ds epoch. so we buffer them instead.
-    {
-      lock_guard<mutex> g(m_mutexPowSolution);
-      m_powSolutions.clear();
-    }
+  }
+  // now that we already run DSBlock Consensus, lets clear the buffered pow
+  // solutions. why not clear it at start of new ds epoch - becoz sometimes
+  // node is too late to start new ds epoch and and it already receives pow
+  // solution for next ds epoch. so we buffer them instead.
+  {
+    lock_guard<mutex> g(m_mutexPowSolution);
+    m_powSolutions.clear();
   }
 }
 
@@ -1106,4 +1120,30 @@ void DirectoryService::GetEntireNetworkPeerInfo(
   for (const auto& i : m_mediator.m_lookup->GetLookupNodes()) {
     pubKeys.emplace_back(i.first);
   }
+}
+
+bool DirectoryService::CheckIfDSNode(const PubKey& submitterPubKey) {
+  lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  for (const auto& dsMember : *m_mediator.m_DSCommittee) {
+    if (dsMember.first == submitterPubKey) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
+  lock_guard<mutex> g(m_mutexShards);
+
+  for (const auto& shard : m_shards) {
+    for (const auto& node : shard) {
+      if (std::get<SHARD_NODE_PUBKEY>(node) == submitterPubKey) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }

@@ -56,6 +56,15 @@ bool Node::FallbackValidator(const bytes& message, unsigned int offset,
     return false;
   }
 
+  if (m_pendingFallbackBlock->GetHeader().GetVersion() !=
+      FALLBACKBLOCK_VERSION) {
+    LOG_GENERAL(WARNING,
+                "Version check failed. Expected: "
+                    << FALLBACKBLOCK_VERSION << " Actual: "
+                    << m_pendingFallbackBlock->GetHeader().GetVersion());
+    return false;
+  }
+
   BlockHash temp_blockHash = m_pendingFallbackBlock->GetHeader().GetMyHash();
   if (temp_blockHash != m_pendingFallbackBlock->GetBlockHash()) {
     LOG_GENERAL(WARNING,
@@ -416,7 +425,7 @@ bool Node::ComposeFallbackBlock() {
           m_mediator.m_currentEpochNum, m_fallbackState,
           {AccountStore::GetInstance().GetStateRootHash()}, m_consensusLeaderID,
           leaderNetworkInfo, m_myShardMembers->at(m_consensusLeaderID).first,
-          m_myshardId, committeeHash, prevHash),
+          m_myshardId, FALLBACKBLOCK_VERSION, committeeHash, prevHash),
       CoSignatures()));
 
   return true;

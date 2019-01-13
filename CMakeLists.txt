@@ -56,17 +56,20 @@ find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
     execute_process(
-        COMMAND ${HOMEBREW} --prefix openssl@1.1
+        #TODO: upgrade to OpenSSL 1.1.1a
+        COMMAND ${HOMEBREW} --prefix openssl
         OUTPUT_VARIABLE OPENSSL_ROOT_DIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    include(InstallOpenSSL)
-    set(OPENSSL_USE_STATIC_LIBS TRUE)
-    set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
+    #TODO: upgrade to OpenSSL 1.1.1a
+    # include(InstallOpenSSL)
+    # set(OPENSSL_USE_STATIC_LIBS TRUE)
+    # set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
 endif()
 
-find_package(OpenSSL 1.1 REQUIRED)
+#TODO: upgrade to OpenSSL 1.1.1a
+find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
 find_package(LevelDB REQUIRED)

@@ -23,24 +23,33 @@
 #include "common/Serializable.h"
 
 class SWInfo : public Serializable {
-  uint32_t m_majorVersion;
-  uint32_t m_minorVersion;
-  uint32_t m_fixVersion;
-  uint64_t m_upgradeDS;
-  uint32_t m_commit;
+  uint32_t m_zilliqaMajorVersion;
+  uint32_t m_zilliqaMinorVersion;
+  uint32_t m_zilliqaFixVersion;
+  uint64_t m_zilliqaUpgradeDS;
+  uint32_t m_zilliqaCommit;
+  uint32_t m_scillaMajorVersion;
+  uint32_t m_scillaMinorVersion;
+  uint32_t m_scillaFixVersion;
+  uint64_t m_scillaUpgradeDS;
+  uint32_t m_scillaCommit;
 
  public:
-  static const unsigned int SIZE = sizeof(uint32_t) + sizeof(uint32_t) +
-                                   sizeof(uint32_t) + sizeof(uint64_t) +
-                                   sizeof(uint32_t);
+  static const unsigned int SIZE =
+      sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) +
+      sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint32_t) +
+      sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint64_t) + sizeof(uint32_t);
 
   /// Default constructor for uninitialized version information.
   SWInfo();
 
   /// Constructor.
-  SWInfo(const uint32_t& majorVersion, const uint32_t& minorVersion,
-         const uint32_t& fixVersion, const uint64_t& upgradeDS,
-         const uint32_t& commit);
+  SWInfo(const uint32_t& zilliqaMajorVersion,
+         const uint32_t& zilliqaMinorVersion, const uint32_t& zilliqaFixVersion,
+         const uint64_t& zilliqaUpgradeDS, const uint32_t& zilliqaCommit,
+         const uint32_t& scillaMajorVersion, const uint32_t& scillaMinorVersion,
+         const uint32_t& scillaFixVersion, const uint64_t& scillaUpgradeDS,
+         const uint32_t& scillaCommit);
 
   /// Destructor.
   ~SWInfo();
@@ -67,11 +76,16 @@ class SWInfo : public Serializable {
   bool operator!=(const SWInfo& r) const;
 
   /// Getters.
-  const uint32_t& GetMajorVersion() const;
-  const uint32_t& GetMinorVersion() const;
-  const uint32_t& GetFixVersion() const;
-  const uint64_t& GetUpgradeDS() const;
-  const uint32_t& GetCommit() const;
+  const uint32_t& GetZilliqaMajorVersion() const;
+  const uint32_t& GetZilliqaMinorVersion() const;
+  const uint32_t& GetZilliqaFixVersion() const;
+  const uint64_t& GetZilliqaUpgradeDS() const;
+  const uint32_t& GetZilliqaCommit() const;
+  const uint32_t& GetScillaMajorVersion() const;
+  const uint32_t& GetScillaMinorVersion() const;
+  const uint32_t& GetScillaFixVersion() const;
+  const uint64_t& GetScillaUpgradeDS() const;
+  const uint32_t& GetScillaCommit() const;
 
   static void LogBrand() {
     std::cout << "Copyright (C) Zilliqa. Version 3.0 (Durian - Mao Shan Wang). "
@@ -95,11 +109,16 @@ class SWInfo : public Serializable {
 
 inline std::ostream& operator<<(std::ostream& os, const SWInfo& t) {
   os << "<SWInfo>" << std::endl
-     << "m_majorVersion : " << t.m_majorVersion << std::endl
-     << "m_minorVersion : " << t.m_minorVersion << std::endl
-     << "m_fixVersion : " << t.m_fixVersion << std::endl
-     << "m_upgradeDS : " << t.m_upgradeDS << std::endl
-     << "m_commit : " << t.m_commit;
+     << "m_zilliqaMajorVersion : " << t.m_zilliqaMajorVersion << std::endl
+     << "m_zilliqaMinorVersion : " << t.m_zilliqaMinorVersion << std::endl
+     << "m_zilliqaFixVersion : " << t.m_zilliqaFixVersion << std::endl
+     << "m_zilliqaUpgradeDS : " << t.m_zilliqaUpgradeDS << std::endl
+     << "m_zilliqaCommit : " << t.m_zilliqaCommit << std::endl
+     << "m_scillaMajorVersion : " << t.m_scillaMajorVersion << std::endl
+     << "m_scillaMinorVersion : " << t.m_scillaMinorVersion << std::endl
+     << "m_scillaFixVersion : " << t.m_scillaFixVersion << std::endl
+     << "m_scillaUpgradeDS : " << t.m_scillaUpgradeDS << std::endl
+     << "m_scillaCommit : " << t.m_scillaCommit;
 
   return os;
 }

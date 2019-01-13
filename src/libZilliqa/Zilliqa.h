@@ -21,8 +21,6 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <vector>
 
-#include "libArchival/Archival.h"
-#include "libArchival/ArchiveDB.h"
 #include "libConsensus/ConsensusUser.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
@@ -42,8 +40,6 @@ class Zilliqa {
   Lookup m_lookup;
   std::shared_ptr<ValidatorBase> m_validator;
   Node m_n;
-  ArchiveDB m_db;
-  Archival m_arch;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
   boost::lockfree::queue<std::pair<bytes, Peer>*> m_msgQueue;

@@ -149,6 +149,13 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
     return false;
   }
 
+  if (fallbackblock.GetHeader().GetVersion() != FALLBACKBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << FALLBACKBLOCK_VERSION << " Actual: "
+                             << fallbackblock.GetHeader().GetVersion());
+    return false;
+  }
+
   if (!m_mediator.CheckWhetherBlockIsLatest(
           fallbackblock.GetHeader().GetFallbackDSEpochNo(),
           fallbackblock.GetHeader().GetFallbackEpochNo())) {

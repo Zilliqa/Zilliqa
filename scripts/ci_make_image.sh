@@ -32,6 +32,8 @@ source_image=zilliqa:${commit}
 target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit}
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})
-make -C docker k8s COMMIT=${commit}
+set +e
+make -C docker k8s COMMIT=${commit} || exit 10
+set -e
 docker tag ${source_image} ${target_image}
 docker push ${target_image}

@@ -19,14 +19,15 @@ message ByteArray
 // Used in database "blockLinks"
 message ProtoBlockLink
 {
-    optional uint64 index     = 1; // Added in: v1.0, Deprecated in: N/A
-    optional uint64 dsindex   = 2; // Added in: v1.0, Deprecated in: N/A
-    optional uint32 blocktype = 3; // Added in: v1.0, Deprecated in: N/A
-    optional bytes blockhash  = 4; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version   = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint64 index     = 2; // Added in: v1.0, Deprecated in: N/A
+    optional uint64 dsindex   = 3; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 blocktype = 4; // Added in: v1.0, Deprecated in: N/A
+    optional bytes blockhash  = 5; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
-// Used in databases "dsBlocks", "microBlocks", "txBlocks", and "VCBlocks"
+// Used in databases "dsBlocks", "microBlocks", "txBlocks", "VCBlocks", and "Fallbackblock"
 message ProtoBlockBase
 {
     message CoSignatures
@@ -43,6 +44,14 @@ message ProtoBlockBase
     // Add new members here
 }
 
+// Used in "dsBlockHeader", "microBlockHeader", "txBlockHeader", and "VCBlockHeader"
+message ProtoBlockHeaderBase
+{
+    optional uint32 version      = 1;   // Added in: v1.0, Deprecated in: N/A
+    optional bytes committeehash = 2;   // Added in: v1.0, Deprecated in: N/A
+    optional bytes prevhash      = 3;   // Added in: v1.0, Deprecated in: N/A
+}
+
 // Used in database "dsBlocks"
 message ProtoDSBlock
 {
@@ -54,23 +63,23 @@ message ProtoDSBlock
     }
     message DSBlockHeader
     {
-        optional uint32 dsdifficulty    = 1;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional uint32 difficulty      = 2;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional bytes prevhash         = 3;  // Added in: v1.0, Deprecated in: N/A, 32 bytes
-        optional ByteArray leaderpubkey = 4;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 blocknum        = 5;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 epochnum        = 6;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray gasprice     = 7;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray swinfo       = 8;  // Added in: v1.0, Deprecated in: N/A
+        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        optional uint32 dsdifficulty                  = 2;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        optional uint32 difficulty                    = 3;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        optional bytes prevhash                       = 4;  // Added in: v1.0, Deprecated in: N/A, 32 bytes
+        optional ByteArray leaderpubkey               = 5;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray gasprice                   = 8;  // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray swinfo                     = 9;  // Added in: v1.0, Deprecated in: N/A
         message PowDSWinners
         {
             optional ByteArray key      = 1;  // Added in: v1.0, Deprecated in: N/A
             optional ByteArray val      = 2;  // Added in: v1.0, Deprecated in: N/A
             // Add new members here
         }
-        repeated PowDSWinners dswinners = 9;  // Added in: v1.0, Deprecated in: N/A
-        optional DSBlockHashSet hash    = 10; // Added in: v1.0, Deprecated in: N/A
-        optional bytes committeehash    = 11; // Added in: v1.0, Deprecated in: N/A
+        repeated PowDSWinners dswinners = 10;  // Added in: v1.0, Deprecated in: N/A
+        optional DSBlockHashSet hash    = 11; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     optional DSBlockHeader header       = 1;  // Added in: v1.0, Deprecated in: N/A
@@ -89,7 +98,8 @@ message ProtoDSNode
 // Used in database "dsCommittee"
 message ProtoDSCommittee
 {
-    repeated ProtoDSNode dsnodes = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version      = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated ProtoDSNode dsnodes = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -98,21 +108,19 @@ message ProtoMicroBlock
 {
     message MicroBlockHeader
     {
-        optional uint32 type           = 1;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional uint32 version        = 2;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 shardid        = 3;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gaslimit       = 4;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gasused        = 5;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray rewards     = 6;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes prevhash        = 7;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 epochnum       = 8;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes txroothash      = 9;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 numtxs         = 10; // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray minerpubkey = 11; // Added in: v1.0, Deprecated in: N/A
-        optional uint64 dsblocknum     = 12; // Added in: v1.0, Deprecated in: N/A
-        optional bytes statedeltahash  = 13; // Added in: v1.0, Deprecated in: N/A
-        optional bytes tranreceipthash = 14; // Added in: v1.0, Deprecated in: N/A
-        optional bytes committeehash   = 15; // Added in: v1.0, Deprecated in: N/A
+        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        optional uint32 shardid                       = 2;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 gaslimit                      = 3;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 gasused                       = 4;  // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray rewards                    = 5;  // Added in: v1.0, Deprecated in: N/A
+        optional bytes prevhash                       = 6;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 epochnum                      = 7;  // Added in: v1.0, Deprecated in: N/A
+        optional bytes txroothash                     = 8;  // Added in: v1.0, Deprecated in: N/A
+        optional uint32 numtxs                        = 9;  // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray minerpubkey                = 10; // Added in: v1.0, Deprecated in: N/A
+        optional uint64 dsblocknum                    = 11; // Added in: v1.0, Deprecated in: N/A
+        optional bytes statedeltahash                 = 12; // Added in: v1.0, Deprecated in: N/A
+        optional bytes tranreceipthash                = 13; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     optional MicroBlockHeader header   = 1;  // Added in: v1.0, Deprecated in: N/A
@@ -136,7 +144,8 @@ message ProtoShardingStructure
         repeated Member members     = 1; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
-    repeated Shard shards           = 1; // Added in: v1.0, Deprecated in: N/A
+    optional uint32 version         = 1; // Added in: v1.0, Deprecated in: N/A
+    repeated Shard shards           = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
 }
 
@@ -161,18 +170,16 @@ message ProtoTxBlock
     }
     message TxBlockHeader
     {
-        optional uint32 type           = 1;  // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional uint32 version        = 2;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gaslimit       = 3;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 gasused        = 4;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray rewards     = 5;  // Added in: v1.0, Deprecated in: N/A
-        optional bytes prevhash        = 6;  // Added in: v1.0, Deprecated in: N/A
-        optional uint64 blocknum       = 7;  // Added in: v1.0, Deprecated in: N/A
-        optional TxBlockHashSet hash   = 8;  // Added in: v1.0, Deprecated in: N/A
-        optional uint32 numtxs         = 9;  // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray minerpubkey = 10; // Added in: v1.0, Deprecated in: N/A
-        optional uint64 dsblocknum     = 11; // Added in: v1.0, Deprecated in: N/A
-        optional bytes committeehash   = 12; // Added in: v1.0, Deprecated in: N/A
+        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 gaslimit                      = 2;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 gasused                       = 3;  // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray rewards                    = 4;  // Added in: v1.0, Deprecated in: N/A
+        optional bytes prevhash                       = 5;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 blocknum                      = 6;  // Added in: v1.0, Deprecated in: N/A
+        optional TxBlockHashSet hash                  = 7;  // Added in: v1.0, Deprecated in: N/A
+        optional uint32 numtxs                        = 8;  // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray minerpubkey                = 9;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 dsblocknum                    = 10; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     optional TxBlockHeader header      = 1;  // Added in: v1.0, Deprecated in: N/A
@@ -186,20 +193,39 @@ message ProtoVCBlock
 {
     message VCBlockHeader
     {
-        optional uint64 viewchangedsepochno           = 1; // Added in: v1.0, Deprecated in: N/A
-        optional uint64 viewchangeepochno             = 2; // Added in: v1.0, Deprecated in: N/A
-        optional uint32 viewchangestate               = 3; // Added in: v1.0, Deprecated in: N/A, Only LSB used
-        optional ByteArray candidateleadernetworkinfo = 4; // Added in: v1.0, Deprecated in: N/A
-        optional ByteArray candidateleaderpubkey      = 5; // Added in: v1.0, Deprecated in: N/A
-        optional uint32 vccounter                     = 6; // Added in: v1.0, Deprecated in: N/A
-        repeated ProtoDSNode faultyleaders            = 7; // Added in: v1.0, Deprecated in: N/A
-        optional bytes committeehash                  = 8; // Added in: v1.0, Deprecated in: N/A
+        optional ProtoBlockHeaderBase blockheaderbase = 1; // Added in: v1.0, Deprecated in: N/A
+        optional uint64 viewchangedsepochno           = 2; // Added in: v1.0, Deprecated in: N/A
+        optional uint64 viewchangeepochno             = 3; // Added in: v1.0, Deprecated in: N/A
+        optional uint32 viewchangestate               = 4; // Added in: v1.0, Deprecated in: N/A, Only LSB used
+        optional ByteArray candidateleadernetworkinfo = 5; // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray candidateleaderpubkey      = 6; // Added in: v1.0, Deprecated in: N/A
+        optional uint32 vccounter                     = 7; // Added in: v1.0, Deprecated in: N/A
+        repeated ProtoDSNode faultyleaders            = 8; // Added in: v1.0, Deprecated in: N/A
         optional bytes prevhash                       = 9; // Added in: v1.0, Deprecated in: N/A
         // Add new members here
     }
     optional VCBlockHeader header                     = 1; // Added in: v1.0, Deprecated in: N/A
     optional ProtoBlockBase blockbase                 = 2; // Added in: v1.0, Deprecated in: N/A
     // Add new members here
+}
+
+message ProtoFallbackBlock
+{
+    message FallbackBlockHeader
+    {
+        optional ProtoBlockHeaderBase blockheaderbase = 1;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 fallbackdsepochno             = 2;  // Added in: v1.0, Deprecated in: N/A
+        optional uint64 fallbackepochno               = 3;  // Added in: v1.0, Deprecated in: N/A
+        optional uint32 fallbackstate                 = 4;  // Added in: v1.0, Deprecated in: N/A, only LSB used
+        optional bytes stateroothash                  = 5;  // Added in: v1.0, Deprecated in: N/A
+        optional uint32 leaderconsensusid             = 6;  // Added in: v1.0, Deprecated in: N/A, only lower 2 bytes used
+        optional ByteArray leadernetworkinfo          = 7;  // Added in: v1.0, Deprecated in: N/A
+        optional ByteArray leaderpubkey               = 8;  // Added in: v1.0, Deprecated in: N/A
+        optional uint32 shardid                       = 9;  // Added in: v1.0, Deprecated in: N/A
+        optional bytes prevhash                       = 10; // Added in: v1.0, Deprecated in: N/A
+    }
+    optional FallbackBlockHeader header      = 1;
+    optional ProtoBlockBase blockbase        = 2;
 }
 
 // Used in database "diagnostic"
@@ -230,6 +256,19 @@ message ProtoAccount
     optional bytes initdata        = 7;
     optional bytes code            = 8;
     repeated StorageData storage   = 9;
+}
+
+message ProtoStateIndex
+{
+    repeated bytes index = 1;
+}
+
+message ProtoStateData
+{
+    optional string vname = 1; // Added in: v1.0, Deprecated in: N/A
+    optional bool ismutable = 2; // Added in: v1.0, Deprecated in: N/A
+    optional string type  = 3; // Added in: v1.0, Deprecated in: N/A
+    optional string value = 4; // Added in: v1.0, Deprecated in: N/A 
 }
 
 message ProtoAccountStore
@@ -328,30 +367,16 @@ message ProtoTransactionWithReceipt
 
 message ProtoSWInfo
 {
-    required uint32 majorversion        = 1;
-    required uint32 minorversion        = 2;
-    required uint32 fixversion          = 3;
-    required uint64 upgradeds           = 4;
-    required uint32 commit              = 5;
-}
-
-message ProtoFallbackBlock
-{
-    message FallbackBlockHeader
-    {
-        required uint64 fallbackdsepochno    = 1;
-        required uint64 fallbackepochno      = 2;
-        required uint32 fallbackstate        = 3; // only LSB used
-        required bytes stateroothash         = 4;
-        required uint32 leaderconsensusid    = 5; // only lower 2 bytes used
-        required ByteArray leadernetworkinfo = 6;
-        required ByteArray leaderpubkey      = 7;
-        required uint32 shardid              = 8;
-        required bytes committeehash         = 9;
-        required bytes prevhash              = 10;
-    }
-    required FallbackBlockHeader header      = 1;
-    required ProtoBlockBase blockbase        = 2;
+    required uint32 zilliqamajorversion        = 1;
+    required uint32 zilliqaminorversion        = 2;
+    required uint32 zilliqafixversion          = 3;
+    required uint64 zilliqaupgradeds           = 4;
+    required uint32 zilliqacommit              = 5;
+    required uint32 scillamajorversion         = 6;
+    required uint32 scillaminorversion         = 7;
+    required uint32 scillafixversion           = 8;
+    required uint64 scillaupgradeds            = 9;
+    required uint32 scillacommit               = 10;
 }
 
 message ProtoFallbackBlockWShardingStructure
@@ -420,10 +445,16 @@ message DSPoWPacketSubmission
 
 message DSMicroBlockSubmission
 {
-    required uint32 microblocktype       = 1; // only LSB used
-    required uint64 epochnumber          = 2;
-    repeated ProtoMicroBlock microblocks = 3;
-    repeated bytes statedeltas           = 4;
+    message Data
+    {
+        required uint32 microblocktype       = 1; // only LSB used
+        required uint64 epochnumber          = 2;
+        repeated ProtoMicroBlock microblocks = 3;
+        repeated bytes statedeltas           = 4;
+    }
+    required Data data                       = 1;
+    required ByteArray pubkey                = 2;
+    required ByteArray signature             = 3;
 }
 
 message DSDSBlockAnnouncement
@@ -656,7 +687,14 @@ message LookupSetOfflineLookups
 
 message LookupRaiseStartPoW
 {
-    // Empty
+    message Data
+    {
+        required uint32 msgtype      = 1; // Only LSB used
+        required uint64 blocknumber  = 2;
+    }
+    required Data data           = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 message LookupGetStartPoWFromSeed

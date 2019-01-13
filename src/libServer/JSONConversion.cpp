@@ -23,7 +23,9 @@
 #include <string>
 #include <vector>
 
+#include "AddressChecksum.h"
 #include "JSONConversion.h"
+#include "Server.h"
 #include "libCrypto/Schnorr.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
@@ -57,7 +59,6 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock) {
 
   const TxBlockHeader& txheader = txblock.GetHeader();
 
-  ret_head["Type"] = txheader.GetType();
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
   ret_head["GasUsed"] = to_string(txheader.GetGasUsed());
@@ -130,12 +131,17 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
-
+  string lower_case_addr;
+  if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "To Address checksum does not match");
+  }
   bytes toAddr_ser;
-  if (!DataConversion::HexStrToUint8Vec(toAddr_str, toAddr_ser)) {
+  if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
     return Transaction();
   }
+
   Address toAddr(toAddr_ser);
 
   string amount_str = _json["amount"].asString();
@@ -217,9 +223,11 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
                             << _json["signature"].asString().size());
       return false;
     }
-    if (_json["toAddr"].asString().size() != ACC_ADDR_SIZE * 2) {
-      LOG_GENERAL(
-          INFO, "To Address size wrong " << _json["toAddr"].asString().size());
+    string lower_case_addr;
+    if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
+                                                lower_case_addr)) {
+      LOG_GENERAL(INFO,
+                  "To Address checksum wrong " << _json["toAddr"].asString());
       return false;
     }
   } else {

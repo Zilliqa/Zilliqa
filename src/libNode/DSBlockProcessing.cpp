@@ -348,19 +348,36 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   Peer newleaderIP;
 
   DequeOfShard t_shards;
+  uint32_t shardingStructureVersion = 0;
 
-  if (!Messenger::GetNodeVCDSBlocksMessage(message, cur_offset, shardId,
-                                           dsblock, vcBlocks, t_shards)) {
+  if (!Messenger::GetNodeVCDSBlocksMessage(
+          message, cur_offset, shardId, dsblock, vcBlocks,
+          shardingStructureVersion, t_shards)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetNodeVCDSBlocksMessage failed.");
     return false;
   }
 
+  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
+                             << SHARDINGSTRUCTURE_VERSION
+                             << " Actual: " << shardingStructureVersion);
+    return false;
+  }
+
   // Verify the DSBlockHashSet member of the DSBlockHeader
   ShardingHash shardingHash;
-  if (!Messenger::GetShardingStructureHash(t_shards, shardingHash)) {
+  if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION, t_shards,
+                                           shardingHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetShardingStructureHash failed.");
+    return false;
+  }
+
+  if (dsblock.GetHeader().GetVersion() != DSBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << DSBLOCK_VERSION << " Actual: "
+                             << dsblock.GetHeader().GetVersion());
     return false;
   }
 

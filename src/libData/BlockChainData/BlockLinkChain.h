@@ -23,14 +23,16 @@
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 
-typedef std::tuple<uint64_t, uint64_t, BlockType, BlockHash> BlockLink;
+typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
+    BlockLink;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 
 enum BlockLinkIndex : unsigned char {
-  INDEX = 0,
-  DSINDEX = 1,
-  BLOCKTYPE = 2,
-  BLOCKHASH = 3,
+  VERSION = 0,
+  INDEX = 1,
+  DSINDEX = 2,
+  BLOCKTYPE = 3,
+  BLOCKHASH = 4,
 };
 
 class BlockLinkChain {
@@ -86,7 +88,8 @@ class BlockLinkChain {
       return false;
     }
     m_blockLinkChain.insert_new(
-        index, std::make_tuple(index, dsindex, blocktype, blockhash));
+        index, std::make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype,
+                               blockhash));
 
     bytes dst;
     LOG_GENERAL(INFO, "[DBS]"
@@ -94,7 +97,9 @@ class BlockLinkChain {
                           << blocktype << " " << blockhash);
 
     if (!Messenger::SetBlockLink(
-            dst, 0, std::make_tuple(index, dsindex, blocktype, blockhash))) {
+            dst, 0,
+            std::make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype,
+                            blockhash))) {
       LOG_GENERAL(WARNING, "Could not set BlockLink " << index);
       return false;
     }

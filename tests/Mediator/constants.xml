@@ -75,7 +75,6 @@
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
-        <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
         <BROADCAST_GOSSIP_MODE>true</BROADCAST_GOSSIP_MODE>
         <GOSSIP_CUSTOM_ROUNDS_SETTINGS>true</GOSSIP_CUSTOM_ROUNDS_SETTINGS>
         <BROADCAST_TREEBASED_CLUSTER_MODE>true</BROADCAST_TREEBASED_CLUSTER_MODE>
@@ -94,9 +93,6 @@
         <USE_REMOTE_TXN_CREATOR>false</USE_REMOTE_TXN_CREATOR>
         <TXN_PATH/>
     </dispatcher>
-    <archival>
-        <DB_HOST/>
-    </archival>
     <smart_contract>
         <SCILLA_ROOT/>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>

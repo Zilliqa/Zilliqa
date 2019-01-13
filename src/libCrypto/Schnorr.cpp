@@ -25,7 +25,12 @@
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/obj_mac.h>
+#include <openssl/opensslv.h>
 #include "Sha2.h"
+
+#if OPENSSL_VERSION_NUMBER < 0x1010007fL  // only needed before OpenSSL 1.1.0g
+#include "generate_dsa_nonce.h"
+#endif
 
 #include <array>
 
@@ -668,6 +673,9 @@ bool Schnorr::Sign(const bytes& message, unsigned int offset, unsigned int size,
                    k.get(), m_curve.m_order.get(), privkey.m_d.get(),
                    static_cast<const unsigned char*>(message.data()),
                    message.size(), ctx.get()) == 0);
+
+        // err =
+        // (BN_rand(k.get(), BN_num_bits(m_curve.m_order.get()), -1, 0) == 0);
         if (err) {
           LOG_GENERAL(WARNING, "Random generation failed");
           return false;

@@ -22,6 +22,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
+#include <atomic>
 #include <mutex>
 #include <unordered_map>
 
@@ -44,6 +45,7 @@ class Blacklist {
 
   std::mutex m_mutexBlacklistIP;
   std::unordered_map<boost::multiprecision::uint128_t, bool> m_blacklistIP;
+  std::atomic<bool> m_enabled;
 
  public:
   static Blacklist& GetInstance();
@@ -59,6 +61,9 @@ class Blacklist {
 
   /// Node can clear the blacklist
   void Clear();
+
+  /// Enable / disable blacklist
+  void Enable(const bool enable);
 };
 
 #endif  // __BLACKLIST_H__

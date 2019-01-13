@@ -46,6 +46,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
@@ -259,7 +260,7 @@ void Node::AddGenesisInfo(SyncType syncType) {
 bool Node::ValidateDB() {
   deque<pair<PubKey, Peer>> dsComm;
   const string lookupIp = "127.0.0.1";
-  const uint port = 30303;
+  const unsigned int port = SEED_PORT;
 
   for (const auto& dsKey : *m_mediator.m_initialDSCommittee) {
     dsComm.emplace_back(dsKey, Peer());
@@ -286,6 +287,7 @@ bool Node::ValidateDB() {
   });
 
   const auto& latestTxBlockNum = txblocks.back()->GetHeader().GetBlockNum();
+  const auto& latestDSIndex = txblocks.back()->GetHeader().GetDSBlockNum();
 
   vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>
       dirBlocks;
@@ -301,6 +303,10 @@ bool Node::ValidateDB() {
         return false;
       }
       if (latestTxBlockNum <= dsblock->GetHeader().GetEpochNum()) {
+        LOG_GENERAL(INFO, "Break off at "
+                              << latestTxBlockNum << " " << latestDSIndex << " "
+                              << dsblock->GetHeader().GetBlockNum() << " "
+                              << dsblock->GetHeader().GetEpochNum());
         break;
       }
       dirBlocks.emplace_back(*dsblock);
@@ -340,8 +346,8 @@ bool Node::ValidateDB() {
     txBlocks.emplace_back(*txblock);
   }
 
-  if (m_mediator.m_validator->CheckTxBlocks(txBlocks, dsComm,
-                                            blocklinks.back()) !=
+  if (m_mediator.m_validator->CheckTxBlocks(
+          txBlocks, dsComm, m_mediator.m_blocklinkchain.GetLatestBlockLink()) !=
       ValidatorBase::TxBlockValidationMsg::VALID) {
     LOG_GENERAL(WARNING, "Failed to verify TxBlocks");
     return false;
@@ -390,8 +396,6 @@ bool Node::ValidateDB() {
   inet_pton(AF_INET, lookupIp.c_str(), &ip_addr);
   Peer seed((uint128_t)ip_addr.s_addr, port);
   P2PComm::GetInstance().SendMessage(seed, message);
-
-  raise(SIGKILL);
 
   return true;
 }
@@ -477,7 +481,11 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
     }
   }
 
-  if (!LOOKUP_NODE_MODE && !ARCHIVAL_NODE &&
+  if (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType) {
+    Blacklist::GetInstance().Enable(false);
+  }
+
+  if (!LOOKUP_NODE_MODE &&
       (wakeupForUpgrade || SyncType::RECOVERY_ALL_SYNC == syncType)) {
     LOG_GENERAL(INFO, "Non-lookup node, wait "
                           << WAIT_LOOKUP_WAKEUP_IN_SECONDS
@@ -503,8 +511,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve lacked Tx blocks from lookup nodes
-  if (!ARCHIVAL_NODE &&
-      SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
+  if (SyncType::NO_SYNC == m_mediator.m_lookup->GetSyncType() &&
       !(LOOKUP_NODE_MODE && wakeupForUpgrade) &&
       SyncType::RECOVERY_ALL_SYNC != syncType) {
     uint64_t oldTxNum = m_mediator.m_txBlockChain.GetBlockCount();
@@ -609,23 +616,20 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   }
 
   /// Retrieve sharding structure and setup relative variables
-  if (!ARCHIVAL_NODE) {
-    BlockStorage::GetBlockStorage().GetShardStructure(
-        m_mediator.m_ds->m_shards);
+  BlockStorage::GetBlockStorage().GetShardStructure(m_mediator.m_ds->m_shards);
 
-    if (!ipMapping.empty()) {
-      for (auto& shard : m_mediator.m_ds->m_shards) {
-        for (auto& node : shard) {
-          string pubKey;
-          if (!DataConversion::SerializableToHexStr(
-                  get<SHARD_NODE_PUBKEY>(node), pubKey)) {
-            LOG_GENERAL(WARNING, "Error converting pubkey to string");
-            continue;
-          }
+  if (!ipMapping.empty()) {
+    for (auto& shard : m_mediator.m_ds->m_shards) {
+      for (auto& node : shard) {
+        string pubKey;
+        if (!DataConversion::SerializableToHexStr(get<SHARD_NODE_PUBKEY>(node),
+                                                  pubKey)) {
+          LOG_GENERAL(WARNING, "Error converting pubkey to string");
+          continue;
+        }
 
-          if (ipMapping.find(pubKey) != ipMapping.end()) {
-            get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
-          }
+        if (ipMapping.find(pubKey) != ipMapping.end()) {
+          get<SHARD_NODE_PEER>(node) = ipMapping.at(pubKey);
         }
       }
     }
@@ -1039,34 +1043,6 @@ vector<Peer> Node::GetBroadcastList(
   // Regardless of the instruction type, right now all our "broadcasts" are just
   // redundant multicasts from DS nodes to non-DS nodes
   return vector<Peer>();
-}
-
-bool GetOneGoodKeyPair(PrivKey& oPrivKey, PubKey& oPubKey, uint32_t myShard,
-                       uint32_t nShard) {
-  for (auto& privKeyHexStr : GENESIS_KEYS) {
-    bytes privkeyOutputBytes;
-    if (!DataConversion::HexStrToUint8Vec(privKeyHexStr, privkeyOutputBytes)) {
-      return false;
-    }
-    auto privKeyBytes{privkeyOutputBytes};
-    auto privKey = PrivKey{privKeyBytes, 0};
-    auto pubKey = PubKey{privKey};
-    auto addr = Account::GetAddressFromPublicKey(pubKey);
-    auto txnShard = Transaction::GetShardIndex(addr, nShard);
-
-    LOG_GENERAL(INFO, "Genesis Priv Key Str "
-                          << privKeyHexStr << " / Priv Key " << privKey
-                          << " / Pub Key " << pubKey << " / Addr " << addr
-                          << " / txnShard " << txnShard << " / myShard "
-                          << myShard << " / nShard " << nShard);
-    if (txnShard == myShard) {
-      oPrivKey = privKey;
-      oPubKey = pubKey;
-      return true;
-    }
-  }
-
-  return false;
 }
 
 bool GetOneGenesisAddress(Address& oAddr) {
@@ -2044,11 +2020,11 @@ std::string Node::GetActionString(Action action) const {
              : ActionStrings.at(action);
 }
 
-/*static*/ bool Node::GetDSLeaderPeer(const BlockLink& lastBlockLink,
-                                      const DSBlock& latestDSBlock,
-                                      const DequeOfDSNode& dsCommittee,
-                                      const uint64_t epochNumber,
-                                      Peer& dsLeaderPeer) {
+/*static*/ bool Node::GetDSLeader(const BlockLink& lastBlockLink,
+                                  const DSBlock& latestDSBlock,
+                                  const DequeOfDSNode& dsCommittee,
+                                  const uint64_t epochNumber,
+                                  pair<PubKey, Peer>& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
   if (blocktype == BlockType::DS) {
     uint16_t lastBlockHash = 0;
@@ -2065,10 +2041,12 @@ std::string Node::GetActionString(Action action) const {
     } else {
       leader_id = lastBlockHash % Guard::GetInstance().GetNumOfDSGuard();
     }
-    dsLeaderPeer = dsCommittee.at(leader_id).second;
+    dsLeader = make_pair(dsCommittee.at(leader_id).first,
+                         dsCommittee.at(leader_id).second);
     LOG_EPOCH(INFO, to_string(epochNumber).c_str(),
               "lastBlockHash " << lastBlockHash << ", current ds leader id "
-                               << leader_id << ", Peer " << dsLeaderPeer);
+                               << leader_id << ", Peer " << dsLeader.second
+                               << " pubkey " << dsLeader.first);
   } else if (blocktype == BlockType::VC) {
     VCBlockSharedPtr VCBlockptr;
     if (!BlockStorage::GetBlockStorage().GetVCBlock(
@@ -2076,7 +2054,9 @@ std::string Node::GetActionString(Action action) const {
       LOG_GENERAL(WARNING, "Failed to get VC block");
       return false;
     } else {
-      dsLeaderPeer = VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo();
+      dsLeader =
+          make_pair(VCBlockptr->GetHeader().GetCandidateLeaderPubKey(),
+                    VCBlockptr->GetHeader().GetCandidateLeaderNetworkInfo());
     }
   } else {
     return false;
