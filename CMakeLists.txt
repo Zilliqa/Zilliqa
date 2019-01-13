@@ -43,13 +43,6 @@ find_package(Threads REQUIRED)
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
-find_package(libmongocxx QUIET)
-if (NOT ${libmongocxx_FOUND})
-    include(InstallMongo)
-    find_package(libmongocxx REQUIRED)
-endif()
-include_directories(${LIBMONGOCXX_INCLUDE_DIRS})
-
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)

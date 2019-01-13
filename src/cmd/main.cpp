@@ -44,10 +44,6 @@ namespace po = boost::program_options;
 
 int main(int argc, const char* argv[]) {
   try {
-    INIT_FILE_LOGGER("zilliqa");
-    INIT_STATE_LOGGER("state");
-    INIT_EPOCHINFO_LOGGER("epochinfo");
-
     Peer my_network_info;
     string privK;
     string pubK;
@@ -57,9 +53,10 @@ int main(int argc, const char* argv[]) {
     int port = -1;
     unique_ptr<NAT> nt;
     uint128_t ip;
-    uint8_t synctype = 0;
+    unsigned int synctype = 0;
     const char* synctype_descr =
-        "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup";
+        "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
+        "for node recovery, 6 for new lookup and 7 for ds guard node sync";
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
@@ -72,7 +69,7 @@ int main(int argc, const char* argv[]) {
         "port,p", po::value<int>(&port),
         "Specifies port to bind to, if not specified in address")(
         "loadconfig,l", "Loads configuration if set")(
-        "synctype,s", po::value<uint8_t>(&synctype), synctype_descr)(
+        "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
         "recovery,r", "Runs in recovery mode if set");
 
     po::variables_map vm;
@@ -102,10 +99,10 @@ int main(int argc, const char* argv[]) {
         return ERROR_IN_COMMAND_LINE;
       }
 
-      if (synctype > 4) {
+      if (synctype > 7) {
         SWInfo::LogBrandBugReport();
-        std::cerr << "Invalid synctype, please select: " << synctype_descr
-                  << "." << endl;
+        std::cerr << "Invalid synctype '" << synctype
+                  << "', please select: " << synctype_descr << "." << endl;
       }
 
       if (address != "NAT") {
@@ -134,6 +131,10 @@ int main(int argc, const char* argv[]) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
+
+    INIT_FILE_LOGGER("zilliqa");
+    INIT_STATE_LOGGER("state");
+    INIT_EPOCHINFO_LOGGER("epochinfo");
 
     if (address == "NAT") {
       nt = make_unique<NAT>();

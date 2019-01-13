@@ -1,4 +1,5 @@
-# Zilliqa (codename _Durian_)
+#
+Zilliqa (codename _Durian_)
 
 [![Build Status](https://travis-ci.com/Zilliqa/Zilliqa.svg?branch=master)](https://travis-ci.com/Zilliqa/Zilliqa)
 [![codecov](https://codecov.io/gh/Zilliqa/Zilliqa/branch/master/graph/badge.svg)](https://codecov.io/gh/Zilliqa/Zilliqa)
@@ -76,7 +77,8 @@ To run Zilliqa, we recommend the following minimum system requirements:
     sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
         libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev cmake libmicrohttpd-dev \
         libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
-        libprotobuf-dev protobuf-compiler libcurl4-openssl-dev libboost-program-options-dev
+        libprotobuf-dev protobuf-compiler libcurl4-openssl-dev libboost-program-options-dev \
+        libssl-dev
     ```
 
 * macOS:
