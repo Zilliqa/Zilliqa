@@ -2878,7 +2878,12 @@ bool Lookup::GetOfflineLookupNodes() {
   LOG_MARKER();
   // Reset m_lookupNodes/m_lookupNodesOffline
   SetLookupNodes();
-  SendMessageToLookupNodesSerial(ComposeGetOfflineLookupNodes());
+  bytes OfflineLookupNodesMsg = ComposeGetOfflineLookupNodes();
+  if (OfflineLookupNodesMsg.size() != 0) {
+    SendMessageToLookupNodesSerial(OfflineLookupNodesMsg);
+  } else {
+    return false;
+  }
   return true;
 }
 
