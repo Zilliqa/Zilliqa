@@ -1893,7 +1893,7 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
               m_mediator.m_selfPeer.m_listenPortHost,
               m_mediator.m_dsBlockChain.GetLastBlock()
                   .GetHeader()
-                  .GetEpochNum(),
+                  .GetBlockNum(),
               m_mediator.m_selfKey)) {
         LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Messenger::SetLookupGetStartPoWFromSeed failed.");
