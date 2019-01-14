@@ -1531,13 +1531,15 @@ void Node::SetState(NodeState state) {
 void Node::SetConsensusMyID(uint16_t id) { m_consensusMyID = id; }
 
 // Get m_consensusMyID
-uint16_t Node::GetConsensusMyID() { return m_consensusMyID.load(); }
+uint16_t Node::GetConsensusMyID() const { return m_consensusMyID.load(); }
 
 // Set m_consensusLeaderID
 void Node::SetConsensusLeaderID(uint16_t id) { m_consensusLeaderID = id; }
 
 // Get m_consensusLeaderID
-uint16_t Node::GetConsensusLeaderID() { return m_consensusLeaderID.load(); }
+uint16_t Node::GetConsensusLeaderID() const {
+  return m_consensusLeaderID.load();
+}
 
 void Node::AddBlock(const TxBlock& block) {
   m_mediator.m_txBlockChain.AddBlock(block);

@@ -386,7 +386,9 @@ void DirectoryService::SetState(DirState state) {
 void DirectoryService::SetConsensusMyID(uint16_t id) { m_consensusMyID = id; }
 
 // Get m_consensusMyID
-uint16_t DirectoryService::GetConsensusMyID() { return m_consensusMyID.load(); }
+uint16_t DirectoryService::GetConsensusMyID() const {
+  return m_consensusMyID.load();
+}
 
 // Increment m_consensusMyID
 void DirectoryService::IncrementConsensusMyID() { m_consensusMyID++; }
@@ -397,7 +399,7 @@ void DirectoryService::SetConsensusLeaderID(uint16_t id) {
 }
 
 // Get m_consensusLeaderID
-uint16_t DirectoryService::GetConsensusLeaderID() {
+uint16_t DirectoryService::GetConsensusLeaderID() const {
   return m_consensusLeaderID.load();
 }
 
