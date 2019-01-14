@@ -5581,7 +5581,6 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
       LOG_GENERAL(WARNING, "Failed to sign raise start PoW message.");
       return false;
     }
-    SerializableToProtobufByteArray(signature, *result.mutable_signature());
   } else {
     LOG_GENERAL(WARNING, "LookupRaiseStartPoW.Data initialization failed.");
     return false;
@@ -5599,12 +5598,33 @@ bool Messenger::SetLookupSetRaiseStartPoW(bytes& dst, const unsigned int offset,
 
 bool Messenger::SetLookupGetStartPoWFromSeed(bytes& dst,
                                              const unsigned int offset,
-                                             const uint32_t listenPort) {
+                                             const uint32_t listenPort,
+                                             const uint64_t blockNumber,
+                                             const PairOfKey& keys) {
   LOG_MARKER();
 
   LookupGetStartPoWFromSeed result;
 
-  result.set_listenport(listenPort);
+  result.mutable_data()->set_listenport(listenPort);
+  result.mutable_data()->set_blocknumber(blockNumber);
+
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, keys.first, keys.second, signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign GetStartPoWFromSeed message.");
+      return false;
+    }
+  } else {
+    LOG_GENERAL(WARNING,
+                "LookupGetStartPoWFromSeed.Data initialization failed.");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
@@ -5616,19 +5636,34 @@ bool Messenger::SetLookupGetStartPoWFromSeed(bytes& dst,
 
 bool Messenger::GetLookupGetStartPoWFromSeed(const bytes& src,
                                              const unsigned int offset,
-                                             uint32_t& listenPort) {
+                                             uint32_t& listenPort,
+                                             uint64_t& blockNumber) {
   LOG_MARKER();
 
   LookupGetStartPoWFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
 
-  if (!result.IsInitialized()) {
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupGetStartPoWFromSeed initialization failed.");
     return false;
   }
 
-  listenPort = result.listenport();
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  PubKey pubKey;
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetStartPoWFromSeed message.");
+    return false;
+  }
+
+  listenPort = result.data().listenport();
+  blockNumber = result.data().blocknumber();
 
   return true;
 }

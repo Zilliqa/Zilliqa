@@ -1890,7 +1890,11 @@ bool Lookup::ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
 
       if (!Messenger::SetLookupGetStartPoWFromSeed(
               getpowsubmission_message, MessageOffset::BODY,
-              m_mediator.m_selfPeer.m_listenPortHost)) {
+              m_mediator.m_selfPeer.m_listenPortHost,
+              m_mediator.m_dsBlockChain.GetLastBlock()
+                  .GetHeader()
+                  .GetBlockNum(),
+              m_mediator.m_selfKey)) {
         LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Messenger::SetLookupGetStartPoWFromSeed failed.");
         return false;
@@ -2451,10 +2455,24 @@ bool Lookup::ProcessGetStartPoWFromSeed(const bytes& message,
   }
 
   uint32_t portNo = 0;
+  uint64_t blockNumber = 0;
 
-  if (!Messenger::GetLookupGetStartPoWFromSeed(message, offset, portNo)) {
+  if (!Messenger::GetLookupGetStartPoWFromSeed(message, offset, portNo,
+                                               blockNumber)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupGetStartPoWFromSeed failed.");
+    return false;
+  }
+
+  if (blockNumber !=
+      m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+    LOG_EPOCH(
+        WARNING, m_mediator.m_currentEpochNum,
+        "DS block " << blockNumber
+                    << " in GetStartPoWFromSeed not equal to current DS block "
+                    << m_mediator.m_dsBlockChain.GetLastBlock()
+                           .GetHeader()
+                           .GetBlockNum());
     return false;
   }
 
