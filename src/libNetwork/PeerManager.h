@@ -34,21 +34,12 @@ class PeerManager : public Executable, public Broadcastable {
                     const Peer& from);
   bool ProcessAddPeer(const bytes& message, unsigned int offset,
                       const Peer& from);
-  bool ProcessPing(const bytes& message, unsigned int offset, const Peer& from);
-  bool ProcessPingAll(const bytes& message, unsigned int offset,
-                      const Peer& from);
-  bool ProcessBroadcast(const bytes& message, unsigned int offset,
-                        const Peer& from);
-
   void SetupLogLevel();
 
  public:
   enum InstructionType : unsigned char {
     HELLO = 0x00,
     ADDPEER = 0x01,
-    PING = 0x02,
-    PINGALL = 0x03,
-    BROADCAST = 0x04,
   };
 
   /// Constructor.
