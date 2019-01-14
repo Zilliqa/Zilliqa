@@ -92,14 +92,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   Account* fromAccount = this->GetAccount(fromAddr);
   if (fromAccount == nullptr) {
-    // FIXME: remove this, temporary way to test transactions, should return
-    // false
-    LOG_GENERAL(WARNING,
-                "AddAccount... FIXME: remove this, temporary way to "
-                "test transactions, should return false in the future");
-    this->AddAccount(fromAddr, {10000000000, 0});
-    fromAccount = this->GetAccount(fromAddr);
-    // return false;
+    LOG_GENERAL(WARNING, "Sender has no balance, reject");
+    return false;
   }
 
   if (transaction.GetCode().size() > 0) {
