@@ -112,7 +112,7 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
   VCBlock vcblock;
 
   if (!Messenger::GetNodeVCBlock(message, cur_offset, vcblock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeVCBlock failed.");
     return false;
   }
@@ -144,7 +144,7 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
     SendVCBlockToOtherShardNodes(message);
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a node and my view of leader is successfully changed.");
   return true;
 }
@@ -202,7 +202,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -217,7 +217,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
 
   // Check the signature of this VC block
   if (!VerifyVCBlockCoSignature(vcblock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "VCBlock co-sig verification failed");
     return false;
   }

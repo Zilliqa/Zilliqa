@@ -140,7 +140,7 @@ bool Node::Install(const SyncType syncType, const bool toRetrieveHistory) {
 
         for (auto const& i : *m_mediator.m_DSCommittee) {
           if (i.first == m_mediator.m_selfKey.second) {
-            LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                       "My node ID for this PoW consensus is "
                           << m_mediator.m_ds->m_consensusMyID);
             break;
@@ -744,7 +744,7 @@ void Node::WakeupAtDSEpoch() {
   /// If this node is DS node, run DS consensus
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     SetState(POW_SUBMISSION);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
                                            .GetHeader()
                                            .GetBlockNum() +
@@ -760,7 +760,7 @@ void Node::WakeupAtDSEpoch() {
     auto func = [this]() mutable -> void {
       if ((m_consensusMyID < POW_PACKET_SENDERS) ||
           (m_mediator.m_ds->m_mode == DirectoryService::PRIMARY_DS)) {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Waiting " << POW_WINDOW_IN_SECONDS
                              << " seconds, accepting PoW submissions...");
         this_thread::sleep_for(chrono::seconds(POW_WINDOW_IN_SECONDS));
@@ -771,7 +771,7 @@ void Node::WakeupAtDSEpoch() {
         };
         DetachedFunction(1, func2);
 
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Waiting "
                       << POWPACKETSUBMISSION_WINDOW_IN_SECONDS
                       << " seconds, accepting PoW submissions packet from "
@@ -779,7 +779,7 @@ void Node::WakeupAtDSEpoch() {
         this_thread::sleep_for(
             chrono::seconds(POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
       } else {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Waiting "
                       << POW_WINDOW_IN_SECONDS +
                              POWPACKETSUBMISSION_WINDOW_IN_SECONDS
@@ -788,7 +788,7 @@ void Node::WakeupAtDSEpoch() {
             POW_WINDOW_IN_SECONDS + POWPACKETSUBMISSION_WINDOW_IN_SECONDS));
       }
 
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Starting consensus on ds block");
       m_mediator.m_ds->RunConsensusOnDSBlock();
     };
@@ -934,7 +934,7 @@ void Node::StartSynchronization() {
 bool Node::CheckState(Action action) {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       action != PROCESS_MICROBLOCKCONSENSUS) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "I am a DS node. Why am I getting this message? Action: "
                   << GetActionString(action));
     return false;
@@ -960,7 +960,7 @@ bool Node::CheckState(Action action) {
   }
 
   if (!found) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Action " << GetActionString(action) << " not allowed in state "
                         << GetStateString());
     return false;
@@ -977,18 +977,18 @@ vector<Peer> Node::GetBroadcastList(
   // // MessageType::NODE, NodeInstructionType::FORWARDTRANSACTION
   // if (ins_type == NodeInstructionType::FORWARDTRANSACTION)
   // {
-  //     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   //     "Gossip Forward list:");
 
   //     vector<Peer> peers;
-  //     // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "DS
+  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum, "DS
   //     size: " << m_mediator.m_DSCommitteeNetworkInfo.size() << " Shard size:
   //     " << m_myShardMembersNetworkInfo.size());
 
   //     if (m_isDSNode)
   //     {
   //         lock_guard<mutex> g(m_mutexFinalBlockProcessing);
-  //         // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  //  LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   //         "I'm a DS node. DS size: " <<
   //         m_mediator.m_DSCommitteeNetworkInfo.size() << " rand: " << rand() %
   //         m_mediator.m_DSCommitteeNetworkInfo.size()); for (unsigned int i =
@@ -1013,7 +1013,7 @@ vector<Peer> Node::GetBroadcastList(
   //     }
   //     else
   //     {
-  //         // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   //         "I'm a shard node. Shard size: " <<
   //         m_myShardMembersNetworkInfo.size() << " rand: " << rand() %
   //         m_myShardMembersNetworkInfo.size()); lock_guard<mutex>
@@ -1108,7 +1108,7 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
   cur_offset += sizeof(uint64_t);
 
   if (msgBlockNum != m_mediator.m_currentEpochNum) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "untimely delivery of "
                   << "missing txns. received: " << msgBlockNum
                   << " , local: " << m_mediator.m_currentEpochNum);
@@ -1155,14 +1155,14 @@ bool Node::ProcessSubmitTransaction(const bytes& message, unsigned int offset,
   if (submitTxnType == SUBMITTRANSACTIONTYPE::MISSINGTXN) {
     if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
       if (m_state != MICROBLOCK_CONSENSUS) {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "As a shard node not in a microblock consensus state: don't "
                   "want missing txns")
         return false;
       }
     } else {
       if (m_mediator.m_ds->m_state != DirectoryService::FINALBLOCK_CONSENSUS) {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "As a ds node not in a finalblock consensus state: don't "
                   "want missing txns");
         return false;
@@ -1204,14 +1204,14 @@ bool Node::ProcessTxnPacketFromLookup([[gnu::unused]] const bytes& message,
   if (!Messenger::GetNodeForwardTxnBlock(message, offset, epochNumber,
                                          dsBlockNum, shardId, lookupPubKey,
                                          transactions)) {
-    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeForwardTxnBlock failed.");
     return false;
   }
 
   if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
                                 lookupPubKey)) {
-    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
     return false;
@@ -1294,7 +1294,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
   }
 
   if (epochNum + PACKET_EPOCH_LATE_ALLOW < m_mediator.m_currentEpochNum) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The epoch when the packet from is too late (" << epochNum
                                                              << "), reject");
     return false;
@@ -1480,7 +1480,7 @@ void Node::CommitTxnPacketBuffer() {
     if (!Messenger::GetNodeForwardTxnBlock(message, MessageOffset::BODY,
                                            epochNumber, dsBlockNum, shardId,
                                            lookupPubKey, transactions)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetNodeForwardTxnBlock failed.");
       return;
     }
@@ -1520,7 +1520,7 @@ void Node::CommitTxnPacketBuffer() {
 
 void Node::SetState(NodeState state) {
   m_state = state;
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Node State is now " << GetStateString() << " at epoch "
                                  << m_mediator.m_currentEpochNum);
 }
@@ -1744,7 +1744,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
   if (!Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
           queryLookupForDSGuardNetworkInfoUpdate, MessageOffset::BODY,
           m_mediator.m_selfPeer.m_listenPortHost, dsEpochNum)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup failed.");
     return;
   }
@@ -1783,14 +1783,14 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(const bytes& message,
   PubKey lookupPubkey;
   if (!Messenger::SetNodeGetNewDSGuardNetworkInfo(
           message, offset, vecOfDSGuardUpdateStruct, lookupPubkey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeGetNewDSGuardNetworkInfo failed.");
     return false;
   }
 
   if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetSeedNodes(),
                                 lookupPubkey)) {
-    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubkey << " is not in my lookup node list.");
     return false;
@@ -1924,7 +1924,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
   for (uint32_t i = nodes_lo; i <= nodes_hi; i++) {
     const auto& kv = m_myShardMembers->at(i);
     shardBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               " PubKey: " << std::get<SHARD_NODE_PUBKEY>(kv)
                           << " IP: " << std::get<SHARD_NODE_PEER>(kv));
   }
@@ -1962,7 +1962,7 @@ bool Node::Execute(const bytes& message, unsigned int offset,
 
   // If the node failed and waiting for recovery, block the unwanted msg
   if (ToBlockMessage(ins_byte)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Node not connected to network yet, ignore message");
     return false;
   }
@@ -1973,7 +1973,7 @@ bool Node::Execute(const bytes& message, unsigned int offset,
       // To-do: Error recovery
     }
   } else {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Unknown instruction byte " << hex << (unsigned int)ins_byte
                                           << " from " << from);
     LOG_PAYLOAD(WARNING, "Unknown payload is ", message, message.size());
@@ -2043,7 +2043,7 @@ std::string Node::GetActionString(Action action) const {
     }
     dsLeader = make_pair(dsCommittee.at(leader_id).first,
                          dsCommittee.at(leader_id).second);
-    LOG_EPOCH(INFO, to_string(epochNumber).c_str(),
+    LOG_EPOCH(INFO, epochNumber,
               "lastBlockHash " << lastBlockHash << ", current ds leader id "
                                << leader_id << ", Peer " << dsLeader.second
                                << " pubkey " << dsLeader.first);

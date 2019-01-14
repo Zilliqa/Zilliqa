@@ -177,13 +177,13 @@ bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
       m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
   if (dsblockNum < (latestDSBlockNumInBlockchain + 1)) {
-    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_currentEpochNum,
               "We are processing duplicated blocks\n"
                   << "cur block num: " << latestDSBlockNumInBlockchain << "\n"
                   << "incoming block num: " << dsblockNum);
     return false;
   } else if (dsblockNum > latestDSBlockNumInBlockchain + 1) {
-    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_currentEpochNum,
               "Missing of some DS blocks. Requested: "
                   << dsblockNum
                   << " while Present: " << latestDSBlockNumInBlockchain);
@@ -192,12 +192,12 @@ bool Mediator::CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
   }
 
   if (epochNum < m_currentEpochNum) {
-    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_currentEpochNum,
               "We are processing duplicated blocks\n"
                   << "incoming block epoch num: " << epochNum);
     return false;
   } else if (epochNum > m_currentEpochNum) {
-    LOG_EPOCH(WARNING, to_string(m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_currentEpochNum,
               "Missing of some Tx blocks. Requested: "
                   << m_currentEpochNum << " while present: " << epochNum);
     // Todo: handle missing Tx blocks.

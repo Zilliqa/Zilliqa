@@ -58,7 +58,7 @@ void DirectoryService::StoreFinalBlockToDisk() {
   // m_mediator.m_node->EraseCommittedTransactions(m_mediator.m_currentEpochNum
   //                                               - 2);
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Storing Tx Block" << endl
                                << *m_finalBlock);
 
@@ -96,7 +96,7 @@ bool DirectoryService::ComposeFinalBlockMessageForSender(
   if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY,
                                     dsBlockNumber, m_mediator.m_consensusID,
                                     *m_finalBlock, stateDelta)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeFinalBlock failed.");
     return false;
   }
@@ -112,7 +112,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
     return;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Final block consensus is DONE!!!");
 
   // Clear microblock(s)
@@ -226,18 +226,16 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   ResetPoWSubmissionCounter();
 
   auto func = [this, isVacuousEpoch]() mutable -> void {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "START OF a new EPOCH");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "START OF a new EPOCH");
     if (isVacuousEpoch) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "[PoW needed]");
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[PoW needed]");
 
       StartNewDSEpochConsensus();
     } else {
       m_mediator.m_node->UpdateStateForNextConsensusRound();
       SetState(MICROBLOCK_SUBMISSION);
       m_stopRecvNewMBSubmission = false;
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "[No PoW needed] Waiting for Microblock.");
 
       LOG_STATE("[MIBLKSWAIT][" << setw(15) << left
@@ -298,15 +296,14 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
   uint32_t consensus_id = 0;
 
   if (!m_consensusObject->GetConsensusID(message, offset, consensus_id)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "GetConsensusID failed.");
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum, "GetConsensusID failed.");
     return false;
   }
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
     // don't buffer the Final block consensus message if i am non-ds node
     if (m_mode == Mode::IDLE) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Ignoring final block consensus message");
       return false;
     }
@@ -315,7 +312,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
     if (!((m_state == MICROBLOCK_SUBMISSION) ||
           (m_state == FINALBLOCK_CONSENSUS_PREP) ||
           (m_state == VIEWCHANGE_CONSENSUS))) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Ignoring final block consensus message");
       return false;
     }
@@ -325,7 +322,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
           make_pair(from, message));
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Process final block arrived early, saved to buffer");
 
     if (consensus_id == m_mediator.m_consensusID) {
@@ -344,7 +341,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(const bytes& message,
                                << m_mediator.m_consensusID << ")");
       return false;
     } else if (consensus_id > m_mediator.m_consensusID) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Buffer final block with larger consensus ID ("
                     << consensus_id << "), current ("
                     << m_mediator.m_consensusID << ")");
@@ -384,7 +381,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   LOG_MARKER();
 
   if (!CheckState(PROCESS_FINALBLOCKCONSENSUS)) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Ignoring consensus message. I am at state " << m_state);
     return false;
   }
@@ -435,7 +432,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
     m_viewChangeCounter = 0;
     ProcessFinalBlockConsensusWhenDone();
   } else if (state == ConsensusCommon::State::ERROR) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Oops, no consensus reached - consensus error. "
               "error number: "
                   << to_string(m_consensusObject->GetConsensusErrorCode())
@@ -453,7 +450,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
       if (cv_MissingMicroBlock.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "fetching missing microblocks timeout");
       } else {
         // Re-run consensus
@@ -479,7 +476,7 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
       if (m_mediator.m_node->cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "fetching missing txn timeout");
       } else {
         // Re-run consensus
@@ -494,11 +491,11 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
       }
     }
 
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "No consensus reached. Wait for view change. ");
     return false;
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Consensus state = " << m_consensusObject->GetStateString());
     cv_processConsensusMessage.notify_all();
   }

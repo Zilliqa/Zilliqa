@@ -386,7 +386,7 @@ GetDSBlockResponse Server::GetLatestDsBlock() {
   // Retrieve the latest DS block.
   DSBlock dsblock = m_mediator.m_dsBlockChain.GetLastBlock();
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "BlockNum " << dsblock.GetHeader().GetBlockNum()
                         << "  Timestamp:        " << dsblock.GetTimestamp());
 
@@ -406,7 +406,7 @@ GetTxBlockResponse Server::GetLatestTxBlock() {
   // Get the latest tx block.
   TxBlock txblock = m_mediator.m_txBlockChain.GetLastBlock();
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "BlockNum " << txblock.GetHeader().GetBlockNum()
                         << "  Timestamp:        " << txblock.GetTimestamp());
 

@@ -61,7 +61,7 @@ bool DirectoryService::ViewChangeValidator(
   if (!Messenger::GetDSVCBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_pendingVCBlock, messageToCosign)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSVCBlockAnnouncement failed.");
     return false;
   }
@@ -102,7 +102,7 @@ bool DirectoryService::ViewChangeValidator(
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -376,7 +376,7 @@ void DirectoryService::ScheduleViewChangeTimeout() {
   if (cv_ViewChangeVCBlock.wait_for(cv_lk,
                                     std::chrono::seconds(VIEWCHANGE_TIME)) ==
       std::cv_status::timeout) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Initiated view change again");
 
     auto func = [this]() -> void { RunConsensusOnViewChange(); };
@@ -418,7 +418,7 @@ bool DirectoryService::ComputeNewCandidateLeader(
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -454,19 +454,18 @@ bool DirectoryService::NodeVCPrecheck() {
   if (cv_viewChangePrecheck.wait_for(
           cv_lk, std::chrono::seconds(VIEWCHANGE_PRECHECK_TIME)) ==
       std::cv_status::timeout) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Timeout while waiting for precheck. ");
   }
 
   {
     lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
     if (m_vcPreCheckDSBlocks.size() == 0 && m_vcPreCheckTxBlocks.size() == 0) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Passed precheck. ");
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Passed precheck. ");
       return true;
     }
   }
-  LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
             "Failed precheck. m_vcPreCheckDSBlocks size: "
                 << m_vcPreCheckDSBlocks.size() << " m_vcPreCheckTxBlocks size: "
                 << m_vcPreCheckTxBlocks.size());
@@ -571,7 +570,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
 #ifdef VC_TEST_VC_SUSPEND_1
   if (m_viewChangeCounter < 2) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_1)");
     return false;
   }
@@ -580,17 +579,17 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
 #ifdef VC_TEST_VC_SUSPEND_3
   if (m_viewChangeCounter < 4) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_SUSPEND_3)");
     return false;
   }
 #endif  // VC_TEST_VC_SUSPEND_3
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the candidate leader DS node. Announcing to the rest.");
 
   if (!ComputeNewCandidateLeader(candidateLeaderIndex)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DirectoryService::ComputeNewCandidateLeader failed");
     return false;
   }
@@ -608,7 +607,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
       ShardCommitFailureHandlerFunc()));
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Error: Unable to create consensus object");
     return false;
   }
@@ -651,7 +650,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
     return true;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a backup DS node (after view change). Waiting for view "
             "change announcement. "
             "Leader is at index  "
@@ -679,7 +678,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
       static_cast<uint8_t>(VIEWCHANGECONSENSUS), func));
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Error: Unable to create consensus object");
     return false;
   }
@@ -705,7 +704,7 @@ bytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
   if (!Messenger::SetLookupGetDSTxBlockFromSeed(
           getDSTxBlockMessage, MessageOffset::BODY, dslowBlockNum, 0,
           txlowBlockNum, 0, m_mediator.m_selfPeer.m_listenPortHost)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupGetDSTxBlockFromSeed failed.");
     return {};
   }
@@ -730,7 +729,7 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
 
   if (m_state != VIEWCHANGE_CONSENSUS_PREP) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "Unable to process ProcessGetDSTxBlockMessage as current state is "
             << to_string(m_state));
   }
@@ -741,14 +740,14 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
   if (!Messenger::GetVCNodeSetDSTxBlockFromSeed(
           message, offset, m_vcPreCheckDSBlocks, m_vcPreCheckTxBlocks,
           lookupPubKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetVCNodeSetDSTxBlockFromSeed failed.");
     return false;
   }
 
   if (!m_mediator.m_lookup->VerifySenderNode(
           m_mediator.m_lookup->GetSeedNodes(), lookupPubKey)) {
-    LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");
     return false;

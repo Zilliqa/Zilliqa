@@ -55,7 +55,7 @@ bool DirectoryService::ComposeVCBlockForSender(
 
   if (!Messenger::SetNodeVCBlock(vcblock_message, MessageOffset::BODY,
                                  *m_pendingVCBlock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeVCBlock failed.");
     return false;
   }
@@ -70,7 +70,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     return;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "View change consensus is DONE!!!");
   m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
 
@@ -127,11 +127,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
 
   if (newLeaderNetworkInfo == m_mediator.m_selfPeer &&
       newLeaderPubKey == m_mediator.m_selfKey.second) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "After view change, I am the new DS leader!");
     m_mode = PRIMARY_DS;
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "After view change, I am ds backup");
     m_mode = BACKUP_DS;
   }
@@ -234,11 +234,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     if (m_mediator.m_node->m_consensusMyID ==
         m_mediator.m_node->m_consensusLeaderID) {
       m_mediator.m_node->m_isPrimary = true;
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am leader of the DS shard");
     } else {
       m_mediator.m_node->m_isPrimary = false;
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am backup member of the DS shard");
     }
   }
@@ -288,7 +288,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     case VIEWCHANGE_CONSENSUS_PREP:
     default:
       LOG_EPOCH(
-          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          INFO, m_mediator.m_currentEpochNum,
           "illegal view change state. state: " << to_string(viewChangeState));
   }
 
@@ -327,13 +327,13 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
   switch (viewChangeState) {
     case DSBLOCK_CONSENSUS:
     case DSBLOCK_CONSENSUS_PREP:
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Re-running dsblock consensus");
       RunConsensusOnDSBlock();
       break;
     case FINALBLOCK_CONSENSUS:
     case FINALBLOCK_CONSENSUS_PREP:
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Re-running finalblock consensus");
       RunConsensusOnFinalBlock(FROM_VIEWCHANGE);
       break;
@@ -341,7 +341,7 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
     case VIEWCHANGE_CONSENSUS_PREP:
     default:
       LOG_EPOCH(
-          INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          INFO, m_mediator.m_currentEpochNum,
           "illegal view change state. state: " << to_string(viewChangeState));
   }
 }
@@ -371,12 +371,12 @@ bool DirectoryService::ProcessViewChangeConsensus(
       if (cv_ViewChangeConsensusObj.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT),
               [this] { return CheckState(PROCESS_VIEWCHANGECONSENSUS); })) {
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "Successfully transit to viewchange consensus or I "
                   "am in the "
                   "correct state.");
       } else {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Time out while waiting for state transition to view "
                   "change "
                   "consensus and "
@@ -429,20 +429,20 @@ bool DirectoryService::ProcessViewChangeConsensus(
   }
 
   ConsensusCommon::State state = m_consensusObject->GetState();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Consensus state = " << m_consensusObject->GetStateString());
 
   if (state == ConsensusCommon::State::DONE) {
     cv_ViewChangeVCBlock.notify_all();
     ProcessViewChangeConsensusWhenDone();
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "View change consensus is DONE!!!");
   } else if (state == ConsensusCommon::State::ERROR) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "No consensus reached. Will attempt to do view change again");
     return false;
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Consensus state = " << state);
     cv_processConsensusMessage.notify_all();
   }

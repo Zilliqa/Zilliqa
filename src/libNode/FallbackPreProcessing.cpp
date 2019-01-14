@@ -51,7 +51,7 @@ bool Node::FallbackValidator(const bytes& message, unsigned int offset,
   if (!Messenger::GetNodeFallbackBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_pendingFallbackBlock, messageToCosign)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeFallbackBlockAnnouncement failed.");
     return false;
   }
@@ -103,7 +103,7 @@ bool Node::FallbackValidator(const bytes& message, unsigned int offset,
   CommitteeHash committeeHash;
   if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
                                committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetShardHash failed.");
     return false;
   }
@@ -208,7 +208,7 @@ void Node::UpdateFallbackConsensusLeader() {
 
   // Set state to tx submission
   if (m_isPrimary) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am no longer the shard leader ");
     m_isPrimary = false;
   }
@@ -220,12 +220,11 @@ void Node::UpdateFallbackConsensusLeader() {
   }
 
   if (m_consensusMyID == m_consensusLeaderID) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I am the new shard leader ");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I am the new shard leader ");
     m_isPrimary = true;
   } else {
     LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        INFO, m_mediator.m_currentEpochNum,
         "The new shard leader is m_consensusMyID " << m_consensusLeaderID);
   }
 }
@@ -407,7 +406,7 @@ bool Node::ComposeFallbackBlock() {
   CommitteeHash committeeHash;
   if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
                                committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetShardHash failed.");
     return false;
   }
@@ -477,14 +476,14 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
 
   LOG_MARKER();
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the fallback leader node. Announcing to the rest.");
 
   {
     lock_guard<mutex> g(m_mutexShardMember);
 
     if (!ComposeFallbackBlock()) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Node::RunConsensusOnFallbackWhenLeader failed.");
       return false;
     }
@@ -502,7 +501,7 @@ bool Node::RunConsensusOnFallbackWhenLeader() {
   }
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Error: Unable to create consensus leader object");
     return false;
   }
@@ -543,7 +542,7 @@ bool Node::RunConsensusOnFallbackWhenBackup() {
 
   LOG_MARKER();
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a fallback backup node. Waiting for Fallback announcement.");
 
   m_consensusBlockHash =
@@ -569,7 +568,7 @@ bool Node::RunConsensusOnFallbackWhenBackup() {
   }
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Error: Unable to create consensus backup object");
     return false;
   }
