@@ -392,6 +392,9 @@ const string INPUT_CODE{
 const bool HASHMAP_CONTRACT_STATE_DB{
     ReadConstantString("HASHMAP_CONTRACT_STATE_DB", "node.smart_contract.") ==
     "true"};
+const bool ENABLE_SCILLA_MULTI_VERSION{
+    ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
+    "true"};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{
