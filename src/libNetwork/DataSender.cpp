@@ -20,6 +20,7 @@
 #include "libCrypto/Sha2.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -38,7 +39,20 @@ void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
   vector<Peer> allLookupNodes;
 
   for (const auto& node : lookups) {
-    LOG_GENERAL(INFO, "Sending msg to lookup node " << node.second);
+    string url = node.second.GetHostname();
+    auto resolved_ip = node.second.GetIpAddress();  // existing one
+    if (!url.empty()) {
+      boost::multiprecision::uint128_t tmpIp;
+      if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
+                                  tmpIp)) {
+        resolved_ip = tmpIp;  // resolved one
+      } else {
+        LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+      }
+    }
+
+    Peer tmp(resolved_ip, node.second.GetListenPortHost());
+    LOG_GENERAL(INFO, "Sending msg to lookup node " << tmp);
 
     allLookupNodes.emplace_back(node.second);
   }

@@ -158,6 +158,10 @@ void Lookup::SetLookupNodes() {
                     }) != m_lookupNodes.end()) {
           continue;
         }
+        string url = v.second.get<string>("hostname");
+        if (!url.empty()) {
+          lookup_node.SetHostname(url);
+        }
         if (lookupType == "node.multipliers") {
           m_multipliers.emplace_back(pubKey, lookup_node);
         }
@@ -198,6 +202,10 @@ void Lookup::SetAboveLayer() {
       }
 
       PubKey pubKey(pubkeyBytes, 0);
+      string url = v.second.get<string>("hostname");
+      if (!url.empty()) {
+        lookup_node.SetHostname(url);
+      }
       m_seedNodes.emplace_back(pubKey, lookup_node);
     }
   }
@@ -396,12 +404,25 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node "
-                    << node.second.GetPrintableIPAddress() << ":"
-                    << node.second.m_listenPortHost);
+      // try resolving ip from hostname
+      string url = node.second.GetHostname();
+      auto resolved_ip = node.second.GetIpAddress();  // existing one
+      if (!url.empty()) {
+        boost::multiprecision::uint128_t tmpIp;
+        if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
+                                    tmpIp)) {
+          resolved_ip = tmpIp;  // resolved one
+        } else {
+          LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+        }
+      }
 
-      allLookupNodes.emplace_back(node.second);
+      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
+                                              << ":" << tmp.m_listenPortHost);
+
+      allLookupNodes.emplace_back(tmp);
     }
   }
 
@@ -424,12 +445,26 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
                   }) != m_multipliers.end()) {
         continue;
       }
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node "
-                    << node.second.GetPrintableIPAddress() << ":"
-                    << node.second.m_listenPortHost);
 
-      allLookupNodes.emplace_back(node.second);
+      // try resolving ip from hostname
+      string url = node.second.GetHostname();
+      auto resolved_ip = node.second.GetIpAddress();  // existing one
+      if (!url.empty()) {
+        boost::multiprecision::uint128_t tmpIp;
+        if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
+                                    tmpIp)) {
+          resolved_ip = tmpIp;  // resolved one
+        } else {
+          LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+        }
+      }
+
+      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
+                                              << ":" << tmp.m_listenPortHost);
+
+      allLookupNodes.emplace_back(tmp);
     }
   }
 
@@ -459,8 +494,23 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
                });
 
   int index = rand() % tmp.size();
-  LOG_GENERAL(INFO, "Sending to Random lookup: " << tmp[index].second);
-  P2PComm::GetInstance().SendMessage(tmp[index].second, message);
+
+  // try resolving ip from hostname
+  string url = tmp[index].second.GetHostname();
+  auto resolved_ip = tmp[index].second.GetIpAddress();  // existing one
+  if (!url.empty()) {
+    boost::multiprecision::uint128_t tmpIp;
+    if (IPConverter::ResolveDNS(url, tmp[index].second.GetListenPortHost(),
+                                tmpIp)) {
+      resolved_ip = tmpIp;  // resolved one
+    } else {
+      LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+    }
+  }
+
+  Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
+  LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
+  P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const bytes& message) const {
@@ -471,11 +521,24 @@ void Lookup::SendMessageToSeedNodes(const bytes& message) const {
     lock_guard<mutex> g(m_mutexSeedNodes);
 
     for (const auto& node : m_seedNodes) {
+      // try resolving ip from hostname
+      string url = node.second.GetHostname();
+      auto resolved_ip = node.second.GetIpAddress();  // existing one
+      if (!url.empty()) {
+        boost::multiprecision::uint128_t tmpIp;
+        if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
+                                    tmpIp)) {
+          resolved_ip = tmpIp;  // resolved one
+        } else {
+          LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+        }
+      }
+
+      Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to seed node "
-                    << node.second.GetPrintableIPAddress() << ":"
-                    << node.second.m_listenPortHost);
-      seedNodePeer.emplace_back(node.second);
+                "Sending msg to seed node " << tmpPeer.GetPrintableIPAddress()
+                                            << ":" << tmpPeer.m_listenPortHost);
+      seedNodePeer.emplace_back(tmpPeer);
     }
   }
   P2PComm::GetInstance().SendMessage(seedNodePeer, message);
@@ -874,7 +937,21 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
   }
 
   int index = rand() % m_seedNodes.size();
-  P2PComm::GetInstance().SendMessage(m_seedNodes[index].second, message);
+
+  string url = m_seedNodes[index].second.GetHostname();
+  auto resolved_ip = m_seedNodes[index].second.GetIpAddress();  // existing one
+  if (!url.empty()) {
+    boost::multiprecision::uint128_t tmpIp;
+    if (IPConverter::ResolveDNS(
+            url, m_seedNodes[index].second.GetListenPortHost(), tmpIp)) {
+      resolved_ip = tmpIp;  // resolved one
+    } else {
+      LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+    }
+  }
+
+  Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
+  P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }
 
 // TODO: Refactor the code to remove the following assumption

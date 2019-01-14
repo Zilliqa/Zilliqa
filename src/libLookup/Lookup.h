@@ -36,6 +36,7 @@
 #include "libData/BlockData/Block/TxBlock.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
 #include <condition_variable>

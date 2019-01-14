@@ -232,6 +232,7 @@
     <!-- For constants.xml, the remaining constants below are auto-populated -->
     <lookups>
         <peer>
+            <hostname/>
             <ip>127.0.0.1</ip>
             <port>4001</port>
             <pubkey/>
@@ -248,6 +249,7 @@
     </multipliers>
     <upper_seed>
         <peer>
+            <hostname/>
             <ip>127.0.0.1</ip>
             <port>4001</port>
             <pubkey/>
