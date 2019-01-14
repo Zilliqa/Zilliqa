@@ -5115,127 +5115,6 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupGetTxBodyFromSeed(bytes& dst,
-                                           const unsigned int offset,
-                                           const bytes& txHash,
-                                           const uint32_t listenPort) {
-  LOG_MARKER();
-
-  LookupGetTxBodyFromSeed result;
-
-  result.set_txhash(txHash.data(), txHash.size());
-  result.set_listenport(listenPort);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupGetTxBodyFromSeed(const bytes& src,
-                                           const unsigned int offset,
-                                           TxnHash& txHash,
-                                           uint32_t& listenPort) {
-  LOG_MARKER();
-
-  LookupGetTxBodyFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupGetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    return false;
-  }
-
-  listenPort = result.listenport();
-
-  return true;
-}
-
-bool Messenger::SetLookupSetTxBodyFromSeed(
-    bytes& dst, const unsigned int offset, const TxnHash& txHash,
-    const TransactionWithReceipt& txBody) {
-  LOG_MARKER();
-
-  LookupSetTxBodyFromSeed result;
-
-  result.set_txhash(txHash.data(), txHash.size);
-  SerializableToProtobufByteArray(txBody, *result.mutable_txbody());
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupSetTxBodyFromSeed(const bytes& src,
-                                           const unsigned int offset,
-                                           TxnHash& txHash,
-                                           TransactionWithReceipt& txBody) {
-  LOG_MARKER();
-
-  LookupSetTxBodyFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetTxBodyFromSeed initialization failed.");
-    return false;
-  }
-
-  if (!CopyWithSizeCheck(result.txhash(), txHash.asArray())) {
-    return false;
-  }
-
-  ProtobufByteArrayToSerializable(result.txbody(), txBody);
-
-  return true;
-}
-
-bool Messenger::SetLookupSetNetworkIDFromSeed(bytes& dst,
-                                              const unsigned int offset,
-                                              const string& networkID) {
-  LOG_MARKER();
-
-  LookupSetNetworkIDFromSeed result;
-
-  result.set_networkid(networkID);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetNetworkIDFromSeed initialization failed.");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetLookupSetNetworkIDFromSeed(const bytes& src,
-                                              const unsigned int offset,
-                                              string& networkID) {
-  LOG_MARKER();
-
-  LookupSetNetworkIDFromSeed result;
-
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "LookupSetNetworkIDFromSeed initialization failed.");
-    return false;
-  }
-
-  networkID = result.networkid();
-
-  return true;
-}
-
 bool Messenger::SetLookupGetStateFromSeed(bytes& dst, const unsigned int offset,
                                           const uint32_t listenPort) {
   LOG_MARKER();
@@ -5693,6 +5572,7 @@ bool Messenger::GetLookupSetStartPoWFromSeed(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupGetShardsFromSeed(bytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
@@ -5710,6 +5590,7 @@ bool Messenger::SetLookupGetShardsFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort) {
@@ -5729,6 +5610,7 @@ bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupSetShardsFromSeed(
     bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
@@ -5823,6 +5705,7 @@ bool Messenger::SetLookupGetMicroBlockFromLookup(
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupGetMicroBlockFromLookup(
     const bytes& src, const unsigned int offset,
     vector<BlockHash>& microBlockHashes, uint32_t& portNo) {
@@ -5929,6 +5812,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
                                            const unsigned int offset,
                                            const vector<TxnHash>& txnhashes,
@@ -5951,6 +5835,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
                                            const unsigned int offset,
                                            vector<TxnHash>& txnhashes,
@@ -5977,6 +5862,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
   return true;
 }
 
+// UNUSED
 bool Messenger::SetLookupSetTxnsFromLookup(
     bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const vector<TransactionWithReceipt>& txns) {
@@ -6014,6 +5900,7 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   return SerializeToArray(result, dst, offset);
 }
 
+// UNUSED
 bool Messenger::GetLookupSetTxnsFromLookup(
     const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
     vector<TransactionWithReceipt>& txns) {

@@ -189,14 +189,18 @@ class Lookup : public Executable, public Broadcastable {
   bool GetTxBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highBlockNum);
   bool GetStateDeltaFromLookupNodes(const uint64_t& blockNum);
   bool GetStateDeltaFromSeedNodes(const uint64_t& blockNum);
-  bool GetTxBodyFromSeedNodes(std::string txHashStr);
   bool GetStateFromLookupNodes();
   bool GetStateFromSeedNodes();
-  bool ProcessGetShardFromSeed(const bytes& message, unsigned int offset,
-                               const Peer& from);
+  // UNUSED
+  bool ProcessGetShardFromSeed([[gnu::unused]] const bytes& message,
+                               [[gnu::unused]] unsigned int offset,
+                               [[gnu::unused]] const Peer& from);
+  // UNUSED
+  bool ProcessSetShardFromSeed([[gnu::unused]] const bytes& message,
+                               [[gnu::unused]] unsigned int offset,
+                               [[gnu::unused]] const Peer& from);
   bool GetDSBlockFromSeedNodes(uint64_t lowBlockNum, uint64_t highblocknum);
-  bool ProcessSetShardFromSeed(const bytes& message, unsigned int offset,
-                               const Peer& from);
+  // UNUSED
   bool GetShardFromLookup();
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -241,26 +245,29 @@ class Lookup : public Executable, public Broadcastable {
                                  const Peer& from);
   bool ProcessGetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
-  bool ProcessGetTxBodyFromSeed(const bytes& message, unsigned int offset,
-                                const Peer& from);
   bool ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
-
-  bool ProcessGetNetworkId(const bytes& message, unsigned int offset,
-                           const Peer& from);
-
-  bool ProcessGetTxnsFromLookup(const bytes& message, unsigned int offset,
-                                const Peer& from);
-  bool ProcessSetTxnsFromLookup(const bytes& message, unsigned int offset,
+  // UNUSED
+  bool ProcessGetTxnsFromLookup([[gnu::unused]] const bytes& message,
+                                [[gnu::unused]] unsigned int offset,
+                                [[gnu::unused]] const Peer& from);
+  // UNUSED
+  bool ProcessSetTxnsFromLookup([[gnu::unused]] const bytes& message,
+                                [[gnu::unused]] unsigned int offset,
                                 [[gnu::unused]] const Peer& from);
   void SendGetTxnFromLookup(const std::vector<TxnHash>& txnhashes);
 
+  // UNUSED
   void SendGetMicroBlockFromLookup(const std::vector<BlockHash>& mbHashes);
 
-  bool ProcessGetMicroBlockFromLookup(const bytes& message, unsigned int offset,
-                                      const Peer& from);
-  bool ProcessSetMicroBlockFromLookup(const bytes& message, unsigned int offset,
-                                      const Peer& from);
+  // UNUSED
+  bool ProcessGetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
+                                      [[gnu::unused]] unsigned int offset,
+                                      [[gnu::unused]] const Peer& from);
+  // UNUSED
+  bool ProcessSetMicroBlockFromLookup([[gnu::unused]] const bytes& message,
+                                      [[gnu::unused]] unsigned int offset,
+                                      [[gnu::unused]] const Peer& from);
   bool AddMicroBlockToStorage(const MicroBlock& microblock);
 
   bool ProcessGetOfflineLookups(const bytes& message, unsigned int offset,
@@ -275,8 +282,6 @@ class Lookup : public Executable, public Broadcastable {
   void CommitTxBlocks(const std::vector<TxBlock>& txBlocks);
   bool ProcessSetStateDeltaFromSeed(const bytes& message, unsigned int offset,
                                     const Peer& from);
-  bool ProcessSetTxBodyFromSeed(const bytes& message, unsigned int offset,
-                                const Peer& from);
   bool ProcessSetStateFromSeed(const bytes& message, unsigned int offset,
                                const Peer& from);
 
