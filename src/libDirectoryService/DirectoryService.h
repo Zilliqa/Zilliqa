@@ -204,6 +204,10 @@ class DirectoryService : public Executable, public Broadcastable {
   std::condition_variable cv_processConsensusMessage;
   std::mutex m_mutexProcessConsensusMessage;
 
+  std::atomic<uint16_t> m_consensusLeaderID;
+  /// The ID number of this Zilliqa instance for use with consensus operations.
+  std::atomic<uint16_t> m_consensusMyID;
+
   std::mutex m_mutexRunConsensusOnFinalBlock;
 
   Mediator& m_mediator;
@@ -464,8 +468,6 @@ class DirectoryService : public Executable, public Broadcastable {
   /// Sharing assignment for state delta
   std::vector<Peer> m_sharingAssignment;
 
-  std::atomic<uint16_t> m_consensusLeaderID;
-
   std::mutex m_MutexScheduleDSMicroBlockConsensus;
   std::condition_variable cv_scheduleDSMicroBlockConsensus;
 
@@ -492,9 +494,6 @@ class DirectoryService : public Executable, public Broadcastable {
 
   /// The counter of viewchange happened during current epoch
   std::atomic<uint32_t> m_viewChangeCounter;
-
-  /// The ID number of this Zilliqa instance for use with consensus operations.
-  std::atomic<uint16_t> m_consensusMyID;
 
   /// The epoch number when DS tries doing Rejoin
   uint64_t m_latestActiveDSBlockNum = 0;
@@ -545,6 +544,21 @@ class DirectoryService : public Executable, public Broadcastable {
 
   /// Sets the value of m_state.
   void SetState(DirState state);
+
+  // Set m_consensusMyID
+  void SetConsensusMyID(uint16_t);
+
+  // Get m_consensusMyID
+  uint16_t GetConsensusMyID() const;
+
+  // Set m_consensusLeaderID
+  void SetConsensusLeaderID(uint16_t);
+
+  // Get m_consensusLeaderID
+  uint16_t GetConsensusLeaderID() const;
+
+  // Increment m_consensusMyID
+  void IncrementConsensusMyID();
 
   /// Start synchronization with lookup as a DS node
   void StartSynchronization();

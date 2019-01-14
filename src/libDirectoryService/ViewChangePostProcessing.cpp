@@ -229,10 +229,10 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
       m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
     }
-    m_mediator.m_node->m_consensusMyID = m_consensusMyID.load();
-    m_mediator.m_node->m_consensusLeaderID = m_consensusLeaderID.load();
-    if (m_mediator.m_node->m_consensusMyID ==
-        m_mediator.m_node->m_consensusLeaderID) {
+    m_mediator.m_node->SetConsensusMyID(m_consensusMyID.load());
+    m_mediator.m_node->SetConsensusLeaderID(m_consensusLeaderID.load());
+    if (m_mediator.m_node->GetConsensusMyID() ==
+        m_mediator.m_node->GetConsensusLeaderID()) {
       m_mediator.m_node->m_isPrimary = true;
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am leader of the DS shard");

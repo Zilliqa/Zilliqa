@@ -92,6 +92,8 @@ class Node : public Executable, public Broadcastable {
   std::mutex m_MutexCVMicroblockConsensus;
   std::mutex m_MutexCVMicroblockConsensusObject;
   std::condition_variable cv_microblockConsensusObject;
+  std::atomic<uint16_t> m_consensusMyID;
+  std::atomic<uint16_t> m_consensusLeaderID;
 
   std::mutex m_MutexCVFBWaitMB;
   std::condition_variable cv_FBWaitMB;
@@ -382,9 +384,7 @@ class Node : public Executable, public Broadcastable {
 
   /// Sharding variables
   std::atomic<uint32_t> m_myshardId;
-  std::atomic<uint16_t> m_consensusMyID;
   std::atomic<bool> m_isPrimary;
-  std::atomic<uint16_t> m_consensusLeaderID;
   std::shared_ptr<ConsensusCommon> m_consensusObject;
 
   // Finalblock Processing
@@ -526,6 +526,18 @@ class Node : public Executable, public Broadcastable {
 
   /// Reset Consensus ID
   void ResetConsensusId();
+
+  // Set m_consensusMyID
+  void SetConsensusMyID(uint16_t);
+
+  // Get m_consensusMyID
+  uint16_t GetConsensusMyID() const;
+
+  // Set m_consensusLeaderID
+  void SetConsensusLeaderID(uint16_t);
+
+  // Get m_consensusLeaderID
+  uint16_t GetConsensusLeaderID() const;
 
   /// Fetch offline lookups with a counter for retrying
   bool GetOfflineLookups(bool endless = false);

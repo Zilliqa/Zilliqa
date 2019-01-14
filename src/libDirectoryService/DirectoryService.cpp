@@ -382,6 +382,27 @@ void DirectoryService::SetState(DirState state) {
             "DS State is now " << GetStateString());
 }
 
+// Set m_consensusMyID
+void DirectoryService::SetConsensusMyID(uint16_t id) { m_consensusMyID = id; }
+
+// Get m_consensusMyID
+uint16_t DirectoryService::GetConsensusMyID() const {
+  return m_consensusMyID.load();
+}
+
+// Increment m_consensusMyID
+void DirectoryService::IncrementConsensusMyID() { m_consensusMyID++; }
+
+// Set m_consensusLeaderID
+void DirectoryService::SetConsensusLeaderID(uint16_t id) {
+  m_consensusLeaderID = id;
+}
+
+// Get m_consensusLeaderID
+uint16_t DirectoryService::GetConsensusLeaderID() const {
+  return m_consensusLeaderID.load();
+}
+
 vector<Peer> DirectoryService::GetBroadcastList(
     [[gnu::unused]] unsigned char ins_type,
     [[gnu::unused]] const Peer& broadcast_originator) {
@@ -601,7 +622,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
   LOG_MARKER();
 
   m_mediator.m_consensusID = 0;
-  m_mediator.m_node->m_consensusLeaderID = 0;
+  m_mediator.m_node->SetConsensusLeaderID(0);
 
   CleanFinalblockConsensusBuffer();
 

@@ -157,7 +157,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
           m_mediator.m_DSCommittee->push_front(node);
         }
       }
-      m_mediator.m_ds->m_consensusMyID = 0;
+      m_mediator.m_ds->SetConsensusMyID(0);
     } else {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "After fallback, I am a ds backup");
@@ -168,7 +168,7 @@ void Node::ProcessFallbackConsensusWhenDone() {
         if (node.second != leaderNetworkInfo) {
           m_mediator.m_DSCommittee->push_back(node);
           if (node.second == Peer()) {
-            m_mediator.m_ds->m_consensusMyID = count;
+            m_mediator.m_ds->SetConsensusMyID(count);
           }
           count++;
         } else {
@@ -177,8 +177,8 @@ void Node::ProcessFallbackConsensusWhenDone() {
       }
     }
 
-    LOG_GENERAL(
-        INFO, "My New DS consensusID is " << m_mediator.m_ds->m_consensusMyID);
+    LOG_GENERAL(INFO, "My New DS consensusID is "
+                          << m_mediator.m_ds->GetConsensusMyID());
     LOG_GENERAL(INFO, "New ds committee after fallback: ");
     for (const auto& node : *m_mediator.m_DSCommittee) {
       LOG_GENERAL(INFO, node.second);
