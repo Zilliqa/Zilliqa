@@ -76,9 +76,11 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
-  // FIXME: Possible integer overflow here
-  boost::multiprecision::uint128_t gasDeposit =
-      transaction.GetGasLimit() * transaction.GetGasPrice();
+  if (!SafeMath<boost::multiprecision::uint128_t>::mul(transaction.GetGasLimit(), transaction.GetGasPrice(),
+                                                       gasDeposit)) {
+    LOG_GENERAL(WARNING, "transaction.GetGasLimit() * transaction.GetGasPrice() overflow!");
+    return false;
+  }
 
   if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit) {
     LOG_GENERAL(WARNING,
