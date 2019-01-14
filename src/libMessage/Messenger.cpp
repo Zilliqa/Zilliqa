@@ -5364,8 +5364,6 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
     return false;
   }
 
-  SerializableToProtobufByteArray(signature, *result.mutable_signature());
-
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
     return false;
@@ -5435,8 +5433,6 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupSetLookupOnline.Data initialization failed.");
     return false;
   }
-
-  SerializableToProtobufByteArray(signature, *result.mutable_signature());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
