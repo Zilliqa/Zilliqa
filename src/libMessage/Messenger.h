@@ -554,10 +554,13 @@ class Messenger {
                                         const PairOfKey& dsKey);
   static bool SetLookupGetStartPoWFromSeed(bytes& dst,
                                            const unsigned int offset,
-                                           const uint32_t listenPort);
+                                           const uint32_t listenPort,
+                                           const uint64_t blockNumber,
+                                           const PairOfKey& keys);
   static bool GetLookupGetStartPoWFromSeed(const bytes& src,
                                            const unsigned int offset,
-                                           uint32_t& listenPort);
+                                           uint32_t& listenPort,
+                                           uint64_t& blockNumber);
   static bool SetLookupSetStartPoWFromSeed(bytes& dst,
                                            const unsigned int offset,
                                            const uint64_t blockNumber,

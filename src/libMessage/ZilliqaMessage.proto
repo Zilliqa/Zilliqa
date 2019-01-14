@@ -699,7 +699,14 @@ message LookupRaiseStartPoW
 
 message LookupGetStartPoWFromSeed
 {
-    required uint32 listenport = 1;
+    message Data
+    {
+        required uint32 listenport  = 1;
+        required uint64 blocknumber = 2;
+    }
+    required Data data           = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 message LookupSetStartPoWFromSeed
