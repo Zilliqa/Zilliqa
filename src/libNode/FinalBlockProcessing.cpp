@@ -582,14 +582,6 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (consensusID != m_mediator.m_consensusID) {
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-              "Consensus ID is not correct. Expected ID: "
-                  << consensusID
-                  << " My Consensus ID: " << m_mediator.m_consensusID);
-    return false;
-  }
-
   // Verify the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
