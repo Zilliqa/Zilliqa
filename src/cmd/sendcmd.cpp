@@ -104,30 +104,6 @@ void process_addpeers(const char* progname, const char* cmdname,
   }
 }
 
-void process_broadcast(const char* progname, const char* cmdname,
-                       vector<string> args, const uint32_t listen_port) {
-  const int num_args_required = 1;
-  int numargs = args.size();
-  if (numargs != num_args_required) {
-    cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
-         << " <length of dummy message in bytes>" << endl;
-  } else {
-    struct in_addr ip_addr;
-    inet_pton(AF_INET, "127.0.0.1", &ip_addr);
-    Peer my_port((uint128_t)ip_addr.s_addr, listen_port);
-
-    unsigned int numbytes = static_cast<unsigned int>(atoi(args[0].c_str()));
-    bytes broadcast_message(numbytes + MessageOffset::BODY, 0xAA);
-    broadcast_message.at(MessageOffset::TYPE) = MessageType::PEER;
-    broadcast_message.at(MessageOffset::INST) =
-        PeerManager::InstructionType::BROADCAST;
-    broadcast_message.at(MessageOffset::BODY) = MessageType::PEER;
-
-    // Send the BROADCAST message to the local node
-    P2PComm::GetInstance().SendMessageNoQueue(my_port, broadcast_message);
-  }
-}
-
 void process_cmd(const char* progname, const char* cmdname, vector<string> args,
                  const uint32_t listen_port) {
   const int num_args_required = 1;
@@ -179,10 +155,8 @@ int main(int argc, const char* argv[]) {
     handler_func cmd_f = NULL;
     handler_func_remote cmd_f_remote = NULL;
     vector<string> cmd_v;
-    const message_handler message_handlers[] = {
-        {"addpeers", &process_addpeers},
-        {"broadcast", &process_broadcast},
-        {"cmd", &process_cmd}};
+    const message_handler message_handlers[] = {{"addpeers", &process_addpeers},
+                                                {"cmd", &process_cmd}};
 
     const message_handler_2 message_handlers_2[] = {
         {"remotecmd", &process_remote_cmd}};

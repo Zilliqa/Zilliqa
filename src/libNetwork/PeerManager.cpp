@@ -107,57 +107,6 @@ bool PeerManager::ProcessAddPeer(const bytes& message, unsigned int offset,
   return false;
 }
 
-bool PeerManager::ProcessPing(const bytes& message, unsigned int offset,
-                              const Peer& from) {
-  // Message = [raw byte stream]
-
-  LOG_MARKER();
-
-  LOG_GENERAL(INFO, "Received ping message at " << from.m_listenPortHost
-                                                << " from address "
-                                                << from.m_ipAddress);
-
-  bytes ping_message(message.begin() + offset, message.end());
-  LOG_PAYLOAD(INFO, "Ping message", ping_message, Logger::MAX_BYTES_TO_DISPLAY);
-  return true;
-}
-
-bool PeerManager::ProcessPingAll(const bytes& message, unsigned int offset,
-                                 [[gnu::unused]] const Peer& from) {
-  // Message = [raw byte stream]
-
-  LOG_MARKER();
-
-  bytes ping_message = {MessageType::PEER, PeerManager::InstructionType::PING};
-
-  const unsigned int message_size = min(message.size() - offset, (size_t)1024);
-
-  ping_message.resize(ping_message.size() + message_size);
-  copy(message.begin() + offset, message.begin() + offset + message_size,
-       ping_message.begin() + MessageOffset::BODY);
-  P2PComm::GetInstance().SendMessage(PeerStore::GetStore().GetAllPeers(),
-                                     ping_message);
-
-  return true;
-}
-
-bool PeerManager::ProcessBroadcast(const bytes& message, unsigned int offset,
-                                   [[gnu::unused]] const Peer& from) {
-  // Message = [raw byte stream]
-
-  LOG_MARKER();
-
-  bytes broadcast_message(message.size() - offset);
-  copy(message.begin() + offset, message.end(), broadcast_message.begin());
-
-  LOG_PAYLOAD(INFO, "Broadcast message", broadcast_message,
-              Logger::MAX_BYTES_TO_DISPLAY);
-  P2PComm::GetInstance().SendBroadcastMessage(GetBroadcastList(0, m_selfPeer),
-                                              broadcast_message);
-
-  return true;
-}
-
 PeerManager::PeerManager(const PairOfKey& key, const Peer& peer,
                          bool loadConfig)
     : m_selfKey(key), m_selfPeer(peer) {
@@ -216,9 +165,8 @@ bool PeerManager::Execute(const bytes& message, unsigned int offset,
                                                   const Peer&);
 
   InstructionHandler ins_handlers[] = {
-      &PeerManager::ProcessHello,     &PeerManager::ProcessAddPeer,
-      &PeerManager::ProcessPing,      &PeerManager::ProcessPingAll,
-      &PeerManager::ProcessBroadcast,
+      &PeerManager::ProcessHello,
+      &PeerManager::ProcessAddPeer,
   };
 
   const unsigned char ins_byte = message.at(offset);
