@@ -408,14 +408,21 @@ bool UpgradeManager::DownloadSW() {
   m_zilliqaPackageFileName = DownloadFile(ZILLIQA_PACKAGE_FILE_EXTENSION);
 
   if (m_zilliqaPackageFileName.empty()) {
-    LOG_GENERAL(WARNING, "Cannot download Zilliqa package (.deb) file!");
-    return false;
+    LOG_GENERAL(INFO, "Cannot download Zilliqa package (.deb) file!");
   }
 
   m_scillaPackageFileName = DownloadFile(SCILLA_PACKAGE_FILE_EXTENSION);
 
   if (m_scillaPackageFileName.empty()) {
     LOG_GENERAL(INFO, "Cannot download Scilla package (.deb) file!");
+  }
+
+  if (m_zilliqaPackageFileName.empty() && m_scillaPackageFileName.empty()) {
+    LOG_GENERAL(WARNING, "No package downloaded, nothing will be upgraded!");
+    m_latestSWInfo = make_shared<SWInfo>();
+    DataConversion::HexStrToUint8Vec("0", m_latestZilliqaSHA);
+    DataConversion::HexStrToUint8Vec("0", m_latestScillaSHA);
+    return false;
   }
 
   LOG_GENERAL(INFO, "Package (.deb) file has been downloaded successfully.");
@@ -454,13 +461,13 @@ bool UpgradeManager::DownloadSW() {
       ++line_no;
     }
 
-    zilliqaUpgradeDS = stoull(line);
+    zilliqaUpgradeDS = m_zilliqaPackageFileName.empty() ? 0 : stoull(line);
 
     while (line_no != SCILLA_DS_LINE && getline(versionFile, line)) {
       ++line_no;
     }
 
-    scillaUpgradeDS = stoull(line);
+    scillaUpgradeDS = m_scillaPackageFileName.empty() ? 0 : stoull(line);
 
     while (line_no != SCILLA_MAJOR_VERSION_LINE && getline(versionFile, line)) {
       ++line_no;
@@ -506,24 +513,24 @@ bool UpgradeManager::DownloadSW() {
   }
 
   /// Verify SHA-256 checksum of .deb file
-  string zilliqaDownloadSha;
-  {
+  if (!m_scillaPackageFileName.empty()) {
     fstream debFile(m_zilliqaPackageFileName, ios::in);
-
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     bytes vec((istreambuf_iterator<char>(debFile)),
               (istreambuf_iterator<char>()));
     sha2.Update(vec, 0, vec.size());
     bytes output = sha2.Finalize();
-    // No need check bool as sha2 will return hex
+    string zilliqaDownloadSha;
     DataConversion::Uint8VecToHexStr(output, zilliqaDownloadSha);
-  }
 
-  if (zilliqaSha != zilliqaDownloadSha) {
-    LOG_GENERAL(WARNING,
-                "Zilliqa SHA-256 checksum of .deb file mismatch. Expected: "
-                    << zilliqaSha << " Actual: " << zilliqaDownloadSha);
-    return false;
+    if (zilliqaSha != zilliqaDownloadSha) {
+      LOG_GENERAL(WARNING,
+                  "Zilliqa SHA-256 checksum of .deb file mismatch. Expected: "
+                      << zilliqaSha << " Actual: " << zilliqaDownloadSha);
+      return false;
+    }
+
+    return DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
   }
 
   if (!m_scillaPackageFileName.empty()) {
@@ -549,7 +556,7 @@ bool UpgradeManager::DownloadSW() {
   m_latestSWInfo = make_shared<SWInfo>(
       zilliqaMajor, zilliqaMinor, zilliqaFix, zilliqaUpgradeDS, zilliqaCommit,
       scillaMajor, scillaMinor, scillaFix, scillaUpgradeDS, scillaCommit);
-  return DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
+  return true;
 }
 
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
