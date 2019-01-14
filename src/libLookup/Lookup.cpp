@@ -2177,10 +2177,9 @@ bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
 
   uint8_t msgType = 0;
   uint32_t portNo = 0;
-  uint64_t blockNumber = 0;
   PubKey lookuppubkey;
   if (!Messenger::GetLookupSetLookupOffline(message, offset, msgType, portNo,
-                                            blockNumber, lookuppubkey)) {
+                                            lookuppubkey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupSetLookupOffline failed.");
     return false;
@@ -2190,12 +2189,6 @@ bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
     LOG_GENERAL(WARNING,
                 "Current message does not belong to this instrunction handler. "
                 "There might be replay attack.");
-    return false;
-  }
-
-  if (blockNumber != m_mediator.m_currentEpochNum &&
-      blockNumber != m_mediator.m_currentEpochNum + 1) {
-    LOG_GENERAL(WARNING, "block num is not within the current epoch.");
     return false;
   }
 
@@ -2233,10 +2226,9 @@ bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
 
   uint8_t msgType = 0;
   uint32_t portNo = 0;
-  uint64_t blockNumber = 0;
   PubKey lookupPubKey;
   if (!Messenger::GetLookupSetLookupOnline(message, offset, msgType, portNo,
-                                           blockNumber, lookupPubKey)) {
+                                           lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupSetLookupOnline failed.");
     return false;
@@ -2246,12 +2238,6 @@ bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
     LOG_GENERAL(WARNING,
                 "Current message does not belong to this instrunction handler. "
                 "There might be replay attack.");
-    return false;
-  }
-
-  if (blockNumber != m_mediator.m_currentEpochNum &&
-      blockNumber != m_mediator.m_currentEpochNum + 1) {
-    LOG_GENERAL(WARNING, "block num is not within the current epoch.");
     return false;
   }
 
@@ -2648,8 +2634,7 @@ bytes Lookup::ComposeGetLookupOfflineMessage() {
   if (!Messenger::SetLookupSetLookupOffline(
           getLookupOfflineMessage, MessageOffset::BODY,
           (uint8_t)LookupInstructionType::SETLOOKUPOFFLINE,
-          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_currentEpochNum,
-          m_mediator.m_selfKey)) {
+          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupSetLookupOffline failed.");
     return {};
@@ -2674,8 +2659,7 @@ bytes Lookup::ComposeGetLookupOnlineMessage() {
   if (!Messenger::SetLookupSetLookupOnline(
           getLookupOnlineMessage, MessageOffset::BODY,
           (uint8_t)LookupInstructionType::SETLOOKUPONLINE,
-          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_currentEpochNum,
-          m_mediator.m_selfKey)) {
+          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupSetLookupOnline failed.");
     return {};

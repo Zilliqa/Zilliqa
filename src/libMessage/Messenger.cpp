@@ -5339,7 +5339,6 @@ bool Messenger::GetLookupSetStateFromSeed(const bytes& src,
 bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
                                           const uint8_t msgType,
                                           const uint32_t listenPort,
-                                          const uint64_t blockNumber,
                                           const PairOfKey& lookupKey) {
   LOG_MARKER();
 
@@ -5347,7 +5346,6 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
 
   result.mutable_data()->set_msgtype(msgType);
   result.mutable_data()->set_listenport(listenPort);
-  result.mutable_data()->set_blocknumber(blockNumber);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
@@ -5376,9 +5374,11 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetLookupOffline(
-    const bytes& src, const unsigned int offset, uint8_t& msgType,
-    uint32_t& listenPort, uint64_t& blockNumber, PubKey& lookupPubkey) {
+bool Messenger::GetLookupSetLookupOffline(const bytes& src,
+                                          const unsigned int offset,
+                                          uint8_t& msgType,
+                                          uint32_t& listenPort,
+                                          PubKey& lookupPubkey) {
   LOG_MARKER();
 
   LookupSetLookupOffline result;
@@ -5392,7 +5392,6 @@ bool Messenger::GetLookupSetLookupOffline(
 
   listenPort = result.data().listenport();
   msgType = result.data().msgtype();
-  blockNumber = result.data().blocknumber();
 
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
@@ -5412,7 +5411,6 @@ bool Messenger::GetLookupSetLookupOffline(
 bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
                                          const uint8_t msgType,
                                          const uint32_t listenPort,
-                                         const uint64_t blockNumber,
                                          const PairOfKey& lookupKey) {
   LOG_MARKER();
 
@@ -5420,7 +5418,6 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
 
   result.mutable_data()->set_msgtype(msgType);
   result.mutable_data()->set_listenport(listenPort);
-  result.mutable_data()->set_blocknumber(blockNumber);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   Signature signature;
@@ -5452,7 +5449,6 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
 bool Messenger::GetLookupSetLookupOnline(const bytes& src,
                                          const unsigned int offset,
                                          uint8_t& msgType, uint32_t& listenPort,
-                                         uint64_t& blockNumber,
                                          PubKey& pubKey) {
   LOG_MARKER();
 
@@ -5467,7 +5463,6 @@ bool Messenger::GetLookupSetLookupOnline(const bytes& src,
 
   msgType = result.data().msgtype();
   listenPort = result.data().listenport();
-  blockNumber = result.data().blocknumber();
 
   bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());

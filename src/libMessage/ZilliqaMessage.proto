@@ -662,28 +662,26 @@ message LookupSetStateFromSeed
     required ByteArray signature             = 3;
 }
 
-// msgtype and blocknumber is used to prevent replay attacks
+// msgtype is used to prevent replay attacks
 message LookupSetLookupOffline
 {
     message Data
     {
         required uint32 msgtype     = 1; // Only LSB used
         required uint32 listenport  = 2;
-        required uint64 blocknumber = 3;
     }
     required Data data              = 1;
     required ByteArray pubkey       = 2;
     required ByteArray signature    = 3;
 }
 
-// msgtype and blocknumber is used to prevent replay attacks
+// msgtype and blocknumber are used to prevent replay attacks
 message LookupSetLookupOnline
 {
     message Data
     {
         required uint32 msgtype     = 1; // Only LSB used
         required uint32 listenport  = 2;
-        required uint64 blocknumber = 3;
     }
     required Data data              = 1;
     required ByteArray pubkey       = 2;
