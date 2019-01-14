@@ -1,5 +1,4 @@
-#
-Zilliqa (codename _Durian_)
+# Zilliqa (codename _Durian_)
 
 [![Build Status](https://travis-ci.com/Zilliqa/Zilliqa.svg?branch=master)](https://travis-ci.com/Zilliqa/Zilliqa)
 [![codecov](https://codecov.io/gh/Zilliqa/Zilliqa/branch/master/graph/badge.svg)](https://codecov.io/gh/Zilliqa/Zilliqa)
