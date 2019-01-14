@@ -76,9 +76,12 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
-  if (!SafeMath<boost::multiprecision::uint128_t>::mul(transaction.GetGasLimit(), transaction.GetGasPrice(),
-                                                       gasDeposit)) {
-    LOG_GENERAL(WARNING, "transaction.GetGasLimit() * transaction.GetGasPrice() overflow!");
+  boost::multiprecision::uint128_t gasDeposit = 0;
+  if (!SafeMath<boost::multiprecision::uint128_t>::mul(
+          transaction.GetGasLimit(), transaction.GetGasPrice(), gasDeposit)) {
+    LOG_GENERAL(
+        WARNING,
+        "transaction.GetGasLimit() * transaction.GetGasPrice() overflow!");
     return false;
   }
 
