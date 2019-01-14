@@ -43,7 +43,7 @@ find_package(Threads REQUIRED)
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options)
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
