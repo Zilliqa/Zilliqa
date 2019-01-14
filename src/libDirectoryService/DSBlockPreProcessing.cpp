@@ -87,7 +87,7 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
     blockNum = lastBlock.GetHeader().GetBlockNum() + 1;
     prevHash = get<BlockLinkIndex::BLOCKHASH>(lastBlockLink);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Prev DS block hash as per leader " << prevHash.hex());
   }
 
@@ -95,7 +95,7 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
   if (blockNum > 1) {
     dsDifficulty = CalculateNewDSDifficulty(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDSDifficulty());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Current DS difficulty "
                   << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
                                         .GetHeader()
@@ -104,7 +104,7 @@ unsigned int DirectoryService::ComputeDSBlockParameters(
 
     difficulty = CalculateNewDifficulty(
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Current difficulty "
                   << std::to_string(m_mediator.m_dsBlockChain.GetLastBlock()
                                         .GetHeader()
@@ -296,7 +296,7 @@ bool DirectoryService::VerifyPoWWinner(
   for (const auto& DSPowWinner : NewDSMembers) {
     if (m_allPoWConns.find(DSPowWinner.first) != m_allPoWConns.end()) {
       if (m_allPoWConns.at(DSPowWinner.first) != DSPowWinner.second) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "WARNING: Why is the IP of the winner different from "
                   "what I have in m_allPoWConns???");
         return false;
@@ -336,14 +336,13 @@ bool DirectoryService::VerifyPoWWinner(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
             headerHash, dsPowSoln.nonce, resultStr, mixHashStr);
         if (!result) {
-          LOG_EPOCH(WARNING,
-                    std::to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "WARNING: Failed to verify DS PoW from node "
                         << DSPowWinner.first);
           return false;
         }
       } else {
-        LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "WARNING: Cannot find the DS winner PoW in DS PoW list from "
                   "leader.");
         return false;
@@ -361,7 +360,7 @@ bool DirectoryService::VerifyDifficulty() {
   if (std::max(remoteDSDifficulty, localDSDifficulty) -
           std::min(remoteDSDifficulty, localDSDifficulty) >
       DIFFICULTY_TOL) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "WARNING: The ds difficulty "
                   << std::to_string(remoteDSDifficulty)
                   << " from leader not match with local calculated "
@@ -376,7 +375,7 @@ bool DirectoryService::VerifyDifficulty() {
   if (std::max(remoteDifficulty, localDifficulty) -
           std::min(remoteDifficulty, localDifficulty) >
       DIFFICULTY_TOL) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "WARNING: The difficulty "
                   << std::to_string(remoteDifficulty)
                   << " from leader not match with local calculated "
@@ -543,7 +542,7 @@ bool DirectoryService::VerifyPoWOrdering(
   }
 
   if (misorderNodes > MAX_MISORDER_NODE) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Failed to Verify due to bad PoW ordering count "
                   << misorderNodes << " "
                   << "exceed limit " << MAX_MISORDER_NODE);
@@ -563,7 +562,7 @@ bool DirectoryService::VerifyNodePriority(const DequeOfShard& shards) {
   uint8_t lowestPriority = 0;
   auto setTopPriorityNodes = FindTopPriorityNodes(lowestPriority);
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Lowest priority to join is " << to_string(lowestPriority));
 
   // Inject the DS committee members into priority nodes list, because the
@@ -717,7 +716,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
     return true;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the leader DS node. Creating DS block.");
 
   lock(m_mutexPendingDSBlock, m_mutexAllPoWConns);
@@ -737,7 +736,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
                                     << MAX_SHARD_NODE_NUM);
     uint8_t lowestPriority = 0;
     auto setTopPriorityNodes = FindTopPriorityNodes(lowestPriority);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Lowest priority to join is " << to_string(lowestPriority));
 
     MapOfPubKeyPoW tmpAllPoWs;
@@ -799,7 +798,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   DSBlockHashSet dsBlockHashSet;
   if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION, m_shards,
                                            dsBlockHashSet.m_shardingHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
@@ -812,7 +811,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -830,7 +829,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
         CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "New DSBlock created with ds difficulty "
                 << std::to_string(dsDifficulty) << " and difficulty "
                 << std::to_string(difficulty));
@@ -843,7 +842,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 #ifdef VC_TEST_DS_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_1)");
     return false;
   }
@@ -852,7 +851,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 #ifdef VC_TEST_DS_SUSPEND_3
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_DS_SUSPEND_3)");
     return false;
   }
@@ -865,7 +864,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
       NodeCommitFailureHandlerFunc(), ShardCommitFailureHandlerFunc()));
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "WARNING: Unable to create consensus object");
     return false;
   }
@@ -925,7 +924,7 @@ bool DirectoryService::DSBlockValidator(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_pendingDSBlock, m_tempShards, allPoWsFromLeader,
           dsWinnerPoWsFromLeader, messageToCosign)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSDSBlockAnnouncement failed.");
     return false;
   }
@@ -964,7 +963,7 @@ bool DirectoryService::DSBlockValidator(
   ShardingHash shardingHash;
   if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION,
                                            m_tempShards, shardingHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
@@ -981,7 +980,7 @@ bool DirectoryService::DSBlockValidator(
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -1070,14 +1069,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
 #ifdef VC_TEST_VC_PRECHECK_1
   if (m_consensusMyID == 3) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_1)");
     this_thread::sleep_for(chrono::seconds(45));
     return false;
   }
 #endif  // VC_TEST_VC_PRECHECK_1
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a backup DS node. Waiting for DS block announcement. "
             "Leader is at index  "
                 << m_consensusLeaderID << " "
@@ -1104,7 +1103,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
       static_cast<uint8_t>(DSBLOCKCONSENSUS), func));
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Unable to create consensus object");
     return false;
   }
@@ -1146,7 +1145,7 @@ bool DirectoryService::ProcessShardingStructure(
       // I know the member but the member IP given by the leader is different!
       if (storedMember != m_allPoWConns.end()) {
         if (storedMember->second != std::get<SHARD_NODE_PEER>(shardNode)) {
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "IP of the member different "
                     "from what was in m_allPoWConns???");
           LOG_GENERAL(WARNING, "Stored  "
@@ -1155,7 +1154,7 @@ bool DirectoryService::ProcessShardingStructure(
           diffIpNodes++;
 
           if (diffIpNodes > MAX_DIFF_IP_NODES) {
-            LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+            LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                       "Number of nodes using different IP address "
                           << diffIpNodes << " exceeds tolerance "
                           << MAX_DIFF_IP_NODES);
@@ -1190,7 +1189,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
     return;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Number of PoW recvd: " << m_allPoWs.size() << ", DS PoW recvd: "
                                     << m_allDSPoWs.size());
 
@@ -1211,7 +1210,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
     lock_guard<mutex> g(m_mutexAllPOW);
 
     if (m_allPoWs.size() == 0) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "To-do: Code up the logic for if we didn't get any "
                 "submissions at all");
       // throw exception();
@@ -1247,7 +1246,7 @@ void DirectoryService::RunConsensusOnDSBlock(bool isRejoin) {
   if (cv_viewChangeDSBlock.wait_for(cv_lk,
                                     std::chrono::seconds(VIEWCHANGE_TIME)) ==
       std::cv_status::timeout) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Initiated DS block view change. ");
     auto func = [this]() -> void { RunConsensusOnViewChange(); };
     DetachedFunction(1, func);

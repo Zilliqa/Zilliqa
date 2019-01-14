@@ -75,7 +75,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
   // Check if transaction amount is valid
   if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Insufficient funds in source account!"
                   << " From Account  = 0x" << fromAddr << " Balance = "
                   << AccountStore::GetInstance().GetBalance(fromAddr)
@@ -120,7 +120,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
     unsigned int correct_shard_from =
         Transaction::GetShardIndex(fromAddr, numShards);
     if (correct_shard_from != shardId) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "This tx is not sharded to me!"
                     << " From Account  = 0x" << fromAddr
                     << " Correct shard = " << correct_shard_from
@@ -135,7 +135,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
       unsigned int correct_shard_to =
           Transaction::GetShardIndex(tx.GetToAddr(), numShards);
       if (correct_shard_to != correct_shard_from) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "The fromShard " << correct_shard_from << " and toShard "
                                    << correct_shard_to
                                    << " is different for the call SC txn");
@@ -146,7 +146,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
 
   if (tx.GetGasPrice() <
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "GasPrice " << tx.GetGasPrice()
                           << " lower than minimum allowable "
                           << m_mediator.m_dsBlockChain.GetLastBlock()
@@ -156,7 +156,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
   }
 
   if (!VerifyTransaction(tx)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Signature incorrect: " << fromAddr << ". Transaction rejected: "
                                       << tx.GetTranID());
     return false;
@@ -164,7 +164,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
 
   // Check if from account exists in local storage
   if (!AccountStore::GetInstance().IsAccountExist(fromAddr)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "fromAddr not found: " << fromAddr << ". Transaction rejected: "
                                      << tx.GetTranID());
     return false;
@@ -172,7 +172,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx) {
 
   // Check if transaction amount is valid
   if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Insufficient funds in source account!"
                   << " From Account  = 0x" << fromAddr << " Balance = "
                   << AccountStore::GetInstance().GetBalance(fromAddr)

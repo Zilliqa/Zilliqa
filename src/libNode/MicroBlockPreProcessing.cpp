@@ -93,14 +93,14 @@ bool Node::ComposeMicroBlock() {
   if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
     if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shardId),
                                  committeeHash)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetShardHash failed.");
       return false;
     }
   } else {
     if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                        committeeHash)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetDSCommitteeHash failed.");
       return false;
     }
@@ -139,8 +139,7 @@ bool Node::ComposeMicroBlock() {
   }
 #endif  // DM_TEST_DM_BAD_MB_ANNOUNCE
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Creating new micro block.")
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(
           shardId, gasLimit, gasUsed, rewards, m_mediator.m_currentEpochNum,
@@ -149,7 +148,7 @@ bool Node::ComposeMicroBlock() {
           version, committeeHash, prevHash),
       tranHashes, CoSignatures()));
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Micro block proposed with "
                 << m_microblock->GetHeader().GetNumTxs()
                 << " transactions for epoch " << m_mediator.m_currentEpochNum);
@@ -238,16 +237,16 @@ bool Node::OnCommitFailure([
 
   // }
 
-  // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   //           "Going to sleep before restarting consensus");
 
   // std::this_thread::sleep_for(30s);
   // RunConsensusOnMicroBlockWhenShardLeader();
 
-  // LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  // LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   //           "Woke from sleep after consensus restart");
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Microblock consensus failed, going to wait for final block "
             "announcement");
 
@@ -629,7 +628,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
   if (!VerifyTxnOrderWTolerance(t_tranHashes, tranHashes,
                                 TXN_MISORDER_TOLERANCE_IN_PERCENT)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Failed to Verify due to bad txn ordering");
 
     for (const auto& th : t_tranHashes) {
@@ -665,7 +664,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     return true;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am shard leader. Creating microblock for epoch "
                 << m_mediator.m_currentEpochNum);
 
@@ -698,7 +697,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   {
     lock_guard<mutex> g(m_mutexShardMember);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am shard leader. "
                   << "m_consensusID: " << m_mediator.m_consensusID
                   << " m_consensusMyID: " << m_consensusMyID
@@ -725,7 +724,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   }
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Unable to create consensus object");
     return false;
   }
@@ -764,7 +763,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
     return true;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a backup node. Waiting for microblock announcement for epoch "
                 << m_mediator.m_currentEpochNum);
   // m_consensusID = 0;
@@ -787,7 +786,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
 
   {
     lock_guard<mutex> g(m_mutexShardMember);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am shard backup. "
                   << " m_mediator.m_consensusID: " << m_mediator.m_consensusID
                   << " m_consensusMyID: " << m_consensusMyID
@@ -799,7 +798,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
       peerList.emplace_back(it);
     }
   }
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Leader is at index  " << m_consensusLeaderID << " "
                                    << peerList.at(m_consensusLeaderID).second);
 
@@ -810,7 +809,7 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
       static_cast<uint8_t>(MICROBLOCKCONSENSUS), func));
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Unable to create consensus object");
     return false;
   }
@@ -831,21 +830,21 @@ bool Node::RunConsensusOnMicroBlock() {
   SetState(MICROBLOCK_CONSENSUS_PREP);
 
   if (m_mediator.GetIsVacuousEpoch()) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Vacuous epoch: Skipping submit transactions");
     CleanCreatedTransaction();
   }
 
   if (m_isPrimary) {
     if (!RunConsensusOnMicroBlockWhenShardLeader()) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Error at RunConsensusOnMicroBlockWhenShardLeader");
       // throw exception();
       return false;
     }
   } else {
     if (!RunConsensusOnMicroBlockWhenShardBackup()) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Error at RunConsensusOnMicroBlockWhenShardBackup");
       // throw exception();
       return false;
@@ -910,14 +909,14 @@ bool Node::CheckMicroBlockshardId() {
   if (m_mediator.m_ds->m_mode == DirectoryService::IDLE) {
     if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(m_myshardId),
                                  committeeHash)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetShardHash failed.");
       return false;
     }
   } else {
     if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                        committeeHash)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetDSCommitteeHash failed.");
       return false;
     }
@@ -1004,7 +1003,7 @@ unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
       return LEGITIMACYRESULT::SERIALIZATIONERROR;
     }
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Vacuous epoch: Skipping processing transactions");
   }
 
@@ -1228,7 +1227,7 @@ bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
   if (!Messenger::GetNodeMicroBlockAnnouncement(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_microblock, messageToCosign)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeMicroBlockAnnouncement failed.");
     return false;
   }

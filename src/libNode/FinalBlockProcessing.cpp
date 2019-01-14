@@ -74,7 +74,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   // At this point, the transactions in the last Epoch is no longer useful, thus
   // erase. EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Storing Tx Block" << endl
                                << txBlock);
 
@@ -93,7 +93,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
     LOG_GENERAL(WARNING, "prev hash cannot be converted to hex str");
   }
   LOG_EPOCH(
-      INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      INFO, m_mediator.m_currentEpochNum,
       "Final block "
           << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
           << " received with prevhash 0x" << prevHashStr);
@@ -108,7 +108,7 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
 
 bool Node::IsMicroBlockTxRootHashInFinalBlock(
     const MBnForwardedTxnEntry& entry, bool& isEveryMicroBlockAvailable) {
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Deleting unavailable microblock: " << entry);
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
   auto it = m_unavailableMicroBlocks.find(
@@ -116,7 +116,7 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
   bool found = (it != m_unavailableMicroBlocks.end() &&
                 RemoveTxRootHashFromUnavailableMicroBlock(entry));
   isEveryMicroBlockAvailable = found && it->second.empty();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
   return found;
 }
@@ -304,8 +304,7 @@ void Node::InitiatePoW() {
   POW::GetInstance().EthashConfigureClient(
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1,
       FULL_DATASET_MINE);
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Start pow ");
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Start pow ");
   auto func = [this]() mutable -> void {
     auto epochNumber =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
@@ -331,7 +330,7 @@ void Node::UpdateStateForNextConsensusRound() {
 
   // Set state to tx submission
   if (m_isPrimary) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am no longer the shard leader ");
     m_isPrimary = false;
   }
@@ -346,7 +345,7 @@ void Node::UpdateStateForNextConsensusRound() {
   }
 
   if (m_consensusMyID == m_consensusLeaderID) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am the new shard leader of shard " << m_myshardId);
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
                          << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -355,7 +354,7 @@ void Node::UpdateStateForNextConsensusRound() {
     m_isPrimary = true;
   } else {
     LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        INFO, m_mediator.m_currentEpochNum,
         "The new shard leader is m_consensusLeaderID " << m_consensusLeaderID);
   }
 }
@@ -477,7 +476,7 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
       if (txnIt != processedTransactions.end()) {
         txns_to_send.emplace_back(txnIt->second);
       } else {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Failed trying to find txn " << tx_hash
                                                << " in processed txn list");
       }
@@ -490,7 +489,7 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
 
   if (!Messenger::SetNodeMBnForwardTransaction(
           mb_txns_message, MessageOffset::BODY, *m_microblock, txns_to_send)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeMBnForwardTransaction failed.");
     return false;
   }
@@ -517,14 +516,14 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 
   if (stateRoot != finalBlock.GetHeader().GetStateRootHash()) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "State root doesn't match. Expected = "
             << stateRoot << ". "
             << "Received = " << finalBlock.GetHeader().GetStateRootHash());
     return false;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "State root matched " << finalBlock.GetHeader().GetStateRootHash());
 
   return true;
@@ -532,7 +531,7 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 
 void Node::PrepareGoodStateForFinalBlock() {
   if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I may have missed the micrblock consensus. However, if I "
               "recently received a valid finalblock, I will accept it");
     // TODO: Optimize state transition.
@@ -551,7 +550,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
 
   if (!Messenger::GetNodeFinalBlock(message, offset, dsBlockNumber, consensusID,
                                     txBlock, stateDelta)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeFinalBlock failed.");
     return false;
   }
@@ -583,19 +582,11 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     return false;
   }
 
-  if (consensusID != m_mediator.m_consensusID) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "Consensus ID is not correct. Expected ID: "
-                  << consensusID
-                  << " My Consensus ID: " << m_mediator.m_consensusID);
-    return false;
-  }
-
   // Verify the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -609,7 +600,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   }
 
   if (LOOKUP_NODE_MODE) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I the lookup node have deserialized the TxBlock" << endl
                                                                 << txBlock);
   }
@@ -620,7 +611,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
 
   // Verify the co-signature
   if (!VerifyFinalBlockCoSignature(txBlock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "TxBlock co-sig verification failed");
     return false;
   }
@@ -643,13 +634,13 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   // Compute the MBInfoHash of the extra MicroBlock information
   MBInfoHash mbInfoHash;
   if (!Messenger::GetMbInfoHash(txBlock.GetMicroBlockInfos(), mbInfoHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetMbInfoHash failed.");
     return false;
   }
 
   if (mbInfoHash != txBlock.GetHeader().GetMbInfoHash()) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "TxBlock MbInfo verification failed");
     return false;
   }
@@ -667,7 +658,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     PrepareGoodStateForFinalBlock();
 
     if (!CheckState(PROCESS_FINALBLOCK)) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Too late - current state is " << m_state << ".");
       return false;
     }
@@ -691,7 +682,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
           Account::GetAddressFromPublicKey(m_mediator.m_selfKey.second));
       if (it != addressMap.end()) {
         auto reward = it->second;
-        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "[REWARD]"
                       << " Got " << reward << " as reward");
         LOG_STATE("[REWARD][" << setw(15) << left
@@ -699,7 +690,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
                               << "][" << m_mediator.m_currentEpochNum << "]["
                               << reward << "] FLBLK");
       } else {
-        LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "[REWARD]"
                       << "Got no reward this ds epoch");
       }
@@ -885,7 +876,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     BlockStorage::GetBlockStorage().PutTxBody(twr.GetTransaction().GetTranID(),
                                               serializedTxBody);
   }
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Proceessed " << entry.m_transactions.size() << " of txns.");
 }
 
@@ -898,19 +889,18 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
   auto it = m_unavailableMicroBlocks.find(blocknum);
 
   for (auto it : m_unavailableMicroBlocks) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Unavailable"
               " microblock bodies in finalblock "
                   << it.first << ": " << it.second.size());
     for (auto it2 : it.second) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                it2.first);
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, it2.first);
     }
   }
 
   if (it != m_unavailableMicroBlocks.end() && it->second.empty()) {
     m_unavailableMicroBlocks.erase(it);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Deleting blocknum " << blocknum
                                    << " from unavailable microblocks list.");
 
@@ -949,7 +939,7 @@ bool Node::ProcessMBnForwardTransaction(const bytes& message,
   MBnForwardedTxnEntry entry;
 
   if (!Messenger::GetNodeMBnForwardTransaction(message, cur_offset, entry)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::ProcessMBnForwardTransaction failed.");
     return false;
   }
@@ -1040,7 +1030,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
 
     CommitForwardedTransactions(entry);
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "isEveryMicroBlockAvailable: " << isEveryMicroBlockAvailable);
 
     if (isEveryMicroBlockAvailable) {
