@@ -531,13 +531,13 @@ class Node : public Executable, public Broadcastable {
   void SetConsensusMyID(uint16_t);
 
   // Get m_consensusMyID
-  uint16_t GetConsensusMyID();
+  uint16_t GetConsensusMyID() const;
 
   // Set m_consensusLeaderID
   void SetConsensusLeaderID(uint16_t);
 
   // Get m_consensusLeaderID
-  uint16_t GetConsensusLeaderID();
+  uint16_t GetConsensusLeaderID() const;
 
   /// Fetch offline lookups with a counter for retrying
   bool GetOfflineLookups(bool endless = false);
