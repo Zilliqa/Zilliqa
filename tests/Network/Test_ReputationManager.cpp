@@ -42,8 +42,14 @@ void setup() {
   ReputationManager& rm = ReputationManager::GetInstance();
   rm.Clear();
 
-  node1 = IPConverter::ToNumericalIPFromStr("127.0.0.1");
-  node2 = IPConverter::ToNumericalIPFromStr("192.168.1.1");
+  BOOST_CHECK_MESSAGE(IPConverter::ToNumericalIPFromStr("127.0.0.1", node1),
+                      "Conversion from IP "
+                          << "127.0.0.1"
+                          << " to integer failed.");
+  BOOST_CHECK_MESSAGE(IPConverter::ToNumericalIPFromStr("192.168.1.1", node2),
+                      "Conversion from IP "
+                          << "192.168.1.1"
+                          << " to integer failed.");
   // Setup
   rm.AddNodeIfNotKnown(node1);
   rm.AddNodeIfNotKnown(node2);

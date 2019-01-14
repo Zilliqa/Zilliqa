@@ -29,6 +29,7 @@ RUN apt-get update \
     git \
     golang \
     libboost-filesystem-dev \
+    libboost-program-options-dev \
     libboost-system-dev \
     libboost-test-dev \
     libcurl4-openssl-dev \

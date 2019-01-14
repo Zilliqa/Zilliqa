@@ -79,7 +79,7 @@ def run_restart(pubKey, privKey, port, typ, path):
 		keypair = keypairs[x].split(" ")
 
 		signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + nodeIP +' ' + str(PORT_NUM) + ' 1 '+typ+ ' 1 >> ./error_log_zilliqa 2>&1')
+		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + nodeIP + ' --port ' + str(PORT_NUM) + ' --loadconfig ' + ' --synctype ' + typ + ' --recovery >> ./error_log_zilliqa 2>&1')
 
 if __name__ == "__main__":
 	main()

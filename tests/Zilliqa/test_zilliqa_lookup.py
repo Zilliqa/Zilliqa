@@ -151,7 +151,7 @@ def run_gentxn(batch=100):
                 patch_constants_xml(gentxn_constants_xml_path)
 
         print("Waiting gentxn for creating {} batches".format(batch))
-        os.system('cd ' + GENTXN_WORKING_DIR + '; ./gentxn 0 {}'.format(batch))
+        os.system('cd ' + GENTXN_WORKING_DIR + '; ./gentxn --begin 0 --end {}'.format(batch))
 
 def patch_lookup_pubkey(filepath, keypairs, count):
         root = ET.parse(filepath).getroot()
@@ -199,7 +199,7 @@ def run_start():
 	# Launch node zilliqa process
 	for x in range(0, count):
 		keypair = keypairs[x].split(" ")
-		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/lzilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 0 > ./error_log_zilliqa 2>&1 &')
+		os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/lzilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port '  + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &')
 
 if __name__ == "__main__":
 	main()

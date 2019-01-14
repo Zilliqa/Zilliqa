@@ -87,6 +87,24 @@ class SWInfo : public Serializable {
   const uint64_t& GetScillaUpgradeDS() const;
   const uint32_t& GetScillaCommit() const;
 
+  static void LogBrand() {
+    std::cout
+        << "Copyright (C) Zilliqa. Version 3.2.2 (Durian - Mao Shan Wang). "
+           "<https://www.zilliqa.com/> "
+        << std::endl;
+  }
+
+  static void LogBugReport() {
+    std::cout << "For bug reporting, please create an issue at "
+                 "<https://github.com/Zilliqa/Zilliqa> \n"
+              << std::endl;
+  }
+
+  static void LogBrandBugReport() {
+    LogBrand();
+    LogBugReport();
+  }
+
   friend std::ostream& operator<<(std::ostream& os, const SWInfo& t);
 };
 

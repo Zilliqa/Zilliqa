@@ -265,9 +265,9 @@ def run_start(numdsnodes):
 
 		if (x < numdsnodes):
 			shutil.copyfile('config_normal.xml', LOCAL_RUN_FOLDER + testfolders_list[x] + '/config.xml')
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 1 0 0 > ./error_log_zilliqa 2>&1 &')
+			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port ' + str(NODE_LISTEN_PORT + x) + ' --loadconfig > ./error_log_zilliqa 2>&1 &')
 		else:
-			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + keypair[1] + ' ' + keypair[0] + ' ' + '127.0.0.1' +' ' + str(NODE_LISTEN_PORT + x) + ' 0 0 0 > ./error_log_zilliqa 2>&1 &')
+			os.system('cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; echo \"' + keypair[0] + ' ' + keypair[1] + '\" > mykey.txt' + '; ulimit -n 65535; ulimit -Sc unlimited; ulimit -Hc unlimited; $(pwd)/zilliqa ' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + '127.0.0.1' + ' --port '  + str(NODE_LISTEN_PORT + x) + ' > ./error_log_zilliqa 2>&1 &')
 
 # To rejoin ds guard index 2
 def run_start_dsguard2():
@@ -321,7 +321,7 @@ def run_connect(numnodes):
 	# Connect nodes (exchange hello messages)
 	edges = set()
 	for x in range(0, numnodes):
-		connect_cmd = 'cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -Sc unlimited; ulimit -Hc unlimited;  ./sendcmd ' + str(NODE_LISTEN_PORT + x) + ' addpeers'
+		connect_cmd = 'cd ' + LOCAL_RUN_FOLDER + testfolders_list[x] + '; ulimit -Sc unlimited; ulimit -Hc unlimited;  ./sendcmd' + ' --port ' + str(NODE_LISTEN_PORT + x) + ' --cmd ' + 'addpeers'
 		has_peers_to_connect = False
 		for y in range(x + 1, numnodes):
 			index = y
@@ -335,7 +335,7 @@ def run_connect(numnodes):
 				has_peers_to_connect = True
 				keypair = keypairs[index].split(" ")
 				print ('connecting node ' + str(x + 1) + ' (port ' + str(NODE_LISTEN_PORT + x) + ') to node ' + str(index + 1) + ' (' + str(NODE_LISTEN_PORT + index) + ')')
-				connect_cmd = connect_cmd + ' ' + keypair[0] + ' 127.0.0.1 ' + str(NODE_LISTEN_PORT + index)
+				connect_cmd = connect_cmd + ' --cmdarg ' + keypair[0] + ' --cmdarg ' + '127.0.0.1' + ' --cmdarg ' + str(NODE_LISTEN_PORT + index)
 				if (x < index):
 					edges.add((x + 1, index + 1))
 				else:
@@ -360,12 +360,12 @@ def run_clean():
 	run_setup(count, False)
 
 def run_sendcmd(nodenum, msg):
-	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
+	os.system('tests/Zilliqa/sendcmd' + ' --port ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' --cmd ' + 'cmd' + ' --cmdarg ' + msg)
 	
 def run_sendcmdrandom(nodenum, msg_size):
 	# msg = "000400" + 'A' * msg_size * 2
 	# os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd ' + msg)
-	os.system('tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT) + ' broadcast ' + msg_size)
+	os.system('tests/Zilliqa/sendcmd' + ' --port ' + str(NODE_LISTEN_PORT) + ' --cmd ' + 'broadcast' + ' --cmdarg ' + msg_size)
 
 def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 	testfolders_list = get_immediate_subdirectories(LOCAL_RUN_FOLDER)
@@ -378,7 +378,7 @@ def run_startpow(nodenum, dscount, blocknum, dsdiff, diff, rand1, rand2):
 	keypairs = [x.strip() for x in keypairs]
 
 	# Assemble the STARTPOW message
-	startpow_cmd = 'tests/Zilliqa/sendcmd ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' cmd 0200' + blocknum + dsdiff + diff + rand1 + rand2
+	startpow_cmd = 'tests/Zilliqa/sendcmd' + ' --port ' + str(NODE_LISTEN_PORT + nodenum - 1) + ' --cmd ' + 'cmd' + ' --cmdarg 0200' + blocknum  + dsdiff + diff + rand1 + rand2
 	for x in range(0, dscount):
 		keypair = keypairs[x].split(" ")
 		startpow_cmd = startpow_cmd + keypair[0] + '0000000000000000000000000100007F' + "{0:0{1}x}".format(NODE_LISTEN_PORT + x, 8)
