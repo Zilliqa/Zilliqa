@@ -133,7 +133,7 @@ bool DirectoryService::ComposeFinalBlock() {
   // Compute the MBInfoHash of the MicroBlock information
   MBInfoHash mbInfoHash;
   if (!Messenger::GetMbInfoHash(mbInfos, mbInfoHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetMbInfoHash failed.");
     return false;
   }
@@ -145,7 +145,7 @@ bool DirectoryService::ComposeFinalBlock() {
     TxBlock lastBlock = m_mediator.m_txBlockChain.GetLastBlock();
     prevHash = lastBlock.GetBlockHash();
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Prev block hash as per leader "
                   << prevHash.hex() << endl
                   << "TxBlockHeader: " << lastBlock.GetHeader());
@@ -172,7 +172,7 @@ bool DirectoryService::ComposeFinalBlock() {
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -193,7 +193,7 @@ bool DirectoryService::ComposeFinalBlock() {
       << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1
       << "][" << m_finalBlock->GetHeader().GetNumTxs() << "] FINAL");
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Final block proposed with "
                 << m_finalBlock->GetHeader().GetNumTxs() << " transactions.");
 
@@ -213,7 +213,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
 
   // Compose the final block from all the microblocks
   // I guess only the leader has to do this
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am the leader DS node. Creating final block.");
 
   if (options == NORMAL ||
@@ -238,7 +238,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
 
   // stores it in m_finalBlock
   if (!ComposeFinalBlock()) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary failed");
     return false;
   }
@@ -246,7 +246,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
 #ifdef VC_TEST_FB_SUSPEND_1
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 1) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_FB_SUSPEND_1)");
     return false;
   }
@@ -255,7 +255,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
 #ifdef VC_TEST_FB_SUSPEND_3
   if (m_mode == PRIMARY_DS && m_viewChangeCounter < 3) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_FB_SUSPEND_3)");
     return false;
   }
@@ -278,7 +278,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
       ShardCommitFailureHandlerFunc()));
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Unable to create consensus object");
     return false;
   }
@@ -374,7 +374,7 @@ bool DirectoryService::CheckPreviousFinalBlockHash() {
   BlockHash expectedPrevHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash();
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Prev block hash recvd: "
                 << finalblockPrevHash.hex() << endl
                 << "Prev block hash expected: " << expectedPrevHash.hex()
@@ -721,7 +721,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
           mb_message, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, epochNum,
           microBlocksSent, stateDeltasSent, m_mediator.m_selfKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetDSMicroBlockSubmission failed.");
     return false;
   }
@@ -794,7 +794,7 @@ bool DirectoryService::CheckMicroBlockInfo() {
   // Compute the MBInfoHash of the MicroBlock information
   MBInfoHash mbInfoHash;
   if (!Messenger::GetMbInfoHash(microBlockInfos, mbInfoHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetMbInfoHash failed.");
     return false;
   }
@@ -828,7 +828,7 @@ bool DirectoryService::CheckStateRoot() {
   }
 
   LOG_EPOCH(
-      INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      INFO, m_mediator.m_currentEpochNum,
       "State root matched " << m_finalBlock->GetHeader().GetStateRootHash());
 
   return true;
@@ -858,7 +858,7 @@ bool DirectoryService::CheckStateDeltaHash() {
     return false;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "State delta hash matched "
                 << m_finalBlock->GetHeader().GetStateDeltaHash());
 
@@ -889,7 +889,7 @@ bool DirectoryService::CheckBlockHash() {
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -985,7 +985,7 @@ bool DirectoryService::FinalBlockValidator(
           message, offset, consensusID, blockNumber, blockHash, leaderID,
           leaderKey, *m_finalBlock, m_mediator.m_node->m_microblock,
           messageToCosign)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSFinalBlockAnnouncement failed.");
     m_mediator.m_node->m_microblock = nullptr;
     return false;
@@ -1038,7 +1038,7 @@ bool DirectoryService::FinalBlockValidator(
           finalblockPrevHashStr)) {
     return false;
   }
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Final block " << m_finalBlock->GetHeader().GetBlockNum()
                            << " received with prevhash 0x"
                            << finalblockPrevHashStr);
@@ -1059,14 +1059,14 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
 #ifdef VC_TEST_VC_PRECHECK_2
   if (m_consensusMyID == 3) {
     LOG_EPOCH(
-        WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        WARNING, m_mediator.m_currentEpochNum,
         "I am suspending myself to test viewchange (VC_TEST_VC_PRECHECK_2)");
     this_thread::sleep_for(chrono::seconds(45));
     return false;
   }
 #endif  // VC_TEST_VC_PRECHECK_2
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a backup DS node. Waiting for final block announcement. "
             "Leader is at index  "
                 << m_consensusLeaderID << " "
@@ -1097,7 +1097,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   m_mediator.m_node->m_consensusObject = m_consensusObject;
 
   if (m_consensusObject == nullptr) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Unable to create consensus object");
     return false;
   }
@@ -1119,11 +1119,11 @@ void DirectoryService::PrepareRunConsensusOnFinalBlockNormal() {
 
   if (m_mediator.GetIsVacuousEpoch()) {
     LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        INFO, m_mediator.m_currentEpochNum,
         "Vacuous epoch: Skipping submit transactions, and start InitCoinBase");
     m_mediator.m_node->CleanCreatedTransaction();
     // Coinbase
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(), "[CNBSE]");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "[CNBSE]");
 
     InitCoinbase();
     AccountStore::GetInstance().SerializeDelta();
@@ -1218,7 +1218,7 @@ void DirectoryService::RunConsensusOnFinalBlock(
     if (cv_viewChangeFinalBlock.wait_for(
             cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
         std::cv_status::timeout) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Initiated final block view change.");
       auto func2 = [this]() -> void {
         // Remove DS microblock from my list of microblocks

@@ -98,12 +98,12 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   }
 
   if (!CheckState(STARTPOW)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Not in POW_SUBMISSION state");
     return false;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Current dsblock is " << block_num);
 
   m_stillMiningPrimary = true;
@@ -138,16 +138,14 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
       LOG_GENERAL(WARNING, "rand2 is not a valid hex");
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Winning nonce   = 0x" << hex << winning_result.winning_nonce);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Winning result  = 0x" << hex << winning_result.result);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Winning mixhash = 0x" << hex << winning_result.mix_hash);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "rand1 = 0x" << rand1Str);
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "rand2 = 0x" << rand2Str);
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "rand1 = 0x" << rand1Str);
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "rand2 = 0x" << rand2Str);
 
     m_stillMiningPrimary = false;
 
@@ -181,7 +179,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
           return;
         }
 
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Time out while waiting for DS Block");
 
         if (GetLatestDSBlock()) {
@@ -290,7 +288,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
           powmessage, MessageOffset::BODY, block_num, difficultyLevel,
           m_mediator.m_selfPeer, m_mediator.m_selfKey, winningNonce,
           powResultHash, powMixhash, lookupId, gasPrice)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetDSPoWSubmission failed.");
     return false;
   }
@@ -371,20 +369,20 @@ bool Node::ReadVariablesFromStartPoWMessage(
 
   // Log all values
   /**
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
             "My IP address     = "
                 << m_mediator.m_selfPeer.GetPrintableIPAddress());
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
             "My Listening Port = " << m_mediator.m_selfPeer.m_listenPortHost);
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
             "DS Difficulty        = " << to_string(ds_difficulty));
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
             "Difficulty        = " << to_string(difficulty));
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
             "Rand1             = " << DataConversion::charArrToHexStr(rand1));
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
             "Rand2             = " << DataConversion::charArrToHexStr(rand2));
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
             "Pubkey            = " << DataConversion::SerializableToHexStr(
                 m_mediator.m_selfKey.second));
   **/
@@ -396,7 +394,7 @@ bool Node::ReadVariablesFromStartPoWMessage(
   // Create and keep a view of the DS committee
   // We'll need this if we win PoW
   m_mediator.m_DSCommittee->clear();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "DS nodes count    = " << numDS + 1);
   for (unsigned int i = 0; i < numDS; i++) {
     PubKey pubkey(message, cur_offset);
@@ -406,7 +404,7 @@ bool Node::ReadVariablesFromStartPoWMessage(
         make_pair(pubkey, Peer(message, cur_offset)));
 
     LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        INFO, m_mediator.m_currentEpochNum,
         "DS Node IP: "
             << m_mediator.m_DSCommittee->back().second.GetPrintableIPAddress()
             << " Port: "
@@ -455,7 +453,7 @@ bool Node::ProcessStartPoW(const bytes& message, unsigned int offset,
   // [33-byte pubkey] [16-byte ip] [4-byte port] ... (all the DS nodes)
 
   LOG_MARKER();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "START OF EPOCH " << m_mediator.m_dsBlockChain.GetLastBlock()
                                          .GetHeader()
                                          .GetBlockNum() +

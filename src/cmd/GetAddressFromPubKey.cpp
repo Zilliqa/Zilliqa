@@ -20,10 +20,13 @@
 #include <functional>
 #include <iostream>
 #include <thread>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/program_options.hpp>
 #pragma GCC diagnostic pop
+
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -32,26 +35,78 @@
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SWInfo.h"
 
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+
+namespace po = boost::program_options;
 using namespace std;
 using namespace boost::multiprecision;
 
-int main() {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Reset();
-  bytes message;
-  string s;
-  cin >> s;
-  bytes out;
-  if (DataConversion::HexStrToUint8Vec(s, out)) {
-    PubKey key(out, 0);
+void description() {
+  std::cout << endl << "Description:\n";
+  std::cout << "\tAccepts public key and prints computed address on stdout."
+            << endl;
+}
+
+int main(int argc, const char* argv[]) {
+  try {
+    string pubk;
+    po::options_description desc("Options");
+
+    desc.add_options()("help,h", "Print help messages")(
+        "pubk,u", po::value<string>(&pubk)->required(), "33-byte public key");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+
+      /** --help option
+       */
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        description();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Reset();
+    bytes message;
+
+    PubKey key;
+
+    try {
+      key = PubKey::GetPubKeyFromString(pubk);
+    } catch (std::invalid_argument& e) {
+      std::cerr << e.what() << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
     key.Serialize(message, 0);
     sha2.Update(message, 0, PUB_KEY_SIZE);
     const bytes& tmp2 = sha2.Finalize();
     Address toAddr;
     copy(tmp2.end() - ACC_ADDR_SIZE, tmp2.end(), toAddr.asArray().begin());
     cout << toAddr << endl;
-  } else {
-    cout << "Invalid pubkey" << endl;
+
+  } catch (exception& e) {
+    cerr << "Unhandled Exception reached the top of main: " << e.what()
+         << ", application will now exit" << endl;
+    return ERROR_UNHANDLED_EXCEPTION;
   }
+  return SUCCESS;
 }

@@ -133,7 +133,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
     if (cv_fallbackBlock.wait_for(
             cv_lk, std::chrono::seconds(FALLBACK_EXTRA_TIME),
             [this] { return m_state == WAITING_FALLBACKBLOCK; })) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Successfully transit to waiting_fallbackblock or I am in the "
                 "correct state.");
     } else {
@@ -144,7 +144,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
   FallbackBlock fallbackblock;
 
   if (!Messenger::GetNodeFallbackBlock(message, cur_offset, fallbackblock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeFallbackBlock failed.");
     return false;
   }
@@ -195,7 +195,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
     CommitteeHash committeeHash;
     if (!Messenger::GetShardHash(m_mediator.m_ds->m_shards.at(shard_id),
                                  committeeHash)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::GetShardHash failed.");
       return false;
     }
@@ -259,7 +259,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
     }
 
     if (!VerifyFallbackBlockCoSignature(fallbackblock)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "FallbackBlock co-sig verification failed");
       return false;
     }
@@ -319,7 +319,7 @@ bool Node::ProcessFallbackBlock(const bytes& message, unsigned int cur_offset,
     m_consensusLeaderID = 0;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I am a node and my DS committee is successfully fallback to shard "
                 << shard_id);
 

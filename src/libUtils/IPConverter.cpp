@@ -16,9 +16,47 @@
  */
 
 #include "IPConverter.h"
-#include <arpa/inet.h>
 
-const std::string IPConverter::ToStrFromNumericalIP(
+using namespace std;
+
+namespace IPConverter {
+
+bool GetIPPortFromSocket(string socket, string& ip, int& port) {
+  std::vector<std::string> addr_parts;
+  boost::algorithm::split(addr_parts, socket, boost::algorithm::is_any_of(":"));
+  // Check IPv6
+  if (socket[0] == '[') {
+    // Strip first char '['
+    addr_parts.front() =
+        addr_parts.front().substr(1, addr_parts.front().length());
+    // Reconstructs IP
+    ip = addr_parts.front();
+    std::for_each(addr_parts.begin() + 1, addr_parts.end() - 1,
+                  [&](const std::string& piece) { ip += (":" + piece); });
+    // Strip last char ']'
+    if (ip[ip.length() - 1] == ']') {
+      ip = ip.substr(0, ip.length() - 1);
+    } else {
+      return false;
+    }
+
+  } else if (addr_parts.size() == 2) {
+    ip = addr_parts[0];
+  } else {
+    return false;
+  }
+
+  try {
+    port = boost::lexical_cast<int>(addr_parts.back());
+    return true;
+  } catch (boost::bad_lexical_cast) {
+    return false;
+  }
+  // Defense
+  return false;
+}
+
+const std::string ToStrFromNumericalIP(
     const boost::multiprecision::uint128_t& ip) {
   char str[INET_ADDRSTRLEN];
   struct sockaddr_in serv_addr;
@@ -27,9 +65,45 @@ const std::string IPConverter::ToStrFromNumericalIP(
   return std::string(str);
 }
 
-const boost::multiprecision::uint128_t IPConverter::ToNumericalIPFromStr(
-    const std::string& ipStr) {
-  struct in_addr ip_addr;
-  inet_pton(AF_INET, ipStr.c_str(), &ip_addr);
-  return (boost::multiprecision::uint128_t)ip_addr.s_addr;
+void LogUnsupported(const string& ip) {
+  SWInfo::LogBrandBugReport();
+  cerr << "Error: Unknown address type " << ip << ", unsupported protocol\n"
+       << endl;
 }
+
+void LogInvalidIP(const string& ip) {
+  SWInfo::LogBrandBugReport();
+  cerr << "Error: address " << ip
+       << " does not contain a character string "
+          "representing a valid network address\n"
+       << endl;
+}
+
+void LogInternalErr(const string& ip) {
+  SWInfo::LogBrandBugReport();
+  cerr << "Internal Error: cannot process the input IP address " << ip << ".\n"
+       << std::endl;
+}
+
+bool ToNumericalIPFromStr(const std::string& ipStr,
+                          boost::multiprecision::uint128_t& ipInt) {
+  boost::asio::ip::address Addr;
+  try {
+    Addr = boost::asio::ip::address::from_string(ipStr);
+  } catch (const std::exception& e) {
+    LogInvalidIP(ipStr);
+    return false;
+  }
+  ipInt = 0;
+  if (Addr.is_v4()) {
+    ipInt = convertBytesToInt(Addr.to_v4());
+    return true;
+  } else if (Addr.is_v6()) {
+    ipInt = convertBytesToInt(Addr.to_v6());
+    return true;
+  }
+
+  LogUnsupported(ipStr);
+  return false;
+}
+}  // namespace IPConverter

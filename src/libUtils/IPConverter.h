@@ -20,19 +20,65 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#include <boost/algorithm/string.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
+#include <arpa/inet.h>
+#include <boost/asio.hpp>
 #include <string>
+#include "libUtils/SWInfo.h"
 
 /// Utility class for converter from ip address string to numerical
 /// represetation.
-class IPConverter {
- public:
-  static const std::string ToStrFromNumericalIP(
-      const boost::multiprecision::uint128_t& ip);
 
-  static const boost::multiprecision::uint128_t ToNumericalIPFromStr(
-      const std::string& ipStr);
-};
+namespace IPConverter {
+
+enum IPv { IPv4, IPv6 };
+
+const std::string ToStrFromNumericalIP(const boost::multiprecision::uint128_t&);
+
+bool GetIPPortFromSocket(std::string, std::string&, int&);
+
+void LogUnsupported(const std::string&);
+
+void LogInvalidIP(const std::string&);
+
+void LogInternalErr(const std::string&);
+
+template <class ip_t>
+boost::multiprecision::uint128_t convertBytesToInt(ip_t ip_v) {
+  uint8_t i = 0;
+  boost::multiprecision::uint128_t ipInt = 0;
+  for (const unsigned char b : ip_v.to_bytes()) {
+    ipInt = ipInt | (boost::multiprecision::uint128_t)b << i * 8;
+    i++;
+  }
+  return ipInt;
+}
+
+template <typename ip_s>
+bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
+  int res;
+  if (v == IPv4) {
+    res = inet_pton(AF_INET, in, &ip_addr);
+  } else {
+    res = inet_pton(AF_INET6, in, &ip_addr);
+  }
+
+  if (res == 1) {
+    return true;
+  } else if (res == 0) {
+    LogInvalidIP(std::string(in));
+    return false;
+  } else {
+    SWInfo::LogBrandBugReport();
+    LogInternalErr(std::string(in));
+    return false;
+  }
+}
+
+bool ToNumericalIPFromStr(const std::string&,
+                          boost::multiprecision::uint128_t&);
+}  // namespace IPConverter
 
 #endif  // __IP_CONVERTER_H__

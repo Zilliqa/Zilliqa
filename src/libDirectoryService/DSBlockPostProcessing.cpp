@@ -54,7 +54,7 @@ void DirectoryService::StoreDSBlockToStorage() {
   lock_guard<mutex> g(m_mutexPendingDSBlock);
   int result = m_mediator.m_dsBlockChain.AddBlock(*m_pendingDSBlock);
   LOG_EPOCH(
-      INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
+      INFO, m_mediator.m_currentEpochNum,
       "Storing DS Block Number: "
           << m_pendingDSBlock->GetHeader().GetBlockNum()
           << ", DS PoW Difficulty: "
@@ -64,7 +64,7 @@ void DirectoryService::StoreDSBlockToStorage() {
           << ", Timestamp: " << m_pendingDSBlock->GetTimestamp());
 
   if (result == -1) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "We failed to add pendingdsblock to dsblockchain.");
     // throw exception();
   }
@@ -100,7 +100,7 @@ bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
   if (!Messenger::SetNodeVCDSBlocksMessage(
           dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
           m_VCBlockVector, SHARDINGSTRUCTURE_VERSION, m_shards)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetNodeVCDSBlocksMessage failed.");
     return false;
   }
@@ -129,7 +129,7 @@ void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
 
   P2PComm::GetInstance().SendMessage(newDSmembers, dsblock_message);
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I the part of the subset of the DS committee that have sent the "
             "DSBlock to the lookup nodes and newly joined ds nodes");
 }
@@ -160,7 +160,7 @@ void DirectoryService::SendDSBlockToShardNodes(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
             *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
             m_shards)) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "Messenger::SetNodeVCDSBlocksMessage failed.");
       continue;
     }
@@ -195,7 +195,7 @@ void DirectoryService::SendDSBlockToShardNodes(
 
       for (unsigned int i = 0; i < numOfDSBlockReceivers; i++) {
         shardDSBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(p->at(i)));
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   " PubKey: " << std::get<SHARD_NODE_PUBKEY>(p->at(i))
                               << std::get<SHARD_NODE_PEER>(p->at(i)));
       }
@@ -241,7 +241,7 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
   // committee)
   if ((uint32_t)(m_consensusMyID + numOfIncomingDs) >=
       m_mediator.m_DSCommittee->size()) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am among the oldest backup DS -> I am now just a shard node"
                   << "\n"
                   << DS_KICKOUT_MSG);
@@ -274,19 +274,17 @@ void DirectoryService::UpdateMyDSModeAndConsensusId() {
 
     if (m_mediator.m_DSCommittee->at(m_consensusLeaderID).first ==
         m_mediator.m_selfKey.second) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am now DS leader for the next round");
-      LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                    DS_LEADER_MSG);
+      LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_LEADER_MSG);
       LOG_STATE("[IDENT][" << std::setw(15) << std::left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
                            << "][" << m_mediator.m_currentEpochNum << "] DSLD");
       m_mode = PRIMARY_DS;
     } else {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am now DS backup for the next round");
-      LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                    DS_BACKUP_MSG);
+      LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
 
       LOG_STATE("[IDENT][" << std::setw(15) << std::left
                            << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -369,8 +367,7 @@ void DirectoryService::StartFirstTxEpoch() {
     lock_guard<mutex> g(m_mediator.m_node->m_mutexShardMember);
     m_mediator.m_node->m_myShardMembers = m_mediator.m_DSCommittee;
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              " DS Sharding structure: ");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, " DS Sharding structure: ");
 
     unsigned int index = 0;
     for (const auto& i : *m_mediator.m_node->m_myShardMembers) {
@@ -379,7 +376,7 @@ void DirectoryService::StartFirstTxEpoch() {
         m_mediator.m_node->SetConsensusMyID(index);
       }
 
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 " PubKey: " << i.first << " IP: " << i.second);
 
       index++;
@@ -393,12 +390,12 @@ void DirectoryService::StartFirstTxEpoch() {
     if (m_mediator.m_node->GetConsensusMyID() ==
         m_mediator.m_node->GetConsensusLeaderID()) {
       m_mediator.m_node->m_isPrimary = true;
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am leader of the DS shard");
     } else {
       m_mediator.m_node->m_isPrimary = false;
 
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I am backup member of the DS shard");
     }
 
@@ -473,7 +470,7 @@ void DirectoryService::StartFirstTxEpoch() {
     }
 
     if (!found) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "WARNING: Oldest DS node not in any of the new shards!");
       return;
     }
@@ -497,7 +494,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     return;
   }
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "DS block consensus is DONE!!!");
 
   lock_guard<mutex> g(m_mediator.m_node->m_mutexDSBlock);
@@ -526,7 +523,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     if (m_pendingDSBlock->GetHeader().GetBlockNum() >
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
             1) {
-      LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "We are missing some blocks. What to do here?");
     }
   }
@@ -564,7 +561,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     std::this_thread::sleep_for(
         std::chrono::milliseconds(DELAY_FIRSTXNEPOCH_IN_MS));
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "DSBlock to be sent to the lookup nodes");
 
     auto composeDSBlockMessageForSender = [this](bytes& message) -> bool {
@@ -655,18 +652,18 @@ bool DirectoryService::ProcessDSBlockConsensus(
       if (cv_DSBlockConsensusObject.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_OBJECT_TIMEOUT)) ==
           std::cv_status::timeout) {
-        LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                   "Time out while waiting for state transition and "
                   "consensus object creation ");
       }
 
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "State transition is completed and consensus object "
                 "creation. (check for timeout)");
     }
 
     if (!CheckState(PROCESS_DSBLOCKCONSENSUS)) {
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Ignoring consensus message");
       return false;
     }
@@ -718,14 +715,14 @@ bool DirectoryService::ProcessDSBlockConsensus(
     cv_viewChangeDSBlock.notify_all();
     ProcessDSBlockConsensusWhenDone(message, offset);
   } else if (state == ConsensusCommon::State::ERROR) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "No consensus reached. Wait for view change");
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "DEBUG for verify sig m_allPoWConns  size is "
                   << m_allPoWConns.size()
                   << ". Please check numbers of pow receivied by this node");
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Consensus state = " << m_consensusObject->GetStateString());
     cv_processConsensusMessage.notify_all();
   }

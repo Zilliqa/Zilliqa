@@ -95,6 +95,9 @@ struct PrivKey : public Serializable {
   /// Destructor.
   ~PrivKey();
 
+  // Returns PrivKey from input string
+  static PrivKey GetPrivKeyFromString(const std::string&);
+
   /// Indicates if key parameters have been initialized.
   bool Initialized() const;
 
@@ -133,6 +136,7 @@ struct PubKey : public Serializable {
 
   /// Destructor.
   ~PubKey();
+  static PubKey GetPubKeyFromString(const std::string&);
 
   /// Indicates if key parameters have been initialized.
   bool Initialized() const;

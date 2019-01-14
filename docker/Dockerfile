@@ -29,6 +29,7 @@ RUN apt-get update \
     git \
     golang \
     libboost-filesystem-dev \
+    libboost-program-options-dev \
     libboost-system-dev \
     libboost-test-dev \
     libcurl4-openssl-dev \
@@ -50,7 +51,7 @@ RUN apt-get update \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ARG ZILLIQA_VERSION=v3.2.2
+ARG ZILLIQA_VERSION=v3.3.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

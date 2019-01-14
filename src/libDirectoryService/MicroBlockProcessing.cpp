@@ -236,27 +236,26 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
   }
 
   uint32_t shardId = microBlock.GetHeader().GetShardId();
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "shard_id " << shardId);
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "shard_id " << shardId);
 
   const PubKey& pubKey = microBlock.GetHeader().GetMinerPubKey();
 
   // Check public key - shard ID mapping
   const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
   if (minerEntry == m_publicKeyToshardIdMap.end()) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Cannot find the miner key: " << pubKey);
     return false;
   }
   if (minerEntry->second != shardId) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Microblock shard ID mismatch");
     return false;
   }
 
   CommitteeHash committeeHash;
   if (!Messenger::GetShardHash(m_shards.at(shardId), committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetShardHash failed.");
     return false;
   }
@@ -271,7 +270,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
   // Verify the co-signature
   if (!VerifyMicroBlockCoSignature(microBlock, shardId)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Microblock co-sig verification failed");
     return false;
   }
@@ -323,7 +322,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShardCore(
 
   microBlocksAtEpoch.emplace(microBlock);
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             microBlocksAtEpoch.size()
                 << " of " << m_shards.size() << " microblocks received");
 
@@ -437,7 +436,7 @@ bool DirectoryService::ProcessMicroblockSubmissionFromShard(
     }
   }
 
-  LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
             "This microblock submission is too late");
 
   return false;
@@ -464,7 +463,7 @@ bool DirectoryService::ProcessMicroblockSubmission(
   if (!Messenger::GetDSMicroBlockSubmission(message, offset, submitMBType,
                                             epochNumber, microBlocks,
                                             stateDeltas, senderPubKey)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSMicroBlockSubmission failed.");
     return false;
   }
@@ -504,7 +503,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
     const uint64_t epochNumber, const vector<MicroBlock>& microBlocks,
     const vector<bytes>& stateDeltas) {
   if (epochNumber != m_mediator.m_currentEpochNum) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "untimely delivery of "
                   << "missing microblocks. received: " << epochNumber
                   << " , local: " << m_mediator.m_currentEpochNum);
@@ -534,7 +533,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       }
 
       uint32_t shardId = microBlocks.at(i).GetHeader().GetShardId();
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "shard_id: " << shardId << ", pubkey: "
                              << microBlocks.at(i).GetHeader().GetMinerPubKey());
 
@@ -551,7 +550,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
           }
         }
         if (!found) {
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "Cannot find the miner key in DS committee: " << pubKey);
           continue;
         }
@@ -559,12 +558,12 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         // normal shard
         const auto& minerEntry = m_publicKeyToshardIdMap.find(pubKey);
         if (minerEntry == m_publicKeyToshardIdMap.end()) {
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "Cannot find the miner key in normal shard: " << pubKey);
           continue;
         }
         if (minerEntry->second != shardId) {
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "Microblock shard ID mismatch");
           continue;
         }
@@ -573,7 +572,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
       // Verify the co-signature
       if (shardId != m_mediator.m_node->m_myshardId) {
         if (!VerifyMicroBlockCoSignature(microBlocks[i], shardId)) {
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "Microblock co-sig verification failed");
           continue;
         }
@@ -590,7 +589,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
           }
         }
         if (!found) {
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "Microblock fetched is not in missing list");
           continue;
         }
@@ -607,7 +606,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
           }
         }
         if (found) {
-          LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                     "Microblock already exists in local");
           continue;
         }

@@ -61,7 +61,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
 
   m_mediator.m_dsBlockChain.AddBlock(dsblock);
   LOG_EPOCH(
-      INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      INFO, m_mediator.m_currentEpochNum,
       "Storing DS Block Number: "
           << dsblock.GetHeader().GetBlockNum() << " with Nonce: "
           << ", DS PoW Difficulty: "
@@ -173,21 +173,20 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
 }
 
 void Node::LogReceivedDSBlockDetails([[gnu::unused]] const DSBlock& dsblock) {
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "dsblock.GetHeader().GetDifficulty(): "
                 << (int)dsblock.GetHeader().GetDifficulty());
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "dsblock.GetHeader().GetBlockNum(): "
                 << dsblock.GetHeader().GetBlockNum());
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "dsblock.GetHeader().GetLeaderPubKey(): "
                 << dsblock.GetHeader().GetLeaderPubKey());
 
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Incoming DS committee members");
   for (const auto& dsmember : dsblock.GetHeader().GetDSPoWWinners()) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              dsmember.second);
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, dsmember.second);
   }
 }
 
@@ -203,7 +202,7 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
 
   // Check the shard ID against the deserialized structure
   if (m_myshardId >= m_mediator.m_ds->m_shards.size()) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Shard ID " << m_myshardId << " >= num shards "
                           << m_mediator.m_ds->m_shards.size());
     return false;
@@ -230,7 +229,7 @@ bool Node::LoadShardingStructure(bool callByRetrieve) {
         foundMe = true;
       }
 
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 " PubKey: " << m_myShardMembers->back().first
                             << " IP: " << m_myShardMembers->back().second);
 
@@ -274,7 +273,7 @@ void Node::StartFirstTxEpoch() {
   if (m_mediator.m_selfKey.second ==
       (*m_myShardMembers)[m_consensusLeaderID].first) {
     m_isPrimary = true;
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am leader of the sharded committee");
 
     LOG_STATE("[IDENT][" << std::setw(15) << std::left
@@ -284,7 +283,7 @@ void Node::StartFirstTxEpoch() {
   } else {
     m_isPrimary = false;
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am backup member of the sharded committee");
 
     LOG_STATE(
@@ -338,7 +337,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       return false;
     }
   } else {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I the lookup node have received the DS Block");
   }
 
@@ -353,7 +352,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   if (!Messenger::GetNodeVCDSBlocksMessage(
           message, cur_offset, shardId, dsblock, vcBlocks,
           shardingStructureVersion, t_shards)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetNodeVCDSBlocksMessage failed.");
     return false;
   }
@@ -369,7 +368,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   ShardingHash shardingHash;
   if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION, t_shards,
                                            shardingHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetShardingStructureHash failed.");
     return false;
   }
@@ -447,7 +446,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
   CommitteeHash committeeHash;
   if (!Messenger::GetDSCommitteeHash(*m_mediator.m_DSCommittee,
                                      committeeHash)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetDSCommitteeHash failed.");
     return false;
   }
@@ -462,7 +461,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
 
   // Check the signature of this DS block
   if (!VerifyDSBlockCoSignature(dsblock)) {
-    LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "DSBlock co-sig verification failed");
     return false;
   }
@@ -515,7 +514,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       << "] RECVD DSBLOCK");
 
   if (LOOKUP_NODE_MODE) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I the lookup node have stored the DS Block");
   }
 
@@ -547,7 +546,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       if (m_mediator.m_selfKey.second == newDSMember.first) {
         isNewDSMember = true;
         m_mediator.m_ds->SetConsensusMyID(newDSMemberIndex);
-        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+        LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                   "I won DS PoW. Currently, one of the new ds "
                   "committee member with id "
                       << m_mediator.m_ds->GetConsensusMyID());
@@ -571,7 +570,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
           lastBlockHash % Guard::GetInstance().GetNumOfDSGuard());
     }
 
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "lastBlockHash " << lastBlockHash << ", new DS leader Id "
                                << m_mediator.m_ds->GetConsensusLeaderID());
 
@@ -593,9 +592,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
             m_mediator.m_ds->GetConsensusMyID()) {
           // I am the new DS committee leader
           m_mediator.m_ds->m_mode = DirectoryService::Mode::PRIMARY_DS;
-          LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                        DS_LEADER_MSG);
-          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_LEADER_MSG);
+          LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                     "I am now DS leader for the next round");
           LOG_STATE("[IDENT][" << std::setw(15) << std::left
                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
@@ -603,9 +601,8 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
                                << "] DSLD");
         } else {
           m_mediator.m_ds->m_mode = DirectoryService::Mode::BACKUP_DS;
-          LOG_EPOCHINFO(to_string(m_mediator.m_currentEpochNum).c_str(),
-                        DS_BACKUP_MSG);
-          LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+          LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
+          LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                     "I am now DS backup for the next round");
         }
       }
@@ -613,7 +610,7 @@ bool Node::ProcessVCDSBlocksMessage(const bytes& message,
       m_mediator.m_ds->StartFirstTxEpoch();
     } else {
       // If I am a shard node
-      LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "I lost PoW (DS level) :-( Better luck next time!");
 
       // Process sharding structure as a shard node

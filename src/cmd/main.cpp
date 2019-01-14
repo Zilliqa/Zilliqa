@@ -21,110 +21,164 @@
 #include <arpa/inet.h>
 #include <algorithm>
 #include <iostream>
-#include "libUtils/Logger.h"
+
+#include <boost/lexical_cast.hpp>
+#include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/PeerStore.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+
+namespace po = boost::program_options;
+
 int main(int argc, const char* argv[]) {
-  const int num_args_required = 1 + 7;  // first 1 = program name
-  struct in_addr ip_addr;
-  Peer my_network_info;
+  try {
+    Peer my_network_info;
+    string privK;
+    string pubK;
+    PrivKey privkey;
+    PubKey pubkey;
+    string address;
+    int port = -1;
+    unique_ptr<NAT> nt;
+    uint128_t ip;
+    unsigned int synctype = 0;
+    const char* synctype_descr =
+        "0(default) for no, 1 for new, 2 for normal, 3 for ds, 4 for lookup, 5 "
+        "for node recovery, 6 for new lookup and 7 for ds guard node sync";
+    po::options_description desc("Options");
 
-  INIT_FILE_LOGGER("zilliqa");
-  INIT_STATE_LOGGER("state");
-  INIT_EPOCHINFO_LOGGER("epochinfo");
+    desc.add_options()("help,h", "Print help messages")(
+        "privk,i", po::value<string>(&privK)->required(),
+        "32-byte private key")("pubk,u", po::value<string>(&pubK)->required(),
+                               "33-byte public key")(
+        "address,a", po::value<string>(&address)->required(),
+        "Listen IPv4/6 address formated as \"dotted decimal\" or optionally "
+        "\"dotted decimal:portnumber\" format, otherwise \"NAT\"")(
+        "port,p", po::value<int>(&port),
+        "Specifies port to bind to, if not specified in address")(
+        "loadconfig,l", "Loads configuration if set")(
+        "synctype,s", po::value<unsigned int>(&synctype), synctype_descr)(
+        "recovery,r", "Runs in recovery mode if set");
 
-  if (argc != num_args_required) {
-    cout << "Copyright (C) Zilliqa. Version 3.2.2 (Durian - Mao Shan Wang). "
-            "<https://www.zilliqa.com/> "
-         << endl;
-    cout << "For bug reporting, please create an issue at "
-            "<https://github.com/Zilliqa/Zilliqa> \n"
-         << endl;
-    cout << "[USAGE] " << argv[0]
-         << " <32-byte private_key> <33-byte public_key> "
-            "<listen_ip_address or \"NAT\"> <listen_port> <1 if "
-            "loadConfig, 0 "
-            "otherwise> <SyncType, 0 for no, 1 for new,"
-            " 2 for normal, 3 for ds, 4 for lookup, 5 for node recovery, 6 for "
-            "new lookup and 7 for ds guard node sync> "
-            "<1 if recovery, 0 otherwise>"
-         << endl;
-    return 0;
-  }
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
 
-  unsigned int localPort = static_cast<unsigned int>(atoi(argv[4]));
-  unique_ptr<NAT> nt;
+      /** --help option
+       */
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
 
-  if (string(argv[3]) == "NAT") {
-    nt = make_unique<NAT>();
-    nt->init();
+      try {
+        privkey = PrivKey::GetPrivKeyFromString(privK);
+      } catch (std::invalid_argument& e) {
+        std::cerr << e.what() << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
 
-    int mappedPort = nt->addRedirect(localPort);
+      try {
+        pubkey = PubKey::GetPubKeyFromString(pubK);
+      } catch (std::invalid_argument& e) {
+        std::cerr << e.what() << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
 
-    if (mappedPort <= 0) {
-      LOG_GENERAL(WARNING, "NAT ERROR");
-      return -1;
-    } else {
-      LOG_GENERAL(INFO, "My external IP is " << nt->externalIP().c_str()
-                                             << " and my mapped port is "
-                                             << mappedPort);
+      if (synctype > 7) {
+        SWInfo::LogBrandBugReport();
+        std::cerr << "Invalid synctype '" << synctype
+                  << "', please select: " << synctype_descr << "." << endl;
+      }
+
+      if (address != "NAT") {
+        string address_;
+        if (IPConverter::GetIPPortFromSocket(address, address_, port)) {
+          address = address_;
+        }
+      }
+
+      if (!IPConverter::ToNumericalIPFromStr(address, ip)) {
+        return ERROR_IN_COMMAND_LINE;
+      }
+
+      if ((port < 0) || (port > 65535)) {
+        SWInfo::LogBrandBugReport();
+        std::cerr << "Invalid or missing port number" << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      std::cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      return ERROR_IN_COMMAND_LINE;
     }
 
-    inet_pton(AF_INET, nt->externalIP().c_str(), &ip_addr);
-    my_network_info = Peer((uint128_t)ip_addr.s_addr, mappedPort);
-  } else {
-    inet_pton(AF_INET, argv[3], &ip_addr);
-    my_network_info = Peer((uint128_t)ip_addr.s_addr, localPort);
+    INIT_FILE_LOGGER("zilliqa");
+    INIT_STATE_LOGGER("state");
+    INIT_EPOCHINFO_LOGGER("epochinfo");
+
+    if (address == "NAT") {
+      nt = make_unique<NAT>();
+      nt->init();
+
+      int mappedPort = nt->addRedirect(port);
+
+      if (mappedPort <= 0) {
+        SWInfo::LogBrandBugReport();
+        LOG_GENERAL(WARNING, "NAT ERROR");
+        return -1;
+      } else {
+        LOG_GENERAL(INFO, "My external IP is " << nt->externalIP().c_str()
+                                               << " and my mapped port is "
+                                               << mappedPort);
+      }
+
+      if (!IPConverter::ToNumericalIPFromStr(nt->externalIP().c_str(), ip)) {
+        return ERROR_IN_COMMAND_LINE;
+      }
+      my_network_info = Peer(ip, mappedPort);
+    } else {
+      my_network_info = Peer(ip, port);
+    }
+
+    Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
+                    vm.count("loadconfig"), synctype, vm.count("recovery"));
+    auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
+      zilliqa.Dispatch(message);
+    };
+    auto broadcast_list_retriever =
+        [&zilliqa](unsigned char msg_type, unsigned char ins_type,
+                   const Peer& from) mutable -> vector<Peer> {
+      return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
+    };
+
+    P2PComm::GetInstance().StartMessagePump(
+        my_network_info.m_listenPortHost, dispatcher, broadcast_list_retriever);
+
+  } catch (std::exception& e) {
+    std::cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << std::endl;
+    return ERROR_UNHANDLED_EXCEPTION;
   }
 
-  bytes tmPrivkey;
-  bytes tmpPubkey;
-
-  if (!DataConversion::HexStrToUint8Vec(argv[1], tmPrivkey)) {
-    LOG_GENERAL(WARNING, "Invalid hex string (PrivKey).");
-    return -1;
-  }
-
-  if (!DataConversion::HexStrToUint8Vec(argv[2], tmpPubkey)) {
-    LOG_GENERAL(WARNING, "Invalid hex string (PubKey).");
-    return -1;
-  }
-
-  PrivKey privkey;
-  if (privkey.Deserialize(tmPrivkey, 0) != 0) {
-    LOG_GENERAL(WARNING, "We failed to deserialize PrivKey.");
-    return -1;
-  }
-
-  PubKey pubkey;
-  if (pubkey.Deserialize(tmpPubkey, 0) != 0) {
-    LOG_GENERAL(WARNING, "We failed to deserialize PubKey.");
-    return -1;
-  }
-
-  Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
-                  atoi(argv[5]) == 1, atoi(argv[6]), atoi(argv[7]) == 1);
-
-  auto dispatcher = [&zilliqa](pair<bytes, Peer>* message) mutable -> void {
-    zilliqa.Dispatch(message);
-  };
-  auto broadcast_list_retriever =
-      [&zilliqa](unsigned char msg_type, unsigned char ins_type,
-                 const Peer& from) mutable -> vector<Peer> {
-    return zilliqa.RetrieveBroadcastList(msg_type, ins_type, from);
-  };
-
-  P2PComm::GetInstance().StartMessagePump(my_network_info.m_listenPortHost,
-                                          dispatcher, broadcast_list_retriever);
-
-  return 0;
+  return SUCCESS;
 }

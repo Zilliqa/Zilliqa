@@ -188,12 +188,13 @@ class ScopeMarker {
                  << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
                  << PAD(get_ms(cur), 3, '0') << "]["                           \
                  << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "]"       \
-                 << "[Epoch " << epoch << "] " << msg;                         \
+                 << "[Epoch " << std::to_string(epoch).c_str() << "] " << msg; \
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
       Logger::GetLogger(NULL, true)                                            \
-          .LogEpoch(level, epoch, oss.str().c_str(), __FUNCTION__);            \
+          .LogEpoch(level, std::to_string(epoch).c_str(), oss.str().c_str(),   \
+                    __FUNCTION__);                                             \
     }                                                                          \
   }
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
@@ -234,11 +235,12 @@ class ScopeMarker {
   { Logger::GetLogger(NULL, true).EnableLevel(level); }
 #define LOG_DISABLE_LEVEL(level) \
   { Logger::GetLogger(NULL, true).DisableLevel(level); }
-#define LOG_EPOCHINFO(blockNum, msg)                              \
-  {                                                               \
-    std::ostringstream oss;                                       \
-    oss << msg;                                                   \
-    Logger::GetEpochInfoLogger(NULL, true)                        \
-        .LogEpochInfo(oss.str().c_str(), __FUNCTION__, blockNum); \
+#define LOG_EPOCHINFO(blockNum, msg)                     \
+  {                                                      \
+    std::ostringstream oss;                              \
+    oss << msg;                                          \
+    Logger::GetEpochInfoLogger(NULL, true)               \
+        .LogEpochInfo(oss.str().c_str(), __FUNCTION__,   \
+                      std::to_string(blockNum).c_str()); \
   }
 #endif  // __LOGGER_H__

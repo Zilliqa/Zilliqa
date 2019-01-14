@@ -43,7 +43,7 @@ find_package(Threads REQUIRED)
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
-find_package(Boost COMPONENTS filesystem system unit_test_framework)
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
@@ -184,7 +184,7 @@ set(CPACK_PACKAGE_VERSION $ENV{ZIL_VER})
 set(CPACK_PACKAGE_NAME $ENV{ZIL_PACK_NAME})
 set(CPACK_DEBIAN_PACKAGE_NAME "zilliqa")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-system-dev, libboost-filesystem-dev, libboost-test-dev, libssl-dev, libleveldb-dev, libjsoncpp-dev, libsnappy-dev, cmake, libmicrohttpd-dev, libjsonrpccpp-dev, build-essential, pkg-config, libevent-dev, libminiupnpc-dev, libprotobuf-dev, protobuf-compiler")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-system-dev, libboost-filesystem-dev, libboost-test-dev, libssl-dev, libleveldb-dev, libjsoncpp-dev, libsnappy-dev, cmake, libmicrohttpd-dev, libjsonrpccpp-dev, build-essential, pkg-config, libevent-dev, libminiupnpc-dev, libprotobuf-dev, protobuf-compiler, libboost-program-options-dev")
 set(CPACK_PACKAGE_CONTACT "maintainers@zilliqa.com")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 

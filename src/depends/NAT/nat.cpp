@@ -143,7 +143,7 @@ int NAT::addRedirect(int _port)
 		if (!UPNP_AddPortMapping(m_urls->controlURL, m_data->first.servicetype, ext_port_str.c_str(), port_str.c_str(), m_lanAddress.c_str(), "zilliqa", "TCP", NULL, NULL))
         {
             m_reg.insert(_port);
-			return _port;
+            return _port;
         }
 	}
 

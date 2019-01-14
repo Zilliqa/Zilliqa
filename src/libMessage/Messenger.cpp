@@ -4446,7 +4446,7 @@ bool Messenger::SetNodeMissingTxnsErrorMsg(
   NodeMissingTxnsErrorMsg result;
 
   for (const auto& hash : missingTxnHashes) {
-    LOG_EPOCH(INFO, to_string(epochNum).c_str(), "Missing txn: " << hash);
+    LOG_EPOCH(INFO, epochNum, "Missing txn: " << hash);
     result.add_txnhashes(hash.data(), hash.size);
   }
 
