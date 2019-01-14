@@ -40,7 +40,7 @@ class SysCommand {
   static FILE* popen2(std::string command, std::string type, int& pid) {
     pid_t child_pid;
     int fd[2];
-    if (!pipe(fd)) {
+    if (pipe(fd) != 0) {
       LOG_GENERAL(WARNING, "Failed to pipe fd");
     }
 

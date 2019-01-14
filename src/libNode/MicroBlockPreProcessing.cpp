@@ -266,11 +266,15 @@ void Node::ProcessTransactionWhenShardLeader() {
   bool txnProcTimeout = false;
 
   auto txnProcTimer = [&txnProcTimeout]() -> void {
-    // this_thread::sleep_for(chrono::seconds(
-    //     MICROBLOCK_TIMEOUT -
-    //     (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
-    //     CONSENSUS_OBJECT_TIMEOUT));
-    this_thread::sleep_for(chrono::seconds(1));
+    int timeout_time = std::max(
+        0,
+        ((int)MICROBLOCK_TIMEOUT -
+         ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
+         (int)CONSENSUS_OBJECT_TIMEOUT) /
+            2);
+    LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
+                          << timeout_time << " seconds");
+    this_thread::sleep_for(chrono::seconds(timeout_time));
     txnProcTimeout = true;
     AccountStore::GetInstance().NotifyTimeout();
   };
@@ -481,11 +485,15 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   bool txnProcTimeout = false;
 
   auto txnProcTimer = [&txnProcTimeout]() -> void {
-    // this_thread::sleep_for(chrono::seconds(
-    //     MICROBLOCK_TIMEOUT -
-    //     (TX_DISTRIBUTE_TIME_IN_MS + FINALBLOCK_DELAY_IN_MS) / 1000 -
-    //     CONSENSUS_OBJECT_TIMEOUT - COMMIT_WINDOW_IN_SECONDS));
-    this_thread::sleep_for(chrono::seconds(1));  // for testing
+    int timeout_time = std::max(
+        0,
+        ((int)MICROBLOCK_TIMEOUT -
+         ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
+         (int)CONSENSUS_OBJECT_TIMEOUT) /
+            2);
+    LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
+                          << timeout_time << " seconds");
+    this_thread::sleep_for(chrono::seconds(timeout_time));
     txnProcTimeout = true;
     AccountStore::GetInstance().NotifyTimeout();
   };

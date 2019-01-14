@@ -287,8 +287,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     m_curSenderAddr = fromAddr;
     m_curDepth = 0;
 
-    bool ret = true;
-
     Account* toAccount = this->GetAccount(toAddr);
     if (toAccount == nullptr) {
       LOG_GENERAL(WARNING, "The target contract account doesn't exist");
@@ -296,7 +294,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     } else {
       if (!PrepareRootPathWVersion(m_root_w_version,
                                    toAccount->GetScillaVersion())) {
-        ret = false;
+        return false;
       }
     }
 
@@ -330,9 +328,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     auto func = [this, &runnerPrint, &ret, &pid,
                  gasRemained]() mutable -> void {
       if (!SysCommand::ExecuteCmdWithOutputPID(
-              GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint, pid)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: "
-                                 << GetCallContractCmdStr(gasRemained));
+              GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
+              pid)) {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                                 m_root_w_version, gasRemained));
         ret = false;
       }
       cv_callContract.notify_all();
@@ -884,10 +883,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   int pid = -1;
   auto func = [this, &runnerPrint, &result, &pid,
                gasRemained]() mutable -> void {
-    if (!SysCommand::ExecuteCmdWithOutputPID(GetCallContractCmdStr(m_root_w_version, gasRemained),
-                                             runnerPrint, pid)) {
-      LOG_GENERAL(WARNING,
-                  "ExecuteCmd failed: " << GetCallContractCmdStr(gasRemained));
+    if (!SysCommand::ExecuteCmdWithOutputPID(
+            GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint,
+            pid)) {
+      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << GetCallContractCmdStr(
+                               m_root_w_version, gasRemained));
       result = false;
     }
     cv_callContract.notify_all();
@@ -954,6 +954,7 @@ void AccountStoreSC<MAP>::DiscardTransferBalanceAtomic() {
 
 template <class MAP>
 void AccountStoreSC<MAP>::NotifyTimeout() {
+  LOG_MARKER();
   m_txnProcessTimeout = true;
   cv_callContract.notify_all();
 }
