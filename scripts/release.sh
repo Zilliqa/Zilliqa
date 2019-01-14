@@ -31,6 +31,11 @@ constantLookupFile=""
 constantArchivalLookupFile=""
 
 # [OPTIONAL] User configuration settings
+# If you want to release Zilliqa, please keep this variable "true"
+# If you do NOT want to release Zilliqa, please change this variable "false"
+releaseZilliqa="true"
+
+# [OPTIONAL] User configuration settings
 # If you want to release Scilla, please define this variable
 # If you do NOT want to release Scilla, please leave this variable empty
 scillaPath=""
@@ -93,12 +98,23 @@ if [ ! -f "${constantArchivalLookupFile}" ]; then
     return 1
 fi
 
+if [ "$releaseZilliqa" = "true" ]; then
+    echo -e "\n\033[0;32m*INFO* Zilliqa will be released.\033[0m\n"
+else
+    echo -e "\n\033[0;32m*INFO* Zilliqa will NOT be released.\033[0m\n"
+fi
+
 if [ -d "${scillaPath}" ]; then
     echo -e "\n\033[0;32m*INFO* Scilla will be released.\033[0m\n"
     scillaPath="$(realpath ${scillaPath})"
 else
     echo -e "\n\033[0;32m*INFO* Scilla Path : ${scillaPath} not existed, Scilla will NOT be released.\033[0m\n"
     scillaPath=""
+fi
+
+if [ "$releaseZilliqa" = "false" ] && [ ! -d "${scillaPath}" ]; then
+    echo -e "\n\033[0;31m*ERROR* Nothing will be released!\033[0m\n"
+    return 1
 fi
 
 # Read information from files
@@ -118,27 +134,38 @@ export ZIL_VER=${newVer}
 export ZIL_PACK_NAME=${packageName}
 
 # Use cpack to making deb file
-echo -e "\n\033[0;32mMake Zilliqa deb package...\033[0m\n"
+if [ "$releaseZilliqa" = "true" ]; then
+    echo -e "\n\033[0;32mMaking Zilliqa deb package...\033[0m\n"
+fi
+
 rm -rf ${releaseDir}
 cmake -H. -B${releaseDir} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr/local/
-cmake --build ${releaseDir} --j4
-cd ${releaseDir}; make package; cp ${versionFile} .
-mv ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux.deb ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux-Zilliqa.deb
-zilliqaDebFile="$(ls *.deb)"
-cd -
-echo -e "\n\033[0;32mZilliqa deb packages are generated successfully.\033[0m\n"
+cmake --build ${releaseDir}
+cd ${releaseDir}; cp ${versionFile} .
 
-# Write new version information into version file and make SHA-256 & multi-signature
+if [ "$releaseZilliqa" = "true" ]; then
+    make package
+    mv ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux.deb ${packageName}-${zilliqaMajor}.${zilliqaMinor}.${zilliqaFix}.${zilliqaDS}.${zilliqaCommit}-Linux-Zilliqa.deb
+    zilliqaDebFile="$(ls *.deb)"
+    echo -e "\n\033[0;32mZilliqa deb packages are generated successfully.\033[0m\n"
+fi
+
+cd -
+
+# Write Zilliqa new version information into version file and make SHA-256 & multi-signature
 privKeyFile="$(realpath ${privKeyFile})"
 pubKeyFile="$(realpath ${pubKeyFile})"
 cd ${releaseDir}
-sed -i "${zilliqaCommitLine}s/.*/${zilliqaCommit}/" $(basename ${versionFile})
-echo -e "\n\033[0;32mMaking Zilliqa SHA-256 & multi-signature...\033[0m\n"
-zilliqaSha="$(sha256sum ${zilliqaDebFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
-sed -i "${zilliqaShaLine}s/.*/${zilliqaSha}/" $(basename ${versionFile})
-zilliqaSignature="$(./bin/signmultisig ${zilliqaSha} ${privKeyFile} ${pubKeyFile})"
-sed -i "${zilliqaSigLine}s/.*/${zilliqaSignature}/" $(basename ${versionFile})
 
+if [ "$releaseZilliqa" = "true" ]; then
+    sed -i "${zilliqaCommitLine}s/.*/${zilliqaCommit}/" $(basename ${versionFile})
+    echo -e "\n\033[0;32mMaking Zilliqa SHA-256 & multi-signature...\033[0m\n"
+    zilliqaSha="$(sha256sum ${zilliqaDebFile}|cut -d ' ' -f1|tr 'a-z' 'A-Z')"
+    sed -i "${zilliqaShaLine}s/.*/${zilliqaSha}/" $(basename ${versionFile})
+    zilliqaSignature="$(./bin/signmultisig -m ${zilliqaSha} -i ${privKeyFile} -u ${pubKeyFile})"
+    sed -i "${zilliqaSigLine}s/.*/${zilliqaSignature}/" $(basename ${versionFile})
+    echo -e "\n\033[0;32mZilliqa SHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\033[0m\n"
+fi
 if [ "$scillaPath" != "" ]; then
     scillaVersionFullPath=${scillaPath}${scillaVersionPath}
 
@@ -158,7 +185,6 @@ if [ "$scillaPath" != "" ]; then
 fi
 
 cd -
-echo -e "\n\033[0;32mZilliqa SHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\033[0m\n"
 
 # Make scilla image, and pack to deb file
 if [ "$scillaPath" != "" ]; then
@@ -170,7 +196,7 @@ if [ "$scillaPath" != "" ]; then
     mkdir ${scillaDebFolder}/scilla/${scillaMajor}
     cp -rf ${scillaPath}/* ${scillaDebFolder}/scilla/${scillaMajor}/
     sed -i "/Version: /c\Version: ${scillaMajor}.${scillaMinor}.${scillaFix}" ${scillaDebFolder}/DEBIAN/control
-    echo -e "\n\033[0;32mMake Scilla deb package...\033[0m\n"
+    echo -e "\n\033[0;32mMaking Scilla deb package...\033[0m\n"
     scillaDebFile=${packageName}-${scillaMajor}.${scillaMinor}.${scillaFix}.${scillaDS}.${scillaCommit}-Linux-Scilla.deb
     if [ -f "${scillaDebFile}" ]; then
         rm ${scillaDebFile}
@@ -183,7 +209,7 @@ if [ "$scillaPath" != "" ]; then
     cd ${releaseDir}
     sed -i "${scillaCommitLine}s/.*/${scillaCommit}/" $(basename ${versionFile})
     sed -i "${scillaShaLine}s/.*/${scillaSha}/" $(basename ${versionFile})
-    scillaSignature="$(./bin/signmultisig ${scillaSha} ${privKeyFile} ${pubKeyFile})"
+    scillaSignature="$(./bin/signmultisig -m ${scillaSha} -i ${privKeyFile} -u ${pubKeyFile})"
     sed -i "${scillaSigLine}s/.*/${scillaSignature}/" $(basename ${versionFile})
     cd -
     echo -e "\n\033[0;32mScilla SHA-256 & multi-signature are written into $(basename ${versionFile}) successfully.\033[0m\n"
@@ -192,7 +218,6 @@ fi
 # Update the xml
 cd ${releaseDir}
 cp ../constants_local.xml ./constants.xml
-ret="$(./bin/gensigninitialds   ${privKeyFile} ${pubKeyFile})"
 cd -
 
 # Upload package onto GitHub
@@ -223,11 +248,13 @@ curl -v -s \
   -H "Content-Type:application/octet-stream" \
   --data-binary @${pubKeyFile} \
   "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=$(basename ${pubKeyFile})"
-curl -v -s \
-  -H "Authorization: token ${GitHubToken}" \
-  -H "Content-Type:application/vnd.debian.binary-package" \
-  --data-binary @${releaseDir}/${zilliqaDebFile} \
-  "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${zilliqaDebFile}"
+if [ "$releaseZilliqa" = "true" ]; then
+    curl -v -s \
+      -H "Authorization: token ${GitHubToken}" \
+      -H "Content-Type:application/vnd.debian.binary-package" \
+      --data-binary @${releaseDir}/${zilliqaDebFile} \
+      "https://uploads.github.com/repos/${accountName}/${repoName}/releases/${releaseId}/assets?name=${zilliqaDebFile}"
+fi
 curl -v -s \
   -H "Authorization: token ${GitHubToken}" \
   -H "Content-Type:application/octet-stream" \
