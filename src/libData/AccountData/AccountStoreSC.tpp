@@ -16,6 +16,7 @@
  */
 
 #include <boost/filesystem.hpp>
+#include <chrono>
 
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
@@ -205,8 +206,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       };
       DetachedFunction(1, func1);
 
-      std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-      cv_callContract.wait(lk);
+      {
+        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+        cv_callContract.wait(lk);
+      }
 
       if (m_txnProcessTimeout) {
         LOG_GENERAL(
@@ -243,8 +246,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       };
       DetachedFunction(1, func2);
 
-      std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-      cv_callContract.wait(lk);
+      {
+        std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+        cv_callContract.wait(lk);
+      }
 
       if (m_txnProcessTimeout) {
         LOG_GENERAL(WARNING,
@@ -392,8 +397,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     DetachedFunction(1, func);
 
-    std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-    cv_callContract.wait(lk);
+    {
+      std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+      cv_callContract.wait(lk);
+    }
 
     if (m_txnProcessTimeout) {
       LOG_GENERAL(
@@ -951,8 +958,10 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
 
   DetachedFunction(1, func);
 
-  std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-  cv_callContract.wait(lk);
+  {
+    std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
+    cv_callContract.wait(lk);
+  }
 
   if (m_txnProcessTimeout) {
     LOG_GENERAL(WARNING,
