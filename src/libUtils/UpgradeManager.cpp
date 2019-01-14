@@ -308,35 +308,41 @@ bool UpgradeManager::HasNewSW() {
 
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
-  bytes tempSha;
-
-  if (!DataConversion::HexStrToUint8Vec(zilliqaShaStr, tempSha)) {
-    return false;
-  }
-
-  const bytes zilliqaSha = tempSha;
-  const unsigned int len = zilliqaSigStr.size() / pubKeys.size();
-  vector<Signature> zilliqaMutliSig;
-
-  for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    bytes tempMultisigBytes;
-    if (!DataConversion::HexStrToUint8Vec(zilliqaSigStr.substr(i * len, len),
-                                          tempMultisigBytes)) {
-      continue;
-    }
-    zilliqaMutliSig.emplace_back(tempMultisigBytes, 0);
-  }
-
-  /// Multi-sig verification
-  for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    if (!Schnorr::GetInstance().Verify(zilliqaSha, zilliqaMutliSig.at(i),
-                                       pubKeys.at(i))) {
-      LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
+  if (zilliqaSigStr != "0") {
+    bytes tempSha;
+    if (!DataConversion::HexStrToUint8Vec(zilliqaShaStr, tempSha)) {
       return false;
     }
+
+    const bytes zilliqaSha = tempSha;
+    const unsigned int len = zilliqaSigStr.size() / pubKeys.size();
+    vector<Signature> zilliqaMutliSig;
+
+    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
+      bytes tempMultisigBytes;
+      if (!DataConversion::HexStrToUint8Vec(zilliqaSigStr.substr(i * len, len),
+                                            tempMultisigBytes)) {
+        continue;
+      }
+      zilliqaMutliSig.emplace_back(tempMultisigBytes, 0);
+    }
+
+    /// Multi-sig verification
+    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
+      if (!Schnorr::GetInstance().Verify(zilliqaSha, zilliqaMutliSig.at(i),
+                                         pubKeys.at(i))) {
+        LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
+        return false;
+      }
+    }
+
+    if (m_latestZilliqaSHA != zilliqaSha) {
+      return true;
+    }
   }
 
-  if (0 != scillaSigStr.size()) {
+  if (scillaSigStr != "0") {
+    bytes tempSha;
     if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
       return false;
     }
@@ -368,7 +374,7 @@ bool UpgradeManager::HasNewSW() {
     }
   }
 
-  return m_latestZilliqaSHA != zilliqaSha;
+  return false;
 }
 
 bool UpgradeManager::DownloadSW() {
