@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
@@ -121,8 +119,7 @@ bool DirectoryService::ComposeFinalBlock() {
 
   std::vector<MicroBlockInfo> mbInfos;
   std::vector<uint32_t> shardIds;
-  uint8_t type = TXBLOCKTYPE::FINAL;
-  uint32_t version = BLOCKVERSION::VERSION1;
+  uint32_t version = TXBLOCK_VERSION;
   uint64_t allGasLimit = 0;
   uint64_t allGasUsed = 0;
   uint128_t allRewards = 0;
@@ -182,11 +179,11 @@ bool DirectoryService::ComposeFinalBlock() {
 
   m_finalBlock.reset(new TxBlock(
       TxBlockHeader(
-          type, version, allGasLimit, allGasUsed, allRewards, prevHash,
-          blockNum, {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
+          allGasLimit, allGasUsed, allRewards, blockNum,
+          {stateRoot, stateDeltaHash, mbInfoHash}, numTxs,
           m_mediator.m_selfKey.second,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          committeeHash),
+          version, committeeHash, prevHash),
       mbInfos, CoSignatures(m_mediator.m_DSCommittee->size())));
 
   LOG_STATE(
@@ -313,32 +310,6 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary(
   return true;
 }
 
-// Check type (must be final block type)
-bool DirectoryService::CheckBlockTypeIsFinal() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "DirectoryService::CheckBlockTypeIsFinal not expected to "
-                "be called from LookUp node.");
-    return true;
-  }
-
-  LOG_MARKER();
-
-  if (m_finalBlock->GetHeader().GetType() != TXBLOCKTYPE::FINAL) {
-    LOG_GENERAL(WARNING,
-                "Type check failed. Expected: "
-                    << (unsigned int)TXBLOCKTYPE::FINAL << " Actual: "
-                    << (unsigned int)m_finalBlock->GetHeader().GetType());
-
-    m_consensusObject->SetConsensusErrorCode(
-        ConsensusCommon::INVALID_FINALBLOCK);
-
-    return false;
-  }
-
-  return true;
-}
-
 // Check version (must be most current version)
 bool DirectoryService::CheckFinalBlockVersion() {
   if (LOOKUP_NODE_MODE) {
@@ -350,11 +321,10 @@ bool DirectoryService::CheckFinalBlockVersion() {
 
   LOG_MARKER();
 
-  if (m_finalBlock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1) {
-    LOG_GENERAL(WARNING,
-                "Version check failed. Expected: "
-                    << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
-                    << (unsigned int)m_finalBlock->GetHeader().GetVersion());
+  if (m_finalBlock->GetHeader().GetVersion() != TXBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << TXBLOCK_VERSION << " Actual: "
+                             << m_finalBlock->GetHeader().GetVersion());
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_FINALBLOCK_VERSION);
@@ -750,7 +720,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
   if (!Messenger::SetDSMicroBlockSubmission(
           mb_message, MessageOffset::BODY,
           DirectoryService::SUBMITMICROBLOCKTYPE::MISSINGMICROBLOCK, epochNum,
-          microBlocksSent, stateDeltasSent)) {
+          microBlocksSent, stateDeltasSent, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetDSMicroBlockSubmission failed.");
     return false;
@@ -945,20 +915,12 @@ bool DirectoryService::CheckFinalBlockValidity(bytes& errorMsg) {
     return true;
   }
 
-  return CheckBlockHash() && CheckBlockTypeIsFinal() &&
-         CheckFinalBlockVersion() && CheckFinalBlockNumber() &&
-         CheckPreviousFinalBlockHash() && CheckFinalBlockTimestamp() &&
+  return CheckBlockHash() && CheckFinalBlockVersion() &&
+         CheckFinalBlockNumber() && CheckPreviousFinalBlockHash() &&
+         CheckFinalBlockTimestamp() &&
          CheckMicroBlocks(errorMsg, false, true) &&
          CheckLegitimacyOfMicroBlocks() && CheckMicroBlockInfo() &&
          CheckStateRoot() && CheckStateDeltaHash();
-
-  // TODO: Check gas limit (must satisfy some equations)
-  // TODO: Check gas used (must be <= gas limit)
-  // TODO: Check pubkey (must be valid and = shard leader)
-  // TODO: Check parent DS hash (must be = digest of last DS block header in the
-  // DS blockchain)
-  // TODO: Check parent DS block number (must be = block number of last DS block
-  // header in the DS blockchain)
 }
 
 bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
@@ -1035,8 +997,7 @@ bool DirectoryService::FinalBlockValidator(
                                   // has any mb that I don't have
     if (m_mediator.m_node->m_microblock != nullptr && m_needCheckMicroBlock) {
       if (!CheckMicroBlockValidity(errorMsg)) {
-        LOG_GENERAL(WARNING,
-                    "TODO: DS CheckMicroBlockValidity Failed, what to do?");
+        LOG_GENERAL(WARNING, "DS CheckMicroBlockValidity Failed");
         if (m_consensusObject->GetConsensusErrorCode() ==
             ConsensusCommon::MISSING_TXN) {
           errorMsg.insert(errorMsg.begin(), DSMBMISSINGTXN);
@@ -1067,22 +1028,20 @@ bool DirectoryService::FinalBlockValidator(
     } else {
       errorMsg.insert(errorMsg.begin(), CHECKFINALBLOCK);
     }
-    // throw exception();
-    // TODO: finalblock is invalid
+
     return false;
   }
 
-  // if (!isVacuousEpoch)
-  // {
-  //     LoadUnavailableMicroBlocks();
-  // }
-
-  LOG_EPOCH(
-      INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-      "Final block " << m_finalBlock->GetHeader().GetBlockNum()
-                     << " received with prevhash 0x"
-                     << DataConversion::charArrToHexStr(
-                            m_finalBlock->GetHeader().GetPrevHash().asArray()));
+  string finalblockPrevHashStr;
+  if (!DataConversion::charArrToHexStr(
+          m_finalBlock->GetHeader().GetPrevHash().asArray(),
+          finalblockPrevHashStr)) {
+    return false;
+  }
+  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+            "Final block " << m_finalBlock->GetHeader().GetBlockNum()
+                           << " received with prevhash 0x"
+                           << finalblockPrevHashStr);
 
   return true;
 }
@@ -1260,8 +1219,25 @@ void DirectoryService::RunConsensusOnFinalBlock(
             cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
         std::cv_status::timeout) {
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                "Initiated final block view change. ");
-      auto func2 = [this]() -> void { RunConsensusOnViewChange(); };
+                "Initiated final block view change.");
+      auto func2 = [this]() -> void {
+        // Remove DS microblock from my list of microblocks
+        {
+          lock_guard<mutex> g(m_mutexMicroBlocks);
+          auto& microBlocksAtEpoch =
+              m_microBlocks[m_mediator.m_currentEpochNum];
+          auto dsmb =
+              find_if(microBlocksAtEpoch.begin(), microBlocksAtEpoch.end(),
+                      [this](const MicroBlock& mb) -> bool {
+                        return mb.GetHeader().GetShardId() == m_shards.size();
+                      });
+          if (dsmb != microBlocksAtEpoch.end()) {
+            LOG_GENERAL(INFO, "Removed DS microblock from list of microblocks");
+            microBlocksAtEpoch.erase(dsmb);
+          }
+        }
+        RunConsensusOnViewChange();
+      };
       DetachedFunction(1, func2);
     }
   };

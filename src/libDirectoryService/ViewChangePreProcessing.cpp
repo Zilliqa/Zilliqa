@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
@@ -65,6 +63,13 @@ bool DirectoryService::ViewChangeValidator(
           leaderKey, *m_pendingVCBlock, messageToCosign)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetDSVCBlockAnnouncement failed.");
+    return false;
+  }
+
+  if (m_pendingVCBlock->GetHeader().GetVersion() != VCBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << VCBLOCK_VERSION << " Actual: "
+                             << m_pendingVCBlock->GetHeader().GetVersion());
     return false;
   }
 
@@ -156,24 +161,21 @@ bool DirectoryService::ViewChangeValidator(
     LOG_GENERAL(WARNING, "View of faulty leader do not match");
     LOG_GENERAL(WARNING, "Local view of faulty leader");
     for (const auto& localFaultyLeader : cumlativeFaultyLeaders) {
-      LOG_GENERAL(WARNING, "Pubkey: " << DataConversion::SerializableToHexStr(
-                                             localFaultyLeader.first)
-                                      << " " << localFaultyLeader.second);
+      LOG_GENERAL(WARNING, "Pubkey: " << localFaultyLeader.first << " "
+                                      << localFaultyLeader.second);
     }
     LOG_GENERAL(WARNING, "Proposed view of faulty leader");
     for (const auto& proposedFaultyLeader :
          m_pendingVCBlock->GetHeader().GetFaultyLeaders()) {
-      LOG_GENERAL(WARNING, "Pubkey: " << DataConversion::SerializableToHexStr(
-                                             proposedFaultyLeader.first)
-                                      << " " << proposedFaultyLeader.second);
+      LOG_GENERAL(WARNING, "Pubkey: " << proposedFaultyLeader.first << " "
+                                      << proposedFaultyLeader.second);
     }
     return false;
   }
 
   LOG_GENERAL(INFO, "candidate leader is at index " << candidateLeaderIndex);
   for (auto& i : *m_mediator.m_DSCommittee) {
-    LOG_GENERAL(
-        INFO, i.second << " " << DataConversion::SerializableToHexStr(i.first));
+    LOG_GENERAL(INFO, i.second << " " << i.first);
   }
 
   if (!(m_mediator.m_DSCommittee->at(candidateLeaderIndex).first ==
@@ -181,11 +183,9 @@ bool DirectoryService::ViewChangeValidator(
     LOG_GENERAL(
         WARNING,
         "Candidate pubkey mismatched. Expected: "
-            << DataConversion::SerializableToHexStr(
-                   m_mediator.m_DSCommittee->at(candidateLeaderIndex).first)
+            << m_mediator.m_DSCommittee->at(candidateLeaderIndex).first
             << " Obtained: "
-            << DataConversion::SerializableToHexStr(
-                   m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey()));
+            << m_pendingVCBlock->GetHeader().GetCandidateLeaderPubKey());
     return false;
   }
 
@@ -280,11 +280,11 @@ void DirectoryService::RunConsensusOnViewChange() {
 
   // Note: Special check as 0 and 1 have special usage when fetching ds block
   // and final block No need check for 1 as
-  // VCFetchLatestDSTxBlockFromLookupNodes always check for current block + 1
+  // VCFetchLatestDSTxBlockFromSeedNodes always check for current block + 1
   // i.e in first epoch, it will request for block 1, which means fetch latest
   // block (including block 0)
   if (dsCurBlockNum != 0 && txCurBlockNum != 0) {
-    VCFetchLatestDSTxBlockFromLookupNodes();
+    VCFetchLatestDSTxBlockFromSeedNodes();
     if (!NodeVCPrecheck()) {
       LOG_GENERAL(WARNING,
                   "[RDS]Failed the vc precheck. Node is lagging behind the "
@@ -408,13 +408,11 @@ bool DirectoryService::ComputeNewCandidateLeader(
         m_mediator.m_DSCommittee->at(candidateLeaderIndex).second;
   }
 
-  LOG_GENERAL(
-      INFO,
-      "Composing new vc block with vc count at "
-          << m_viewChangeCounter << " and candidate leader is at index "
-          << candidateLeaderIndex << ". " << newLeaderNetworkInfo << " "
-          << DataConversion::SerializableToHexStr(
-                 m_mediator.m_DSCommittee->at(candidateLeaderIndex).first));
+  LOG_GENERAL(INFO,
+              "Composing new vc block with vc count at "
+                  << m_viewChangeCounter << " and candidate leader is at index "
+                  << candidateLeaderIndex << ". " << newLeaderNetworkInfo << " "
+                  << m_mediator.m_DSCommittee->at(candidateLeaderIndex).first);
 
   // Compute the CommitteeHash member of the BlockHeaderBase
   CommitteeHash committeeHash;
@@ -436,8 +434,8 @@ bool DirectoryService::ComputeNewCandidateLeader(
             m_mediator.m_currentEpochNum, m_viewChangestate,
             newLeaderNetworkInfo,
             m_mediator.m_DSCommittee->at(candidateLeaderIndex).first,
-            m_viewChangeCounter, m_cumulativeFaultyLeaders, committeeHash,
-            prevHash),
+            m_viewChangeCounter, m_cumulativeFaultyLeaders, VCBLOCK_VERSION,
+            committeeHash, prevHash),
         CoSignatures()));
   }
 
@@ -689,9 +687,9 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
   return true;
 }
 
-bool DirectoryService::VCFetchLatestDSTxBlockFromLookupNodes() {
+bool DirectoryService::VCFetchLatestDSTxBlockFromSeedNodes() {
   LOG_MARKER();
-  m_mediator.m_lookup->SendMessageToRandomLookupNode(
+  m_mediator.m_lookup->SendMessageToRandomSeedNode(
       ComposeVCGetDSTxBlockMessage());
   return true;
 }
@@ -748,8 +746,8 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
     return false;
   }
 
-  if (!m_mediator.m_lookup->VerifyLookupNode(
-          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+  if (!m_mediator.m_lookup->VerifySenderNode(
+          m_mediator.m_lookup->GetSeedNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, std::to_string(m_mediator.m_currentEpochNum).c_str(),
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");

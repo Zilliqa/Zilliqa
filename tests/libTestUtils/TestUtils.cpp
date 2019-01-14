@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "TestUtils.h"
@@ -78,12 +76,13 @@ Peer GenerateRandomPeer(uint8_t bit_i, bool setreset) {
 
 PubKey GenerateRandomPubKey(PrivKey privK) { return PubKey(privK); }
 
-KeyPair GenerateRandomKeyPair() {
+PairOfKey GenerateRandomKeyPair() {
   PrivKey privk;
-  return KeyPair(privk, GenerateRandomPubKey(privk));
+  return PairOfKey(privk, GenerateRandomPubKey(privk));
 }
 
 DSBlockHeader GenerateRandomDSBlockHeader() {
+  uint32_t version = DistUint32();
   uint8_t dsDifficulty = DistUint8();
   uint8_t difficulty = DistUint8();
   BlockHash prevHash;
@@ -100,13 +99,12 @@ DSBlockHeader GenerateRandomDSBlockHeader() {
     powDSWinners.emplace(GenerateRandomPubKey(), GenerateRandomPeer());
   }
 
-  return DSBlockHeader(dsDifficulty, difficulty, prevHash, leaderPubKey,
-                       blockNum, epochNum, gasPrice, swInfo, powDSWinners, hash,
-                       committeeHash);
+  return DSBlockHeader(dsDifficulty, difficulty, leaderPubKey, blockNum,
+                       epochNum, gasPrice, swInfo, powDSWinners, hash, version,
+                       committeeHash, prevHash);
 }
 
 MicroBlockHeader GenerateRandomMicroBlockHeader() {
-  uint8_t type = DistUint8();
   uint32_t version = DistUint32();
   uint32_t shardId = DistUint32();
   uint64_t gasLimit = DistUint32();
@@ -120,13 +118,12 @@ MicroBlockHeader GenerateRandomMicroBlockHeader() {
   uint64_t dsBlockNum = DistUint32();
   CommitteeHash committeeHash;
 
-  return MicroBlockHeader(type, version, shardId, gasLimit, gasUsed, rewards,
-                          prevHash, epochNum, hashset, numTxs, minerPubKey,
-                          dsBlockNum, committeeHash);
+  return MicroBlockHeader(shardId, gasLimit, gasUsed, rewards, epochNum,
+                          hashset, numTxs, minerPubKey, dsBlockNum, version,
+                          committeeHash, prevHash);
 }
 
 TxBlockHeader GenerateRandomTxBlockHeader() {
-  uint8_t type = DistUint8();
   uint32_t version = DistUint32();
   uint64_t gasLimit = DistUint32();
   uint64_t gasUsed = DistUint32();
@@ -140,12 +137,13 @@ TxBlockHeader GenerateRandomTxBlockHeader() {
   BlockHash dsBlockHeader;
   CommitteeHash committeeHash;
 
-  return TxBlockHeader(type, version, gasLimit, gasUsed, rewards, prevHash,
-                       blockNum, blockHashSet, numTxs, minerPubKey, dsBlockNum,
-                       committeeHash);
+  return TxBlockHeader(gasLimit, gasUsed, rewards, blockNum, blockHashSet,
+                       numTxs, minerPubKey, dsBlockNum, version, committeeHash,
+                       prevHash);
 }
 
 VCBlockHeader GenerateRandomVCBlockHeader() {
+  uint32_t version = DistUint32();
   uint64_t vieWChangeDSEpochNo = DistUint32();
   uint64_t viewChangeEpochNo = DistUint32();
   unsigned char viewChangeState = DistUint8();
@@ -162,10 +160,12 @@ VCBlockHeader GenerateRandomVCBlockHeader() {
 
   return VCBlockHeader(vieWChangeDSEpochNo, viewChangeEpochNo, viewChangeState,
                        candidateLeaderNetworkInfo, candidateLeaderPubKey,
-                       vcCounter, faultyLeaders, committeeHash, prevHash);
+                       vcCounter, faultyLeaders, version, committeeHash,
+                       prevHash);
 }
 
 FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
+  uint32_t version = DistUint32();
   uint64_t fallbackDSEpochNo = DistUint32();
   uint64_t fallbackEpochNo = DistUint32();
   unsigned char fallbackState = DistUint8();
@@ -179,7 +179,8 @@ FallbackBlockHeader GenerateRandomFallbackBlockHeader() {
 
   return FallbackBlockHeader(fallbackDSEpochNo, fallbackEpochNo, fallbackState,
                              hashset, leaderConsensusId, leaderNetworkInfo,
-                             leaderPubKey, shardId, committeeHash, prevHash);
+                             leaderPubKey, shardId, version, committeeHash,
+                             prevHash);
 }
 
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t size) {
@@ -240,7 +241,7 @@ Signature GetSignature(const bytes& data, const PrivKey& privkey,
 }
 
 Signature GenerateRandomSignature() {
-  KeyPair kp = GenerateRandomKeyPair();
+  PairOfKey kp = GenerateRandomKeyPair();
   return GetSignature(GenerateRandomCharVector(Dist1to99()), kp.first,
                       kp.second);
 }

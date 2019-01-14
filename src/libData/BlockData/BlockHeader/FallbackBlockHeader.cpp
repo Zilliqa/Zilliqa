@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "FallbackBlockHeader.h"
@@ -33,8 +31,7 @@ FallbackBlockHeader::FallbackBlockHeader()
       m_leaderConsensusId(0),
       m_leaderNetworkInfo(),
       m_leaderPubKey(),
-      m_shardId(0),
-      m_prevHash() {}
+      m_shardId(0) {}
 
 FallbackBlockHeader::FallbackBlockHeader(const bytes& src,
                                          unsigned int offset) {
@@ -47,9 +44,9 @@ FallbackBlockHeader::FallbackBlockHeader(
     const uint64_t& fallbackDSEpochNo, const uint64_t& fallbackEpochNo,
     const unsigned char fallbackState, const FallbackBlockHashSet& hashset,
     const uint16_t leaderConsensusId, const Peer& leaderNetworkInfo,
-    const PubKey& leaderPubKey, const uint32_t shardId,
+    const PubKey& leaderPubKey, const uint32_t shardId, const uint32_t version,
     const CommitteeHash& committeeHash, const BlockHash& prevHash)
-    : BlockHeaderBase(committeeHash),
+    : BlockHeaderBase(version, committeeHash, prevHash),
       m_fallbackDSEpochNo(fallbackDSEpochNo),
       m_fallbackEpochNo(fallbackEpochNo),
       m_fallbackState(fallbackState),
@@ -57,8 +54,7 @@ FallbackBlockHeader::FallbackBlockHeader(
       m_leaderConsensusId(leaderConsensusId),
       m_leaderNetworkInfo(leaderNetworkInfo),
       m_leaderPubKey(leaderPubKey),
-      m_shardId(shardId),
-      m_prevHash(prevHash) {}
+      m_shardId(shardId) {}
 
 bool FallbackBlockHeader::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetFallbackBlockHeader(dst, offset, *this)) {
@@ -109,19 +105,28 @@ const PubKey& FallbackBlockHeader::GetLeaderPubKey() const {
 uint32_t FallbackBlockHeader::GetShardId() const { return m_shardId; }
 
 bool FallbackBlockHeader::operator==(const FallbackBlockHeader& header) const {
-  return std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
-                  m_hashset, m_leaderConsensusId, m_shardId) ==
-         std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
-                  header.m_fallbackState, header.m_hashset,
-                  header.m_leaderConsensusId, header.m_shardId);
+  return BlockHeaderBase::operator==(header) &&
+         (std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
+                   m_hashset, m_leaderConsensusId, m_shardId) ==
+          std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
+                   header.m_fallbackState, header.m_hashset,
+                   header.m_leaderConsensusId, header.m_shardId));
 }
 
 bool FallbackBlockHeader::operator<(const FallbackBlockHeader& header) const {
-  return std::tie(header.m_fallbackEpochNo, header.m_fallbackDSEpochNo,
-                  header.m_fallbackState, header.m_hashset,
-                  header.m_leaderConsensusId, header.m_shardId) >
-         std::tie(m_fallbackEpochNo, m_fallbackDSEpochNo, m_fallbackState,
-                  m_hashset, m_leaderConsensusId, m_shardId);
+  // To compare, first they must be of identical epochno and state
+  if (!(std::tie(m_version, m_fallbackEpochNo, m_fallbackDSEpochNo,
+                 m_fallbackState) ==
+        std::tie(header.m_version, header.m_fallbackEpochNo,
+                 header.m_fallbackDSEpochNo, header.m_fallbackState))) {
+    return false;
+  }
+
+  if (m_shardId == header.m_shardId) {
+    return m_leaderConsensusId < header.m_leaderConsensusId;
+  } else {
+    return m_shardId < header.m_shardId;
+  }
 }
 
 bool FallbackBlockHeader::operator>(const FallbackBlockHeader& header) const {

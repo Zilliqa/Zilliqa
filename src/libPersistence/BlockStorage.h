@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef BLOCKSTORAGE_H
@@ -30,7 +28,8 @@
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 
-typedef std::tuple<uint64_t, uint64_t, BlockType, BlockHash> BlockLink;
+typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
+    BlockLink;
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
@@ -59,13 +58,15 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
-  std::shared_ptr<LevelDB> m_diagnosticDB;
-
   // m_diagnosticDB is needed only for LOOKUP_NODE_MODE, but to make the unit
   // test and monitoring tools work with the default setting of
   // LOOKUP_NODE_MODE=false, we initialize it even if it's not a lookup node.
+  std::shared_ptr<LevelDB> m_diagnosticDB;
+  /// used for historical data
+  std::shared_ptr<LevelDB> m_txnHistoricalDB;
+  std::shared_ptr<LevelDB> m_MBHistoricalDB;
 
-  BlockStorage()
+  BlockStorage(const std::string& path = "", bool diagnostic = false)
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
@@ -76,7 +77,8 @@ class BlockStorage : public Singleton<BlockStorage> {
         m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
         m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
         m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
-        m_diagnosticDB(std::make_shared<LevelDB>("diagnostic")),
+        m_diagnosticDB(
+            std::make_shared<LevelDB>("diagnostic", path, diagnostic)),
         m_diagnosticDBCounter(0) {
     if (LOOKUP_NODE_MODE) {
       m_txBodyDB = std::make_shared<LevelDB>("txBodies");
@@ -105,7 +107,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   };
 
   /// Returns the singleton BlockStorage instance.
-  static BlockStorage& GetBlockStorage();
+  static BlockStorage& GetBlockStorage(const std::string& path = "",
+                                       bool diagnostic = false);
 
   /// Get the size of current TxBodyDB
   unsigned int GetTxBodyDBSize();
@@ -115,6 +118,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutVCBlock(const BlockHash& blockhash, const bytes& body);
   bool PutFallbackBlock(const BlockHash& blockhash, const bytes& body);
   bool PutBlockLink(const uint64_t& index, const bytes& body);
+
+  bool InitiateHistoricalDB(const std::string& path);
 
   /// Adds a Tx block to storage.
   bool PutTxBlock(const uint64_t& blockNum, const bytes& body);
@@ -136,6 +141,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Retrieves the requested Tx block.
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
 
+  bool ReleaseDB();
+
   // /// Retrieves the requested Micro block
   bool GetMicroBlock(const BlockHash& blockHash,
                      MicroBlockSharedPtr& microblock);
@@ -148,6 +155,11 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
+
+  bool GetTxnFromHistoricalDB(const dev::h256& key, TxBodySharedPtr& body);
+
+  bool GetHistoricalMicroBlock(const BlockHash& blockhash,
+                               MicroBlockSharedPtr& microblock);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);

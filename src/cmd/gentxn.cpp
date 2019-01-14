@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <boost/filesystem.hpp>
@@ -22,6 +20,9 @@
 #include <fstream>
 #include <string>
 #include <vector>
+
+#include <boost/program_options.hpp>
+
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
@@ -30,6 +31,13 @@
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
 
+namespace po = boost::program_options;
+
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+#define ERROR_UNEXPECTED -3
+
 using KeyPairAddress = std::tuple<PrivKey, PubKey, Address>;
 using NonceRange = std::tuple<std::size_t, std::size_t>;
 
@@ -37,13 +45,17 @@ std::vector<KeyPairAddress> get_genesis_keypair_and_address() {
   std::vector<KeyPairAddress> result;
 
   for (auto& privKeyHexStr : GENESIS_KEYS) {
-    auto privKeyBytes{DataConversion::HexStrToUint8Vec(privKeyHexStr)};
-    auto privKey = PrivKey{privKeyBytes, 0};
-    auto pubKey = PubKey{privKey};
-    auto address = Account::GetAddressFromPublicKey(pubKey);
-
-    result.push_back(
-        std::tuple<PrivKey, PubKey, Address>(privKey, pubKey, address));
+    bytes out;
+    if (DataConversion::HexStrToUint8Vec(privKeyHexStr, out)) {
+      auto privKeyBytes{out};
+      auto privKey = PrivKey{privKeyBytes, 0};
+      auto pubKey = PubKey{privKey};
+      auto address = Account::GetAddressFromPublicKey(pubKey);
+      result.push_back(
+          std::tuple<PrivKey, PubKey, Address>(privKey, pubKey, address));
+    } else {
+      LOG_GENERAL(WARNING, "Failed to get genesis key");
+    }
   }
 
   return result;
@@ -71,10 +83,14 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   std::vector<uint32_t> txnOffsets;
 
   for (auto nonce = begin; nonce < end; nonce++) {
-    Transaction txn{0,      nonce,
-                    toAddr, std::make_pair(privKey, pubKey),
-                    nonce,  GAS_PRICE_MIN_VALUE,
-                    1,      {},
+    Transaction txn{DataConversion::Pack(CHAIN_ID, 0),
+                    nonce,
+                    toAddr,
+                    std::make_pair(privKey, pubKey),
+                    nonce,
+                    GAS_PRICE_MIN_VALUE,
+                    1,
+                    {},
                     {}};
     txnOffsets.push_back(txnBuff.size());
     if (!Messenger::SetTransaction(txnBuff, txnBuff.size(), txn)) {
@@ -108,10 +124,10 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   }
 }
 
-void usage(const std::string& prog) {
-  std::cout << "Usage: " << prog << " [BEGIN [END]]\n";
-  std::cout << "\n";
-  std::cout << "Description:\n";
+using namespace std;
+
+void description() {
+  std::cout << endl << "Description:\n";
   std::cout
       << "\tGenerate transactions starting from batch BEGIN (default to 0) "
          "to batch END (default to START+10000)\n";
@@ -123,55 +139,86 @@ void usage(const std::string& prog) {
 }
 
 int main(int argc, char** argv) {
-  std::string prog(argv[0]);
+  try {
+    const unsigned long delta = 10000;
+    unsigned long begin = 0, end;
 
-  const unsigned long delta = 10000;
-  unsigned long begin = 0, end = delta;
+    po::options_description desc("Options");
 
-  if (argc > 1) {
-    begin = strtoul(argv[1], nullptr, 10);
-    if (begin != ULONG_MAX) {
-      end = begin + delta;
+    desc.add_options()("help,h", "Print help messages")(
+        "begin, b", po::value<unsigned long>(&begin),
+        "Start of transaction batch (default to 0)")(
+        "end, e", po::value<unsigned long>(&end),
+        "End of transaction batch (default to parameter value --begin + "
+        "10000)");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+      po::notify(vm);
+
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        description();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      if (!vm.count("end")) {
+        if (begin != ULONG_MAX) {
+          end = begin + delta;
+        }
+      }
+      if (begin == ULONG_MAX || end == ULONG_MAX || begin > end) {
+        description();
+        return 1;
+      }
+
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      return ERROR_IN_COMMAND_LINE;
     }
-  }
 
-  if (argc > 2) {
-    end = strtoul(argv[2], nullptr, 10);
-  }
+    auto receiver = Schnorr::GetInstance().GenKeyPair();
+    auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
 
-  if (begin == ULONG_MAX || end == ULONG_MAX || begin > end) {
-    usage(prog);
-    return 1;
-  }
-
-  auto receiver = Schnorr::GetInstance().GenKeyPair();
-  auto toAddr = Account::GetAddressFromPublicKey(receiver.second);
-
-  std::string txn_path{TXN_PATH};
-  if (!boost::filesystem::exists(txn_path)) {
-    std::cerr << "Cannot find path '" << txn_path
-              << "', check TXN_PATH in constants.xml\n";
-    return 1;
-  }
-
-  auto batch_size = NUM_TXN_TO_SEND_PER_ACCOUNT;
-
-  auto fromAccounts = get_genesis_keypair_and_address();
-
-  std::cout << "Number of genesis accounts: " << fromAccounts.size() << "\n";
-  std::cout << "Begin batch: " << begin << "\n";
-  std::cout << "End batch: " << end << "\n";
-  std::cout << "Destionation directory (TXN_PATH): " << txn_path << "\n";
-  std::cout << "Batch size (NUM_TXN_TO_SEND_PER_ACCOUNT): " << batch_size
-            << "\n";
-
-  for (auto batch = begin; batch < end; batch++) {
-    auto begin_nonce = batch * batch_size + 1;
-    auto end_nonce = (batch + 1) * batch_size + 1;
-    auto nonce_range = std::make_tuple(begin_nonce, end_nonce);
-
-    for (auto& from : fromAccounts) {
-      gen_txn_file(txn_path, from, toAddr, nonce_range);
+    std::string txn_path{TXN_PATH};
+    if (!boost::filesystem::exists(txn_path)) {
+      std::cerr << "Cannot find path '" << txn_path
+                << "', check TXN_PATH in constants.xml\n";
+      return 1;
     }
+
+    auto batch_size = NUM_TXN_TO_SEND_PER_ACCOUNT;
+
+    auto fromAccounts = get_genesis_keypair_and_address();
+
+    std::cout << "Number of genesis accounts: " << fromAccounts.size() << "\n";
+    std::cout << "Begin batch: " << begin << "\n";
+    std::cout << "End batch: " << end << "\n";
+    std::cout << "Destionation directory (TXN_PATH): " << txn_path << "\n";
+    std::cout << "Batch size (NUM_TXN_TO_SEND_PER_ACCOUNT): " << batch_size
+              << "\n";
+
+    for (auto batch = begin; batch < end; batch++) {
+      auto begin_nonce = batch * batch_size + 1;
+      auto end_nonce = (batch + 1) * batch_size + 1;
+      auto nonce_range = std::make_tuple(begin_nonce, end_nonce);
+
+      for (auto& from : fromAccounts) {
+        gen_txn_file(txn_path, from, toAddr, nonce_range);
+      }
+    }
+
+  } catch (exception& e) {
+    cerr << "Unhandled Exception reached the top of main: " << e.what()
+         << ", application will now exit" << endl;
+    return ERROR_UNHANDLED_EXCEPTION;
   }
+  return SUCCESS;
 }

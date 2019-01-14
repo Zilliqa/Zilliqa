@@ -1,31 +1,38 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <iostream>
 #include <string>
-#include "libUtils/UpgradeManager.h"
 
+#include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include "libUtils/UpgradeManager.h"
+
+namespace po = boost::program_options;
+
 using boost::property_tree::ptree;
 using namespace std;
+
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+#define ERROR_UNEXPECTED -3
 
 namespace {
 
@@ -46,78 +53,123 @@ struct PTree {
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 3) {
-    cout << "Input format "
-         << " "
-         << "[privKeyFile]"
-         << " "
-         << "[pubKeyFile]";
-    return -1;
-  }
+  try {
+    string line;
+    vector<PrivKey> privKeys;
+    vector<PubKey> pubKeys;
+    string pubKey_string;
+    string pubk_fn;
+    string privk_fn;
+    bytes message;
+    vector<PubKey> dsComm;
 
-  bytes message;
-  vector<PubKey> dsComm;
+    po::options_description desc("Options");
 
-  if (!UpgradeManager::GetInstance().LoadInitialDS(dsComm)) {
-    cout << "unable to load ";
-    return -1;
-  }
-  unsigned int curr_offset = 0;
-  for (auto& dsKey : dsComm) {
-    dsKey.Serialize(message, curr_offset);
-    curr_offset += PUB_KEY_SIZE;
-  }
+    desc.add_options()("help,h", "Print help messages")(
+        "privk,i", po::value<string>(&privk_fn)->required(),
+        "Filename containing private keys each per line")(
+        "pubk,u", po::value<string>(&pubk_fn)->required(),
+        "Filename containing public keys each per line");
 
-  string line;
-  vector<PrivKey> privKeys;
-  {
-    fstream privFile(argv[1], ios::in);
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
 
-    while (getline(privFile, line)) {
-      privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      return ERROR_IN_COMMAND_LINE;
     }
-  }
-
-  vector<PubKey> pubKeys;
-  string pubKey_string;
-  {
-    fstream pubFile(argv[2], ios::in);
-
-    while (getline(pubFile, line)) {
-      pubKey_string = line;
-      pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
+    try {
+      bytes key_v;
+      fstream privFile(privk_fn, ios::in);
+      while (getline(privFile, line)) {
+        try {
+          privKeys.push_back(PrivKey::GetPrivKeyFromString(line));
+        } catch (std::invalid_argument& e) {
+          std::cerr << e.what() << endl;
+          return ERROR_IN_COMMAND_LINE;
+        }
+      }
+    } catch (exception& e) {
+      cerr << "Problem occured when reading private keys on line: "
+           << privKeys.size() + 1 << endl;
+      return ERROR_IN_COMMAND_LINE;
     }
-  }
 
-  if (privKeys.size() != pubKeys.size()) {
-    if (pubKeys.size() != 1) {
-      cout << "Only one key allowed";
-      return -1;
+    try {
+      bytes key_v;
+      fstream pubFile(pubk_fn, ios::in);
+      while (getline(pubFile, line)) {
+        try {
+          pubKey_string = line;
+          pubKeys.push_back(PubKey::GetPubKeyFromString(line));
+        } catch (std::invalid_argument& e) {
+          std::cerr << e.what() << endl;
+          return ERROR_IN_COMMAND_LINE;
+        }
+      }
+    } catch (exception& e) {
+      cerr << "Problem occured when reading public keys on line: "
+           << pubKeys.size() + 1 << endl;
+      return ERROR_IN_COMMAND_LINE;
     }
-    cout << "Private key number must equal to public key number!";
-    return -1;
-  }
 
-  string sig_str;
+    if (privKeys.size() != 1 || pubKeys.size() != 1) {
+      cerr << "Only one key pair required, " << privk_fn << " contains "
+           << privKeys.size() << " keys and " << pubk_fn << " contains "
+           << pubKeys.size() << " keys.";
+      cerr << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
 
-  for (unsigned int i = 0; i < privKeys.size(); ++i) {
+    if (!UpgradeManager::GetInstance().LoadInitialDS(dsComm)) {
+      cout << "Unable to load DS";
+      return ERROR_UNEXPECTED;
+    }
+    unsigned int curr_offset = 0;
+    for (auto& dsKey : dsComm) {
+      dsKey.Serialize(message, curr_offset);
+      curr_offset += PUB_KEY_SIZE;
+    }
+
+    string sig_str;
+
     Signature sig;
-    Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
+    Schnorr::GetInstance().Sign(message, privKeys.at(0), pubKeys.at(0), sig);
     bytes result;
     sig.Serialize(result, 0);
-    sig_str = DataConversion::Uint8VecToHexStr(result);
-  }
 
-  auto pt = PTree::GetInstance();
-  if (!sig_str.empty()) {
-    pt.push_back(ptree::value_type(signatureProp, ptree(sig_str.c_str())));
-  }
-  if (!pubKey_string.empty()) {
+    if (DataConversion::Uint8VecToHexStr(result, sig_str)) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "Failed signature conversion" << endl;
+      return -1;
+    }
+
+    auto pt = PTree::GetInstance();
+    if (!sig_str.empty()) {
+      pt.push_back(ptree::value_type(signatureProp, ptree(sig_str.c_str())));
+    }
     pt.push_back(
         ptree::value_type(publicKeyProp, ptree(pubKey_string.c_str())));
+
+    write_xml(dsNodeFile.c_str(), pt);
+
+  } catch (exception& e) {
+    cerr << "Unhandled Exception reached the top of main: " << e.what()
+         << ", application will now exit" << endl;
+    return ERROR_UNHANDLED_EXCEPTION;
   }
-
-  write_xml(dsNodeFile.c_str(), pt);
-
-  return 0;
+  return SUCCESS;
 }

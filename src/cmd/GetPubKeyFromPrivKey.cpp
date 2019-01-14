@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <array>
@@ -22,10 +20,13 @@
 #include <functional>
 #include <iostream>
 #include <thread>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/program_options.hpp>
 #pragma GCC diagnostic pop
+
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -34,20 +35,76 @@
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SWInfo.h"
 
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
+
+namespace po = boost::program_options;
 using namespace std;
 using namespace boost::multiprecision;
 
-// Usage: input the hex string of private key
-int main() {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Reset();
-  bytes message;
-  string s;
-  cin >> s;
+void description() {
+  std::cout << endl << "Description:\n";
+  std::cout << "\tAccepts private key and prints computed public key on stdout."
+            << endl;
+}
 
-  PrivKey privKey{DataConversion::HexStrToUint8Vec(s), 0};
-  PubKey pubKey{privKey};
+int main(int argc, const char* argv[]) {
+  try {
+    string privk;
+    po::options_description desc("Options");
 
-  cout << pubKey << endl;
+    desc.add_options()("help,h", "Print help messages")(
+        "privk,i", po::value<string>(&privk)->required(),
+        "32-byte private key");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+
+      /** --help option
+       */
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        description();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      cerr << "ERROR: " << e.what() << endl << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    sha2.Reset();
+    bytes message;
+
+    PrivKey privKey;
+
+    try {
+      privKey = PrivKey::GetPrivKeyFromString(privk);
+    } catch (std::invalid_argument& e) {
+      std::cerr << e.what() << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    PubKey pubKey{privKey};
+
+    cout << pubKey << endl;
+
+  } catch (exception& e) {
+    cerr << "Unhandled Exception reached the top of main: " << e.what()
+         << ", application will now exit" << endl;
+    return ERROR_UNHANDLED_EXCEPTION;
+  }
+  return SUCCESS;
 }

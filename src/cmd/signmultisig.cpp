@@ -1,67 +1,157 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <iostream>
+
+#include <boost/program_options.hpp>
+
 #include "libCrypto/Schnorr.h"
+#include "libUtils/SWInfo.h"
+
+#define SUCCESS 0
+#define ERROR_IN_COMMAND_LINE -1
+#define ERROR_UNHANDLED_EXCEPTION -2
 
 using namespace std;
+namespace po = boost::program_options;
 
 int main(int argc, const char* argv[]) {
-  if (4 != argc) {
-    cout << "Input format: ./sign message privateKeyFileName "
-            "publicKeyFileName";
-    return -1;
-  }
-
-  const bytes message = DataConversion::HexStrToUint8Vec(string(argv[1]));
-
-  string line;
-  vector<PrivKey> privKeys;
-  {
-    fstream privFile(argv[2], ios::in);
-
-    while (getline(privFile, line)) {
-      privKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
-    }
-  }
-
+  string message_;
+  string privk_fn;
+  string pubk_fn;
   vector<PubKey> pubKeys;
-  {
-    fstream pubFile(argv[3], ios::in);
+  vector<PrivKey> privKeys;
 
-    while (getline(pubFile, line)) {
-      pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(line), 0);
+  try {
+    po::options_description desc("Options");
+
+    desc.add_options()("help,h", "Print help messages")(
+        "message,m", po::value<string>(&message_)->required(),
+        "Message string in hexadecimal format")(
+        "privk,i", po::value<string>(&privk_fn)->required(),
+        "Filename containing private keys each per line")(
+        "pubk,u", po::value<string>(&pubk_fn)->required(),
+        "Filename containing public keys each per line");
+
+    po::variables_map vm;
+    try {
+      po::store(po::parse_command_line(argc, argv, desc), vm);
+
+      if (vm.count("help")) {
+        SWInfo::LogBrandBugReport();
+        cout << desc << endl;
+        return SUCCESS;
+      }
+      po::notify(vm);
+    } catch (boost::program_options::required_option& e) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      std::cout << desc;
+      return ERROR_IN_COMMAND_LINE;
+    } catch (boost::program_options::error& e) {
+      SWInfo::LogBrandBugReport();
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      return ERROR_IN_COMMAND_LINE;
     }
-  }
 
-  if (privKeys.size() != pubKeys.size()) {
-    cout << "Private key number must equal to public key number!";
-    return -1;
-  }
+    bytes message(message_.begin(), message_.end());
 
-  for (unsigned int i = 0; i < privKeys.size(); ++i) {
-    Signature sig;
-    Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i), sig);
-    bytes result;
-    sig.Serialize(result, 0);
-    cout << DataConversion::Uint8VecToHexStr(result);
-  }
+    vector<uint8_t> v;
+    v.push_back(53);
 
-  return 0;
+    PrivKey pk(v, 0);
+
+    string line;
+    try {
+      bytes key_v;
+      fstream privFile(privk_fn, ios::in);
+      while (getline(privFile, line)) {
+        try {
+          privKeys.push_back(PrivKey::GetPrivKeyFromString(line));
+        } catch (std::invalid_argument& e) {
+          std::cerr << e.what() << endl;
+          return ERROR_IN_COMMAND_LINE;
+        }
+      }
+    } catch (std::exception& e) {
+      std::cerr << "Problem occured when processing private keys on line: "
+                << privKeys.size() + 1 << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    if (privKeys.size() < 1) {
+      std::cerr << "No private keys loaded" << endl;
+      std::cerr << "Empty or corrupted or missing file: " << privk_fn << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    try {
+      bytes key_v;
+      fstream pubFile(pubk_fn, ios::in);
+      while (getline(pubFile, line)) {
+        try {
+          pubKeys.push_back(PubKey::GetPubKeyFromString(line));
+        } catch (std::invalid_argument& e) {
+          std::cerr << e.what() << endl;
+          return ERROR_IN_COMMAND_LINE;
+        }
+      }
+    } catch (std::exception& e) {
+      std::cerr << "Problem occured when processing public keys on line: "
+                << pubKeys.size() + 1 << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    if (pubKeys.size() < 1) {
+      std::cerr << "No public keys loaded" << endl;
+      std::cerr << "Empty or corrupted or missing file: " << pubk_fn << endl;
+      return ERROR_IN_COMMAND_LINE;
+    }
+
+    if (privKeys.size() != pubKeys.size()) {
+      cout << "Private key number must equal to public key number!";
+      return -1;
+    }
+
+    for (unsigned int i = 0; i < privKeys.size(); ++i) {
+      Signature sig;
+      if (!Schnorr::GetInstance().Sign(message, privKeys.at(i), pubKeys.at(i),
+                                       sig)) {
+        std::cerr << "Failed to sign message" << endl;
+        std::cerr << "Either private key or public key on line " << i + 1
+                  << " are corrupted." << endl;
+        return ERROR_IN_COMMAND_LINE;
+      }
+      bytes result;
+      sig.Serialize(result, 0);
+
+      std::string output;
+      if (DataConversion::Uint8VecToHexStr(result, output)) {
+        SWInfo::LogBrandBugReport();
+        std::cerr << "Failed signature conversion" << endl;
+        return -1;
+      }
+      cout << output;
+    }
+
+  } catch (std::exception& e) {
+    std::cerr << "Unhandled Exception reached the top of main: " << e.what()
+              << ", application will now exit" << std::endl;
+    return ERROR_UNHANDLED_EXCEPTION;
+  }
+  return SUCCESS;
 }

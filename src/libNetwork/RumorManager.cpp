@@ -1,25 +1,24 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "RumorManager.h"
 
 #include <chrono>
+#include <string>
 #include <thread>
 
 #include "P2PComm.h"
@@ -115,8 +114,7 @@ void RumorManager::StopRounds() {
 
 // PUBLIC METHODS
 bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
-                              const Peer& myself,
-                              const std::pair<PrivKey, PubKey>& myKeys,
+                              const Peer& myself, const PairOfKey& myKeys,
                               const std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
   {
@@ -146,6 +144,7 @@ bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
   m_rumorRawMsgTimestamp.clear();
   m_fullNetworkKeys.clear();
   m_pubKeyPeerBiMap.clear();
+  m_hashesSubscriberMap.clear();
 
   int peerIdGenerator = 0;
   for (const auto& p : peers) {
@@ -223,6 +222,10 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
   if (message.size() > 0) {
     RawBytes hash = HashUtils::BytesToHash(message);
+    std::string output;
+    if (!DataConversion::Uint8VecToHexStr(hash, output)) {
+      return false;
+    }
 
     {
       std::lock_guard<std::mutex> guard(m_continueRoundMutex);
@@ -231,8 +234,7 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
                     "Round is not running. So won't initiate the rumor. "
                     "Instead will buffer it. MyIP:"
                         << m_selfPeer << ". [Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]");
+                        << output.substr(0, 6) << " ]");
 
         m_bufferRawMsg.push_back(message);
         return false;
@@ -258,12 +260,15 @@ bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
         m_rumorRawMsgTimestamp.push_back(std::make_pair(
             result.first, std::chrono::high_resolution_clock::now()));
 
+        std::string output;
+        if (!DataConversion::Uint8VecToHexStr(hash, output)) {
+          return false;
+        }
         LOG_PAYLOAD(INFO,
                     "New Gossip message initiated by me ("
                         << m_selfPeer << "): [ RumorId: " << m_rumorIdGenerator
                         << ", Current Round: 0, Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]",
+                        << output.substr(0, 6) << " ]",
                     message, Logger::MAX_BYTES_TO_DISPLAY);
 
         return m_rumorHolder->addRumor(m_rumorIdGenerator);
@@ -350,13 +355,66 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
   P2PComm::GetInstance().SendMessage(toForeignPeer, cmd, START_BYTE_GOSSIP);
 }
 
-bool RumorManager::RumorReceived(uint8_t type, int32_t round,
-                                 const RawBytes& message, const Peer& from) {
+std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
+    const RawBytes& message, const RRS::Message::Type& t, const Peer& from) {
+  bytes message_wo_keysig;
+
+  if (((RRS::Message::Type::EMPTY_PUSH == t ||
+        RRS::Message::Type::EMPTY_PULL == t) &&
+       SIGN_VERIFY_EMPTY_MSGTYP) ||
+      ((RRS::Message::Type::LAZY_PUSH == t ||
+        RRS::Message::Type::LAZY_PULL == t || RRS::Message::Type::PUSH == t ||
+        RRS::Message::Type::PULL == t) &&
+       SIGN_VERIFY_NONEMPTY_MSGTYP)) {
+    // verify if the pubkey is from with-in our network
+    PubKey senderPubKey;
+    senderPubKey.Deserialize(message, 0);
+
+    // Verify if the pub key of sender (myview) is same as pubkey received in
+    // message
+    auto k = m_pubKeyPeerBiMap.right.find(from);
+    if (k == m_pubKeyPeerBiMap.right.end()) {
+      // I dont know this peer, missing in my peerlist.
+      LOG_GENERAL(DEBUG, "Received Rumor from peer : "
+                             << from
+                             << " whose pubkey does not exist in my store");
+      return {false, {}};
+    } else if (!(k->second == senderPubKey)) {
+      LOG_GENERAL(WARNING,
+                  "Public Key of sender does not exist in my list. so ignoring "
+                  "message");
+      return {false, {}};
+    }
+
+    // verify if signature matches the one in message.
+    Signature toVerify;
+    toVerify.Deserialize(message, PUB_KEY_SIZE);
+
+    message_wo_keysig.insert(message_wo_keysig.end(),
+                             message.begin() + PUB_KEY_SIZE +
+                                 SIGNATURE_CHALLENGE_SIZE +
+                                 SIGNATURE_RESPONSE_SIZE,
+                             message.end());
+
+    if (!P2PComm::GetInstance().VerifyMessage(message_wo_keysig, toVerify,
+                                              senderPubKey)) {
+      LOG_GENERAL(WARNING,
+                  "Signature verification failed. so ignoring message");
+      return {false, {}};
+    }
+  } else {
+    message_wo_keysig = message;
+  }
+  return {true, message_wo_keysig};
+}
+
+std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
+    uint8_t type, int32_t round, const RawBytes& message, const Peer& from) {
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
       // LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
-      return false;
+      return {false, {}};
     }
   }
 
@@ -367,12 +425,21 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     // I dont know this peer, missing in my peerlist.
     LOG_GENERAL(DEBUG, "Received Rumor from peer : "
                            << from << " which does not exist in my peerlist.");
-    return false;
+    return {false, {}};
   }
 
   int64_t recvdRumorId = -1;
   RRS::Message::Type t = convertType(type);
   bool toBeDispatched = false;
+
+  auto result = VerifyMessage(message, t, from);
+  if (!result.first) {
+    return {false, {}};
+  }
+  bytes message_wo_keysig(result.second);
+
+  // All checks passed. Good to accept this rumor
+
   if (RRS::Message::Type::EMPTY_PUSH == t ||
       RRS::Message::Type::EMPTY_PULL == t) {
     /* Don't add it to local RumorMap because it's not the rumor itself */
@@ -380,12 +447,12 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
                            << RRS::Message::s_enumKeyToString[t]);
   } else if (RRS::Message::Type::LAZY_PUSH == t ||
              RRS::Message::Type::LAZY_PULL == t) {
-    auto it = m_rumorIdHashBimap.right.find(message);
+    auto it = m_rumorIdHashBimap.right.find(message_wo_keysig);
     if (it == m_rumorIdHashBimap.right.end()) {
       recvdRumorId = ++m_rumorIdGenerator;
 
       m_rumorIdHashBimap.insert(
-          RumorIdRumorBimap::value_type(recvdRumorId, message));
+          RumorIdRumorBimap::value_type(recvdRumorId, message_wo_keysig));
 
       // Now that's the new hash message. So we dont have the real message.
       // So lets ask the sender for it.
@@ -397,7 +464,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
                              << from << ". [ RumorId: " << recvdRumorId
                              << ", Current Round: " << round);
       // check if we have received the real message for this old rumor.
-      auto it = m_rumorHashRawMsgBimap.left.find(message);
+      auto it = m_rumorHashRawMsgBimap.left.find(message_wo_keysig);
       if (it == m_rumorHashRawMsgBimap.left.end()) {
         // didn't receive real message (PUSH) yet :( Lets ask this peer.
         RRS::Message pullMsg(RRS::Message::Type::PULL, recvdRumorId, -1);
@@ -406,9 +473,9 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     }
   } else if (RRS::Message::Type::PULL == t) {
     // Now that sender wants the real message, lets send it to him.
-    auto it1 = m_rumorHashRawMsgBimap.left.find(message);
+    auto it1 = m_rumorHashRawMsgBimap.left.find(message_wo_keysig);
     if (it1 != m_rumorHashRawMsgBimap.left.end()) {
-      auto it2 = m_rumorIdHashBimap.right.find(message);
+      auto it2 = m_rumorIdHashBimap.right.find(message_wo_keysig);
       if (it2 != m_rumorIdHashBimap.right.end()) {
         recvdRumorId = it2->second;
         RRS::Message pushMsg(RRS::Message::Type::PUSH, recvdRumorId, -1);
@@ -417,40 +484,41 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
     } else  // I dont have it as of now. Add this peer to subscriber list for
             // this hash message.
     {
-      auto it2 = m_hashesSubscriberMap.find(message);
+      auto it2 = m_hashesSubscriberMap.find(message_wo_keysig);
       if (it2 == m_hashesSubscriberMap.end()) {
-        m_hashesSubscriberMap.insert(
-            RumorHashesPeersMap::value_type(message, std::set<Peer>()));
+        m_hashesSubscriberMap.insert(RumorHashesPeersMap::value_type(
+            message_wo_keysig, std::set<Peer>()));
       }
-      m_hashesSubscriberMap[message].insert(from);
+      m_hashesSubscriberMap[message_wo_keysig].insert(from);
     }
-    return false;
+    return {false, {}};
   } else if (RRS::Message::Type::PUSH == t) {
     // I got it from my peer for what i asked him
     RawBytes hash;
-    if (message.size() >
+    if (message_wo_keysig.size() >
         0)  // if someone malaciously sends empty message, sha2 will assert fail
     {
-      hash = HashUtils::BytesToHash(message);
+      hash = HashUtils::BytesToHash(message_wo_keysig);
+      std::string hashStr;
+      DataConversion::Uint8VecToHexStr(hash, hashStr);
 
       auto it1 = m_rumorIdHashBimap.right.find(hash);
       if (it1 != m_rumorIdHashBimap.right.end()) {
         recvdRumorId = it1->second;
       } else {
         // I have not asked for this raw message.. so ignoring
-        return false;
+        return {false, {}};
       }
 
       // toBeDispatched
       auto result = m_rumorHashRawMsgBimap.insert(
-          RumorHashRumorBiMap::value_type(hash, message));
+          RumorHashRumorBiMap::value_type(hash, message_wo_keysig));
       if (result.second) {
         LOG_PAYLOAD(INFO,
                     "New Gossip Raw message received from Peer: "
                         << from << ", Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]",
-                    message, Logger::MAX_BYTES_TO_DISPLAY);
+                        << hashStr.substr(0, 6) << " ]",
+                    message_wo_keysig, Logger::MAX_BYTES_TO_DISPLAY);
         toBeDispatched = true;
         // add the timestamp for this raw rumor message
         m_rumorRawMsgTimestamp.push_back(std::make_pair(
@@ -459,9 +527,8 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
         LOG_PAYLOAD(DEBUG,
                     "Old Gossip Raw message received from Peer: "
                         << from << ", Gossip_Message_Hash: "
-                        << DataConversion::Uint8VecToHexStr(hash).substr(0, 6)
-                        << " ]",
-                    message, Logger::MAX_BYTES_TO_DISPLAY);
+                        << hashStr.substr(0, 6) << " ]",
+                    message_wo_keysig, Logger::MAX_BYTES_TO_DISPLAY);
       }
 
       // Do i have any peers subscribed with me for this hash.
@@ -471,7 +538,7 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
         LOG_GENERAL(
             DEBUG,
             "Sending Gossip Raw Message to subscribers of Gossip_Message_Hash: "
-                << DataConversion::Uint8VecToHexStr(hash).substr(0, 6));
+                << hashStr.substr(0, 6));
         for (auto& p : it2->second) {
           // avoid un-neccessarily sending again back to sender itself
           if (p == from) {
@@ -483,10 +550,10 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
         m_hashesSubscriberMap.erase(hash);
       }
     }
-    return toBeDispatched;
+    return {toBeDispatched, message_wo_keysig};
   } else {
     LOG_GENERAL(WARNING, "Unknown message type received");
-    return false;
+    return {false, {}};
   }
 
   RRS::Message recvMsg(t, recvdRumorId, round);
@@ -499,7 +566,19 @@ bool RumorManager::RumorReceived(uint8_t type, int32_t round,
 
   SendMessages(from, pullMsgs.second);
 
-  return toBeDispatched;
+  return {toBeDispatched, message_wo_keysig};
+}
+
+void RumorManager::AppendKeyAndSignature(RawBytes& result,
+                                         const RawBytes& messageToSig) {
+  // Add pubkey and signature before message body
+  RawBytes tmp;
+  m_selfKey.second.Serialize(tmp, 0);
+
+  Signature sig = P2PComm::GetInstance().SignMessage(messageToSig);
+  sig.Serialize(tmp, PUB_KEY_SIZE);
+
+  result.insert(result.end(), tmp.begin(), tmp.end());
 }
 
 void RumorManager::SendMessage(const Peer& toPeer,
@@ -526,13 +605,21 @@ void RumorManager::SendMessage(const Peer& toPeer,
         // Get the raw message based on hash
         auto it2 = m_rumorHashRawMsgBimap.left.find(it1->second);
         if (it2 != m_rumorHashRawMsgBimap.left.end()) {
+          if (SIGN_VERIFY_NONEMPTY_MSGTYP) {
+            // Add pubkey and signature before message body
+            AppendKeyAndSignature(cmd, it2->second);
+          }
+
           // Add raw message to outgoing message
           cmd.insert(cmd.end(), it2->second.begin(), it2->second.end());
-          LOG_GENERAL(
-              INFO,
-              "Sending Gossip Raw Message of Gossip_Message_Hash : ["
-                  << DataConversion::Uint8VecToHexStr(it1->second).substr(0, 6)
-                  << "] To Peer : " << toPeer);
+          std::string gossipHashStr;
+          if (!DataConversion::Uint8VecToHexStr(it1->second, gossipHashStr)) {
+            return;
+          }
+          LOG_GENERAL(INFO,
+                      "Sending Gossip Raw Message of Gossip_Message_Hash : ["
+                          << gossipHashStr.substr(0, 6)
+                          << "] To Peer : " << toPeer);
         } else {
           // Nothing to send.
           return;
@@ -540,6 +627,11 @@ void RumorManager::SendMessage(const Peer& toPeer,
       } else if (RRS::Message::Type::LAZY_PUSH == t ||
                  RRS::Message::Type::LAZY_PULL == t ||
                  RRS::Message::Type::PULL == t) {
+        if (SIGN_VERIFY_NONEMPTY_MSGTYP) {
+          // Add pubkey and signature before message body
+          AppendKeyAndSignature(cmd, it1->second);
+        }
+
         // Add hash message to outgoing message for types
         // LAZY_PULL/LAZY_PUSH/PULL
         cmd.insert(cmd.end(), it1->second.begin(), it1->second.end());
@@ -548,6 +640,14 @@ void RumorManager::SendMessage(const Peer& toPeer,
       } else {
         return;
       }
+    }
+  } else {  // EMPTY_PULL/ EMPTY_PUSH
+    if (SIGN_VERIFY_EMPTY_MSGTYP) {
+      // Add pubkey and signature before message body
+      RawBytes dummyMsg = {'D', 'U', 'M', 'M', 'Y'};
+      AppendKeyAndSignature(cmd, dummyMsg);
+      // Add dummy message to outgoing message
+      cmd.insert(cmd.end(), dummyMsg.begin(), dummyMsg.end());
     }
   }
 
@@ -581,11 +681,13 @@ void RumorManager::PrintStatistics() {
     if (it != m_rumorIdHashBimap.left.end()) {
       bytes this_msg_hash = HashUtils::BytesToHash(it->second);
       const RRS::RumorStateMachine& state = i.second;
-      LOG_GENERAL(
-          INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: "
-                              << DataConversion::Uint8VecToHexStr(this_msg_hash)
-                                     .substr(0, 6)
-                              << " ], " << state);
+      std::string gossipHashStr;
+      if (!DataConversion::Uint8VecToHexStr(this_msg_hash, gossipHashStr)) {
+        continue;
+      }
+      LOG_GENERAL(INFO, "[ RumorId: " << rumorId << " , Gossip_Message_Hash: "
+                                      << gossipHashStr.substr(0, 6) << " ], "
+                                      << state);
     }
   }
 }

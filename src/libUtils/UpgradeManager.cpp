@@ -1,29 +1,29 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "UpgradeManager.h"
+#include <sys/wait.h>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include "libCrypto/Schnorr.h"
 #include "libUtils/Logger.h"
+
 using namespace std;
 
 #define USER_AGENT "Zilliqa"
@@ -32,9 +32,12 @@ using namespace std;
 #define PUBLIC_KEY_FILE_NAME "pubKeyFile"
 #define CONSTANT_FILE_NAME "constants.xml"
 #define CONSTANT_LOOKUP_FILE_NAME "constants.xml_lookup"
-#define CONSTANT_ARCHIVAL_FILE_NAME "constants.xml_archival"
+#define CONSTANT_SEED_FILE_NAME "constants.xml_archivallookup"
 #define PUBLIC_KEY_LENGTH 66
-#define PACKAGE_FILE_EXTENSION "deb"
+#define ZILLIQA_PACKAGE_FILE_EXTENSION "-Zilliqa.deb"
+#define SCILLA_PACKAGE_FILE_EXTENSION "-Scilla.deb"
+#define DPKG_BINARY_PATH "/usr/bin/dpkg"
+#define DPKG_CONFIG_PATH "/var/lib/dpkg/status"
 #define UPGRADE_HOST                                                      \
   string(string("https://api.github.com/repos/") + UPGRADE_HOST_ACCOUNT + \
          "/" + UPGRADE_HOST_REPO + "/releases/latest")
@@ -43,6 +46,23 @@ const unsigned int TERMINATION_COUNTDOWN_OFFSET_SHARD = 0;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP = 1;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_DS_LEADER = 2;
 const unsigned int TERMINATION_COUNTDOWN_OFFSET_LOOKUP = 3;
+
+enum VERSION_LINE : unsigned int {
+  ZILLIQA_MAJOR_VERSION_LINE = 2,
+  ZILLIQA_MINOR_VERSION_LINE = 4,
+  ZILLIQA_FIX_VERSION_LINE = 6,
+  ZILLIQA_DS_LINE = 8,
+  SCILLA_DS_LINE = 10,
+  SCILLA_MAJOR_VERSION_LINE = 14,
+  SCILLA_MINOR_VERSION_LINE = 16,
+  SCILLA_FIX_VERSION_LINE = 18,
+  ZILLIQA_COMMIT_LINE = 20,
+  ZILLIQA_SHA_LINE = 22,
+  ZILLIQA_SIG_LINE = 24,
+  SCILLA_COMMIT_LINE = 26,
+  SCILLA_SHA_LINE = 28,
+  SCILLA_SIG_LINE = 30,
+};
 
 namespace {
 
@@ -109,6 +129,7 @@ static size_t WriteString(void* contents, size_t size, size_t nmemb,
 
 string UpgradeManager::DownloadFile(const char* fileTail,
                                     const char* releaseUrl) {
+  LOG_MARKER();
   if (!m_curl) {
     LOG_GENERAL(WARNING, "Cannot perform any curl operation!");
     return "";
@@ -116,6 +137,7 @@ string UpgradeManager::DownloadFile(const char* fileTail,
 
   string curlRes;
   curl_easy_reset(m_curl);
+  curl_easy_setopt(m_curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(m_curl, CURLOPT_URL,
                    releaseUrl ? releaseUrl : UPGRADE_HOST.c_str());
   curl_easy_setopt(m_curl, CURLOPT_USERAGENT, USER_AGENT);
@@ -132,6 +154,8 @@ string UpgradeManager::DownloadFile(const char* fileTail,
                     << "]: " << curl_easy_strerror(res));
     return "";
   }
+
+  LOG_GENERAL(INFO, "curlRes: = " << curlRes);
 
   int find = 0;
   string cur;
@@ -250,48 +274,101 @@ bool UpgradeManager::HasNewSW() {
     string pubKey;
 
     while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
-      pubKeys.emplace_back(DataConversion::HexStrToUint8Vec(pubKey), 0);
+      bytes tempPubKeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(pubKey, tempPubKeyBytes)) {
+        continue;
+      }
+      pubKeys.emplace_back(tempPubKeyBytes, 0);
     }
   }
 
   LOG_GENERAL(INFO, "Parsing public key file completed.");
 
-  string shaStr, sigStr;
+  string zilliqaShaStr, zilliqaSigStr, scillaShaStr, scillaSigStr;
   {
     fstream versionFile(versionName, ios::in);
     int line_no = 0;
 
-    /// Read SHA-256 hash
-    while (line_no != 14 && getline(versionFile, shaStr)) {
+    while (line_no != ZILLIQA_SHA_LINE && getline(versionFile, zilliqaShaStr)) {
       ++line_no;
     }
 
-    /// Read signature
-    while (line_no != 16 && getline(versionFile, sigStr)) {
+    while (line_no != ZILLIQA_SIG_LINE && getline(versionFile, zilliqaSigStr)) {
+      ++line_no;
+    }
+
+    while (line_no != SCILLA_SHA_LINE && getline(versionFile, scillaShaStr)) {
+      ++line_no;
+    }
+
+    while (line_no != SCILLA_SIG_LINE && getline(versionFile, scillaSigStr)) {
       ++line_no;
     }
   }
 
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
-  const bytes sha = DataConversion::HexStrToUint8Vec(shaStr);
-  const unsigned int len = sigStr.size() / pubKeys.size();
-  vector<Signature> mutliSig;
+  bytes tempSha;
+
+  if (!DataConversion::HexStrToUint8Vec(zilliqaShaStr, tempSha)) {
+    return false;
+  }
+
+  const bytes zilliqaSha = tempSha;
+  const unsigned int len = zilliqaSigStr.size() / pubKeys.size();
+  vector<Signature> zilliqaMutliSig;
 
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    mutliSig.emplace_back(
-        DataConversion::HexStrToUint8Vec(sigStr.substr(i * len, len)), 0);
+    bytes tempMultisigBytes;
+    if (!DataConversion::HexStrToUint8Vec(zilliqaSigStr.substr(i * len, len),
+                                          tempMultisigBytes)) {
+      continue;
+    }
+    zilliqaMutliSig.emplace_back(tempMultisigBytes, 0);
   }
 
   /// Multi-sig verification
   for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-    if (!Schnorr::GetInstance().Verify(sha, mutliSig.at(i), pubKeys.at(i))) {
-      LOG_GENERAL(WARNING, "Multisig verification failed!");
+    if (!Schnorr::GetInstance().Verify(zilliqaSha, zilliqaMutliSig.at(i),
+                                       pubKeys.at(i))) {
+      LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
       return false;
     }
   }
 
-  return m_latestSHA != sha;
+  if (0 != scillaSigStr.size()) {
+    if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
+      return false;
+    }
+
+    const bytes scillaSha = tempSha;
+    const unsigned int len = scillaSigStr.size() / pubKeys.size();
+    vector<Signature> scillaMutliSig;
+
+    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
+      bytes tempMultisigBytes;
+      if (!DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len),
+                                            tempMultisigBytes)) {
+        continue;
+      }
+      scillaMutliSig.emplace_back(tempMultisigBytes, 0);
+    }
+
+    /// Multi-sig verification
+    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
+      if (!Schnorr::GetInstance().Verify(scillaSha, scillaMutliSig.at(i),
+                                         pubKeys.at(i))) {
+        LOG_GENERAL(WARNING, "Multisig verification on Scilla failed!");
+        return false;
+      }
+    }
+
+    if (m_latestScillaSHA != scillaSha) {
+      return true;
+    }
+  }
+
+  return m_latestZilliqaSHA != zilliqaSha;
 }
 
 bool UpgradeManager::DownloadSW() {
@@ -320,70 +397,106 @@ bool UpgradeManager::DownloadSW() {
     return false;
   }
 
-  m_constantArchivalFileName = DownloadFile(CONSTANT_ARCHIVAL_FILE_NAME);
+  m_constantArchivalLookupFileName = DownloadFile(CONSTANT_SEED_FILE_NAME);
 
-  if (m_constantArchivalFileName.empty()) {
-    LOG_GENERAL(WARNING, "Cannot download constant archival file!");
-    return false;
+  if (m_constantArchivalLookupFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download constant archival lookup seed file!");
   }
 
   LOG_GENERAL(INFO, "Constant file has been downloaded successfully.");
 
-  m_packageFileName = DownloadFile(PACKAGE_FILE_EXTENSION);
+  m_zilliqaPackageFileName = DownloadFile(ZILLIQA_PACKAGE_FILE_EXTENSION);
 
-  if (m_packageFileName.empty()) {
-    LOG_GENERAL(WARNING, "Cannot download package (.deb) file!");
+  if (m_zilliqaPackageFileName.empty()) {
+    LOG_GENERAL(WARNING, "Cannot download Zilliqa package (.deb) file!");
     return false;
+  }
+
+  m_scillaPackageFileName = DownloadFile(SCILLA_PACKAGE_FILE_EXTENSION);
+
+  if (m_scillaPackageFileName.empty()) {
+    LOG_GENERAL(INFO, "Cannot download Scilla package (.deb) file!");
   }
 
   LOG_GENERAL(INFO, "Package (.deb) file has been downloaded successfully.");
 
-  uint32_t major, minor, fix, commit;
-  uint64_t upgradeDS;
-  string sha;
+  uint32_t zilliqaMajor, zilliqaMinor, zilliqaFix, zilliqaCommit, scillaMajor,
+      scillaMinor, scillaFix, scillaCommit;
+  uint64_t zilliqaUpgradeDS, scillaUpgradeDS;
+  string zilliqaSha, scillaSha;
 
   try {
     fstream versionFile(versionName, ios::in);
     int line_no = 0;
     string line;
 
-    /// Read major version
-    while (line_no != 2 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_MAJOR_VERSION_LINE &&
+           getline(versionFile, line)) {
       ++line_no;
     }
 
-    major = stoul(line);
+    zilliqaMajor = stoul(line);
 
-    /// Read minor version
-    while (line_no != 4 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_MINOR_VERSION_LINE &&
+           getline(versionFile, line)) {
       ++line_no;
     }
 
-    minor = stoul(line);
+    zilliqaMinor = stoul(line);
 
-    /// Read fix version
-    while (line_no != 6 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_FIX_VERSION_LINE && getline(versionFile, line)) {
       ++line_no;
     }
 
-    fix = stoul(line);
+    zilliqaFix = stoul(line);
 
-    /// Read expected DS epoch
-    while (line_no != 8 && getline(versionFile, line)) {
+    while (line_no != ZILLIQA_DS_LINE && getline(versionFile, line)) {
       ++line_no;
     }
 
-    upgradeDS = stoull(line);
+    zilliqaUpgradeDS = stoull(line);
 
-    /// Read Git commit ID
-    while (line_no != 12 && getline(versionFile, line)) {
+    while (line_no != SCILLA_DS_LINE && getline(versionFile, line)) {
       ++line_no;
     }
 
-    commit = stoul(line, nullptr, 16);
+    scillaUpgradeDS = stoull(line);
 
-    /// Read SHA-256 hash
-    while (line_no != 14 && getline(versionFile, sha)) {
+    while (line_no != SCILLA_MAJOR_VERSION_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaMajor = stoul(line);
+
+    while (line_no != SCILLA_MINOR_VERSION_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaMinor = stoul(line);
+
+    while (line_no != SCILLA_FIX_VERSION_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaFix = stoul(line);
+
+    while (line_no != ZILLIQA_COMMIT_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    zilliqaCommit = stoul(line, nullptr, 16);
+
+    while (line_no != ZILLIQA_SHA_LINE && getline(versionFile, zilliqaSha)) {
+      ++line_no;
+    }
+
+    while (line_no != SCILLA_COMMIT_LINE && getline(versionFile, line)) {
+      ++line_no;
+    }
+
+    scillaCommit = stoul(line, nullptr, 16);
+
+    while (line_no != SCILLA_SHA_LINE && getline(versionFile, scillaSha)) {
       ++line_no;
     }
   } catch (const std::exception& e) {
@@ -393,27 +506,50 @@ bool UpgradeManager::DownloadSW() {
   }
 
   /// Verify SHA-256 checksum of .deb file
-  string downloadSha;
+  string zilliqaDownloadSha;
   {
-    fstream debFile(m_packageFileName, ios::in);
+    fstream debFile(m_zilliqaPackageFileName, ios::in);
 
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     bytes vec((istreambuf_iterator<char>(debFile)),
               (istreambuf_iterator<char>()));
     sha2.Update(vec, 0, vec.size());
     bytes output = sha2.Finalize();
-    downloadSha = DataConversion::Uint8VecToHexStr(output);
+    // No need check bool as sha2 will return hex
+    DataConversion::Uint8VecToHexStr(output, zilliqaDownloadSha);
   }
 
-  if (sha != downloadSha) {
-    LOG_GENERAL(WARNING, "SHA-256 checksum of .deb file mismatch. Expected: "
-                             << sha << " Actual: " << downloadSha);
+  if (zilliqaSha != zilliqaDownloadSha) {
+    LOG_GENERAL(WARNING,
+                "Zilliqa SHA-256 checksum of .deb file mismatch. Expected: "
+                    << zilliqaSha << " Actual: " << zilliqaDownloadSha);
     return false;
   }
 
-  m_latestSWInfo = make_shared<SWInfo>(major, minor, fix, upgradeDS, commit);
-  m_latestSHA = DataConversion::HexStrToUint8Vec(sha);
-  return true;
+  if (!m_scillaPackageFileName.empty()) {
+    fstream debFile(m_scillaPackageFileName, ios::in);
+    SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+    bytes vec((istreambuf_iterator<char>(debFile)),
+              (istreambuf_iterator<char>()));
+    sha2.Update(vec, 0, vec.size());
+    bytes output = sha2.Finalize();
+    string scillaDownloadSha;
+    DataConversion::Uint8VecToHexStr(output, scillaDownloadSha);
+
+    if (scillaSha != scillaDownloadSha) {
+      LOG_GENERAL(WARNING,
+                  "Scilla SHA-256 checksum of .deb file mismatch. Expected: "
+                      << scillaSha << " Actual: " << scillaDownloadSha);
+      return false;
+    }
+
+    DataConversion::HexStrToUint8Vec(scillaSha, m_latestScillaSHA);
+  }
+
+  m_latestSWInfo = make_shared<SWInfo>(
+      zilliqaMajor, zilliqaMinor, zilliqaFix, zilliqaUpgradeDS, zilliqaCommit,
+      scillaMajor, scillaMinor, scillaFix, scillaUpgradeDS, scillaCommit);
+  return DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
 }
 
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
@@ -461,13 +597,13 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
                                               {'1'});
 
   /// Deploy downloaded software
-  if (LOOKUP_NODE_MODE) {
+  if (ARCHIVAL_LOOKUP) {
+    boost::filesystem::copy_file(
+        m_constantArchivalLookupFileName, CONSTANT_FILE_NAME,
+        boost::filesystem::copy_option::overwrite_if_exists);
+  } else if (LOOKUP_NODE_MODE) {
     boost::filesystem::copy_file(
         m_constantLookupFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
-  } else if (ARCHIVAL_NODE) {
-    boost::filesystem::copy_file(
-        m_constantArchivalFileName, CONSTANT_FILE_NAME,
         boost::filesystem::copy_option::overwrite_if_exists);
   } else {
     boost::filesystem::copy_file(
@@ -477,9 +613,9 @@ bool UpgradeManager::ReplaceNode(Mediator& mediator) {
 
   /// TBD: The call of "dpkg" should be removed.
   /// (https://github.com/Zilliqa/Issues/issues/185)
-  if (execl("/usr/bin/dpkg", "dpkg", "-i", m_packageFileName.data(), nullptr) <
-      0) {
-    LOG_GENERAL(WARNING, "Cannot deploy downloaded software!");
+  if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_zilliqaPackageFileName.data(),
+            nullptr) < 0) {
+    LOG_GENERAL(WARNING, "Cannot deploy downloaded Zilliqa software!");
     return false;
   }
 
@@ -501,12 +637,18 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
-        initialDSCommittee.push_back(
-            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+          LOG_GENERAL(WARNING,
+                      "error loading "
+                          << ds_string
+                          << " using HexStrToUint8Vec(). Not a hex str");
+          continue;
+        }
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
 
       bytes message;
-
       unsigned int curr_offset = 0;
       for (auto& dsKey : initialDSCommittee) {
         dsKey.Serialize(message, curr_offset);
@@ -516,8 +658,17 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       string sig_str = ReadDSCommFile(signatureProp);
       string pubKey_str = ReadDSCommFile(publicKeyProp);
 
-      PubKey pubKey(DataConversion::HexStrToUint8Vec(pubKey_str), 0);
-      Signature sig(DataConversion::HexStrToUint8Vec(sig_str), 0);
+      bytes pubkeyBytes;
+      if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubkeyBytes)) {
+        return false;
+      }
+      PubKey pubKey(pubkeyBytes, 0);
+
+      bytes sigBytes;
+      if (!DataConversion::HexStrToUint8Vec(sig_str, sigBytes)) {
+        return false;
+      }
+      Signature sig(sigBytes, 0);
 
       if (!Schnorr::GetInstance().Verify(message, sig, pubKey)) {
         LOG_GENERAL(WARNING, "Unable to verify file");
@@ -529,8 +680,11 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (auto ds_string : tempDsComm_string) {
-        initialDSCommittee.push_back(
-            PubKey(DataConversion::HexStrToUint8Vec(ds_string), 0));
+        bytes pubkeyBytes;
+        if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+          return false;
+        }
+        initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
     }
 
@@ -539,4 +693,86 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
     LOG_GENERAL(WARNING, e.what());
     return false;
   }
+}
+
+bool UpgradeManager::InstallScilla() {
+  LOG_MARKER();
+
+  if (!m_scillaPackageFileName.empty()) {
+    if (!UpgradeManager::UnconfigureScillaPackage()) {
+      return false;
+    }
+
+    LOG_GENERAL(INFO, "Start to install Scilla...");
+
+    pid_t pid = fork();
+
+    if (pid == -1) {
+      LOG_GENERAL(WARNING, "Cannot fork a process for installing scilla!");
+      return false;
+    }
+
+    if (pid > 0) {
+      /// Parent process
+      int status;
+      do {
+        if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
+          perror("wait() error");
+        } else if (pid == 0) {
+          LOG_GENERAL(INFO, "Still under installing scilla...");
+          this_thread::sleep_for(chrono::seconds(1));
+        } else {
+          if (WIFEXITED(status)) {
+            LOG_GENERAL(INFO, "Scilla has been installed successfully.");
+          } else {
+            LOG_GENERAL(WARNING, "Failed to install scilla with status "
+                                     << WEXITSTATUS(status));
+            return false;
+          }
+        }
+      } while (pid == 0);
+    } else {
+      /// Child process
+      if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_scillaPackageFileName.data(),
+                nullptr) < 0) {
+        LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+      }
+
+      exit(0);
+    }
+  }
+
+  return true;
+}
+
+bool UpgradeManager::UnconfigureScillaPackage() {
+  LOG_MARKER();
+  const string dpkgStatusFileName(DPKG_CONFIG_PATH), tmpFileName("temp.txt");
+  ifstream dpkgStatusFile;
+  dpkgStatusFile.open(dpkgStatusFileName);
+  ofstream tempFile;
+  tempFile.open(tmpFileName);
+  string line;
+
+  while (getline(dpkgStatusFile, line)) {
+    if (line.find("scilla") != string::npos) {
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      getline(dpkgStatusFile, line);
+      continue;
+    }
+
+    tempFile << line << endl;
+  }
+
+  tempFile.close();
+  dpkgStatusFile.close();
+  boost::filesystem::copy_file(
+      tmpFileName, dpkgStatusFileName,
+      boost::filesystem::copy_option::overwrite_if_exists);
+  remove(tmpFileName.c_str());
+
+  return true;
 }

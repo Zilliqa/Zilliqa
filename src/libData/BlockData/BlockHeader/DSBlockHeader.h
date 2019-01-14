@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef __DSBLOCKHEADER_H__
@@ -40,7 +38,6 @@
 class DSBlockHeader : public BlockHeaderBase {
   uint8_t m_dsDifficulty;  // Number of PoW leading zeros
   uint8_t m_difficulty;    // Number of PoW leading zeros
-  BlockHash m_prevHash;    // Hash of the previous block
   PubKey m_leaderPubKey;   // The one who proposed this DS block
   uint64_t m_blockNum;     // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum;     // Tx Epoch Num when the DS block was generated
@@ -58,13 +55,14 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Constructor with specified DS block header parameters.
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
-                const BlockHash& prevHash, const PubKey& leaderPubKey,
-                const uint64_t& blockNum, const uint64_t& epochNum,
+                const PubKey& leaderPubKey, const uint64_t& blockNum,
+                const uint64_t& epochNum,
                 const boost::multiprecision::uint128_t& gasPrice,
                 const SWInfo& swInfo,
                 const std::map<PubKey, Peer>& powDSWinners,
-                const DSBlockHashSet& hashset,
-                const CommitteeHash& committeeHash);
+                const DSBlockHashSet& hashset, const uint32_t version = 0,
+                const CommitteeHash& committeeHash = CommitteeHash(),
+                const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const override;
@@ -81,9 +79,6 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDifficulty() const;
-
-  /// Returns the hash of prev dir block
-  const BlockHash& GetPrevHash() const;
 
   /// Returns the public key of the leader of the DS committee that composed
   /// this block.
@@ -120,6 +115,29 @@ class DSBlockHeader : public BlockHeaderBase {
 
   /// Greater-than comparison operator.
   bool operator>(const DSBlockHeader& header) const;
+
+  friend std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t);
 };
+
+inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<DSBlockHeader>" << std::endl
+     << "m_dsDifficulty : " << t.m_dsDifficulty << std::endl
+     << "m_difficulty : " << t.m_difficulty << std::endl
+     << "m_leaderPubKey : " << t.m_leaderPubKey << std::endl
+     << "m_blockNum : " << t.m_blockNum << std::endl
+     << "m_epochNum : " << t.m_epochNum << std::endl
+     << "m_gasPrice : " << t.m_gasPrice << std::endl
+     << t.m_hashset << std::endl
+     << t.m_swInfo << std::endl;
+  for (const auto& node : t.m_PoWDSWinners) {
+    os << "PoWDSWinner: [PubKey] " << node.first << " [Peer] " << node.second
+       << std::endl;
+  }
+
+  return os;
+}
 
 #endif  // __DSBLOCKHEADER_H__

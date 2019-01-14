@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef __MESSAGES_H__
@@ -62,40 +60,39 @@ enum NodeInstructionType : unsigned char {
 };
 
 enum LookupInstructionType : unsigned char {
-  GETSEEDPEERS = 0x00,
-  SETSEEDPEERS = 0x01,
-  GETDSINFOFROMSEED = 0x02,
-  SETDSINFOFROMSEED = 0x03,
-  GETDSBLOCKFROMSEED = 0x04,
-  SETDSBLOCKFROMSEED = 0x05,
-  GETTXBLOCKFROMSEED = 0x06,
-  SETTXBLOCKFROMSEED = 0x07,
-  GETTXBODYFROMSEED = 0x08,
-  SETTXBODYFROMSEED = 0x09,
-  GETNETWORKIDFROMSEED = 0x0A,
-  SETNETWORKIDFROMSEED = 0x0B,
-  GETSTATEFROMSEED = 0x0C,
-  SETSTATEFROMSEED = 0x0D,
-  SETLOOKUPOFFLINE = 0x0E,
-  SETLOOKUPONLINE = 0x0F,
-  GETOFFLINELOOKUPS = 0x10,
-  SETOFFLINELOOKUPS = 0x11,
-  RAISESTARTPOW = 0x12,
-  GETSTARTPOWFROMSEED = 0x13,
-  SETSTARTPOWFROMSEED = 0x14,
-  GETSHARDSFROMSEED = 0x15,
-  SETSHARDSFROMSEED = 0x16,
-  GETMICROBLOCKFROMLOOKUP = 0x17,
-  SETMICROBLOCKFROMLOOKUP = 0x18,
-  GETTXNFROMLOOKUP = 0x19,
-  SETTXNFROMLOOKUP = 0x1A,
-  GETDIRBLOCKSFROMSEED = 0x1B,
-  SETDIRBLOCKSFROMSEED = 0x1C,
-  GETSTATEDELTAFROMSEED = 0x1D,
-  SETSTATEDELTAFROMSEED = 0x1E,
-  VCGETLATESTDSTXBLOCK = 0x1F,
-  FORWARDTXN = 0x20,
-  GETGUARDNODENETWORKINFOUPDATE = 0x21
+  GETDSINFOFROMSEED = 0x00,
+  SETDSINFOFROMSEED = 0x01,
+  GETDSBLOCKFROMSEED = 0x02,
+  SETDSBLOCKFROMSEED = 0x03,
+  GETTXBLOCKFROMSEED = 0x04,
+  SETTXBLOCKFROMSEED = 0x05,
+  GETTXBODYFROMSEED = 0x06,
+  SETTXBODYFROMSEED = 0x07,
+  GETNETWORKIDFROMSEED = 0x08,
+  SETNETWORKIDFROMSEED = 0x09,
+  GETSTATEFROMSEED = 0x0A,
+  SETSTATEFROMSEED = 0x0B,
+  SETLOOKUPOFFLINE = 0x0C,
+  SETLOOKUPONLINE = 0x0D,
+  GETOFFLINELOOKUPS = 0x0E,
+  SETOFFLINELOOKUPS = 0x0F,
+  RAISESTARTPOW = 0x10,
+  GETSTARTPOWFROMSEED = 0x11,
+  SETSTARTPOWFROMSEED = 0x12,
+  GETSHARDSFROMSEED = 0x13,
+  SETSHARDSFROMSEED = 0x14,
+  GETMICROBLOCKFROMLOOKUP = 0x15,
+  SETMICROBLOCKFROMLOOKUP = 0x16,
+  GETTXNFROMLOOKUP = 0x17,
+  SETTXNFROMLOOKUP = 0x18,
+  GETDIRBLOCKSFROMSEED = 0x19,
+  SETDIRBLOCKSFROMSEED = 0x1A,
+  GETSTATEDELTAFROMSEED = 0x1B,
+  SETSTATEDELTAFROMSEED = 0x1C,
+  VCGETLATESTDSTXBLOCK = 0x1D,
+  FORWARDTXN = 0x1E,
+  GETGUARDNODENETWORKINFOUPDATE = 0x1F,
+  SETHISTORICALDB = 0x20
 };
 
 enum TxSharingMode : unsigned char {

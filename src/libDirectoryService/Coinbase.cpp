@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <map>
 #include <queue>
@@ -25,6 +23,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libMediator/Mediator.h"
+#include "libNetwork/Guard.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -71,15 +70,13 @@ bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,
   for (const auto& kv : shard) {
     const auto& pubKey = std::get<SHARD_NODE_PUBKEY>(kv);
     if (b1.at(i)) {
-      m_coinbaseRewardees[epochNum][shard_id].push_back(
-          Account::GetAddressFromPublicKey(pubKey));
+      m_coinbaseRewardees[epochNum][shard_id].push_back(pubKey);
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
       }
     }
     if (b2.at(i)) {
-      m_coinbaseRewardees[epochNum][shard_id].push_back(
-          Account::GetAddressFromPublicKey(pubKey));
+      m_coinbaseRewardees[epochNum][shard_id].push_back(pubKey);
       if (m_mapNodeReputation[pubKey] < MAX_REPUTATION) {
         ++m_mapNodeReputation[pubKey];
       }
@@ -115,7 +112,7 @@ void DirectoryService::LookupCoinbase(
   for (const auto& lookupNode : vecLookup) {
     LOG_GENERAL(INFO, " " << lookupNode.first);
     m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
-        Account::GetAddressFromPublicKey(lookupNode.first));
+        lookupNode.first);
   }
 
   /*for (const auto& shard : shards) {
@@ -216,7 +213,7 @@ void DirectoryService::InitCoinbase() {
 
   for (const auto& lookupNode : vecLookup) {
     m_coinbaseRewardees[epochNum][CoinbaseReward::LOOKUP_REWARD].push_back(
-        Account::GetAddressFromPublicKey(lookupNode.first));
+        lookupNode.first);
   }
 
   if (m_coinbaseRewardees.size() < NUM_FINAL_BLOCK_PER_POW - 1) {
@@ -312,23 +309,35 @@ void DirectoryService::InitCoinbase() {
   // DS nodes
   for (const auto& ds : *m_mediator.m_DSCommittee) {
     Address addr = Account::GetAddressFromPublicKey(ds.first);
+    if (GUARD_MODE) {
+      if (Guard::GetInstance().IsNodeInDSGuardList(ds.first)) {
+        if (addr == myAddr) {
+          LOG_GENERAL(INFO, "I am a Guard Node, skip coinbase");
+        }
+        continue;
+      }
+    }
     if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
                                                         base_reward_each)) {
       LOG_GENERAL(WARNING, "Could Not reward base reward  " << addr);
     } else {
       if (addr == myAddr) {
         LOG_EPOCH(INFO, std::to_string(m_mediator.m_currentEpochNum).c_str(),
-                  "[REWARD] Rewarded base reward " << reward_each);
+                  "[REWARD] Rewarded base reward " << base_reward_each);
         LOG_STATE("[REWARD][" << setw(15) << left
                               << m_mediator.m_selfPeer.GetPrintableIPAddress()
                               << "][" << m_mediator.m_currentEpochNum << "]["
-                              << reward_each << "] base reward");
+                              << base_reward_each << "] base reward");
       }
     }
   }
   // shard nodes
   for (const auto& shard : m_shards) {
     for (const auto& node : shard) {
+      if (Guard::GetInstance().IsNodeInShardGuardList(
+              std::get<SHARD_NODE_PUBKEY>(node))) {
+        continue;
+      }
       Address addr =
           Account::GetAddressFromPublicKey(std::get<SHARD_NODE_PUBKEY>(node));
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(addr, coinbaseAddress,
@@ -348,7 +357,8 @@ void DirectoryService::InitCoinbase() {
       LOG_GENERAL(INFO,
                   "[CNBSE] Rewarding " << shardIdRewardee.first << " shard");
       if (shardIdRewardee.first == CoinbaseReward::LOOKUP_REWARD) {
-        for (auto const& addr : shardIdRewardee.second) {
+        for (auto const& pk : shardIdRewardee.second) {
+          const auto& addr = Account::GetAddressFromPublicKey(pk);
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, coinbaseAddress, reward_each_lookup)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
@@ -357,7 +367,14 @@ void DirectoryService::InitCoinbase() {
           }
         }
       } else {
-        for (auto const& addr : shardIdRewardee.second) {
+        for (auto const& pk : shardIdRewardee.second) {
+          if (GUARD_MODE) {
+            if (Guard::GetInstance().IsNodeInDSGuardList(pk) ||
+                Guard::GetInstance().IsNodeInShardGuardList(pk)) {
+              continue;
+            }
+          }
+          const auto& addr = Account::GetAddressFromPublicKey(pk);
           if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
                   addr, coinbaseAddress, reward_each)) {
             LOG_GENERAL(WARNING, "Could Not reward " << addr);
@@ -391,10 +408,30 @@ void DirectoryService::InitCoinbase() {
   uint16_t shardIndex =
       lastBlockHash % m_coinbaseRewardees[m_mediator.m_currentEpochNum].size();
   uint16_t count = 0;
+  bool breakLoop = false;
   for (const auto& shard : m_coinbaseRewardees[m_mediator.m_currentEpochNum]) {
     if (count == shardIndex) {
       uint16_t rdm_index = lastBlockHash % shard.second.size();
-      const Address& winnerAddr = shard.second[rdm_index];
+      uint16_t rdm_index_copy = rdm_index;
+      if (GUARD_MODE) {
+        while (Guard::GetInstance().IsNodeInDSGuardList(
+                   shard.second.at(rdm_index)) ||
+               Guard::GetInstance().IsNodeInShardGuardList(
+                   shard.second.at(rdm_index))) {
+          rdm_index = (rdm_index + 1) % shard.second.size();
+          if (rdm_index == rdm_index_copy) {
+            LOG_GENERAL(WARNING, "Going into infinite loop");
+            breakLoop = true;
+            break;
+          }
+        }
+      }
+      if (breakLoop) {
+        break;
+      }
+
+      const Address& winnerAddr =
+          Account::GetAddressFromPublicKey(shard.second.at(rdm_index));
       LOG_GENERAL(INFO, "Lucky draw winner: " << winnerAddr);
       if (!AccountStore::GetInstance().UpdateCoinbaseTemp(
               winnerAddr, coinbaseAddress, balance_left)) {

@@ -1,5 +1,6 @@
 set(G3LOG_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/depends/g3log)
 set(G3LOG_BINARY_DIR ${CMAKE_BINARY_DIR}/src/depends/g3log)
+set(G3LOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/g3log)
 set(G3LOG_INSTALL_LOG ${CMAKE_BINARY_DIR}/install_g3log.log)
 
 message(STATUS "Building and installing g3log")
@@ -28,7 +29,7 @@ execute_process(
         -B${G3LOG_BINARY_DIR}
         -DUSE_DYNAMIC_LOGGING_LEVELS=ON
         -DG3_SHARED_LIB=OFF
-        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}
+        -DCMAKE_INSTALL_PREFIX=${G3LOG_INSTALL_DIR}
         -DADD_FATAL_EXAMPLE=OFF
         -DENABLE_FATAL_SIGNALHANDLING=OFF
         -Wno-dev
@@ -64,5 +65,6 @@ if(NOT "${G3LOG_INSTALL_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing g3log, see more in log ${G3LOG_INSTALL_LOG}")
 endif()
 
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/lib/cmake/g3logger")
+list(APPEND CMAKE_PREFIX_PATH ${G3LOG_INSTALL_DIR})
+list(APPEND CMAKE_MODULE_PATH "${G3LOG_INSTALL_DIR}/lib/cmake/g3logger")
+link_directories(${G3LOG_INSTALL_DIR}/lib)

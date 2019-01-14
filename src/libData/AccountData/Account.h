@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef __ACCOUNT_H__
@@ -32,6 +30,7 @@
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libPersistence/ContractStorage.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -54,10 +53,13 @@ class Account : public SerializableDataBlock {
   dev::h256 m_codeHash;
   // The associated code for this account.
   uint64_t m_createBlockNum = 0;
+  uint32_t m_scillaVersion = 0;
   Json::Value m_initValJson;
   bytes m_initData;
   bytes m_codeCache;
+  Address m_address;  // used by contract account only
 
+  // TODO: remove if choose HASHMAP_CONTRACT_STATE_DB finally
   const dev::h256 GetKeyHash(const std::string& key) const;
 
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
@@ -79,13 +81,16 @@ class Account : public SerializableDataBlock {
   void InitStorage();
 
   /// Parse the Immutable Data at Constract Initialization Stage
-  void InitContract(const bytes& data);
+  bool InitContract(const bytes& data, const Address& addr);
+  bool InitContract(const Address& addr);
 
   /// Set the block number when this account was created.
   void SetCreateBlockNum(const uint64_t& blockNum);
 
   /// Get the block number when this account was created.
   const uint64_t& GetCreateBlockNum() const;
+
+  const uint32_t& GetScillaVersion() const;
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -134,8 +139,10 @@ class Account : public SerializableDataBlock {
   void SetStorage(std::string k, std::string type, std::string v,
                   bool is_mutable = true);
 
-  /// Return the data for a parameter, type + value
-  std::vector<std::string> GetStorage(const std::string& _k) const;
+  bool SetStorage(const Address& addr,
+                  const std::vector<std::pair<dev::h256, bytes>>& entries);
+
+  bool SetStorage(const std::vector<Contract::StateEntry>& state_entries);
 
   std::string GetRawStorage(const dev::h256& k_hash) const;
 
@@ -144,8 +151,6 @@ class Account : public SerializableDataBlock {
   const bytes& GetInitData() const;
 
   void SetInitData(const bytes& initData);
-
-  void InitContract();
 
   std::vector<dev::h256> GetStorageKeyHashes() const;
 
@@ -164,12 +169,6 @@ class Account : public SerializableDataBlock {
 
   friend inline std::ostream& operator<<(std::ostream& out,
                                          Account const& account);
-
-  static bool SerializeDelta(bytes& dst, unsigned int offset,
-                             Account* oldAccount, const Account& newAccount);
-
-  static bool DeserializeDelta(const bytes& src, unsigned int offset,
-                               Account& account, bool fullCopy);
 };
 
 inline std::ostream& operator<<(std::ostream& out, Account const& account) {

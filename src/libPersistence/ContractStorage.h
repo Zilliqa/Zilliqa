@@ -1,27 +1,27 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef CONTRACTSTORAGE_H
 #define CONTRACTSTORAGE_H
 
+#include <json/json.h>
 #include <leveldb/db.h>
 
+#include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 
@@ -32,13 +32,41 @@
 
 #include "depends/libTrie/TrieDB.h"
 
+namespace Contract {
+
+Index GetIndex(const dev::h160& address, const std::string& key);
+
 class ContractStorage : public Singleton<ContractStorage> {
-  dev::OverlayDB m_stateDB;
   LevelDB m_codeDB;
 
-  ContractStorage() : m_stateDB("contractState"), m_codeDB("contractCode"){};
+  dev::OverlayDB m_stateDB;
+
+  LevelDB t_stateIndexDB;
+  LevelDB t_stateDataDB;
+
+  LevelDB m_stateIndexDB;
+  LevelDB m_stateDataDB;
+
+  /// Set the indexes of all the states of an contract account
+  bool SetContractStateIndexes(const dev::h160& address,
+                               const std::vector<Index>& indexes);
+
+  /// Get the raw rlp string of the states of an account
+  std::vector<std::string> GetContractStatesData(const dev::h160& address);
+
+  ContractStorage()
+      : m_codeDB("contractCode"),
+        m_stateDB("contractState"),
+        t_stateIndexDB("tempContractStateIndex"),
+        t_stateDataDB("tempContractStateData"),
+        m_stateIndexDB("sontractStateIndex"),
+        m_stateDataDB("contractStateData"){};
 
   ~ContractStorage() = default;
+
+  Index GetNewIndex(const dev::h160& address, const std::string& key);
+
+  bool CheckIndexExists(const Index& index);
 
  public:
   /// Returns the singleton ContractStorage instance.
@@ -52,8 +80,41 @@ class ContractStorage : public Singleton<ContractStorage> {
   /// Adds a contract code to persistence
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
+  bool PutContractCodeBatch(
+      const std::unordered_map<std::string, std::string>& batch);
+
   /// Get the desired code from persistence
   const bytes GetContractCode(const dev::h160& address);
+
+  /// Delete the contract code in persistence
+  bool DeleteContractCode(const dev::h160& address);
+
+  /// Get the indexes of all the states of an contract account
+  std::vector<Index> GetContractStateIndexes(const dev::h160& address);
+
+  /// Get the raw rlp string of the state by a index
+  std::string GetContractStateData(const Index& index);
+
+  /// Put one's contract states in database
+  bool PutContractState(const dev::h160& address,
+                        const std::vector<StateEntry>& states,
+                        dev::h256& stateHash);
+
+  bool PutContractState(const dev::h160& address,
+                        const std::vector<std::pair<Index, bytes>>& entries,
+                        dev::h256& stateHash);
+
+  bool CommitTempStateDB();
+
+  /// Get the json formatted data of the states for a contract account
+  Json::Value GetContractStateJson(const dev::h160& address);
+
+  /// Get the state hash of a contract account
+  dev::h256 GetContractStateHash(const dev::h160& address);
+
+  void Reset();
 };
+
+}  // namespace Contract
 
 #endif  // CONTRACTSTORAGE_H

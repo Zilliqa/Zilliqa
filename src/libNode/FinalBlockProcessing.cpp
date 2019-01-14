@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <array>
@@ -43,6 +41,7 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libPOW/pow.h"
 #include "libServer/Server.h"
 #include "libUtils/BitVector.h"
@@ -60,9 +59,9 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-void Node::StoreState() {
+bool Node::StoreState() {
   LOG_MARKER();
-  AccountStore::GetInstance().MoveUpdatesToDisk();
+  return AccountStore::GetInstance().MoveUpdatesToDisk();
 }
 
 void Node::StoreFinalBlock(const TxBlock& txBlock) {
@@ -76,12 +75,8 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   // erase. EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Storing Tx Block Number: "
-                << txBlock.GetHeader().GetBlockNum()
-                << " with Type: " << to_string(txBlock.GetHeader().GetType())
-                << ", Version: " << txBlock.GetHeader().GetVersion()
-                << ", Timestamp: " << txBlock.GetTimestamp()
-                << ", NumTxs: " << txBlock.GetHeader().GetNumTxs());
+            "Storing Tx Block" << endl
+                               << txBlock);
 
   // Store Tx Block to disk
   bytes serializedTxBlock;
@@ -89,16 +84,19 @@ void Node::StoreFinalBlock(const TxBlock& txBlock) {
   BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader().GetBlockNum(),
                                              serializedTxBlock);
 
+  string prevHashStr;
+  if (!DataConversion::charArrToHexStr(m_mediator.m_txBlockChain.GetLastBlock()
+                                           .GetHeader()
+                                           .GetPrevHash()
+                                           .asArray(),
+                                       prevHashStr)) {
+    LOG_GENERAL(WARNING, "prev hash cannot be converted to hex str");
+  }
   LOG_EPOCH(
       INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
       "Final block "
           << m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()
-          << " received with prevhash 0x"
-          << DataConversion::charArrToHexStr(
-                 m_mediator.m_txBlockChain.GetLastBlock()
-                     .GetHeader()
-                     .GetPrevHash()
-                     .asArray()));
+          << " received with prevhash 0x" << prevHashStr);
 
   LOG_STATE(
       "[FINBK]["
@@ -126,9 +124,6 @@ bool Node::IsMicroBlockTxRootHashInFinalBlock(
 bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
                                            const uint64_t& blocknum,
                                            bool& toSendTxnToLookup) {
-  LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            "Unavailable microblock hashes in final block : ")
-
   lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
 
   const auto& microBlockInfos = finalBlock.GetMicroBlockInfos();
@@ -138,6 +133,10 @@ bool Node::LoadUnavailableMicroBlockHashes(const TxBlock& finalBlock,
   for (const auto& info : microBlockInfos) {
     if (LOOKUP_NODE_MODE) {
       if (info.m_txnRootHash != TxnHash()) {
+        LOG_GENERAL(INFO, "Add unavailable block [MbBlockHash] "
+                              << info.m_microBlockHash << " [TxnRootHash] "
+                              << info.m_txnRootHash << " shardID "
+                              << info.m_shardId);
         m_unavailableMicroBlocks[blocknum].push_back(
             {info.m_microBlockHash, info.m_txnRootHash});
       }
@@ -511,41 +510,6 @@ bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
   return true;
 }
 
-void Node::LogReceivedFinalBlockDetails([
-    [gnu::unused]] const TxBlock& txblock) {
-  if (LOOKUP_NODE_MODE) {
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "I the lookup node have deserialized the TxBlock");
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "txblock.GetHeader().GetType(): " << txblock.GetHeader().GetType());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetVersion(): "
-                  << txblock.GetHeader().GetVersion());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetGasLimit(): "
-                  << txblock.GetHeader().GetGasLimit());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetGasUsed(): "
-                  << txblock.GetHeader().GetGasUsed());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetBlockNum(): "
-                  << txblock.GetHeader().GetBlockNum());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetMicroBlockInfos().size(): "
-                  << txblock.GetMicroBlockInfos().size());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetStateRootHash(): "
-                  << txblock.GetHeader().GetStateRootHash());
-    LOG_EPOCH(
-        INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-        "txblock.GetHeader().GetNumTxs(): " << txblock.GetHeader().GetNumTxs());
-    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "txblock.GetHeader().GetMinerPubKey(): "
-                  << txblock.GetHeader().GetMinerPubKey());
-  }
-}
-
 bool Node::CheckStateRoot(const TxBlock& finalBlock) {
   StateHash stateRoot = AccountStore::GetInstance().GetStateRootHash();
 
@@ -565,27 +529,6 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 
   return true;
 }
-
-// void Node::StoreMicroBlocksToDisk()
-// {
-//     LOG_MARKER();
-//     for(auto microBlock : m_microblocks)
-//     {
-
-//         LOG_GENERAL(INFO,  "Storing Micro Block Hash: " <<
-//         microBlock.GetHeader().GetTxRootHash() <<
-//             " with Type: " << microBlock.GetHeader().GetType() <<
-//             ", Version: " << microBlock.GetHeader().GetVersion() <<
-//             ", Timestamp: " << microBlock.GetHeader().GetTimestamp() <<
-//             ", NumTxs: " << microBlock.GetHeader().GetNumTxs());
-
-//         bytes serializedMicroBlock;
-//         microBlock.Serialize(serializedMicroBlock, 0);
-//         BlockStorage::GetBlockStorage().PutMicroBlock(microBlock.GetHeader().GetTxRootHash(),
-//                                                serializedMicroBlock);
-//     }
-//     m_microblocks.clear();
-// }
 
 void Node::PrepareGoodStateForFinalBlock() {
   if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP) {
@@ -614,6 +557,13 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   }
 
   lock_guard<mutex> g(m_mutexFinalBlock);
+
+  if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << TXBLOCK_VERSION << " Actual: "
+                             << txBlock.GetHeader().GetVersion());
+    return false;
+  }
 
   BlockHash temp_blockHash = txBlock.GetHeader().GetMyHash();
   if (temp_blockHash != txBlock.GetBlockHash()) {
@@ -658,7 +608,11 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     return false;
   }
 
-  LogReceivedFinalBlockDetails(txBlock);
+  if (LOOKUP_NODE_MODE) {
+    LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+              "I the lookup node have deserialized the TxBlock" << endl
+                                                                << txBlock);
+  }
 
   LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
@@ -783,10 +737,20 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     // Remove because shard nodes will be shuffled in next epoch.
     CleanMicroblockConsensusBuffer();
 
-    StoreState();
+    if (!StoreState()) {
+      LOG_GENERAL(WARNING, "StoreState failed, what to do?");
+      return false;
+    }
     StoreFinalBlock(txBlock);
     BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
   }
+
+  auto resumeBlackList = []() mutable -> void {
+    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
+    Blacklist::GetInstance().Enable(true);
+  };
+
+  DetachedFunction(1, resumeBlackList);
 
   // m_mediator.HeartBeatPulse();
 
@@ -803,16 +767,22 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 
-  {
+  if (isVacuousEpoch) {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    if (isVacuousEpoch && m_mediator.m_curSWInfo.GetUpgradeDS() - 1 ==
-                              m_mediator.m_dsBlockChain.GetLastBlock()
-                                  .GetHeader()
-                                  .GetBlockNum()) {
+    if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
       auto func = [this]() mutable -> void {
         UpgradeManager::GetInstance().ReplaceNode(m_mediator);
       };
 
+      DetachedFunction(1, func);
+    }
+
+    if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+      auto func = []() mutable -> void {
+        UpgradeManager::GetInstance().InstallScilla();
+      };
       DetachedFunction(1, func);
     }
   }

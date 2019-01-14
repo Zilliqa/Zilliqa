@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <array>
@@ -138,7 +136,8 @@ Transaction CreateDummyTx1() {
 
   Predicate pred(3, fromAddr, 2, 1, toAddr, fromAddr, 33, 1);
 
-  Transaction tx1(1, 5, toAddr, fromAddr, 55, signature, pred);
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), 5, toAddr, fromAddr, 55,
+                  signature, pred);
 
   return tx1;
 }
@@ -164,7 +163,8 @@ Transaction CreateDummyTx2() {
 
   Predicate pred(3, fromAddr, 2, 1, toAddr, fromAddr, 10, 2);
 
-  Transaction tx1(1, 6, toAddr, fromAddr, 10, signature, pred);
+  Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), 6, toAddr, fromAddr, 10,
+                  signature, pred);
 
   return tx1;
 }
@@ -279,7 +279,6 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
                       "Block1 serialized != Block2 serialized!");
 
   TxBlockHeader header2 = block2.GetHeader();
-  uint8_t type2 = header2.GetType();
   uint32_t version2 = header2.GetVersion();
   uint128_t gasLimit2 = header2.GetGasLimit();
   uint128_t gasUsed2 = header2.GetGasUsed();
@@ -326,13 +325,17 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   LOG_PAYLOAD(INFO, "Block 2 prevHash", byteVec, Logger::MAX_BYTES_TO_DISPLAY);
   std::string expectedStr =
       "0D3979DA06841562C90DE5212BE5EFCF88FAEA17118945B6B49D304DE295E407";
-  bytes expectedVec = DataConversion::HexStrToUint8Vec(expectedStr);
+  bytes expectedVec;
+  DataConversion::HexStrToUint8Vec(expectedStr, expectedVec);
   bool is_prevHash_equal = std::equal(byteVec.begin(), byteVec.end(),
                                       expectedVec.begin(), expectedVec.end());
+
+  std::string actualStr;
+  DataConversion::Uint8VecToHexStr(byteVec, actualStr))
   BOOST_CHECK_MESSAGE(
       is_prevHash_equal == true,
       "expected: " << expectedStr
-                   << " actual: " << DataConversion::Uint8VecToHexStr(byteVec));
+                   << " actual: " << actualStr);
 
   LOG_GENERAL(INFO, "Block 2 blockNum: " << blockNum2);
   BOOST_CHECK_MESSAGE(blockNum2 == 1,
@@ -353,10 +356,10 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   expectedVec = DataConversion::HexStrToUint8Vec(expectedStr);
   bool is_txRootHash_equal = std::equal(byteVec.begin(), byteVec.end(),
                                         expectedVec.begin(), expectedVec.end());
-  BOOST_CHECK_MESSAGE(
-      is_txRootHash_equal == true,
-      "expected: " << expectedStr
-                   << " actual: " << DataConversion::Uint8VecToHexStr(byteVec));
+
+  DataConversion::Uint8VecToHexStr(byteVec), actualStr);
+  BOOST_CHECK_MESSAGE(is_txRootHash_equal == true,
+                      "expected: " << expectedStr << " actual: " << actualStr);
 
   LOG_GENERAL(INFO, "Block 2 numTxs2: " << numTxs2);
   BOOST_CHECK_MESSAGE(numTxs2 == 2,
@@ -409,11 +412,13 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
 
   bytes dsBlockHeader2Vec(BLOCK_HASH_SIZE);
   copy(dsBlockHeader2.begin(), dsBlockHeader2.end(), dsBlockHeader2Vec.begin());
+
+  std::string headerhashStr, dsblockheader2str;
+  DataConversion::Uint8VecToHexStr(headerHashVec, headerhashStr);
+  DataConversion::Uint8VecToHexStr(dsBlockHeader2Vec, dsblockheader2str);
   BOOST_CHECK_MESSAGE(
       dsBlockHeader2 == headerHash,
-      "expected: " << DataConversion::Uint8VecToHexStr(headerHashVec)
-                   << " actual: "
-                   << DataConversion::Uint8VecToHexStr(dsBlockHeader2Vec));
+      "expected: " << headerhashStr << " actual: " << dsblockheader2str);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

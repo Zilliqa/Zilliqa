@@ -79,3 +79,8 @@ target_link_libraries (Test_UpgradeManager PUBLIC Utils curl AccountData Message
 
 # The network is unstable between Travis server & GitHub, thus disable Test_UpgradeManager to avoid potential Travis build failed.
 #add_test(NAME Test_UpgradeManager COMMAND Test_UpgradeManager)
+
+add_executable(Test_DataConversion Test_DataConversion.cpp)
+target_include_directories(Test_DataConversion PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries (Test_DataConversion PUBLIC Utils)
+add_test(NAME Test_DataConversion COMMAND Test_DataConversion)

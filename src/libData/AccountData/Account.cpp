@@ -1,21 +1,21 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#include <boost/lexical_cast.hpp>
 
 #include "Account.h"
 #include "common/Messages.h"
@@ -24,7 +24,6 @@
 #include "depends/common/RLP.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
-#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -33,6 +32,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 using namespace dev;
+
+using namespace Contract;
 
 Account::Account() {}
 
@@ -51,6 +52,10 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce)
 bool Account::isContract() const { return m_codeHash != dev::h256(); }
 
 void Account::InitStorage() {
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return;
+  }
+
   // LOG_MARKER();
   m_storage = AccountTrieDB<dev::h256, OverlayDB>(
       &(ContractStorage::GetContractStorage().GetStateDB()));
@@ -61,17 +66,22 @@ void Account::InitStorage() {
   }
 }
 
-void Account::InitContract(const bytes& data) {
+bool Account::InitContract(const bytes& data, const Address& addr) {
   SetInitData(data);
-  InitContract();
+  if (!InitContract(addr)) {
+    LOG_GENERAL(WARNING, "Account " << addr.hex() << " InitContract failed");
+    return false;
+  }
+  m_address = addr;
+  return true;
 }
 
-void Account::InitContract() {
+bool Account::InitContract(const Address& addr) {
   // LOG_MARKER();
   if (m_initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     m_initValJson = Json::arrayValue;
-    return;
+    return false;
   }
   Json::CharReaderBuilder builder;
   unique_ptr<Json::CharReader> reader(builder.newCharReader());
@@ -82,8 +92,9 @@ void Account::InitContract() {
                      &errors)) {
     LOG_GENERAL(WARNING,
                 "Failed to parse initialization contract json: " << errors);
-    return;
+    return false;
   }
+
   m_initValJson = root;
 
   // Append createBlockNum
@@ -95,14 +106,38 @@ void Account::InitContract() {
     m_initValJson.append(createBlockNumObj);
   }
 
+  // Append _this_address
+  {
+    Json::Value createBlockNumObj;
+    createBlockNumObj["vname"] = "_this_address";
+    createBlockNumObj["type"] = "ByStr20";
+    createBlockNumObj["value"] = "0x" + addr.hex();
+    m_initValJson.append(createBlockNumObj);
+  }
+
+  bool hasScillaVersion = false;
+  std::vector<StateEntry> state_entries;
+
   for (auto& v : root) {
     if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
       LOG_GENERAL(WARNING,
                   "This variable in initialization of contract is corrupted");
-      continue;
+      return false;
     }
+
     string vname = v["vname"].asString();
     string type = v["type"].asString();
+
+    if (!hasScillaVersion && vname == "_scilla_version" && type == "Uint32") {
+      try {
+        m_scillaVersion = boost::lexical_cast<uint32_t>(v["value"].asString());
+      } catch (...) {
+        LOG_GENERAL(WARNING, "_scilla_version is not a number");
+        return false;
+      }
+
+      hasScillaVersion = true;
+    }
 
     Json::StreamWriterBuilder writeBuilder;
     std::unique_ptr<Json::StreamWriter> writer(writeBuilder.newStreamWriter());
@@ -110,8 +145,23 @@ void Account::InitContract() {
     writer->write(v["value"], &oss);
     string value = oss.str();
 
-    SetStorage(vname, type, value, false);
+    if (!HASHMAP_CONTRACT_STATE_DB) {
+      SetStorage(vname, type, value, false);
+    }
+    state_entries.push_back(std::make_tuple(vname, false, type, value));
   }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return ContractStorage::GetContractStorage().PutContractState(
+        addr, state_entries, m_storageRoot);
+  }
+
+  if (!hasScillaVersion) {
+    LOG_GENERAL(WARNING, "No _scilla_version indicated");
+    return false;
+  }
+
+  return true;
 }
 
 void Account::SetCreateBlockNum(const uint64_t& blockNum) {
@@ -119,6 +169,8 @@ void Account::SetCreateBlockNum(const uint64_t& blockNum) {
 }
 
 const uint64_t& Account::GetCreateBlockNum() const { return m_createBlockNum; }
+
+const uint32_t& Account::GetScillaVersion() const { return m_scillaVersion; }
 
 bool Account::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccount(dst, offset, *this)) {
@@ -134,26 +186,6 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
 
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
-    return false;
-  }
-
-  return true;
-}
-
-bool Account::SerializeDelta(bytes& dst, unsigned int offset,
-                             Account* oldAccount, const Account& newAccount) {
-  if (!Messenger::SetAccountDelta(dst, offset, oldAccount, newAccount)) {
-    LOG_GENERAL(WARNING, "Messenger::SetAccountDelta failed.");
-    return false;
-  }
-
-  return true;
-}
-
-bool Account::DeserializeDelta(const bytes& src, unsigned int offset,
-                               Account& account, bool fullCopy) {
-  if (!Messenger::GetAccountDelta(src, offset, account, fullCopy)) {
-    LOG_GENERAL(WARNING, "Messenger::GetAccountDelta failed.");
     return false;
   }
 
@@ -199,13 +231,17 @@ void Account::SetStorageRoot(const h256& root) {
   if (!isContract()) {
     return;
   }
+
   m_storageRoot = root;
 
   if (m_storageRoot == h256()) {
     return;
   }
 
-  m_storage.setRoot(m_storageRoot);
+  if (!HASHMAP_CONTRACT_STATE_DB) {
+    m_storage.setRoot(m_storageRoot);
+  }
+
   m_prevRoot = m_storageRoot;
 }
 
@@ -215,6 +251,11 @@ void Account::SetStorage(string k, string type, string v, bool is_mutable) {
   if (!isContract()) {
     return;
   }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return;
+  }
+
   RLPStream rlpStream(4);
   rlpStream << k << (is_mutable ? "True" : "False") << type << v;
 
@@ -223,24 +264,33 @@ void Account::SetStorage(string k, string type, string v, bool is_mutable) {
   m_storageRoot = m_storage.root();
 }
 
+bool Account::SetStorage(const vector<StateEntry>& state_entries) {
+  return ContractStorage::GetContractStorage().PutContractState(
+      m_address, state_entries, m_storageRoot);
+}
+
 void Account::SetStorage(const h256& k_hash, const string& rlpStr) {
   if (!isContract()) {
     LOG_GENERAL(WARNING, "Not contract account, why call Account::SetStorage!");
     return;
   }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return;
+  }
+
   m_storage.insert(k_hash, rlpStr);
   m_storageRoot = m_storage.root();
 }
 
-vector<string> Account::GetStorage(const string& _k) const {
-  if (!isContract()) {
-    LOG_GENERAL(WARNING, "Not contract account, why call Account::GetStorage!");
-    return {};
+bool Account::SetStorage(const Address& addr,
+                         const vector<pair<dev::h256, bytes>>& entries) {
+  if (!ContractStorage::GetContractStorage().PutContractState(addr, entries,
+                                                              m_storageRoot)) {
+    LOG_GENERAL(WARNING, "PutContractState failed");
+    return false;
   }
-
-  dev::RLP rlp(m_storage.at(GetKeyHash(_k)));
-  // mutable, type, value
-  return {rlp[1].toString(), rlp[2].toString(), rlp[3].toString()};
+  return true;
 }
 
 string Account::GetRawStorage(const h256& k_hash) const {
@@ -249,6 +299,11 @@ string Account::GetRawStorage(const h256& k_hash) const {
     //             "Not contract account, why call Account::GetRawStorage!");
     return "";
   }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return ContractStorage::GetContractStorage().GetContractStateData(k_hash);
+  }
+
   return m_storage.at(k_hash);
 }
 
@@ -259,6 +314,11 @@ const bytes& Account::GetInitData() const { return m_initData; }
 void Account::SetInitData(const bytes& initData) { m_initData = initData; }
 
 vector<h256> Account::GetStorageKeyHashes() const {
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    return ContractStorage::GetContractStorage().GetContractStateIndexes(
+        m_address);
+  }
+
   vector<h256> keyHashes;
   for (auto const& i : m_storage) {
     keyHashes.emplace_back(i.first);
@@ -274,42 +334,49 @@ Json::Value Account::GetStorageJson() const {
   }
 
   Json::Value root;
-  for (auto const& i : m_storage) {
-    dev::RLP rlp(i.second);
-    string tVname = rlp[0].toString();
-    string tMutable = rlp[1].toString();
-    string tType = rlp[2].toString();
-    string tValue = rlp[3].toString();
-    // LOG_GENERAL(INFO,
-    //             "\nvname: " << tVname << " \nmutable: " << tMutable
-    //                         << " \ntype: " << tType
-    //                         << " \nvalue: " << tValue);
-    if (tMutable == "False") {
-      continue;
-    }
 
-    Json::Value item;
-    item["vname"] = tVname;
-    item["type"] = tType;
-    if (tValue[0] == '[' || tValue[0] == '{') {
-      Json::CharReaderBuilder builder;
-      unique_ptr<Json::CharReader> reader(builder.newCharReader());
-      Json::Value obj;
-      string errors;
-      if (!reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(), &obj,
-                         &errors)) {
-        LOG_GENERAL(WARNING,
-                    "The json object cannot be extracted from Storage: "
-                        << tValue << endl
-                        << "Error: " << errors);
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    root =
+        ContractStorage::GetContractStorage().GetContractStateJson(m_address);
+  } else {
+    for (auto const& i : m_storage) {
+      dev::RLP rlp(i.second);
+      string tVname = rlp[0].toString();
+      string tMutable = rlp[1].toString();
+      string tType = rlp[2].toString();
+      string tValue = rlp[3].toString();
+      // LOG_GENERAL(INFO,
+      //             "\nvname: " << tVname << " \nmutable: " << tMutable
+      //                         << " \ntype: " << tType
+      //                         << " \nvalue: " << tValue);
+      if (tMutable == "False") {
         continue;
       }
-      item["value"] = obj;
-    } else {
-      item["value"] = tValue;
+
+      Json::Value item;
+      item["vname"] = tVname;
+      item["type"] = tType;
+      if (tValue[0] == '[' || tValue[0] == '{') {
+        Json::CharReaderBuilder builder;
+        unique_ptr<Json::CharReader> reader(builder.newCharReader());
+        Json::Value obj;
+        string errors;
+        if (!reader->parse(tValue.c_str(), tValue.c_str() + tValue.size(), &obj,
+                           &errors)) {
+          LOG_GENERAL(WARNING,
+                      "The json object cannot be extracted from Storage: "
+                          << tValue << endl
+                          << "Error: " << errors);
+          continue;
+        }
+        item["value"] = obj;
+      } else {
+        item["value"] = tValue;
+      }
+      root.append(item);
     }
-    root.append(item);
   }
+
   Json::Value balance;
   balance["vname"] = "_balance";
   balance["type"] = "Uint128";
@@ -329,10 +396,13 @@ void Account::RollBack() {
     return;
   }
   m_storageRoot = m_prevRoot;
-  if (m_storageRoot != h256()) {
-    m_storage.setRoot(m_storageRoot);
-  } else {
-    m_storage.init();
+
+  if (!HASHMAP_CONTRACT_STATE_DB) {
+    if (m_storageRoot != h256()) {
+      m_storage.setRoot(m_storageRoot);
+    } else {
+      m_storage.init();
+    }
   }
 }
 

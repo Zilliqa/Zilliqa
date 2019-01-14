@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <array>
@@ -69,8 +67,7 @@ bool Node::ComposeMicroBlock() {
   LOG_MARKER();
 
   // TxBlockHeader
-  uint8_t type = TXBLOCKTYPE::MICRO;
-  uint32_t version = BLOCKVERSION::VERSION1;
+  uint32_t version = MICROBLOCK_VERSION;
   uint32_t shardId = m_myshardId;
   uint64_t gasLimit = MICROBLOCK_GAS_LIMIT;
   uint64_t gasUsed = m_gasUsedTotal;
@@ -146,11 +143,10 @@ bool Node::ComposeMicroBlock() {
             "Creating new micro block.")
   m_microblock.reset(new MicroBlock(
       MicroBlockHeader(
-          type, version, shardId, gasLimit, gasUsed, rewards, prevHash,
-          m_mediator.m_currentEpochNum,
+          shardId, gasLimit, gasUsed, rewards, m_mediator.m_currentEpochNum,
           {txRootHash, stateDeltaHash, txReceiptHash}, numTxs, minerPubKey,
           m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
-          committeeHash),
+          version, committeeHash, prevHash),
       tranHashes, CoSignatures()));
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -863,32 +859,6 @@ bool Node::RunConsensusOnMicroBlock() {
   return true;
 }
 
-bool Node::CheckBlockTypeIsMicro() {
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING,
-                "Node::CheckBlockTypeIsMicro not expected to be called "
-                "from LookUp node.");
-    return true;
-  }
-
-  // Check type (must be micro block type)
-  if (m_microblock->GetHeader().GetType() != TXBLOCKTYPE::MICRO) {
-    LOG_GENERAL(WARNING,
-                "Type check failed. Expected: "
-                    << (unsigned int)TXBLOCKTYPE::MICRO << " Actual: "
-                    << (unsigned int)m_microblock->GetHeader().GetType());
-
-    m_consensusObject->SetConsensusErrorCode(
-        ConsensusCommon::INVALID_MICROBLOCK);
-
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Type check passed");
-
-  return true;
-}
-
 bool Node::CheckMicroBlockVersion() {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -898,11 +868,10 @@ bool Node::CheckMicroBlockVersion() {
   }
 
   // Check version (must be most current version)
-  if (m_microblock->GetHeader().GetVersion() != BLOCKVERSION::VERSION1) {
-    LOG_GENERAL(WARNING,
-                "Version check failed. Expected: "
-                    << (unsigned int)BLOCKVERSION::VERSION1 << " Actual: "
-                    << (unsigned int)m_microblock->GetHeader().GetVersion());
+  if (m_microblock->GetHeader().GetVersion() != MICROBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << MICROBLOCK_VERSION << " Actual: "
+                             << m_microblock->GetHeader().GetVersion());
 
     m_consensusObject->SetConsensusErrorCode(
         ConsensusCommon::INVALID_MICROBLOCK_VERSION);
@@ -1134,9 +1103,9 @@ bool Node::CheckMicroBlockTxnRootHash() {
   // Check transaction root
   TxnHash expectedTxRootHash = ComputeRoot(m_microblock->GetTranHashes());
 
-  LOG_GENERAL(INFO, "Microblock root computation done "
-                        << DataConversion::charArrToHexStr(
-                               expectedTxRootHash.asArray()));
+  string txroothashStr;
+  DataConversion::charArrToHexStr(expectedTxRootHash.asArray(), txroothashStr);
+  LOG_GENERAL(INFO, "Microblock root computation done " << txroothashStr);
   LOG_GENERAL(INFO, "Expected root: "
                         << m_microblock->GetHeader().GetTxRootHash().hex());
 
@@ -1222,10 +1191,10 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg) {
 
   LOG_MARKER();
 
-  return CheckBlockTypeIsMicro() && CheckMicroBlockVersion() &&
-         CheckMicroBlockshardId() && CheckMicroBlockTimestamp() &&
-         CheckMicroBlockHashes(errorMsg) && CheckMicroBlockTxnRootHash() &&
-         CheckMicroBlockStateDeltaHash() && CheckMicroBlockTranReceiptHash();
+  return CheckMicroBlockVersion() && CheckMicroBlockshardId() &&
+         CheckMicroBlockTimestamp() && CheckMicroBlockHashes(errorMsg) &&
+         CheckMicroBlockTxnRootHash() && CheckMicroBlockStateDeltaHash() &&
+         CheckMicroBlockTranReceiptHash();
 
   // Check gas limit (must satisfy some equations)
   // Check gas used (must be <= gas limit)

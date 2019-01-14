@@ -1,24 +1,23 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <boost/filesystem.hpp>
 
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
@@ -49,6 +48,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt) {
   // LOG_MARKER();
+
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   m_curIsDS = isDS;
@@ -127,22 +127,19 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                   "The account doesn't have enough gas to create a contract");
       return false;
     } else if (fromAccount->GetBalance() < gasDeposit + amount) {
-      LOG_GENERAL(WARNING, "The account (balance: "
-                               << fromAccount->GetBalance()
-                               << ") "
-                                  "has enough balance to pay the gas limit ("
-                               << gasDeposit
-                               << ") "
-                                  "but not enough for transfer the amount ("
-                               << amount
-                               << "), "
-                                  "create contract first and ignore amount "
-                                  "transfer however");
+      LOG_GENERAL(WARNING,
+                  "The account (balance: "
+                      << fromAccount->GetBalance()
+                      << ") "
+                         "has enough balance to pay the gas price to deposit ("
+                      << gasDeposit
+                      << ") "
+                         "but not enough for transfer the amount ("
+                      << amount
+                      << "), "
+                         "create contract first and ignore amount "
+                         "transfer however");
       validToTransferBalance = false;
-    }
-
-    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
-      return false;
     }
 
     toAddr = Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
@@ -152,32 +149,60 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       LOG_GENERAL(WARNING, "toAccount is null ptr");
       return false;
     }
+
     toAccount->SetCode(transaction.GetCode());
+
     // Store the immutable states
-    toAccount->InitContract(transaction.GetData());
+    try {
+      if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
+        this->RemoveAccount(toAddr);
+        return false;
+      }
+    } catch (const std::bad_alloc& e) {
+      LOG_GENERAL(WARNING, "found bad_alloc!");
+      return false;
+    }
+
     // Set the blockNumber when the account was created
     toAccount->SetCreateBlockNum(blockNum);
 
+    bool ret = true;
+    // Store the immutable states
+    if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
+      LOG_GENERAL(WARNING, "InitContract failed");
+      // TODO: return the gas
+      ret = false;
+    } else {
+      if (!PrepareRootPathWVersion(m_root_w_version,
+                                   toAccount->GetScillaVersion())) {
+        ret = false;
+      }
+    }
+
     m_curBlockNum = blockNum;
+
+    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+      return false;
+    }
 
     ExportCreateContractFiles(*toAccount);
 
     // Undergo scilla checker
     bool ret_checker = true;
     std::string checkerPrint;
-    if (!SysCommand::ExecuteCmdWithOutput(GetContractCheckerCmdStr(),
-                                          checkerPrint)) {
+    if (ret && !SysCommand::ExecuteCmdWithOutput(
+                   GetContractCheckerCmdStr(m_root_w_version), checkerPrint)) {
       ret_checker = false;
     }
-    if (ret_checker && !ParseContractCheckerOutput(checkerPrint)) {
+    if (ret && ret_checker && !ParseContractCheckerOutput(checkerPrint)) {
       ret_checker = false;
     }
 
     // Undergo scilla runner
-    bool ret = true;
     std::string runnerPrint;
-    if (!SysCommand::ExecuteCmdWithOutput(GetCreateContractCmdStr(gasRemained),
-                                          runnerPrint)) {
+    if (ret && !SysCommand::ExecuteCmdWithOutput(
+                   GetCreateContractCmdStr(m_root_w_version, gasRemained),
+                   runnerPrint)) {
       ret = false;
     }
     if (ret && !ParseCreateContract(gasRemained, runnerPrint)) {
@@ -244,27 +269,35 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
 
     if (fromAccount->GetBalance() < gasDeposit + amount) {
-      LOG_GENERAL(WARNING,
-                  "The account (balance: "
-                      << fromAccount->GetBalance()
-                      << ") "
-                         "has not enough balance to deposit the gas limit ("
-                      << gasDeposit
-                      << ") "
-                         "and transfer the amount ("
-                      << amount
-                      << ") in the transaction, "
-                         "rejected");
+      LOG_GENERAL(
+          WARNING,
+          "The account (balance: "
+              << fromAccount->GetBalance()
+              << ") "
+                 "has not enough balance to deposit the gas price to deposit ("
+              << gasDeposit
+              << ") "
+                 "and transfer the amount ("
+              << amount
+              << ") in the transaction, "
+                 "rejected");
       return false;
     }
 
     m_curSenderAddr = fromAddr;
     m_curDepth = 0;
 
+    bool ret = true;
+
     Account* toAccount = this->GetAccount(toAddr);
     if (toAccount == nullptr) {
       LOG_GENERAL(WARNING, "The target contract account doesn't exist");
       return false;
+    } else {
+      if (!PrepareRootPathWVersion(m_root_w_version,
+                                   toAccount->GetScillaVersion())) {
+        ret = false;
+      }
     }
 
     m_curBlockNum = blockNum;
@@ -297,7 +330,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     auto func = [this, &runnerPrint, &ret, &pid,
                  gasRemained]() mutable -> void {
       if (!SysCommand::ExecuteCmdWithOutputPID(
-              GetCallContractCmdStr(gasRemained), runnerPrint, pid)) {
+              GetCallContractCmdStr(m_root_w_version, gasRemained), runnerPrint, pid)) {
         LOG_GENERAL(WARNING, "ExecuteCmd failed: "
                                  << GetCallContractCmdStr(gasRemained));
         ret = false;
@@ -476,34 +509,52 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
 }
 
 template <class MAP>
-std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr() {
-  std::string ret =
-      SCILLA_CHECKER + " -libdir " + SCILLA_LIB + " " + INPUT_CODE;
-  LOG_GENERAL(INFO, ret);
-  return ret;
+bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
+    std::string& root_w_version, const uint32_t& scilla_version) {
+  root_w_version = SCILLA_ROOT + '/' + std::to_string(scilla_version);
+
+  if (!boost::filesystem::exists(root_w_version)) {
+    LOG_GENERAL(WARNING, "Folder for desired version doesn't exists");
+    return false;
+  }
+
+  return true;
+}
+
+template <class MAP>
+std::string AccountStoreSC<MAP>::GetContractCheckerCmdStr(
+    const std::string& root_w_version) {
+  std::string cmdStr = root_w_version + '/' + SCILLA_CHECKER + " -libdir " +
+                       root_w_version + '/' + SCILLA_LIB + " " + INPUT_CODE;
+
+  LOG_GENERAL(INFO, cmdStr);
+  return cmdStr;
 }
 
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetCreateContractCmdStr(
-    const uint64_t& available_gas) {
-  std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -iblockchain " +
-                    INPUT_BLOCKCHAIN_JSON + " -o " + OUTPUT_JSON + " -i " +
-                    INPUT_CODE + " -libdir " + SCILLA_LIB + " -gaslimit " +
-                    std::to_string(available_gas);
-  LOG_GENERAL(INFO, ret);
-  return ret;
+    const std::string& root_w_version, const uint64_t& available_gas) {
+  std::string cmdStr = root_w_version + '/' + SCILLA_BINARY + " -init " +
+                       INIT_JSON + " -iblockchain " + INPUT_BLOCKCHAIN_JSON +
+                       " -o " + OUTPUT_JSON + " -i " + INPUT_CODE +
+                       " -libdir " + root_w_version + '/' + SCILLA_LIB +
+                       " -gaslimit " + std::to_string(available_gas);
+
+  LOG_GENERAL(INFO, cmdStr);
+  return cmdStr;
 }
 
 template <class MAP>
 std::string AccountStoreSC<MAP>::GetCallContractCmdStr(
-    const uint64_t& available_gas) {
-  std::string ret = SCILLA_BINARY + " -init " + INIT_JSON + " -istate " +
-                    INPUT_STATE_JSON + " -iblockchain " +
-                    INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON +
-                    " -o " + OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " +
-                    SCILLA_LIB + " -gaslimit " + std::to_string(available_gas);
-  LOG_GENERAL(INFO, ret);
-  return ret;
+    const std::string& root_w_version, const uint64_t& available_gas) {
+  std::string cmdStr =
+      root_w_version + '/' + SCILLA_BINARY + " -init " + INIT_JSON +
+      " -istate " + INPUT_STATE_JSON + " -iblockchain " +
+      INPUT_BLOCKCHAIN_JSON + " -imessage " + INPUT_MESSAGE_JSON + " -o " +
+      OUTPUT_JSON + " -i " + INPUT_CODE + " -libdir " + root_w_version + '/' +
+      SCILLA_LIB + " -gaslimit " + std::to_string(available_gas);
+  LOG_GENERAL(INFO, cmdStr);
+  return cmdStr;
 }
 
 template <class MAP>
@@ -702,6 +753,13 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     LOG_GENERAL(WARNING, "Contract refuse amount transfer");
   }
 
+  Account* contractAccount = this->GetAccount(m_curContractAddr);
+  if (contractAccount == nullptr) {
+    LOG_GENERAL(WARNING, "contractAccount is null ptr");
+    return false;
+  }
+
+  std::vector<Contract::StateEntry> state_entries;
   for (const auto& s : _json["states"]) {
     if (!s.isMember("vname") || !s.isMember("type") || !s.isMember("value")) {
       LOG_GENERAL(WARNING,
@@ -715,13 +773,18 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                             ? s["value"].asString()
                             : JSONUtils::convertJsontoStr(s["value"]);
 
-    Account* contractAccount = this->GetAccount(m_curContractAddr);
-    if (contractAccount == nullptr) {
-      LOG_GENERAL(WARNING, "contractAccount is null ptr");
-      return false;
-    }
     if (vname != "_balance") {
-      contractAccount->SetStorage(vname, type, value);
+      if (!HASHMAP_CONTRACT_STATE_DB) {
+        contractAccount->SetStorage(vname, type, value);
+      } else {
+        state_entries.push_back(std::make_tuple(vname, true, type, value));
+      }
+    }
+  }
+
+  if (HASHMAP_CONTRACT_STATE_DB) {
+    if (!contractAccount->SetStorage(state_entries)) {
+      LOG_GENERAL(WARNING, "SetStorage failed");
     }
   }
 
@@ -765,6 +828,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     return TransferBalanceAtomic(
         m_curContractAddr, recipient,
         atoi(_json["message"]["_amount"].asString().c_str()));
+  } else {
+    if (!PrepareRootPathWVersion(m_root_w_version,
+                                 account->GetScillaVersion())) {
+      return false;
+    }
   }
 
   // Recipient is contract
@@ -816,7 +884,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   int pid = -1;
   auto func = [this, &runnerPrint, &result, &pid,
                gasRemained]() mutable -> void {
-    if (!SysCommand::ExecuteCmdWithOutputPID(GetCallContractCmdStr(gasRemained),
+    if (!SysCommand::ExecuteCmdWithOutputPID(GetCallContractCmdStr(m_root_w_version, gasRemained),
                                              runnerPrint, pid)) {
       LOG_GENERAL(WARNING,
                   "ExecuteCmd failed: " << GetCallContractCmdStr(gasRemained));

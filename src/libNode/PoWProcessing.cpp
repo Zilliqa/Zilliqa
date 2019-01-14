@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <array>
@@ -59,7 +57,7 @@ bool Node::GetLatestDSBlock() {
   unsigned int counter = 1;
   while (!m_mediator.m_lookup->m_fetchedLatestDSBlock &&
          counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
-    m_synchronizer.FetchLatestDSBlocks(
+    m_synchronizer.FetchLatestDSBlocksSeed(
         m_mediator.m_lookup,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1);
 
@@ -114,7 +112,7 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
   ethash_mining_result winning_result;
 
-  uint32_t shardGuardDiff = 1;
+  uint32_t shardGuardDiff = POW_DIFFICULTY / POW_DIFFICULTY;
   auto headerHash = POW::GenHeaderHash(
       rand1, rand2, m_mediator.m_selfPeer.m_ipAddress,
       m_mediator.m_selfKey.second, lookupId, m_proposedGasPrice);
@@ -122,13 +120,24 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
   if (GUARD_MODE && Guard::GetInstance().IsNodeInShardGuardList(
                         m_mediator.m_selfKey.second)) {
     winning_result = POW::GetInstance().PoWMine(
-        block_num, shardGuardDiff, headerHash, FULL_DATASET_MINE, std::time(0));
+        block_num, shardGuardDiff, m_mediator.m_selfKey, headerHash,
+        FULL_DATASET_MINE, std::time(0));
   } else {
-    winning_result = POW::GetInstance().PoWMine(
-        block_num, difficulty, headerHash, FULL_DATASET_MINE, std::time(0));
+    winning_result =
+        POW::GetInstance().PoWMine(block_num, difficulty, m_mediator.m_selfKey,
+                                   headerHash, FULL_DATASET_MINE, std::time(0));
   }
 
   if (winning_result.success) {
+    string rand1Str, rand2Str;
+    if (!DataConversion::charArrToHexStr(rand1, rand1Str)) {
+      LOG_GENERAL(WARNING, "rand1 is not a valid hex");
+    }
+
+    if (!DataConversion::charArrToHexStr(rand2, rand2Str)) {
+      LOG_GENERAL(WARNING, "rand2 is not a valid hex");
+    }
+
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning nonce   = 0x" << hex << winning_result.winning_nonce);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -136,9 +145,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Winning mixhash = 0x" << hex << winning_result.mix_hash);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "rand1 = 0x" << DataConversion::charArrToHexStr(rand1));
+              "rand1 = 0x" << rand1Str);
     LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-              "rand2 = 0x" << DataConversion::charArrToHexStr(rand2));
+              "rand2 = 0x" << rand2Str);
 
     m_stillMiningPrimary = false;
 
@@ -161,6 +170,9 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                                   fixedDSBlockDistributionDelayTime +
                                   extraWaitTime)) == cv_status::timeout) {
         lock_guard<mutex> g(m_mutexDSBlock);
+
+        POW::GetInstance().StopMining();
+
         if (m_mediator.m_currentEpochNum ==
             m_mediator.m_dsBlockChain.GetLastBlock()
                 .GetHeader()
@@ -171,8 +183,6 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
 
         LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                   "Time out while waiting for DS Block");
-
-        POW::GetInstance().StopMining();
 
         if (GetLatestDSBlock()) {
           LOG_GENERAL(INFO, "DS block created, means I lost PoW");
@@ -230,8 +240,8 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                   "doing more pow");
 
       ethash_mining_result ds_pow_winning_result = POW::GetInstance().PoWMine(
-          block_num, ds_difficulty, headerHash, FULL_DATASET_MINE,
-          winning_result.winning_nonce);
+          block_num, ds_difficulty, m_mediator.m_selfKey, headerHash,
+          FULL_DATASET_MINE, winning_result.winning_nonce);
 
       if (ds_pow_winning_result.success) {
         LOG_GENERAL(INFO,
@@ -252,6 +262,10 @@ bool Node::StartPoW(const uint64_t& block_num, uint8_t ds_difficulty,
                     "requirement");
       }
     }
+  } else {
+    // If failed to do PoW, try to rejoin in next DS block
+    RejoinAsNormal();
+    return false;
   }
 
   if (m_state != MICROBLOCK_CONSENSUS_PREP && m_state != MICROBLOCK_CONSENSUS) {
@@ -284,18 +298,18 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
   vector<Peer> peerList;
 
   // Send to PoW PACKET_SENDERS which including DS leader
-  Peer dsLeaderPeer;
+  pair<PubKey, Peer> dsLeader;
   if (!m_mediator.m_DSCommittee->empty()) {
-    if (Node::GetDSLeaderPeer(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
-                              m_mediator.m_dsBlockChain.GetLastBlock(),
-                              *m_mediator.m_DSCommittee,
-                              m_mediator.m_currentEpochNum, dsLeaderPeer)) {
-      peerList.push_back(dsLeaderPeer);
+    if (Node::GetDSLeader(m_mediator.m_blocklinkchain.GetLatestBlockLink(),
+                          m_mediator.m_dsBlockChain.GetLastBlock(),
+                          *m_mediator.m_DSCommittee,
+                          m_mediator.m_currentEpochNum, dsLeader)) {
+      peerList.push_back(dsLeader.second);
     }
   }
 
   for (auto const& i : *m_mediator.m_DSCommittee) {
-    if (peerList.size() < POW_PACKET_SENDERS && i.second != dsLeaderPeer) {
+    if (peerList.size() < POW_PACKET_SENDERS && i.second != dsLeader.second) {
       peerList.push_back(i.second);
     }
 

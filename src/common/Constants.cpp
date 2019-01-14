@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "Constants.h"
 #include "libUtils/SafeMath.h"
@@ -63,17 +61,34 @@ const vector<string> ReadAccountsFromConstantsFile(string propName) {
 }
 
 // General constants
-const unsigned int MSG_VERSION{ReadConstantNumeric("MSG_VERSION")};
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
 const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
+const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
 
-// Archival constants
-const bool ARCHIVAL_NODE{
-    ReadConstantString("ARCHIVAL_NODE", "node.archival.") == "true"};
-const string DB_HOST{ReadConstantString("DB_HOST", "node.archival.")};
+// Version constants
+const unsigned int MSG_VERSION{
+    ReadConstantNumeric("MSG_VERSION", "node.version.")};
+const unsigned int TRANSACTION_VERSION{
+    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
+const unsigned int DSBLOCK_VERSION{
+    ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
+const unsigned int TXBLOCK_VERSION{
+    ReadConstantNumeric("TXBLOCK_VERSION", "node.version.")};
+const unsigned int MICROBLOCK_VERSION{
+    ReadConstantNumeric("MICROBLOCK_VERSION", "node.version.")};
+const unsigned int VCBLOCK_VERSION{
+    ReadConstantNumeric("VCBLOCK_VERSION", "node.version.")};
+const unsigned int FALLBACKBLOCK_VERSION{
+    ReadConstantNumeric("FALLBACKBLOCK_VERSION", "node.version.")};
+const unsigned int BLOCKLINK_VERSION{
+    ReadConstantNumeric("BLOCKLINK_VERSION", "node.version.")};
+const unsigned int DSCOMMITTEE_VERSION{
+    ReadConstantNumeric("DSCOMMITTEE_VERSION", "node.version.")};
+const unsigned int SHARDINGSTRUCTURE_VERSION{
+    ReadConstantNumeric("SHARDINGSTRUCTURE_VERSION", "node.version.")};
 
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
@@ -210,6 +225,11 @@ const unsigned int SIMULATED_NETWORK_DELAY_IN_MS{
     ReadConstantNumeric("SIMULATED_NETWORK_DELAY_IN_MS", "node.gossip.")};
 const unsigned int KEEP_RAWMSG_FROM_LAST_N_ROUNDS{
     ReadConstantNumeric("KEEP_RAWMSG_FROM_LAST_N_ROUNDS", "node.gossip.")};
+const bool SIGN_VERIFY_EMPTY_MSGTYP{
+    ReadConstantString("SIGN_VERIFY_EMPTY_MSGTYP", "node.gossip.") == "true"};
+const bool SIGN_VERIFY_NONEMPTY_MSGTYP{
+    ReadConstantString("SIGN_VERIFY_NONEMPTY_MSGTYP", "node.gossip.") ==
+    "true"};
 
 // GPU mining constants
 const string GPU_TO_USE{ReadConstantString("GPU_TO_USE", "node.gpu.")};
@@ -268,6 +288,10 @@ const unsigned int SENDQUEUE_SIZE{
     ReadConstantNumeric("SENDQUEUE_SIZE", "node.p2pcomm.")};
 const unsigned int MAX_GOSSIP_MSG_SIZE_IN_BYTES{
     ReadConstantNumeric("MAX_GOSSIP_MSG_SIZE_IN_BYTES", "node.p2pcomm.")};
+const unsigned int MIN_READ_WATERMARK_IN_BYTES{
+    ReadConstantNumeric("MIN_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
+const unsigned int MAX_READ_WATERMARK_IN_BYTES{
+    ReadConstantNumeric("MAX_READ_WATERMARK_IN_BYTES", "node.p2pcomm.")};
 
 // PoW constants
 const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
@@ -276,6 +300,16 @@ const bool FULL_DATASET_MINE{
     ReadConstantString("FULL_DATASET_MINE", "node.pow.") == "true"};
 const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
                            "true"};
+const bool REMOTE_MINE{ReadConstantString("REMOTE_MINE", "node.pow.") ==
+                       "true"};
+const std::string MINING_PROXY_URL{
+    ReadConstantString("MINING_PROXY_URL", "node.pow.")};
+const unsigned int CHECK_MINING_RESULT_INTERVAL{
+    ReadConstantNumeric("CHECK_MINING_RESULT_INTERVAL", "node.pow.")};
+const bool GETWORK_SERVER_MINE{
+    ReadConstantString("GETWORK_SERVER_MINE", "node.pow.") == "true"};
+const unsigned int GETWORK_SERVER_PORT{
+    ReadConstantNumeric("GETWORK_SERVER_PORT", "node.pow.")};
 const unsigned int DS_POW_DIFFICULTY{
     ReadConstantNumeric("DS_POW_DIFFICULTY", "node.pow.")};
 const unsigned int POW_DIFFICULTY{
@@ -322,22 +356,21 @@ const bool RECOVERY_TRIM_INCOMPLETED_BLOCK{
 const bool REJOIN_NODE_NOT_IN_NETWORK{
     ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};
+const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS{
+    ReadConstantNumeric("RESUME_BLACKLIST_DELAY_IN_SECONDS", "node.recovery.")};
 
 // Smart contract constants
 const string SCILLA_ROOT{
     ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
 const string SCILLA_CHECKER{
-    SCILLA_ROOT + '/' +
     ReadConstantString("SCILLA_CHECKER", "node.smart_contract.")};
 const string SCILLA_BINARY{
-    SCILLA_ROOT + '/' +
     ReadConstantString("SCILLA_BINARY", "node.smart_contract.")};
 const string SCILLA_FILES{
     ReadConstantString("SCILLA_FILES", "node.smart_contract.")};
 const string SCILLA_LOG{
     ReadConstantString("SCILLA_LOG", "node.smart_contract.")};
 const string SCILLA_LIB{
-    SCILLA_ROOT + '/' +
     ReadConstantString("SCILLA_LIB", "node.smart_contract.")};
 const string INIT_JSON{SCILLA_FILES + '/' +
                        ReadConstantString("INIT_JSON", "node.smart_contract.")};
@@ -356,6 +389,9 @@ const string OUTPUT_JSON{
 const string INPUT_CODE{
     SCILLA_FILES + '/' +
     ReadConstantString("INPUT_CODE", "node.smart_contract.")};
+const bool HASHMAP_CONTRACT_STATE_DB{
+    ReadConstantString("HASHMAP_CONTRACT_STATE_DB", "node.smart_contract.") ==
+    "true"};
 
 // Test constants
 const bool ENABLE_CHECK_PERFORMANCE_LOG{
@@ -402,3 +438,11 @@ const unsigned int VIEWCHANGE_TIME{
 const vector<string> GENESIS_WALLETS{
     ReadAccountsFromConstantsFile("wallet_address")};
 const vector<string> GENESIS_KEYS{ReadAccountsFromConstantsFile("private_key")};
+
+// Verifier
+const std::string VERIFIER_PATH{
+    ReadConstantString("VERIFIER_PATH", "node.verifier.")};
+const std::string VERIFIER_PUBKEY{
+    ReadConstantString("VERIFIER_PUBKEY", "node.verifier.")};
+const unsigned int SEED_PORT{
+    ReadConstantNumeric("SEED_PORT", "node.verifier.")};

@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -27,7 +25,12 @@
 #include <openssl/ec.h>
 #include <openssl/err.h>
 #include <openssl/obj_mac.h>
+#include <openssl/opensslv.h>
 #include "Sha2.h"
+
+#if OPENSSL_VERSION_NUMBER < 0x1010007fL  // only needed before OpenSSL 1.1.0g
+#include "generate_dsa_nonce.h"
+#endif
 
 #include <array>
 
@@ -231,6 +234,27 @@ PrivKey::PrivKey(const PrivKey& src)
 
 PrivKey::~PrivKey() {}
 
+PrivKey PrivKey::GetPrivKeyFromString(const string& key) {
+  if (key.size() != 64) {
+    throw std::invalid_argument(
+        "Error: private key - invalid number of input characters for key");
+  }
+  bytes key_v;
+
+  try {
+    if (!DataConversion::HexStrToUint8Vec(key, key_v)) {
+      throw std::invalid_argument(
+          "Error: public  key - invalid number of input characters for key");
+    }
+  } catch (std::exception& e) {
+    throw std::invalid_argument(
+        "Error: private key - invalid format of input characters for key - "
+        "required hexadecimal characters");
+  }
+
+  return PrivKey(key_v, 0);
+}
+
 bool PrivKey::Initialized() const { return m_initialized; }
 
 unsigned int PrivKey::Serialize(bytes& dst, unsigned int offset) const {
@@ -349,6 +373,27 @@ unsigned int PubKey::Serialize(bytes& dst, unsigned int offset) const {
   }
 
   return PUB_KEY_SIZE;
+}
+
+PubKey PubKey::GetPubKeyFromString(const string& key) {
+  if (key.size() != 66) {
+    throw std::invalid_argument(
+        "Error: public  key - invalid number of input characters for key");
+  }
+  bytes key_v;
+
+  try {
+    if (!DataConversion::HexStrToUint8Vec(key, key_v)) {
+      throw std::invalid_argument(
+          "Error: public  key - invalid number of input characters for key");
+    }
+  } catch (std::exception& e) {
+    throw std::invalid_argument(
+        "Error: public key - invalid format of input characters for key - "
+        "required hexadecimal characters");
+  }
+
+  return PubKey(key_v, 0);
 }
 
 int PubKey::Deserialize(const bytes& src, unsigned int offset) {
@@ -628,6 +673,9 @@ bool Schnorr::Sign(const bytes& message, unsigned int offset, unsigned int size,
                    k.get(), m_curve.m_order.get(), privkey.m_d.get(),
                    static_cast<const unsigned char*>(message.data()),
                    message.size(), ctx.get()) == 0);
+
+        // err =
+        // (BN_rand(k.get(), BN_num_bits(m_curve.m_order.get()), -1, 0) == 0);
         if (err) {
           LOG_GENERAL(WARNING, "Random generation failed");
           return false;

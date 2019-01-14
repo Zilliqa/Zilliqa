@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <jsonrpccpp/common/exception.h>
@@ -25,11 +23,11 @@
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "libArchival/Archival.h"
 #include "libCrypto/Schnorr.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libNetwork/Guard.h"
+#include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -38,8 +36,7 @@
 using namespace std;
 using namespace jsonrpc;
 
-void Zilliqa::LogSelfNodeInfo(const std::pair<PrivKey, PubKey>& key,
-                              const Peer& peer) {
+void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
   bytes tmp1;
   bytes tmp2;
 
@@ -131,17 +128,13 @@ void Zilliqa::ProcessMessage(pair<bytes, Peer>* message) {
   delete message;
 }
 
-Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
-                 bool loadConfig, unsigned int syncType, bool toRetrieveHistory)
+Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, bool loadConfig,
+                 unsigned int syncType, bool toRetrieveHistory)
     : m_pm(key, peer, loadConfig),
       m_mediator(key, peer),
       m_ds(m_mediator),
       m_lookup(m_mediator),
       m_n(m_mediator, syncType, toRetrieveHistory),
-      m_db("archiveDB", "txn", "txBlock", "dsBlock", "accountState"),
-      m_arch(m_mediator)
-      //    , m_cu(key, peer)
-      ,
       m_msgQueue(MSGQUEUE_SIZE),
       m_httpserver(SERVER_PORT),
       m_server(m_mediator, m_httpserver)
@@ -165,22 +158,7 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
   DetachedFunction(1, funcCheckMsgQueue);
 
   m_validator = make_shared<Validator>(m_mediator);
-  if (ARCHIVAL_NODE) {
-    if (SyncType::RECOVERY_ALL_SYNC == syncType) {
-      LOG_GENERAL(INFO, "Archival node, wait "
-                            << WAIT_LOOKUP_WAKEUP_IN_SECONDS
-                            << " seconds for lookup wakeup...");
-      this_thread::sleep_for(chrono::seconds(WAIT_LOOKUP_WAKEUP_IN_SECONDS));
-    }
-
-    m_db.Init();
-    m_arch.Init();
-    m_arch.InitSync();
-    m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get(),
-                                  &m_db, &m_arch);
-  } else {
-    m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
-  }
+  m_mediator.RegisterColleagues(&m_ds, &m_n, &m_lookup, m_validator.get());
 
   {
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
@@ -281,6 +259,12 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
         m_ds.m_awaitingToSubmitNetworkInfoUpdate = true;
         m_ds.StartSynchronization();
         break;
+      case SyncType::DB_VERIF:
+        LOG_GENERAL(INFO, "Intitialize DB verification");
+        m_n.ValidateDB();
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+        raise(SIGKILL);
+        break;
       default:
         LOG_GENERAL(WARNING, "Invalid Sync Type");
         break;
@@ -289,6 +273,21 @@ Zilliqa::Zilliqa(const std::pair<PrivKey, PubKey>& key, const Peer& peer,
     if (!LOOKUP_NODE_MODE) {
       LOG_GENERAL(INFO, "I am a normal node.");
 
+      if (GETWORK_SERVER_MINE) {
+        LOG_GENERAL(INFO, "Starting GetWork Mining Server at http://"
+                              << peer.GetPrintableIPAddress() << ":"
+                              << GETWORK_SERVER_PORT);
+
+        // start message loop
+        if (GetWorkServer::GetInstance().StartServer()) {
+          LOG_GENERAL(INFO, "GetWork Mining Server started successfully");
+        } else {
+          LOG_GENERAL(WARNING, "GetWork Mining Server couldn't start");
+        }
+
+      } else {
+        LOG_GENERAL(INFO, "GetWork Mining Server not enable")
+      }
       // m_mediator.HeartBeatLaunch();
     } else {
       LOG_GENERAL(INFO, "I am a lookup node.");

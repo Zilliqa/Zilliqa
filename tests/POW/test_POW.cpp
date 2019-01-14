@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -274,14 +272,15 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, false, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, false, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -315,14 +314,15 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 34567;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, false, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, false, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -356,14 +356,15 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -413,14 +414,15 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 10;
   uint64_t blockToUse = 0;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);
@@ -470,14 +472,15 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
   boost::multiprecision::uint128_t ipAddr = 2307193356;
-  PubKey pubKey = Schnorr::GetInstance().GenKeyPair().second;
+  auto keyPair = Schnorr::GetInstance().GenKeyPair();
+  auto pubKey = keyPair.second;
 
   // Light client mine and verify
   uint8_t difficultyToUse = 20;
   uint64_t blockToUse = 1234567;
   auto headerHash = POW::GenHeaderHash(rand1, rand2, ipAddr, pubKey, 0, 0);
   ethash_mining_result_t winning_result = POWClient.PoWMine(
-      blockToUse, difficultyToUse, headerHash, true, std::time(0));
+      blockToUse, difficultyToUse, keyPair, headerHash, true, std::time(0));
   bool verifyLight = POWClient.PoWVerify(
       blockToUse, difficultyToUse, headerHash, winning_result.winning_nonce,
       winning_result.result, winning_result.mix_hash);

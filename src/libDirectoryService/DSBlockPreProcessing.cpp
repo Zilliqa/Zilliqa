@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
@@ -200,9 +198,13 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
       }
     }
     if (DEBUG_LEVEL >= 5) {
-      LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " "
-                                    << DataConversion::charArrToHexStr(kv.first)
-                                    << endl);
+      string hashStr;
+      if (!DataConversion::charArrToHexStr(kv.first, hashStr)) {
+        LOG_GENERAL(WARNING, "[DSSORT] "
+                                 << " unable to convert hash to string");
+      } else {
+        LOG_GENERAL(INFO, "[DSSORT] " << kv.second << " " << hashStr << endl);
+      }
     }
     // Put the node into the shard
     const PubKey& key = kv.second;
@@ -232,8 +234,6 @@ void DirectoryService::InjectPoWForDSNode(VectorOfPoWSoln& sortedPoWSolns,
   for (unsigned int i = 0; i < numOfProposedDSMembers; i++) {
     // TODO: Revise this as this is rather ad hoc. Currently, it is SHA2(PubK)
     // to act as the PoW soln
-    // TODO: To determine how to include kicked out ds member (who did not do
-    // PoW) back into the shardding strcture
     PubKey nodePubKey =
         m_mediator.m_DSCommittee->at(m_mediator.m_DSCommittee->size() - 1 - i)
             .first;
@@ -313,25 +313,28 @@ bool DirectoryService::VerifyPoWWinner(
                       << ". Will continue look for it in PoW from leader.");
       if (dsWinnerPoWsFromLeader.find(DSPowWinner.first) !=
           dsWinnerPoWsFromLeader.end()) {
-        uint8_t expectedDSDiff = DS_POW_DIFFICULTY;
+        uint8_t expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
+                                     .GetHeader()
+                                     .GetDSDifficulty();
         const auto& peer = m_allPoWConns.at(DSPowWinner.first);
         const auto& dsPowSoln = dsWinnerPoWsFromLeader.at(DSPowWinner.first);
-        // Non-genesis block
-        if (m_mediator.m_currentEpochNum > 1) {
-          expectedDSDiff = m_mediator.m_dsBlockChain.GetLastBlock()
-                               .GetHeader()
-                               .GetDSDifficulty();
-        }
 
         auto headerHash = POW::GenHeaderHash(
             m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
             peer.m_ipAddress, DSPowWinner.first, dsPowSoln.lookupId,
             dsPowSoln.gasPrice);
+
+        string resultStr, mixHashStr;
+        if (!DataConversion::charArrToHexStr(dsPowSoln.result, resultStr)) {
+          return false;
+        }
+        if (!DataConversion::charArrToHexStr(dsPowSoln.mixhash, mixHashStr)) {
+          return false;
+        }
+
         bool result = POW::GetInstance().PoWVerify(
             m_pendingDSBlock->GetHeader().GetBlockNum(), expectedDSDiff,
-            headerHash, dsPowSoln.nonce,
-            DataConversion::charArrToHexStr(dsPowSoln.result),
-            DataConversion::charArrToHexStr(dsPowSoln.mixhash));
+            headerHash, dsPowSoln.nonce, resultStr, mixHashStr);
         if (!result) {
           LOG_EPOCH(WARNING,
                     std::to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -409,9 +412,14 @@ bool DirectoryService::VerifyPoWOrdering(
                      m_pendingDSBlock->GetHeader().GetDSPoWWinners().size());
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
-      LOG_GENERAL(INFO, "[POWS]"
-                            << DataConversion::charArrToHexStr(pairPoWKey.first)
-                            << " " << pairPoWKey.second);
+      string PoWkeyStr;
+      if (!DataConversion::charArrToHexStr(pairPoWKey.first, PoWkeyStr)) {
+        LOG_GENERAL(WARNING,
+                    "[POWS]"
+                        << " cannot convert pairPoWKey.first to hex string");
+      } else {
+        LOG_GENERAL(INFO, "[POWS]" << PoWkeyStr << " " << pairPoWKey.second);
+      }
     }
   }
 
@@ -438,17 +446,47 @@ bool DirectoryService::VerifyPoWOrdering(
         LOG_GENERAL(INFO,
                     "Checking for the key and PoW in the announcement...");
 
-        auto itLeaderMap = allPoWsFromTheLeader.find(toFind);
-        if (itLeaderMap != allPoWsFromTheLeader.end()) {
-          LOG_GENERAL(INFO,
-                      "TODO: Verify the PoW submission for this unknown node.");
-          result = itLeaderMap->second.result;
+        auto pubKeyToPoW = allPoWsFromTheLeader.find(toFind);
+        if (pubKeyToPoW != allPoWsFromTheLeader.end()) {
+          const auto& peer = std::get<SHARD_NODE_PEER>(shardNode);
+          const auto& powSoln = pubKeyToPoW->second;
+          auto headerHash = POW::GenHeaderHash(
+              m_mediator.m_dsBlockRand, m_mediator.m_txBlockRand,
+              peer.m_ipAddress, toFind, powSoln.lookupId, powSoln.gasPrice);
+
+          auto difficulty =
+              (GUARD_MODE &&
+               Guard::GetInstance().IsNodeInShardGuardList(pubKeyToPoW->first))
+                  ? (POW_DIFFICULTY / POW_DIFFICULTY)
+                  : m_mediator.m_dsBlockChain.GetLastBlock()
+                        .GetHeader()
+                        .GetDifficulty();
+
+          string resultStr, mixHashStr;
+          if (!DataConversion::charArrToHexStr(powSoln.result, resultStr)) {
+            ret = false;
+            break;
+          }
+
+          if (!DataConversion::charArrToHexStr(powSoln.mixhash, mixHashStr)) {
+            ret = false;
+            break;
+          }
+
+          if (POW::GetInstance().PoWVerify(
+                  m_pendingDSBlock->GetHeader().GetBlockNum(), difficulty,
+                  headerHash, powSoln.nonce, resultStr, mixHashStr)) {
+            result = powSoln.result;
+          } else {
+            LOG_GENERAL(WARNING,
+                        "Failed to verify PoW solution from leader for node: "
+                            << toFind);
+            ret = false;
+            break;
+          }
         } else {
           LOG_GENERAL(INFO, "Key also not in the PoWs in the announcement.");
           ret = false;
-        }
-
-        if (!ret) {
           break;
         }
       } else {
@@ -465,16 +503,30 @@ bool DirectoryService::VerifyPoWOrdering(
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
       const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+
       if (DEBUG_LEVEL >= 5) {
-        LOG_GENERAL(INFO, "[DSSORT]"
-                              << DataConversion::Uint8VecToHexStr(sortHashVec)
-                              << " " << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        string sortHashVecStr;
+        if (!DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+          LOG_GENERAL(INFO,
+                      "[DSSORT]"
+                          << " Unable to convert sortHashVec to hex string");
+        } else {
+          LOG_GENERAL(INFO, "[DSSORT]"
+                                << sortHashVecStr << " "
+                                << std::get<SHARD_NODE_PUBKEY>(shardNode));
+        }
       }
       if (sortHashVec < vec) {
-        LOG_GENERAL(WARNING,
-                    "Bad PoW ordering found: "
-                        << DataConversion::Uint8VecToHexStr(vec) << " "
-                        << DataConversion::Uint8VecToHexStr(sortHashVec));
+        string vecStr, sortHashVecStr;
+        if (!DataConversion::Uint8VecToHexStr(vec, vecStr) ||
+            !DataConversion::Uint8VecToHexStr(sortHashVec, sortHashVecStr)) {
+          LOG_GENERAL(WARNING,
+                      "Unable to convert vec or sortHashVec to hex string");
+        } else {
+          LOG_GENERAL(WARNING, "Bad PoW ordering found: " << vecStr << " "
+                                                          << sortHashVecStr);
+        }
+
         ++misorderNodes;
         // If there is one PoW ordering fail, then vec is assigned to a big
         // mismatch hash already, need to revert it to previous result and
@@ -711,6 +763,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   map<PubKey, Peer> powDSWinners;
   MapOfPubKeyPoW dsWinnerPoWs;
+  uint32_t version = DSBLOCK_VERSION;
   uint8_t dsDifficulty = 0;
   uint8_t difficulty = 0;
   uint64_t blockNum = 0;
@@ -723,9 +776,14 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   InjectPoWForDSNode(sortedPoWSolns, numOfProposedDSMembers);
   if (DEBUG_LEVEL >= 5) {
     for (const auto& pairPoWKey : sortedPoWSolns) {
-      LOG_GENERAL(INFO, "[POWS]"
-                            << DataConversion::charArrToHexStr(pairPoWKey.first)
-                            << " " << pairPoWKey.second);
+      string powHashStr;
+      if (!DataConversion::charArrToHexStr(pairPoWKey.first, powHashStr)) {
+        LOG_GENERAL(WARNING,
+                    "[POWS]"
+                        << " Unable to convert pairPoWKey.first to hex str");
+      } else {
+        LOG_GENERAL(INFO, "[POWS]" << powHashStr << " " << pairPoWKey.second);
+      }
     }
   }
 
@@ -739,7 +797,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 
   // Compute the DSBlockHashSet member of the DSBlockHeader
   DSBlockHashSet dsBlockHashSet;
-  if (!Messenger::GetShardingStructureHash(m_shards,
+  if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION, m_shards,
                                            dsBlockHashSet.m_shardingHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetShardingStructureHash failed.");
@@ -764,13 +822,12 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // TODO: Revise DS block structure
   {
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
-    m_pendingDSBlock.reset(
-        new DSBlock(DSBlockHeader(dsDifficulty, difficulty, prevHash,
-                                  m_mediator.m_selfKey.second, blockNum,
-                                  m_mediator.m_currentEpochNum,
-                                  GetNewGasPrice(), m_mediator.m_curSWInfo,
-                                  powDSWinners, dsBlockHashSet, committeeHash),
-                    CoSignatures(m_mediator.m_DSCommittee->size())));
+    m_pendingDSBlock.reset(new DSBlock(
+        DSBlockHeader(dsDifficulty, difficulty, m_mediator.m_selfKey.second,
+                      blockNum, m_mediator.m_currentEpochNum, GetNewGasPrice(),
+                      m_mediator.m_curSWInfo, powDSWinners, dsBlockHashSet,
+                      version, committeeHash, prevHash),
+        CoSignatures(m_mediator.m_DSCommittee->size())));
   }
 
   LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
@@ -873,6 +930,13 @@ bool DirectoryService::DSBlockValidator(
     return false;
   }
 
+  if (m_pendingDSBlock->GetHeader().GetVersion() != DSBLOCK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << DSBLOCK_VERSION << " Actual: "
+                             << m_pendingDSBlock->GetHeader().GetVersion());
+    return false;
+  }
+
   if (!m_mediator.CheckWhetherBlockIsLatest(
           m_pendingDSBlock->GetHeader().GetBlockNum(),
           m_pendingDSBlock->GetHeader().GetEpochNum())) {
@@ -898,7 +962,8 @@ bool DirectoryService::DSBlockValidator(
 
   // Verify the DSBlockHashSet member of the DSBlockHeader
   ShardingHash shardingHash;
-  if (!Messenger::GetShardingStructureHash(m_tempShards, shardingHash)) {
+  if (!Messenger::GetShardingStructureHash(SHARDINGSTRUCTURE_VERSION,
+                                           m_tempShards, shardingHash)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::GetShardingStructureHash failed.");
     return false;

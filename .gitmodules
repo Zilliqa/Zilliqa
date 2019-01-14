@@ -1,12 +1,6 @@
 [submodule "src/depends/g3log"]
 	path = src/depends/g3log
 	url = https://github.com/Zilliqa/g3log.git
-[submodule "src/depends/mongo-c-driver"]
-	path = src/depends/mongo-c-driver
-	url = https://github.com/mongodb/mongo-c-driver.git
-[submodule "src/depends/mongo-cxx-driver"]
-	path = src/depends/mongo-cxx-driver
-	url = https://github.com/mongodb/mongo-cxx-driver.git
 [submodule "src/depends/openssl"]
 	path = src/depends/openssl
 	url = https://github.com/openssl/openssl.git

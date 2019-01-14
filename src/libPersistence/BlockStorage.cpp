@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <sys/stat.h>
@@ -32,13 +30,15 @@
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
 
 using namespace std;
 
-BlockStorage& BlockStorage::GetBlockStorage() {
-  static BlockStorage bs;
+BlockStorage& BlockStorage::GetBlockStorage(const std::string& path,
+                                            bool diagnostic) {
+  static BlockStorage bs(path, diagnostic);
   return bs;
 }
 
@@ -111,6 +111,41 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
   int ret = m_microBlockDB->Insert(blockHash, body);
 
   return (ret == 0);
+}
+
+bool BlockStorage::InitiateHistoricalDB(const string& path) {
+  // If not explicitly convert to string, calls the other constructor
+  m_txnHistoricalDB = make_shared<LevelDB>("txBodies", path, (string) "");
+  m_MBHistoricalDB = make_shared<LevelDB>("microBlocks", path, (string) "");
+
+  return true;
+}
+
+bool BlockStorage::GetTxnFromHistoricalDB(const dev::h256& key,
+                                          TxBodySharedPtr& body) {
+  std::string bodyString;
+  bodyString = m_txnHistoricalDB->Lookup(key);
+  if (bodyString.empty()) {
+    return false;
+  }
+  body = make_shared<TransactionWithReceipt>(
+      bytes(bodyString.begin(), bodyString.end()), 0);
+
+  return true;
+}
+
+bool BlockStorage::GetHistoricalMicroBlock(const BlockHash& blockhash,
+                                           MicroBlockSharedPtr& microblock) {
+  string blockString = m_MBHistoricalDB->Lookup(blockhash);
+
+  if (blockString.empty()) {
+    return false;
+  }
+
+  microblock =
+      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
+
+  return true;
 }
 
 bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
@@ -201,6 +236,17 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   return true;
 }
 
+bool BlockStorage::ReleaseDB() {
+  m_txBodyDB.reset();
+  m_microBlockDB.reset();
+  m_VCBlockDB.reset();
+  m_txBlockchainDB.reset();
+  m_dsBlockchainDB.reset();
+  m_fallbackBlockDB.reset();
+  m_blockLinkDB.reset();
+  return true;
+}
+
 bool BlockStorage::GetFallbackBlock(
     const BlockHash& blockhash,
     FallbackBlockSharedPtr& fallbackblockwsharding) {
@@ -236,6 +282,14 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
     LOG_GENERAL(WARNING, "Serialization of blockLink failed");
     return false;
   }
+
+  if (get<BlockLinkIndex::VERSION>(blnk) != BLOCKLINK_VERSION) {
+    LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                             << BLOCKLINK_VERSION << " Actual: "
+                             << get<BlockLinkIndex::VERSION>(blnk));
+    return false;
+  }
+
   block = make_shared<BlockLink>(blnk);
   return true;
 }
@@ -256,13 +310,8 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   std::string bodyString;
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
-    return false;
-  } else  // IS_LOOKUP_NODE
-  {
-    bodyString = m_txBodyDB->Lookup(key);
-  }
+
+  bodyString = m_txBodyDB->Lookup(key);
 
   if (bodyString.empty()) {
     return false;
@@ -429,6 +478,13 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
       delete it;
       return false;
     }
+    if (get<BlockLinkIndex::VERSION>(blcklink) != BLOCKLINK_VERSION) {
+      LOG_GENERAL(WARNING, "Version check failed. Expected: "
+                               << BLOCKLINK_VERSION << " Actual: "
+                               << get<BlockLinkIndex::VERSION>(blcklink));
+      delete it;
+      return false;
+    }
     blocklinks.emplace_back(blcklink);
     LOG_GENERAL(INFO, "Retrievd BlockLink Num:" << bns);
   }
@@ -552,7 +608,8 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
 
   bytes shardStructure;
 
-  if (!Messenger::ShardStructureToArray(shardStructure, 0, shards)) {
+  if (!Messenger::ShardStructureToArray(shardStructure, 0,
+                                        SHARDINGSTRUCTURE_VERSION, shards)) {
     LOG_GENERAL(WARNING, "Failed to serialize sharding structure");
     return false;
   }
@@ -577,8 +634,17 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
     dataStr = m_shardStructureDB->Lookup(index++);
   }
 
+  uint32_t version = 0;
   Messenger::ArrayToShardStructure(bytes(dataStr.begin(), dataStr.end()), 0,
-                                   shards);
+                                   version, shards);
+
+  if (version != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING,
+                "Version check failed. Expected: " << SHARDINGSTRUCTURE_VERSION
+                                                   << " Actual: " << version);
+    return false;
+  }
+
   LOG_GENERAL(INFO, "Retrieved sharding structure");
   return true;
 }
@@ -617,7 +683,8 @@ bool BlockStorage::PutDiagnosticData(const uint64_t& dsBlockNum,
 
   bytes data;
 
-  if (!Messenger::SetDiagnosticData(data, 0, shards, dsCommittee)) {
+  if (!Messenger::SetDiagnosticData(data, 0, SHARDINGSTRUCTURE_VERSION, shards,
+                                    DSCOMMITTEE_VERSION, dsCommittee)) {
     LOG_GENERAL(WARNING, "Messenger::SetDiagnosticData failed");
     return false;
   }
@@ -655,8 +722,25 @@ bool BlockStorage::GetDiagnosticData(const uint64_t& dsBlockNum,
 
   bytes data(dataStr.begin(), dataStr.end());
 
-  if (!Messenger::GetDiagnosticData(data, 0, shards, dsCommittee)) {
+  uint32_t shardingStructureVersion = 0;
+  uint32_t dsCommitteeVersion = 0;
+  if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion, shards,
+                                    dsCommitteeVersion, dsCommittee)) {
     LOG_GENERAL(WARNING, "Messenger::GetDiagnosticData failed");
+    return false;
+  }
+
+  if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+    LOG_GENERAL(WARNING, "Sharding structure version check failed. Expected: "
+                             << SHARDINGSTRUCTURE_VERSION
+                             << " Actual: " << shardingStructureVersion);
+    return false;
+  }
+
+  if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
+    LOG_GENERAL(WARNING, "DS committee version check failed. Expected: "
+                             << DSCOMMITTEE_VERSION
+                             << " Actual: " << dsCommitteeVersion);
     return false;
   }
 
@@ -695,12 +779,33 @@ void BlockStorage::GetDiagnosticData(
     bytes data(dataStr.begin(), dataStr.end());
 
     DiagnosticData entry;
+    uint32_t shardingStructureVersion = 0;
+    uint32_t dsCommitteeVersion = 0;
 
-    if (!Messenger::GetDiagnosticData(data, 0, entry.shards,
+    if (!Messenger::GetDiagnosticData(data, 0, shardingStructureVersion,
+                                      entry.shards, dsCommitteeVersion,
                                       entry.dsCommittee)) {
       LOG_GENERAL(WARNING,
                   "Messenger::GetDiagnosticData failed for DS block number "
                       << dsBlockNumStr << " at index " << index);
+      continue;
+    }
+
+    if (shardingStructureVersion != SHARDINGSTRUCTURE_VERSION) {
+      LOG_GENERAL(WARNING,
+                  "Sharding structure version check failed for DS block number "
+                      << dsBlockNumStr << " at index " << index
+                      << ". Expected: " << SHARDINGSTRUCTURE_VERSION
+                      << " Actual: " << shardingStructureVersion);
+      continue;
+    }
+
+    if (dsCommitteeVersion != DSCOMMITTEE_VERSION) {
+      LOG_GENERAL(WARNING,
+                  "DS committee version check failed for DS block number "
+                      << dsBlockNumStr << " at index " << index
+                      << ". Expected: " << DSCOMMITTEE_VERSION
+                      << " Actual: " << dsCommitteeVersion);
       continue;
     }
 

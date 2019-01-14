@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <vector>
@@ -38,23 +36,29 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
     prevHash.asArray().at(i) = i + 1;
   }
 
-  bytes tmpprivkey = DataConversion::HexStrToUint8Vec(
-      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-  bytes tmppubkey = DataConversion::HexStrToUint8Vec(
-      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+  bytes tmpprivkey;
+  DataConversion::HexStrToUint8Vec(
+      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD",
+      tmpprivkey);
+  bytes tmppubkey;
+  DataConversion::HexStrToUint8Vec(
+      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552",
+      tmppubkey);
+
   // FIXME: Handle exceptions.
   PrivKey privKey(tmpprivkey, 0);
   PubKey pubKey(tmppubkey, 0);
-  std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
+  PairOfKey keypair = make_pair(privKey, pubKey);
   uint64_t genesisBlockNumer = 0;
   uint64_t genesisEpochNumer = 0;
   std::map<PubKey, Peer> powDSWinners;
 
   // FIXME: Handle exceptions.
   DSBlock dsBlock(
-      DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, prevHash, keypair.second,
+      DSBlockHeader(DS_POW_DIFFICULTY, POW_DIFFICULTY, keypair.second,
                     genesisBlockNumer, genesisEpochNumer, PRECISION_MIN_VALUE,
-                    SWInfo(), powDSWinners, DSBlockHashSet(), CommitteeHash()),
+                    SWInfo(), powDSWinners, DSBlockHashSet(), DSBLOCK_VERSION,
+                    CommitteeHash(), prevHash),
       CoSignatures());
   return dsBlock;
 }
@@ -79,20 +83,24 @@ bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
 }
 
 TxBlock Synchronizer::ConstructGenesisTxBlock() {
-  bytes tmpprivkey = DataConversion::HexStrToUint8Vec(
-      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD");
-  bytes tmppubkey = DataConversion::HexStrToUint8Vec(
-      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552");
+  bytes tmpprivkey;
+  DataConversion::HexStrToUint8Vec(
+      "BCCDF94ACEC5B6F1A2D96BDDC6CBE22F3C6DFD89FD791F18B722080A908253CD",
+      tmpprivkey);
+  bytes tmppubkey;
+  DataConversion::HexStrToUint8Vec(
+      "02AAE728127EB5A30B07D798D5236251808AD2C8BA3F18B230449D0C938969B552",
+      tmppubkey);
   // FIXME: Handle exceptions.
   PrivKey privKey(tmpprivkey, 0);
   PubKey pubKey(tmppubkey, 0);
 
-  std::pair<PrivKey, PubKey> keypair = make_pair(privKey, pubKey);
+  PairOfKey keypair = make_pair(privKey, pubKey);
 
-  TxBlock txBlock(TxBlockHeader(TXBLOCKTYPE::FINAL, BLOCKVERSION::VERSION1, 1,
-                                1, 1, BlockHash(), 0, TxBlockHashSet(), 0,
-                                keypair.second, 0, CommitteeHash()),
-                  vector<MicroBlockInfo>(), CoSignatures());
+  TxBlock txBlock(
+      TxBlockHeader(1, 1, 1, 0, TxBlockHashSet(), 0, keypair.second, 0,
+                    TXBLOCK_VERSION, CommitteeHash(), BlockHash()),
+      vector<MicroBlockInfo>(), CoSignatures());
   return txBlock;
 }
 
@@ -151,6 +159,19 @@ bool Synchronizer::FetchLatestDSBlocks(Lookup* lookup,
   return true;
 }
 
+bool Synchronizer::FetchLatestDSBlocksSeed(Lookup* lookup,
+                                           uint64_t currentBlockChainSize) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestDSBlocksSeed not expected to be "
+                "called from LookUp node.");
+    return true;
+  }
+
+  lookup->GetDSBlockFromSeedNodes(currentBlockChainSize, 0);
+  return true;
+}
+
 bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
                                        uint64_t currentBlockChainSize) {
   if (LOOKUP_NODE_MODE) {
@@ -164,6 +185,19 @@ bool Synchronizer::FetchLatestTxBlocks(Lookup* lookup,
   return true;
 }
 
+bool Synchronizer::FetchLatestTxBlockSeed(Lookup* lookup,
+                                          uint64_t currentBlockChainSize) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestTxBlocksSeed not expected to be "
+                "called from LookUp node.");
+    return true;
+  }
+
+  lookup->GetTxBlockFromSeedNodes(currentBlockChainSize, 0);
+  return true;
+}
+
 bool Synchronizer::FetchLatestState(Lookup* lookup) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -173,6 +207,18 @@ bool Synchronizer::FetchLatestState(Lookup* lookup) {
   }
 
   lookup->GetStateFromLookupNodes();
+  return true;
+}
+
+bool Synchronizer::FetchLatestStateSeed(Lookup* lookup) {
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Synchronizer::FetchLatestStateSeed not expected to be called "
+                "from LookUp node.");
+    return true;
+  }
+
+  lookup->GetStateFromSeedNodes();
   return true;
 }
 

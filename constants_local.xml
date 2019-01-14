@@ -3,15 +3,23 @@
 <node>
     <general>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
-        <MSG_VERSION>1</MSG_VERSION>
         <ENABLE_DO_REJOIN>true</ENABLE_DO_REJOIN>
         <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
+        <CHAIN_ID>63</CHAIN_ID>
     </general>
-    <archival>
-        <ARCHIVAL_NODE>false</ARCHIVAL_NODE>
-        <DB_HOST>localhost</DB_HOST>
-    </archival>
+    <version>
+        <MSG_VERSION>1</MSG_VERSION>
+        <TRANSACTION_VERSION>1</TRANSACTION_VERSION>
+        <DSBLOCK_VERSION>1</DSBLOCK_VERSION>
+        <TXBLOCK_VERSION>1</TXBLOCK_VERSION>
+        <MICROBLOCK_VERSION>1</MICROBLOCK_VERSION>
+        <VCBLOCK_VERSION>1</VCBLOCK_VERSION>
+        <FALLBACKBLOCK_VERSION>1</FALLBACKBLOCK_VERSION>
+        <BLOCKLINK_VERSION>1</BLOCKLINK_VERSION>
+        <DSCOMMITTEE_VERSION>1</DSCOMMITTEE_VERSION>
+        <SHARDINGSTRUCTURE_VERSION>1</SHARDINGSTRUCTURE_VERSION>
+    </version>
     <seed>
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
         <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
@@ -87,6 +95,8 @@
         <ROUND_TIME_IN_MS>100</ROUND_TIME_IN_MS>
         <SIMULATED_NETWORK_DELAY_IN_MS>0</SIMULATED_NETWORK_DELAY_IN_MS>
         <KEEP_RAWMSG_FROM_LAST_N_ROUNDS>9</KEEP_RAWMSG_FROM_LAST_N_ROUNDS>
+        <SIGN_VERIFY_EMPTY_MSGTYP>false</SIGN_VERIFY_EMPTY_MSGTYP>
+        <SIGN_VERIFY_NONEMPTY_MSGTYP>true</SIGN_VERIFY_NONEMPTY_MSGTYP>
     </gossip>
     <gpu>
         <!-- Which GPU to use, can use multiple GPU, for example: "0, 2, 4" -->
@@ -129,11 +139,20 @@
         <PUMPMESSAGE_MILLISECONDS>1</PUMPMESSAGE_MILLISECONDS>
         <SENDQUEUE_SIZE>128</SENDQUEUE_SIZE>
         <MAX_GOSSIP_MSG_SIZE_IN_BYTES>5000000</MAX_GOSSIP_MSG_SIZE_IN_BYTES>
+        <MIN_READ_WATERMARK_IN_BYTES>0</MIN_READ_WATERMARK_IN_BYTES>
+        <MAX_READ_WATERMARK_IN_BYTES>20000000</MAX_READ_WATERMARK_IN_BYTES>
     </p2pcomm>
     <pow>
         <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <FULL_DATASET_MINE>false</FULL_DATASET_MINE>
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
+        <REMOTE_MINE>false</REMOTE_MINE>
+        <MINING_PROXY_URL>http://127.0.0.1:4202/api</MINING_PROXY_URL>
+        <!-- Every interval seconds to check if mining proxy has the PoW result -->
+        <CHECK_MINING_RESULT_INTERVAL>5</CHECK_MINING_RESULT_INTERVAL>
+        <!-- Make zilliqa node as an getWork server -->
+        <GETWORK_SERVER_MINE>false</GETWORK_SERVER_MINE>
+        <GETWORK_SERVER_PORT>4202</GETWORK_SERVER_PORT>
         <DS_POW_DIFFICULTY>5</DS_POW_DIFFICULTY>
         <POW_DIFFICULTY>3</POW_DIFFICULTY>
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
@@ -160,6 +179,7 @@
         <UPGRADE_HOST_REPO>Zilliqa</UPGRADE_HOST_REPO>
         <RECOVERY_TRIM_INCOMPLETED_BLOCK>false</RECOVERY_TRIM_INCOMPLETED_BLOCK>
         <REJOIN_NODE_NOT_IN_NETWORK>true</REJOIN_NODE_NOT_IN_NETWORK>
+        <RESUME_BLACKLIST_DELAY_IN_SECONDS>30</RESUME_BLACKLIST_DELAY_IN_SECONDS>
     </recovery>
     <smart_contract>
         <SCILLA_ROOT/>
@@ -174,6 +194,7 @@
         <INPUT_MESSAGE_JSON>input_message.json</INPUT_MESSAGE_JSON>
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
+        <HASHMAP_CONTRACT_STATE_DB>true</HASHMAP_CONTRACT_STATE_DB>
     </smart_contract>
     <tests>
         <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>
@@ -191,6 +212,11 @@
         <TXN_MISORDER_TOLERANCE_IN_PERCENT>50</TXN_MISORDER_TOLERANCE_IN_PERCENT>
         <PACKET_EPOCH_LATE_ALLOW>1</PACKET_EPOCH_LATE_ALLOW>
     </transactions>
+    <verifier>
+        <VERIFIER_PATH/>
+        <VERIFIER_PUBKEY/>
+        <SEED_PORT>30303</SEED_PORT>
+    </verifier>
     <viewchange>
         <POST_VIEWCHANGE_BUFFER>5</POST_VIEWCHANGE_BUFFER>
         <VIEWCHANGE_EXTRA_TIME>15</VIEWCHANGE_EXTRA_TIME>
@@ -211,14 +237,21 @@
             <pubkey/>
         </peer>
     </lookups>
-    <upper_seed>
-        <!--
+    <multipliers>
+        <!--IP to be provided after public testnet launch.
         <peer>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
         -->
+    </multipliers>
+    <upper_seed>
+        <peer>
+            <ip>127.0.0.1</ip>
+            <port>4001</port>
+            <pubkey/>
+        </peer>
     </upper_seed>
     <lower_seed>
         <!--

@@ -1,0 +1,5 @@
+Package: scilla
+Version: 0.1
+Maintainer: Members of maintainers@zilliqa.com
+Architecture: amd64
+Description: Release scilla

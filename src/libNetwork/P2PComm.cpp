@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /* TCP error code:
@@ -321,12 +319,14 @@ void SendJobPeers<T>::DoSend() {
   }
   random_shuffle(indexes.begin(), indexes.end());
 
+  string hashStr;
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left
-                   << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
-                   << "] BEGN");
+    if (!DataConversion::Uint8VecToHexStr(m_hash, hashStr)) {
+      return;
+    }
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left
+                         << m_selfPeer.GetPrintableIPAddress() << "]["
+                         << hashStr.substr(0, 6) << "] BEGN");
   }
 
   for (vector<unsigned int>::const_iterator curr = indexes.begin();
@@ -345,11 +345,9 @@ void SendJobPeers<T>::DoSend() {
   }
 
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    LOG_STATE(
-        "[BROAD][" << std::setw(15) << std::left
-                   << m_selfPeer.GetPrintableIPAddress() << "]["
-                   << DataConversion::Uint8VecToHexStr(m_hash).substr(0, 6)
-                   << "] DONE");
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left
+                         << m_selfPeer.GetPrintableIPAddress() << "]["
+                         << hashStr.substr(0, 6) << "] DONE");
   }
 }
 
@@ -420,10 +418,13 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
 
   p2p.ClearBroadcastHashAsync(msg_hash);
 
-  LOG_STATE(
-      "[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
-                 << DataConversion::Uint8VecToHexStr(msg_hash).substr(0, 6)
-                 << "] RECV");
+  string msgHashStr;
+  if (!DataConversion::Uint8VecToHexStr(msg_hash, msgHashStr)) {
+    return;
+  }
+
+  LOG_STATE("[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
+                       << msgHashStr.substr(0, 6) << "] RECV");
 
   // Move the shared_ptr message to raw pointer type
   pair<bytes, Peer>* raw_message = new pair<bytes, Peer>(
@@ -471,16 +472,18 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
       // Queue the message
       m_dispatcher(raw_message);
     }
-  } else if (p2p.m_rumorManager.RumorReceived((unsigned int)gossipMsgTyp,
-                                              gossipMsgRound, rumor_message,
-                                              from)) {
-    std::pair<bytes, Peer>* raw_message =
-        new pair<bytes, Peer>(rumor_message, from);
+  } else {
+    auto resp = p2p.m_rumorManager.RumorReceived(
+        (unsigned int)gossipMsgTyp, gossipMsgRound, rumor_message, from);
+    if (resp.first) {
+      std::pair<bytes, Peer>* raw_message =
+          new pair<bytes, Peer>(resp.second, from);
 
-    LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
+      LOG_GENERAL(INFO, "Size of rumor message: " << rumor_message.size());
 
-    // Queue the message
-    m_dispatcher(raw_message);
+      // Queue the message
+      m_dispatcher(raw_message);
+    }
   }
 }
 
@@ -624,10 +627,11 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     }
     if (messageLength <
         GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN) {
-      LOG_GENERAL(WARNING,
-                  "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR "
-                  "Port is missing (messageLength = "
-                      << messageLength << ")");
+      LOG_GENERAL(
+          WARNING,
+          "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR is missing "
+          "(messageLength = "
+              << messageLength << ")");
       return;
     }
 
@@ -635,6 +639,27 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   } else {
     // Unexpected start byte. Drop this message
     LOG_GENERAL(WARNING, "Incorrect start byte.");
+  }
+}
+
+void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
+  struct evbuffer* input = bufferevent_get_input(bev);
+
+  size_t len = evbuffer_get_length(input);
+  if (len >= MAX_READ_WATERMARK_IN_BYTES) {
+    // Get the IP info
+    int fd = bufferevent_getfd(bev);
+    struct sockaddr_in cli_addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
+    Peer from(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
+    LOG_GENERAL(WARNING, "[blacklist] Encountered data of size: "
+                             << len << " being received."
+                             << " Adding sending node "
+                             << from.GetPrintableIPAddress()
+                             << " to blacklist");
+    Blacklist::GetInstance().Add(from.m_ipAddress);
+    bufferevent_free(bev);
   }
 }
 
@@ -681,7 +706,9 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
     return;
   }
 
-  bufferevent_setcb(bev, NULL, NULL, EventCallback, NULL);
+  bufferevent_setwatermark(bev, EV_READ, MIN_READ_WATERMARK_IN_BYTES,
+                           MAX_READ_WATERMARK_IN_BYTES);
+  bufferevent_setcb(bev, ReadCallback, NULL, EventCallback, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
@@ -925,9 +952,7 @@ void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
 
 void P2PComm::SetSelfPeer(const Peer& self) { m_selfPeer = self; }
 
-void P2PComm::SetSelfKey(const std::pair<PrivKey, PubKey>& self) {
-  m_selfKey = self;
-}
+void P2PComm::SetSelfKey(const PairOfKey& self) { m_selfKey = self; }
 
 void P2PComm::InitializeRumorManager(
     const std::vector<std::pair<PubKey, Peer>>& peers,
@@ -946,7 +971,7 @@ void P2PComm::InitializeRumorManager(
 }
 
 Signature P2PComm::SignMessage(const bytes& message) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   Signature signature;
   bool result = Schnorr::GetInstance().Sign(
@@ -959,13 +984,13 @@ Signature P2PComm::SignMessage(const bytes& message) {
 
 bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
                             const PubKey& pubKey) {
-  LOG_MARKER();
+  // LOG_MARKER();
   bool result = Schnorr::GetInstance().Verify(message, 0, message.size(),
                                               toverify, pubKey);
 
   if (!result) {
-    LOG_GENERAL(INFO, "Failed to verify message from peer with pubkey: 0x"
-                          << DataConversion::SerializableToHexStr(pubKey));
+    LOG_GENERAL(INFO,
+                "Failed to verify message from peer with pubkey: " << pubKey);
   }
   return result;
 }

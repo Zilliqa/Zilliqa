@@ -1,70 +1,109 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "DataConversion.h"
 
 using namespace std;
 
-const bytes DataConversion::HexStrToUint8Vec(const string& hex_input) {
-  vector<uint8_t> out;
-  boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
-                          back_inserter(out));
-  return out;
+bool DataConversion::HexStringToUint64(const std::string& s, uint64_t* res) {
+  try {
+    *res = std::stoull(s, nullptr, 16);
+  } catch (const std::invalid_argument& e) {
+    LOG_GENERAL(WARNING, "Convert failed, invalid input: " << s);
+    return false;
+  } catch (const std::out_of_range& e) {
+    LOG_GENERAL(WARNING, "Convert failed, out of range: " << s);
+    return false;
+  }
+  return true;
 }
 
-const array<unsigned char, 32> DataConversion::HexStrToStdArray(
-    const string& hex_input) {
-  array<unsigned char, 32> d = {0};
-  bytes v = HexStrToUint8Vec(hex_input);
-  copy(v.begin(), v.begin() + min((int)v.size(), 32), d.begin());
-  return d;
+bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
+  try {
+    out.clear();
+    boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
+                            back_inserter(out));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion");
+    return false;
+  }
+  return true;
 }
 
-const array<unsigned char, 64> DataConversion::HexStrToStdArray64(
-    const string& hex_input) {
-  array<unsigned char, 64> d = {0};
-  bytes v = HexStrToUint8Vec(hex_input);
-  copy(v.begin(), v.begin() + min((int)v.size(), 64), d.begin());
-  return d;
+bool DataConversion::HexStrToStdArray(const string& hex_input,
+                                      array<uint8_t, 32>& d) {
+  d = {0};
+  bytes v;
+  if (HexStrToUint8Vec(hex_input, v)) {
+    copy(v.begin(), v.begin() + min((int)v.size(), 32), d.begin());
+    return true;
+  }
+  LOG_GENERAL(WARNING, "Failed HexStrToStdArray conversion");
+  return false;
 }
 
-const string DataConversion::Uint8VecToHexStr(const bytes& hex_vec) {
-  string str;
-  boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
-  return str;
+bool DataConversion::HexStrToStdArray64(const string& hex_input,
+                                        array<uint8_t, 64>& d) {
+  d = {0};
+  bytes v;
+  if (HexStrToUint8Vec(hex_input, v)) {
+    copy(v.begin(), v.begin() + min((int)v.size(), 64), d.begin());
+    return true;
+  }
+  LOG_GENERAL(WARNING, "Failed HexStrToStdArray conversion");
+  return false;
 }
 
-const string DataConversion::Uint8VecToHexStr(const bytes& hex_vec,
-                                              unsigned int offset,
-                                              unsigned int len) {
-  string str;
-  boost::algorithm::hex(hex_vec.begin() + offset,
-                        hex_vec.begin() + offset + len, back_inserter(str));
-  return str;
+bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
+  try {
+    str = "";
+    boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
+    return false;
+  }
+  return true;
 }
 
-string DataConversion::SerializableToHexStr(const Serializable& input) {
+bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
+                                      unsigned int len, string& str) {
+  try {
+    str = "";
+    boost::algorithm::hex(hex_vec.begin() + offset,
+                          hex_vec.begin() + offset + len, back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
+    return false;
+  }
+  return true;
+}
+
+bool DataConversion::SerializableToHexStr(const Serializable& input,
+                                          string& str) {
   bytes tmp;
   input.Serialize(tmp, 0);
-  string str;
-  boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
-  return str;
+  try {
+    str = "";
+    boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed SerializableToHexStr conversion");
+    return false;
+  }
+  return true;
 }
 
 uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
@@ -74,4 +113,31 @@ uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   uint32_t lsb = hex_arr.size() - 1;
 
   return (hex_arr.at(lsb - 1) << 8) | hex_arr.at(lsb);
+}
+
+bool DataConversion::NormalizeHexString(std::string& s) {
+  if (s.size() < 2) {
+    return false;
+  }
+
+  unsigned pos = 0;
+  unsigned prefix_size = 0;
+
+  for (char& c : s) {
+    pos++;
+    c = tolower(c);
+
+    if (std::isdigit(c) || (('a' <= c) && (c <= 'f'))) {
+      continue;
+    }
+    if ((c == 'x') && (pos == 2)) {
+      prefix_size = 2;
+      continue;
+    }
+    return false;
+  }
+  // remove prefix "0x"
+  s.erase(0, prefix_size);
+
+  return s.size() > 0;
 }

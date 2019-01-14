@@ -1,20 +1,18 @@
 /*
- * Copyright (c) 2018 Zilliqa
- * This source code is being disclosed to you solely for the purpose of your
- * participation in testing Zilliqa. You may view, compile and run the code for
- * that purpose and pursuant to the protocols and algorithms that are programmed
- * into, and intended by, the code. You may not do anything else with the code
- * without express permission from Zilliqa Research Pte. Ltd., including
- * modifying or publishing the code (or any part of it), and developing or
- * forming another public or private blockchain network. This source code is
- * provided 'as is' and no warranties are given as to title or non-infringement,
- * merchantability or fitness for purpose and, to the extent permitted by law,
- * all liability for your use of the code is disclaimed. Some programs in this
- * code are governed by the GNU General Public License v3.0 (available at
- * https://www.gnu.org/licenses/gpl-3.0.en.html) ('GPLv3'). The programs that
- * are governed by GPLv3.0 are those programs that are located in the folders
- * src/depends and tests/depends and which include a reference to GPLv3 in their
- * program files.
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <algorithm>
@@ -99,9 +97,9 @@ bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
 
   dsblock_message.clear();
   dsblock_message = {MessageType::NODE, NodeInstructionType::DSBLOCK};
-  if (!Messenger::SetNodeVCDSBlocksMessage(dsblock_message, MessageOffset::BODY,
-                                           0, *m_pendingDSBlock,
-                                           m_VCBlockVector, m_shards)) {
+  if (!Messenger::SetNodeVCDSBlocksMessage(
+          dsblock_message, MessageOffset::BODY, 0, *m_pendingDSBlock,
+          m_VCBlockVector, SHARDINGSTRUCTURE_VERSION, m_shards)) {
     LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
               "Messenger::SetNodeVCDSBlocksMessage failed.");
     return false;
@@ -160,7 +158,8 @@ void DirectoryService::SendDSBlockToShardNodes(
                                       NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeVCDSBlocksMessage(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
-            *m_pendingDSBlock, m_VCBlockVector, m_shards)) {
+            *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
+            m_shards)) {
       LOG_EPOCH(WARNING, to_string(m_mediator.m_currentEpochNum).c_str(),
                 "Messenger::SetNodeVCDSBlocksMessage failed.");
       continue;
@@ -183,27 +182,22 @@ void DirectoryService::SendDSBlockToShardNodes(
                     "constant.xml next time.");
         numOfDSBlockReceivers = NUM_DS_ELECTION + 1;
       }
-      LOG_GENERAL(
-          INFO,
-          "Sending message with hash: ["
-              << DataConversion::Uint8VecToHexStr(this_msg_hash).substr(0, 6)
-              << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
-              << numOfDSBlockReceivers << " shard peers");
+
+      string msgHash;
+      DataConversion::Uint8VecToHexStr(this_msg_hash, msgHash);
+      LOG_GENERAL(INFO, "Sending message with hash: ["
+                            << msgHash.substr(0, 6)
+                            << "] to NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD:"
+                            << numOfDSBlockReceivers << " shard peers");
 
       numOfDSBlockReceivers =
           std::min(numOfDSBlockReceivers, (uint32_t)p->size());
 
       for (unsigned int i = 0; i < numOfDSBlockReceivers; i++) {
         shardDSBlockReceivers.emplace_back(std::get<SHARD_NODE_PEER>(p->at(i)));
-        LOG_EPOCH(
-            INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-            " PubKey: "
-                << DataConversion::SerializableToHexStr(
-                       std::get<SHARD_NODE_PUBKEY>(p->at(i)))
-                << " IP: "
-                << std::get<SHARD_NODE_PEER>(p->at(i)).GetPrintableIPAddress()
-                << " Port: "
-                << std::get<SHARD_NODE_PEER>(p->at(i)).m_listenPortHost);
+        LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
+                  " PubKey: " << std::get<SHARD_NODE_PUBKEY>(p->at(i))
+                              << std::get<SHARD_NODE_PEER>(p->at(i)));
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
@@ -386,9 +380,7 @@ void DirectoryService::StartFirstTxEpoch() {
       }
 
       LOG_EPOCH(INFO, to_string(m_mediator.m_currentEpochNum).c_str(),
-                " PubKey: " << DataConversion::SerializableToHexStr(i.first)
-                            << " IP: " << i.second.GetPrintableIPAddress()
-                            << " Port: " << i.second.m_listenPortHost);
+                " PubKey: " << i.first << " IP: " << i.second);
 
       index++;
     }
