@@ -76,7 +76,6 @@ bool ContractStorage::PutContractState(const dev::h160& address,
                                        dev::h256& stateHash) {
   // LOG_MARKER();
   vector<pair<Index, bytes>> entries;
-  dev::RLPStream rlpStream(ITEMS_NUM);
   for (const auto& state : states) {
     Index index = GetNewIndex(address, std::get<VNAME>(state));
 
