@@ -476,7 +476,10 @@ void AccountStoreSC<MAP>::ExportCallContractFiles(
 template <class MAP>
 bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
     std::string& root_w_version, const uint32_t& scilla_version) {
-  root_w_version = SCILLA_ROOT + '/' + std::to_string(scilla_version);
+  root_w_version = SCILLA_ROOT;
+  if (ENABLE_SCILLA_MULTI_VERSION) {
+    root_w_version += '/' + std::to_string(scilla_version);
+  }
 
   if (!boost::filesystem::exists(root_w_version)) {
     LOG_GENERAL(WARNING, "Folder for desired version doesn't exists");
