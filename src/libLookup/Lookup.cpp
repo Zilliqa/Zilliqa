@@ -40,6 +40,7 @@
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -158,6 +159,10 @@ void Lookup::SetLookupNodes() {
                     }) != m_lookupNodes.end()) {
           continue;
         }
+        string url = v.second.get<string>("hostname");
+        if (!url.empty()) {
+          lookup_node.SetHostname(url);
+        }
         if (lookupType == "node.multipliers") {
           m_multipliers.emplace_back(pubKey, lookup_node);
         }
@@ -198,6 +203,10 @@ void Lookup::SetAboveLayer() {
       }
 
       PubKey pubKey(pubkeyBytes, 0);
+      string url = v.second.get<string>("hostname");
+      if (!url.empty()) {
+        lookup_node.SetHostname(url);
+      }
       m_seedNodes.emplace_back(pubKey, lookup_node);
     }
   }
@@ -383,6 +392,22 @@ bool Lookup::IsLookupNode(const Peer& peerInfo) const {
                       }) != lookups.end();
 }
 
+uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
+  // try resolving ip from hostname
+  string url = peer.GetHostname();
+  auto resolved_ip = peer.GetIpAddress();  // existing one
+  if (!url.empty()) {
+    boost::multiprecision::uint128_t tmpIp;
+    if (IPConverter::ResolveDNS(url, peer.GetListenPortHost(), tmpIp)) {
+      resolved_ip = tmpIp;  // resolved one
+    } else {
+      LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+    }
+  }
+
+  return resolved_ip;
+}
+
 void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   LOG_MARKER();
 
@@ -396,12 +421,16 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node "
-                    << node.second.GetPrintableIPAddress() << ":"
-                    << node.second.m_listenPortHost);
+      auto resolved_ip = TryGettingResolvedIP(node.second);
 
-      allLookupNodes.emplace_back(node.second);
+      Blacklist::GetInstance().Exclude(
+          resolved_ip);  // exclude this lookup ip from blacklisting
+
+      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Sending msg to lookup node " << tmp);
+
+      allLookupNodes.emplace_back(tmp);
     }
   }
 
@@ -424,12 +453,17 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
                   }) != m_multipliers.end()) {
         continue;
       }
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node "
-                    << node.second.GetPrintableIPAddress() << ":"
-                    << node.second.m_listenPortHost);
 
-      allLookupNodes.emplace_back(node.second);
+      auto resolved_ip = TryGettingResolvedIP(node.second);
+
+      Blacklist::GetInstance().Exclude(
+          resolved_ip);  // exclude this lookup ip from blacklisting
+
+      Peer tmp(resolved_ip, node.second.GetListenPortHost());
+      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+                "Sending msg to lookup node " << tmp);
+
+      allLookupNodes.emplace_back(tmp);
     }
   }
 
@@ -459,8 +493,14 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
                });
 
   int index = rand() % tmp.size();
-  LOG_GENERAL(INFO, "Sending to Random lookup: " << tmp[index].second);
-  P2PComm::GetInstance().SendMessage(tmp[index].second, message);
+
+  auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
+
+  Blacklist::GetInstance().Exclude(
+      resolved_ip);  // exclude this lookup ip from blacklisting
+  Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
+  LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
+  P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const bytes& message) const {
@@ -471,11 +511,14 @@ void Lookup::SendMessageToSeedNodes(const bytes& message) const {
     lock_guard<mutex> g(m_mutexSeedNodes);
 
     for (const auto& node : m_seedNodes) {
+      auto resolved_ip = TryGettingResolvedIP(node.second);
+
+      Blacklist::GetInstance().Exclude(
+          resolved_ip);  // exclude this lookup ip from blacklisting
+      Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to seed node "
-                    << node.second.GetPrintableIPAddress() << ":"
-                    << node.second.m_listenPortHost);
-      seedNodePeer.emplace_back(node.second);
+                "Sending msg to seed node " << tmpPeer);
+      seedNodePeer.emplace_back(tmpPeer);
     }
   }
   P2PComm::GetInstance().SendMessage(seedNodePeer, message);
@@ -850,7 +893,13 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
   }
 
   int index = rand() % m_seedNodes.size();
-  P2PComm::GetInstance().SendMessage(m_seedNodes[index].second, message);
+  auto resolved_ip = TryGettingResolvedIP(m_seedNodes[index].second);
+
+  Blacklist::GetInstance().Exclude(
+      resolved_ip);  // exclude this lookup ip from blacklisting
+
+  Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
+  P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }
 
 // TODO: Refactor the code to remove the following assumption

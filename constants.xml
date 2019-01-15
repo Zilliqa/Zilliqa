@@ -234,26 +234,31 @@
     <lookups>
         <!--IP to be provided after public testnet launch.
         <peer>
+            <hostname></hostname>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
         <peer>
+            <hostname></hostname>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
         <peer>
+            <hostname></hostname>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
         <peer>
+            <hostname></hostname>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
         </peer>
         <peer>
+            <hostname></hostname>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>
@@ -272,6 +277,7 @@
     <upper_seed>
         <!--
         <peer>
+            <hostname></hostname>
             <ip></ip>
             <port>30303</port>
             <pubkey></pubkey>

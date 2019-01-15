@@ -106,4 +106,27 @@ bool ToNumericalIPFromStr(const std::string& ipStr,
   LogUnsupported(ipStr);
   return false;
 }
+
+bool ResolveDNS(const std::string& url, const uint32_t& port,
+                boost::multiprecision::uint128_t& ipInt) {
+  try {
+    boost::asio::io_service my_io_service;
+    boost::asio::ip::tcp::resolver resolver(my_io_service);
+    boost::asio::ip::tcp::resolver::query query(
+        url, boost::lexical_cast<std::string>(port));
+    boost::asio::ip::tcp::resolver::iterator iter = resolver.resolve(query);
+    boost::asio::ip::tcp::resolver::iterator end;  // End marker.
+    while (iter != end) {
+      boost::asio::ip::tcp::endpoint endpoint = *iter++;
+      if (endpoint.address().is_v4()) {
+        return ToNumericalIPFromStr(endpoint.address().to_string(), ipInt);
+      }
+    }
+  } catch (std::exception& e) {
+    return false;
+  }
+
+  return false;
+}
+
 }  // namespace IPConverter

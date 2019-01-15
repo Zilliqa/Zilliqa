@@ -36,6 +36,7 @@
 #include "libData/BlockData/Block/TxBlock.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
 #include <condition_variable>
@@ -164,6 +165,9 @@ class Lookup : public Executable, public Broadcastable {
                     std::map<uint32_t, std::vector<Transaction>>& mp,
                     uint32_t numShards);
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
+
+  // Try resolving ip from the given peer's DNS
+  boost::multiprecision::uint128_t TryGettingResolvedIP(const Peer& peer) const;
 
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
   void SendMessageToLookupNodes(const bytes& message) const;
