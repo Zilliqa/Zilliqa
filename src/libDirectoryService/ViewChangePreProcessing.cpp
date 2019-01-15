@@ -737,10 +737,10 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
   lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
 
   PubKey lookupPubKey;
-  vector<DSBlock> VCPreCheckDSBlocks;
-  vector<TxBlock> VCPreCheckTxBlocks;
+  vector<DSBlock> vcPreCheckDSBlocks;
+  vector<TxBlock> vcPreCheckTxBlocks;
   if (!Messenger::GetVCNodeSetDSTxBlockFromSeed(
-          message, offset, VCPreCheckDSBlocks, VCPreCheckTxBlocks,
+          message, offset, vcPreCheckDSBlocks, vcPreCheckTxBlocks,
           lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetVCNodeSetDSTxBlockFromSeed failed.");
@@ -755,8 +755,8 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
     return false;
   }
 
-  m_vcPreCheckDSBlocks = VCPreCheckDSBlocks;
-  m_vcPreCheckTxBlocks = VCPreCheckTxBlocks;
+  m_vcPreCheckDSBlocks = vcPreCheckDSBlocks;
+  m_vcPreCheckTxBlocks = vcPreCheckTxBlocks;
 
   cv_viewChangePrecheck.notify_all();
   return true;
