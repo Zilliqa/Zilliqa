@@ -536,7 +536,7 @@ GetSmartContractInitResponse Server::GetSmartContractInit(
     }
 
     Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
       ret.set_error("Address does not exist");
@@ -548,7 +548,7 @@ GetSmartContractInitResponse Server::GetSmartContractInit(
       return ret;
     }
 
-    ret.set_initjson(account->GetInitJson().toStyledString());
+    ret.set_initjson(account->GetInitJson(false).toStyledString());
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());

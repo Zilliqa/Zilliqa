@@ -492,8 +492,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
   if (protoAccount.code().size() > 0 || account.isContract()) {
     bool doInitContract = false;
 
+    bytes tmpCodeVec, tmpInitDataVec;
     if (fullCopy) {
-      bytes tmpVec;
       if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
         LOG_GENERAL(WARNING, "Code size "
                                  << protoAccount.code().size()
@@ -501,18 +501,17 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                                  << MAX_CODE_SIZE_IN_BYTES);
         return false;
       }
-      tmpVec.resize(protoAccount.code().size());
+      tmpCodeVec.resize(protoAccount.code().size());
       copy(protoAccount.code().begin(), protoAccount.code().end(),
-           tmpVec.begin());
-      if (tmpVec != account.GetCode()) {
-        account.SetCode(tmpVec);
+           tmpCodeVec.begin());
+      if (tmpCodeVec != account.GetCode()) {
+        account.SetCode(tmpCodeVec);
       }
 
       if (!protoAccount.initdata().empty() && account.GetInitData().empty()) {
-        tmpVec.resize(protoAccount.initdata().size());
+        tmpInitDataVec.resize(protoAccount.initdata().size());
         copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
-             tmpVec.begin());
-        account.SetInitData(tmpVec);
+             tmpInitDataVec.begin());
         doInitContract = true;
       }
 
@@ -528,7 +527,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
     if (tmpStorageRoot != account.GetStorageRoot()) {
       if (doInitContract) {
-        if (!account.InitContract(addr)) {
+        if (!account.InitContract(tmpInitDataVec, addr)) {
           return false;
         }
       }

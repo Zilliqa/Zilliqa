@@ -456,7 +456,7 @@ Json::Value Server::GetSmartContractInit(const string& address) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
     }
     Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
+    Account* account = AccountStore::GetInstance().GetAccount(addr);
 
     if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -467,7 +467,7 @@ Json::Value Server::GetSmartContractInit(const string& address) {
                              "Address not contract address");
     }
 
-    return account->GetInitJson();
+    return account->GetInitJson(false);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
