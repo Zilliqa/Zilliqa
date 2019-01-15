@@ -139,7 +139,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
-    return Transaction();
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Invalid Hex Str for toAddr");
   }
 
   Address toAddr(toAddr_ser);
@@ -156,7 +157,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   bytes pubKey_ser;
   if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for pubkey");
-    return Transaction();
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Invalid Hex Str for PubKey");
   }
   PubKey pubKey(pubKey_ser, 0);
 
@@ -164,7 +166,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   bytes sign;
   if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for sign");
-    return Transaction();
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Invalid Hex Str for Signature");
   }
 
   bytes code, data;
@@ -196,42 +199,51 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   if (ret) {
     if (!_json["nonce"].isIntegral()) {
       LOG_GENERAL(INFO, "Fault in nonce");
-      return false;
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Nonce is not integral");
     }
     if (_json["amount"].isString()) {
       try {
         uint128_t amount(_json["amount"].asString());
       } catch (exception& e) {
         LOG_GENERAL(INFO, "Fault in amount " << e.what());
-        return false;
+        throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                        "Amount invalid string");
       }
     } else {
       LOG_GENERAL(INFO, "Amount not string");
-      return false;
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Amount invalid string");
     }
     if (!_json["version"].isIntegral()) {
       LOG_GENERAL(INFO, "Fault in version");
-      return false;
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Version not integral");
     }
     if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2) {
       LOG_GENERAL(INFO,
                   "PubKey size wrong " << _json["pubKey"].asString().size());
-      return false;
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Invalid PubKey Size");
     }
     if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2) {
       LOG_GENERAL(INFO, "signature size wrong "
                             << _json["signature"].asString().size());
-      return false;
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "Invalid Signature size");
     }
     string lower_case_addr;
     if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
                                                 lower_case_addr)) {
       LOG_GENERAL(INFO,
                   "To Address checksum wrong " << _json["toAddr"].asString());
-      return false;
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "To Addr checksum wrong");
     }
   } else {
     LOG_GENERAL(INFO, "Json Data Object has missing components");
+    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                    "Json Data Object malformed");
   }
 
   return ret;
