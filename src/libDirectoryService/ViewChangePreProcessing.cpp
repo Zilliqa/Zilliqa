@@ -737,8 +737,10 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
   lock_guard<mutex> g(m_MutexCVViewChangePrecheckBlocks);
 
   PubKey lookupPubKey;
+  vector<DSBlock> VCPreCheckDSBlocks;
+  vector<TxBlock> VCPreCheckTxBlocks;
   if (!Messenger::GetVCNodeSetDSTxBlockFromSeed(
-          message, offset, m_vcPreCheckDSBlocks, m_vcPreCheckTxBlocks,
+          message, offset, VCPreCheckDSBlocks, VCPreCheckTxBlocks,
           lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetVCNodeSetDSTxBlockFromSeed failed.");
@@ -752,6 +754,9 @@ bool DirectoryService::ProcessGetDSTxBlockMessage(
                   << lookupPubKey << " is not in my lookup node list.");
     return false;
   }
+
+  m_vcPreCheckDSBlocks = VCPreCheckDSBlocks;
+  m_vcPreCheckTxBlocks = VCPreCheckTxBlocks;
 
   cv_viewChangePrecheck.notify_all();
   return true;
