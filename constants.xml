@@ -214,7 +214,7 @@
         <PACKET_EPOCH_LATE_ALLOW>1</PACKET_EPOCH_LATE_ALLOW>
     </transactions>
     <verifier>
-        <VERIFIER_PATH/>
+        <VERIFIER_PATH>historicalDB</VERIFIER_PATH>
         <VERIFIER_PUBKEY/>
         <SEED_PORT>30303</SEED_PORT>
     </verifier>
