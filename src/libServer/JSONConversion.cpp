@@ -138,7 +138,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   }
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
-    LOG_GENERAL(WARNING, "json cointaining invalid hex str for toAddr");
+    LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "Invalid Hex Str for toAddr");
   }
@@ -243,7 +243,7 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   } else {
     LOG_GENERAL(INFO, "Json Data Object has missing components");
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Json Data Object malformed");
+                                    "Missing components in Json Data Object");
   }
 
   return ret;
