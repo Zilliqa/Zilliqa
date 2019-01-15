@@ -79,7 +79,7 @@ int Peer::Deserialize(const bytes& src, unsigned int offset) {
   return 0;
 }
 
-void Peer::SetHostname(std::string& hostname) { m_hostname = hostname; }
+void Peer::SetHostname(const std::string& hostname) { m_hostname = hostname; }
 
 const uint32_t& Peer::GetListenPortHost() const { return m_listenPortHost; }
 const boost::multiprecision::uint128_t& Peer::GetIpAddress() const {

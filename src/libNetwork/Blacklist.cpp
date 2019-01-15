@@ -85,5 +85,6 @@ void Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
   if (!m_enabled) {
     return;
   }
+  lock_guard<mutex> g(m_mutexBlacklistIP);
   m_excludedIP.emplace(ip);
 }

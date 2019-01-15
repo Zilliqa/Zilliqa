@@ -424,13 +424,11 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
       auto resolved_ip = TryGettingResolvedIP(node.second);
 
       Blacklist::GetInstance().Exclude(
-          resolved_ip);  // exclude this lookup ip from blacklistin
+          resolved_ip);  // exclude this lookup ip from blacklisting
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
-                                              << ":"
-                                              << tmp.GetListenPortHost());
+                "Sending msg to lookup node " << tmp);
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -463,9 +461,7 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
 
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
-                                              << ":"
-                                              << tmp.GetListenPortHost());
+                "Sending msg to lookup node " << tmp);
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -521,9 +517,7 @@ void Lookup::SendMessageToSeedNodes(const bytes& message) const {
           resolved_ip);  // exclude this lookup ip from blacklisting
       Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Sending msg to seed node " << tmpPeer.GetPrintableIPAddress()
-                                            << ":"
-                                            << tmpPeer.GetListenPortHost());
+                "Sending msg to seed node " << tmpPeer);
       seedNodePeer.emplace_back(tmpPeer);
     }
   }

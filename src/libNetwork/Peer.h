@@ -73,7 +73,7 @@ struct Peer : public Serializable {
   int Deserialize(const bytes& src, unsigned int offset);
 
   /// Setter
-  void SetHostname(std::string& hostname);
+  void SetHostname(const std::string& hostname);
 
   /// Getters.
   const boost::multiprecision::uint128_t& GetIpAddress() const;
