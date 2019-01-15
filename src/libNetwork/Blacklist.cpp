@@ -16,6 +16,7 @@
  */
 
 #include "Blacklist.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -36,7 +37,8 @@ bool Blacklist::Exist(const boost::multiprecision::uint128_t& ip) {
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  return (m_blacklistIP.end() != m_blacklistIP.find(ip));
+  return (m_blacklistIP.end() != m_blacklistIP.find(ip) &&
+          (m_excludedIP.end() == m_excludedIP.find(ip)));
 }
 
 /// Reputation Manager may use this function
@@ -46,7 +48,12 @@ void Blacklist::Add(const boost::multiprecision::uint128_t& ip) {
   }
 
   lock_guard<mutex> g(m_mutexBlacklistIP);
-  m_blacklistIP.emplace(ip, true);
+  if (m_excludedIP.end() == m_excludedIP.find(ip)) {
+    m_blacklistIP.emplace(ip, true);
+  } else {
+    LOG_GENERAL(INFO, "Excluding " << IPConverter::ToStrFromNumericalIP(ip)
+                                   << " from Blacklist");
+  }
 }
 
 /// Reputation Manager may use this function
@@ -72,4 +79,11 @@ void Blacklist::Enable(const bool enable) {
   }
 
   m_enabled = enable;
+}
+
+void Blacklist::Exclude(const boost::multiprecision::uint128_t& ip) {
+  if (!m_enabled) {
+    return;
+  }
+  m_excludedIP.emplace(ip);
 }

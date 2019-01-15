@@ -40,6 +40,7 @@
 #include "libData/BlockData/Block/FallbackBlockWShardingStructure.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
@@ -416,7 +417,8 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
           LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
         }
       }
-
+      Blacklist::GetInstance().Exclude(
+          resolved_ip);  // exclude this lookup ip from blacklisting
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
@@ -459,6 +461,8 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
         }
       }
 
+      Blacklist::GetInstance().Exclude(
+          resolved_ip);  // exclude this lookup ip from blacklisting
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
@@ -508,6 +512,8 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
     }
   }
 
+  Blacklist::GetInstance().Exclude(
+      resolved_ip);  // exclude this lookup ip from blacklisting
   Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
   P2PComm::GetInstance().SendMessage(tmpPeer, message);
@@ -534,6 +540,8 @@ void Lookup::SendMessageToSeedNodes(const bytes& message) const {
         }
       }
 
+      Blacklist::GetInstance().Exclude(
+          resolved_ip);  // exclude this lookup ip from blacklisting
       Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to seed node " << tmpPeer.GetPrintableIPAddress()
@@ -950,6 +958,8 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
     }
   }
 
+  Blacklist::GetInstance().Exclude(
+      resolved_ip);  // exclude this lookup ip from blacklisting
   Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
   P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }

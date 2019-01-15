@@ -18,6 +18,7 @@
 #include "DataSender.h"
 
 #include "libCrypto/Sha2.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"
@@ -51,10 +52,12 @@ void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
       }
     }
 
+    Blacklist::GetInstance().Exclude(
+        resolved_ip);  // exclude this lookup ip from blacklisting
     Peer tmp(resolved_ip, node.second.GetListenPortHost());
     LOG_GENERAL(INFO, "Sending msg to lookup node " << tmp);
 
-    allLookupNodes.emplace_back(node.second);
+    allLookupNodes.emplace_back(tmp);
   }
 
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
