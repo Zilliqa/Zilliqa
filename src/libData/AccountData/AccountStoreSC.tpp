@@ -736,7 +736,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     }
     return false;
   }
-  uint64_t startGas(gasRemained);
+  uint64_t startGas = gasRemained;
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
 
   if (!_json.isMember("_accepted")) {
