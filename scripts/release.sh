@@ -124,6 +124,7 @@ constantArchivalLookupFile="$(realpath ${constantArchivalLookupFile})"
 versionFile="$(realpath ${versionFile})"
 accountName="$(grep -oPm1 "(?<=<UPGRADE_HOST_ACCOUNT>)[^<]+" ${constantFile})"
 repoName="$(grep -oPm1 "(?<=<UPGRADE_HOST_REPO>)[^<]+" ${constantFile})"
+scillaMultiVersion="$(grep -oPm1 "(?<=<ENABLE_SCILLA_MULTI_VERSION>)[^<]+" ${constantFile})"
 zilliqaMajor="$(sed -n ${zilliqaMajorLine}p ${versionFile})"
 zilliqaMinor="$(sed -n ${zilliqaMinorLine}p ${versionFile})"
 zilliqaFix="$(sed -n ${zilliqaFixLine}p ${versionFile})"
@@ -193,8 +194,13 @@ if [ "$scillaPath" != "" ]; then
     make
     cd -
     rm -rf ${scillaDebFolder}/scilla/*
-    mkdir ${scillaDebFolder}/scilla/${scillaMajor}
-    cp -rf ${scillaPath}/* ${scillaDebFolder}/scilla/${scillaMajor}/
+    if [ "$scillaMultiVersion" = "true" ]; then
+        mkdir ${scillaDebFolder}/scilla/${scillaMajor}
+        cp -rf ${scillaPath}/* ${scillaDebFolder}/scilla/${scillaMajor}/
+    else
+        mkdir ${scillaDebFolder}/scilla
+        cp -rf ${scillaPath}/* ${scillaDebFolder}/scilla/
+    fi
     sed -i "/Version: /c\Version: ${scillaMajor}.${scillaMinor}.${scillaFix}" ${scillaDebFolder}/DEBIAN/control
     echo -e "\n\033[0;32mMaking Scilla deb package...\033[0m\n"
     scillaDebFile=${packageName}-${scillaMajor}.${scillaMinor}.${scillaFix}.${scillaDS}.${scillaCommit}-Linux-Scilla.deb
