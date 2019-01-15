@@ -490,25 +490,6 @@ class Messenger {
                                              uint64_t& blockNum,
                                              PubKey& lookupPubKey,
                                              bytes& stateDelta);
-  static bool SetLookupGetTxBodyFromSeed(bytes& dst, const unsigned int offset,
-                                         const bytes& txHash,
-                                         const uint32_t listenPort);
-  static bool GetLookupGetTxBodyFromSeed(const bytes& src,
-                                         const unsigned int offset,
-                                         TxnHash& txHash, uint32_t& listenPort);
-  static bool SetLookupSetTxBodyFromSeed(bytes& dst, const unsigned int offset,
-                                         const TxnHash& txHash,
-                                         const TransactionWithReceipt& txBody);
-  static bool GetLookupSetTxBodyFromSeed(const bytes& src,
-                                         const unsigned int offset,
-                                         TxnHash& txHash,
-                                         TransactionWithReceipt& txBody);
-  static bool SetLookupSetNetworkIDFromSeed(bytes& dst,
-                                            const unsigned int offset,
-                                            const std::string& networkID);
-  static bool GetLookupSetNetworkIDFromSeed(const bytes& src,
-                                            const unsigned int offset,
-                                            std::string& networkID);
   static bool SetLookupGetStateFromSeed(bytes& dst, const unsigned int offset,
                                         const uint32_t listenPort);
   static bool GetLookupGetStateFromSeed(const bytes& src,
@@ -573,14 +554,15 @@ class Messenger {
   static bool GetLookupSetStartPoWFromSeed(const bytes& src,
                                            const unsigned int offset,
                                            PubKey& lookupPubKey);
-
+  // UNUSED
   static bool SetLookupGetShardsFromSeed(bytes& dst, const unsigned int offset,
                                          const uint32_t listenPort);
 
+  // UNUSED
   static bool GetLookupGetShardsFromSeed(const bytes& src,
                                          const unsigned int offset,
                                          uint32_t& listenPort);
-
+  // UNUSED
   static bool SetLookupSetShardsFromSeed(
       bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
       const uint32_t& shardingStructureVersion, const DequeOfShard& shards);
@@ -595,6 +577,7 @@ class Messenger {
       bytes& dst, const unsigned int offset,
       const std::vector<BlockHash>& microBlockHashes, uint32_t portNo);
 
+  // UNUSED
   static bool GetLookupGetMicroBlockFromLookup(
       const bytes& src, const unsigned int offset,
       std::vector<BlockHash>& microBlockHashes, uint32_t& portNo);
@@ -607,7 +590,7 @@ class Messenger {
                                                const unsigned int offset,
                                                PubKey& lookupPubKey,
                                                std::vector<MicroBlock>& mbs);
-
+  // UNUSED
   static bool SetLookupGetTxnsFromLookup(bytes& dst, const unsigned int offset,
                                          const std::vector<TxnHash>& txnhashes,
                                          uint32_t portNo);
@@ -615,9 +598,12 @@ class Messenger {
                                          const unsigned int offset,
                                          std::vector<TxnHash>& txnhashes,
                                          uint32_t& portNo);
+  // UNUSED
   static bool SetLookupSetTxnsFromLookup(
       bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
       const std::vector<TransactionWithReceipt>& txns);
+
+  // USUSED
   static bool GetLookupSetTxnsFromLookup(
       const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
       std::vector<TransactionWithReceipt>& txns);

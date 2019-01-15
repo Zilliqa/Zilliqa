@@ -628,28 +628,6 @@ message LookupSetStateDeltaFromSeed
     required ByteArray signature = 4;
 }
 
-message LookupGetTxBodyFromSeed
-{
-    required bytes txhash      = 1;
-    required uint32 listenport = 2;
-}
-
-message LookupSetTxBodyFromSeed
-{
-    required bytes txhash     = 1;
-    required ByteArray txbody = 2;
-}
-
-message LookupGetNetworkIDFromSeed
-{
-    // Unused
-}
-
-message LookupSetNetworkIDFromSeed
-{
-    required string networkid = 1;
-}
-
 message LookupGetStateFromSeed
 {
     required uint32 listenport = 1;
