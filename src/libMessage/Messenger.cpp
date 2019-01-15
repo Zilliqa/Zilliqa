@@ -291,6 +291,29 @@ inline bool CheckRequiredFieldsProtoBlockHeaderBase(
          protoBlockHeaderBase.has_prevhash();
 }
 
+inline bool CheckRequiredFieldsProtoAccountDefault(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_version() && protoAccount.has_balance() &&
+         protoAccount.has_nonce() && protoAccount.has_storageroot();
+}
+
+inline bool CheckRequiredFieldsProtoAccountContract(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_codehash() && protoAccount.has_createblocknum() &&
+         protoAccount.has_initdata() && protoAccount.has_code();
+}
+
+inline bool CheckRequiredFieldsProtoAccountDeltaDefault(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_version() && protoAccount.has_numbersign() &&
+         protoAccount.has_balance() && protoAccount.has_nonce();
+}
+
+inline bool CheckRequiredFieldsProtoAccountDeltaContractDefault(
+    const ProtoAccount& protoAccount) {
+  return protoAccount.has_storageroot();
+}
+
 inline bool CheckRequiredFieldsProtoStateData(
     const ProtoStateData& protoStateData) {
   return protoStateData.has_vname() && protoStateData.has_ismutable() &&
@@ -302,6 +325,7 @@ inline bool CheckRequiredFieldsProtoStateData(
 // ============================================================================
 
 void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
+  protoAccount.set_version(account.GetVersion());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       account.GetBalance(), *protoAccount.mutable_balance());
   protoAccount.set_nonce(account.GetNonce());
@@ -326,8 +350,14 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
 
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr) {
-  uint128_t tmpNumber;
+  if (!CheckRequiredFieldsProtoAccountDefault(protoAccount)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountDefault failed.");
+    return false;
+  }
 
+  account.SetVersion(protoAccount.version());
+
+  uint128_t tmpNumber;
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
                                                      tmpNumber);
   account.SetBalance(tmpNumber);
@@ -341,6 +371,11 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
        tmpStorageRoot.asArray().begin());
 
   if (protoAccount.code().size() > 0) {
+    if (!CheckRequiredFieldsProtoAccountContract(protoAccount)) {
+      LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed.");
+      return false;
+    }
+
     bytes tmpVec;
     tmpVec.resize(protoAccount.code().size());
     copy(protoAccount.code().begin(), protoAccount.code().end(),
@@ -354,18 +389,9 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
     }
 
     if (account.GetCodeHash() != tmpHash) {
-      std::string codehashStr, tmphashStr;
-      if (!DataConversion::charArrToHexStr(account.GetCodeHash().asArray(),
-                                           codehashStr)) {
-        return false;
-      }
-
-      if (!DataConversion::charArrToHexStr(tmpHash.asArray(), tmphashStr)) {
-        return false;
-      }
-
       LOG_GENERAL(WARNING, "Code hash mismatch. Expected: "
-                               << codehashStr << " Actual: " << tmphashStr);
+                               << account.GetCodeHash().hex()
+                               << " Actual: " << tmpHash.hex());
       return false;
     }
 
@@ -434,6 +460,8 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
     fullCopy = true;
   }
 
+  protoAccount.set_version(newAccount.GetVersion());
+
   int256_t balanceDelta =
       int256_t(newAccount.GetBalance()) - int256_t(oldAccount->GetBalance());
   protoAccount.set_numbersign(balanceDelta > 0);
@@ -457,15 +485,18 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
       protoAccount.set_initdata(newAccount.GetInitData().data(),
                                 newAccount.GetInitData().size());
       protoAccount.set_createblocknum(newAccount.GetCreateBlockNum());
+      protoAccount.set_codehash(newAccount.GetCodeHash().data(),
+                                newAccount.GetCodeHash().size);
     }
 
-    if (newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
+    if (fullCopy ||
+        newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
       protoAccount.set_storageroot(newAccount.GetStorageRoot().data(),
                                    newAccount.GetStorageRoot().size);
 
       for (const auto& keyHash : newAccount.GetStorageKeyHashes()) {
         string rlpStr = newAccount.GetRawStorage(keyHash);
-        if (rlpStr != oldAccount->GetRawStorage(keyHash)) {
+        if (fullCopy || rlpStr != oldAccount->GetRawStorage(keyHash)) {
           ProtoAccount::StorageData* entry = protoAccount.add_storage();
           entry->set_keyhash(keyHash.data(), keyHash.size);
           entry->set_data(rlpStr);
@@ -477,6 +508,18 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
 bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                             const Address& addr, const bool fullCopy) {
+  if (!CheckRequiredFieldsProtoAccountDeltaDefault(protoAccount)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountDeltaDefault failed");
+    return false;
+  }
+
+  if (protoAccount.version() != ACCOUNT_VERSION) {
+    LOG_GENERAL(WARNING, "Account delta version doesn't match, expected "
+                             << ACCOUNT_VERSION << " received "
+                             << protoAccount.version());
+    return false;
+  }
+
   uint128_t tmpNumber;
 
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(protoAccount.balance(),
@@ -493,6 +536,11 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     bool doInitContract = false;
 
     if (fullCopy) {
+      if (!CheckRequiredFieldsProtoAccountContract(protoAccount) ||
+          !CheckRequiredFieldsProtoAccountDeltaContractDefault(protoAccount)) {
+        LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed");
+        return false;
+      }
       bytes tmpVec;
       if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
         LOG_GENERAL(WARNING, "Code size "
@@ -506,6 +554,19 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
            tmpVec.begin());
       if (tmpVec != account.GetCode()) {
         account.SetCode(tmpVec);
+      }
+
+      dev::h256 tmpHash;
+      if (!Messenger::CopyWithSizeCheck(protoAccount.codehash(),
+                                        tmpHash.asArray())) {
+        return false;
+      }
+
+      if (account.GetCodeHash() != tmpHash) {
+        LOG_GENERAL(WARNING, "Code hash mismatch. Expected: "
+                                 << account.GetCodeHash().hex()
+                                 << " Actual: " << tmpHash.hex());
+        return false;
       }
 
       if (!protoAccount.initdata().empty() && account.GetInitData().empty()) {
