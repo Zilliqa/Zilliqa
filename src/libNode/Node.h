@@ -285,6 +285,7 @@ class Node : public Executable, public Broadcastable {
   bool CheckMicroBlockStateDeltaHash();
   bool CheckMicroBlockTranReceiptHash();
 
+  void NotifyTimeout(bool& txnProcTimeout);
   bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes);
 
   // Fallback Consensus

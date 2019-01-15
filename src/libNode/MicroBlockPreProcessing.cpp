@@ -253,6 +253,22 @@ bool Node::OnCommitFailure([
   return true;
 }
 
+void Node::NotifyTimeout(bool& txnProcTimeout) {
+  int timeout_time = std::max(
+      0, ((int)MICROBLOCK_TIMEOUT -
+          ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
+          (int)CONSENSUS_OBJECT_TIMEOUT) /
+             2);
+  LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
+                        << timeout_time << " seconds");
+  unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
+  if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
+      cv_status::timeout) {
+    txnProcTimeout = true;
+    AccountStore::GetInstance().NotifyTimeout();
+  }
+}
+
 void Node::ProcessTransactionWhenShardLeader() {
   LOG_MARKER();
 
@@ -266,20 +282,7 @@ void Node::ProcessTransactionWhenShardLeader() {
   bool txnProcTimeout = false;
 
   auto txnProcTimer = [this, &txnProcTimeout]() -> void {
-    int timeout_time = std::max(
-        0,
-        ((int)MICROBLOCK_TIMEOUT -
-         ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
-         (int)CONSENSUS_OBJECT_TIMEOUT) /
-            2);
-    LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
-                          << timeout_time << " seconds");
-    unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
-    if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
-        cv_status::timeout) {
-      txnProcTimeout = true;
-      AccountStore::GetInstance().NotifyTimeout();
-    }
+    NotifyTimeout(txnProcTimeout);
   };
 
   DetachedFunction(1, txnProcTimer);
@@ -490,20 +493,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
   bool txnProcTimeout = false;
 
   auto txnProcTimer = [this, &txnProcTimeout]() -> void {
-    int timeout_time = std::max(
-        0,
-        ((int)MICROBLOCK_TIMEOUT -
-         ((int)TX_DISTRIBUTE_TIME_IN_MS + (int)FINALBLOCK_DELAY_IN_MS) / 1000 -
-         (int)CONSENSUS_OBJECT_TIMEOUT) /
-            2);
-    LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
-                          << timeout_time << " seconds");
-    unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
-    if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
-        cv_status::timeout) {
-      txnProcTimeout = true;
-      AccountStore::GetInstance().NotifyTimeout();
-    }
+    NotifyTimeout(txnProcTimeout);
   };
 
   DetachedFunction(1, txnProcTimer);
