@@ -6152,13 +6152,14 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     const vector<
         boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
         directoryBlocks,
-    const uint64_t& indexNum) {
+    const uint64_t& indexNum, const PairOfKey& lookupKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
-  result.set_indexnum(indexNum);
+  result.mutable_data()->set_indexnum(indexNum);
 
   for (const auto& dirblock : directoryBlocks) {
-    ProtoSingleDirectoryBlock* proto_dir_blocks = result.add_dirblocks();
+    ProtoSingleDirectoryBlock* proto_dir_blocks =
+        result.mutable_data()->add_dirblocks();
     if (dirblock.type() == typeid(DSBlock)) {
       DSBlockToProtobuf(get<DSBlock>(dirblock),
                         *proto_dir_blocks->mutable_dsblock());
@@ -6177,6 +6178,25 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     }
   }
 
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(
+          WARNING,
+          "Failed to sign set LookupSetDirectoryBlocksFromSeed message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed.Data initialization failed.");
+    return false;
+  }
+
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
                 "LookupSetDirectoryBlocksFromSeed initialization failed");
@@ -6190,7 +6210,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     uint32_t& shardingStructureVersion,
     vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
         directoryBlocks,
-    uint64_t& indexNum) {
+    uint64_t& indexNum, PubKey& pubKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -6201,9 +6221,9 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  indexNum = result.indexnum();
+  indexNum = result.data().indexnum();
 
-  for (const auto& dirblock : result.dirblocks()) {
+  for (const auto& dirblock : result.data().dirblocks()) {
     DSBlock dsblock;
     VCBlock vcblock;
     FallbackBlockWShardingStructure fallbackblockwshard;
@@ -6249,6 +6269,21 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
         break;
     }
   }
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
+    LOG_GENERAL(WARNING,
+                "Invalid signature in LookupSetDirectoryBlocksFromSeed.");
+    return false;
+  }
+
   return true;
 }
 

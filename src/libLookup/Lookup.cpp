@@ -2926,9 +2926,9 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer peer(ipAddr, portNo);
 
-  if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(msg, MessageOffset::BODY,
-                                                      SHARDINGSTRUCTURE_VERSION,
-                                                      dirBlocks, index_num)) {
+  if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(
+          msg, MessageOffset::BODY, SHARDINGSTRUCTURE_VERSION, dirBlocks,
+          index_num, m_mediator.m_selfKey)) {
     LOG_GENERAL(WARNING,
                 "Messenger::SetLookupSetDirectoryBlocksFromSeed failed");
     return false;
@@ -2946,10 +2946,20 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
       dirBlocks;
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
+  PubKey lookupPubKey;
   if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(
-          message, offset, shardingStructureVersion, dirBlocks, index_num)) {
+          message, offset, shardingStructureVersion, dirBlocks, index_num,
+          lookupPubKey)) {
     LOG_GENERAL(WARNING,
                 "Messenger::GetLookupSetDirectoryBlocksFromSeed failed");
+    return false;
+  }
+
+  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
+                                lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
     return false;
   }
 

@@ -759,8 +759,14 @@ message LookupGetDirectoryBlocksFromSeed
 
 message LookupSetDirectoryBlocksFromSeed
 {
-    required uint64 indexnum                     = 1;
-    repeated ProtoSingleDirectoryBlock dirblocks = 2;
+    message Data
+    {
+        required uint64 indexnum                     = 1;
+        repeated ProtoSingleDirectoryBlock dirblocks = 2;
+    }
+    required Data data           = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 // ============================================================================

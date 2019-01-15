@@ -623,14 +623,14 @@ class Messenger {
       const std::vector<
           boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
           directoryBlocks,
-      const uint64_t& indexNum);
+      const uint64_t& indexNum, const PairOfKey& lookupKey);
   static bool GetLookupSetDirectoryBlocksFromSeed(
       const bytes& src, const unsigned int offset,
       uint32_t& shardingStructureVersion,
       std::vector<
           boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
           directoryBlocks,
-      uint64_t& indexNum);
+      uint64_t& indexNum, PubKey& pubKey);
 
   // ============================================================================
   // Consensus messages
