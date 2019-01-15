@@ -399,7 +399,7 @@ Json::Value AccountStoreSC<MAP>::GetBlockStateJson(
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
+void AccountStoreSC<MAP>::ExportCreateContractFiles(Account& contract) {
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -424,7 +424,7 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
+void AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
   LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
 
@@ -461,7 +461,7 @@ void AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Transaction& transaction) {
+    Account& contract, const Transaction& transaction) {
   LOG_MARKER();
 
   ExportContractFiles(contract);
@@ -486,7 +486,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 
 template <class MAP>
 void AccountStoreSC<MAP>::ExportCallContractFiles(
-    const Account& contract, const Json::Value& contractData) {
+    Account& contract, const Json::Value& contractData) {
   LOG_MARKER();
 
   ExportContractFiles(contract);

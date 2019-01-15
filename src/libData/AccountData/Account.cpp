@@ -66,59 +66,27 @@ void Account::InitStorage() {
   }
 }
 
-bool Account::InitContract(const bytes& data, const Address& addr) {
-  SetInitData(data);
-  if (!InitContract(addr)) {
+bool Account::InitContract(const bytes& initData, const Address& addr) {
+  m_address = addr;
+  SetInitData(initData);
+  if (!InitContract()) {
     LOG_GENERAL(WARNING, "Account " << addr.hex() << " InitContract failed");
     return false;
   }
-  m_address = addr;
   return true;
 }
 
-bool Account::InitContract(const Address& addr) {
+bool Account::InitContract() {
   // LOG_MARKER();
-  if (m_initData.empty()) {
-    LOG_GENERAL(WARNING, "Init data for the contract is empty");
-    m_initValJson = Json::arrayValue;
+  if (!PrepareInitDataJson(GetInitData(), m_initValJson)) {
+    LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
     return false;
-  }
-  Json::CharReaderBuilder builder;
-  unique_ptr<Json::CharReader> reader(builder.newCharReader());
-  Json::Value root;
-  string dataStr(m_initData.begin(), m_initData.end());
-  string errors;
-  if (!reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
-                     &errors)) {
-    LOG_GENERAL(WARNING,
-                "Failed to parse initialization contract json: " << errors);
-    return false;
-  }
-
-  m_initValJson = root;
-
-  // Append createBlockNum
-  {
-    Json::Value createBlockNumObj;
-    createBlockNumObj["vname"] = "_creation_block";
-    createBlockNumObj["type"] = "BNum";
-    createBlockNumObj["value"] = to_string(GetCreateBlockNum());
-    m_initValJson.append(createBlockNumObj);
-  }
-
-  // Append _this_address
-  {
-    Json::Value createBlockNumObj;
-    createBlockNumObj["vname"] = "_this_address";
-    createBlockNumObj["type"] = "ByStr20";
-    createBlockNumObj["value"] = "0x" + addr.hex();
-    m_initValJson.append(createBlockNumObj);
   }
 
   bool hasScillaVersion = false;
   std::vector<StateEntry> state_entries;
 
-  for (auto& v : root) {
+  for (auto& v : m_initValJson) {
     if (!v.isMember("vname") || !v.isMember("type") || !v.isMember("value")) {
       LOG_GENERAL(WARNING,
                   "This variable in initialization of contract is corrupted");
@@ -153,7 +121,7 @@ bool Account::InitContract(const Address& addr) {
 
   if (HASHMAP_CONTRACT_STATE_DB) {
     return ContractStorage::GetContractStorage().PutContractState(
-        addr, state_entries, m_storageRoot);
+        m_address, state_entries, m_storageRoot);
   }
 
   if (!hasScillaVersion) {
@@ -307,11 +275,72 @@ string Account::GetRawStorage(const h256& k_hash) const {
   return m_storage.at(k_hash);
 }
 
-Json::Value Account::GetInitJson() const { return m_initValJson; }
+bool Account::PrepareInitDataJson(const bytes& initData, Json::Value& root) {
+  if (initData.empty()) {
+    LOG_GENERAL(WARNING, "Init data for the contract is empty");
+    return false;
+  }
+  Json::CharReaderBuilder builder;
+  unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  string dataStr(initData.begin(), initData.end());
+  string errors;
+  if (!reader->parse(dataStr.c_str(), dataStr.c_str() + dataStr.size(), &root,
+                     &errors)) {
+    LOG_GENERAL(WARNING,
+                "Failed to parse initialization contract json: " << errors);
+    return false;
+  }
 
-const bytes& Account::GetInitData() const { return m_initData; }
+  // Append createBlockNum
+  {
+    Json::Value createBlockNumObj;
+    createBlockNumObj["vname"] = "_creation_block";
+    createBlockNumObj["type"] = "BNum";
+    createBlockNumObj["value"] = to_string(GetCreateBlockNum());
+    root.append(createBlockNumObj);
+  }
+
+  // Append _this_address
+  {
+    Json::Value thisAddressObj;
+    thisAddressObj["vname"] = "_this_address";
+    thisAddressObj["type"] = "ByStr20";
+    thisAddressObj["value"] = "0x" + m_address.hex();
+    root.append(thisAddressObj);
+  }
+
+  return true;
+}
+
+Json::Value Account::GetInitJson(bool record) {
+  if (m_initValJson.empty()) {
+    Json::Value root;
+    if (!PrepareInitDataJson(GetInitData(), root)) {
+      LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
+      root = Json::arrayValue;
+    } else if (record) {
+      m_initValJson = root;
+    }
+    return root;
+  } else {
+    return m_initValJson;
+  }
+}
 
 void Account::SetInitData(const bytes& initData) { m_initData = initData; }
+
+const bytes Account::GetInitData() const {
+  if (m_initData.empty()) {
+    return ContractStorage::GetContractStorage().GetContractInitData(m_address);
+  } else {
+    return m_initData;
+  }
+}
+
+void Account::CleanInitData() {
+  m_initData.clear();
+  m_initValJson.clear();
+}
 
 vector<h256> Account::GetStorageKeyHashes() const {
   if (HASHMAP_CONTRACT_STATE_DB) {

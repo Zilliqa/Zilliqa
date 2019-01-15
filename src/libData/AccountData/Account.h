@@ -62,6 +62,10 @@ class Account : public SerializableDataBlock {
   // TODO: remove if choose HASHMAP_CONTRACT_STATE_DB finally
   const dev::h256 GetKeyHash(const std::string& key) const;
 
+  bool InitContract();
+
+  bool PrepareInitDataJson(const bytes& initData, Json::Value& root);
+
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
  public:
@@ -81,8 +85,7 @@ class Account : public SerializableDataBlock {
   void InitStorage();
 
   /// Parse the Immutable Data at Constract Initialization Stage
-  bool InitContract(const bytes& data, const Address& addr);
-  bool InitContract(const Address& addr);
+  bool InitContract(const bytes& initData, const Address& addr);
 
   /// Set the block number when this account was created.
   void SetCreateBlockNum(const uint64_t& blockNum);
@@ -133,6 +136,8 @@ class Account : public SerializableDataBlock {
 
   void CleanCodeCache();
 
+  void CleanInitData();
+
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
 
@@ -148,9 +153,9 @@ class Account : public SerializableDataBlock {
 
   std::string GetRawStorage(const dev::h256& k_hash) const;
 
-  Json::Value GetInitJson() const;
+  Json::Value GetInitJson(bool record = true);
 
-  const bytes& GetInitData() const;
+  const bytes GetInitData() const;
 
   void SetInitData(const bytes& initData);
 

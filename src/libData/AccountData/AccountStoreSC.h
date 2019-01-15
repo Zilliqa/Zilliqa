@@ -85,12 +85,12 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                const uint32_t& scilla_version);
 
   // Generate input for interpreter to check the correctness of contract
-  void ExportCreateContractFiles(const Account& contract);
+  void ExportCreateContractFiles(Account& contract);
 
-  void ExportContractFiles(const Account& contract);
-  bool ExportCallContractFiles(const Account& contract,
+  void ExportContractFiles(Account& contract);
+  bool ExportCallContractFiles(Account& contract,
                                const Transaction& transaction);
-  void ExportCallContractFiles(const Account& contract,
+  void ExportCallContractFiles(Account& contract,
                                const Json::Value& contractData);
 
   bool TransferBalanceAtomic(const Address& from, const Address& to,
