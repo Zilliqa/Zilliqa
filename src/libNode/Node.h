@@ -136,6 +136,10 @@ class Node : public Executable, public Broadcastable {
   std::mutex m_mutexTxnPacketBuffer;
   std::vector<bytes> m_txnPacketBuffer;
 
+  // txn proc timeout related
+  std::mutex m_mutexCVTxnProcFinished;
+  std::condition_variable cv_TxnProcFinished;
+
   std::mutex m_mutexMicroBlockConsensusBuffer;
   std::unordered_map<uint32_t, std::vector<std::pair<Peer, bytes>>>
       m_microBlockConsensusBuffer;

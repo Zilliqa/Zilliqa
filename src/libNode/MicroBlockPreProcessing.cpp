@@ -265,7 +265,7 @@ void Node::ProcessTransactionWhenShardLeader() {
 
   bool txnProcTimeout = false;
 
-  auto txnProcTimer = [&txnProcTimeout]() -> void {
+  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
     int timeout_time = std::max(
         0,
         ((int)MICROBLOCK_TIMEOUT -
@@ -274,9 +274,12 @@ void Node::ProcessTransactionWhenShardLeader() {
             2);
     LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
                           << timeout_time << " seconds");
-    this_thread::sleep_for(chrono::seconds(timeout_time));
-    txnProcTimeout = true;
-    AccountStore::GetInstance().NotifyTimeout();
+    unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
+    if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
+        cv_status::timeout) {
+      txnProcTimeout = true;
+      AccountStore::GetInstance().NotifyTimeout();
+    }
   };
 
   DetachedFunction(1, txnProcTimer);
@@ -417,6 +420,8 @@ void Node::ProcessTransactionWhenShardLeader() {
       break;
     }
   }
+
+  cv_TxnProcFinished.notify_all();
   // Put txns in map back into pool
   for (const auto& kv : t_addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
@@ -484,7 +489,7 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
 
   bool txnProcTimeout = false;
 
-  auto txnProcTimer = [&txnProcTimeout]() -> void {
+  auto txnProcTimer = [this, &txnProcTimeout]() -> void {
     int timeout_time = std::max(
         0,
         ((int)MICROBLOCK_TIMEOUT -
@@ -493,9 +498,12 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
             2);
     LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
                           << timeout_time << " seconds");
-    this_thread::sleep_for(chrono::seconds(timeout_time));
-    txnProcTimeout = true;
-    AccountStore::GetInstance().NotifyTimeout();
+    unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
+    if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
+        cv_status::timeout) {
+      txnProcTimeout = true;
+      AccountStore::GetInstance().NotifyTimeout();
+    }
   };
 
   DetachedFunction(1, txnProcTimer);
@@ -622,8 +630,9 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes) {
     }
   }
 
-  // Put remaining txns back in pool
+  cv_TxnProcFinished.notify_all();
 
+  // Put remaining txns back in pool
   for (const auto& kv : t_addrNonceTxnMap) {
     for (const auto& nonceTxn : kv.second) {
       t_createdTxns.insert(nonceTxn.second);
