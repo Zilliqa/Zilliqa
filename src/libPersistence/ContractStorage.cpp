@@ -24,17 +24,8 @@
 using namespace std;
 
 namespace Contract {
-
-Index GetIndex(const dev::h160& address, const string& key,
-               unsigned int counter) {
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
-  sha2.Update(address.asBytes());
-  sha2.Update(DataConversion::StringToCharArray(key));
-  if (counter != 0) {
-    sha2.Update(DataConversion::StringToCharArray(to_string(counter)));
-  }
-  return dev::h256(sha2.Finalize());
-}
+// Code
+// ======================================
 
 bool ContractStorage::PutContractCode(const dev::h160& address,
                                       const bytes& code) {
@@ -52,6 +43,41 @@ const bytes ContractStorage::GetContractCode(const dev::h160& address) {
 
 bool ContractStorage::DeleteContractCode(const dev::h160& address) {
   return m_codeDB.DeleteKey(address.hex()) == 0;
+}
+
+// Init Data
+// =====================================
+
+bool ContractStorage::PutContractInitData(const dev::h160& address,
+                                          const bytes& initData) {
+  return m_initDataDB.Insert(address.hex(), initData) == 0;
+}
+
+bool ContractStorage::PutContractInitDataBatch(
+    const unordered_map<string, string>& batch) {
+  return m_initDataDB.BatchInsert(batch);
+}
+
+const bytes ContractStorage::GetContractInitData(const dev::h160& address) {
+  return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
+}
+
+bool ContractStorage::DeleteContractInitData(const dev::h160& address) {
+  return m_initDataDB.DeleteKey(address.hex()) == 0;
+}
+
+// State
+// ========================================
+
+Index GetIndex(const dev::h160& address, const string& key,
+               unsigned int counter) {
+  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  sha2.Update(address.asBytes());
+  sha2.Update(DataConversion::StringToCharArray(key));
+  if (counter != 0) {
+    sha2.Update(DataConversion::StringToCharArray(to_string(counter)));
+  }
+  return dev::h256(sha2.Finalize());
 }
 
 bool ContractStorage::CheckIndexExists(const Index& index) {

@@ -38,6 +38,7 @@ Index GetIndex(const dev::h160& address, const std::string& key);
 
 class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_codeDB;
+  LevelDB m_initDataDB;
 
   dev::OverlayDB m_stateDB;
 
@@ -56,10 +57,11 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   ContractStorage()
       : m_codeDB("contractCode"),
+        m_initDataDB("contractInitData"),
         m_stateDB("contractState"),
         t_stateIndexDB("tempContractStateIndex"),
         t_stateDataDB("tempContractStateData"),
-        m_stateIndexDB("sontractStateIndex"),
+        m_stateIndexDB("contractStateIndex"),
         m_stateDataDB("contractStateData"){};
 
   ~ContractStorage() = default;
@@ -80,6 +82,7 @@ class ContractStorage : public Singleton<ContractStorage> {
   /// Adds a contract code to persistence
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
+  /// Adds contract codes to persistence in batch
   bool PutContractCodeBatch(
       const std::unordered_map<std::string, std::string>& batch);
 
@@ -88,6 +91,19 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /// Delete the contract code in persistence
   bool DeleteContractCode(const dev::h160& address);
+
+  /// Adds a contract init data to persistence
+  bool PutContractInitData(const dev::h160& address, const bytes& initData);
+
+  /// Adds contract init data to persistence in batch
+  bool PutContractInitDataBatch(
+      const std::unordered_map<std::string, std::string>& batch);
+
+  /// Get the desired init data from persistence
+  const bytes GetContractInitData(const dev::h160& address);
+
+  /// Delete the contract init data in persistence
+  bool DeleteContractInitData(const dev::h160& address);
 
   /// Get the indexes of all the states of an contract account
   std::vector<Index> GetContractStateIndexes(const dev::h160& address);
