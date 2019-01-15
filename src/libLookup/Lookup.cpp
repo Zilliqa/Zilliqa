@@ -2179,11 +2179,20 @@ bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
     return true;
   }
 
+  uint8_t msgType = 0;
   uint32_t portNo = 0;
-
-  if (!Messenger::GetLookupSetLookupOffline(message, offset, portNo)) {
+  PubKey lookuppubkey;
+  if (!Messenger::GetLookupSetLookupOffline(message, offset, msgType, portNo,
+                                            lookuppubkey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupSetLookupOffline failed.");
+    return false;
+  }
+
+  if ((unsigned char)msgType != LookupInstructionType::SETLOOKUPOFFLINE) {
+    LOG_GENERAL(WARNING,
+                "Current message does not belong to this instrunction handler. "
+                "There might be replay attack.");
     return false;
   }
 
@@ -2192,16 +2201,16 @@ bool Lookup::ProcessSetLookupOffline(const bytes& message, unsigned int offset,
 
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
-    auto iter =
-        std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                     [&requestingNode](const std::pair<PubKey, Peer>& node) {
-                       return node.second == requestingNode;
-                     });
+    auto iter = std::find_if(
+        m_lookupNodes.begin(), m_lookupNodes.end(),
+        [&lookuppubkey, &requestingNode](const std::pair<PubKey, Peer>& node) {
+          return (node.first == lookuppubkey && node.second == requestingNode);
+        });
     if (iter != m_lookupNodes.end()) {
       m_lookupNodesOffline.emplace_back(*iter);
       m_lookupNodes.erase(iter);
     } else {
-      LOG_GENERAL(WARNING, "The Peer Info is not in m_lookupNodes");
+      LOG_GENERAL(WARNING, "The Peer Info or pubkey is not in m_lookupNodes");
       return false;
     }
   }
@@ -2219,12 +2228,20 @@ bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
     return true;
   }
 
+  uint8_t msgType = 0;
   uint32_t portNo = 0;
   PubKey lookupPubKey;
-  if (!Messenger::GetLookupSetLookupOnline(message, offset, portNo,
+  if (!Messenger::GetLookupSetLookupOnline(message, offset, msgType, portNo,
                                            lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::GetLookupSetLookupOnline failed.");
+    return false;
+  }
+
+  if ((unsigned char)msgType != LookupInstructionType::SETLOOKUPONLINE) {
+    LOG_GENERAL(WARNING,
+                "Current message does not belong to this instrunction handler. "
+                "There might be replay attack.");
     return false;
   }
 
@@ -2240,11 +2257,11 @@ bool Lookup::ProcessSetLookupOnline(const bytes& message, unsigned int offset,
 
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
-    auto iter =
-        std::find_if(m_lookupNodesOffline.cbegin(), m_lookupNodesOffline.cend(),
-                     [&requestingNode](const std::pair<PubKey, Peer>& node) {
-                       return node.second == requestingNode;
-                     });
+    auto iter = std::find_if(
+        m_lookupNodesOffline.cbegin(), m_lookupNodesOffline.cend(),
+        [&lookupPubKey, &requestingNode](const std::pair<PubKey, Peer>& node) {
+          return (node.first == lookupPubKey && node.second == requestingNode);
+        });
     if (iter != m_lookupNodesOffline.end()) {
       m_lookupNodes.emplace_back(*iter);
       m_lookupNodesOffline.erase(iter);
@@ -2634,7 +2651,8 @@ bytes Lookup::ComposeGetLookupOfflineMessage() {
 
   if (!Messenger::SetLookupSetLookupOffline(
           getLookupOfflineMessage, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost)) {
+          (uint8_t)LookupInstructionType::SETLOOKUPOFFLINE,
+          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupSetLookupOffline failed.");
     return {};
@@ -2658,8 +2676,8 @@ bytes Lookup::ComposeGetLookupOnlineMessage() {
 
   if (!Messenger::SetLookupSetLookupOnline(
           getLookupOnlineMessage, MessageOffset::BODY,
-          m_mediator.m_selfPeer.m_listenPortHost,
-          m_mediator.m_selfKey.second)) {
+          (uint8_t)LookupInstructionType::SETLOOKUPONLINE,
+          m_mediator.m_selfPeer.m_listenPortHost, m_mediator.m_selfKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Messenger::SetLookupSetLookupOnline failed.");
     return {};
@@ -2682,10 +2700,12 @@ bool Lookup::GetMyLookupOffline() {
     std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
     // Remove selfPeerInfo from m_lookupNodes
     auto selfPeer(m_mediator.m_selfPeer);
-    auto iter = std::find_if(m_lookupNodes.begin(), m_lookupNodes.end(),
-                             [&selfPeer](const std::pair<PubKey, Peer>& node) {
-                               return node.second == selfPeer;
-                             });
+    auto selfpubkey(m_mediator.m_selfKey.second);
+    auto iter = std::find_if(
+        m_lookupNodes.begin(), m_lookupNodes.end(),
+        [&selfPeer, &selfpubkey](const std::pair<PubKey, Peer>& node) {
+          return (node.first == selfpubkey && node.second == selfPeer);
+        });
     if (iter != m_lookupNodes.end()) {
       m_lookupNodesOffline.emplace_back(*iter);
       m_lookupNodes.erase(iter);
@@ -2712,11 +2732,12 @@ bool Lookup::GetMyLookupOnline() {
   {
     std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
     auto selfPeer(m_mediator.m_selfPeer);
-    auto iter =
-        std::find_if(m_lookupNodesOffline.begin(), m_lookupNodesOffline.end(),
-                     [&selfPeer](const std::pair<PubKey, Peer>& node) {
-                       return node.second == selfPeer;
-                     });
+    auto selfPubkey(m_mediator.m_selfKey.second);
+    auto iter = std::find_if(
+        m_lookupNodesOffline.begin(), m_lookupNodesOffline.end(),
+        [&selfPeer, &selfPubkey](const std::pair<PubKey, Peer>& node) {
+          return (node.first == selfPubkey && node.second == selfPeer);
+        });
     if (iter != m_lookupNodesOffline.end()) {
       found = true;
       m_lookupNodes.emplace_back(*iter);
@@ -2728,7 +2749,12 @@ bool Lookup::GetMyLookupOnline() {
   }
 
   if (found) {
-    SendMessageToLookupNodesSerial(ComposeGetLookupOnlineMessage());
+    bytes lookupOnlineMsg = ComposeGetLookupOnlineMessage();
+    if (lookupOnlineMsg.size() != 0) {
+      SendMessageToLookupNodesSerial(lookupOnlineMsg);
+    } else {
+      return false;
+    }
   }
   return true;
 }
@@ -2854,7 +2880,12 @@ bool Lookup::GetOfflineLookupNodes() {
   LOG_MARKER();
   // Reset m_lookupNodes/m_lookupNodesOffline
   SetLookupNodes();
-  SendMessageToLookupNodesSerial(ComposeGetOfflineLookupNodes());
+  bytes OfflineLookupNodesMsg = ComposeGetOfflineLookupNodes();
+  if (OfflineLookupNodesMsg.size() != 0) {
+    SendMessageToLookupNodesSerial(OfflineLookupNodesMsg);
+  } else {
+    return false;
+  }
   return true;
 }
 

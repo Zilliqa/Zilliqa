@@ -522,16 +522,21 @@ class Messenger {
                                         PubKey& lookupPubKey,
                                         bytes& accountStoreBytes);
   static bool SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
-                                        const uint32_t listenPort);
+                                        const uint8_t msgType,
+                                        const uint32_t listenPort,
+                                        const PairOfKey& lookupKey);
   static bool GetLookupSetLookupOffline(const bytes& src,
                                         const unsigned int offset,
-                                        uint32_t& listenPort);
+                                        uint8_t& msgType, uint32_t& listenPort,
+                                        PubKey& lookupPubkey);
   static bool SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
+                                       const uint8_t msgType,
                                        const uint32_t listenPort,
-                                       const PubKey& pubKey);
+                                       const PairOfKey& lookupKey);
   static bool GetLookupSetLookupOnline(const bytes& src,
                                        const unsigned int offset,
-                                       uint32_t& listenPort, PubKey& pubKey);
+                                       uint8_t& msgType, uint32_t& listenPort,
+                                       PubKey& pubKey);
   static bool SetLookupGetOfflineLookups(bytes& dst, const unsigned int offset,
                                          const uint32_t listenPort);
   static bool GetLookupGetOfflineLookups(const bytes& src,

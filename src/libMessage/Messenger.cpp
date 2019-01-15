@@ -5337,12 +5337,32 @@ bool Messenger::GetLookupSetStateFromSeed(const bytes& src,
 }
 
 bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
-                                          const uint32_t listenPort) {
+                                          const uint8_t msgType,
+                                          const uint32_t listenPort,
+                                          const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetLookupOffline result;
 
-  result.set_listenport(listenPort);
+  result.mutable_data()->set_msgtype(msgType);
+  result.mutable_data()->set_listenport(listenPort);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign set lookup offline message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "LookupSetLookupOffline.Data initialization failed.");
+    return false;
+  }
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOffline initialization failed.");
@@ -5354,7 +5374,9 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetLookupSetLookupOffline(const bytes& src,
                                           const unsigned int offset,
-                                          uint32_t& listenPort) {
+                                          uint8_t& msgType,
+                                          uint32_t& listenPort,
+                                          PubKey& lookupPubkey) {
   LOG_MARKER();
 
   LookupSetLookupOffline result;
@@ -5366,20 +5388,51 @@ bool Messenger::GetLookupSetLookupOffline(const bytes& src,
     return false;
   }
 
-  listenPort = result.listenport();
+  listenPort = result.data().listenport();
+  msgType = result.data().msgtype();
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  ProtobufByteArrayToSerializable(result.pubkey(), lookupPubkey);
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, lookupPubkey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetLookupOffline.");
+    return false;
+  }
 
   return true;
 }
 
 bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
+                                         const uint8_t msgType,
                                          const uint32_t listenPort,
-                                         const PubKey& pubKey) {
+                                         const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetLookupOnline result;
 
-  result.set_listenport(listenPort);
-  SerializableToProtobufByteArray(pubKey, *result.mutable_pubkey());
+  result.mutable_data()->set_msgtype(msgType);
+  result.mutable_data()->set_listenport(listenPort);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
+
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(WARNING, "Failed to sign set lookup online message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING, "LookupSetLookupOnline.Data initialization failed.");
+    return false;
+  }
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "LookupSetLookupOnline initialization failed.");
@@ -5391,7 +5444,8 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
 
 bool Messenger::GetLookupSetLookupOnline(const bytes& src,
                                          const unsigned int offset,
-                                         uint32_t& listenPort, PubKey& pubKey) {
+                                         uint8_t& msgType, uint32_t& listenPort,
+                                         PubKey& pubKey) {
   LOG_MARKER();
 
   LookupSetLookupOnline result;
@@ -5403,10 +5457,21 @@ bool Messenger::GetLookupSetLookupOnline(const bytes& src,
     return false;
   }
 
-  listenPort = result.listenport();
+  msgType = result.data().msgtype();
+  listenPort = result.data().listenport();
+
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
   ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
 
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
+    LOG_GENERAL(WARNING, "Invalid signature in GetLookupSetLookupOnline.");
+    return false;
+  }
   return true;
 }
 
