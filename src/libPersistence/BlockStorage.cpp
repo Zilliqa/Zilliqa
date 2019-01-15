@@ -213,7 +213,7 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
   block = DSBlockSharedPtr(
       new DSBlock(bytes(blockString.begin(), blockString.end()), 0));
 
@@ -229,7 +229,7 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
   block = VCBlockSharedPtr(
       new VCBlock(bytes(blockString.begin(), blockString.end()), 0));
 
@@ -257,7 +257,7 @@ bool BlockStorage::GetFallbackBlock(
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
 
   fallbackblockwsharding =
       FallbackBlockSharedPtr(new FallbackBlockWShardingStructure(
@@ -275,7 +275,7 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   }
 
   // LOG_GENERAL(INFO, blockString);
-  LOG_GENERAL(INFO, blockString.length());
+  // LOG_GENERAL(INFO, blockString.length());
   BlockLink blnk;
   if (!Messenger::GetBlockLink(bytes(blockString.begin(), blockString.end()), 0,
                                blnk)) {
