@@ -392,6 +392,22 @@ bool Lookup::IsLookupNode(const Peer& peerInfo) const {
                       }) != lookups.end();
 }
 
+uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
+  // try resolving ip from hostname
+  string url = peer.GetHostname();
+  auto resolved_ip = peer.GetIpAddress();  // existing one
+  if (!url.empty()) {
+    boost::multiprecision::uint128_t tmpIp;
+    if (IPConverter::ResolveDNS(url, peer.GetListenPortHost(), tmpIp)) {
+      resolved_ip = tmpIp;  // resolved one
+    } else {
+      LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+    }
+  }
+
+  return resolved_ip;
+}
+
 void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   LOG_MARKER();
 
@@ -405,24 +421,16 @@ void Lookup::SendMessageToLookupNodes(const bytes& message) const {
   {
     lock_guard<mutex> lock(m_mutexLookupNodes);
     for (const auto& node : m_lookupNodes) {
-      // try resolving ip from hostname
-      string url = node.second.GetHostname();
-      auto resolved_ip = node.second.GetIpAddress();  // existing one
-      if (!url.empty()) {
-        boost::multiprecision::uint128_t tmpIp;
-        if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                    tmpIp)) {
-          resolved_ip = tmpIp;  // resolved one
-        } else {
-          LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-        }
-      }
+      auto resolved_ip = TryGettingResolvedIP(node.second);
+
       Blacklist::GetInstance().Exclude(
-          resolved_ip);  // exclude this lookup ip from blacklisting
+          resolved_ip);  // exclude this lookup ip from blacklistin
+
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
-                                              << ":" << tmp.m_listenPortHost);
+                                              << ":"
+                                              << tmp.GetListenPortHost());
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -448,25 +456,16 @@ void Lookup::SendMessageToLookupNodesSerial(const bytes& message) const {
         continue;
       }
 
-      // try resolving ip from hostname
-      string url = node.second.GetHostname();
-      auto resolved_ip = node.second.GetIpAddress();  // existing one
-      if (!url.empty()) {
-        boost::multiprecision::uint128_t tmpIp;
-        if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                    tmpIp)) {
-          resolved_ip = tmpIp;  // resolved one
-        } else {
-          LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-        }
-      }
+      auto resolved_ip = TryGettingResolvedIP(node.second);
 
       Blacklist::GetInstance().Exclude(
           resolved_ip);  // exclude this lookup ip from blacklisting
+
       Peer tmp(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to lookup node " << tmp.GetPrintableIPAddress()
-                                              << ":" << tmp.m_listenPortHost);
+                                              << ":"
+                                              << tmp.GetListenPortHost());
 
       allLookupNodes.emplace_back(tmp);
     }
@@ -499,18 +498,7 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
 
   int index = rand() % tmp.size();
 
-  // try resolving ip from hostname
-  string url = tmp[index].second.GetHostname();
-  auto resolved_ip = tmp[index].second.GetIpAddress();  // existing one
-  if (!url.empty()) {
-    boost::multiprecision::uint128_t tmpIp;
-    if (IPConverter::ResolveDNS(url, tmp[index].second.GetListenPortHost(),
-                                tmpIp)) {
-      resolved_ip = tmpIp;  // resolved one
-    } else {
-      LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-    }
-  }
+  auto resolved_ip = TryGettingResolvedIP(tmp[index].second);
 
   Blacklist::GetInstance().Exclude(
       resolved_ip);  // exclude this lookup ip from blacklisting
@@ -527,25 +515,15 @@ void Lookup::SendMessageToSeedNodes(const bytes& message) const {
     lock_guard<mutex> g(m_mutexSeedNodes);
 
     for (const auto& node : m_seedNodes) {
-      // try resolving ip from hostname
-      string url = node.second.GetHostname();
-      auto resolved_ip = node.second.GetIpAddress();  // existing one
-      if (!url.empty()) {
-        boost::multiprecision::uint128_t tmpIp;
-        if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
-                                    tmpIp)) {
-          resolved_ip = tmpIp;  // resolved one
-        } else {
-          LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-        }
-      }
+      auto resolved_ip = TryGettingResolvedIP(node.second);
 
       Blacklist::GetInstance().Exclude(
           resolved_ip);  // exclude this lookup ip from blacklisting
       Peer tmpPeer(resolved_ip, node.second.GetListenPortHost());
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
                 "Sending msg to seed node " << tmpPeer.GetPrintableIPAddress()
-                                            << ":" << tmpPeer.m_listenPortHost);
+                                            << ":"
+                                            << tmpPeer.GetListenPortHost());
       seedNodePeer.emplace_back(tmpPeer);
     }
   }
@@ -945,21 +923,11 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
   }
 
   int index = rand() % m_seedNodes.size();
-
-  string url = m_seedNodes[index].second.GetHostname();
-  auto resolved_ip = m_seedNodes[index].second.GetIpAddress();  // existing one
-  if (!url.empty()) {
-    boost::multiprecision::uint128_t tmpIp;
-    if (IPConverter::ResolveDNS(
-            url, m_seedNodes[index].second.GetListenPortHost(), tmpIp)) {
-      resolved_ip = tmpIp;  // resolved one
-    } else {
-      LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
-    }
-  }
+  auto resolved_ip = TryGettingResolvedIP(m_seedNodes[index].second);
 
   Blacklist::GetInstance().Exclude(
       resolved_ip);  // exclude this lookup ip from blacklisting
+
   Peer tmpPeer(resolved_ip, m_seedNodes[index].second.GetListenPortHost());
   P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }

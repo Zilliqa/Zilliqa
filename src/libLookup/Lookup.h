@@ -166,6 +166,9 @@ class Lookup : public Executable, public Broadcastable {
                     uint32_t numShards);
   bool GenTxnToSend(size_t num_txn, std::vector<Transaction>& txn);
 
+  // Try resolving ip from the given peer's DNS
+  boost::multiprecision::uint128_t TryGettingResolvedIP(const Peer& peer) const;
+
   // Calls P2PComm::SendBroadcastMessage to Lookup Nodes
   void SendMessageToLookupNodes(const bytes& message) const;
 
