@@ -26,10 +26,7 @@
 #include <tuple>
 #include "common/BaseType.h"
 #include "libCrypto/Schnorr.h"
-#include "libData/BlockData/BlockHeader/DSBlockHeader.h"
-#include "libData/BlockData/BlockHeader/MicroBlockHeader.h"
-#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
-#include "libMessage/Messenger.h"
+#include "libData/BlockData/Block.h"
 #include "libNetwork/Peer.h"
 
 static std::mt19937 rng;
@@ -66,8 +63,7 @@ CoSignatures GenerateRandomCoSignatures();
 Signature GetSignature(const bytes&, const PrivKey&, const PubKey&);
 Signature GenerateRandomSignature();
 
-using DS_Comitte_t = DequeOfNode;
-DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
+DequeOfNode GenerateRandomDSCommittee(uint32_t);
 
 Shard GenerateRandomShard(size_t);
 DequeOfShard GenerateDequeueOfShard(size_t);

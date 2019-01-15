@@ -29,6 +29,13 @@
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 
+namespace ZilliqaMessage {
+class ByteArray;
+}
+
+void ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
+                                     Serializable& serializable);
+
 class Messenger {
  public:
   template <class K, class V>
@@ -662,10 +669,15 @@ class Messenger {
       return false;
     }
 
-    if (commNodes[leaderId].second.GetIpAddress() != from.GetIpAddress()) {
-      LOG_GENERAL(WARNING, "The sender ip address "
-                               << from << " not match with my leader address "
-                               << commNodes[leaderId].second);
+    if (commNodes.end() ==
+        std::find_if(commNodes.begin(), commNodes.end(),
+                     [from](const PairOfNode& pairOfNode) {
+                       return from.GetIpAddress() ==
+                              pairOfNode.second.GetIpAddress();
+                     })) {
+      LOG_GENERAL(WARNING, "The sender address "
+                               << from
+                               << " is not in my committee member list");
       return false;
     }
 
@@ -698,10 +710,28 @@ class Messenger {
       return false;
     }
 
-    if (commNodes[backupId].second.GetIpAddress() != from.GetIpAddress()) {
-      LOG_GENERAL(WARNING, "The sender ip address "
-                               << from << " not match with my backup address "
-                               << commNodes[backupId].second);
+    if (commNodes.end() ==
+        std::find_if(commNodes.begin(), commNodes.end(),
+                     [from](const PairOfNode& pairOfNode) {
+                       return from.GetIpAddress() ==
+                              pairOfNode.second.GetIpAddress();
+                     })) {
+      LOG_GENERAL(WARNING, "The sender address "
+                               << from
+                               << " is not in my committee member list");
+      return false;
+    }
+
+    bytes tmp(consensus_message.consensusinfo().ByteSize());
+    consensus_message.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
+
+    Signature signature;
+
+    ProtobufByteArrayToSerializable(consensus_message.signature(), signature);
+
+    if (!Schnorr::GetInstance().Verify(tmp, signature,
+                                       commNodes[backupId].first)) {
+      LOG_GENERAL(WARNING, "Invalid signature in ConsensusConsensusFailure.");
       return false;
     }
 
