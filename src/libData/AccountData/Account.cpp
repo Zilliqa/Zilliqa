@@ -466,7 +466,15 @@ void Account::SetCode(const bytes& code) {
   InitStorage();
 }
 
-const bytes& Account::GetCode() const { return m_codeCache; }
+const bytes Account::GetCode() const {
+  if (m_codeCache.empty()) {
+    return ContractStorage::GetContractStorage().GetContractCode(m_address);
+  } else {
+    return m_codeCache;
+  }
+}
+
+void Account::CleanCodeCache() { m_codeCache.clear(); }
 
 const dev::h256& Account::GetCodeHash() const { return m_codeHash; }
 

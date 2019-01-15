@@ -129,7 +129,9 @@ class Account : public SerializableDataBlock {
   /// Set the code
   void SetCode(const bytes& code);
 
-  const bytes& GetCode() const;
+  const bytes GetCode() const;
+
+  void CleanCodeCache();
 
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;

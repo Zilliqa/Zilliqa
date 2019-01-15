@@ -214,6 +214,10 @@ bool AccountStore::MoveUpdatesToDisk() {
     }
   }
 
+  for (auto i : *m_addressToAccount) {
+    i.second.CleanCodeCache();
+  }
+
   try {
     m_state.db()->commit();
     m_prevRoot = m_state.root();
