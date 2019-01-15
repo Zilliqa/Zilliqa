@@ -70,14 +70,14 @@ void setup() {
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testCrowdfunding) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
   PairOfKey owner(priv1, {priv1}), donor1(priv2, {priv2}),
       donor2(priv3, {priv3});
   Address ownerAddr, donor1Addr, donor2Addr, contrAddr;
   uint64_t nonce = 0;
 
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
   setup();
 
   if (SCILLA_ROOT.empty()) {
@@ -291,13 +291,13 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 }
 
 BOOST_AUTO_TEST_CASE(testPingPong) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
   PairOfKey owner(priv1, {priv1}), ping(priv2, {priv2}), pong(priv3, {priv3});
   Address ownerAddr, pingAddr, pongAddr;
   uint64_t nonce = 0;
 
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
   setup();
 
   if (SCILLA_ROOT.empty()) {
@@ -445,6 +445,9 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 }
 
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
   PairOfKey ownerKeyPair(priv1, {priv1});
   Address ownerAddr = Account::GetAddressFromPublicKey(ownerKeyPair.second);
   const uint128_t bal{std::numeric_limits<uint128_t>::max()};
@@ -455,10 +458,6 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
   ofstream report;
   report.open("perf_report.csv");
   report << "deployment_microsec,deployment_gas,invoke_microsec,invoke_gas\n";
-
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
 
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
@@ -575,14 +574,13 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 }
 
 BOOST_AUTO_TEST_CASE(testFungibleToken) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
   // 1. Bootstrap our test case.
   PairOfKey owner(priv1, {priv1});
   Address ownerAddr, contrAddr;
   uint64_t nonce = 0;
-
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
 
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
@@ -714,6 +712,9 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 }
 
 BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
   // 1. Bootstrap test case
   const unsigned int numOperators = 5;
   const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
@@ -740,10 +741,6 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       sender = oprtr;
     }
   }
-
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
 
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
@@ -932,6 +929,9 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 }
 
 BOOST_AUTO_TEST_CASE(testDEX) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
   // 1. Bootstrap test case
   const unsigned int numHodlers[] = {100000, 200000, 300000, 400000, 500000};
   const unsigned int numOrders = 1000;
@@ -947,10 +947,6 @@ BOOST_AUTO_TEST_CASE(testDEX) {
   uint64_t ownerToken1Nonce = 0;
   uint64_t ownerToken2Nonce = 0;
   uint64_t ownerDexNonce = 0;
-
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
 
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(WARNING, "SCILLA_ROOT not set to run Test_Contract");
