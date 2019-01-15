@@ -125,6 +125,8 @@ extern const bool ENABLE_DO_REJOIN;
 extern const bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
+extern const unsigned int MAX_RETRIEVABLE_DSBLOCKS;
+extern const unsigned int MAX_RETRIEVABLE_TXBLOCKS;
 
 // Version constants
 extern const unsigned int MSG_VERSION;

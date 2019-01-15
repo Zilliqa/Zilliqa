@@ -960,6 +960,14 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
     highBlockNum = curBlockNum;
   }
 
+  // Put a limit on how many DS blocks the seed can provide thru this message.
+  // Otherwise, the response message can grow very large.
+  // Ideally, nodes can still join up with just the blocks for the last epoch or
+  // so.
+  if ((lowBlockNum + MAX_RETRIEVABLE_DSBLOCKS) < highBlockNum) {
+    lowBlockNum = highBlockNum - MAX_RETRIEVABLE_DSBLOCKS;
+  }
+
   uint64_t blockNum;
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
@@ -1083,6 +1091,14 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
     LOG_GENERAL(WARNING,
                 "Blockchain is still bootstraping, no tx blocks available.");
     return;
+  }
+
+  // Put a limit on how many Tx blocks the seed can provide thru this message.
+  // Otherwise, the response message can grow very large.
+  // Ideally, nodes can still join up with just the blocks for the last epoch or
+  // so.
+  if ((lowBlockNum + MAX_RETRIEVABLE_TXBLOCKS) < highBlockNum) {
+    lowBlockNum = highBlockNum - MAX_RETRIEVABLE_TXBLOCKS;
   }
 
   uint64_t blockNum;

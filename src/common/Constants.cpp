@@ -67,6 +67,10 @@ const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
+const unsigned int MAX_RETRIEVABLE_DSBLOCKS{
+    ReadConstantNumeric("MAX_RETRIEVABLE_DSBLOCKS")};
+const unsigned int MAX_RETRIEVABLE_TXBLOCKS{
+    ReadConstantNumeric("MAX_RETRIEVABLE_TXBLOCKS")};
 
 // Version constants
 const unsigned int MSG_VERSION{
