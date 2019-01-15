@@ -1040,14 +1040,17 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
                               uint64_t& highBlockNum) {
   lock_guard<mutex> g(m_mediator.m_node->m_mutexFinalBlock);
 
-  if (lowBlockNum == 1) {
+  if (lowBlockNum == 0) {
+    // give all the blocks till now in blockchain
+    lowBlockNum = 1;
+
+  } else if (lowBlockNum <= m_mediator.m_dsBlockChain.GetLastBlock()
+                                .GetHeader()
+                                .GetEpochNum()) {
     // To get block num from dsblockchain instead of txblock chain as node
     // recover from the last ds epoch
     lowBlockNum =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum();
-  } else if (lowBlockNum == 0) {
-    // give all the blocks till now in blockchain
-    lowBlockNum = 1;
   }
 
   if (highBlockNum == 0) {
