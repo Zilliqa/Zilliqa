@@ -427,7 +427,10 @@ class DirectoryService : public Executable, public Broadcastable {
   bytes ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(bytes& vcblock_message);
 
-  void CleanFinalblockConsensusBuffer();
+  void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
+                                      const bytes& message, unsigned int offset,
+                                      const Peer& peer);
+  void CleanFinalBlockConsensusBuffer();
 
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);

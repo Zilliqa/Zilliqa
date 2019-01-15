@@ -66,7 +66,7 @@ CoSignatures GenerateRandomCoSignatures();
 Signature GetSignature(const bytes&, const PrivKey&, const PubKey&);
 Signature GenerateRandomSignature();
 
-using DS_Comitte_t = std::deque<std::pair<PubKey, Peer>>;
+using DS_Comitte_t = DequeOfNode;
 DS_Comitte_t GenerateRandomDSCommittee(uint32_t);
 
 Shard GenerateRandomShard(size_t);

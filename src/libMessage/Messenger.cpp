@@ -3214,7 +3214,7 @@ bool Messenger::SetDiagnosticData(bytes& dst, const unsigned int offset,
                                   const uint32_t& shardingStructureVersion,
                                   const DequeOfShard& shards,
                                   const uint32_t& dsCommitteeVersion,
-                                  const DequeOfDSNode& dsCommittee) {
+                                  const DequeOfNode& dsCommittee) {
   ProtoDiagnosticData result;
 
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
@@ -3234,7 +3234,7 @@ bool Messenger::GetDiagnosticData(const bytes& src, const unsigned int offset,
                                   uint32_t& shardingStructureVersion,
                                   DequeOfShard& shards,
                                   uint32_t& dsCommitteeVersion,
-                                  DequeOfDSNode& dsCommittee) {
+                                  DequeOfNode& dsCommittee) {
   ProtoDiagnosticData result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);

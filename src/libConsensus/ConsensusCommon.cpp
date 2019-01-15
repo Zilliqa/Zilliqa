@@ -199,35 +199,41 @@ ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
 
 bool ConsensusCommon::GetConsensusID(const bytes& message,
                                      const unsigned int offset,
+                                     const Peer& from,
                                      uint32_t& consensusID) const {
   if (message.size() > offset) {
     switch (message.at(offset)) {
       case ConsensusMessageType::ANNOUNCE:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusAnnouncement>(
-            message, offset + 1, consensusID);
+        return Messenger::GetLeaderConsensusID<
+            ZilliqaMessage::ConsensusAnnouncement>(
+            message, offset + 1, m_committee, from, consensusID);
       case ConsensusMessageType::CONSENSUSFAILURE:
-        return true;
+        return Messenger::GetLeaderConsensusID<
+            ZilliqaMessage::ConsensusConsensusFailure>(
+            message, offset + 1, m_committee, from, consensusID);
       case ConsensusMessageType::COMMIT:
       case ConsensusMessageType::FINALCOMMIT:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusCommit>(
-            message, offset + 1, consensusID);
+        return Messenger::GetBackupConsensusID<ZilliqaMessage::ConsensusCommit>(
+            message, offset + 1, m_committee, from, consensusID);
       case ConsensusMessageType::COMMITFAILURE:
-        return Messenger::GetConsensusID<
-            ZilliqaMessage::ConsensusCommitFailure>(message, offset + 1,
-                                                    consensusID);
+        return Messenger::GetBackupConsensusID<
+            ZilliqaMessage::ConsensusCommitFailure>(
+            message, offset + 1, m_committee, from, consensusID);
       case ConsensusMessageType::CHALLENGE:
       case ConsensusMessageType::FINALCHALLENGE:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusChallenge>(
-            message, offset + 1, consensusID);
+        return Messenger::GetLeaderConsensusID<
+            ZilliqaMessage::ConsensusChallenge>(message, offset + 1,
+                                                m_committee, from, consensusID);
       case ConsensusMessageType::RESPONSE:
       case ConsensusMessageType::FINALRESPONSE:
-        return Messenger::GetConsensusID<ZilliqaMessage::ConsensusResponse>(
-            message, offset + 1, consensusID);
+        return Messenger::GetBackupConsensusID<
+            ZilliqaMessage::ConsensusResponse>(message, offset + 1, m_committee,
+                                               from, consensusID);
       case ConsensusMessageType::COLLECTIVESIG:
       case ConsensusMessageType::FINALCOLLECTIVESIG:
-        return Messenger::GetConsensusID<
-            ZilliqaMessage::ConsensusCollectiveSig>(message, offset + 1,
-                                                    consensusID);
+        return Messenger::GetLeaderConsensusID<
+            ZilliqaMessage::ConsensusCollectiveSig>(
+            message, offset + 1, m_committee, from, consensusID);
       default:
         LOG_GENERAL(WARNING, "Unknown consensus message received");
         break;

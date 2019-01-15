@@ -41,7 +41,7 @@ typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
 
 struct DiagnosticData {
   DequeOfShard shards;
-  DequeOfDSNode dsCommittee;
+  DequeOfNode dsCommittee;
 };
 
 /// Manages persistent storage of DS and Tx blocks.
@@ -203,13 +203,12 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetMetadata(MetaType type, bytes& data);
 
   /// Save DS committee
-  bool PutDSCommittee(const std::shared_ptr<DequeOfDSNode>& dsCommittee,
+  bool PutDSCommittee(const std::shared_ptr<DequeOfNode>& dsCommittee,
                       const uint16_t& consensusLeaderID);
 
   /// Retrieve DS committee
-  bool GetDSCommittee(
-      std::shared_ptr<std::deque<std::pair<PubKey, Peer>>>& dsCommittee,
-      uint16_t& consensusLeaderID);
+  bool GetDSCommittee(std::shared_ptr<DequeOfNode>& dsCommittee,
+                      uint16_t& consensusLeaderID);
 
   /// Save shard structure
   bool PutShardStructure(const DequeOfShard& shards, const uint32_t myshardId);
@@ -225,11 +224,11 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Save data for diagnostic / monitoring purposes
   bool PutDiagnosticData(const uint64_t& dsBlockNum, const DequeOfShard& shards,
-                         const DequeOfDSNode& dsCommittee);
+                         const DequeOfNode& dsCommittee);
 
   /// Retrieve diagnostic data for specific block number
   bool GetDiagnosticData(const uint64_t& dsBlockNum, DequeOfShard& shards,
-                         DequeOfDSNode& dsCommittee);
+                         DequeOfNode& dsCommittee);
 
   /// Retrieve diagnostic data
   void GetDiagnosticData(std::map<uint64_t, DiagnosticData>& diagnosticDataMap);

@@ -468,7 +468,7 @@ bool DirectoryService::CleanVariables() {
     m_missingMicroBlocks.clear();
     m_totalTxnFees = 0;
   }
-  CleanFinalblockConsensusBuffer();
+  CleanFinalBlockConsensusBuffer();
 
   m_finalBlock.reset();
   m_sharingAssignment.clear();
@@ -544,7 +544,7 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   m_mode = BACKUP_DS;
-  DequeOfDSNode dsComm;
+  DequeOfNode dsComm;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     LOG_GENERAL(INFO,
@@ -624,7 +624,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
   m_mediator.m_consensusID = 0;
   m_mediator.m_node->SetConsensusLeaderID(0);
 
-  CleanFinalblockConsensusBuffer();
+  CleanFinalBlockConsensusBuffer();
 
   m_mediator.m_node->CleanCreatedTransaction();
 

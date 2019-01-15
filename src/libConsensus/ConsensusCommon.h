@@ -27,6 +27,7 @@
 
 #include "libCrypto/MultiSig.h"
 #include "libNetwork/PeerStore.h"
+#include "libNetwork/ShardStruct.h"
 #include "libUtils/TimeLockedFunction.h"
 
 /// Implements base functionality shared between all consensus committee members
@@ -118,7 +119,7 @@ class ConsensusCommon {
   PrivKey m_myPrivKey;
 
   /// List of <public keys, peers> for the committee.
-  std::deque<std::pair<PubKey, Peer>> m_committee;
+  DequeOfNode m_committee;
 
   /// The payload segment to be co-signed by the committee.
   bytes m_messageToCosign;
@@ -156,8 +157,7 @@ class ConsensusCommon {
   /// Constructor.
   ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
                   const bytes& block_hash, uint16_t my_id,
-                  const PrivKey& privkey,
-                  const std::deque<std::pair<PubKey, Peer>>& committee,
+                  const PrivKey& privkey, const DequeOfNode& committee,
                   unsigned char class_byte, unsigned char ins_byte);
 
   /// Destructor.
@@ -207,7 +207,7 @@ class ConsensusCommon {
 
   /// Returns the consensus ID indicated in the message
   bool GetConsensusID(const bytes& message, const unsigned int offset,
-                      uint32_t& consensusID) const;
+                      const Peer& from, uint32_t& consensusID) const;
 
   /// Returns the consensus error code
   ConsensusErrorCode GetConsensusErrorCode() const;

@@ -48,7 +48,7 @@ class Messenger {
   // Primitives
   // ============================================================================
 
-  static bool GetDSCommitteeHash(const DequeOfDSNode& dsCommittee,
+  static bool GetDSCommitteeHash(const DequeOfNode& dsCommittee,
                                  CommitteeHash& dst);
   static bool GetShardHash(const Shard& shard, CommitteeHash& dst);
 
@@ -200,12 +200,12 @@ class Messenger {
                                 const uint32_t& shardingStructureVersion,
                                 const DequeOfShard& shards,
                                 const uint32_t& dsCommitteeVersion,
-                                const DequeOfDSNode& dsCommittee);
+                                const DequeOfNode& dsCommittee);
   static bool GetDiagnosticData(const bytes& src, const unsigned int offset,
                                 uint32_t& shardingStructureVersion,
                                 DequeOfShard& shards,
                                 uint32_t& dsCommitteeVersion,
-                                DequeOfDSNode& dsCommittee);
+                                DequeOfNode& dsCommittee);
 
   // ============================================================================
   // Peer Manager messages
@@ -424,14 +424,16 @@ class Messenger {
   static bool GetLookupGetDSInfoFromSeed(const bytes& src,
                                          const unsigned int offset,
                                          uint32_t& listenPort, bool& initialDS);
-  static bool SetLookupSetDSInfoFromSeed(
-      bytes& dst, const unsigned int offset, const PairOfKey& senderKey,
-      const uint32_t& dsCommitteeVersion,
-      const std::deque<std::pair<PubKey, Peer>>& dsNodes, const bool initialDS);
-  static bool GetLookupSetDSInfoFromSeed(
-      const bytes& src, const unsigned int offset, PubKey& senderPubKey,
-      uint32_t& dsCommitteeVersion,
-      std::deque<std::pair<PubKey, Peer>>& dsNodes, bool& initialDS);
+  static bool SetLookupSetDSInfoFromSeed(bytes& dst, const unsigned int offset,
+                                         const PairOfKey& senderKey,
+                                         const uint32_t& dsCommitteeVersion,
+                                         const DequeOfNode& dsNodes,
+                                         const bool initialDS);
+  static bool GetLookupSetDSInfoFromSeed(const bytes& src,
+                                         const unsigned int offset,
+                                         PubKey& senderPubKey,
+                                         uint32_t& dsCommitteeVersion,
+                                         DequeOfNode& dsNodes, bool& initialDS);
   static bool SetLookupGetDSBlockFromSeed(bytes& dst, const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
@@ -637,8 +639,9 @@ class Messenger {
   // ============================================================================
 
   template <class T>
-  static bool GetConsensusID(const bytes& src, const unsigned int offset,
-                             uint32_t& consensusID) {
+  static bool GetLeaderConsensusID(const bytes& src, const unsigned int offset,
+                                   const DequeOfNode& commNodes,
+                                   const Peer& from, uint32_t& consensusID) {
     LOG_MARKER();
 
     T consensus_message;
@@ -647,6 +650,58 @@ class Messenger {
 
     if (!consensus_message.IsInitialized()) {
       LOG_GENERAL(WARNING, "Consensus message initialization failed.");
+      return false;
+    }
+
+    const auto leaderId = consensus_message.consensusinfo().leaderid();
+    if (leaderId >= commNodes.size()) {
+      LOG_GENERAL(WARNING, "The leader id "
+                               << leaderId
+                               << " is out of my committee member size "
+                               << commNodes.size());
+      return false;
+    }
+
+    if (commNodes[leaderId].second.GetIpAddress() != from.GetIpAddress()) {
+      LOG_GENERAL(WARNING, "The sender ip address "
+                               << from << " not match with my leader address "
+                               << commNodes[leaderId].second);
+      return false;
+    }
+
+    consensusID = consensus_message.consensusinfo().consensusid();
+
+    return true;
+  }
+
+  template <class T>
+  static bool GetBackupConsensusID(const bytes& src, const unsigned int offset,
+                                   const DequeOfNode& commNodes,
+                                   const Peer& from, uint32_t& consensusID) {
+    LOG_MARKER();
+
+    T consensus_message;
+
+    consensus_message.ParseFromArray(src.data() + offset, src.size() - offset);
+
+    if (!consensus_message.IsInitialized()) {
+      LOG_GENERAL(WARNING, "Consensus message initialization failed.");
+      return false;
+    }
+
+    const auto backupId = consensus_message.consensusinfo().backupid();
+    if (backupId >= commNodes.size()) {
+      LOG_GENERAL(WARNING, "The backup id "
+                               << backupId
+                               << " is out of my committee member size "
+                               << commNodes.size());
+      return false;
+    }
+
+    if (commNodes[backupId].second.GetIpAddress() != from.GetIpAddress()) {
+      LOG_GENERAL(WARNING, "The sender ip address "
+                               << from << " not match with my backup address "
+                               << commNodes[backupId].second);
       return false;
     }
 
@@ -660,11 +715,13 @@ class Messenger {
       const uint64_t blockNumber, const bytes& blockHash,
       const uint16_t backupID, const CommitPoint& commitPoint,
       const CommitPointHash& commitPointHash, const PairOfKey& backupKey);
-  static bool GetConsensusCommit(
-      const bytes& src, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      CommitPoint& commitPoint, CommitPointHash& commitPointHash,
-      const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+  static bool GetConsensusCommit(const bytes& src, const unsigned int offset,
+                                 const uint32_t consensusID,
+                                 const uint64_t blockNumber,
+                                 const bytes& blockHash, uint16_t& backupID,
+                                 CommitPoint& commitPoint,
+                                 CommitPointHash& commitPointHash,
+                                 const DequeOfNode& committeeKeys);
 
   static bool SetConsensusChallenge(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
@@ -683,11 +740,12 @@ class Messenger {
       const uint64_t blockNumber, const uint16_t subsetID,
       const bytes& blockHash, const uint16_t backupID, const Response& response,
       const PairOfKey& backupKey);
-  static bool GetConsensusResponse(
-      const bytes& src, const unsigned int offset, const uint32_t consensusID,
-      const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      uint16_t& subsetID, Response& response,
-      const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+  static bool GetConsensusResponse(const bytes& src, const unsigned int offset,
+                                   const uint32_t consensusID,
+                                   const uint64_t blockNumber,
+                                   const bytes& blockHash, uint16_t& backupID,
+                                   uint16_t& subsetID, Response& response,
+                                   const DequeOfNode& committeeKeys);
 
   static bool SetConsensusCollectiveSig(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,
@@ -710,8 +768,7 @@ class Messenger {
   static bool GetConsensusCommitFailure(
       const bytes& src, const unsigned int offset, const uint32_t consensusID,
       const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-      bytes& errorMsg,
-      const std::deque<std::pair<PubKey, Peer>>& committeeKeys);
+      bytes& errorMsg, const DequeOfNode& committeeKeys);
 
   static bool SetConsensusConsensusFailure(
       bytes& dst, const unsigned int offset, const uint32_t consensusID,

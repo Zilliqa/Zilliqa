@@ -221,7 +221,7 @@ class Node : public Executable, public Broadcastable {
                        const Peer& from);
   bool ProcessSubmitTransaction(const bytes& message, unsigned int offset,
                                 const Peer& from);
-  bool ProcessMicroblockConsensus(const bytes& message, unsigned int offset,
+  bool ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                                   const Peer& from);
   bool ProcessMicroblockConsensusCore(const bytes& message, unsigned int offset,
                                       const Peer& from);
@@ -364,7 +364,7 @@ class Node : public Executable, public Broadcastable {
   // bool m_allMicroBlocksRecvd = true;
 
   std::mutex m_mutexShardMember;
-  std::shared_ptr<std::deque<std::pair<PubKey, Peer>>> m_myShardMembers;
+  std::shared_ptr<DequeOfNode> m_myShardMembers;
 
   std::shared_ptr<MicroBlock> m_microblock;
 
@@ -456,18 +456,21 @@ class Node : public Executable, public Broadcastable {
   /// Add new block into tx blockchain
   void AddBlock(const TxBlock& block);
 
-  void UpdateDSCommiteeComposition(std::deque<std::pair<PubKey, Peer>>& dsComm,
-                                   const DSBlock& dsblock);
+  void UpdateDSCommiteeComposition(DequeOfNode& dsComm, const DSBlock& dsblock);
 
-  void UpdateDSCommitteeAfterFallback(
-      const uint32_t& shard_id, const PubKey& leaderPubKey,
-      const Peer& leaderNetworkInfo,
-      std::deque<std::pair<PubKey, Peer>>& dsComm, const DequeOfShard& shards);
+  void UpdateDSCommitteeAfterFallback(const uint32_t& shard_id,
+                                      const PubKey& leaderPubKey,
+                                      const Peer& leaderNetworkInfo,
+                                      DequeOfNode& dsComm,
+                                      const DequeOfShard& shards);
 
   void CommitMBnForwardedTransactionBuffer();
 
   void CleanCreatedTransaction();
 
+  void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
+                                      const bytes& message, unsigned int offset,
+                                      const Peer& peer);
   void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
@@ -545,10 +548,10 @@ class Node : public Executable, public Broadcastable {
   /// Fetch latest ds block with a counter for retrying
   bool GetLatestDSBlock();
 
-  void UpdateDSCommiteeCompositionAfterVC(
-      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
-  void UpdateRetrieveDSCommiteeCompositionAfterVC(
-      const VCBlock& vcblock, std::deque<std::pair<PubKey, Peer>>& dsComm);
+  void UpdateDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
+                                          DequeOfNode& dsComm);
+  void UpdateRetrieveDSCommiteeCompositionAfterVC(const VCBlock& vcblock,
+                                                  DequeOfNode& dsComm);
 
   void UpdateProcessedTransactions();
 
@@ -557,7 +560,7 @@ class Node : public Executable, public Broadcastable {
 
   static bool GetDSLeader(const BlockLink& lastBlockLink,
                           const DSBlock& latestDSBlock,
-                          const DequeOfDSNode& dsCommittee,
+                          const DequeOfNode& dsCommittee,
                           const uint64_t epochNumber,
                           std::pair<PubKey, Peer>& dsLeader);
 

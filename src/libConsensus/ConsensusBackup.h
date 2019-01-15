@@ -94,13 +94,12 @@ class ConsensusBackup : public ConsensusCommon {
       uint16_t leader_id,      // leader's identifier (= index in some ordered
                                // lookup table shared by all nodes)
       const PrivKey& privkey,  // backup's private key
-      const std::deque<std::pair<PubKey, Peer>>&
-          committee,       // ordered lookup table of pubkeys for this committee
-                           // (includes leader)
-      uint8_t class_byte,  // class byte representing Executable class
-                           // using this instance of ConsensusBackup
-      uint8_t ins_byte,    // instruction byte representing consensus
-                           // messages for the Executable class
+      const DequeOfNode& committee,  // ordered lookup table of pubkeys for this
+                                     // committee (includes leader)
+      uint8_t class_byte,            // class byte representing Executable class
+                                     // using this instance of ConsensusBackup
+      uint8_t ins_byte,              // instruction byte representing consensus
+                                     // messages for the Executable class
       MsgContentValidatorFunc
           msg_validator  // function handler for validating the content of
                          // message for consensus (e.g., Tx block)

@@ -1439,7 +1439,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   bool initialDS = false;
 
   PubKey senderPubKey;
-  std::deque<std::pair<PubKey, Peer>> dsNodes;
+  DequeOfNode dsNodes;
   uint32_t dsCommitteeVersion = 0;
   if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
                                              dsCommitteeVersion, dsNodes,
