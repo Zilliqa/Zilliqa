@@ -21,7 +21,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
-#include "libCrypto/Schnorr.h"
+#include "libCrypto/MultiSig.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -283,6 +283,7 @@ bool UpgradeManager::HasNewSW() {
   }
 
   LOG_GENERAL(INFO, "Parsing public key file completed.");
+  shared_ptr<PubKey> aggregatedPubkey = MultiSig::AggregatePubKeys(pubKeys);
 
   string zilliqaShaStr, zilliqaSigStr, scillaShaStr, scillaSigStr;
   {
@@ -315,25 +316,15 @@ bool UpgradeManager::HasNewSW() {
     }
 
     const bytes zilliqaSha = tempSha;
-    const unsigned int len = zilliqaSigStr.size() / pubKeys.size();
-    vector<Signature> zilliqaMutliSig;
-
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      bytes tempMultisigBytes;
-      if (!DataConversion::HexStrToUint8Vec(zilliqaSigStr.substr(i * len, len),
-                                            tempMultisigBytes)) {
-        continue;
-      }
-      zilliqaMutliSig.emplace_back(tempMultisigBytes, 0);
-    }
+    bytes tempMultisigBytes;
+    DataConversion::HexStrToUint8Vec(zilliqaSigStr, tempMultisigBytes);
+    shared_ptr<Signature> zilliqaSig(new Signature(tempMultisigBytes, 0));
 
     /// Multi-sig verification
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      if (!Schnorr::GetInstance().Verify(zilliqaSha, zilliqaMutliSig.at(i),
-                                         pubKeys.at(i))) {
-        LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
-        return false;
-      }
+    if (!MultiSig::GetInstance().MultiSigVerify(zilliqaSha, *zilliqaSig,
+                                                *aggregatedPubkey)) {
+      LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
+      return false;
     }
 
     if (m_latestZilliqaSHA != zilliqaSha) {
@@ -348,25 +339,15 @@ bool UpgradeManager::HasNewSW() {
     }
 
     const bytes scillaSha = tempSha;
-    const unsigned int len = scillaSigStr.size() / pubKeys.size();
-    vector<Signature> scillaMutliSig;
-
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      bytes tempMultisigBytes;
-      if (!DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len),
-                                            tempMultisigBytes)) {
-        continue;
-      }
-      scillaMutliSig.emplace_back(tempMultisigBytes, 0);
-    }
+    bytes tempMultisigBytes;
+    DataConversion::HexStrToUint8Vec(scillaSigStr, tempMultisigBytes);
+    shared_ptr<Signature> scillaSig(new Signature(tempMultisigBytes, 0));
 
     /// Multi-sig verification
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      if (!Schnorr::GetInstance().Verify(scillaSha, scillaMutliSig.at(i),
-                                         pubKeys.at(i))) {
-        LOG_GENERAL(WARNING, "Multisig verification on Scilla failed!");
-        return false;
-      }
+    if (!MultiSig::GetInstance().MultiSigVerify(scillaSha, *scillaSig,
+                                                *aggregatedPubkey)) {
+      LOG_GENERAL(WARNING, "Multisig verification on Scilla failed!");
+      return false;
     }
 
     if (m_latestScillaSHA != scillaSha) {
