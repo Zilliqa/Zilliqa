@@ -89,6 +89,8 @@ const unsigned int DSCOMMITTEE_VERSION{
     ReadConstantNumeric("DSCOMMITTEE_VERSION", "node.version.")};
 const unsigned int SHARDINGSTRUCTURE_VERSION{
     ReadConstantNumeric("SHARDINGSTRUCTURE_VERSION", "node.version.")};
+const unsigned int ACCOUNT_VERSION{
+    ReadConstantNumeric("ACCOUNT_VERSION", "node.version.")};
 
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
