@@ -370,7 +370,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                (unsigned int)tmpStorageRoot.size),
        tmpStorageRoot.asArray().begin());
 
-  if (protoAccount.code().size() > 0) {
+  if (protoAccount.has_code() && protoAccount.code().size() > 0) {
     if (!CheckRequiredFieldsProtoAccountContract(protoAccount)) {
       LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed.");
       return false;
@@ -536,9 +536,14 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     bool doInitContract = false;
 
     if (fullCopy) {
-      if (!CheckRequiredFieldsProtoAccountContract(protoAccount) ||
-          !CheckRequiredFieldsProtoAccountDeltaContractDefault(protoAccount)) {
+      if (!CheckRequiredFieldsProtoAccountContract(protoAccount)) {
         LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed");
+        return false;
+      }
+      if (!CheckRequiredFieldsProtoAccountDeltaContractDefault(protoAccount)) {
+        LOG_GENERAL(
+            WARNING,
+            "CheckRequiredFieldsProtoAccountDeltaContractDefault failed");
         return false;
       }
       bytes tmpVec;
