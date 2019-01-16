@@ -128,9 +128,12 @@ void DataSender::DetermineShardToSendDataTo(
     num_clusters++;
   }
   LOG_GENERAL(INFO, "DEBUG num of clusters " << num_clusters)
-  unsigned int shard_groups_count = shards.size() / num_clusters;
-  if ((shards.size() % num_clusters) > 0) {
-    shard_groups_count++;
+  unsigned int shard_groups_count = 0;
+  if (num_clusters != 0) {
+    shard_groups_count = shards.size() / num_clusters;
+    if ((shards.size() % num_clusters) > 0) {
+      shard_groups_count++;
+    }
   }
   LOG_GENERAL(INFO, "DEBUG num of shard group count " << shard_groups_count)
 
