@@ -159,9 +159,12 @@ void Lookup::SetLookupNodes() {
                     }) != m_lookupNodes.end()) {
           continue;
         }
-        string url = v.second.get<string>("hostname");
-        if (!url.empty()) {
-          lookup_node.SetHostname(url);
+        // check for hostname only for lookup nodes
+        if (lookupType == "node.lookups") {
+          string url = v.second.get<string>("hostname");
+          if (!url.empty()) {
+            lookup_node.SetHostname(url);
+          }
         }
         if (lookupType == "node.multipliers") {
           m_multipliers.emplace_back(pubKey, lookup_node);
