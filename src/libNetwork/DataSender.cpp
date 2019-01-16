@@ -284,7 +284,7 @@ bool DataSender::SendDataToOthers(
 
     uint16_t randomDigits =
         DataConversion::charArrTo16Bits(hashForRandom.asBytes());
-    bool committeeTooSmall = tmpCommittee.size() < TX_SHARING_CLUSTER_SIZE;
+    bool committeeTooSmall = tmpCommittee.size() <= TX_SHARING_CLUSTER_SIZE;
     uint16_t nodeToSendToLookUpLo =
         committeeTooSmall
             ? 0
