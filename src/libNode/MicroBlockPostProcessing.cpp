@@ -141,6 +141,12 @@ void Node::AddToMicroBlockConsensusBuffer(uint32_t consensusId,
                                           const bytes& message,
                                           unsigned int offset,
                                           const Peer& peer) {
+  if (message.size() <= offset) {
+    LOG_GENERAL(WARNING, "The message size " << message.size()
+                                             << " is less than the offset "
+                                             << offset);
+    return;
+  }
   lock_guard<mutex> h(m_mutexMicroBlockConsensusBuffer);
   auto& vecPeerMsg = m_microBlockConsensusBuffer[consensusId];
   const auto consensusMsgType = message[offset];
