@@ -38,10 +38,12 @@
 #define LIMIT(s, len)                              \
   std::setw(len) << std::setfill(' ') << std::left \
                  << std::string(s).substr(0, len)
-#define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
-#define __FILENAME__ \
-  (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define LIMIT_RIGHT(s, len)                        \
+  std::setw(len) << std::setfill(' ') << std::left \
+                 << s.substr(std::max<int>((int)s.size() - len, 0))
+
+#define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger {
@@ -67,11 +69,9 @@ class Logger {
   /// Limits the number of bytes of a payload to display.
   static const size_t MAX_BYTES_TO_DISPLAY = 64;
 
-  /// Limits the number of digits of the current line number to display.
-  static const size_t LINENUM_LEN = 5;
-
-  /// Limits the number of characters of the current filename to display.
-  static const size_t MAX_FILENAME_LEN = 15;
+  /// Limits the number of characters of the current filename and line number to
+  /// display.
+  static const size_t MAX_FILEANDLINE_LEN = 20;
 
   /// Limits the number of characters of the current function to display.
   static const size_t MAX_FUNCNAME_LEN = 25;
@@ -170,7 +170,7 @@ class ScopeMarker {
   Logger::GetStateLogger(fname_prefix, true)
 #define INIT_EPOCHINFO_LOGGER(fname_prefix) \
   Logger::GetEpochInfoLogger(fname_prefix, true)
-#define LOG_MARKER() ScopeMarker marker(__LINE__, __FILENAME__, __FUNCTION__)
+#define LOG_MARKER() ScopeMarker marker(__LINE__, __FILE__, __FUNCTION__)
 #define LOG_STATE(msg)                                                \
   {                                                                   \
     std::ostringstream oss;                                           \
@@ -188,15 +188,16 @@ class ScopeMarker {
       LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
                  << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
                  << PAD(get_ms(cur), 3, '0') << "]["                           \
-                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"       \
-                 << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
-                 << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "      \
-                 << msg;                                                       \
+                 << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +      \
+                                            std::to_string(__LINE__)),         \
+                                Logger::MAX_FILEANDLINE_LEN)                   \
+                 << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)      \
+                 << "] " << msg;                                               \
     } else {                                                                   \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
       Logger::GetLogger(NULL, true)                                            \
-          .LogGeneral(level, oss.str().c_str(), __LINE__, __FILENAME__,        \
+          .LogGeneral(level, oss.str().c_str(), __LINE__, __FILE__,            \
                       __FUNCTION__);                                           \
     }                                                                          \
   }
@@ -208,9 +209,10 @@ class ScopeMarker {
       LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
                  << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
                  << PAD(get_ms(cur), 3, '0') << "]["                           \
-                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"       \
-                 << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
-                 << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)              \
+                 << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +      \
+                                            std::to_string(__LINE__)),         \
+                                Logger::MAX_FILEANDLINE_LEN)                   \
+                 << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)      \
                  << "] [Epoch " << std::to_string(epoch).c_str() << "] "       \
                  << msg;                                                       \
     } else {                                                                   \
@@ -218,7 +220,7 @@ class ScopeMarker {
       oss << msg;                                                              \
       Logger::GetLogger(NULL, true)                                            \
           .LogEpoch(level, std::to_string(epoch).c_str(), oss.str().c_str(),   \
-                    __LINE__, __FILENAME__, __FUNCTION__);                     \
+                    __LINE__, __FILE__, __FUNCTION__);                         \
     }                                                                          \
   }
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
@@ -233,20 +235,22 @@ class ScopeMarker {
                    << "]["                                                     \
                    << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")       \
                    << PAD(get_ms(cur), 3, '0') << "]["                         \
-                   << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"     \
-                   << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["          \
-                   << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "    \
-                   << msg << " (Len=" << (payload).size()                      \
+                   << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +    \
+                                              std::to_string(__LINE__)),       \
+                                  Logger::MAX_FILEANDLINE_LEN)                 \
+                   << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
+                   << "] " << msg << " (Len=" << (payload).size()              \
                    << "): " << payload_string.get() << "...";                  \
       } else {                                                                 \
         LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ')       \
                    << "]["                                                     \
                    << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")       \
                    << PAD(get_ms(cur), 3, '0') << "]["                         \
-                   << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"     \
-                   << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["          \
-                   << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "    \
-                   << msg << " (Len=" << (payload).size()                      \
+                   << LIMIT_RIGHT(std::string(std::string(__FILE__) + ":" +    \
+                                              std::to_string(__LINE__)),       \
+                                  Logger::MAX_FILEANDLINE_LEN)                 \
+                   << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)    \
+                   << "] " << msg << " (Len=" << (payload).size()              \
                    << "): " << payload_string.get();                           \
       }                                                                        \
     } else {                                                                   \
@@ -254,7 +258,7 @@ class ScopeMarker {
       oss << msg;                                                              \
       Logger::GetLogger(NULL, true)                                            \
           .LogPayload(level, oss.str().c_str(), payload, max_bytes_to_display, \
-                      __LINE__, __FILENAME__, __FUNCTION__);                   \
+                      __LINE__, __FILE__, __FUNCTION__);                       \
     }                                                                          \
   }
 #define LOG_DISPLAY_LEVEL_ABOVE(level) \
@@ -263,12 +267,12 @@ class ScopeMarker {
   { Logger::GetLogger(NULL, true).EnableLevel(level); }
 #define LOG_DISABLE_LEVEL(level) \
   { Logger::GetLogger(NULL, true).DisableLevel(level); }
-#define LOG_EPOCHINFO(blockNum, msg)                                           \
-  {                                                                            \
-    std::ostringstream oss;                                                    \
-    oss << msg;                                                                \
-    Logger::GetEpochInfoLogger(NULL, true)                                     \
-        .LogEpochInfo(oss.str().c_str(), __LINE__, __FILENAME__, __FUNCTION__, \
-                      std::to_string(blockNum).c_str());                       \
+#define LOG_EPOCHINFO(blockNum, msg)                                       \
+  {                                                                        \
+    std::ostringstream oss;                                                \
+    oss << msg;                                                            \
+    Logger::GetEpochInfoLogger(NULL, true)                                 \
+        .LogEpochInfo(oss.str().c_str(), __LINE__, __FILE__, __FUNCTION__, \
+                      std::to_string(blockNum).c_str());                   \
   }
 #endif  // __LOGGER_H__

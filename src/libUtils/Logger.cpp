@@ -133,9 +133,10 @@ void Logger::LogGeneral(LEVELS level, const char* msg,
     LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
                << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
                << PAD(get_ms(cur), 3, '0') << "]["
-               << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-               << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-               << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
+               << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                          std::to_string(linenum)),
+                              Logger::MAX_FILEANDLINE_LEN)
+               << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
     return;
   }
 
@@ -148,9 +149,11 @@ void Logger::LogGeneral(LEVELS level, const char* msg,
     m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
               << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
               << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-              << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
+              << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                         std::to_string(linenum)),
+                             Logger::MAX_FILEANDLINE_LEN)
+              << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+              << endl
               << flush;
   } else {
     auto cur = chrono::system_clock::now();
@@ -158,9 +161,10 @@ void Logger::LogGeneral(LEVELS level, const char* msg,
     cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
          << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
          << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-         << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
+         << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                    std::to_string(linenum)),
+                        Logger::MAX_FILEANDLINE_LEN)
+         << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
          << flush;
   }
 }
@@ -177,10 +181,11 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
     m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
               << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
               << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-              << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
-              << "] " << msg << endl
+              << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                         std::to_string(linenum)),
+                             Logger::MAX_FILEANDLINE_LEN)
+              << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch "
+              << epoch << "] " << msg << endl
               << flush;
   } else {
     auto cur = chrono::system_clock::now();
@@ -188,10 +193,11 @@ void Logger::LogEpoch([[gnu::unused]] LEVELS level, const char* msg,
     cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
          << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
          << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-         << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
-         << msg << endl
+         << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                    std::to_string(linenum)),
+                        Logger::MAX_FILEANDLINE_LEN)
+         << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
+         << "] " << msg << endl
          << flush;
   }
 }
@@ -213,9 +219,10 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
       m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
                 << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
                 << PAD(get_ms(cur), 3, '0') << "]["
-                << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-                << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                           std::to_string(linenum)),
+                               Logger::MAX_FILEANDLINE_LEN)
+                << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                 << " (Len=" << payload.size() << "): " << payload_string.get()
                 << "..." << endl
                 << flush;
@@ -223,9 +230,10 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
       m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
                 << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
                 << PAD(get_ms(cur), 3, '0') << "]["
-                << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-                << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-                << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+                << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                           std::to_string(linenum)),
+                               Logger::MAX_FILEANDLINE_LEN)
+                << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
                 << " (Len=" << payload.size() << "): " << payload_string.get()
                 << endl
                 << flush;
@@ -238,9 +246,10 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
       cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
            << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
            << PAD(get_ms(cur), 3, '0') << "]["
-           << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-           << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+           << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                      std::to_string(linenum)),
+                          Logger::MAX_FILEANDLINE_LEN)
+           << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
            << " (Len=" << payload.size() << "): " << payload_string.get()
            << "..." << endl
            << flush;
@@ -248,9 +257,10 @@ void Logger::LogPayload([[gnu::unused]] LEVELS level, const char* msg,
       cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
            << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
            << PAD(get_ms(cur), 3, '0') << "]["
-           << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-           << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+           << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                      std::to_string(linenum)),
+                          Logger::MAX_FILEANDLINE_LEN)
+           << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
            << " (Len=" << payload.size() << "): " << payload_string.get()
            << endl
            << flush;
@@ -271,10 +281,11 @@ void Logger::LogEpochInfo(const char* msg, const unsigned int linenum,
     m_logFile << "[" << PAD(tid, TID_LEN, ' ') << "]["
               << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
               << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-              << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
-              << "] " << msg << endl
+              << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                         std::to_string(linenum)),
+                             Logger::MAX_FILEANDLINE_LEN)
+              << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch "
+              << epoch << "] " << msg << endl
               << flush;
   } else {
     auto cur = chrono::system_clock::now();
@@ -282,10 +293,11 @@ void Logger::LogEpochInfo(const char* msg, const unsigned int linenum,
     cout << "[" << PAD(tid, TID_LEN, ' ') << "]["
          << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
          << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT(filename, Logger::MAX_FILENAME_LEN) << ":"
-         << PAD(linenum, Logger::LINENUM_LEN, ' ') << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
-         << msg << endl
+         << LIMIT_RIGHT(std::string(std::string(filename) + ":" +
+                                    std::to_string(linenum)),
+                        Logger::MAX_FILEANDLINE_LEN)
+         << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
+         << "] " << msg << endl
          << flush;
   }
 }
