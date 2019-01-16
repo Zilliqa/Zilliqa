@@ -252,10 +252,8 @@ message ProtoAccount
     required uint64 nonce          = 3;
     optional bytes storageroot     = 4;
     optional bytes codehash        = 5;
-    optional uint64 createblocknum = 6;
-    optional bytes initdata        = 7;
-    optional bytes code            = 8;
-    repeated StorageData storage   = 9;
+    optional bytes code            = 6;
+    repeated StorageData storage   = 7;
 }
 
 message ProtoStateIndex

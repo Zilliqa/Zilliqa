@@ -38,9 +38,6 @@ Index GetIndex(const dev::h160& address, const std::string& key);
 
 class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_codeDB;
-  LevelDB m_initDataDB;
-
-  dev::OverlayDB m_stateDB;
 
   LevelDB t_stateIndexDB;
   LevelDB t_stateDataDB;
@@ -57,8 +54,6 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   ContractStorage()
       : m_codeDB("contractCode"),
-        m_initDataDB("contractInitData"),
-        m_stateDB("contractState"),
         t_stateIndexDB("tempContractStateIndex"),
         t_stateDataDB("tempContractStateData"),
         m_stateIndexDB("contractStateIndex"),
@@ -77,8 +72,6 @@ class ContractStorage : public Singleton<ContractStorage> {
     return cs;
   }
 
-  dev::OverlayDB& GetStateDB() { return m_stateDB; }
-
   /// Adds a contract code to persistence
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
@@ -91,19 +84,6 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /// Delete the contract code in persistence
   bool DeleteContractCode(const dev::h160& address);
-
-  /// Adds a contract init data to persistence
-  bool PutContractInitData(const dev::h160& address, const bytes& initData);
-
-  /// Adds contract init data to persistence in batch
-  bool PutContractInitDataBatch(
-      const std::unordered_map<std::string, std::string>& batch);
-
-  /// Get the desired init data from persistence
-  const bytes GetContractInitData(const dev::h160& address);
-
-  /// Delete the contract init data in persistence
-  bool DeleteContractInitData(const dev::h160& address);
 
   /// Get the indexes of all the states of an contract account
   std::vector<Index> GetContractStateIndexes(const dev::h160& address);
@@ -123,7 +103,8 @@ class ContractStorage : public Singleton<ContractStorage> {
   bool CommitTempStateDB();
 
   /// Get the json formatted data of the states for a contract account
-  Json::Value GetContractStateJson(const dev::h160& address);
+  bool GetContractStateJson(const dev::h160& address,
+                            std::pair<Json::Value, Json::Value>& roots);
 
   /// Get the state hash of a contract account
   dev::h256 GetContractStateHash(const dev::h160& address);

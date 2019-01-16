@@ -311,9 +311,6 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   if (account.GetCode().size() > 0) {
     protoAccount.set_codehash(account.GetCodeHash().data(),
                               account.GetCodeHash().size);
-    protoAccount.set_createblocknum(account.GetCreateBlockNum());
-    protoAccount.set_initdata(account.GetInitData().data(),
-                              account.GetInitData().size());
     protoAccount.set_code(account.GetCode().data(), account.GetCode().size());
 
     for (const auto& keyHash : account.GetStorageKeyHashes()) {
@@ -369,35 +366,18 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       return false;
     }
 
-    account.SetCreateBlockNum(protoAccount.createblocknum());
-
-    if (protoAccount.initdata().size() > 0) {
-      tmpVec.resize(protoAccount.initdata().size());
-      copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
-           tmpVec.begin());
-      if (!account.InitContract(tmpVec, addr)) {
-        return false;
-      }
-    }
-
     vector<pair<dev::h256, bytes>> entries;
     for (const auto& entry : protoAccount.storage()) {
       if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
         return false;
       }
 
-      if (!HASHMAP_CONTRACT_STATE_DB) {
-        account.SetStorage(tmpHash, entry.data());
-      } else {
-        entries.emplace_back(tmpHash,
-                             DataConversion::StringToCharArray(entry.data()));
-      }
+      entries.emplace_back(tmpHash,
+                           DataConversion::StringToCharArray(entry.data()));
     }
 
-    if (HASHMAP_CONTRACT_STATE_DB) {
-      if (!account.SetStorage(addr, entries)) {
-        return false;
-      }
+    if (!account.SetStorage(addr, entries)) {
+      return false;
     }
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
@@ -454,9 +434,6 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
     if (fullCopy) {
       protoAccount.set_code(newAccount.GetCode().data(),
                             newAccount.GetCode().size());
-      protoAccount.set_initdata(newAccount.GetInitData().data(),
-                                newAccount.GetInitData().size());
-      protoAccount.set_createblocknum(newAccount.GetCreateBlockNum());
     }
 
     if (newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
@@ -490,8 +467,6 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
   account.IncreaseNonceBy(protoAccount.nonce());
 
   if (protoAccount.code().size() > 0 || account.isContract()) {
-    bool doInitContract = false;
-
     bytes tmpCodeVec, tmpInitDataVec;
     if (fullCopy) {
       if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
@@ -507,15 +482,6 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
       if (tmpCodeVec != account.GetCode()) {
         account.SetCode(tmpCodeVec);
       }
-
-      if (!protoAccount.initdata().empty() && account.GetInitData().empty()) {
-        tmpInitDataVec.resize(protoAccount.initdata().size());
-        copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
-             tmpInitDataVec.begin());
-        doInitContract = true;
-      }
-
-      account.SetCreateBlockNum(protoAccount.createblocknum());
     }
 
     dev::h256 tmpStorageRoot;
@@ -526,12 +492,6 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
          tmpStorageRoot.asArray().begin());
 
     if (tmpStorageRoot != account.GetStorageRoot()) {
-      if (doInitContract) {
-        if (!account.InitContract(tmpInitDataVec, addr)) {
-          return false;
-        }
-      }
-
       dev::h256 tmpHash;
 
       vector<pair<dev::h256, bytes>> entries;
@@ -540,18 +500,12 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
           return false;
         }
 
-        if (!HASHMAP_CONTRACT_STATE_DB) {
-          account.SetStorage(tmpHash, entry.data());
-        } else {
-          entries.emplace_back(tmpHash,
-                               DataConversion::StringToCharArray(entry.data()));
-        }
+        entries.emplace_back(tmpHash,
+                             DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (HASHMAP_CONTRACT_STATE_DB) {
-        if (!account.SetStorage(addr, entries)) {
-          return false;
-        }
+      if (!account.SetStorage(addr, entries)) {
+        return false;
       }
 
       if (tmpStorageRoot != account.GetStorageRoot()) {

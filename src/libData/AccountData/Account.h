@@ -49,22 +49,14 @@ using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 class Account : public SerializableDataBlock {
   boost::multiprecision::uint128_t m_balance;
   uint64_t m_nonce;
-  dev::h256 m_storageRoot, m_prevRoot;
+  dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
   // The associated code for this account.
-  uint64_t m_createBlockNum = 0;
-  uint32_t m_scillaVersion = 0;
-  Json::Value m_initValJson;
-  bytes m_initData;
   bytes m_codeCache;
   Address m_address;  // used by contract account only
 
-  // TODO: remove if choose HASHMAP_CONTRACT_STATE_DB finally
-  const dev::h256 GetKeyHash(const std::string& key) const;
-
-  bool InitContract();
-
-  bool PrepareInitDataJson(const bytes& initData, Json::Value& root);
+  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
+                           const uint64_t& blockNum, Json::Value& root);
 
   AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
@@ -81,19 +73,9 @@ class Account : public SerializableDataBlock {
   /// Returns true if account is a contract account
   bool isContract() const;
 
-  /// Utilization function for trieDB
-  void InitStorage();
-
   /// Parse the Immutable Data at Constract Initialization Stage
-  bool InitContract(const bytes& initData, const Address& addr);
-
-  /// Set the block number when this account was created.
-  void SetCreateBlockNum(const uint64_t& blockNum);
-
-  /// Get the block number when this account was created.
-  const uint64_t& GetCreateBlockNum() const;
-
-  const uint32_t& GetScillaVersion() const;
+  bool InitContract(const bytes& code, const bytes& initData,
+                    const Address& addr, const uint64_t& blockNum);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(bytes& dst, unsigned int offset) const;
@@ -126,25 +108,20 @@ class Account : public SerializableDataBlock {
 
   void SetStorageRoot(const dev::h256& root);
 
+  void SetAddress(const Address& addr);
+
   /// Returns the storage root.
   const dev::h256& GetStorageRoot() const;
 
   /// Set the code
-  void SetCode(const bytes& code);
+  bool SetCode(const bytes& code);
 
   const bytes GetCode() const;
 
   void CleanCodeCache();
 
-  void CleanInitData();
-
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
-
-  void SetStorage(const dev::h256& k_hash, const std::string& rlpStr);
-
-  void SetStorage(std::string k, std::string type, std::string v,
-                  bool is_mutable = true);
 
   bool SetStorage(const Address& addr,
                   const std::vector<std::pair<dev::h256, bytes>>& entries);
@@ -153,19 +130,13 @@ class Account : public SerializableDataBlock {
 
   std::string GetRawStorage(const dev::h256& k_hash) const;
 
-  Json::Value GetInitJson(bool record = true);
+  Json::Value GetInitJson() const;
 
-  const bytes GetInitData() const;
-
-  void SetInitData(const bytes& initData);
+  Json::Value GetStateJson() const;
 
   std::vector<dev::h256> GetStorageKeyHashes() const;
 
-  Json::Value GetStorageJson() const;
-
-  void Commit();
-
-  void RollBack();
+  bool GetStorageJson(std::pair<Json::Value, Json::Value>& roots) const;
 
   /// Computes an account address from a specified PubKey.
   static Address GetAddressFromPublicKey(const PubKey& pubKey);

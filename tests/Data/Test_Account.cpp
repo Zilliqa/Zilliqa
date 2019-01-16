@@ -40,12 +40,11 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
 
   Account acc1(TestUtils::DistUint64(), 0);
 
-  bytes data;
-  acc1.InitContract(data, Address());
-  acc1.SetInitData(data);
+  bytes code, data;
+  acc1.InitContract(code, data, Address(), 0);
 
   Account acc2(data, 0);
-  BOOST_CHECK_EQUAL(false, acc1.InitContract(data, Address()));
+  BOOST_CHECK_EQUAL(false, acc1.InitContract(code, data, Address(), 0));
   BOOST_CHECK_EQUAL(false, acc2.isContract());
 }
 
@@ -55,36 +54,32 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   Account acc1 = Account();
 
-  uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
-  acc1.SetCreateBlockNum(CREATEBLOCKNUM);
-  BOOST_CHECK_EQUAL(CREATEBLOCKNUM, acc1.GetCreateBlockNum());
-
   std::string invalidmessage = "[{\"vname\"]";
   bytes data(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract(data, Address());
+  acc1.InitContract({'s'}, data, Address(), 0);
 
   invalidmessage = "[{\"vname\":\"name\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract(data, Address());
+  acc1.InitContract({'s'}, data, Address(), 0);
 
   invalidmessage = "[{\"vname\":\"name\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract(data, Address());
+  acc1.InitContract({'s'}, data, Address(), 0);
 
   invalidmessage =
       "[{\"vname\":\"name\",\"type\":\"sometype\",\"value\":\"somevalue\"}]";
   data = bytes(invalidmessage.begin(), invalidmessage.end());
-  acc1.InitContract(data, Address());
+  acc1.InitContract({'s'}, data, Address(), 0);
 
   std::string message =
       "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
   data = bytes(message.begin(), message.end());
-  acc1.InitContract(data, Address());
+  acc1.InitContract({'s'}, data, Address(), 0);
 
-  BOOST_CHECK_EQUAL(true, data == acc1.GetInitData());
-
-  BOOST_CHECK_EQUAL(std::to_string(CREATEBLOCKNUM),
-                    acc1.GetInitJson()[1]["value"].asString());
+  BOOST_CHECK_EQUAL(std::to_string(0),
+                    acc1.GetInitJson()["_creation_block"]["value"].asString());
+  BOOST_CHECK_EQUAL(std::to_string(0),
+                    acc1.GetInitJson()["_scilla_version"]["value"].asString());
 }
 
 BOOST_AUTO_TEST_CASE(testStorage) {
@@ -92,19 +87,20 @@ BOOST_AUTO_TEST_CASE(testStorage) {
   LOG_MARKER();
 
   Account acc1 = Account();
-  acc1.GetStorageJson();  // Improve coverage
-  acc1.RollBack();        // Improve coverage
+  std::pair<Json::Value, Json::Value> roots;
+  acc1.GetStorageJson(roots);  // Improve coverage
+
+  Json::Value root = acc1.GetStateJson();
 
   bytes code;
   acc1.SetCode(code);
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
 
-  acc1.SetStorage("", "", "", false);
-  dev::h256 hash = dev::h256();
-  std::string rlpStr;
-  acc1.SetStorage(hash, rlpStr);
-  acc1.SetStorageRoot(hash);
+  dev::h256 hash;
 
+  acc1.SetStorage(Address(), {});
+  acc1.SetStorage({});
+  acc1.SetStorageRoot(hash);
   acc1.GetRawStorage(hash);
 
   size_t CODE_LEN = TestUtils::DistUint16() + 1;
@@ -112,27 +108,11 @@ BOOST_AUTO_TEST_CASE(testStorage) {
 
   acc1.SetCode(code);
   BOOST_CHECK_EQUAL(true, code == acc1.GetCode());
-  acc1.SetStorage(hash, rlpStr);  // Improve coverage
-  acc1.InitStorage();             // Improve coverage
-  acc1.GetStorageJson();          // Improve coverage
   dev::h256 storageRoot = acc1.GetStorageRoot();
   acc1.SetStorageRoot(storageRoot);
-  acc1.RollBack();  // coverage
-
-  uint64_t CREATEBLOCKNUM = TestUtils::DistUint64();
-  acc1.SetCreateBlockNum(CREATEBLOCKNUM);
-  BOOST_CHECK_EQUAL(CREATEBLOCKNUM, acc1.GetCreateBlockNum());
-
-  acc1.SetStorage("", "", "", false);
-  acc1.SetStorage(hash, rlpStr);
-  acc1.SetStorageRoot(hash);
 
   acc1.GetRawStorage(hash);
   std::vector<dev::h256> storageKeyHashes = acc1.GetStorageKeyHashes();
-  Json::Value storage = acc1.GetStorageJson();
-  acc1.Commit();
-  acc1.RollBack();
-  acc1.InitStorage();  // Improve coverage
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {

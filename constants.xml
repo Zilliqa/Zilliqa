@@ -182,7 +182,7 @@
         <RESUME_BLACKLIST_DELAY_IN_SECONDS>30</RESUME_BLACKLIST_DELAY_IN_SECONDS>
     </recovery>
     <smart_contract>
-        <SCILLA_ROOT/>
+        <SCILLA_ROOT>/home/liuhc/smartcontract/ScillaOct5/scilla</SCILLA_ROOT>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
@@ -194,8 +194,7 @@
         <INPUT_MESSAGE_JSON>input_message.json</INPUT_MESSAGE_JSON>
         <OUTPUT_JSON>output.json</OUTPUT_JSON>
         <INPUT_CODE>input.scilla</INPUT_CODE>
-        <HASHMAP_CONTRACT_STATE_DB>true</HASHMAP_CONTRACT_STATE_DB>
-        <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
+        <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
     </smart_contract>
     <tests>
         <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>

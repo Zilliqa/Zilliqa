@@ -176,7 +176,6 @@ bool AccountStore::MoveUpdatesToDisk() {
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
 
   unordered_map<string, string> code_batch;
-  unordered_map<string, string> initData_batch;
 
   for (auto i : *m_addressToAccount) {
     if (i.second.isContract()) {
@@ -185,8 +184,6 @@ bool AccountStore::MoveUpdatesToDisk() {
               .empty()) {
         code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                               i.second.GetCode())});
-        initData_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
-                                                  i.second.GetInitData())});
       }
     }
   }
@@ -198,26 +195,12 @@ bool AccountStore::MoveUpdatesToDisk() {
 
   bool ret = true;
 
-  if (!ContractStorage::GetContractStorage().PutContractInitDataBatch(
-          initData_batch)) {
-    LOG_GENERAL(WARNING, "PutContractInitDataBatch failed");
-    ret = false;
-  }
-
   if (ret) {
-    if (!HASHMAP_CONTRACT_STATE_DB) {
-      ContractStorage::GetContractStorage().GetStateDB().commit();
-
-      for (auto i : *m_addressToAccount) {
-        i.second.Commit();
-      }
-    } else {
-      if (!ContractStorage::GetContractStorage().CommitTempStateDB()) {
-        LOG_GENERAL(WARNING,
-                    "CommitTempStateDB failed. need to rever the change on "
-                    "ContractCode");
-        ret = false;
-      }
+    if (!ContractStorage::GetContractStorage().CommitTempStateDB()) {
+      LOG_GENERAL(WARNING,
+                  "CommitTempStateDB failed. need to rever the change on "
+                  "ContractCode");
+      ret = false;
     }
   }
 
@@ -228,19 +211,10 @@ bool AccountStore::MoveUpdatesToDisk() {
         LOG_GENERAL(WARNING, "Failed to delete contract code for " << it.first);
       }
     }
-
-    for (const auto& it : initData_batch) {
-      if (!ContractStorage::GetContractStorage().DeleteContractInitData(
-              h160(it.first))) {
-        LOG_GENERAL(WARNING,
-                    "Failed to delete contract init data for " << it.first);
-      }
-    }
   }
 
   for (auto i : *m_addressToAccount) {
     i.second.CleanCodeCache();
-    i.second.CleanInitData();
   }
 
   try {
@@ -269,11 +243,6 @@ void AccountStore::DiscardUnsavedUpdates() {
   lock(m_mutexPrimary, m_mutexDB);
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, adopt_lock);
   lock_guard<mutex> g2(m_mutexDB, adopt_lock);
-
-  ContractStorage::GetContractStorage().GetStateDB().rollback();
-  for (auto i : *m_addressToAccount) {
-    i.second.RollBack();
-  }
 
   try {
     m_state.db()->rollback();

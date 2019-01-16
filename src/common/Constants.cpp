@@ -389,9 +389,6 @@ const string OUTPUT_JSON{
 const string INPUT_CODE{
     SCILLA_FILES + '/' +
     ReadConstantString("INPUT_CODE", "node.smart_contract.")};
-const bool HASHMAP_CONTRACT_STATE_DB{
-    ReadConstantString("HASHMAP_CONTRACT_STATE_DB", "node.smart_contract.") ==
-    "true"};
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};

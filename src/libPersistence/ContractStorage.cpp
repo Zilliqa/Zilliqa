@@ -45,27 +45,6 @@ bool ContractStorage::DeleteContractCode(const dev::h160& address) {
   return m_codeDB.DeleteKey(address.hex()) == 0;
 }
 
-// Init Data
-// =====================================
-
-bool ContractStorage::PutContractInitData(const dev::h160& address,
-                                          const bytes& initData) {
-  return m_initDataDB.Insert(address.hex(), initData) == 0;
-}
-
-bool ContractStorage::PutContractInitDataBatch(
-    const unordered_map<string, string>& batch) {
-  return m_initDataDB.BatchInsert(batch);
-}
-
-const bytes ContractStorage::GetContractInitData(const dev::h160& address) {
-  return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
-}
-
-bool ContractStorage::DeleteContractInitData(const dev::h160& address) {
-  return m_initDataDB.DeleteKey(address.hex()) == 0;
-}
-
 // State
 // ========================================
 
@@ -272,12 +251,14 @@ bool ContractStorage::CommitTempStateDB() {
   return true;
 }
 
-Json::Value ContractStorage::GetContractStateJson(const dev::h160& address) {
+bool ContractStorage::GetContractStateJson(
+    const dev::h160& address, pair<Json::Value, Json::Value>& roots) {
   // LOG_MARKER();
   // iterate and deserialize the vector of raw protobuf string
   vector<string> rawStates = GetContractStatesData(address);
 
-  Json::Value root;
+  bool hasScillaVersion = false;
+  pair<Json::Value, Json::Value> t_roots;
   for (const auto& rawState : rawStates) {
     StateEntry entry;
     if (!Messenger::GetStateData(bytes(rawState.begin(), rawState.end()), 0,
@@ -291,8 +272,17 @@ Json::Value ContractStorage::GetContractStateJson(const dev::h160& address) {
     string tType = std::get<TYPE>(entry);
     string tValue = std::get<VALUE>(entry);
 
-    if (!tMutable) {
-      continue;
+    if (!hasScillaVersion && tVname == "_scilla_version" && tType == "Uint32" &&
+        !tMutable) {
+      [[gnu::unused]] uint32_t scilla_version;
+      try {
+        scilla_version = boost::lexical_cast<uint32_t>(tValue);
+      } catch (...) {
+        LOG_GENERAL(WARNING, "_scilla_version is not a number");
+        return false;
+      }
+
+      hasScillaVersion = true;
     }
 
     Json::Value item;
@@ -315,9 +305,22 @@ Json::Value ContractStorage::GetContractStateJson(const dev::h160& address) {
     } else {
       item["value"] = tValue;
     }
-    root.append(item);
+
+    if (!tMutable) {
+      t_roots.first.append(item);
+    } else {
+      t_roots.second.append(item);
+    }
   }
-  return root;
+
+  if (!hasScillaVersion) {
+    LOG_GENERAL(WARNING, "_scilla_version is not found in initData");
+    return false;
+  }
+
+  roots = t_roots;
+
+  return true;
 }
 
 dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address) {
@@ -332,8 +335,6 @@ dev::h256 ContractStorage::GetContractStateHash(const dev::h160& address) {
 }
 
 void ContractStorage::Reset() {
-  m_stateDB.ResetDB();
-
   m_codeDB.ResetDB();
   m_stateIndexDB.ResetDB();
   m_stateDataDB.ResetDB();

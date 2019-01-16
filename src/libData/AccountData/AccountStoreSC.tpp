@@ -144,43 +144,30 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       return false;
     }
 
-    toAccount->SetCode(transaction.GetCode());
-
+    bool init = true;
     // Store the immutable states
-    try {
-      if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
-        this->RemoveAccount(toAddr);
-        return false;
-      }
-    } catch (const std::bad_alloc& e) {
-      LOG_GENERAL(WARNING, "found bad_alloc!");
-      return false;
-    }
-
-    // Set the blockNumber when the account was created
-    toAccount->SetCreateBlockNum(blockNum);
-
-    bool ret = true;
-    // Store the immutable states
-    if (!toAccount->InitContract(transaction.GetData(), toAddr)) {
+    if (!toAccount->InitContract(transaction.GetCode(), transaction.GetData(),
+                                 toAddr, blockNum)) {
       LOG_GENERAL(WARNING, "InitContract failed");
-      // TODO: return the gas
-      ret = false;
-    } else {
-      if (!PrepareRootPathWVersion(m_root_w_version,
-                                   toAccount->GetScillaVersion())) {
-        ret = false;
-      }
+      init = false;
     }
 
     m_curBlockNum = blockNum;
+    if (init && !ExportCreateContractFiles(*toAccount)) {
+      LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
+      init = false;
+    }
 
-    if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+    if (init && !this->DecreaseBalance(fromAddr, gasDeposit)) {
+      init = false;
+    }
+
+    if (!init) {
+      this->RemoveAccount(toAddr);
       return false;
     }
 
-    ExportCreateContractFiles(*toAccount);
-
+    bool ret = true;
     // Undergo scilla checker
     bool ret_checker = true;
     std::string checkerPrint;
@@ -281,41 +268,32 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     m_curSenderAddr = fromAddr;
     m_curDepth = 0;
 
-    bool ret = true;
-
     Account* toAccount = this->GetAccount(toAddr);
     if (toAccount == nullptr) {
       LOG_GENERAL(WARNING, "The target contract account doesn't exist");
       return false;
-    } else {
-      if (!PrepareRootPathWVersion(m_root_w_version,
-                                   toAccount->GetScillaVersion())) {
-        ret = false;
-      }
     }
 
     m_curBlockNum = blockNum;
     if (!ExportCallContractFiles(*toAccount, transaction)) {
+      LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
       return false;
     }
 
     DiscardTransferBalanceAtomic();
 
     if (!this->DecreaseBalance(fromAddr, gasDeposit)) {
+      LOG_GENERAL(WARNING, "DecreaseBalance failed");
       return false;
     }
+
+    bool ret = true;
     m_curGasLimit = transaction.GetGasLimit();
     m_curGasPrice = transaction.GetGasPrice();
     m_curContractAddr = toAddr;
     m_curAmount = amount;
     m_curNumShards = numShards;
     m_curTranReceipt.clear();
-
-    // if (!TransferBalanceAtomic(fromAddr, toAddr, amount))
-    // {
-    //     this->IncreaseBalance(fromAddr, gasDeposit);
-    //     return false;
-    // }
 
     std::chrono::system_clock::time_point tpStart;
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -399,7 +377,7 @@ Json::Value AccountStoreSC<MAP>::GetBlockStateJson(
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::ExportCreateContractFiles(Account& contract) {
+bool AccountStoreSC<MAP>::ExportCreateContractFiles(const Account& contract) {
   LOG_MARKER();
 
   boost::filesystem::remove_all("./" + SCILLA_FILES);
@@ -409,22 +387,35 @@ void AccountStoreSC<MAP>::ExportCreateContractFiles(Account& contract) {
     boost::filesystem::create_directories("./" + SCILLA_LOG);
   }
 
+  std::pair<Json::Value, Json::Value> roots;
+  if (!contract.GetStorageJson(roots)) {
+    LOG_GENERAL(WARNING, "GetStorageJson failed");
+    return false;
+  }
+
+  if (!PrepareRootPathWVersion(boost::lexical_cast<uint32_t>(
+          roots.first["_scilla_version"]["value"].asString()))) {
+    LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
+    return false;
+  }
+
   // Scilla code
-  // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
   std::ofstream os(INPUT_CODE);
   os << DataConversion::CharArrayToString(contract.GetCode());
   os.close();
 
   // Initialize Json
-  JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
+  JSONUtils::writeJsontoFile(INIT_JSON, roots.first);
 
   // Block Json
   JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
                              GetBlockStateJson(m_curBlockNum));
+
+  return true;
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
+bool AccountStoreSC<MAP>::ExportContractFiles(const Account& contract) {
   LOG_MARKER();
   std::chrono::system_clock::time_point tpStart;
 
@@ -438,17 +429,29 @@ void AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     tpStart = r_timer_start();
   }
+
+  std::pair<Json::Value, Json::Value> roots;
+  if (!contract.GetStorageJson(roots)) {
+    LOG_GENERAL(WARNING, "GetStorageJson failed");
+    return false;
+  }
+
+  if (!PrepareRootPathWVersion(boost::lexical_cast<uint32_t>(
+          roots.first["_scilla_version"]["value"].asString()))) {
+    LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
+    return false;
+  }
+
   // Scilla code
-  // JSONUtils::writeJsontoFile(INPUT_CODE, contract.GetCode());
   std::ofstream os(INPUT_CODE);
   os << DataConversion::CharArrayToString(contract.GetCode());
   os.close();
 
   // Initialize Json
-  JSONUtils::writeJsontoFile(INIT_JSON, contract.GetInitJson());
+  JSONUtils::writeJsontoFile(INIT_JSON, roots.first);
 
   // State Json
-  JSONUtils::writeJsontoFile(INPUT_STATE_JSON, contract.GetStorageJson());
+  JSONUtils::writeJsontoFile(INPUT_STATE_JSON, roots.second);
 
   // Block Json
   JSONUtils::writeJsontoFile(INPUT_BLOCKCHAIN_JSON,
@@ -457,14 +460,19 @@ void AccountStoreSC<MAP>::ExportContractFiles(Account& contract) {
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(DEBUG, "LDB Read (microsec) = " << r_timer_end(tpStart));
   }
+
+  return true;
 }
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ExportCallContractFiles(
-    Account& contract, const Transaction& transaction) {
+    const Account& contract, const Transaction& transaction) {
   LOG_MARKER();
 
-  ExportContractFiles(contract);
+  if (!ExportContractFiles(contract)) {
+    LOG_GENERAL(WARNING, "ExportContractFiles failed");
+    return false;
+  }
 
   // Message Json
   std::string dataStr(transaction.GetData().begin(),
@@ -485,24 +493,29 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::ExportCallContractFiles(
-    Account& contract, const Json::Value& contractData) {
+bool AccountStoreSC<MAP>::ExportCallContractFiles(
+    const Account& contract, const Json::Value& contractData) {
   LOG_MARKER();
 
-  ExportContractFiles(contract);
+  if (!ExportContractFiles(contract)) {
+    LOG_GENERAL(WARNING, "ExportContractFiles failed");
+    return false;
+  }
 
   JSONUtils::writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
+
+  return true;
 }
 
 template <class MAP>
 bool AccountStoreSC<MAP>::PrepareRootPathWVersion(
-    std::string& root_w_version, const uint32_t& scilla_version) {
-  root_w_version = SCILLA_ROOT;
+    const uint32_t& scilla_version) {
+  m_root_w_version = SCILLA_ROOT;
   if (ENABLE_SCILLA_MULTI_VERSION) {
-    root_w_version += '/' + std::to_string(scilla_version);
+    m_root_w_version += '/' + std::to_string(scilla_version);
   }
 
-  if (!boost::filesystem::exists(root_w_version)) {
+  if (!boost::filesystem::exists(m_root_w_version)) {
     LOG_GENERAL(WARNING, "Folder for desired version doesn't exists");
     return false;
   }
@@ -784,18 +797,12 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
                             : JSONUtils::convertJsontoStr(s["value"]);
 
     if (vname != "_balance") {
-      if (!HASHMAP_CONTRACT_STATE_DB) {
-        contractAccount->SetStorage(vname, type, value);
-      } else {
-        state_entries.push_back(std::make_tuple(vname, true, type, value));
-      }
+      state_entries.push_back(std::make_tuple(vname, true, type, value));
     }
   }
 
-  if (HASHMAP_CONTRACT_STATE_DB) {
-    if (!contractAccount->SetStorage(state_entries)) {
-      LOG_GENERAL(WARNING, "SetStorage failed");
-    }
+  if (!contractAccount->SetStorage(state_entries)) {
+    LOG_GENERAL(WARNING, "SetStorage failed");
   }
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
@@ -843,11 +850,6 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
     return TransferBalanceAtomic(
         m_curContractAddr, recipient,
         atoi(_json["message"]["_amount"].asString().c_str()));
-  } else {
-    if (!PrepareRootPathWVersion(m_root_w_version,
-                                 account->GetScillaVersion())) {
-      return false;
-    }
   }
 
   // Recipient is contract
@@ -886,11 +888,14 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   input_message["_tag"] = _json["message"]["_tag"];
   input_message["params"] = _json["message"]["params"];
 
-  ExportCallContractFiles(*account, input_message);
-
   if (!TransferBalanceAtomic(
           m_curContractAddr, recipient,
           atoi(_json["message"]["_amount"].asString().c_str()))) {
+    return false;
+  }
+
+  if (!ExportCallContractFiles(*account, input_message)) {
+    LOG_GENERAL(WARNING, "ExportCallContractFiles failed");
     return false;
   }
 
