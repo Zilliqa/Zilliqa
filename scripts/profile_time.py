@@ -105,8 +105,8 @@ def find_files(directory, pattern):
 				yield filename
 
 def get_time(line):
-	# The format is [ 181207 09:47:21.817 ], what need to get is 09:47:21.817
-	return line[9:22]
+	# The format is [ 18-12-07T09:47:21.817 ], what need to get is 09:47:21.817
+	return line[11:24]
 
 def get_block_number(line):
 	m = re.search(r'\[[0-9 ]+\]', line)

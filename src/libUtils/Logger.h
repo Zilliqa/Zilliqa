@@ -176,7 +176,7 @@ class ScopeMarker {
     std::ostringstream oss;                                         \
     auto cur = std::chrono::system_clock::now();                    \
     auto cur_time_t = std::chrono::system_clock::to_time_t(cur);    \
-    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%y%m%d %T.") \
+    oss << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.") \
         << PAD(get_ms(cur), 3, '0') << " ]" << msg;                 \
     Logger::GetStateLogger(NULL, true).LogState(oss.str().c_str()); \
   }
@@ -186,10 +186,10 @@ class ScopeMarker {
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
-                 << std::put_time(gmtime(&cur_time_t), "%y%m%d %T.")           \
+                 << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")           \
                  << PAD(get_ms(cur), 3, '0') << "]["                           \
-                 << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
-                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << "]["      \
+                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"      \
+                                  << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
                  << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "      \
                  << msg;                                                       \
     } else {                                                                   \
@@ -206,10 +206,10 @@ class ScopeMarker {
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
-                 << std::put_time(gmtime(&cur_time_t), "%y%m%d %T.")           \
+                 << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")           \
                  << PAD(get_ms(cur), 3, '0') << "]["                           \
-                 << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
-                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << "]["      \
+                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"      \
+                                  << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
                  << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)              \
                  << "] [Epoch " << std::to_string(epoch).c_str() << "] "       \
                  << msg;                                                       \
@@ -230,19 +230,19 @@ class ScopeMarker {
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       if ((payload).size() > max_bytes_to_display) {                           \
         LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ')       \
-                   << "][" << std::put_time(gmtime(&cur_time_t), "%y%m%d %T.") \
+                   << "][" << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.") \
                    << PAD(get_ms(cur), 3, '0') << "]["                         \
-                   << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["          \
-                   << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << "]["    \
+                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"      \
+                                  << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
                    << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "    \
                    << msg << " (Len=" << (payload).size()                      \
                    << "): " << payload_string.get() << "...";                  \
       } else {                                                                 \
         LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ')       \
-                   << "][" << std::put_time(gmtime(&cur_time_t), "%y%m%d %T.") \
+                   << "][" << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.") \
                    << PAD(get_ms(cur), 3, '0') << "]["                         \
-                   << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["          \
-                   << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << "]["    \
+                 << LIMIT(__FILENAME__, Logger::MAX_FILENAME_LEN) << ":"      \
+                                  << PAD(__LINE__, Logger::LINENUM_LEN, ' ') << "]["            \
                    << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] "    \
                    << msg << " (Len=" << (payload).size()                      \
                    << "): " << payload_string.get();                           \
