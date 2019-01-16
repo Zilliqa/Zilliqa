@@ -2955,8 +2955,7 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  if (!Lookup::VerifySenderNode(m_mediator.m_lookup->GetLookupNodes(),
-                                lookupPubKey)) {
+  if (!Lookup::VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "The message sender pubkey: "
                   << lookupPubKey << " is not in my lookup node list.");

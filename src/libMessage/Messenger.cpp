@@ -6156,6 +6156,7 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
   LookupSetDirectoryBlocksFromSeed result;
 
   result.mutable_data()->set_indexnum(indexNum);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   for (const auto& dirblock : directoryBlocks) {
     ProtoSingleDirectoryBlock* proto_dir_blocks =
@@ -6221,6 +6222,20 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
+    LOG_GENERAL(WARNING,
+                "Invalid signature in LookupSetDirectoryBlocksFromSeed.");
+    return false;
+  }
+
   indexNum = result.data().indexnum();
 
   for (const auto& dirblock : result.data().dirblocks()) {
@@ -6268,20 +6283,6 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
         LOG_GENERAL(WARNING, "Error in the blocktype");
         break;
     }
-  }
-
-  bytes tmp(result.data().ByteSize());
-  result.data().SerializeToArray(tmp.data(), tmp.size());
-
-  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
-
-  Signature signature;
-  ProtobufByteArrayToSerializable(result.signature(), signature);
-
-  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
-    LOG_GENERAL(WARNING,
-                "Invalid signature in LookupSetDirectoryBlocksFromSeed.");
-    return false;
   }
 
   return true;
