@@ -24,6 +24,7 @@
 #pragma GCC diagnostic pop
 #include <atomic>
 #include <mutex>
+#include <set>
 #include <unordered_map>
 
 namespace std {
@@ -45,6 +46,7 @@ class Blacklist {
 
   std::mutex m_mutexBlacklistIP;
   std::unordered_map<boost::multiprecision::uint128_t, bool> m_blacklistIP;
+  std::set<boost::multiprecision::uint128_t> m_excludedIP;
   std::atomic<bool> m_enabled;
 
  public:
@@ -64,6 +66,9 @@ class Blacklist {
 
   /// Enable / disable blacklist
   void Enable(const bool enable);
+
+  /// Node to be excluded from blacklisting
+  void Exclude(const boost::multiprecision::uint128_t& ip);
 };
 
 #endif  // __BLACKLIST_H__

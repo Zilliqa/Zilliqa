@@ -244,16 +244,17 @@ message ProtoAccount
 {
     message StorageData
     {
-        required bytes keyhash       = 1;
-        required string data         = 2;
+        required bytes keyhash       = 1; // Added in: v1.0, Deprecated in: N/A
+        required string data         = 2; // Added in: v1.0, Deprecated in: N/A
     }
-    optional bool numbersign       = 1; // For account delta (false=neg, true=pos)
-    required ByteArray balance     = 2;
-    required uint64 nonce          = 3;
-    optional bytes storageroot     = 4;
-    optional bytes codehash        = 5;
-    optional bytes code            = 6;
-    repeated StorageData storage   = 7;
+    optional uint32 version        = 1;  // Added in: v1.0, Deprecated in: N/A
+    optional bool numbersign       = 2;  // For account delta (false=neg, true=pos) // Added in: v1.0, Deprecated in: N/A
+    required ByteArray balance     = 3;  // Added in: v1.0, Deprecated in: N/A
+    required uint64 nonce          = 4;  // Added in: v1.0, Deprecated in: N/A
+    optional bytes storageroot     = 5;  // Added in: v1.0, Deprecated in: N/A
+    optional bytes codehash        = 6;  // Added in: v1.0, Deprecated in: N/A
+    optional bytes code            = 9;  // Added in: v1.0, Deprecated in: N/A
+    repeated StorageData storage   = 10; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoStateIndex

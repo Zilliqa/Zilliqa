@@ -47,6 +47,7 @@ template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class Account : public SerializableDataBlock {
+  uint32_t m_version;
   boost::multiprecision::uint128_t m_balance;
   uint64_t m_nonce;
   dev::h256 m_storageRoot;
@@ -68,7 +69,7 @@ class Account : public SerializableDataBlock {
 
   /// Constructor for a account.
   Account(const boost::multiprecision::uint128_t& balance,
-          const uint64_t& nonce);
+          const uint64_t& nonce, const uint32_t& version = ACCOUNT_VERSION);
 
   /// Returns true if account is a contract account
   bool isContract() const;
@@ -82,6 +83,10 @@ class Account : public SerializableDataBlock {
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const bytes& src, unsigned int offset);
+
+  void SetVersion(const uint32_t& version);
+
+  const uint32_t& GetVersion() const;
 
   /// Increases account balance by the specified delta amount.
   bool IncreaseBalance(const boost::multiprecision::uint128_t& delta);

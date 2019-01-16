@@ -18,8 +18,10 @@
 #include "DataSender.h"
 
 #include "libCrypto/Sha2.h"
+#include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -38,9 +40,24 @@ void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
   vector<Peer> allLookupNodes;
 
   for (const auto& node : lookups) {
-    LOG_GENERAL(INFO, "Sending msg to lookup node " << node.second);
+    string url = node.second.GetHostname();
+    auto resolved_ip = node.second.GetIpAddress();  // existing one
+    if (!url.empty()) {
+      boost::multiprecision::uint128_t tmpIp;
+      if (IPConverter::ResolveDNS(url, node.second.GetListenPortHost(),
+                                  tmpIp)) {
+        resolved_ip = tmpIp;  // resolved one
+      } else {
+        LOG_GENERAL(WARNING, "Unable to resolve DNS for " << url);
+      }
+    }
 
-    allLookupNodes.emplace_back(node.second);
+    Blacklist::GetInstance().Exclude(
+        resolved_ip);  // exclude this lookup ip from blacklisting
+    Peer tmp(resolved_ip, node.second.GetListenPortHost());
+    LOG_GENERAL(INFO, "Sending msg to lookup node " << tmp);
+
+    allLookupNodes.emplace_back(tmp);
   }
 
   P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
@@ -111,9 +128,12 @@ void DataSender::DetermineShardToSendDataTo(
     num_clusters++;
   }
   LOG_GENERAL(INFO, "DEBUG num of clusters " << num_clusters)
-  unsigned int shard_groups_count = shards.size() / num_clusters;
-  if ((shards.size() % num_clusters) > 0) {
-    shard_groups_count++;
+  unsigned int shard_groups_count = 0;
+  if (num_clusters != 0) {
+    shard_groups_count = shards.size() / num_clusters;
+    if ((shards.size() % num_clusters) > 0) {
+      shard_groups_count++;
+    }
   }
   LOG_GENERAL(INFO, "DEBUG num of shard group count " << shard_groups_count)
 
@@ -267,7 +287,7 @@ bool DataSender::SendDataToOthers(
 
     uint16_t randomDigits =
         DataConversion::charArrTo16Bits(hashForRandom.asBytes());
-    bool committeeTooSmall = tmpCommittee.size() < TX_SHARING_CLUSTER_SIZE;
+    bool committeeTooSmall = tmpCommittee.size() <= TX_SHARING_CLUSTER_SIZE;
     uint16_t nodeToSendToLookUpLo =
         committeeTooSmall
             ? 0

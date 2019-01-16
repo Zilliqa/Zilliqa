@@ -25,6 +25,7 @@
 #pragma GCC diagnostic pop
 #include <arpa/inet.h>
 #include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 #include <string>
 #include "libUtils/SWInfo.h"
 
@@ -79,6 +80,9 @@ bool convertIP(const char* in, ip_s& ip_addr, const IPv v) {
 
 bool ToNumericalIPFromStr(const std::string&,
                           boost::multiprecision::uint128_t&);
+
+bool ResolveDNS(const std::string& url, const uint32_t& port,
+                boost::multiprecision::uint128_t& ipInt);
 }  // namespace IPConverter
 
 #endif  // __IP_CONVERTER_H__

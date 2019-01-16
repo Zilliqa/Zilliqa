@@ -49,7 +49,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const bool& isDS,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt) {
-  LOG_MARKER();
+  // LOG_MARKER();
   m_curIsDS = isDS;
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
