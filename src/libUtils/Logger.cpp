@@ -329,7 +329,7 @@ ScopeMarker::ScopeMarker(const unsigned int linenum, const char* filename,
                          const char* function)
     : m_linenum(linenum), m_filename(filename), m_function(function) {
   Logger& logger = Logger::GetLogger(NULL, true);
-  logger.LogGeneral(INFO, "BEGIN", linenum, filename, function);
+  logger.LogGeneral(INFO, "BEG", linenum, filename, function);
 }
 
 ScopeMarker::~ScopeMarker() {

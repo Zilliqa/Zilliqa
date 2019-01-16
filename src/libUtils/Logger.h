@@ -65,7 +65,7 @@ class Logger {
 
  public:
   /// Limits the number of bytes of a payload to display.
-  static const size_t MAX_BYTES_TO_DISPLAY = 100;
+  static const size_t MAX_BYTES_TO_DISPLAY = 64;
 
   /// Limits the number of digits of the current line number to display.
   static const size_t LINENUM_LEN = 5;
