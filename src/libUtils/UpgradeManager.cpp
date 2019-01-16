@@ -21,7 +21,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
-#include "libCrypto/Schnorr.h"
+#include "libCrypto/MultiSig.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -269,20 +270,25 @@ bool UpgradeManager::HasNewSW() {
   LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
 
   vector<PubKey> pubKeys;
-  {
-    fstream pubKeyFile(pubKeyFileName, ios::in);
-    string pubKey;
 
-    while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
-      bytes tempPubKeyBytes;
-      if (!DataConversion::HexStrToUint8Vec(pubKey, tempPubKeyBytes)) {
-        continue;
+  try {
+    string line;
+    fstream pubFile(pubKeyFileName, ios::in);
+
+    while (getline(pubFile, line)) {
+      try {
+        pubKeys.push_back(PubKey::GetPubKeyFromString(line));
+      } catch (std::invalid_argument& e) {
+        std::cerr << e.what() << endl;
       }
-      pubKeys.emplace_back(tempPubKeyBytes, 0);
     }
+  } catch (std::exception& e) {
+    std::cerr << "Problem occured when processing public keys on line: "
+              << pubKeys.size() + 1 << endl;
   }
 
   LOG_GENERAL(INFO, "Parsing public key file completed.");
+  shared_ptr<PubKey> aggregatedPubkey = MultiSig::AggregatePubKeys(pubKeys);
 
   string zilliqaShaStr, zilliqaSigStr, scillaShaStr, scillaSigStr;
   {
@@ -309,31 +315,16 @@ bool UpgradeManager::HasNewSW() {
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
   if (zilliqaSigStr != "0") {
-    bytes tempSha;
-    if (!DataConversion::HexStrToUint8Vec(zilliqaShaStr, tempSha)) {
-      return false;
-    }
-
-    const bytes zilliqaSha = tempSha;
-    const unsigned int len = zilliqaSigStr.size() / pubKeys.size();
-    vector<Signature> zilliqaMutliSig;
-
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      bytes tempMultisigBytes;
-      if (!DataConversion::HexStrToUint8Vec(zilliqaSigStr.substr(i * len, len),
-                                            tempMultisigBytes)) {
-        continue;
-      }
-      zilliqaMutliSig.emplace_back(tempMultisigBytes, 0);
-    }
+    const bytes zilliqaSha(zilliqaShaStr.begin(), zilliqaShaStr.end());
+    bytes tempMultisigBytes;
+    DataConversion::HexStrToUint8Vec(zilliqaSigStr, tempMultisigBytes);
+    shared_ptr<Signature> zilliqaSig(new Signature(tempMultisigBytes, 0));
 
     /// Multi-sig verification
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      if (!Schnorr::GetInstance().Verify(zilliqaSha, zilliqaMutliSig.at(i),
-                                         pubKeys.at(i))) {
-        LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
-        return false;
-      }
+    if (!MultiSig::GetInstance().MultiSigVerify(zilliqaSha, *zilliqaSig,
+                                                *aggregatedPubkey)) {
+      LOG_GENERAL(WARNING, "Multisig verification on Zilliqa failed!");
+      return false;
     }
 
     if (m_latestZilliqaSHA != zilliqaSha) {
@@ -342,31 +333,16 @@ bool UpgradeManager::HasNewSW() {
   }
 
   if (scillaSigStr != "0") {
-    bytes tempSha;
-    if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
-      return false;
-    }
-
-    const bytes scillaSha = tempSha;
-    const unsigned int len = scillaSigStr.size() / pubKeys.size();
-    vector<Signature> scillaMutliSig;
-
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      bytes tempMultisigBytes;
-      if (!DataConversion::HexStrToUint8Vec(scillaSigStr.substr(i * len, len),
-                                            tempMultisigBytes)) {
-        continue;
-      }
-      scillaMutliSig.emplace_back(tempMultisigBytes, 0);
-    }
+    const bytes scillaSha(scillaShaStr.begin(), scillaShaStr.end());
+    bytes tempMultisigBytes;
+    DataConversion::HexStrToUint8Vec(scillaSigStr, tempMultisigBytes);
+    shared_ptr<Signature> scillaSig(new Signature(tempMultisigBytes, 0));
 
     /// Multi-sig verification
-    for (unsigned int i = 0; i < pubKeys.size(); ++i) {
-      if (!Schnorr::GetInstance().Verify(scillaSha, scillaMutliSig.at(i),
-                                         pubKeys.at(i))) {
-        LOG_GENERAL(WARNING, "Multisig verification on Scilla failed!");
-        return false;
-      }
+    if (!MultiSig::GetInstance().MultiSigVerify(scillaSha, *scillaSig,
+                                                *aggregatedPubkey)) {
+      LOG_GENERAL(WARNING, "Multisig verification on Scilla failed!");
+      return false;
     }
 
     if (m_latestScillaSHA != scillaSha) {
@@ -519,7 +495,7 @@ bool UpgradeManager::DownloadSW() {
   }
 
   /// Verify SHA-256 checksum of .deb file
-  if (!m_scillaPackageFileName.empty()) {
+  if (!m_zilliqaPackageFileName.empty()) {
     fstream debFile(m_zilliqaPackageFileName, ios::in);
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     bytes vec((istreambuf_iterator<char>(debFile)),
@@ -536,7 +512,7 @@ bool UpgradeManager::DownloadSW() {
       return false;
     }
 
-    return DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
+    DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
   }
 
   if (!m_scillaPackageFileName.empty()) {
@@ -568,73 +544,78 @@ bool UpgradeManager::DownloadSW() {
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
   LOG_MARKER();
 
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(INFO, "Lookup node, upgrade after "
-                          << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                 TERMINATION_COUNTDOWN_OFFSET_LOOKUP
-                          << " seconds...");
-    this_thread::sleep_for(
-        chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                        TERMINATION_COUNTDOWN_OFFSET_LOOKUP));
+  auto func = [this, &mediator]() mutable -> void {
+    if (LOOKUP_NODE_MODE) {
+      LOG_GENERAL(INFO, "Lookup node, upgrade after "
+                            << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                   TERMINATION_COUNTDOWN_OFFSET_LOOKUP
+                            << " seconds...");
+      this_thread::sleep_for(
+          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                          TERMINATION_COUNTDOWN_OFFSET_LOOKUP));
 
-    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
-  } else {
-    if (DirectoryService::IDLE == mediator.m_ds->m_mode) {
-      LOG_GENERAL(INFO, "Shard node, upgrade after "
-                            << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                   TERMINATION_COUNTDOWN_OFFSET_SHARD
-                            << " seconds...");
-      this_thread::sleep_for(
-          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                          TERMINATION_COUNTDOWN_OFFSET_SHARD));
-    } else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode) {
-      LOG_GENERAL(INFO, "DS backup node, upgrade after "
-                            << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                   TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP
-                            << " seconds...");
-      this_thread::sleep_for(
-          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                          TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP));
-    } else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode) {
-      LOG_GENERAL(INFO, "DS leader node, upgrade after "
-                            << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                   TERMINATION_COUNTDOWN_OFFSET_DS_LEADER
-                            << " seconds...");
-      this_thread::sleep_for(
-          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                          TERMINATION_COUNTDOWN_OFFSET_DS_LEADER));
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                  {'0'});
+    } else {
+      if (DirectoryService::IDLE == mediator.m_ds->m_mode) {
+        LOG_GENERAL(INFO, "Shard node, upgrade after "
+                              << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                     TERMINATION_COUNTDOWN_OFFSET_SHARD
+                              << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                            TERMINATION_COUNTDOWN_OFFSET_SHARD));
+      } else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode) {
+        LOG_GENERAL(INFO, "DS backup node, upgrade after "
+                              << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                     TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP
+                              << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                            TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP));
+      } else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode) {
+        LOG_GENERAL(INFO, "DS leader node, upgrade after "
+                              << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                     TERMINATION_COUNTDOWN_OFFSET_DS_LEADER
+                              << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                            TERMINATION_COUNTDOWN_OFFSET_DS_LEADER));
+      }
     }
-  }
 
-  BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
-                                              {'1'});
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
+                                                {'1'});
 
-  /// Deploy downloaded software
-  if (ARCHIVAL_LOOKUP) {
-    boost::filesystem::copy_file(
-        m_constantArchivalLookupFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
-  } else if (LOOKUP_NODE_MODE) {
-    boost::filesystem::copy_file(
-        m_constantLookupFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
-  } else {
-    boost::filesystem::copy_file(
-        m_constantFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
-  }
+    /// Deploy downloaded software
+    if (ARCHIVAL_LOOKUP) {
+      boost::filesystem::copy_file(
+          m_constantArchivalLookupFileName, CONSTANT_FILE_NAME,
+          boost::filesystem::copy_option::overwrite_if_exists);
+    } else if (LOOKUP_NODE_MODE) {
+      boost::filesystem::copy_file(
+          m_constantLookupFileName, CONSTANT_FILE_NAME,
+          boost::filesystem::copy_option::overwrite_if_exists);
+    } else {
+      boost::filesystem::copy_file(
+          m_constantFileName, CONSTANT_FILE_NAME,
+          boost::filesystem::copy_option::overwrite_if_exists);
+    }
 
-  /// TBD: The call of "dpkg" should be removed.
-  /// (https://github.com/Zilliqa/Issues/issues/185)
-  if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_zilliqaPackageFileName.data(),
-            nullptr) < 0) {
-    LOG_GENERAL(WARNING, "Cannot deploy downloaded Zilliqa software!");
-    return false;
-  }
+    /// TBD: The call of "dpkg" should be removed.
+    /// (https://github.com/Zilliqa/Issues/issues/185)
+    if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_zilliqaPackageFileName.data(),
+              nullptr) < 0) {
+      LOG_GENERAL(WARNING, "Cannot deploy downloaded Zilliqa software!");
+      return;
+    }
 
-  /// Kill current node, then the recovery procedure will wake up node with
-  /// stored data
-  return raise(SIGKILL) == 0;
+    /// Kill current node, then the recovery procedure will wake up node with
+    /// stored data
+    raise(SIGKILL);
+  };
+  DetachedFunction(1, func);
+  return true;
 }
 
 bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
@@ -711,50 +692,52 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
 bool UpgradeManager::InstallScilla() {
   LOG_MARKER();
 
-  if (!m_scillaPackageFileName.empty()) {
-    if (!UpgradeManager::UnconfigureScillaPackage()) {
-      return false;
-    }
-
-    LOG_GENERAL(INFO, "Start to install Scilla...");
-
-    pid_t pid = fork();
-
-    if (pid == -1) {
-      LOG_GENERAL(WARNING, "Cannot fork a process for installing scilla!");
-      return false;
-    }
-
-    if (pid > 0) {
-      /// Parent process
-      int status;
-      do {
-        if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
-          perror("wait() error");
-        } else if (pid == 0) {
-          LOG_GENERAL(INFO, "Still under installing scilla...");
-          this_thread::sleep_for(chrono::seconds(1));
-        } else {
-          if (WIFEXITED(status)) {
-            LOG_GENERAL(INFO, "Scilla has been installed successfully.");
-          } else {
-            LOG_GENERAL(WARNING, "Failed to install scilla with status "
-                                     << WEXITSTATUS(status));
-            return false;
-          }
-        }
-      } while (pid == 0);
-    } else {
-      /// Child process
-      if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_scillaPackageFileName.data(),
-                nullptr) < 0) {
-        LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+  auto func = [this]() mutable -> void {
+    if (!m_scillaPackageFileName.empty()) {
+      if (!UpgradeManager::UnconfigureScillaPackage()) {
+        return;
       }
 
-      exit(0);
-    }
-  }
+      LOG_GENERAL(INFO, "Start to install Scilla...");
 
+      pid_t pid = fork();
+
+      if (pid == -1) {
+        LOG_GENERAL(WARNING, "Cannot fork a process for installing scilla!");
+        return;
+      }
+
+      if (pid > 0) {
+        /// Parent process
+        int status;
+        do {
+          if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
+            perror("wait() error");
+          } else if (pid == 0) {
+            LOG_GENERAL(INFO, "Still under installing scilla...");
+            this_thread::sleep_for(chrono::seconds(1));
+          } else {
+            if (WIFEXITED(status)) {
+              LOG_GENERAL(INFO, "Scilla has been installed successfully.");
+            } else {
+              LOG_GENERAL(WARNING, "Failed to install scilla with status "
+                                       << WEXITSTATUS(status));
+              return;
+            }
+          }
+        } while (pid == 0);
+      } else {
+        /// Child process
+        if (execl(DPKG_BINARY_PATH, "dpkg", "-i",
+                  m_scillaPackageFileName.data(), nullptr) < 0) {
+          LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+        }
+
+        exit(0);
+      }
+    }
+  };
+  DetachedFunction(1, func);
   return true;
 }
 
