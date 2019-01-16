@@ -991,6 +991,15 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
   uint64_t blockNum;
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
+      DSBlock dsblk = m_mediator.m_dsBlockChain.GetBlock(blockNum);
+      // TODO Hot fix to identify dummy block as == comparator does not work on
+      // empty object for DSBlock and DSBlockheader().
+      if (dsblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER) {
+        LOG_GENERAL(WARNING,
+                    "Block Number " << blockNum << " does not exists.");
+        break;
+      }
+
       dsBlocks.emplace_back(m_mediator.m_dsBlockChain.GetBlock(blockNum));
     } catch (const char* e) {
       LOG_GENERAL(INFO, "Block Number " << blockNum
@@ -1119,7 +1128,16 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   uint64_t blockNum;
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
-      txBlocks.emplace_back(m_mediator.m_txBlockChain.GetBlock(blockNum));
+      TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blockNum);
+      // TODO Hot fix to identify dummy block as == comparator does not work on
+      // empty object for TxBlock and TxBlockheader().
+      if (txblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+          txblk.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
+        LOG_GENERAL(WARNING,
+                    "Block Number " << blockNum << " does not exists.");
+        break;
+      }
+      txBlocks.emplace_back(txblk);
     } catch (const char* e) {
       LOG_GENERAL(INFO, "Block Number " << blockNum
                                         << " absent. Didn't include it in "
