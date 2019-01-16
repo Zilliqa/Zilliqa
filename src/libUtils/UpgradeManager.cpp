@@ -494,7 +494,7 @@ bool UpgradeManager::DownloadSW() {
   }
 
   /// Verify SHA-256 checksum of .deb file
-  if (!m_scillaPackageFileName.empty()) {
+  if (!m_zilliqaPackageFileName.empty()) {
     fstream debFile(m_zilliqaPackageFileName, ios::in);
     SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
     bytes vec((istreambuf_iterator<char>(debFile)),
@@ -511,7 +511,7 @@ bool UpgradeManager::DownloadSW() {
       return false;
     }
 
-    return DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
+    DataConversion::HexStrToUint8Vec(zilliqaSha, m_latestZilliqaSHA);
   }
 
   if (!m_scillaPackageFileName.empty()) {
