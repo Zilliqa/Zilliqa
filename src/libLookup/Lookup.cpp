@@ -1591,7 +1591,9 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
 
   if (latestSynBlockNum > highBlockNum) {
     // TODO: We should get blocks from n nodes.
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I already have the block");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "I already have the block. latestSynBlockNum="
+                  << latestSynBlockNum << " highBlockNum=" << highBlockNum);
   } else {
     if (AlreadyJoinedNetwork()) {
       m_fetchedLatestDSBlock = true;
@@ -1696,7 +1698,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(const bytes& message,
 
   if (latestSynBlockNum > highBlockNum) {
     // TODO: We should get blocks from n nodes.
-    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "I already have the block");
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "I already have the block. latestSynBlockNum="
+                  << latestSynBlockNum << " highBlockNum=" << highBlockNum);
     return false;
   } else {
     auto res = m_mediator.m_validator->CheckTxBlocks(
