@@ -33,8 +33,13 @@ using Shard = std::vector<std::tuple<PubKey, Peer, uint16_t>>;
 using DequeOfShard = std::deque<Shard>;
 
 using PairOfNode = std::pair<PubKey, Peer>;
-using VectorOfLookupNode = std::vector<std::pair<PubKey, Peer>>;
 
+using VectorOfNode = std::vector<PairOfNode>;
 using DequeOfNode = std::deque<PairOfNode>;
+
+enum NodeMessage { NODE_PUBKEY, NODE_PEER, NODE_MSG };
+
+using NodeMsg = std::tuple<PubKey, Peer, bytes>;
+using VectorOfNodeMsg = std::vector<NodeMsg>;
 
 #endif /*__SHARD_STRUCT__*/

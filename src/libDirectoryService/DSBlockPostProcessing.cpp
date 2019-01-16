@@ -419,7 +419,7 @@ void DirectoryService::StartFirstTxEpoch() {
     m_stopRecvNewMBSubmission = false;
 
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -569,7 +569,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone(
     };
 
     auto sendDSBlockToLookupNodesAndNewDSMembers =
-        [this]([[gnu::unused]] const VectorOfLookupNode& lookups,
+        [this]([[gnu::unused]] const VectorOfNode& lookups,
                const bytes& message) -> void {
       SendDSBlockToLookupNodesAndNewDSMembers(message);
     };

@@ -229,7 +229,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
 
   // Lets start the gossip as earliest as possible
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<std::pair<PubKey, Peer>> peers;
+    VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -528,7 +528,7 @@ bool DirectoryService::FinishRejoinAsDS() {
     }
 
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -890,7 +890,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     }
 
     if (foundDSGuardNode && BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -1116,8 +1116,8 @@ int64_t DirectoryService::GetAllPoWSize() const {
   return m_allPoWs.size();
 }
 
-void DirectoryService::GetEntireNetworkPeerInfo(
-    std::vector<std::pair<PubKey, Peer>>& peers, std::vector<PubKey>& pubKeys) {
+void DirectoryService::GetEntireNetworkPeerInfo(VectorOfNode& peers,
+                                                std::vector<PubKey>& pubKeys) {
   peers.clear();
   pubKeys.clear();
 

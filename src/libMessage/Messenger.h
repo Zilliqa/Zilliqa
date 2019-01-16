@@ -648,7 +648,8 @@ class Messenger {
   template <class T>
   static bool GetLeaderConsensusID(const bytes& src, const unsigned int offset,
                                    const DequeOfNode& commNodes,
-                                   const Peer& from, uint32_t& consensusID) {
+                                   const Peer& from, uint32_t& consensusID,
+                                   PubKey& senderPubKey) {
     LOG_MARKER();
 
     T consensus_message;
@@ -682,6 +683,7 @@ class Messenger {
     }
 
     consensusID = consensus_message.consensusinfo().consensusid();
+    senderPubKey = commNodes[leaderId].first;
 
     return true;
   }
@@ -689,7 +691,8 @@ class Messenger {
   template <class T>
   static bool GetBackupConsensusID(const bytes& src, const unsigned int offset,
                                    const DequeOfNode& commNodes,
-                                   const Peer& from, uint32_t& consensusID) {
+                                   const Peer& from, uint32_t& consensusID,
+                                   PubKey& senderPubKey) {
     LOG_MARKER();
 
     T consensus_message;
@@ -736,6 +739,7 @@ class Messenger {
     }
 
     consensusID = consensus_message.consensusinfo().consensusid();
+    senderPubKey = commNodes[backupId].first;
 
     return true;
   }

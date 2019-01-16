@@ -752,7 +752,7 @@ void Node::WakeupAtDSEpoch() {
                                            .GetBlockNum() +
                                        1);
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -842,7 +842,7 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -858,7 +858,7 @@ void Node::WakeupAtTxEpoch() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<std::pair<PubKey, Peer>> peers;
+    VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -2080,7 +2080,7 @@ std::string Node::GetActionString(Action action) const {
   return true;
 }
 
-void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+void Node::GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                     std::vector<PubKey>& pubKeys) {
   peers.clear();
   pubKeys.clear();

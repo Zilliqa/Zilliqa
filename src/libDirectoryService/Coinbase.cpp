@@ -104,7 +104,7 @@ void DirectoryService::LookupCoinbase(
     [[gnu::unused]] const map<PubKey, Peer>& powDSWinner,
     [[gnu::unused]] const MapOfPubKeyPoW& dsPow) {
   LOG_MARKER();
-  VectorOfLookupNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
+  VectorOfNode vecLookup = m_mediator.m_lookup->GetLookupNodes();
   const auto& epochNum = m_mediator.m_currentEpochNum;
 
   lock_guard<mutex> g(m_mutexCoinbaseRewardees);

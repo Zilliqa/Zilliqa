@@ -124,7 +124,7 @@ class P2PComm {
   using BroadcastListFunc = std::function<std::vector<Peer>(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
-  void InitializeRumorManager(const std::vector<std::pair<PubKey, Peer>>& peers,
+  void InitializeRumorManager(const VectorOfNode& peers,
                               const std::vector<PubKey>& fullNetworkKeys);
   inline static bool IsHostHavingNetworkIssue();
 

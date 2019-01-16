@@ -139,8 +139,7 @@ class Node : public Executable, public Broadcastable {
   std::vector<bytes> m_txnPacketBuffer;
 
   std::mutex m_mutexMicroBlockConsensusBuffer;
-  std::unordered_map<uint32_t, std::vector<std::pair<Peer, bytes>>>
-      m_microBlockConsensusBuffer;
+  std::unordered_map<uint32_t, VectorOfNodeMsg> m_microBlockConsensusBuffer;
 
   // Fallback Consensus
   std::mutex m_mutexFallbackTimer;
@@ -223,7 +222,7 @@ class Node : public Executable, public Broadcastable {
                                 const Peer& from);
   bool ProcessMicroBlockConsensus(const bytes& message, unsigned int offset,
                                   const Peer& from);
-  bool ProcessMicroblockConsensusCore(const bytes& message, unsigned int offset,
+  bool ProcessMicroBlockConsensusCore(const bytes& message, unsigned int offset,
                                       const Peer& from);
   bool ProcessFinalBlock(const bytes& message, unsigned int offset,
                          const Peer& from);
@@ -470,7 +469,8 @@ class Node : public Executable, public Broadcastable {
 
   void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
                                       const bytes& message, unsigned int offset,
-                                      const Peer& peer);
+                                      const Peer& peer,
+                                      const PubKey& senderPubKey);
   void CleanMicroblockConsensusBuffer();
 
   void CallActOnFinalblock();
@@ -565,7 +565,7 @@ class Node : public Executable, public Broadcastable {
                           std::pair<PubKey, Peer>& dsLeader);
 
   // Get entire network peer info
-  void GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+  void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
 
  private:
