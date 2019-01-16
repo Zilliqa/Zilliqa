@@ -52,10 +52,10 @@ class Lookup : public Executable, public Broadcastable {
   Mediator& m_mediator;
 
   // Info about lookup node
-  VectorOfLookupNode m_lookupNodes;
-  VectorOfLookupNode m_lookupNodesOffline;
-  VectorOfLookupNode m_seedNodes;
-  VectorOfLookupNode m_multipliers;
+  VectorOfNode m_lookupNodes;
+  VectorOfNode m_lookupNodesOffline;
+  VectorOfNode m_seedNodes;
+  VectorOfNode m_multipliers;
   std::mutex mutable m_mutexSeedNodes;
   bool m_dsInfoWaitingNotifying = false;
   bool m_fetchedDSInfo = false;
@@ -148,10 +148,10 @@ class Lookup : public Executable, public Broadcastable {
   bool CheckStateRoot();
 
   // Getter for m_lookupNodes
-  VectorOfLookupNode GetLookupNodes() const;
+  VectorOfNode GetLookupNodes() const;
 
   // Getter for m_seedNodes
-  VectorOfLookupNode GetSeedNodes() const;
+  VectorOfNode GetSeedNodes() const;
 
   std::mutex m_txnShardMapMutex;
   std::map<uint32_t, std::vector<Transaction>> m_txnShardMap;
@@ -324,7 +324,7 @@ class Lookup : public Executable, public Broadcastable {
   void ComposeAndSendGetDirectoryBlocksFromSeed(const uint64_t& index_num,
                                                 bool toSendSeed = true);
 
-  static bool VerifySenderNode(const VectorOfLookupNode& vecLookupNodes,
+  static bool VerifySenderNode(const VectorOfNode& vecLookupNodes,
                                const PubKey& pubKeyToVerify);
 
   bool Execute(const bytes& message, unsigned int offset, const Peer& from);

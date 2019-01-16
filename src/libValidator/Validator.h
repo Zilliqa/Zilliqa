@@ -46,12 +46,10 @@ class ValidatorBase {
   virtual bool CheckDirBlocks(
       const std::vector<boost::variant<
           DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
-      const std::deque<std::pair<PubKey, Peer>>& initDsComm,
-      const uint64_t& index_num,
-      std::deque<std::pair<PubKey, Peer>>& newDSComm) = 0;
+      const DequeOfNode& initDsComm, const uint64_t& index_num,
+      DequeOfNode& newDSComm) = 0;
   virtual TxBlockValidationMsg CheckTxBlocks(
-      const std::vector<TxBlock>& txblocks,
-      const std::deque<std::pair<PubKey, Peer>>& dsComm,
+      const std::vector<TxBlock>& txblocks, const DequeOfNode& dsComm,
       const BlockLink& latestBlockLink) = 0;
 };
 
@@ -74,14 +72,12 @@ class Validator : public ValidatorBase {
   bool CheckDirBlocks(
       const std::vector<boost::variant<
           DSBlock, VCBlock, FallbackBlockWShardingStructure>>& dirBlocks,
-      const std::deque<std::pair<PubKey, Peer>>& initDsComm,
-      const uint64_t& index_num,
-      std::deque<std::pair<PubKey, Peer>>& newDSComm) override;
+      const DequeOfNode& initDsComm, const uint64_t& index_num,
+      DequeOfNode& newDSComm) override;
   // TxBlocks must be in increasing order or it will fail
-  TxBlockValidationMsg CheckTxBlocks(
-      const std::vector<TxBlock>& txBlocks,
-      const std::deque<std::pair<PubKey, Peer>>& dsComm,
-      const BlockLink& latestBlockLink) override;
+  TxBlockValidationMsg CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
+                                     const DequeOfNode& dsComm,
+                                     const BlockLink& latestBlockLink) override;
   Mediator& m_mediator;
 };
 

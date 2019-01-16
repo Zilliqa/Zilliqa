@@ -113,8 +113,8 @@ void RumorManager::StopRounds() {
 }
 
 // PUBLIC METHODS
-bool RumorManager::Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
-                              const Peer& myself, const PairOfKey& myKeys,
+bool RumorManager::Initialize(const VectorOfNode& peers, const Peer& myself,
+                              const PairOfKey& myKeys,
                               const std::vector<PubKey>& fullNetworkKeys) {
   LOG_MARKER();
   {

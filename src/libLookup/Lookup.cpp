@@ -224,7 +224,7 @@ vector<Peer> Lookup::GetAboveLayer() {
   return seedNodePeer;
 }
 
-VectorOfLookupNode Lookup::GetSeedNodes() const {
+VectorOfNode Lookup::GetSeedNodes() const {
   lock_guard<mutex> g(m_mutexSeedNodes);
 
   return m_seedNodes;
@@ -372,14 +372,14 @@ bool Lookup::GenTxnToSend(size_t num_txn,
   return true;
 }
 
-VectorOfLookupNode Lookup::GetLookupNodes() const {
+VectorOfNode Lookup::GetLookupNodes() const {
   LOG_MARKER();
   lock_guard<mutex> lock(m_mutexLookupNodes);
   return m_lookupNodes;
 }
 
 bool Lookup::IsLookupNode(const PubKey& pubKey) const {
-  VectorOfLookupNode lookups = GetLookupNodes();
+  VectorOfNode lookups = GetLookupNodes();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&pubKey](const std::pair<PubKey, Peer>& node) {
                         return node.first == pubKey;
@@ -387,7 +387,7 @@ bool Lookup::IsLookupNode(const PubKey& pubKey) const {
 }
 
 bool Lookup::IsLookupNode(const Peer& peerInfo) const {
-  VectorOfLookupNode lookups = GetLookupNodes();
+  VectorOfNode lookups = GetLookupNodes();
   return std::find_if(lookups.begin(), lookups.end(),
                       [&peerInfo](const std::pair<PubKey, Peer>& node) {
                         return node.second.GetIpAddress() ==
@@ -485,7 +485,7 @@ void Lookup::SendMessageToRandomLookupNode(const bytes& message) const {
   }
 
   // To avoid sending message to multiplier
-  VectorOfLookupNode tmp;
+  VectorOfNode tmp;
   std::copy_if(m_lookupNodes.begin(), m_lookupNodes.end(),
                std::back_inserter(tmp),
                [this](const std::pair<PubKey, Peer>& node) {
@@ -1460,7 +1460,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(const bytes& message, unsigned int offset,
   bool initialDS = false;
 
   PubKey senderPubKey;
-  std::deque<std::pair<PubKey, Peer>> dsNodes;
+  DequeOfNode dsNodes;
   uint32_t dsCommitteeVersion = 0;
   if (!Messenger::GetLookupSetDSInfoFromSeed(message, offset, senderPubKey,
                                              dsCommitteeVersion, dsNodes,
@@ -3353,7 +3353,7 @@ bool Lookup::GetIsServer() {
   return m_isServer;
 }
 
-bool Lookup::VerifySenderNode(const VectorOfLookupNode& vecLookupNodes,
+bool Lookup::VerifySenderNode(const VectorOfNode& vecLookupNodes,
                               const PubKey& pubKeyToVerify) {
   auto iter =
       std::find_if(vecLookupNodes.cbegin(), vecLookupNodes.cend(),

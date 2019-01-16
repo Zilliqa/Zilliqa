@@ -774,7 +774,7 @@ message ConsensusAnnouncement
         required uint32 consensusid           = 1;
         required uint64 blocknumber           = 2;
         required bytes blockhash              = 3; // 32 bytes
-        required uint32 leaderid              = 4; // only lower 2 bytes used    
+        required uint32 leaderid              = 4; // only lower 2 bytes used
     }
     required ConsensusInfo consensusinfo      = 1;
     oneof announcement

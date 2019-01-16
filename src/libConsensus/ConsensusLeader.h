@@ -137,14 +137,13 @@ class ConsensusLeader : public ConsensusCommon {
       const bytes& block_hash,  // unique identifier for this consensus session
       uint16_t node_id,  // leader's identifier (= index in some ordered lookup
                          // table shared by all nodes)
-      const PrivKey& privkey,  // leader's private key
-      const std::deque<std::pair<PubKey, Peer>>&
-          committee,  // ordered lookup table of pubkeys for this committee
-                      // (includes leader)
-      unsigned char class_byte,  // class byte representing Executable class
-                                 // using this instance of ConsensusLeader
-      unsigned char ins_byte,    // instruction byte representing consensus
-                                 // messages for the Executable class
+      const PrivKey& privkey,        // leader's private key
+      const DequeOfNode& committee,  // ordered lookup table of pubkeys for this
+                                     // committee (includes leader)
+      unsigned char class_byte,      // class byte representing Executable class
+                                     // using this instance of ConsensusLeader
+      unsigned char ins_byte,        // instruction byte representing consensus
+                                     // messages for the Executable class
       NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
       ShardCommitFailureHandlerFunc shardCommitFailureHandlerFunc);
 

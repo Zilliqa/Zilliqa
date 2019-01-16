@@ -26,6 +26,7 @@
 #include <unordered_map>
 
 #include "Peer.h"
+#include "ShardStruct.h"
 #include "libCrypto/Schnorr.h"
 #include "libRumorSpreading/RumorHolder.h"
 
@@ -87,8 +88,8 @@ class RumorManager {
   ~RumorManager();
 
   // METHODS
-  bool Initialize(const std::vector<std::pair<PubKey, Peer>>& peers,
-                  const Peer& myself, const PairOfKey& myKeys,
+  bool Initialize(const VectorOfNode& peers, const Peer& myself,
+                  const PairOfKey& myKeys,
                   const std::vector<PubKey>& fullNetworkKeys);
 
   bool AddRumor(const RawBytes& message);

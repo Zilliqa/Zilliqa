@@ -224,7 +224,7 @@ void Node::Init() {
   AccountStore::GetInstance().Init();
 
   {
-    std::deque<std::pair<PubKey, Peer>> buildDSComm;
+    DequeOfNode buildDSComm;
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
     if (m_mediator.m_initialDSCommittee->size() != 0) {
       for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
@@ -422,7 +422,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   m_mediator.m_dsBlockChain.Reset();
   m_mediator.m_blocklinkchain.Reset();
   {
-    std::deque<std::pair<PubKey, Peer>> buildDSComm;
+    DequeOfNode buildDSComm;
     lock_guard<mutex> lock(m_mediator.m_mutexInitialDSCommittee);
     if (m_mediator.m_initialDSCommittee->size() != 0) {
       for (const auto& initDSCommKey : *m_mediator.m_initialDSCommittee) {
@@ -752,7 +752,7 @@ void Node::WakeupAtDSEpoch() {
                                            .GetBlockNum() +
                                        1);
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -842,7 +842,7 @@ void Node::WakeupAtTxEpoch() {
 
   if (DirectoryService::IDLE != m_mediator.m_ds->m_mode) {
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       m_mediator.m_ds->GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -858,7 +858,7 @@ void Node::WakeupAtTxEpoch() {
   }
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<std::pair<PubKey, Peer>> peers;
+    VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -1960,7 +1960,7 @@ bool Node::Execute(const bytes& message, unsigned int offset,
       &Node::ProcessStartPoW,
       &Node::ProcessVCDSBlocksMessage,
       &Node::ProcessSubmitTransaction,
-      &Node::ProcessMicroblockConsensus,
+      &Node::ProcessMicroBlockConsensus,
       &Node::ProcessFinalBlock,
       &Node::ProcessMBnForwardTransaction,
       &Node::ProcessVCBlock,
@@ -2038,7 +2038,7 @@ std::string Node::GetActionString(Action action) const {
 
 /*static*/ bool Node::GetDSLeader(const BlockLink& lastBlockLink,
                                   const DSBlock& latestDSBlock,
-                                  const DequeOfDSNode& dsCommittee,
+                                  const DequeOfNode& dsCommittee,
                                   const uint64_t epochNumber,
                                   pair<PubKey, Peer>& dsLeader) {
   const auto& blocktype = get<BlockLinkIndex::BLOCKTYPE>(lastBlockLink);
@@ -2080,7 +2080,7 @@ std::string Node::GetActionString(Action action) const {
   return true;
 }
 
-void Node::GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+void Node::GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                     std::vector<PubKey>& pubKeys) {
   peers.clear();
   pubKeys.clear();

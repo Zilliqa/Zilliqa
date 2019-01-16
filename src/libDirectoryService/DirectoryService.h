@@ -169,15 +169,14 @@ class DirectoryService : public Executable, public Broadcastable {
       m_MBSubmissionBuffer;
 
   std::mutex m_mutexFinalBlockConsensusBuffer;
-  std::unordered_map<uint32_t, std::vector<std::pair<Peer, bytes>>>
-      m_finalBlockConsensusBuffer;
+  std::unordered_map<uint32_t, VectorOfNodeMsg> m_finalBlockConsensusBuffer;
 
   std::mutex m_mutexCVMissingMicroBlock;
   std::condition_variable cv_MissingMicroBlock;
 
   // View Change
   std::atomic<uint16_t> m_candidateLeaderIndex;
-  std::vector<std::pair<PubKey, Peer>> m_cumulativeFaultyLeaders;
+  VectorOfNode m_cumulativeFaultyLeaders;
   std::shared_ptr<VCBlock> m_pendingVCBlock;
   std::mutex m_mutexPendingVCBlock;
   std::condition_variable cv_ViewChangeConsensusObj;
@@ -427,7 +426,11 @@ class DirectoryService : public Executable, public Broadcastable {
   bytes ComposeVCGetDSTxBlockMessage();
   bool ComposeVCBlockForSender(bytes& vcblock_message);
 
-  void CleanFinalblockConsensusBuffer();
+  void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
+                                      const bytes& message, unsigned int offset,
+                                      const Peer& peer,
+                                      const PubKey& senderPubKey);
+  void CleanFinalBlockConsensusBuffer();
 
   uint8_t CalculateNewDifficulty(const uint8_t& currentDifficulty);
   uint8_t CalculateNewDSDifficulty(const uint8_t& dsDifficulty);
@@ -633,7 +636,7 @@ class DirectoryService : public Executable, public Broadcastable {
   bool UpdateDSGuardIdentity();
 
   // Get entire network peer info
-  void GetEntireNetworkPeerInfo(std::vector<std::pair<PubKey, Peer>>& peers,
+  void GetEntireNetworkPeerInfo(VectorOfNode& peers,
                                 std::vector<PubKey>& pubKeys);
 
  private:

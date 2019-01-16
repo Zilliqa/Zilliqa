@@ -57,7 +57,7 @@ void processShards(
 }
 
 void processDSCommittee(
-    const DequeOfDSNode& dsCommittee,
+    const DequeOfNode& dsCommittee,
     std::map<std::string, std::map<uint64_t, std::string>>& results,
     uint64_t dsEpochNo) {
   uint64_t dsCommitteeIndex = 0;

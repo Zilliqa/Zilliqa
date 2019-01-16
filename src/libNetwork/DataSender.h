@@ -27,8 +27,7 @@
 #include "libData/BlockData/Block/BlockBase.h"
 
 typedef std::function<bool(bytes& message)> ComposeMessageForSenderFunc;
-typedef std::function<void(const VectorOfLookupNode& lookups,
-                           const bytes& message)>
+typedef std::function<void(const VectorOfNode& lookups, const bytes& message)>
     SendDataToLookupFunc;
 typedef std::function<void(const bytes& message, const DequeOfShard& shards,
                            const unsigned int& my_shards_lo,
@@ -50,11 +49,12 @@ class DataSender : Singleton<DataSender> {
 
   static DataSender& GetInstance();
 
-  void DetermineShardToSendDataTo(
-      unsigned int& my_cluster_num, unsigned int& my_shards_lo,
-      unsigned int& my_shards_hi, const DequeOfShard& shards,
-      const std::deque<std::pair<PubKey, Peer>>& tmpCommittee,
-      const uint16_t& indexB2);
+  void DetermineShardToSendDataTo(unsigned int& my_cluster_num,
+                                  unsigned int& my_shards_lo,
+                                  unsigned int& my_shards_hi,
+                                  const DequeOfShard& shards,
+                                  const DequeOfNode& tmpCommittee,
+                                  const uint16_t& indexB2);
 
   void DetermineNodesToSendDataTo(
       const DequeOfShard& shards,
@@ -64,11 +64,10 @@ class DataSender : Singleton<DataSender> {
       std::deque<std::vector<Peer>>& sharded_receivers);
 
   bool SendDataToOthers(
-      const BlockBase& blockwcosig,
-      const std::deque<std::pair<PubKey, Peer>>& sendercommittee,
+      const BlockBase& blockwcosig, const DequeOfNode& sendercommittee,
       const DequeOfShard& shards,
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-      const VectorOfLookupNode& lookups, const BlockHash& hashForRandom,
+      const VectorOfNode& lookups, const BlockHash& hashForRandom,
       const uint16_t& consensusMyId, const ComposeMessageForSenderFunc&,
       const SendDataToLookupFunc& sendDataToLookupFunc =
           SendDataToLookupFuncDefault,

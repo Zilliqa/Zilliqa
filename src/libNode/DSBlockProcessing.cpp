@@ -304,7 +304,7 @@ void Node::StartFirstTxEpoch() {
   m_justDidFallback = false;
 
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<std::pair<PubKey, Peer>> peers;
+    VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 

@@ -41,7 +41,7 @@ class VCBlockHeader : public BlockHeaderBase {
   Peer m_CandidateLeaderNetworkInfo;
   PubKey m_CandidateLeaderPubKey;
   uint32_t m_VCCounter;
-  std::vector<std::pair<PubKey, Peer>> m_FaultyLeaders;
+  VectorOfNode m_FaultyLeaders;
 
  public:
   /// Default constructor.
@@ -57,8 +57,7 @@ class VCBlockHeader : public BlockHeaderBase {
                 const unsigned char viewChangeState,
                 const Peer& candidateLeaderNetworkInfo,
                 const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
-                const std::vector<std::pair<PubKey, Peer>>& faultyLeaders,
-                const uint32_t version = 0,
+                const VectorOfNode& faultyLeaders, const uint32_t version = 0,
                 const CommitteeHash& committeeHash = CommitteeHash(),
                 const BlockHash& prevHash = BlockHash());
 
@@ -90,7 +89,7 @@ class VCBlockHeader : public BlockHeaderBase {
   uint32_t GetViewChangeCounter() const;
 
   /// Return all the faulty leaders in the current round of view change
-  const std::vector<std::pair<PubKey, Peer>>& GetFaultyLeaders() const;
+  const VectorOfNode& GetFaultyLeaders() const;
 
   /// Equality operator.
   bool operator==(const VCBlockHeader& header) const;

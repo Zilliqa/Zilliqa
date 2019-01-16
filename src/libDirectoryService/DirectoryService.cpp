@@ -229,7 +229,7 @@ bool DirectoryService::ProcessSetPrimary(const bytes& message,
 
   // Lets start the gossip as earliest as possible
   if (BROADCAST_GOSSIP_MODE) {
-    std::vector<std::pair<PubKey, Peer>> peers;
+    VectorOfNode peers;
     std::vector<PubKey> pubKeys;
     GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -468,7 +468,7 @@ bool DirectoryService::CleanVariables() {
     m_missingMicroBlocks.clear();
     m_totalTxnFees = 0;
   }
-  CleanFinalblockConsensusBuffer();
+  CleanFinalBlockConsensusBuffer();
 
   m_finalBlock.reset();
   m_sharingAssignment.clear();
@@ -528,7 +528,7 @@ bool DirectoryService::FinishRejoinAsDS() {
     }
 
     if (BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -544,7 +544,7 @@ bool DirectoryService::FinishRejoinAsDS() {
   }
 
   m_mode = BACKUP_DS;
-  DequeOfDSNode dsComm;
+  DequeOfNode dsComm;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);
     LOG_GENERAL(INFO,
@@ -624,7 +624,7 @@ void DirectoryService::StartNewDSEpochConsensus(bool fromFallback,
   m_mediator.m_consensusID = 0;
   m_mediator.m_node->SetConsensusLeaderID(0);
 
-  CleanFinalblockConsensusBuffer();
+  CleanFinalBlockConsensusBuffer();
 
   m_mediator.m_node->CleanCreatedTransaction();
 
@@ -890,7 +890,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
     }
 
     if (foundDSGuardNode && BROADCAST_GOSSIP_MODE) {
-      std::vector<std::pair<PubKey, Peer>> peers;
+      VectorOfNode peers;
       std::vector<PubKey> pubKeys;
       GetEntireNetworkPeerInfo(peers, pubKeys);
 
@@ -1116,8 +1116,8 @@ int64_t DirectoryService::GetAllPoWSize() const {
   return m_allPoWs.size();
 }
 
-void DirectoryService::GetEntireNetworkPeerInfo(
-    std::vector<std::pair<PubKey, Peer>>& peers, std::vector<PubKey>& pubKeys) {
+void DirectoryService::GetEntireNetworkPeerInfo(VectorOfNode& peers,
+                                                std::vector<PubKey>& pubKeys) {
   peers.clear();
   pubKeys.clear();
 

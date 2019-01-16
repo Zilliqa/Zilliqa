@@ -26,7 +26,7 @@
 
 using namespace std;
 
-void SendDataToLookupNodesDefault(const VectorOfLookupNode& lookups,
+void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
                                   const bytes& message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -85,8 +85,7 @@ void SendDataToShardNodesDefault(
 }
 
 SendDataToLookupFunc SendDataToLookupFuncDefault =
-    [](const VectorOfLookupNode& lookups,
-       const bytes& message) mutable -> void {
+    [](const VectorOfNode& lookups, const bytes& message) mutable -> void {
   SendDataToLookupNodesDefault(lookups, message);
 };
 
@@ -236,7 +235,7 @@ bool DataSender::SendDataToOthers(
     const deque<pair<PubKey, Peer>>& sendercommittee,
     const DequeOfShard& shards,
     const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
-    const VectorOfLookupNode& lookups, const BlockHash& hashForRandom,
+    const VectorOfNode& lookups, const BlockHash& hashForRandom,
     const uint16_t& consensusMyId,
     const ComposeMessageForSenderFunc& composeMessageForSenderFunc,
     const SendDataToLookupFunc& sendDataToLookupFunc,
