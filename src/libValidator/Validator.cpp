@@ -20,6 +20,7 @@
 #include "Validator.h"
 #include "libData/AccountData/Account.h"
 #include "libMediator/Mediator.h"
+#include "libMessage/Messenger.h"
 #include "libUtils/BitVector.h"
 
 using namespace std;
