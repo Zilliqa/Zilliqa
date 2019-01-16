@@ -762,19 +762,12 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
     lock_guard<mutex> g(m_mediator.m_mutexCurSWInfo);
     if (m_mediator.m_curSWInfo.GetZilliqaUpgradeDS() - 1 ==
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      auto func = [this]() mutable -> void {
-        UpgradeManager::GetInstance().ReplaceNode(m_mediator);
-      };
-
-      DetachedFunction(1, func);
+      UpgradeManager::GetInstance().ReplaceNode(m_mediator);
     }
 
     if (m_mediator.m_curSWInfo.GetScillaUpgradeDS() - 1 ==
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-      auto func = []() mutable -> void {
-        UpgradeManager::GetInstance().InstallScilla();
-      };
-      DetachedFunction(1, func);
+      UpgradeManager::GetInstance().InstallScilla();
     }
   }
 

@@ -22,6 +22,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
 #include "libCrypto/MultiSig.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -543,73 +544,78 @@ bool UpgradeManager::DownloadSW() {
 bool UpgradeManager::ReplaceNode(Mediator& mediator) {
   LOG_MARKER();
 
-  if (LOOKUP_NODE_MODE) {
-    LOG_GENERAL(INFO, "Lookup node, upgrade after "
-                          << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                 TERMINATION_COUNTDOWN_OFFSET_LOOKUP
-                          << " seconds...");
-    this_thread::sleep_for(
-        chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                        TERMINATION_COUNTDOWN_OFFSET_LOOKUP));
+  auto func = [this, &mediator]() mutable -> void {
+    if (LOOKUP_NODE_MODE) {
+      LOG_GENERAL(INFO, "Lookup node, upgrade after "
+                            << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                   TERMINATION_COUNTDOWN_OFFSET_LOOKUP
+                            << " seconds...");
+      this_thread::sleep_for(
+          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                          TERMINATION_COUNTDOWN_OFFSET_LOOKUP));
 
-    BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED, {'0'});
-  } else {
-    if (DirectoryService::IDLE == mediator.m_ds->m_mode) {
-      LOG_GENERAL(INFO, "Shard node, upgrade after "
-                            << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                   TERMINATION_COUNTDOWN_OFFSET_SHARD
-                            << " seconds...");
-      this_thread::sleep_for(
-          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                          TERMINATION_COUNTDOWN_OFFSET_SHARD));
-    } else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode) {
-      LOG_GENERAL(INFO, "DS backup node, upgrade after "
-                            << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                   TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP
-                            << " seconds...");
-      this_thread::sleep_for(
-          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                          TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP));
-    } else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode) {
-      LOG_GENERAL(INFO, "DS leader node, upgrade after "
-                            << TERMINATION_COUNTDOWN_IN_SECONDS +
-                                   TERMINATION_COUNTDOWN_OFFSET_DS_LEADER
-                            << " seconds...");
-      this_thread::sleep_for(
-          chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
-                          TERMINATION_COUNTDOWN_OFFSET_DS_LEADER));
+      BlockStorage::GetBlockStorage().PutMetadata(MetaType::DSINCOMPLETED,
+                                                  {'0'});
+    } else {
+      if (DirectoryService::IDLE == mediator.m_ds->m_mode) {
+        LOG_GENERAL(INFO, "Shard node, upgrade after "
+                              << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                     TERMINATION_COUNTDOWN_OFFSET_SHARD
+                              << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                            TERMINATION_COUNTDOWN_OFFSET_SHARD));
+      } else if (DirectoryService::BACKUP_DS == mediator.m_ds->m_mode) {
+        LOG_GENERAL(INFO, "DS backup node, upgrade after "
+                              << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                     TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP
+                              << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                            TERMINATION_COUNTDOWN_OFFSET_DS_BACKUP));
+      } else if (DirectoryService::PRIMARY_DS == mediator.m_ds->m_mode) {
+        LOG_GENERAL(INFO, "DS leader node, upgrade after "
+                              << TERMINATION_COUNTDOWN_IN_SECONDS +
+                                     TERMINATION_COUNTDOWN_OFFSET_DS_LEADER
+                              << " seconds...");
+        this_thread::sleep_for(
+            chrono::seconds(TERMINATION_COUNTDOWN_IN_SECONDS +
+                            TERMINATION_COUNTDOWN_OFFSET_DS_LEADER));
+      }
     }
-  }
 
-  BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
-                                              {'1'});
+    BlockStorage::GetBlockStorage().PutMetadata(MetaType::WAKEUPFORUPGRADE,
+                                                {'1'});
 
-  /// Deploy downloaded software
-  if (ARCHIVAL_LOOKUP) {
-    boost::filesystem::copy_file(
-        m_constantArchivalLookupFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
-  } else if (LOOKUP_NODE_MODE) {
-    boost::filesystem::copy_file(
-        m_constantLookupFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
-  } else {
-    boost::filesystem::copy_file(
-        m_constantFileName, CONSTANT_FILE_NAME,
-        boost::filesystem::copy_option::overwrite_if_exists);
-  }
+    /// Deploy downloaded software
+    if (ARCHIVAL_LOOKUP) {
+      boost::filesystem::copy_file(
+          m_constantArchivalLookupFileName, CONSTANT_FILE_NAME,
+          boost::filesystem::copy_option::overwrite_if_exists);
+    } else if (LOOKUP_NODE_MODE) {
+      boost::filesystem::copy_file(
+          m_constantLookupFileName, CONSTANT_FILE_NAME,
+          boost::filesystem::copy_option::overwrite_if_exists);
+    } else {
+      boost::filesystem::copy_file(
+          m_constantFileName, CONSTANT_FILE_NAME,
+          boost::filesystem::copy_option::overwrite_if_exists);
+    }
 
-  /// TBD: The call of "dpkg" should be removed.
-  /// (https://github.com/Zilliqa/Issues/issues/185)
-  if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_zilliqaPackageFileName.data(),
-            nullptr) < 0) {
-    LOG_GENERAL(WARNING, "Cannot deploy downloaded Zilliqa software!");
-    return false;
-  }
+    /// TBD: The call of "dpkg" should be removed.
+    /// (https://github.com/Zilliqa/Issues/issues/185)
+    if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_zilliqaPackageFileName.data(),
+              nullptr) < 0) {
+      LOG_GENERAL(WARNING, "Cannot deploy downloaded Zilliqa software!");
+      return;
+    }
 
-  /// Kill current node, then the recovery procedure will wake up node with
-  /// stored data
-  return raise(SIGKILL) == 0;
+    /// Kill current node, then the recovery procedure will wake up node with
+    /// stored data
+    raise(SIGKILL);
+  };
+  DetachedFunction(1, func);
+  return true;
 }
 
 bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
@@ -686,50 +692,52 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
 bool UpgradeManager::InstallScilla() {
   LOG_MARKER();
 
-  if (!m_scillaPackageFileName.empty()) {
-    if (!UpgradeManager::UnconfigureScillaPackage()) {
-      return false;
-    }
-
-    LOG_GENERAL(INFO, "Start to install Scilla...");
-
-    pid_t pid = fork();
-
-    if (pid == -1) {
-      LOG_GENERAL(WARNING, "Cannot fork a process for installing scilla!");
-      return false;
-    }
-
-    if (pid > 0) {
-      /// Parent process
-      int status;
-      do {
-        if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
-          perror("wait() error");
-        } else if (pid == 0) {
-          LOG_GENERAL(INFO, "Still under installing scilla...");
-          this_thread::sleep_for(chrono::seconds(1));
-        } else {
-          if (WIFEXITED(status)) {
-            LOG_GENERAL(INFO, "Scilla has been installed successfully.");
-          } else {
-            LOG_GENERAL(WARNING, "Failed to install scilla with status "
-                                     << WEXITSTATUS(status));
-            return false;
-          }
-        }
-      } while (pid == 0);
-    } else {
-      /// Child process
-      if (execl(DPKG_BINARY_PATH, "dpkg", "-i", m_scillaPackageFileName.data(),
-                nullptr) < 0) {
-        LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+  auto func = [this]() mutable -> void {
+    if (!m_scillaPackageFileName.empty()) {
+      if (!UpgradeManager::UnconfigureScillaPackage()) {
+        return;
       }
 
-      exit(0);
-    }
-  }
+      LOG_GENERAL(INFO, "Start to install Scilla...");
 
+      pid_t pid = fork();
+
+      if (pid == -1) {
+        LOG_GENERAL(WARNING, "Cannot fork a process for installing scilla!");
+        return;
+      }
+
+      if (pid > 0) {
+        /// Parent process
+        int status;
+        do {
+          if ((pid = waitpid(pid, &status, WNOHANG)) == -1) {
+            perror("wait() error");
+          } else if (pid == 0) {
+            LOG_GENERAL(INFO, "Still under installing scilla...");
+            this_thread::sleep_for(chrono::seconds(1));
+          } else {
+            if (WIFEXITED(status)) {
+              LOG_GENERAL(INFO, "Scilla has been installed successfully.");
+            } else {
+              LOG_GENERAL(WARNING, "Failed to install scilla with status "
+                                       << WEXITSTATUS(status));
+              return;
+            }
+          }
+        } while (pid == 0);
+      } else {
+        /// Child process
+        if (execl(DPKG_BINARY_PATH, "dpkg", "-i",
+                  m_scillaPackageFileName.data(), nullptr) < 0) {
+          LOG_GENERAL(WARNING, "Cannot deploy downloaded Scilla software!");
+        }
+
+        exit(0);
+      }
+    }
+  };
+  DetachedFunction(1, func);
   return true;
 }
 
