@@ -989,7 +989,6 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
       DSBlock dsblk = m_mediator.m_dsBlockChain.GetBlock(blockNum);
-      // Internal issue #415
       // TODO Hot fix to identify dummy block as == comparator does not work on
       // empty object for TxBlock and TxBlockheader().
       if (dsblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER) {
@@ -1127,7 +1126,6 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
       TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blockNum);
-      // Internal issue #415
       // TODO Hot fix to identify dummy block as == comparator does not work on
       // empty object for TxBlock and TxBlockheader().
       if (txblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
