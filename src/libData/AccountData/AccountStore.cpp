@@ -177,7 +177,7 @@ bool AccountStore::MoveUpdatesToDisk() {
 
   unordered_map<string, string> code_batch;
 
-  for (auto i : *m_addressToAccount) {
+  for (auto& i : *m_addressToAccount) {
     if (i.second.isContract()) {
       if (ContractStorage::GetContractStorage()
               .GetContractCode(i.first)
@@ -213,7 +213,7 @@ bool AccountStore::MoveUpdatesToDisk() {
     }
   }
 
-  for (auto i : *m_addressToAccount) {
+  for (auto& i : *m_addressToAccount) {
     i.second.CleanCodeCache();
   }
 
