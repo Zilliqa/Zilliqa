@@ -990,7 +990,7 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
     try {
       DSBlock dsblk = m_mediator.m_dsBlockChain.GetBlock(blockNum);
       // TODO Hot fix to identify dummy block as == comparator does not work on
-      // empty object for TxBlock and TxBlockheader().
+      // empty object for DSBlock and DSBlockheader().
       if (dsblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER) {
         LOG_GENERAL(WARNING,
                     "Block Number " << blockNum << " does not exists.");
