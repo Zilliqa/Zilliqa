@@ -269,17 +269,21 @@ bool UpgradeManager::HasNewSW() {
   LOG_GENERAL(INFO, "Version file has been downloaded successfully.");
 
   vector<PubKey> pubKeys;
-  {
-    fstream pubKeyFile(pubKeyFileName, ios::in);
-    string pubKey;
 
-    while (getline(pubKeyFile, pubKey) && PUBLIC_KEY_LENGTH == pubKey.size()) {
-      bytes tempPubKeyBytes;
-      if (!DataConversion::HexStrToUint8Vec(pubKey, tempPubKeyBytes)) {
-        continue;
+  try {
+    string line;
+    fstream pubFile(pubKeyFileName, ios::in);
+
+    while (getline(pubFile, line)) {
+      try {
+        pubKeys.push_back(PubKey::GetPubKeyFromString(line));
+      } catch (std::invalid_argument& e) {
+        std::cerr << e.what() << endl;
       }
-      pubKeys.emplace_back(tempPubKeyBytes, 0);
     }
+  } catch (std::exception& e) {
+    std::cerr << "Problem occured when processing public keys on line: "
+              << pubKeys.size() + 1 << endl;
   }
 
   LOG_GENERAL(INFO, "Parsing public key file completed.");
@@ -310,12 +314,7 @@ bool UpgradeManager::HasNewSW() {
   LOG_GENERAL(INFO, "Parsing version file completed.");
 
   if (zilliqaSigStr != "0") {
-    bytes tempSha;
-    if (!DataConversion::HexStrToUint8Vec(zilliqaShaStr, tempSha)) {
-      return false;
-    }
-
-    const bytes zilliqaSha = tempSha;
+    const bytes zilliqaSha(zilliqaShaStr.begin(), zilliqaShaStr.end());
     bytes tempMultisigBytes;
     DataConversion::HexStrToUint8Vec(zilliqaSigStr, tempMultisigBytes);
     shared_ptr<Signature> zilliqaSig(new Signature(tempMultisigBytes, 0));
@@ -333,12 +332,7 @@ bool UpgradeManager::HasNewSW() {
   }
 
   if (scillaSigStr != "0") {
-    bytes tempSha;
-    if (!DataConversion::HexStrToUint8Vec(scillaShaStr, tempSha)) {
-      return false;
-    }
-
-    const bytes scillaSha = tempSha;
+    const bytes scillaSha(scillaShaStr.begin(), scillaShaStr.end());
     bytes tempMultisigBytes;
     DataConversion::HexStrToUint8Vec(scillaSigStr, tempMultisigBytes);
     shared_ptr<Signature> scillaSig(new Signature(tempMultisigBytes, 0));

@@ -70,14 +70,8 @@ int main(int argc, const char* argv[]) {
 
     bytes message(message_.begin(), message_.end());
 
-    vector<uint8_t> v;
-    v.push_back(53);
-
-    PrivKey pk(v, 0);
-
-    string line;
     try {
-      bytes key_v;
+      string line;
       fstream privFile(privk_fn, ios::in);
       while (getline(privFile, line)) {
         try {
@@ -100,7 +94,7 @@ int main(int argc, const char* argv[]) {
     }
 
     try {
-      bytes key_v;
+      string line;
       fstream pubFile(pubk_fn, ios::in);
       while (getline(pubFile, line)) {
         try {
@@ -133,52 +127,26 @@ int main(int argc, const char* argv[]) {
     /// Generate individual commitments
     vector<CommitSecret> secrets(pubKeys.size());
     vector<CommitPoint> points;
-    vector<CommitSecret> secrets1;
-    vector<CommitPoint> points1;
     for (unsigned int i = 0; i < pubKeys.size(); i++) {
-      bytes tmp1, tmp2;
-      secrets.at(i).Serialize(tmp1, 0);
-      secrets1.emplace_back(tmp1, 0);
       points.emplace_back(secrets.at(i));
-      points.back().Serialize(tmp2, 0);
-      points1.emplace_back(tmp2, 0);
     }
-
-    /// Check PrintPoint function
-    Schnorr::GetInstance().PrintPoint(aggregatedPubkey->m_P.get());
-
-    /// Check CommitSecret operator =
-    CommitSecret dummy_secret;
-    dummy_secret = secrets.at(0);
 
     /// Aggregate commits
     shared_ptr<CommitPoint> aggregatedCommit =
         MultiSig::AggregateCommits(points);
-    shared_ptr<CommitPoint> aggregatedCommit1 =
-        MultiSig::AggregateCommits(points1);
 
     /// Generate challenge
     Challenge challenge(*aggregatedCommit, *aggregatedPubkey, message);
-    bytes tmp;
-    challenge.Serialize(tmp, 0);
-    Challenge challenge2(tmp, 0);
-    tmp.clear();
 
     /// Generate responses
     vector<Response> responses;
-    vector<Response> responses1;
     for (unsigned int i = 0; i < pubKeys.size(); i++) {
       responses.emplace_back(secrets.at(i), challenge, privKeys.at(i));
-      bytes tmp;
-      responses.back().Serialize(tmp, 0);
-      responses1.emplace_back(tmp, 0);
     }
 
     /// Aggregate responses
     shared_ptr<Response> aggregatedResponse =
         MultiSig::AggregateResponses(responses);
-    shared_ptr<Response> aggregatedResponse1 =
-        MultiSig::AggregateResponses(responses1);
 
     /// Generate the aggregated signature
     shared_ptr<Signature> signature =
