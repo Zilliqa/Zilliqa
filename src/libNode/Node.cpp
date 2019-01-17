@@ -1387,6 +1387,10 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 
   std::vector<Transaction> checkedTxns;
   for (const auto& txn : txns) {
+    if (m_mediator.GetIsVacuousEpoch()) {
+      LOG_GENERAL(WARNING, "Already in vacuous epoch, stop proc txn");
+      return false;
+    }
     if (m_mediator.m_validator->CheckCreatedTransactionFromLookup(txn)) {
       checkedTxns.push_back(txn);
     } else {

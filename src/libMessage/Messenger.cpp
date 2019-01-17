@@ -299,8 +299,7 @@ inline bool CheckRequiredFieldsProtoAccountDefault(
 
 inline bool CheckRequiredFieldsProtoAccountContract(
     const ProtoAccount& protoAccount) {
-  return protoAccount.has_codehash() && protoAccount.has_createblocknum() &&
-         protoAccount.has_initdata() && protoAccount.has_code();
+  return protoAccount.has_codehash() && protoAccount.has_code();
 }
 
 inline bool CheckRequiredFieldsProtoAccountDeltaDefault(
@@ -335,9 +334,6 @@ void AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   if (account.GetCode().size() > 0) {
     protoAccount.set_codehash(account.GetCodeHash().data(),
                               account.GetCodeHash().size);
-    protoAccount.set_createblocknum(account.GetCreateBlockNum());
-    protoAccount.set_initdata(account.GetInitData().data(),
-                              account.GetInitData().size());
     protoAccount.set_code(account.GetCode().data(), account.GetCode().size());
 
     for (const auto& keyHash : account.GetStorageKeyHashes()) {
@@ -395,35 +391,18 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       return false;
     }
 
-    account.SetCreateBlockNum(protoAccount.createblocknum());
-
-    if (protoAccount.initdata().size() > 0) {
-      tmpVec.resize(protoAccount.initdata().size());
-      copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
-           tmpVec.begin());
-      if (!account.InitContract(tmpVec, addr)) {
-        return false;
-      }
-    }
-
     vector<pair<dev::h256, bytes>> entries;
     for (const auto& entry : protoAccount.storage()) {
       if (!Messenger::CopyWithSizeCheck(entry.keyhash(), tmpHash.asArray())) {
         return false;
       }
 
-      if (!HASHMAP_CONTRACT_STATE_DB) {
-        account.SetStorage(tmpHash, entry.data());
-      } else {
-        entries.emplace_back(tmpHash,
-                             DataConversion::StringToCharArray(entry.data()));
-      }
+      entries.emplace_back(tmpHash,
+                           DataConversion::StringToCharArray(entry.data()));
     }
 
-    if (HASHMAP_CONTRACT_STATE_DB) {
-      if (!account.SetStorage(addr, entries)) {
-        return false;
-      }
+    if (!account.SetStorage(addr, entries)) {
+      return false;
     }
 
     if (account.GetStorageRoot() != tmpStorageRoot) {
@@ -480,11 +459,9 @@ void AccountDeltaToProtobuf(const Account* oldAccount,
 
   if (!newAccount.GetCode().empty()) {
     if (fullCopy) {
+      LOG_GENERAL(INFO, "full copy");
       protoAccount.set_code(newAccount.GetCode().data(),
                             newAccount.GetCode().size());
-      protoAccount.set_initdata(newAccount.GetInitData().data(),
-                                newAccount.GetInitData().size());
-      protoAccount.set_createblocknum(newAccount.GetCreateBlockNum());
       protoAccount.set_codehash(newAccount.GetCodeHash().data(),
                                 newAccount.GetCodeHash().size);
     }
@@ -532,9 +509,8 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
   account.IncreaseNonceBy(protoAccount.nonce());
 
-  if (protoAccount.code().size() > 0 || account.isContract()) {
-    bool doInitContract = false;
-
+  if ((protoAccount.has_code() && protoAccount.code().size() > 0) ||
+      account.isContract()) {
     if (fullCopy) {
       if (!CheckRequiredFieldsProtoAccountContract(protoAccount)) {
         LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountContract failed");
@@ -547,6 +523,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
         return false;
       }
       bytes tmpVec;
+
       if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
         LOG_GENERAL(WARNING, "Code size "
                                  << protoAccount.code().size()
@@ -573,16 +550,6 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                                  << " Actual: " << tmpHash.hex());
         return false;
       }
-
-      if (!protoAccount.initdata().empty() && account.GetInitData().empty()) {
-        tmpVec.resize(protoAccount.initdata().size());
-        copy(protoAccount.initdata().begin(), protoAccount.initdata().end(),
-             tmpVec.begin());
-        account.SetInitData(tmpVec);
-        doInitContract = true;
-      }
-
-      account.SetCreateBlockNum(protoAccount.createblocknum());
     }
 
     dev::h256 tmpStorageRoot;
@@ -593,12 +560,6 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
          tmpStorageRoot.asArray().begin());
 
     if (tmpStorageRoot != account.GetStorageRoot()) {
-      if (doInitContract) {
-        if (!account.InitContract(addr)) {
-          return false;
-        }
-      }
-
       dev::h256 tmpHash;
 
       vector<pair<dev::h256, bytes>> entries;
@@ -607,18 +568,12 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
           return false;
         }
 
-        if (!HASHMAP_CONTRACT_STATE_DB) {
-          account.SetStorage(tmpHash, entry.data());
-        } else {
-          entries.emplace_back(tmpHash,
-                               DataConversion::StringToCharArray(entry.data()));
-        }
+        entries.emplace_back(tmpHash,
+                             DataConversion::StringToCharArray(entry.data()));
       }
 
-      if (HASHMAP_CONTRACT_STATE_DB) {
-        if (!account.SetStorage(addr, entries)) {
-          return false;
-        }
+      if (!account.SetStorage(addr, entries)) {
+        return false;
       }
 
       if (tmpStorageRoot != account.GetStorageRoot()) {
@@ -742,7 +697,28 @@ void StateDataToProtobuf(const Contract::StateEntry& entry,
   protoStateData.set_vname(std::get<Contract::VNAME>(entry));
   protoStateData.set_ismutable(std::get<Contract::MUTABLE>(entry));
   protoStateData.set_type(std::get<Contract::TYPE>(entry));
-  protoStateData.set_value(std::get<Contract::VALUE>(entry));
+
+  string value = std::get<Contract::VALUE>(entry);
+  if (value.front() == '"') {
+    value.erase(0, 1);
+  }
+  if (value.back() == '"') {
+    value.erase(value.size() - 1);
+  }
+  value.erase(std::remove_if(value.begin(), value.end(),
+                             [](char c) {
+                               switch (c) {
+                                 case '\t':
+                                 case ' ':
+                                 case '\n':
+                                   return true;
+                                 default:
+                                   return false;
+                               }
+                             }),
+              value.end());
+
+  protoStateData.set_value(value);
 }
 
 bool ProtobufToStateData(const ProtoStateData& protoStateData,
@@ -1702,7 +1678,7 @@ void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
   BlockHeaderBaseToProtobuf(vcBlockHeader, *protoBlockHeaderBase);
 
   protoVCBlockHeader.set_viewchangedsepochno(
-      vcBlockHeader.GetVieWChangeDSEpochNo());
+      vcBlockHeader.GetViewChangeDSEpochNo());
   protoVCBlockHeader.set_viewchangeepochno(
       vcBlockHeader.GetViewChangeEpochNo());
   protoVCBlockHeader.set_viewchangestate(vcBlockHeader.GetViewChangeState());
@@ -6149,13 +6125,15 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     const vector<
         boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
         directoryBlocks,
-    const uint64_t& indexNum) {
+    const uint64_t& indexNum, const PairOfKey& lookupKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
-  result.set_indexnum(indexNum);
+  result.mutable_data()->set_indexnum(indexNum);
+  SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   for (const auto& dirblock : directoryBlocks) {
-    ProtoSingleDirectoryBlock* proto_dir_blocks = result.add_dirblocks();
+    ProtoSingleDirectoryBlock* proto_dir_blocks =
+        result.mutable_data()->add_dirblocks();
     if (dirblock.type() == typeid(DSBlock)) {
       DSBlockToProtobuf(get<DSBlock>(dirblock),
                         *proto_dir_blocks->mutable_dsblock());
@@ -6174,6 +6152,25 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     }
   }
 
+  Signature signature;
+  if (result.data().IsInitialized()) {
+    bytes tmp(result.data().ByteSize());
+    result.data().SerializeToArray(tmp.data(), tmp.size());
+
+    if (!Schnorr::GetInstance().Sign(tmp, lookupKey.first, lookupKey.second,
+                                     signature)) {
+      LOG_GENERAL(
+          WARNING,
+          "Failed to sign set LookupSetDirectoryBlocksFromSeed message.");
+      return false;
+    }
+    SerializableToProtobufByteArray(signature, *result.mutable_signature());
+  } else {
+    LOG_GENERAL(WARNING,
+                "LookupSetDirectoryBlocksFromSeed.Data initialization failed.");
+    return false;
+  }
+
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
                 "LookupSetDirectoryBlocksFromSeed initialization failed");
@@ -6187,7 +6184,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     uint32_t& shardingStructureVersion,
     vector<boost::variant<DSBlock, VCBlock, FallbackBlockWShardingStructure>>&
         directoryBlocks,
-    uint64_t& indexNum) {
+    uint64_t& indexNum, PubKey& pubKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -6198,9 +6195,23 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  indexNum = result.indexnum();
+  bytes tmp(result.data().ByteSize());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
 
-  for (const auto& dirblock : result.dirblocks()) {
+  ProtobufByteArrayToSerializable(result.pubkey(), pubKey);
+
+  Signature signature;
+  ProtobufByteArrayToSerializable(result.signature(), signature);
+
+  if (!Schnorr::GetInstance().Verify(tmp, signature, pubKey)) {
+    LOG_GENERAL(WARNING,
+                "Invalid signature in LookupSetDirectoryBlocksFromSeed.");
+    return false;
+  }
+
+  indexNum = result.data().indexnum();
+
+  for (const auto& dirblock : result.data().dirblocks()) {
     DSBlock dsblock;
     VCBlock vcblock;
     FallbackBlockWShardingStructure fallbackblockwshard;
@@ -6246,6 +6257,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
         break;
     }
   }
+
   return true;
 }
 
@@ -7430,7 +7442,7 @@ bool Messenger::SetSeedNodeHistoricalDB(bytes& dst, const unsigned int offset,
                                   *result.mutable_pubkey());
 
   if (result.data().IsInitialized()) {
-    vector<unsigned char> tmp(result.data().ByteSize());
+    bytes tmp(result.data().ByteSize());
     result.data().SerializeToArray(tmp.data(), tmp.size());
     Signature signature;
     if (!Schnorr::GetInstance().Sign(tmp, archivalKeys.first,
@@ -7466,7 +7478,7 @@ bool Messenger::GetSeedNodeHistoricalDB(const bytes& src,
   ProtobufByteArrayToSerializable(result.pubkey(), archivalPubKey);
   Signature signature;
   ProtobufByteArrayToSerializable(result.signature(), signature);
-  vector<unsigned char> tmp(result.data().ByteSize());
+  bytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::GetInstance().Verify(tmp, 0, tmp.size(), signature,
                                      archivalPubKey)) {

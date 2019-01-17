@@ -138,6 +138,10 @@ class Node : public Executable, public Broadcastable {
   std::mutex m_mutexTxnPacketBuffer;
   std::vector<bytes> m_txnPacketBuffer;
 
+  // txn proc timeout related
+  std::mutex m_mutexCVTxnProcFinished;
+  std::condition_variable cv_TxnProcFinished;
+
   std::mutex m_mutexMicroBlockConsensusBuffer;
   std::unordered_map<uint32_t, VectorOfNodeMsg> m_microBlockConsensusBuffer;
 
@@ -282,6 +286,7 @@ class Node : public Executable, public Broadcastable {
   bool CheckMicroBlockStateDeltaHash();
   bool CheckMicroBlockTranReceiptHash();
 
+  void NotifyTimeout(bool& txnProcTimeout);
   bool VerifyTxnsOrdering(const std::vector<TxnHash>& tranHashes);
 
   // Fallback Consensus

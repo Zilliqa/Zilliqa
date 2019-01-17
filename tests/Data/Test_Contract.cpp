@@ -422,14 +422,14 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   }
 
   // Fetch the states of both ping and pong and verify "count" is 0.
-  Json::Value pingState = accountPing->GetStorageJson();
+  Json::Value pingState = accountPing->GetStateJson();
   int pingCount = -1;
   for (auto& it : pingState) {
     if (it["vname"] == "count") {
       pingCount = atoi(it["value"].asCString());
     }
   }
-  Json::Value pongState = accountPing->GetStorageJson();
+  Json::Value pongState = accountPing->GetStateJson();
   int pongCount = -1;
   for (auto& it : pongState) {
     if (it["vname"] == "count") {
@@ -509,7 +509,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     report << timeElapsedDeployment << "," << tr0.GetCumGas() << ",";
 
     for (unsigned int i = 0; i < numMapEntries; i++) {
-      std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
+      bytes hodler(ACC_ADDR_SIZE);
       std::string hodler_str;
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
       DataConversion::Uint8VecToHexStr(hodler, hodler_str);
@@ -644,7 +644,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 
     // 2. Pre-generate and save a large map and save it to LDB
     for (unsigned int i = 0; i < hodlers; i++) {
-      std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
+      bytes hodler(ACC_ADDR_SIZE);
       std::string hodler_str;
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
       DataConversion::Uint8VecToHexStr(hodler, hodler_str);
@@ -1018,7 +1018,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
 
     // Insert hodlers artifically
     for (unsigned int i = 0; i < hodlers; i++) {
-      std::vector<unsigned char> hodler(ACC_ADDR_SIZE);
+      bytes hodler(ACC_ADDR_SIZE);
       std::string hodlerAddr;
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
       DataConversion::Uint8VecToHexStr(hodler, hodlerAddr);
@@ -1122,12 +1122,12 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     for (unsigned int i = 0; i < numOrders; i++) {
       Json::Value info;
 
-      std::vector<unsigned char> sender(ACC_ADDR_SIZE);
+      bytes sender(ACC_ADDR_SIZE);
       std::string sender_str;
       DataConversion::Uint8VecToHexStr(sender, sender_str);
       RAND_bytes(sender.data(), ACC_ADDR_SIZE);
 
-      std::vector<unsigned char> orderId(COMMON_HASH_SIZE);
+      bytes orderId(COMMON_HASH_SIZE);
       std::string orderId_str;
       DataConversion::Uint8VecToHexStr(orderId, orderId_str);
       RAND_bytes(orderId.data(), COMMON_HASH_SIZE);
@@ -1269,7 +1269,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     // - sender's balance should have decreased, because the DEX contract will
     // have taken custody of the token.
     // - there should be an additional order in simple-dex.
-    Json::Value token1State = token1Account->GetStorageJson();
+    Json::Value token1State = token1Account->GetStateJson();
     for (auto& s : token1State) {
       if (s["vname"] == "balances") {
         for (auto& hodl : s["value"]) {
@@ -1286,7 +1286,7 @@ BOOST_AUTO_TEST_CASE(testDEX) {
     std::string id = logs["event_logs"][0]["params"][0]["value"].asString();
     LOG_GENERAL(INFO, "New order ID = " << id);
 
-    Json::Value simpleDexState = dexAccount->GetStorageJson();
+    Json::Value simpleDexState = dexAccount->GetStateJson();
     bool hasNewOrder = false;
 
     for (auto& s : simpleDexState) {

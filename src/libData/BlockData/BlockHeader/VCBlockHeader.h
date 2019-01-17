@@ -68,7 +68,7 @@ class VCBlockHeader : public BlockHeaderBase {
   bool Deserialize(const bytes& src, unsigned int offset);
 
   /// Returns the DS Epoch number where view change happen
-  const uint64_t& GetVieWChangeDSEpochNo() const;
+  const uint64_t& GetViewChangeDSEpochNo() const;
 
   /// Returns the Epoch number (Total nums of final block) where view change
   /// happen

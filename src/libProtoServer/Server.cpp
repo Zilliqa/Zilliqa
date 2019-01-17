@@ -110,7 +110,7 @@ DefaultResponse Server::GetClientVersion() {
 
 DefaultResponse Server::GetNetworkId() {
   DefaultResponse ret;
-  ret.set_result("TestNet");
+  ret.set_result(to_string(CHAIN_ID));
   return ret;
 }
 
@@ -502,53 +502,14 @@ GetSmartContractStateResponse Server::GetSmartContractState(
       return ret;
     }
 
-    ret.set_storagejson(account->GetStorageJson().toStyledString());
-  } catch (exception& e) {
-    LOG_GENERAL(INFO,
-                "[Error]" << e.what() << " Input: " << protoAddress.address());
-    ret.set_error("Unable To Process");
-  }
-
-  return ret;
-}
-
-GetSmartContractInitResponse Server::GetSmartContractInit(
-    ProtoAddress& protoAddress) {
-  LOG_MARKER();
-
-  GetSmartContractInitResponse ret;
-
-  try {
-    if (!protoAddress.has_address()) {
-      ret.set_error("Address not set in request");
+    pair<Json::Value, Json::Value> roots;
+    if (!account->GetStorageJson(roots)) {
+      ret.set_error("Scilla_version not set properly");
       return ret;
     }
 
-    if (protoAddress.address().size() != ACC_ADDR_SIZE * 2) {
-      ret.set_error("Address size inappropriate");
-      return ret;
-    }
-
-    bytes tmpaddr;
-    if (!DataConversion::HexStrToUint8Vec(protoAddress.address(), tmpaddr)) {
-      ret.set_error("Address is not valid");
-      return ret;
-    }
-
-    Address addr(tmpaddr);
-    const Account* account = AccountStore::GetInstance().GetAccount(addr);
-
-    if (account == nullptr) {
-      ret.set_error("Address does not exist");
-      return ret;
-    }
-
-    if (!account->isContract()) {
-      ret.set_error("Address not contract address");
-      return ret;
-    }
-
-    ret.set_initjson(account->GetInitJson().toStyledString());
+    ret.set_initjson(roots.first.toStyledString());
+    ret.set_storagejson(roots.second.toStyledString());
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << protoAddress.address());
@@ -654,7 +615,7 @@ GetSmartContractResponse Server::GetSmartContracts(ProtoAddress& protoAddress) {
       auto protoContractAccount = ret.add_address();
       protoContractAccount->set_address(contractAddr.hex());
       protoContractAccount->set_state(
-          contractAccount->GetStorageJson().toStyledString());
+          contractAccount->GetStateJson().toStyledString());
     }
 
   } catch (exception& e) {

@@ -20,7 +20,6 @@
 
 #include "libData/BlockData/Block.h"
 #include "libData/DataStructures/CircularArray.h"
-#include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
@@ -41,94 +40,20 @@ class BlockLinkChain {
   DequeOfNode m_builtDsCommittee;
 
  public:
-  BlockLink GetFromPersistentStorage(const uint64_t& index) {
-    BlockLinkSharedPtr blnkshared;
+  BlockLink GetFromPersistentStorage(const uint64_t& index);
+  void Reset();
 
-    if (!BlockStorage::GetBlockStorage().GetBlockLink(index, blnkshared)) {
-      LOG_GENERAL(WARNING,
-                  "Unable to find blocklink, returning dummy link " << index);
-      return BlockLink();
-    }
+  BlockLinkChain();
 
-    return *blnkshared;
-  }
-
-  void Reset() { m_blockLinkChain.resize(BLOCKCHAIN_SIZE); }
-
-  BlockLinkChain() { Reset(); };
-
-  BlockLink GetBlockLink(const uint64_t& index) {
-    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
-    if (m_blockLinkChain.size() <= index) {
-      LOG_GENERAL(WARNING,
-                  "Unable to find blocklink, returning dummy link " << index);
-      return BlockLink();
-    } else if (index + m_blockLinkChain.capacity() < m_blockLinkChain.size()) {
-      return GetFromPersistentStorage(index);
-    }
-    if (std::get<BlockLinkIndex::INDEX>(m_blockLinkChain[index]) != index) {
-      LOG_GENERAL(WARNING, "Does not match the given index");
-      return BlockLink();
-    }
-    return m_blockLinkChain[index];
-  }
+  BlockLink GetBlockLink(const uint64_t& index);
 
   bool AddBlockLink(const uint64_t& index, const uint64_t& dsindex,
-                    const BlockType blocktype, const BlockHash& blockhash) {
-    uint64_t latestIndex = GetLatestIndex();
+                    const BlockType blocktype, const BlockHash& blockhash);
+  uint64_t GetLatestIndex();
 
-    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
-
-    if ((m_blockLinkChain.size() > 0) && (index <= latestIndex)) {
-      LOG_GENERAL(WARNING, "the latest index in the blocklink is greater"
-                               << index << " " << latestIndex);
-      return false;
-    } else if (m_blockLinkChain.size() == 0 && index > 0) {
-      LOG_GENERAL(WARNING, "the first index to be inserted should be 0");
-      return false;
-    }
-    m_blockLinkChain.insert_new(
-        index, std::make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype,
-                               blockhash));
-
-    bytes dst;
-    LOG_GENERAL(INFO, "[DBS]"
-                          << "Stored " << index << " " << dsindex << " "
-                          << blocktype << " " << blockhash);
-
-    if (!Messenger::SetBlockLink(
-            dst, 0,
-            std::make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype,
-                            blockhash))) {
-      LOG_GENERAL(WARNING, "Could not set BlockLink " << index);
-      return false;
-    }
-    if (!BlockStorage::GetBlockStorage().PutBlockLink(index, dst)) {
-      LOG_GENERAL(WARNING, "Could not save blocklink " << index);
-      return false;
-    }
-    return true;
-  }
-
-  uint64_t GetLatestIndex() {
-    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
-    if (m_blockLinkChain.size() == 0) {
-      return 0;
-    }
-    return std::get<BlockLinkIndex::INDEX>(m_blockLinkChain.back());
-  }
-
-  const DequeOfNode& GetBuiltDSComm() { return m_builtDsCommittee; }
-
-  void SetBuiltDSComm(const DequeOfNode& dsComm) {
-    m_builtDsCommittee = dsComm;
-  }
-
-  const BlockLink& GetLatestBlockLink() {
-    std::lock_guard<std::mutex> g(m_mutexBlockLinkChain);
-
-    return m_blockLinkChain.back();
-  }
+  const DequeOfNode& GetBuiltDSComm();
+  void SetBuiltDSComm(const DequeOfNode& dsComm);
+  const BlockLink& GetLatestBlockLink();
 };
 
 #endif  //__BLOCKLINKCHAIN_H__

@@ -253,10 +253,8 @@ message ProtoAccount
     required uint64 nonce          = 4;  // Added in: v1.0, Deprecated in: N/A
     optional bytes storageroot     = 5;  // Added in: v1.0, Deprecated in: N/A
     optional bytes codehash        = 6;  // Added in: v1.0, Deprecated in: N/A
-    optional uint64 createblocknum = 7;  // Added in: v1.0, Deprecated in: N/A
-    optional bytes initdata        = 8;  // Added in: v1.0, Deprecated in: N/A
-    optional bytes code            = 9;  // Added in: v1.0, Deprecated in: N/A
-    repeated StorageData storage   = 10; // Added in: v1.0, Deprecated in: N/A
+    optional bytes code            = 7;  // Added in: v1.0, Deprecated in: N/A
+    repeated StorageData storage   = 8; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoStateIndex
@@ -759,8 +757,14 @@ message LookupGetDirectoryBlocksFromSeed
 
 message LookupSetDirectoryBlocksFromSeed
 {
-    required uint64 indexnum                     = 1;
-    repeated ProtoSingleDirectoryBlock dirblocks = 2;
+    message Data
+    {
+        required uint64 indexnum                     = 1;
+        repeated ProtoSingleDirectoryBlock dirblocks = 2;
+    }
+    required Data data           = 1;
+    required ByteArray pubkey    = 2;
+    required ByteArray signature = 3;
 }
 
 // ============================================================================

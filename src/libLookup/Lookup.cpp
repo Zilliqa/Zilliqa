@@ -836,7 +836,12 @@ bool Lookup::ProcessEntireShardingStructure() {
 
 bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
                                       const Peer& from) {
-  //#ifndef IS_LOOKUP_NODE
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetDSInfoFromSeed not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
@@ -881,8 +886,6 @@ bool Lookup::ProcessGetDSInfoFromSeed(const bytes& message, unsigned int offset,
   Peer requestingNode(ipAddr, portNo);
   P2PComm::GetInstance().SendMessage(requestingNode, dsInfoMessage);
 
-  //#endif // IS_LOOKUP_NODE
-
   return true;
 }
 
@@ -911,7 +914,12 @@ void Lookup::SendMessageToRandomSeedNode(const bytes& message) const {
 // highBlockNum = 0 => Latest block number
 bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from) {
-  //#ifndef IS_LOOKUP_NODE // TODO: remove the comment
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetDSBlockFromSeed not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
@@ -947,8 +955,6 @@ bool Lookup::ProcessGetDSBlockFromSeed(const bytes& message,
   Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
   P2PComm::GetInstance().SendMessage(requestingNode, dsBlockMessage);
-
-  //#endif // IS_LOOKUP_NODE
 
   return true;
 }
@@ -992,7 +998,8 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
       DSBlock dsblk = m_mediator.m_dsBlockChain.GetBlock(blockNum);
-      // TODO Hot fix to identify dummy block as == comparator does not work on
+      // TODO
+      // Workaround to identify dummy block as == comparator does not work on
       // empty object for DSBlock and DSBlockheader().
       if (dsblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER) {
         LOG_GENERAL(WARNING,
@@ -1018,6 +1025,13 @@ void Lookup::RetrieveDSBlocks(vector<DSBlock>& dsBlocks, uint64_t& lowBlockNum,
 
 bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
                                      const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetStateFromSeed not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
+
   LOG_MARKER();
 
   uint32_t portNo = 0;
@@ -1041,7 +1055,6 @@ bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
   }
 
   P2PComm::GetInstance().SendMessage(requestingNode, setStateMessage);
-  // #endif // IS_LOOKUP_NODE
 
   return true;
 }
@@ -1052,7 +1065,12 @@ bool Lookup::ProcessGetStateFromSeed(const bytes& message, unsigned int offset,
 // highBlockNum = 0 => Latest block number
 bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
                                        unsigned int offset, const Peer& from) {
-  // #ifndef IS_LOOKUP_NODE // TODO: remove the comment
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Lookup::ProcessGetTxBlockFromSeed not expected to be called "
+                "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
@@ -1087,8 +1105,6 @@ bool Lookup::ProcessGetTxBlockFromSeed(const bytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   P2PComm::GetInstance().SendMessage(requestingNode, txBlockMessage);
-
-  // #endif // IS_LOOKUP_NODE
 
   return true;
 }
@@ -1129,7 +1145,8 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
   for (blockNum = lowBlockNum; blockNum <= highBlockNum; blockNum++) {
     try {
       TxBlock txblk = m_mediator.m_txBlockChain.GetBlock(blockNum);
-      // TODO Hot fix to identify dummy block as == comparator does not work on
+      // TODO
+      // Workaround to identify dummy block as == comparator does not work on
       // empty object for TxBlock and TxBlockheader().
       if (txblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
           txblk.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
@@ -1157,6 +1174,14 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
 bool Lookup::ProcessGetStateDeltaFromSeed(const bytes& message,
                                           unsigned int offset,
                                           const Peer& from) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Lookup::ProcessGetStateDeltaFromSeed not expected to be called "
+        "from other than the LookUp node.");
+    return true;
+  }
+
   LOG_MARKER();
 
   uint64_t blockNum = 0;
@@ -1307,7 +1332,12 @@ bool Lookup::AddMicroBlockToStorage(const MicroBlock& microblock) {
                         << microblock.GetBlockHash());
   unsigned int i = 0;
 
-  if (txblk == TxBlock()) {
+  // TODO
+  // Workaround to identify dummy block as == comparator does not work on
+  // empty object for TxBlock and TxBlockheader().
+  // if (txblk == TxBlock()) {
+  if (txblk.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+      txblk.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
     LOG_GENERAL(WARNING, "Failed to fetch Txblock");
     return false;
   }
@@ -1623,8 +1653,14 @@ bool Lookup::ProcessSetDSBlockFromSeed(const bytes& message,
     }
 
     for (const auto& dsblock : dsBlocks) {
-      if (!(m_mediator.m_dsBlockChain.GetBlock(
-                dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
+      // TODO
+      // Workaround to identify dummy block as == comparator does not work on
+      // empty object for DSBlock and DSBlockheader().
+      // if (!(m_mediator.m_dsBlockChain.GetBlock(
+      //           dsblock.GetHeader().GetBlockNum()) == DSBlock())) {
+      if (m_mediator.m_dsBlockChain.GetBlock(dsblock.GetHeader().GetBlockNum())
+              .GetHeader()
+              .GetBlockNum() != INIT_BLOCK_NUMBER) {
         continue;
       }
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
@@ -2881,11 +2917,18 @@ bool Lookup::GetOfflineLookupNodes() {
 bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
                                                unsigned int offset,
                                                const Peer& from) {
-  uint64_t index_num;
-  uint32_t portNo;
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(
+        WARNING,
+        "Lookup::ProcessGetDirectoryBlocksFromSeed not expected to be called "
+        "from other than the LookUp node.");
+    return true;
+  }
 
   LOG_MARKER();
 
+  uint64_t index_num;
+  uint32_t portNo;
   if (!Messenger::GetLookupGetDirectoryBlocksFromSeed(message, offset, portNo,
                                                       index_num)) {
     LOG_GENERAL(WARNING,
@@ -2930,9 +2973,9 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const bytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer peer(ipAddr, portNo);
 
-  if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(msg, MessageOffset::BODY,
-                                                      SHARDINGSTRUCTURE_VERSION,
-                                                      dirBlocks, index_num)) {
+  if (!Messenger::SetLookupSetDirectoryBlocksFromSeed(
+          msg, MessageOffset::BODY, SHARDINGSTRUCTURE_VERSION, dirBlocks,
+          index_num, m_mediator.m_selfKey)) {
     LOG_GENERAL(WARNING,
                 "Messenger::SetLookupSetDirectoryBlocksFromSeed failed");
     return false;
@@ -2950,10 +2993,19 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
       dirBlocks;
   uint64_t index_num;
   uint32_t shardingStructureVersion = 0;
+  PubKey lookupPubKey;
   if (!Messenger::GetLookupSetDirectoryBlocksFromSeed(
-          message, offset, shardingStructureVersion, dirBlocks, index_num)) {
+          message, offset, shardingStructureVersion, dirBlocks, index_num,
+          lookupPubKey)) {
     LOG_GENERAL(WARNING,
                 "Messenger::GetLookupSetDirectoryBlocksFromSeed failed");
+    return false;
+  }
+
+  if (!Lookup::VerifySenderNode(GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
     return false;
   }
 

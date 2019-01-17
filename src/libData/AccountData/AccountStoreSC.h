@@ -19,9 +19,13 @@
 #define __ACCOUNTSTORESC_H__
 
 #include <json/json.h>
+#include <atomic>
+#include <condition_variable>
+#include <functional>
 #include <mutex>
 
 #include "AccountStoreBase.h"
+#include "libUtils/DetachedFunction.h"
 
 template <class MAP>
 class AccountStoreSC;
@@ -62,6 +66,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   unsigned int m_curDepth = 0;
 
+  std::mutex m_MutexCVCallContract;
+  std::condition_variable cv_callContract;
+  std::atomic<bool> m_txnProcessTimeout;
+
   bool ParseContractCheckerOutput(const std::string& checkerPrint);
 
   bool ParseCreateContract(uint64_t& gasRemained,
@@ -81,16 +89,15 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::string GetCallContractCmdStr(const std::string& root_w_version,
                                     const uint64_t& available_gas);
 
-  bool PrepareRootPathWVersion(std::string& root_w_version,
-                               const uint32_t& scilla_version);
+  bool PrepareRootPathWVersion(const uint32_t& scilla_version);
 
   // Generate input for interpreter to check the correctness of contract
-  void ExportCreateContractFiles(const Account& contract);
+  bool ExportCreateContractFiles(const Account& contract);
 
-  void ExportContractFiles(const Account& contract);
+  bool ExportContractFiles(const Account& contract);
   bool ExportCallContractFiles(const Account& contract,
                                const Transaction& transaction);
-  void ExportCallContractFiles(const Account& contract,
+  bool ExportCallContractFiles(const Account& contract,
                                const Json::Value& contractData);
 
   bool TransferBalanceAtomic(const Address& from, const Address& to,
@@ -112,6 +119,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                  const std::string& runnerPrint = "");
   bool ParseCallContractOutput(Json::Value& jsonOutput,
                                const std::string& runnerPrint = "");
+
+  void NotifyTimeout();
 };
 
 #include "AccountStoreAtomic.tpp"
