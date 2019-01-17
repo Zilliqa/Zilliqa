@@ -133,8 +133,15 @@ vector<pid_t> getProcIdByName(string procName, ofstream& log) {
           // Compare against requested process name
           if (procName == cmdLine) {
             result.push_back(id);
-            fullLine = fullLine.substr(fullLine.find('\0') + 1);
-            size_t space_pos;
+            size_t space_pos = fullLine.find('\0');
+
+            if (string::npos == space_pos) {
+              log << "Failed to parse abnormal command: " << fullLine << endl;
+              closedir(dp);
+              return result;
+            }
+
+            fullLine = fullLine.substr(space_pos + 1);
 
             while (!fullLine.empty() &&
                    (string::npos != (space_pos = fullLine.find('\0')))) {
