@@ -650,6 +650,7 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
     return false;
   }
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
+  LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
   if (!_json.isMember("message") || !_json.isMember("states") ||
       !_json.isMember("events")) {
@@ -749,6 +750,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
   uint64_t startGas = gasRemained;
   gasRemained = atoi(_json["gas_remaining"].asString().c_str());
+  LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
 
   if (!_json.isMember("_accepted")) {
     LOG_GENERAL(WARNING,
@@ -838,6 +840,11 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(const Json::Value& _json,
   }
 
   Address recipient = Address(_json["message"]["_recipient"].asString());
+  if (recipient == Address()) {
+    LOG_GENERAL(WARNING, "The recipient can't be null address");
+    return false;
+  }
+
   Account* account = this->GetAccount(recipient);
 
   if (account == nullptr) {
