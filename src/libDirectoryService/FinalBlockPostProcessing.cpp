@@ -483,6 +483,8 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
             ConsensusCommon::INITIAL);
 
         auto rerunconsensus = [this, message, offset, from]() {
+          RemoveDSMicroBlock();  // Remove DS microblock from my list of
+                                 // microblocks
           PrepareRunConsensusOnFinalBlockNormal();
           ProcessFinalBlockConsensusCore(message, offset, from);
         };
