@@ -26,8 +26,6 @@ import signal
 from subprocess import Popen, PIPE
 
 IP_SITE = 'ifconfig.me'
-
-PORT_NUM = 30303
 PROJ_DIR = '/run/zilliqa'
 
 def main():
@@ -79,7 +77,7 @@ def run_restart(pubKey, privKey, port, typ, path):
 		keypair = keypairs[x].split(" ")
 
 		signal.signal(signal.SIGCHLD, signal.SIG_IGN)
-		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + nodeIP + ' --port ' + str(PORT_NUM) + ' --loadconfig ' + ' --synctype ' + typ + ' --recovery >> ./error_log_zilliqa 2>&1')
+		os.system('cd ' + PROJ_DIR + '; ulimit -Sc unlimited; ulimit -Hc unlimited;' + path + 'zilliqa' + ' --privk ' + keypair[1] + ' --pubk ' + keypair[0] + ' --address ' + nodeIP + ' --port ' + str(port) + ' --loadconfig ' + ' --synctype ' + typ + ' --recovery >> ./error_log_zilliqa 2>&1')
 
 if __name__ == "__main__":
 	main()
