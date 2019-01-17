@@ -253,8 +253,8 @@ message ProtoAccount
     required uint64 nonce          = 4;  // Added in: v1.0, Deprecated in: N/A
     optional bytes storageroot     = 5;  // Added in: v1.0, Deprecated in: N/A
     optional bytes codehash        = 6;  // Added in: v1.0, Deprecated in: N/A
-    optional bytes code            = 9;  // Added in: v1.0, Deprecated in: N/A
-    repeated StorageData storage   = 10; // Added in: v1.0, Deprecated in: N/A
+    optional bytes code            = 7;  // Added in: v1.0, Deprecated in: N/A
+    repeated StorageData storage   = 8; // Added in: v1.0, Deprecated in: N/A
 }
 
 message ProtoStateIndex
